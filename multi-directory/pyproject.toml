@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "multi-directory"
+version = "0.1.0"
+description = ""
+authors = ["Mastermind-U <rex49513@gmail.com>"]
+readme = "README.md"
+packages = [{include = "multi_directory"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sqlalchemy = {extras = ["asyncio"], version = "^1.4.44"}
+asyncpg = "^0.27.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
