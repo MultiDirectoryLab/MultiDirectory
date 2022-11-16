@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Mastermind-U <rex49513@gmail.com>"]
 readme = "README.md"
-packages = [{include = "multi_directory"}]
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
