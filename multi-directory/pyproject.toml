@@ -13,6 +13,15 @@ asyncpg = "^0.27.0"
 alembic = "^1.8.1"
 
 
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+flake8 = "^5.0.4"
+flake8-docstrings = "^1.6.0"
+pycodestyle = "^2.9.1"
+isort = "^5.10.1"
+flake8-pytest = "^1.4"
+pytest = "^7.2.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
