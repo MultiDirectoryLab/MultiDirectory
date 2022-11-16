@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "multi-directory"
+version = "0.1.0"
+description = ""
+authors = ["Mastermind-U <rex49513@gmail.com>"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sqlalchemy = {extras = ["asyncio"], version = "^1.4.44"}
+asyncpg = "^0.27.0"
+alembic = "^1.8.1"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+flake8 = "^5.0.4"
+flake8-docstrings = "^1.6.0"
+pycodestyle = "^2.9.1"
+isort = "^5.10.1"
+flake8-pytest = "^1.4"
+pytest = "^7.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
