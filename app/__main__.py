@@ -2,29 +2,29 @@
 
 import asyncio
 
-from .client import run_client
-from .ldap.messages import LDAPMessage
+from client import run_client
+from ldap.messages import LDAPMessage, Session
 
 
-async def handle_client(self, reader, writer):
+async def handle_client(
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter
+):
     """Handle client connection with LDAP protocol."""
-    data = await reader.read(4096)
-    try:
+    session = Session()
+    while True:
+        data = await reader.read(4096)
         message = LDAPMessage.from_bytes(data)
-        print(message)
-    except Exception as exc:
-        print('failed decoding asn1', exc)
-        writer.close()
-        return
-    addr = writer.get_extra_info('peername')
-    # print(f"Received {data}\nROS: {(message)} \nfrom {addr!r}")
+        response = await message.handle(session)
 
-    writer.write(bytearray(10))
-    await writer.drain()
+        addr = writer.get_extra_info('peername')
+        print(f"From: {addr!r}\nRequest: {message}\nResponse: {response}")
+
+        writer.write(response.encode())
+        await writer.drain()
 
     print(f"Close the connection {addr}")
     writer.close()
-    return
 
 
 async def main():
@@ -32,7 +32,7 @@ async def main():
     server = await asyncio.start_server(handle_client, '127.0.0.1', 389)
 
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
-    print(f'Connection on {addrs}')
+    print(f'Server on {addrs}')
     loop = asyncio.get_running_loop()
     async with server:
         task1 = loop.run_in_executor(None, run_client)
