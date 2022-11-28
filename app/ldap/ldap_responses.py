@@ -37,6 +37,7 @@ class BindResponse(BaseResponse):
     """Bind response."""
 
     PROTOCOL_OP: ClassVar[int] = 1
+
     result_code: int = Field(..., alias='resultCode')
     matched_dn: str = Field('', alias='matchedDN')
     error_message: str = Field('', alias="errorMessage")

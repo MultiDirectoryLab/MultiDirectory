@@ -7,6 +7,7 @@ from typing import ClassVar
 from pydantic import BaseModel, Field
 
 from .asn1parser import ASN1Row
+from .codes import LDAPCodes
 from .ldap_responses import BaseResponse, BindResponse
 
 
@@ -76,7 +77,7 @@ class BindRequest(BaseRequest):
             raise ValueError('User authed')
         await asyncio.sleep(0)  # TODO: Add sqlalchemy query
         session.name = self.name
-        return BindResponse(resultCode=0)
+        return BindResponse(resultCode=LDAPCodes.SUCCESS)
 
 
 class UnbindRequest(BaseRequest):
