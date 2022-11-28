@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Any
+from collections import defaultdict
 
 from asn1 import Classes, Decoder, Numbers, Tag, Types
 
@@ -55,10 +56,10 @@ tag_id_to_string_map = {
 }
 
 class_id_to_string_map = {
-    Classes.Universal: "U",
-    Classes.Application: "A",
-    Classes.Context: "C",
-    Classes.Private: "P",
+    Classes.Universal: "UNIVERSAL",
+    Classes.Application: "APPLICATION",
+    Classes.Context: "CONTEXT",
+    Classes.Private: "PRIVATE",
 }
 
 
@@ -66,7 +67,12 @@ def value_to_string(tag, value):
     """Convert value to string."""
     if tag.nr == Numbers.Integer:
         return int(value)
-    if isinstance(value, (bytes, str)):
+    if isinstance(value, bytes):
+        try:
+            return value.decode()
+        except UnicodeDecodeError:
+            return value
+    if isinstance(value, str):
         return value
     return repr(value)
 
@@ -83,11 +89,11 @@ def class_id_to_string(identifier):
     raise ValueError('Illegal class: {:#02x}'.format(identifier))
 
 
-def parse_asn1_to_dict(
+def _parse_asn1_to_dict(
     decoder: Decoder,
     output: dict,
     depth: int = 0,
-    trace: bool = True,
+    trace: bool = False,
 ):
     """Collect ASN.1 data to dict."""
     while not decoder.eof():
@@ -108,7 +114,7 @@ def parse_asn1_to_dict(
             new_depth = depth + 1
 
             decoder.enter()
-            parse_asn1_to_dict(decoder, output, new_depth, trace)
+            _parse_asn1_to_dict(decoder, output, new_depth, trace)
             decoder.leave()
 
             field = ASN1Row.from_tag(tag, f'field-{new_depth}')
@@ -116,3 +122,12 @@ def parse_asn1_to_dict(
 
             if trace:
                 print(' ' * 4 * depth, f"[{field.class_id}] {field.tag_id}")
+
+
+def asn1todict(data: bytes) -> dict[str, list[ASN1Row]]:
+    """Parse ASN1 data to dict."""
+    dec = Decoder()
+    dec.start(data)
+    output = defaultdict(list)  # type: ignore
+    _parse_asn1_to_dict(dec, output)
+    return output
