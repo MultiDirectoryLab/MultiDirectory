@@ -1,5 +1,7 @@
 """Base LDAP message builder."""
 
+from abc import ABC, abstractmethod
+
 from asn1 import Classes, Encoder, Numbers
 from pydantic import BaseModel, Field
 
@@ -15,12 +17,36 @@ class Session(BaseModel):
     pwd_hash: str | None
 
 
-class LDAPMessage(BaseModel):
+class LDAPMessage(ABC, BaseModel):
     """Base message structure. Pydantic for types validation."""
 
     message_id: int = Field(..., alias='messageID')
     protocol_op: int = Field(..., alias='protocolOP')
-    context: BaseRequest | BaseResponse = Field(...)
+    context: BaseRequest | BaseResponse = Field()
+
+
+class LDAPResponseMessage(LDAPMessage):
+    """Response message."""
+
+    context: BaseResponse
+
+    def encode(self) -> bytes:
+        """Encode message to asn1."""
+        enc = Encoder()
+        enc.start()
+        enc.enter(Numbers.Sequence)
+        enc.write(self.message_id, Numbers.Integer)
+        enc.enter(nr=self.context.PROTOCOL_OP, cls=Classes.Application)
+        self.context.to_asn1(enc)
+        enc.leave()
+        enc.leave()
+        return enc.output()
+
+
+class LDAPRequestMessage(LDAPMessage):
+    """Request message interface."""
+
+    context: BaseRequest
 
     @classmethod
     def from_bytes(cls, source: bytes):
@@ -42,20 +68,8 @@ class LDAPMessage(BaseModel):
     async def handle(self, session: Session) -> 'LDAPMessage':
         """Call unique context handler."""
         response = await self.context.handle(session)
-        return LDAPMessage(
+        return LDAPResponseMessage(
             messageID=self.message_id,
             protocolOP=response.PROTOCOL_OP,
             context=response,
         )
-
-    def encode(self) -> bytes:
-        """Encode message to asn1."""
-        enc = Encoder()
-        enc.start()
-        enc.enter(Numbers.Sequence)
-        enc.write(self.message_id, Numbers.Integer)
-        enc.enter(nr=self.context.PROTOCOL_OP, cls=Classes.Application)
-        self.context.to_asn1(enc)
-        enc.leave()
-        enc.leave()
-        return enc.output()
