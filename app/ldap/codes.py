@@ -3,7 +3,7 @@
 from enum import Enum
 
 
-class LDAPCodes(Enum):
+class LDAPCodes(int, Enum):
     """LDAP protocol codes mapping."""
 
     SUCCESS = 0
