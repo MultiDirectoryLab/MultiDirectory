@@ -219,6 +219,17 @@ flake8 = "*"
 test = ["pytest"]
 
 [[package]]
+name = "flake8-commas"
+version = "2.1.0"
+description = "Flake8 lint for trailing commas."
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+flake8 = ">=2"
+
+[[package]]
 name = "flake8-comprehensions"
 version = "3.10.1"
 description = "A flake8 plugin to help you write better list/set/dict comprehensions."
@@ -430,7 +441,7 @@ requirements-deprecated-finder = ["pip-api", "pipreqs"]
 name = "ldap3"
 version = "2.9.1"
 description = "A strictly RFC 4510 conforming LDAP V3 pure Python client library"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -541,7 +552,7 @@ testing = ["pytest", "pytest-benchmark"]
 name = "pyasn1"
 version = "0.4.8"
 description = "ASN.1 types and codecs"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -726,7 +737,7 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "8081a43d49a57bb42be89a7213b7579dc5cf052b8425b727a42e30bec5860c8d"
+content-hash = "20413800f54ec989d678da84212ad3f8304ccab28cd782a66bc1e8961c9042f9"
 
 [metadata.files]
 alembic = [
@@ -830,6 +841,10 @@ flake8-bugbear = [
 flake8-builtins = [
     {file = "flake8-builtins-2.0.1.tar.gz", hash = "sha256:5aeb420130efe8acbdaf8708a582492413293a3ca25653518f687937879650a5"},
     {file = "flake8_builtins-2.0.1-py3-none-any.whl", hash = "sha256:a5b9ca9cbc921c4455ea02e2e9963c990ac66d028c15b654625e012a1e3bbb4d"},
+]
+flake8-commas = [
+    {file = "flake8-commas-2.1.0.tar.gz", hash = "sha256:940441ab8ee544df564ae3b3f49f20462d75d5c7cac2463e0b27436e2050f263"},
+    {file = "flake8_commas-2.1.0-py2.py3-none-any.whl", hash = "sha256:ebb96c31e01d0ef1d0685a21f3f0e2f8153a0381430e748bf0bbbb5d5b453d54"},
 ]
 flake8-comprehensions = [
     {file = "flake8-comprehensions-3.10.1.tar.gz", hash = "sha256:412052ac4a947f36b891143430fef4859705af11b2572fbb689f90d372cf26ab"},
