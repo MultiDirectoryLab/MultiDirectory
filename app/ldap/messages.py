@@ -1,6 +1,6 @@
 """Base LDAP message builder."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from asn1 import Classes, Encoder, Numbers
 from pydantic import BaseModel, Field
@@ -34,7 +34,7 @@ class LDAPResponseMessage(LDAPMessage):
         """Encode message to asn1."""
         enc = Encoder()
         enc.start()
-        enc.enter(Numbers.Sequence)
+        enc.enter(Numbers.Sequence, cls=Numbers.Enumerated)
         enc.write(self.message_id, Numbers.Integer)
         enc.enter(nr=self.context.PROTOCOL_OP, cls=Classes.Application)
         self.context.to_asn1(enc)
@@ -65,7 +65,7 @@ class LDAPRequestMessage(LDAPMessage):
             context=context,
         )
 
-    async def handle(self, session: Session) -> 'LDAPMessage':
+    async def handle(self, session: Session) -> LDAPResponseMessage:
         """Call unique context handler."""
         response = await self.context.handle(session)
         return LDAPResponseMessage(
