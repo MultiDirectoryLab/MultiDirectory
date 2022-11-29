@@ -3,28 +3,30 @@
 import asyncio
 
 from client import run_client
-from ldap.messages import LDAPMessage, Session
+from ldap.messages import LDAPRequestMessage, Session
 
 
 async def handle_client(
     reader: asyncio.StreamReader,
-    writer: asyncio.StreamWriter
+    writer: asyncio.StreamWriter,
 ):
     """Handle client connection with LDAP protocol."""
     session = Session()
     while True:
         data = await reader.read(4096)
-        message = LDAPMessage.from_bytes(data)
-        response = await message.handle(session)
-
         addr = writer.get_extra_info('peername')
-        print(f"From: {addr!r}\nRequest: {message}\nResponse: {response}")
+        try:
+            message = LDAPRequestMessage.from_bytes(data)
+            response = await message.handle(session)
+        except Exception as err:
+            print(err)
+            print(f"Close the connection {addr}")
+            writer.close()
+        else:
+            print(f"From: {addr!r}\nRequest: {message}\nResponse: {response}")
 
-        writer.write(response.encode())
-        await writer.drain()
-
-    print(f"Close the connection {addr}")
-    writer.close()
+            writer.write(response.encode())
+            await writer.drain()
 
 
 async def main():
