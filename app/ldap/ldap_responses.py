@@ -4,12 +4,15 @@ from typing import ClassVar, get_type_hints
 from asn1 import Encoder, Numbers
 from pydantic import BaseModel, Field
 
+from .codes import LDAPCodes
+
 type_map = {
     bool: Numbers.Boolean,
     int: Numbers.Integer,
     bytes: Numbers.BitString,
     str: Numbers.OctetString,
     None: Numbers.Null,
+    LDAPCodes: Numbers.Integer,
 }
 
 
@@ -29,15 +32,12 @@ class BaseResponse(ABC, BaseModel):
         for field_name, value in fields.items():
             enc.write(value, type_map[types[field_name]])
 
-    async def handle(self, *args, **kwargs) -> None:  # noqa: D102
-        raise NotImplementedError('No need to hanlde responses.')
-
 
 class BindResponse(BaseResponse):
     """Bind response."""
 
     PROTOCOL_OP: ClassVar[int] = 1
 
-    result_code: int = Field(..., alias='resultCode')
+    result_code: LDAPCodes = Field(..., alias='resultCode')
     matched_dn: str = Field('', alias='matchedDN')
     error_message: str = Field('', alias="errorMessage")
