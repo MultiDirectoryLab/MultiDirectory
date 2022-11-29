@@ -25,9 +25,6 @@ class BaseRequest(ABC, BaseModel):
         """Create structure from ASN1Row dataclass list."""
         raise NotImplementedError()
 
-    def to_asn1(self, *args, **kwargs) -> None:  # noqa: D102
-        raise NotImplementedError('No need to encode request')
-
     @abstractmethod
     async def handle(self, session) -> BaseResponse:
         """Handle message with current user."""
@@ -81,7 +78,7 @@ class BindRequest(BaseRequest):
 
 
 class UnbindRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 2
 
 
 class SearchRequest(BaseRequest):
@@ -95,54 +92,47 @@ class SearchRequest(BaseRequest):
 
 
 class ModifyRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 6
 
 
 class AddRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 8
 
 
 class DeleteRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 10
 
 
 class ModifyDNRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 12
 
 
 class CompareRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 14
 
 
 class AbandonRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 16
 
 
 class ExtendedRequest(BaseRequest):
-    pass
+    PROTOCOL_OP: ClassVar[int] = 23
 
 
-# TODO: add support for all codes
-protocol_id_map: dict[int, type[BaseRequest]] = {
-    0: BindRequest,
-    1: 'Bind Response',
-    2: UnbindRequest,
-    3: SearchRequest,
-    4: 'search Result Entry',
-    5: 'search Result Done',
-    6: ModifyRequest,
-    7: 'Modify Response',
-    8: AddRequest,
-    9: 'Add Response',
-    10: DeleteRequest,
-    11: 'Delete Response',
-    12: ModifyDNRequest,
-    13: 'Modify DN Response',
-    14: CompareRequest,
-    15: 'compare Response',
-    16: AbandonRequest,
-    19: 'Search Result Reference',
-    23: ExtendedRequest,
-    24: 'Extended Response',
-    25: 'intermediate Response',
-}
+protocol_id_map: dict[int, type[BaseRequest]] = \
+    {request.PROTOCOL_OP: request  # type: ignore
+        for request in BaseRequest.__subclasses__()}
+
+# protocol_id_map: dict[int, type[BaseRequest]] = {
+#     1: 'Bind Response',
+#     4: 'search Result Entry',
+#     5: 'search Result Done',
+#     7: 'Modify Response',
+#     9: 'Add Response',
+#     11: 'Delete Response',
+#     13: 'Modify DN Response',
+#     15: 'compare Response',
+#     19: 'Search Result Reference',
+#     24: 'Extended Response',
+#     25: 'intermediate Response',
+# }
