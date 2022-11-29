@@ -1,13 +1,17 @@
+"""Test client for LDAP server."""
+
 from ldap3 import Connection, Server
+from loguru import logger
 
 
 def run_client():
     server = Server('127.0.0.1:389')
     conn = Connection(server, 'username', 'password', version=3)
-    print('connecting')
+    logger.info('connecting')
     try:
         conn.bind()
-    except Exception as e:
-        print('failed', e)
+    except Exception as exc:  # noqa: F841
+        logger.error('failed {exc}')
     else:
-        print('OK', conn.search('o=test', '(objectclass=*)'))
+        logger.info('OK')
+        logger.info(conn.search('o=test', '(objectclass=*)'))

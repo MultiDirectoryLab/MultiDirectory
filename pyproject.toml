@@ -13,6 +13,7 @@ asyncpg = "^0.27.0"
 alembic = "^1.8.1"
 asn1 = "^2.6.0"
 pydantic = "^1.10.2"
+loguru = "^0.6.0"
 
 
 [tool.poetry.group.dev.dependencies]

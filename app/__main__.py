@@ -2,6 +2,8 @@
 
 import asyncio
 
+from loguru import logger
+
 from client import run_client
 from ldap.messages import LDAPRequestMessage, Session
 
@@ -19,11 +21,11 @@ async def handle_client(
             message = LDAPRequestMessage.from_bytes(data)
             response = await message.handle(session)
         except Exception as err:
-            print(err)
-            print(f"Close the connection {addr}")
+            logger.error(f"Close the connection {addr} with error {err}")
             writer.close()
+            break
         else:
-            print(f"From: {addr!r}\nRequest: {message}\nResponse: {response}")
+            logger.info(f"\nFrom: {addr!r}\nRequest: {message}\nResponse: {response}")
 
             writer.write(response.encode())
             await writer.drain()
