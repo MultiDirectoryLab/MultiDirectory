@@ -14,7 +14,7 @@ type_map = {
     bytes: Numbers.BitString,
     str: Numbers.OctetString,
     None: Numbers.Null,
-    LDAPCodes: Numbers.Integer,
+    LDAPCodes: Numbers.Enumerated,
 }
 
 
