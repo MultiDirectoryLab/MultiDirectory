@@ -1,14 +1,17 @@
 """LDAP requests structure bind."""
 
 import asyncio
+import sys
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from .asn1parser import ASN1Row
-from .codes import LDAPCodes
-from .ldap_responses import BaseResponse, BindResponse
+from .dialogue import LDAPCodes, Session
+from .ldap_responses import (BaseResponse, BindResponse, SearchResultDone,
+                             SearchResultEntry, SearchResultReference)
+from .objects import DerefAliases, Scope
 
 
 class BaseRequest(ABC, BaseModel):
@@ -26,7 +29,7 @@ class BaseRequest(ABC, BaseModel):
         raise NotImplementedError()
 
     @abstractmethod
-    async def handle(self, session) -> BaseResponse:
+    async def handle(self, session: Session) -> BaseResponse:
         """Handle message with current user."""
 
 
@@ -68,7 +71,7 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    async def handle(self, session) -> BindResponse:
+    async def handle(self, session: Session) -> BindResponse:
         """Handle bind request, check user and password."""
         if session.name:
             raise ValueError('User authed')
@@ -78,17 +81,96 @@ class BindRequest(BaseRequest):
 
 
 class UnbindRequest(BaseRequest):
+    """Remove user from session."""
+
     PROTOCOL_OP: ClassVar[int] = 2
+
+    @classmethod
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'UnbindRequest':
+        """Unbind request has no body."""
+        return cls()
+
+    async def handle(self, session: Session) -> BindResponse:
+        """Handle unbind request, no need to send."""
+        if not session.name:
+            raise ValueError('User authed')
+        await asyncio.sleep(0)  # TODO: Add sqlalchemy query
+        missing_user = session.name
+        session.name = None
+        raise UserWarning(f'Unbind {missing_user}')
 
 
 class SearchRequest(BaseRequest):
+    """Search request schema.
+
+    SearchRequest ::= [APPLICATION 3] SEQUENCE {
+    baseObject      LDAPDN,
+    scope           ENUMERATED {
+        baseObject              (0),
+        singleLevel             (1),
+        wholeSubtree            (2),
+        subordinateSubtree      (3),
+    },
+    derefAliases    ENUMERATED {
+        neverDerefAliases       (0),
+        derefInSearching        (1),
+        derefFindingBaseObj     (2),
+        derefAlways             (3) },
+    sizeLimit       INTEGER (0 ..  maxInt),
+    timeLimit       INTEGER (0 ..  maxInt),
+    typesOnly       BOOLEAN,
+    filter          Filter,
+    attributes      AttributeSelection
+    }
+    """
+
     PROTOCOL_OP: ClassVar[int] = 3
 
-    op: int = 1
+    base_object: str | None
+    scope: Scope
+    deref_aliases: DerefAliases
+    size_limit: int = Field(ge=0, le=sys.maxsize)
+    time_limit: int = Field(ge=0, le=sys.maxsize)
+    types_only: bool
+    filter: str  # noqa: A003
+    attributes: list[str]
 
     @classmethod
-    def from_data(cls, data):
-        return cls()
+    def from_data(cls, data):  # noqa: D102
+        (
+            base_object,
+            scope,
+            deref_aliases,
+            size_limit,
+            time_limit,
+            types_only,
+            filter_,
+            attributes_link,
+        ) = data['field-2']
+
+        return cls(
+            base_object=base_object.value,
+            scope=int(scope.value),
+            deref_aliases=int(deref_aliases.value),
+            size_limit=size_limit.value,
+            time_limit=time_limit.value,
+            types_only=types_only.value,
+            filter=filter_.value,
+            attributes=[field.value for field in data[attributes_link.value]],
+        )
+
+    @validator('base_object')
+    def empty_str_to_none(cls, v):  # noqa: N805
+        """Set base_object value to None if it's value is empty str."""
+        if v == '':
+            return None
+        return v
+
+    async def handle(
+        self, session: Session,
+    ) -> SearchResultDone | SearchResultReference | SearchResultEntry:
+        await asyncio.sleep(0)
+        return
 
 
 class ModifyRequest(BaseRequest):
@@ -123,10 +205,7 @@ protocol_id_map: dict[int, type[BaseRequest]] = \
     {request.PROTOCOL_OP: request  # type: ignore
         for request in BaseRequest.__subclasses__()}
 
-# protocol_id_map: dict[int, type[BaseRequest]] = {
-#     1: 'Bind Response',
-#     4: 'search Result Entry',
-#     5: 'search Result Done',
+# protocol_id_map: dict[int, type[BaseResponse]] = {
 #     7: 'Modify Response',
 #     9: 'Add Response',
 #     11: 'Delete Response',
