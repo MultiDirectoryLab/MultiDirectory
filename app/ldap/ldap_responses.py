@@ -1,10 +1,12 @@
+"""LDAP response containers."""
+
 from abc import ABC, abstractmethod
 from typing import ClassVar, get_type_hints
 
 from asn1 import Encoder, Numbers
-from pydantic import BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field
 
-from .codes import LDAPCodes
+from .dialogue import LDAPCodes
 
 type_map = {
     bool: Numbers.Boolean,
@@ -41,3 +43,39 @@ class BindResponse(BaseResponse):
     result_code: LDAPCodes = Field(..., alias='resultCode')
     matched_dn: str = Field('', alias='matchedDN')
     error_message: str = Field('', alias="errorMessage")
+
+
+class SearchResultEntry(BaseResponse):
+    """Search Response.
+
+    SearchResultEntry ::= [APPLICATION 4] SEQUENCE {
+            objectName      LDAPDN,
+            attributes      PartialAttributeList }
+
+    PartialAttributeList ::= SEQUENCE OF
+                            partialAttribute PartialAttribute
+
+    SearchResultReference ::= [APPLICATION 19] SEQUENCE
+                                SIZE (1..MAX) OF uri URI
+
+    SearchResultDone ::= [APPLICATION 5] LDAPResult
+    """
+
+    PROTOCOL_OP: ClassVar[int] = 4
+
+    object_name: str
+    attributes: list[str]
+
+
+class SearchResultDone(BaseResponse):
+    """LDAP result."""
+
+    PROTOCOL_OP: ClassVar[int] = 5
+
+
+class SearchResultReference(BaseResponse):
+    """List of uris."""
+
+    PROTOCOL_OP: ClassVar[int] = 19
+
+    values: list[AnyUrl]
