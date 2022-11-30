@@ -28,7 +28,7 @@ class LDAPResponseMessage(LDAPMessage):
         """Encode message to asn1."""
         enc = Encoder()
         enc.start()
-        enc.enter(Numbers.Sequence, cls=Numbers.Enumerated)
+        enc.enter(Numbers.Sequence)
         enc.write(self.message_id, Numbers.Integer)
         enc.enter(nr=self.context.PROTOCOL_OP, cls=Classes.Application)
         self.context.to_asn1(enc)
