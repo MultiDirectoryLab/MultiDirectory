@@ -1,7 +1,7 @@
 """LDAP response containers."""
 
 from abc import ABC, abstractmethod
-from typing import ClassVar, get_type_hints
+from typing import Any, ClassVar, get_type_hints
 
 from asn1 import Encoder, Numbers
 from pydantic import AnyUrl, BaseModel, Field
@@ -26,11 +26,14 @@ class BaseResponse(ABC, BaseModel):
     def PROTOCOL_OP(self) -> int:  # noqa: N802, D102
         """Protocol OP response code."""
 
-    def to_asn1(self, enc: Encoder) -> None:
-        """Serialize structure to bytes."""
+    def _get_fields_and_types(self) -> tuple[dict[str, Any], dict[str, Any]]:
         fields = self.dict()
         fields.pop('PROTOCOL_OP', None)
-        types = get_type_hints(self)
+        return fields, get_type_hints(self)
+
+    def to_asn1(self, enc: Encoder) -> None:
+        """Serialize structure to bytes, write to encoder buffer."""
+        fields, types = self._get_fields_and_types()
         for field_name, value in fields.items():
             enc.write(value, type_map[types[field_name]])
 
@@ -43,6 +46,11 @@ class BindResponse(BaseResponse):
     result_code: LDAPCodes = Field(..., alias='resultCode')
     matched_dn: str = Field('', alias='matchedDN')
     error_message: str = Field('', alias="errorMessage")
+
+
+class PartialAttribute(BaseModel):
+    type: str  # noqa: A003
+    vals: list[str]
 
 
 class SearchResultEntry(BaseResponse):
@@ -64,7 +72,7 @@ class SearchResultEntry(BaseResponse):
     PROTOCOL_OP: ClassVar[int] = 4
 
     object_name: str
-    attributes: list[str]
+    partial_attributes: list[PartialAttribute]
 
 
 class SearchResultDone(BaseResponse):
