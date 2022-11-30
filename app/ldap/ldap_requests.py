@@ -170,7 +170,7 @@ class SearchRequest(BaseRequest):
         self, session: Session,
     ) -> SearchResultDone | SearchResultReference | SearchResultEntry:
         await asyncio.sleep(0)
-        return
+        return SearchResultDone()
 
 
 class ModifyRequest(BaseRequest):
