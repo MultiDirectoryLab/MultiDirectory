@@ -1,8 +1,8 @@
 """ASN1 parser and decoder wrapper with dataclasses."""
 
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
-from collections import defaultdict
 
 from asn1 import Classes, Decoder, Numbers, Tag, Types
 
