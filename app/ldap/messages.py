@@ -6,15 +6,9 @@ from asn1 import Classes, Encoder, Numbers
 from pydantic import BaseModel, Field
 
 from .asn1parser import asn1todict
+from .dialogue import Session
 from .ldap_requests import BaseRequest, protocol_id_map
 from .ldap_responses import BaseResponse
-
-
-class Session(BaseModel):
-    """Session for one client handling."""
-
-    name: str | None
-    pwd_hash: str | None
 
 
 class LDAPMessage(ABC, BaseModel):
