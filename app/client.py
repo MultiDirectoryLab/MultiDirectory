@@ -10,8 +10,8 @@ def run_client():
     logger.info('connecting')
     try:
         conn.bind()
-    except Exception as exc:  # noqa: F841
-        logger.error('failed {exc}')
+    except Exception as exc:
+        logger.error(f'failed {exc}')
     else:
         logger.info('OK')
         logger.info(conn.search('o=test', '(objectclass=*)'))
