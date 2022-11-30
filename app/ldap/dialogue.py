@@ -2,6 +2,8 @@
 
 from enum import Enum
 
+from pydantic import BaseModel
+
 
 class LDAPCodes(int, Enum):
     """LDAP protocol codes mapping."""
@@ -52,3 +54,10 @@ class LDAPCodes(int, Enum):
     AFFECTS_MULTIPLE_DS_AS = 71
     # -- 72-79 unused --
     OTHER = 80
+
+
+class Session(BaseModel):
+    """Session for one client handling."""
+
+    name: str | None
+    pwd_hash: str | None
