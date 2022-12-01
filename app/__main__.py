@@ -5,7 +5,8 @@ import asyncio
 from loguru import logger
 
 from client import run_client
-from ldap.messages import LDAPRequestMessage, Session
+from ldap.messages import LDAPRequestMessage, Session, LDAPResponseMessage
+from ldap.ldap_responses import SearchResultDone, SearchResultEntry
 
 
 async def handle_client(
@@ -30,6 +31,16 @@ async def handle_client(
 
             writer.write(response.encode())
             await writer.drain()
+
+            if isinstance(response.context, SearchResultEntry):
+                writer.write(
+                    LDAPResponseMessage(
+                        messageID=response.message_id,
+                        protocolOP=SearchResultDone.PROTOCOL_OP,
+                        context=SearchResultDone(resultCode=0),
+                    ).encode(),
+                )
+                await writer.drain()
 
 
 async def main():
