@@ -13,5 +13,5 @@ def run_client():
     except Exception as exc:
         logger.error(f'failed {exc}')
     else:
-        logger.info('OK')
-        logger.info(conn.search('o=test', '(objectclass=*)'))
+        search_res = conn.search('o=test', '(objectclass=*)')
+        logger.info(f'OK {search_res}')
