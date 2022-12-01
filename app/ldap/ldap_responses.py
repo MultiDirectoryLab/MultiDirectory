@@ -1,7 +1,7 @@
 """LDAP response containers."""
 
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, get_type_hints
+from typing import ClassVar
 
 from asn1 import Encoder, Numbers
 from pydantic import AnyUrl, BaseModel, Field
@@ -18,6 +18,14 @@ type_map = {
 }
 
 
+class LDAPResult(ABC, BaseModel):
+    """Base LDAP result structure."""
+
+    result_code: LDAPCodes = Field(..., alias='resultCode')
+    matched_dn: str = Field('', alias='matchedDN')
+    error_message: str = Field('', alias="errorMessage")
+
+
 class BaseResponse(ABC, BaseModel):
     """Base class for Response."""
 
@@ -26,29 +34,23 @@ class BaseResponse(ABC, BaseModel):
     def PROTOCOL_OP(self) -> int:  # noqa: N802, D102
         """Protocol OP response code."""
 
-    def _get_fields_and_types(self) -> tuple[dict[str, Any], dict[str, Any]]:
+    def to_asn1(self, enc: Encoder) -> None:
+        """Serialize flat structure to bytes, write to encoder buffer."""
         fields = self.dict()
         fields.pop('PROTOCOL_OP', None)
-        return fields, get_type_hints(self)
-
-    def to_asn1(self, enc: Encoder) -> None:
-        """Serialize structure to bytes, write to encoder buffer."""
-        fields, types = self._get_fields_and_types()
-        for field_name, value in fields.items():
-            enc.write(value, type_map[types[field_name]])
+        for value in fields.values():
+            enc.write(value, type_map[type(value)])
 
 
-class BindResponse(BaseResponse):
+class BindResponse(LDAPResult, BaseResponse):
     """Bind response."""
 
     PROTOCOL_OP: ClassVar[int] = 1
 
-    result_code: LDAPCodes = Field(..., alias='resultCode')
-    matched_dn: str = Field('', alias='matchedDN')
-    error_message: str = Field('', alias="errorMessage")
-
 
 class PartialAttribute(BaseModel):
+    """Partial attribite structure. Description in rfc2251 4.1.6."""
+
     type: str  # noqa: A003
     vals: list[str]
 
@@ -74,8 +76,25 @@ class SearchResultEntry(BaseResponse):
     object_name: str
     partial_attributes: list[PartialAttribute]
 
+    def to_asn1(self, enc: Encoder) -> None:
+        """Serialize search response structure to asn1 buffer."""
+        enc.write(self.object_name, Numbers.OctetString)
+        enc.enter(Numbers.Sequence)
 
-class SearchResultDone(BaseResponse):
+        for attr in self.partial_attributes:
+            enc.enter(Numbers.Sequence)
+            enc.write(attr.type, Numbers.OctetString)
+            enc.enter(Numbers.Set)
+
+            for val in attr.vals:
+                enc.write(val, Numbers.OctetString)
+
+            enc.leave()
+            enc.leave()
+        enc.leave()
+
+
+class SearchResultDone(LDAPResult, BaseResponse):
     """LDAP result."""
 
     PROTOCOL_OP: ClassVar[int] = 5
