@@ -9,9 +9,14 @@ from pydantic import BaseModel, Field, validator
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
-from .ldap_responses import (BaseResponse, BindResponse, PartialAttribute,
-                             SearchResultDone, SearchResultEntry,
-                             SearchResultReference)
+from .ldap_responses import (
+    BaseResponse,
+    BindResponse,
+    PartialAttribute,
+    SearchResultDone,
+    SearchResultEntry,
+    SearchResultReference,
+)
 from .objects import DerefAliases, Scope
 
 

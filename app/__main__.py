@@ -5,8 +5,8 @@ import asyncio
 from loguru import logger
 
 from client import run_client
-from ldap.messages import LDAPRequestMessage, Session, LDAPResponseMessage
 from ldap.ldap_responses import SearchResultDone, SearchResultEntry
+from ldap.messages import LDAPRequestMessage, LDAPResponseMessage, Session
 
 
 async def handle_client(
