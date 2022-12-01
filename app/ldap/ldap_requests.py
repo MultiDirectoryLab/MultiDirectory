@@ -9,8 +9,9 @@ from pydantic import BaseModel, Field, validator
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
-from .ldap_responses import (BaseResponse, BindResponse, SearchResultDone,
-                             SearchResultEntry, SearchResultReference)
+from .ldap_responses import (BaseResponse, BindResponse, PartialAttribute,
+                             SearchResultDone, SearchResultEntry,
+                             SearchResultReference)
 from .objects import DerefAliases, Scope
 
 
@@ -170,7 +171,15 @@ class SearchRequest(BaseRequest):
         self, session: Session,
     ) -> SearchResultDone | SearchResultReference | SearchResultEntry:
         await asyncio.sleep(0)
-        return SearchResultDone()
+        return SearchResultEntry(
+            object_name=session.name,
+            partial_attributes=[
+                PartialAttribute(
+                    type='dITContetRules',
+                    vals=["( 1.2.840.113556.1.5.7000.62.50033 NAME 'msExchMailboxManagerPolicy'"],
+                ),
+            ],
+        )
 
 
 class ModifyRequest(BaseRequest):
