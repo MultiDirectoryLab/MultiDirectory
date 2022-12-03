@@ -3,7 +3,7 @@
 import asyncio
 import sys
 from abc import ABC, abstractmethod
-from typing import ClassVar
+from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
 
@@ -35,8 +35,10 @@ class BaseRequest(ABC, BaseModel):
         raise NotImplementedError()
 
     @abstractmethod
-    async def handle(self, session: Session) -> BaseResponse:
+    async def handle(self, session: Session) -> \
+            AsyncGenerator[BaseResponse, None]:
         """Handle message with current user."""
+        yield BaseResponse()  # type: ignore
 
 
 class SimpleAuthentication(BaseModel):
@@ -77,13 +79,14 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    async def handle(self, session: Session) -> BindResponse:
+    async def handle(self, session: Session) -> \
+            AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if session.name:
             raise ValueError('User authed')
         await asyncio.sleep(0)  # TODO: Add sqlalchemy query
         session.name = self.name
-        return BindResponse(resultCode=LDAPCodes.SUCCESS)
+        yield BindResponse(resultCode=LDAPCodes.SUCCESS)
 
 
 class UnbindRequest(BaseRequest):
@@ -96,14 +99,15 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, session: Session) -> BindResponse:
+    async def handle(self, session: Session) -> \
+            AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send."""
         if not session.name:
             raise ValueError('User authed')
         await asyncio.sleep(0)  # TODO: Add sqlalchemy query
-        missing_user = session.name
         session.name = None
-        raise UserWarning(f'Unbind {missing_user}')
+        return  # declare empty async generator and exit
+        yield
 
 
 class SearchRequest(BaseRequest):
@@ -174,9 +178,11 @@ class SearchRequest(BaseRequest):
 
     async def handle(
         self, session: Session,
-    ) -> SearchResultDone | SearchResultReference | SearchResultEntry:
+    ) -> AsyncGenerator[
+        SearchResultDone | SearchResultReference | SearchResultEntry, None,
+    ]:
         await asyncio.sleep(0)
-        return SearchResultEntry(
+        yield SearchResultEntry(
             object_name=session.name,
             partial_attributes=[
                 PartialAttribute(
@@ -185,6 +191,7 @@ class SearchRequest(BaseRequest):
                 ),
             ],
         )
+        yield SearchResultDone(resultCode=0)
 
 
 class ModifyRequest(BaseRequest):
