@@ -42,10 +42,14 @@ class BaseRequest(ABC, BaseModel):
 
 
 class SimpleAuthentication(BaseModel):
+    """Simple auth form."""
+
     password: str
 
 
 class SaslAuthentication(BaseModel):
+    """Sasl auth form."""
+
     mechanism: str
     credentials: bytes
 
@@ -68,8 +72,8 @@ class BindRequest(BaseRequest):
 
         if auth == 0:
             auth_choice = SimpleAuthentication(password=auth_data[2].value)
-        elif auth == 3:  # TODO: Add SASL support
-            raise NotImplementedError('Sasl not supported')
+        elif auth == 3:  # noqa: R506
+            raise NotImplementedError('Sasl not supported')  # TODO: Add SASL
         else:
             raise ValueError('Auth version not supported')
 
@@ -101,10 +105,9 @@ class UnbindRequest(BaseRequest):
 
     async def handle(self, session: Session) -> \
             AsyncGenerator[BaseResponse, None]:
-        """Handle unbind request, no need to send."""
+        """Handle unbind request, no need to send response."""
         if not session.name:
             raise ValueError('User authed')
-        await asyncio.sleep(0)  # TODO: Add sqlalchemy query
         session.name = None
         return  # declare empty async generator and exit
         yield
@@ -181,13 +184,21 @@ class SearchRequest(BaseRequest):
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry, None,
     ]:
+        """Search tree.
+
+        Provides following responses:
+        Entry -> Reference (optional) -> Done
+        """
         await asyncio.sleep(0)
         yield SearchResultEntry(
             object_name=session.name,
             partial_attributes=[
                 PartialAttribute(
                     type='dITContetRules',
-                    vals=["( 1.2.840.113556.1.5.7000.62.50033 NAME 'msExchMailboxManagerPolicy'"],
+                    vals=[
+                        "( 1.2.840.113556.1.5.7000.62.50033 NAME"
+                        " 'msExchMailboxManagerPolicy'",
+                    ],
                 ),
             ],
         )
