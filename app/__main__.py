@@ -3,10 +3,10 @@
 import asyncio
 
 from loguru import logger
+from pydantic import ValidationError
 
 from client import run_client
-from ldap.ldap_responses import SearchResultDone, SearchResultEntry
-from ldap.messages import LDAPRequestMessage, LDAPResponseMessage, Session
+from ldap.messages import LDAPRequestMessage, Session
 
 
 async def handle_client(
@@ -20,26 +20,17 @@ async def handle_client(
         addr = writer.get_extra_info('peername')
         try:
             message = LDAPRequestMessage.from_bytes(data)
-            response = await message.handle(session)
-        except Exception as err:
+        except (ValidationError, IndexError, KeyError, ValueError) as err:
             logger.error(f"Close the connection {addr} with error {err}")
             writer.close()
             break
         else:
-            logger.info(
-                f"\nFrom: {addr!r}\nRequest: {message}\nResponse: {response}")
+            async for response in message.handle(session):
+                logger.info(
+                    f"\nFrom: {addr!r}"
+                    f"\nRequest: {message}\nResponse: {response}")
 
-            writer.write(response.encode())
-            await writer.drain()
-
-            if isinstance(response.context, SearchResultEntry):
-                writer.write(
-                    LDAPResponseMessage(
-                        messageID=response.message_id,
-                        protocolOP=SearchResultDone.PROTOCOL_OP,
-                        context=SearchResultDone(resultCode=0),
-                    ).encode(),
-                )
+                writer.write(response.encode())
                 await writer.drain()
 
 
