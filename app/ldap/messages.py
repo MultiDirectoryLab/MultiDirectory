@@ -1,6 +1,7 @@
 """Base LDAP message builder."""
 
 from abc import ABC
+from typing import AsyncGenerator
 
 from asn1 import Classes, Encoder, Numbers
 from pydantic import BaseModel, Field
@@ -59,11 +60,12 @@ class LDAPRequestMessage(LDAPMessage):
             context=context,
         )
 
-    async def handle(self, session: Session) -> LDAPResponseMessage:
+    async def handle(self, session: Session) -> \
+            AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler."""
-        response = await self.context.handle(session)
-        return LDAPResponseMessage(
-            messageID=self.message_id,
-            protocolOP=response.PROTOCOL_OP,
-            context=response,
-        )
+        async for response in self.context.handle(session):
+            yield LDAPResponseMessage(
+                messageID=self.message_id,
+                protocolOP=response.PROTOCOL_OP,
+                context=response,
+            )

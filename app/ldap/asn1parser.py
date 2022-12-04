@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from asn1 import Classes, Decoder, Numbers, Tag, Types
+from loguru import logger
 
 
 @dataclass
@@ -106,9 +107,10 @@ def _parse_asn1_to_dict(
             output[filed_name].append(field)
 
             if trace:
-                print(
-                    ' ' * 4 * depth,
-                    f"[{field.class_id}] {field.tag_id}: {field.value}")
+                prefix = ' ' * 4 * depth
+                logger.info(
+                    f"{prefix}[{field.class_id}]"
+                    f"{field.tag_id}: {field.value}")
 
         elif tag.typ == Types.Constructed:
             new_depth = depth + 1
@@ -121,7 +123,8 @@ def _parse_asn1_to_dict(
             output[filed_name].append(field)
 
             if trace:
-                print(' ' * 4 * depth, f"[{field.class_id}] {field.tag_id}")
+                prefix = ' ' * 4 * depth
+                logger.info(f"{prefix}[{field.class_id}] {field.tag_id}")
 
 
 def asn1todict(data: bytes) -> dict[str, list[ASN1Row]]:
