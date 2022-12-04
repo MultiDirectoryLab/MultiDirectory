@@ -45,6 +45,14 @@ lazy-object-proxy = ">=1.4.0"
 wrapt = {version = ">=1.14,<2", markers = "python_version >= \"3.11\""}
 
 [[package]]
+name = "asyncio-pool"
+version = "0.6.0"
+description = "Pool of asyncio coroutines with familiar interface"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[[package]]
 name = "asyncpg"
 version = "0.27.0"
 description = "An asyncio PostgreSQL driver"
@@ -855,7 +863,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "50db830a987d1237229f37d9af859172cb75c4df2b16c59de2a2be036331b1be"
+content-hash = "df85320bd104182afc8155751660df2a312546dc5b30455b632a2b3601b7e86b"
 
 [metadata.files]
 alembic = [
@@ -873,6 +881,10 @@ astpretty = [
 astroid = [
     {file = "astroid-2.12.13-py3-none-any.whl", hash = "sha256:10e0ad5f7b79c435179d0d0f0df69998c4eef4597534aae44910db060baeb907"},
     {file = "astroid-2.12.13.tar.gz", hash = "sha256:1493fe8bd3dfd73dc35bd53c9d5b6e49ead98497c47b2307662556a5692d29d7"},
+]
+asyncio-pool = [
+    {file = "asyncio_pool-0.6.0-py3-none-any.whl", hash = "sha256:bf4417be93c2776262d93decabbbd633579f7610947fb73d80857823689e1455"},
+    {file = "asyncio_pool-0.6.0.tar.gz", hash = "sha256:d7ba5e299ba58d4fb0cebbc722989d1f880df4c4b19e37055075b3dabc062c5b"},
 ]
 asyncpg = [
     {file = "asyncpg-0.27.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:fca608d199ffed4903dce1bcd97ad0fe8260f405c1c225bdf0002709132171c2"},
