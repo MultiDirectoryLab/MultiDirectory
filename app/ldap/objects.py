@@ -4,14 +4,18 @@ from enum import Enum
 
 
 class Scope(int, Enum):
-    base_object = 0
-    singlel_evel = 1
-    whole_subtree = 2
-    subordinate_subtree = 3
+    """Enum for search request."""
+
+    BASE_OBJECT = 0
+    SINGLEL_EVEL = 1
+    WHOLE_SUBTREE = 2
+    SUBORDINATE_SUBTREE = 3
 
 
 class DerefAliases(int, Enum):
-    never_deref_aliases = 0
-    deref_in_searching = 1
-    deref_finding_base_obj = 2
-    deref_always = 3
+    """Enum for search request."""
+
+    NEVER_DEREF_ALIASES = 0
+    DEREF_IN_SEARCHING = 1
+    DEREF_FINDING_BASE_OBJ = 2
+    DEREF_ALWAYS = 3
