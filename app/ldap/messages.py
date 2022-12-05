@@ -4,7 +4,7 @@ from abc import ABC
 from typing import AsyncGenerator
 
 from asn1 import Classes, Encoder, Numbers
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from .asn1parser import asn1todict
 from .dialogue import Session
@@ -18,6 +18,14 @@ class LDAPMessage(ABC, BaseModel):
     message_id: int = Field(..., alias='messageID')
     protocol_op: int = Field(..., alias='protocolOP')
     context: BaseRequest | BaseResponse = Field()
+    controls: int | None = 0
+
+    @validator('controls')
+    def default_controls(cls, v) -> int:  # noqa: N805
+        """Set zero if None."""
+        if v is None:
+            return 0
+        return v
 
 
 class LDAPResponseMessage(LDAPMessage):
@@ -52,17 +60,28 @@ class LDAPRequestMessage(LDAPMessage):
         if sequence.tag_id.value != Numbers.Sequence:
             raise ValueError('Wrong schema')
 
-        message_id, protocol = output[sequence.value]
+        seq_fields = output[sequence.value]
+        message_id, protocol = seq_fields[:1]
+
+        try:
+            controls = seq_fields[2].tag_id.value
+        except IndexError:
+            controls = 0
+
         context = protocol_id_map[protocol.tag_id.value].from_data(output)
         return cls(
             messageID=message_id.value,
             protocolOP=protocol.tag_id.value,
             context=context,
+            controls=controls,
         )
 
-    async def handle(self, session: Session) -> \
+    async def create_response(self, session: Session) -> \
             AsyncGenerator[LDAPResponseMessage, None]:
-        """Call unique context handler."""
+        """Call unique context handler.
+
+        :yield LDAPResponseMessage: create response for context.
+        """
         async for response in self.context.handle(session):
             yield LDAPResponseMessage(
                 messageID=self.message_id,
