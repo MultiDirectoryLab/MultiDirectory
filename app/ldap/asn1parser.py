@@ -1,6 +1,8 @@
 """ASN1 parser and decoder wrapper with dataclasses."""
 
+import binascii
 from collections import defaultdict
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
 
@@ -64,26 +66,29 @@ class_id_to_string_map = {
 }
 
 
-def value_to_string(tag, value):
+def value_to_string(tag: Tag, value: Any):
     """Convert value to string."""
     if tag.nr == Numbers.Integer:
-        return int(value)
+        with suppress(ValueError):
+            return int(value)
+        return value
     if isinstance(value, bytes):
-        try:
+        with suppress(UnicodeDecodeError):
             return value.decode()
-        except UnicodeDecodeError:
-            return value
+        if tag.nr == Numbers.OctetString:
+            return '0x' + str(binascii.hexlify(value).upper())
+        return value
     if isinstance(value, str):
         return value
     return repr(value)
 
 
-def tag_id_to_string(identifier):
+def tag_id_to_string(identifier: int):
     """Return a string representation of a ASN.1 id."""
     return tag_id_to_string_map.get(identifier, '{:#02x}'.format(identifier))
 
 
-def class_id_to_string(identifier):
+def class_id_to_string(identifier: int):
     """Return a string representation of an ASN.1 class."""
     if identifier in class_id_to_string_map:
         return class_id_to_string_map[identifier]
@@ -128,7 +133,13 @@ def _parse_asn1_to_dict(
 
 
 def asn1todict(data: bytes) -> dict[str, list[ASN1Row]]:
-    """Parse ASN1 data to dict."""
+    """Parse ASN1 data to dict.
+
+    Wraps mutable interaction to functional method.
+
+    :param bytes data: asn1 data
+    :return dict[str, list[ASN1Row]]: parsed structure
+    """
     dec = Decoder()
     dec.start(data)
     output = defaultdict(list)  # type: ignore
