@@ -159,7 +159,7 @@ class SearchRequest(BaseRequest):
             types_only,
             filter_,
             attributes_link,
-        ) = data['field-2']
+        ) = data['field-2'][:8]
 
         return cls(
             base_object=base_object.value,
