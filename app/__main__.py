@@ -1,12 +1,12 @@
 """Main MiltiDirecory module."""
 
 import asyncio
+from traceback import format_exc
 
 from asyncio_pool import AioPool
 from loguru import logger
 from pydantic import ValidationError
 
-from client import run_client
 from ldap.messages import LDAPRequestMessage, Session
 
 
@@ -36,17 +36,37 @@ class PoolClient:
         self.reader = reader
         self.writer = writer
         self.addr = writer.get_extra_info('peername')
-
-        await asyncio.gather(self.handle_request(), self.handle_responses())
+        try:
+            await asyncio.gather(
+                self.handle_request(),
+                self.handle_responses(),
+            )
+        except RuntimeError:
+            logger.error(f"The connection {self.addr} raised {format_exc()}")
+        except ConnectionAbortedError:
+            writer.close()
 
     async def handle_request(self):
-        """Create request object and send it to queue or do nothing on err."""
+        """Create request object and send it to queue.
+
+        :raises ConnectionAbortedError: if client sends empty request (b'')
+        :raises RuntimeError: reraises on invalid schema
+        :raises RuntimeError: reraises on unexpected exc
+        """
         while True:
             data = await self.reader.read(4096)
+            if not data:
+                raise ConnectionAbortedError('Connection terminated by client')
+
             try:
                 request = LDAPRequestMessage.from_bytes(data)
-            except (ValidationError, IndexError, KeyError, ValueError) as err:
-                logger.error(f"The connection {self.addr} raised error {err}")
+
+            except (ValidationError, IndexError, KeyError, ValueError):
+                logger.warning(f'Invalid schema {format_exc()}')
+
+            except Exception as err:
+                raise RuntimeError('Unexpected exception') from err
+
             else:
                 await self.queue.put(request)
 
@@ -54,7 +74,7 @@ class PoolClient:
         """Get message from queue and handle it."""
         message = await self.queue.get()
 
-        async for response in message.handle(self.session):
+        async for response in message.create_response(self.session):
             logger.info(
                 f"\nFrom: {self.addr!r}"
                 f"\nRequest: {message}\nResponse: {response}")
@@ -76,15 +96,12 @@ class PoolClient:
 
 async def main():
     """Start server and debug client."""
-    server = await asyncio.start_server(PoolClient(), '127.0.0.1', 389)
+    server = await asyncio.start_server(PoolClient(), '0.0.0.0', 389)
 
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
     logger.info(f'Server on {addrs}')
-    loop = asyncio.get_running_loop()
     async with server:
-        task1 = loop.run_in_executor(None, run_client)
-        task2 = server.serve_forever()
-        await asyncio.gather(task1, task2)
+        await server.serve_forever()
 
 
 if __name__ == '__main__':
