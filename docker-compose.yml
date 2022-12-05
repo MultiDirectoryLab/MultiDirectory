@@ -1,0 +1,17 @@
+version: "3.7"
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./app/dev.Dockerfile
+    restart: "no" #unless-stopped
+    container_name: ldap
+    # env_file:
+    #   - .env
+    volumes:
+      - ./app:/app
+    command: python .
+    ports:
+      - "389:389"
+      - "636:636"
