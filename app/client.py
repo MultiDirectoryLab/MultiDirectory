@@ -16,3 +16,9 @@ def run_client():
     else:
         search_res = conn.search('o=test', '(objectclass=*)')
         logger.info(f'OK {search_res}')
+        res = conn.unbind()
+        logger.info(f'OK {res}')
+
+
+if __name__ == '__main__':
+    run_client()
