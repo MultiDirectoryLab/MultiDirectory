@@ -61,7 +61,7 @@ class LDAPRequestMessage(LDAPMessage):
             raise ValueError('Wrong schema')
 
         seq_fields = output[sequence.value]
-        message_id, protocol = seq_fields[:1]
+        message_id, protocol = seq_fields[:2]
 
         try:
             controls = seq_fields[2].tag_id.value
