@@ -25,7 +25,7 @@ class CatalogueSetting(Base):
 
     __tablename__ = "Settings"
 
-    id = Column('id', Integer, primary_key=True)  # noqa: A003
+    id = Column(Integer, primary_key=True)  # noqa: A003
     name = Column(String, nullable=False, index=True)
     value = Column(String, nullable=False)
 
@@ -35,7 +35,7 @@ class Directory(Base):
 
     __tablename__ = "Directories"
 
-    id = Column('id', Integer, primary_key=True)  # noqa: A003
+    id = Column(Integer, primary_key=True)  # noqa: A003
 
     parent_id = Column('parentId', Integer, index=True, nullable=True)
     parent: list['Directory'] = relationship(
@@ -68,7 +68,7 @@ class Directory(Base):
 class DirectoryReferenceMixin:
     """Mixin with dir id reference."""
 
-    id = Column('id', primary_key=True)  # noqa: A003
+    id = Column(primary_key=True)  # noqa: A003
 
     @declared_attr
     def directory_id(cls) -> Mapped[Directory]:  # noqa: N805, D102
