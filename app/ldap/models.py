@@ -57,9 +57,9 @@ class Directory(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            'customer_id',
-            'location_code',
-            name='_customer_location_uc',
+            'parent_id',
+            'name',
+            name='_name_parent_uc',
         ),
     )
 
