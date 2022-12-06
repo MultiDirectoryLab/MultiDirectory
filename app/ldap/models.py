@@ -37,9 +37,12 @@ class Directory(Base):
 
     id = Column(Integer, primary_key=True)  # noqa: A003
 
-    parent_id = Column('parentId', Integer, index=True, nullable=True)
+    parent_id = Column(
+        'parentId', Integer,
+        ForeignKey('region.id'), index=True, nullable=True)
     parent: list['Directory'] = relationship(
         lambda: Directory, remote_side=id, backref='sub_directories')
+
     object_class = Column('objectClass', String, nullable=False)
 
     name = Column(String, nullable=False)
