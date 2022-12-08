@@ -78,7 +78,7 @@ class LDAPRequestMessage(LDAPMessage):
 
     @classmethod
     def from_err(cls, source: bytes, err: Exception) -> LDAPResponseMessage:
-        """Create error response message
+        """Create error response message.
 
         :param bytes source: source data
         :param Exception err: any error
@@ -86,20 +86,17 @@ class LDAPRequestMessage(LDAPMessage):
         :return LDAPResponseMessage: response with err code
         """
         output = asn1todict(source)
+        message_id = 0
+        protocol_op = -1
+
         try:
             sequence = output.pop('field-0')[0]
-
-            if sequence.tag_id.value != Numbers.Sequence:
-                raise ValueError('Wrong schema')
-
             seq_fields = output[sequence.value]
             message, protocol = seq_fields[:2]
             protocol_op = protocol.tag_id.value
             message_id = message.value
-
         except (KeyError, ValueError, IndexError):
-            message_id = 0
-            protocol_op = -1
+            pass
 
         return LDAPResponseMessage(
             messageID=message_id,
