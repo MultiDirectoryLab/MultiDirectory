@@ -75,7 +75,7 @@ class DirectoryReferenceMixin:
             'directoryId', ForeignKey('Directories.id'), nullable=False)
 
 
-class User(DirectoryReferenceMixin):
+class User(DirectoryReferenceMixin, Base):
     """Users data."""
 
     __tablename__ = "Users"
@@ -89,19 +89,19 @@ class User(DirectoryReferenceMixin):
     password = Column(String, nullable=True)
 
 
-class Group(DirectoryReferenceMixin):
+class Group(DirectoryReferenceMixin, Base):
     """Group params."""
 
     __tablename__ = "Groups"
 
 
-class Computer(DirectoryReferenceMixin):
+class Computer(DirectoryReferenceMixin, Base):
     """Computers data."""
 
     __tablename__ = "Computers"
 
 
-class Attrubute(DirectoryReferenceMixin):
+class Attrubute(DirectoryReferenceMixin, Base):
     """Attributes data."""
 
     __tablename__ = "Attributes"
