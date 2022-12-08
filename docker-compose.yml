@@ -5,13 +5,34 @@ services:
     build:
       context: .
       dockerfile: ./app/dev.Dockerfile
+    image: multidirectory
     restart: "no" #unless-stopped
     container_name: ldap
-    # env_file:
-    #   - .env
     volumes:
       - ./app:/app
+    environment:
+      DEBUG: 1
+      HOST: 0.0.0.0
+      POSTGRES_USER: user1
+      POSTGRES_PWD: password123
+      POSTGRES_HOST: postgres
     command: python .
     ports:
       - "389:389"
       - "636:636"
+
+  postgres:
+    container_name: MD-postgres
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: password123
+      PGDATA: /data/postgres
+    volumes:
+       - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres:
