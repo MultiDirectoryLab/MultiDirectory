@@ -11,13 +11,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import (
     Mapped,
-    declarative_base,
     declarative_mixin,
     declared_attr,
     relationship,
 )
 
-Base = declarative_base()
+from .database import Base
 
 
 class CatalogueSetting(Base):
@@ -34,14 +33,18 @@ class Directory(Base):
     """Chierarcy of catalogue unit."""
 
     __tablename__ = "Directories"
+    # __table_args__ = (
+    #     UniqueConstraint('parent_id', 'name', name='name_parent_uc'),
+    # )
 
     id = Column(Integer, primary_key=True)  # noqa: A003
 
     parent_id = Column(
         'parentId', Integer,
-        ForeignKey('region.id'), index=True, nullable=True)
+        ForeignKey('Directories.id'), index=True, nullable=True)
+
     parent: list['Directory'] = relationship(
-        lambda: Directory, remote_side=id, backref='sub_directories')
+        "Directory", remote_side=[id], backref='directories')
 
     object_class = Column('objectClass', String, nullable=False)
 
@@ -57,14 +60,6 @@ class Directory(Base):
         onupdate=func.now(), nullable=False)
 
     users: list['User'] = relationship("User")
-
-    __table_args__ = (
-        UniqueConstraint(
-            'parent_id',
-            'name',
-            name='_name_parent_uc',
-        ),
-    )
 
 
 @declarative_mixin
