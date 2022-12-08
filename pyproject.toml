@@ -8,7 +8,7 @@ packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-sqlalchemy = {extras = ["asyncio"], version = "^1.4.44"}
+sqlalchemy = {extras = ["asyncio", "mypy"], version = "^1.4.44"}
 asyncpg = "^0.27.0"
 alembic = "^1.8.1"
 asn1 = "^2.6.0"
@@ -37,7 +37,10 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
-known_first_party = ["ldap", "client"]
+known_first_party = ["ldap", "client", "config"]
 include_trailing_comma = true
 line_length = 79
 multi_line_output = 3
+
+[tool.mypy]
+plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]

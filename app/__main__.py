@@ -7,7 +7,8 @@ from asyncio_pool import AioPool
 from loguru import logger
 from pydantic import ValidationError
 
-from ldap.messages import LDAPRequestMessage, Session
+from config import settings
+from ldap import LDAPRequestMessage, Session
 
 
 class PoolClient:
@@ -50,7 +51,6 @@ class PoolClient:
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
-        :raises RuntimeError: reraises on invalid schema
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
@@ -61,8 +61,12 @@ class PoolClient:
             try:
                 request = LDAPRequestMessage.from_bytes(data)
 
-            except (ValidationError, IndexError, KeyError, ValueError):
+            except (ValidationError, IndexError, KeyError, ValueError) as err:
                 logger.warning(f'Invalid schema {format_exc()}')
+
+                self.writer.write(
+                    LDAPRequestMessage.from_err(data, err).encode())
+                await self.writer.drain()
 
             except Exception as err:
                 raise RuntimeError('Unexpected exception') from err
@@ -96,7 +100,7 @@ class PoolClient:
 
 async def main():
     """Start server and debug client."""
-    server = await asyncio.start_server(PoolClient(), '0.0.0.0', 389)
+    server = await asyncio.start_server(PoolClient(), str(settings.HOST), 389)
 
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
     logger.info(f'Server on {addrs}')

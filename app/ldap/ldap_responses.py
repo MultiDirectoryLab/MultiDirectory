@@ -18,7 +18,7 @@ type_map = {
 }
 
 
-class LDAPResult(ABC, BaseModel):
+class LDAPResult(BaseModel):
     """Base LDAP result structure."""
 
     result_code: LDAPCodes = Field(..., alias='resultCode')

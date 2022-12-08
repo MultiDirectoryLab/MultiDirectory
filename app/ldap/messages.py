@@ -7,9 +7,9 @@ from asn1 import Classes, Encoder, Numbers
 from pydantic import BaseModel, Field, validator
 
 from .asn1parser import asn1todict
-from .dialogue import Session
+from .dialogue import LDAPCodes, Session
 from .ldap_requests import BaseRequest, protocol_id_map
-from .ldap_responses import BaseResponse
+from .ldap_responses import BaseResponse, LDAPResult
 
 
 class LDAPMessage(ABC, BaseModel):
@@ -61,7 +61,7 @@ class LDAPRequestMessage(LDAPMessage):
             raise ValueError('Wrong schema')
 
         seq_fields = output[sequence.value]
-        message_id, protocol = seq_fields[:1]
+        message_id, protocol = seq_fields[:2]
 
         try:
             controls = seq_fields[2].tag_id.value
@@ -74,6 +74,37 @@ class LDAPRequestMessage(LDAPMessage):
             protocolOP=protocol.tag_id.value,
             context=context,
             controls=controls,
+        )
+
+    @classmethod
+    def from_err(cls, source: bytes, err: Exception) -> LDAPResponseMessage:
+        """Create error response message.
+
+        :param bytes source: source data
+        :param Exception err: any error
+        :raises ValueError: on invalid schema
+        :return LDAPResponseMessage: response with err code
+        """
+        output = asn1todict(source)
+        message_id = 0
+        protocol_op = -1
+
+        try:
+            sequence = output.pop('field-0')[0]
+            seq_fields = output[sequence.value]
+            message, protocol = seq_fields[:2]
+            protocol_op = protocol.tag_id.value
+            message_id = message.value
+        except (KeyError, ValueError, IndexError):
+            pass
+
+        return LDAPResponseMessage(
+            messageID=message_id,
+            protocolOP=protocol_op,
+            context=LDAPResult(
+                resultCode=LDAPCodes.PROTOCOL_ERROR,
+                matchedDN='',
+                errorMessage=str(err)),
         )
 
     async def create_response(self, session: Session) -> \
