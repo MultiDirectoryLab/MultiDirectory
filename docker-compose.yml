@@ -16,7 +16,7 @@ services:
       POSTGRES_USER: user1
       POSTGRES_PWD: password123
       POSTGRES_HOST: postgres
-    command: python .
+    command: bash -c "alembic upgrade head && python ."
     ports:
       - "389:389"
       - "636:636"
