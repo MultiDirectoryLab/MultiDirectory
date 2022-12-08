@@ -33,9 +33,6 @@ class Directory(Base):
     """Chierarcy of catalogue unit."""
 
     __tablename__ = "Directories"
-    # __table_args__ = (
-    #     UniqueConstraint('parent_id', 'name', name='name_parent_uc'),
-    # )
 
     id = Column(Integer, primary_key=True)  # noqa: A003
 
@@ -60,6 +57,10 @@ class Directory(Base):
         onupdate=func.now(), nullable=False)
 
     users: list['User'] = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint('parentId', 'name', name='name_parent_uc'),
+    )
 
 
 @declarative_mixin
