@@ -67,12 +67,16 @@ class Directory(Base):
 class DirectoryReferenceMixin:
     """Mixin with dir id reference."""
 
-    id = Column(primary_key=True)  # noqa: A003
+    id = Column(Integer, primary_key=True)  # noqa: A003
 
     @declared_attr
-    def directory_id(cls) -> Mapped[Directory]:  # noqa: N805, D102
+    def directory_id(cls) -> Mapped[int]:  # noqa: N805, D102
         return Column(
             'directoryId', ForeignKey('Directories.id'), nullable=False)
+
+    @declared_attr
+    def dirctory(cls) -> Mapped[Directory]:  # noqa: N805, D102
+        return relationship('Directory', back_populates=f'{str(cls).lower()}s')
 
 
 class User(DirectoryReferenceMixin, Base):
