@@ -16,7 +16,8 @@ services:
       POSTGRES_USER: user1
       POSTGRES_PWD: password123
       POSTGRES_HOST: postgres
-    command: bash -c "alembic upgrade head && python ."
+    # command: bash -c "alembic upgrade head && python ."
+    tty: true
     ports:
       - "389:389"
       - "636:636"
@@ -34,5 +35,21 @@ services:
     ports:
       - "5432:5432"
 
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+       - pgadmin:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    restart: unless-stopped
+    logging:
+      driver: "none"
+
 volumes:
   postgres:
+  pgadmin:
