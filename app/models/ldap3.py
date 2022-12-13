@@ -32,13 +32,13 @@ class CatalogueSetting(Base):
 class Directory(Base):
     """Chierarcy of catalogue unit."""
 
-    __tablename__ = "Directories"
+    __tablename__ = "Directory"
 
     id = Column(Integer, primary_key=True)  # noqa: A003
 
     parent_id = Column(
         'parentId', Integer,
-        ForeignKey('Directories.id'), index=True, nullable=True)
+        ForeignKey('Directory.id'), index=True, nullable=True)
 
     parent: list['Directory'] = relationship(
         "Directory", remote_side=[id], backref='directories')
@@ -56,8 +56,6 @@ class Directory(Base):
         DateTime(timezone=True),
         onupdate=func.now(), nullable=False)
 
-    users: list['User'] = relationship("User")
-
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
     )
@@ -72,11 +70,11 @@ class DirectoryReferenceMixin:
     @declared_attr
     def directory_id(cls) -> Mapped[int]:  # noqa: N805, D102
         return Column(
-            'directoryId', ForeignKey('Directories.id'), nullable=False)
+            'directoryId', ForeignKey('Directory.id'), nullable=False)
 
     @declared_attr
     def dirctory(cls) -> Mapped[Directory]:  # noqa: N805, D102
-        return relationship('Directory', back_populates=f'{str(cls).lower()}s')
+        return relationship('Directory', backref=f'{str(cls).lower()}s')
 
 
 class User(DirectoryReferenceMixin, Base):
