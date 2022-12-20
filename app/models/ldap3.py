@@ -9,6 +9,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import (
     Mapped,
     declarative_mixin,
@@ -41,7 +42,7 @@ class Directory(Base):
         ForeignKey('Directory.id'), index=True, nullable=True)
 
     parent: list['Directory'] = relationship(
-        "Directory", remote_side=[id], backref='directories')
+        lambda: Directory, remote_side=id, backref='directories')
 
     object_class = Column('objectClass', String, nullable=False)
 
@@ -54,11 +55,20 @@ class Directory(Base):
     updated_at = Column(
         'whenChanged',
         DateTime(timezone=True),
-        onupdate=func.now(), nullable=False)
+        onupdate=func.now(), nullable=True)
+
+    path: 'Path' = relationship("Path", back_populates="endpoint", lazy="joined", uselist=False)
 
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
     )
+
+    def get_dn(self):
+        """Get distinguished name."""
+        return {
+            'organizationUnit': 'OU',
+            'domain': 'DC',
+        }.get(self.object_class, 'CN')
 
 
 @declarative_mixin
@@ -74,7 +84,8 @@ class DirectoryReferenceMixin:
 
     @declared_attr
     def dirctory(cls) -> Mapped[Directory]:  # noqa: N805, D102
-        return relationship('Directory', backref=f'{str(cls).lower()}s')
+        return relationship(
+            'Directory', backref=f'{str(cls.__name__).lower()}s', lazy='joined')
 
 
 class User(DirectoryReferenceMixin, Base):
@@ -110,3 +121,32 @@ class Attrubute(DirectoryReferenceMixin, Base):
 
     name = Column(String, nullable=False)
     value = Column(String, nullable=False)
+
+
+class DirectoryPath(Base):
+    """Directory - path m2m relationship."""
+
+    __tablename__ = "DirectoryPaths"
+    dir_id = Column(Integer, ForeignKey("Directory.id"), primary_key=True)
+    path_id = Column(Integer, ForeignKey("Paths.id"), primary_key=True)
+
+
+class Path(Base):
+    """Directory path data."""
+
+    __tablename__ = "Paths"
+
+    id = Column(Integer, primary_key=True)  # noqa: A003
+    path = Column(postgresql.ARRAY(String), nullable=False, index=True)
+
+    endpoint_id = Column(Integer, ForeignKey('Directory.id'), nullable=False)
+    endpoint: Directory = relationship(
+        "Directory", back_populates="path", lazy="joined")
+
+    directories: list[Directory] = relationship(
+        "Directory",
+        secondary=DirectoryPath.__table__,
+        # order_by="DirectoryPaths.position",
+        # collection_class=ordering_list('DirectoryPaths.position'),
+        backref="paths",
+    )
