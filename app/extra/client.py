@@ -7,7 +7,7 @@ from loguru import logger
 def run_client():
     """Run bind and search request."""
     server = Server('127.0.0.1:389')
-    conn = Connection(server, 'username', 'password', version=3)
+    conn = Connection(server, 'CN=FooUser,OU=Users,DC=multifactor,DC=local', 'password', version=3)
     logger.info('connecting')
     try:
         conn.bind()
