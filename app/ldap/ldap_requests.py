@@ -6,6 +6,10 @@ from abc import ABC, abstractmethod
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
+from sqlalchemy.future import select
+
+from models.database import async_session
+from models.ldap3 import CatalogueSetting, Path
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -35,7 +39,7 @@ class BaseRequest(ABC, BaseModel):
         raise NotImplementedError()
 
     @abstractmethod
-    async def handle(self, session: Session) -> \
+    async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle message with current user."""
         yield BaseResponse()  # type: ignore
@@ -83,18 +87,44 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    async def handle(self, session: Session) -> \
+    def get_domain(self):
+        """Get domain from name."""
+        return '.'.join([
+            item.removeprefix('DC=') for item in self.name.split(',')
+            if item.startswith('DC')
+        ])
+
+    def get_path(self):
+        """Get path from name."""
+        return list(reversed([
+            item for item in self.name.split(',')
+            if not item.startswith('DC')
+        ]))
+
+    async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
-        if session.name:
+        if ldap_session.name:
             raise ValueError('User authed')
-        await asyncio.sleep(0)  # TODO: Add sqlalchemy query
-        session.name = self.name
-        yield BindResponse(resultCode=LDAPCodes.SUCCESS)
+        async with async_session() as session:
+            res = await session.execute(
+                select(Path).where(Path.path == self.get_path()))
+            path = res.scalar()
+            q = select(
+                CatalogueSetting).where(
+                    CatalogueSetting.name == 'defaultNamingContext')
+            domain_res = await session.execute(q)
+            domain = domain_res.scalar().value
+            if domain and path:  # TODO: Add password check
+                ldap_session.name = domain
+                yield BindResponse(resultCode=LDAPCodes.SUCCESS)
+                return
+
+            yield BindResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
 
 
 class UnbindRequest(BaseRequest):
-    """Remove user from session."""
+    """Remove user from ldap_session."""
 
     PROTOCOL_OP: ClassVar[int] = 2
 
@@ -103,12 +133,12 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, session: Session) -> \
+    async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
-        if not session.name:
+        if not ldap_session.name:
             raise ValueError('User authed')
-        session.name = None
+        ldap_session.name = None
         return  # declare empty async generator and exit
         yield
 
@@ -180,7 +210,7 @@ class SearchRequest(BaseRequest):
         return v
 
     async def handle(
-        self, session: Session,
+        self, ldap_session: Session,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry, None,
     ]:
@@ -191,7 +221,7 @@ class SearchRequest(BaseRequest):
         """
         await asyncio.sleep(0)
         yield SearchResultEntry(
-            object_name=session.name,
+            object_name=ldap_session.name,
             partial_attributes=[
                 PartialAttribute(
                     type='dITContetRules',
@@ -237,7 +267,7 @@ protocol_id_map: dict[int, type[BaseRequest]] = \
     {request.PROTOCOL_OP: request  # type: ignore
         for request in BaseRequest.__subclasses__()}
 
-# protocol_id_map: dict[int, type[BaseResponse]] = {
+
 #     7: 'Modify Response',
 #     9: 'Add Response',
 #     11: 'Delete Response',
@@ -246,4 +276,3 @@ protocol_id_map: dict[int, type[BaseRequest]] = \
 #     19: 'Search Result Reference',
 #     24: 'Extended Response',
 #     25: 'intermediate Response',
-# }
