@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./app/Dockerfile
+    image: multidirectory
+    restart: unless-stopped
+    container_name: multidirectory-ldap
+    environment:
+      DEBUG: 0
+      HOST: 0.0.0.0
+      POSTGRES_USER: user1
+      POSTGRES_PWD: password123
+      POSTGRES_HOST: postgres
+    command: bash -c "alembic upgrade head && python ."
+    ports:
+      - "389:389"
+      - "636:636"
+
+  postgres:
+    container_name: MD-postgres
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: password123
+      PGDATA: /data/postgres
+    volumes:
+       - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres:
