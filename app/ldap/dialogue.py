@@ -1,8 +1,9 @@
 """Codes mapping."""
 
+from dataclasses import dataclass
 from enum import Enum
 
-from pydantic import BaseModel
+from models.ldap3 import User
 
 
 class LDAPCodes(int, Enum):
@@ -56,8 +57,9 @@ class LDAPCodes(int, Enum):
     OTHER = 80
 
 
-class Session(BaseModel):
+@dataclass
+class Session:
     """Session for one client handling."""
 
-    name: str | None
-    pwd_hash: str | None
+    user: User | None = None
+    name: str | None = None

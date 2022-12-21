@@ -3,9 +3,13 @@
 import asyncio
 import sys
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, ClassVar
+from typing import AsyncGenerator, ClassVar, Any
 
 from pydantic import BaseModel, Field, validator
+from sqlalchemy.future import select
+
+from models.database import async_session
+from models.ldap3 import CatalogueSetting, Path, User
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -35,19 +39,30 @@ class BaseRequest(ABC, BaseModel):
         raise NotImplementedError()
 
     @abstractmethod
-    async def handle(self, session: Session) -> \
+    async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle message with current user."""
         yield BaseResponse()  # type: ignore
 
 
-class SimpleAuthentication(BaseModel):
+class AuthChoice(ABC, BaseModel):
+    """Auth base class."""
+
+    @abstractmethod
+    def is_valid(self, user: User):
+        """Validate state."""
+
+
+class SimpleAuthentication(AuthChoice):
     """Simple auth form."""
 
     password: str
 
+    def is_valid(self, user: User):
+        return self.password == user.password
 
-class SaslAuthentication(BaseModel):
+
+class SaslAuthentication(AuthChoice):
     """Sasl auth form."""
 
     mechanism: str
@@ -83,18 +98,72 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    async def handle(self, session: Session) -> \
+    def get_domain(self):
+        """Get domain from name."""
+        return '.'.join([
+            item.removeprefix('DC=') for item in self.name.split(',')
+            if item.startswith('DC')
+        ])
+
+    def get_path(self):
+        """Get path from name."""
+        return [
+            item for item in reversed(self.name.split(','))
+            if not item.startswith('DC')
+        ]
+
+    async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
-        if session.name:
+        if ldap_session.name:
             raise ValueError('User authed')
-        await asyncio.sleep(0)  # TODO: Add sqlalchemy query
-        session.name = self.name
-        yield BindResponse(resultCode=LDAPCodes.SUCCESS)
+
+        async with async_session() as session:
+            res = await session.execute(
+                select(Path).where(Path.path == self.get_path()))
+            path = res.scalar()
+
+            domain_res = await session.execute(
+                select(CatalogueSetting)
+                .where(CatalogueSetting.name == 'defaultNamingContext'))
+
+            domain = domain_res.scalar()
+
+            if not domain or not path:
+                yield BindResponse(
+                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    matchedDN=domain.value if domain else '',
+                    errorMessage='Path is invalid',
+                )
+                return
+
+            user_res = await session.execute(
+                select(User).where(User.directory == path.endpoint))
+            user = user_res.scalar()
+
+            if not user:
+                yield BindResponse(
+                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    matchedDN=domain.value,
+                    errorMessage='User not found',
+                )
+                return
+
+            if not self.authentication_choice.is_valid(user):
+                yield BindResponse(
+                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    matchedDN=domain.value,
+                    errorMessage='Invalid password',
+                )
+                return
+
+            ldap_session.name = domain.value
+            ldap_session.user = user
+            yield BindResponse(resultCode=LDAPCodes.SUCCESS)
 
 
 class UnbindRequest(BaseRequest):
-    """Remove user from session."""
+    """Remove user from ldap_session."""
 
     PROTOCOL_OP: ClassVar[int] = 2
 
@@ -103,12 +172,13 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, session: Session) -> \
+    async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
-        if not session.name:
+        if not ldap_session.name:
             raise ValueError('User authed')
-        session.name = None
+        ldap_session.name = None
+        ldap_session.user = None
         return  # declare empty async generator and exit
         yield
 
@@ -180,7 +250,7 @@ class SearchRequest(BaseRequest):
         return v
 
     async def handle(
-        self, session: Session,
+        self, ldap_session: Session,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry, None,
     ]:
@@ -191,7 +261,7 @@ class SearchRequest(BaseRequest):
         """
         await asyncio.sleep(0)
         yield SearchResultEntry(
-            object_name=session.name,
+            object_name=ldap_session.name,
             partial_attributes=[
                 PartialAttribute(
                     type='dITContetRules',
@@ -237,7 +307,7 @@ protocol_id_map: dict[int, type[BaseRequest]] = \
     {request.PROTOCOL_OP: request  # type: ignore
         for request in BaseRequest.__subclasses__()}
 
-# protocol_id_map: dict[int, type[BaseResponse]] = {
+
 #     7: 'Modify Response',
 #     9: 'Add Response',
 #     11: 'Delete Response',
@@ -246,4 +316,3 @@ protocol_id_map: dict[int, type[BaseRequest]] = \
 #     19: 'Search Result Reference',
 #     24: 'Extended Response',
 #     25: 'intermediate Response',
-# }
