@@ -178,6 +178,7 @@ class UnbindRequest(BaseRequest):
         if not ldap_session.name:
             raise ValueError('User authed')
         ldap_session.name = None
+        ldap_session.user = None
         return  # declare empty async generator and exit
         yield
 
