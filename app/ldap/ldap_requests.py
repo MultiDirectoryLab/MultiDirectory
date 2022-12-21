@@ -3,13 +3,13 @@
 import asyncio
 import sys
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, ClassVar
+from typing import AsyncGenerator, ClassVar, Any
 
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.future import select
 
 from models.database import async_session
-from models.ldap3 import CatalogueSetting, Path
+from models.ldap3 import CatalogueSetting, Path, User
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -45,13 +45,24 @@ class BaseRequest(ABC, BaseModel):
         yield BaseResponse()  # type: ignore
 
 
-class SimpleAuthentication(BaseModel):
+class AuthChoice(ABC, BaseModel):
+    """Auth base class."""
+
+    @abstractmethod
+    def is_valid(self, user: User):
+        """Validate state."""
+
+
+class SimpleAuthentication(AuthChoice):
     """Simple auth form."""
 
     password: str
 
+    def is_valid(self, user: User):
+        return self.password == user.password
 
-class SaslAuthentication(BaseModel):
+
+class SaslAuthentication(AuthChoice):
     """Sasl auth form."""
 
     mechanism: str
@@ -96,31 +107,59 @@ class BindRequest(BaseRequest):
 
     def get_path(self):
         """Get path from name."""
-        return list(reversed([
-            item for item in self.name.split(',')
+        return [
+            item for item in reversed(self.name.split(','))
             if not item.startswith('DC')
-        ]))
+        ]
 
     async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if ldap_session.name:
             raise ValueError('User authed')
+
         async with async_session() as session:
             res = await session.execute(
                 select(Path).where(Path.path == self.get_path()))
             path = res.scalar()
-            q = select(
-                CatalogueSetting).where(
-                    CatalogueSetting.name == 'defaultNamingContext')
-            domain_res = await session.execute(q)
-            domain = domain_res.scalar().value
-            if domain and path:  # TODO: Add password check
-                ldap_session.name = domain
-                yield BindResponse(resultCode=LDAPCodes.SUCCESS)
+
+            domain_res = await session.execute(
+                select(CatalogueSetting)
+                .where(CatalogueSetting.name == 'defaultNamingContext'))
+
+            domain = domain_res.scalar()
+
+            if not domain or not path:
+                yield BindResponse(
+                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    matchedDN=domain.value if domain else '',
+                    errorMessage='Path is invalid',
+                )
                 return
 
-            yield BindResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            user_res = await session.execute(
+                select(User).where(User.directory == path.endpoint))
+            user = user_res.scalar()
+
+            if not user:
+                yield BindResponse(
+                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    matchedDN=domain.value,
+                    errorMessage='User not found',
+                )
+                return
+
+            if not self.authentication_choice.is_valid(user):
+                yield BindResponse(
+                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    matchedDN=domain.value,
+                    errorMessage='Invalid password',
+                )
+                return
+
+            ldap_session.name = domain.value
+            ldap_session.user = user
+            yield BindResponse(resultCode=LDAPCodes.SUCCESS)
 
 
 class UnbindRequest(BaseRequest):
