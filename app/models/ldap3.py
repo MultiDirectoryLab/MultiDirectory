@@ -10,6 +10,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import (
     Mapped,
     declarative_mixin,
@@ -56,6 +57,7 @@ class Directory(Base):
         'whenChanged',
         DateTime(timezone=True),
         onupdate=func.now(), nullable=True)
+    position = Column(Integer)
 
     path: 'Path' = relationship("Path", back_populates="endpoint", lazy="joined", uselist=False)
 
@@ -146,7 +148,7 @@ class Path(Base):
     directories: list[Directory] = relationship(
         "Directory",
         secondary=DirectoryPath.__table__,
-        # order_by="DirectoryPaths.position",
-        # collection_class=ordering_list('DirectoryPaths.position'),
+        order_by="Directory.position",
+        collection_class=ordering_list('position'),
         backref="paths",
     )
