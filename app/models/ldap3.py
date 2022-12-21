@@ -85,7 +85,7 @@ class DirectoryReferenceMixin:
             'directoryId', ForeignKey('Directory.id'), nullable=False)
 
     @declared_attr
-    def dirctory(cls) -> Mapped[Directory]:  # noqa: N805, D102
+    def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
         return relationship(
             'Directory', backref=f'{str(cls.__name__).lower()}s', lazy='joined')
 
