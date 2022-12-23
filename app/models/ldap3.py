@@ -65,12 +65,16 @@ class Directory(Base):
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
     )
 
-    def get_dn(self):
-        """Get distinguished name."""
+    def get_dn_prefix(self) -> str:
+        """Get distinguished name prefix."""
         return {
             'organizationUnit': 'OU',
             'domain': 'DC',
-        }.get(self.object_class, 'CN')
+        }.get(self.object_class, 'CN')  # type: ignore
+
+    def get_dn(self) -> str:
+        """Get distinguished name."""
+        return f"{self.get_dn_prefix()}={self.name}".lower()
 
 
 @declarative_mixin
@@ -87,7 +91,8 @@ class DirectoryReferenceMixin:
     @declared_attr
     def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
         return relationship(
-            'Directory', backref=f'{str(cls.__name__).lower()}s', lazy='joined')
+            'Directory',
+            backref=f'{str(cls.__name__).lower()}s', lazy='joined')
 
 
 class User(DirectoryReferenceMixin, Base):
