@@ -75,10 +75,10 @@ async def create_dir(data, session, parent: Directory | None = None):
     if not parent:
         _dir = Directory(
             object_class=data['object_class'], name=data['name'])
-        path = Path(path=[f"{_dir.get_dn()}={_dir.name}"], endpoint=_dir)
+        path = Path(path=[_dir.get_dn()], endpoint=_dir)
 
         async with session.begin_nested():
-            logger.info(f"calling stdln {_dir.object_class}:{_dir.name}")
+            logger.debug(f"creating {_dir.object_class}:{_dir.name}")
             session.add_all([_dir, path])
             _dir.paths.append(path)
 
@@ -88,11 +88,12 @@ async def create_dir(data, session, parent: Directory | None = None):
             name=data['name'],
             parent=parent)
         path = Path(
-            path=parent.path.path + [f"{_dir.get_dn()}={_dir.name}"],
+            path=parent.path.path + [_dir.get_dn()],
             endpoint=_dir)
 
         async with session.begin_nested():
-            logger.info(f"calling child {_dir.object_class}:{_dir.name}:{_dir.parent.id}")
+            logger.debug(
+                f"creating {_dir.object_class}:{_dir.name}:{_dir.parent.id}")
             session.add_all([_dir, path])
             _dir.paths.extend(parent.paths + [path])
 
@@ -109,7 +110,6 @@ async def create_dir(data, session, parent: Directory | None = None):
 
     if 'children' in data:
         for n_data in data['children']:
-            logger.info(f"calling nested {n_data}")
             await create_dir(n_data, session, _dir)
 
 
@@ -121,6 +121,7 @@ async def setup_dev_enviroment() -> None:
             .filter(CatalogueSetting.name == 'defaultNamingContext')
         )
         if cat_result.scalar():
+            logger.warning('dev data already set up')
             return
 
         catalogue = CatalogueSetting(
