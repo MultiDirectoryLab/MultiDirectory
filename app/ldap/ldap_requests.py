@@ -101,15 +101,15 @@ class BindRequest(BaseRequest):
     def get_domain(self):
         """Get domain from name."""
         return '.'.join([
-            item.removeprefix('DC=') for item in self.name.split(',')
-            if item.startswith('DC')
+            item[3:].lower() for item in self.name.split(',')
+            if item[:2] in ('DC', 'dc')
         ])
 
     def get_path(self):
         """Get path from name."""
         return [
-            item for item in reversed(self.name.split(','))
-            if not item.startswith('DC')
+            item.lower() for item in reversed(self.name.split(','))
+            if not item[:2] in ('DC', 'dc')
         ]
 
     async def handle(self, ldap_session: Session) -> \
@@ -131,7 +131,7 @@ class BindRequest(BaseRequest):
 
             if not domain or not path:
                 yield BindResponse(
-                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
                     matchedDN=domain.value if domain else '',
                     errorMessage='Path is invalid',
                 )
@@ -143,7 +143,7 @@ class BindRequest(BaseRequest):
 
             if not user:
                 yield BindResponse(
-                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
                     matchedDN=domain.value,
                     errorMessage='User not found',
                 )
@@ -151,15 +151,17 @@ class BindRequest(BaseRequest):
 
             if not self.authentication_choice.is_valid(user):
                 yield BindResponse(
-                    resultCode=LDAPCodes.OPERATIONS_ERROR,
+                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
                     matchedDN=domain.value,
                     errorMessage='Invalid password',
                 )
                 return
 
-            ldap_session.name = domain.value
-            ldap_session.user = user
-            yield BindResponse(resultCode=LDAPCodes.SUCCESS)
+        ldap_session.name = domain.value
+        ldap_session.user = user
+        yield BindResponse(
+            resultCode=LDAPCodes.SUCCESS,
+            matchedDn=domain.value)
 
 
 class UnbindRequest(BaseRequest):
@@ -175,8 +177,8 @@ class UnbindRequest(BaseRequest):
     async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
-        if not ldap_session.name:
-            raise ValueError('User authed')
+        if not ldap_session.user:
+            raise ValueError('User not authed')
         ldap_session.name = None
         ldap_session.user = None
         return  # declare empty async generator and exit
