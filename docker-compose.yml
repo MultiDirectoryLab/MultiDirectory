@@ -6,7 +6,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: ./app/dev.Dockerfile
+      dockerfile: ./app/local.Dockerfile
     image: multidirectory
     restart: "no" #unless-stopped
     container_name: ldap
