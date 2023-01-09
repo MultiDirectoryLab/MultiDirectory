@@ -3,7 +3,8 @@
 import asyncio
 import sys
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, ClassVar, Any
+from collections import defaultdict
+from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.future import select
@@ -122,7 +123,6 @@ class BindRequest(BaseRequest):
             res = await session.execute(
                 select(Path).where(Path.path == self.get_path()))
             path = res.scalar()
-
             domain_res = await session.execute(
                 select(CatalogueSetting)
                 .where(CatalogueSetting.name == 'defaultNamingContext'))
@@ -251,6 +251,24 @@ class SearchRequest(BaseRequest):
             return None
         return v
 
+    @staticmethod
+    async def get_root_dse(attributes: list[str])\
+            -> defaultdict[str, list[str]]:
+        """Get RootDSE.
+
+        :param list[str] attributes: list of requested attrs
+        :return defaultdict[str, list[str]]: queried attrs
+        """
+        async with async_session() as session:
+            data = defaultdict(list)
+            clause = [CatalogueSetting.name == name for name in attributes]
+            res = await session.execute(
+                select(CatalogueSetting).where(*clause))
+            for setting in res.scalar():
+                data[setting.name].append(setting.value)
+
+        return data
+
     async def handle(
         self, ldap_session: Session,
     ) -> AsyncGenerator[
@@ -262,18 +280,15 @@ class SearchRequest(BaseRequest):
         Entry -> Reference (optional) -> Done
         """
         await asyncio.sleep(0)
-        yield SearchResultEntry(
-            object_name=ldap_session.name,
-            partial_attributes=[
-                PartialAttribute(
-                    type='dITContetRules',
-                    vals=[
-                        "( 1.2.840.113556.1.5.7000.62.50033 NAME"
-                        " 'msExchMailboxManagerPolicy'",
-                    ],
-                ),
-            ],
-        )
+        if self.filter == "objectClass=*":
+            attrs = await self.get_root_dse(self.attributes)
+
+            yield SearchResultEntry(
+                object_name='',
+                partial_attributes=[
+                    PartialAttribute(type=name, vals=values)
+                    for name, values in attrs.items()],
+            )
         yield SearchResultDone(resultCode=0)
 
 
