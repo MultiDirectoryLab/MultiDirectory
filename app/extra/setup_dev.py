@@ -17,7 +17,7 @@ from loguru import logger
 from sqlalchemy.future import select
 
 from models.database import async_session
-from models.ldap3 import CatalogueSetting, Directory, Path, User
+from models.ldap3 import CatalogueSetting, Directory, User
 
 DATA = [  # noqa
     {
@@ -73,34 +73,32 @@ DATA = [  # noqa
 async def create_dir(data, session, parent: Directory | None = None):
     """Create data recursively."""
     if not parent:
-        _dir = Directory(
+        dir_ = Directory(
             object_class=data['object_class'], name=data['name'])
-        path = Path(path=[_dir.get_dn()], endpoint=_dir)
+        path = dir_.create_path()
 
         async with session.begin_nested():
-            logger.debug(f"creating {_dir.object_class}:{_dir.name}")
-            session.add_all([_dir, path])
-            _dir.paths.append(path)
+            logger.debug(f"creating {dir_.object_class}:{dir_.name}")
+            session.add_all([dir_, path])
+            dir_.paths.append(path)
 
     else:
-        _dir = Directory(
+        dir_ = Directory(
             object_class=data['object_class'],
             name=data['name'],
             parent=parent)
-        path = Path(
-            path=parent.path.path + [_dir.get_dn()],
-            endpoint=_dir)
+        path = dir_.create_path(parent)
 
         async with session.begin_nested():
             logger.debug(
-                f"creating {_dir.object_class}:{_dir.name}:{_dir.parent.id}")
-            session.add_all([_dir, path])
-            _dir.paths.extend(parent.paths + [path])
+                f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
+            session.add_all([dir_, path])
+            dir_.paths.extend(parent.paths + [path])
 
     if 'user' in data:
         user_data = data['user']
         session.add(User(
-            directory=_dir,
+            directory=dir_,
             sam_accout_name=user_data['sam_accout_name'],
             user_principal_name=user_data['user_principal_name'],
             display_name=user_data['display_name'],
@@ -110,7 +108,7 @@ async def create_dir(data, session, parent: Directory | None = None):
 
     if 'children' in data:
         for n_data in data['children']:
-            await create_dir(n_data, session, _dir)
+            await create_dir(n_data, session, dir_)
 
 
 async def setup_dev_enviroment() -> None:

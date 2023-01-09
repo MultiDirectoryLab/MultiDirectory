@@ -1,5 +1,7 @@
 """MultiDirectory LDAP models."""
 
+from typing import Optional
+
 from sqlalchemy import (
     Column,
     DateTime,
@@ -43,7 +45,8 @@ class Directory(Base):
         ForeignKey('Directory.id'), index=True, nullable=True)
 
     parent: list['Directory'] = relationship(
-        lambda: Directory, remote_side=id, backref='directories')
+        lambda: Directory, remote_side=id,
+        backref='directories', uselist=False)
 
     object_class = Column('objectClass', String, nullable=False)
 
@@ -57,9 +60,10 @@ class Directory(Base):
         'whenChanged',
         DateTime(timezone=True),
         onupdate=func.now(), nullable=True)
-    position = Column(Integer)
+    depth = Column(Integer)
 
-    path: 'Path' = relationship("Path", back_populates="endpoint", lazy="joined", uselist=False)
+    path: 'Path' = relationship(
+        "Path", back_populates="endpoint", lazy="joined", uselist=False)
 
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
@@ -75,6 +79,14 @@ class Directory(Base):
     def get_dn(self) -> str:
         """Get distinguished name."""
         return f"{self.get_dn_prefix()}={self.name}".lower()
+
+    def create_path(self, parent: Optional['Directory'] = None) -> 'Path':
+        """Create Path from a new directory."""
+        pre_path: list[str] =\
+            parent.path.path if parent else []  # type: ignore
+        return Path(
+            path=pre_path + [self.get_dn()],
+            endpoint=self)
 
 
 @declarative_mixin
@@ -126,8 +138,8 @@ class Attrubute(DirectoryReferenceMixin, Base):
 
     __tablename__ = "Attributes"
 
-    name = Column(String, nullable=False)
-    value = Column(String, nullable=False)
+    name = Column(String, nullable=False, index=True)
+    value = Column(String, nullable=False, index=True)
 
 
 class DirectoryPath(Base):
@@ -153,7 +165,7 @@ class Path(Base):
     directories: list[Directory] = relationship(
         "Directory",
         secondary=DirectoryPath.__table__,
-        order_by="Directory.position",
-        collection_class=ordering_list('position'),
+        order_by="Directory.depth",
+        collection_class=ordering_list('depth'),
         backref="paths",
     )
