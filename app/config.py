@@ -29,5 +29,8 @@ class Settings(BaseSettings):
             f"{values['POSTGRES_DB']}"
         )
 
+    VENDOR_NAME: str = "MultiFactor"
+    VENDOR_VERSION: str = '0.1.2'
+
 
 settings = Settings()
