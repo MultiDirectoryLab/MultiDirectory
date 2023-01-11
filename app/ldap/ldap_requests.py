@@ -9,6 +9,7 @@ from typing import AsyncGenerator, ClassVar
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.future import select
 
+from config import settings
 from models.database import async_session
 from models.ldap3 import CatalogueSetting, Path, User
 
@@ -266,6 +267,12 @@ class SearchRequest(BaseRequest):
                 select(CatalogueSetting).where(*clause))
             for setting in res.scalar():
                 data[setting.name].append(setting.value)
+
+        if 'vendorName' in attributes:
+            data['vendorName'].append(settings.VENDOR_NAME)
+
+        if 'vendorVersion' in attributes:
+            data['vendorVersion'].append(settings.VENDOR_VERSION)
 
         return data
 
