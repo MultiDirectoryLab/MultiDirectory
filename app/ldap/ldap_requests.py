@@ -1,6 +1,5 @@
 """LDAP requests structure bind."""
 
-import asyncio
 import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -8,10 +7,11 @@ from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.future import select
+from sqlalchemy.orm import lazyload
 
 from config import settings
 from models.database import async_session
-from models.ldap3 import CatalogueSetting, Path, User
+from models.ldap3 import CatalogueSetting, Directory, Path, User
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -24,6 +24,7 @@ from .ldap_responses import (
     SearchResultReference,
 )
 from .objects import DerefAliases, Scope
+from .utils import cast_filter2sql, get_base_dn
 
 
 class BaseRequest(ABC, BaseModel):
@@ -286,17 +287,57 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
-        await asyncio.sleep(0)
-        if self.filter == "objectClass=*":
-            attrs = await self.get_root_dse(self.attributes)
+        # TODO: refactor
+        if self.scope == Scope.SINGLEL_EVEL:
+            yield await self.single_level_view()
+        if self.scope == Scope.BASE_OBJECT:
+            yield await self.base_object_view()
+        if self.scope == Scope.WHOLE_SUBTREE:
+            yield await self.whole_subtree_view()
 
-            yield SearchResultEntry(
-                object_name='',
-                partial_attributes=[
-                    PartialAttribute(type=name, vals=values)
-                    for name, values in attrs.items()],
-            )
         yield SearchResultDone(resultCode=0)
+
+    async def base_object_view(self):
+        """Yield base object response."""
+        attrs = await self.get_root_dse(self.attributes)
+        yield SearchResultEntry(
+            object_name='',
+            partial_attributes=[
+                PartialAttribute(type=name, vals=values)
+                for name, values in attrs.items()],
+        )
+
+    async def single_level_view(self):
+        """Yield single level result."""
+        if not self.base_object:
+            self.base_object = await get_base_dn()
+        endp_q = select(Path).options(
+            lazyload(Path.endpoint, Path.directories)).where(
+            Path.path == self.base_object.lower().split(','),
+        )
+        async with async_session() as session:
+            result = await session.execute(endp_q)
+            base_path = result.scalar()
+            list_q = select(Directory)\
+                .filter(Directory.parent == base_path.endpoint)\
+                .options(lazyload(Directory.path))
+            dirs = await session.execute(list_q)
+
+            for directory in dirs.scalar():
+                yield SearchResultEntry(
+                    object_name=''.join(directory.path.path),
+                    partial_attributes=[
+                        PartialAttribute(type='objectClass', vals=oc)
+                        for oc in directory.get_object_class()],
+                )
+
+    async def whole_subtree_view(self):
+        """Yield subtree result."""
+        query = select(Directory)\
+            .join(Directory.users, Directory.attributes)\
+            .filter(cast_filter2sql(self.filter))
+
+        print(query)
 
 
 class ModifyRequest(BaseRequest):
