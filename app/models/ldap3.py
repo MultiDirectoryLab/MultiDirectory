@@ -18,6 +18,7 @@ from sqlalchemy.orm import (
     declarative_mixin,
     declared_attr,
     relationship,
+    synonym,
 )
 
 from .database import Base
@@ -48,7 +49,7 @@ class Directory(Base):
         lambda: Directory, remote_side=id,
         backref='directories', uselist=False)
 
-    object_class = Column('objectClass', String, nullable=False)
+    object_class: str = Column('objectClass', String, nullable=False)
 
     name = Column(String, nullable=False)
 
@@ -88,6 +89,9 @@ class Directory(Base):
             path=pre_path + [self.get_dn()],
             endpoint=self)
 
+    def get_object_classes(self) -> list[str]:  # noqa
+        return ['top', self.object_class]
+
 
 @declarative_mixin
 class DirectoryReferenceMixin:
@@ -119,6 +123,16 @@ class User(DirectoryReferenceMixin, Base):
 
     display_name = Column('displayName', String, nullable=True)
     password = Column(String, nullable=True)
+
+    samaccountname: str = synonym('sam_accout_name')
+    userprincipalname: str = synonym('user_principal_name')
+    displayname: str = synonym('display_name')
+
+    attrs = {
+        'samaccountname',
+        'userprincipalname',
+        'displayname',
+    }
 
 
 class Group(DirectoryReferenceMixin, Base):
