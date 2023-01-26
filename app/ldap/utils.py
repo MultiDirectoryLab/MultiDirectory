@@ -2,13 +2,13 @@
 from functools import cache
 
 from ldap_filter import Filter
-from sqlalchemy import Column, select
+from sqlalchemy import and_, or_, select
 
 from models.database import async_session
-from models.ldap3 import Attrubute, CatalogueSetting, Directory, User
+from models.ldap3 import Attrubute, CatalogueSetting, User
 
 
-@cache
+# @cache
 async def get_base_dn() -> str:
     """Get base dn for e.g. DC=multifactor,DC=dev.
 
@@ -26,8 +26,6 @@ async def get_base_dn() -> str:
 
 def cast_filter2sql(root_q: str):
     op_map = {
-        '&': 'and_',
-        '|': 'or_',
         '!': 'ne',
         '=': 'eq',
         '>=': 'ge',
@@ -40,18 +38,24 @@ def cast_filter2sql(root_q: str):
             if item.comp not in '&|!':
                 attr = item.attr.lower()
                 if attr in User.attrs:
+                    col = getattr(User, attr)
                     conditions.append(
-                        getattr(User, op_map[item.comp])(
+                        getattr(col, op_map[item.comp])(
                             attr, item.val.lower()))
                 else:
-                    conditions.append(
-                        Directory.attributes.and_(
-                            Attrubute.name.ilike(attr),
-                            Attrubute.value.ilike(item.val),
-                        ),
-                    )
+                    conditions.append(and_(
+                        Attrubute.name.ilike(attr),
+                        Attrubute.value.ilike(item.val),
+                    ))
             else:
                 conditions.append(cast(item))
-        return getattr(Column, op_map[item.comp])(*conditions)
+
+
+        if expr.comp == '&':
+            return and_(*conditions)
+        elif expr.comp == '|':
+            return or_(*conditions)
+        else:
+            raise TypeError
 
     return cast(Filter.parse(root_q))
