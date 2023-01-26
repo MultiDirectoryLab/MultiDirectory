@@ -3,7 +3,7 @@
 from abc import ABC
 from typing import AsyncGenerator
 
-from asn1 import Classes, Encoder, Numbers
+from asn1 import Classes, Decoder, Encoder, Numbers
 from pydantic import BaseModel, Field, validator
 
 from .asn1parser import asn1todict
@@ -54,13 +54,18 @@ class LDAPRequestMessage(LDAPMessage):
     @classmethod
     def from_bytes(cls, source: bytes):
         """Create message from bytes."""
-        output = asn1todict(source)
-        sequence = output.pop('field-0')[0]
+        dec = Decoder()
+        dec.start(source)
+        output = asn1todict(dec)
 
+        # from pprint import pprint
+        # pprint(output, indent=2)
+
+        sequence = output[0]
         if sequence.tag_id.value != Numbers.Sequence:
             raise ValueError('Wrong schema')
 
-        seq_fields = output[sequence.value]
+        seq_fields = sequence.value
         message_id, protocol = seq_fields[:2]
 
         try:
@@ -68,7 +73,8 @@ class LDAPRequestMessage(LDAPMessage):
         except IndexError:
             controls = 0
 
-        context = protocol_id_map[protocol.tag_id.value].from_data(output)
+        context = protocol_id_map[
+            protocol.tag_id.value].from_data(protocol.value)
         return cls(
             messageID=message_id.value,
             protocolOP=protocol.tag_id.value,
@@ -90,8 +96,8 @@ class LDAPRequestMessage(LDAPMessage):
         protocol_op = -1
 
         try:
-            sequence = output.pop('field-0')[0]
-            seq_fields = output[sequence.value]
+            sequence = output[0]
+            seq_fields = sequence.value
             message, protocol = seq_fields[:2]
             protocol_op = protocol.tag_id.value
             message_id = message.value
