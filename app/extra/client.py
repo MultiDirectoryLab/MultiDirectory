@@ -15,7 +15,11 @@ def run_client():
     except Exception as exc:
         logger.error(f'failed {exc}')
     else:
-        search_res = conn.search('o=test', '(objectclass=*)')
+        search_res = conn.search(
+            'o=test',
+            search_filter='(&(name=bob)(mail=*@example.com)(|(dept=accounting)(dept=operations)))',
+            attributes=['objectClass', 'baseName']
+        )
         logger.info(f'OK {search_res}')
         res = conn.unbind()
         logger.info(f'OK {res}')
