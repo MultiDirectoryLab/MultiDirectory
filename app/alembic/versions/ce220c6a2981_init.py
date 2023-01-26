@@ -1,8 +1,8 @@
 """init
 
-Revision ID: e8dedbdc7c70
+Revision ID: ce220c6a2981
 Revises: 
-Create Date: 2022-12-21 09:43:44.693376
+Create Date: 2023-01-26 06:17:38.177734
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'e8dedbdc7c70'
+revision = 'ce220c6a2981'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('whenCreated', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('whenChanged', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('position', sa.Integer(), nullable=True),
+    sa.Column('depth', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['parentId'], ['Directory.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('parentId', 'name', name='name_parent_uc')
@@ -46,6 +46,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['directoryId'], ['Directory.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_Attributes_name'), 'Attributes', ['name'], unique=False)
+    op.create_index(op.f('ix_Attributes_value'), 'Attributes', ['value'], unique=False)
     op.create_table('Computers',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('directoryId', sa.Integer(), nullable=False),
@@ -96,6 +98,8 @@ def downgrade() -> None:
     op.drop_table('Paths')
     op.drop_table('Groups')
     op.drop_table('Computers')
+    op.drop_index(op.f('ix_Attributes_value'), table_name='Attributes')
+    op.drop_index(op.f('ix_Attributes_name'), table_name='Attributes')
     op.drop_table('Attributes')
     op.drop_index(op.f('ix_Settings_name'), table_name='Settings')
     op.drop_table('Settings')

@@ -147,7 +147,7 @@ class Computer(DirectoryReferenceMixin, Base):
     __tablename__ = "Computers"
 
 
-class Attrubute(DirectoryReferenceMixin, Base):
+class Attribute(DirectoryReferenceMixin, Base):
     """Attributes data."""
 
     __tablename__ = "Attributes"
