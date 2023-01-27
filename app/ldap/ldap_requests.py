@@ -384,25 +384,21 @@ class SearchRequest(BaseRequest):
 
     async def whole_subtree_view(self):
         """Yield subtree result."""
-        from loguru import logger  # NOTE: Debug
-
         query = select(Directory)\
             .join(Directory.users).join(Directory.attributes)\
-            .filter(self.cast_filter2sql())
-        try:
-            print()
-            print()
-            logger.info(query)
-            print()
-            print()
-        except Exception as err:
-            logger.error(err)
-        import asyncio
-        await asyncio.sleep(0)
-        yield SearchResultEntry(
-            object_name='',
-            partial_attributes=[],
-        )
+            .filter(self.cast_filter2sql())\
+            .options(lazyload(Directory.path), lazyload(Directory.attributes))
+
+        async with async_session() as session:
+            result = await session.execute(query)
+
+        for directory in result:
+            yield SearchResultEntry(
+                object_name=','.join(directory.path.path),
+                partial_attributes=[
+                    PartialAttribute(type=attr.name, vals=[attr.value])
+                    for attr in directory.attributes],
+            )
 
 
 class ModifyRequest(BaseRequest):
