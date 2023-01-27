@@ -278,13 +278,24 @@ class SearchRequest(BaseRequest):
                 attr = left.value.lower()
                 is_substring = item.tag_id.value == 4
 
-                if attr in User.attrs:
+                # TODO: DRY
+                if attr in User.search_fields:
                     col = getattr(User, attr)
                     if is_substring:
                         conditions.append(col.ilike(get_substring(right)))
                     else:
-                        conditions.append(getattr(col, op_map[item.tag_id])(
-                            attr, right.value.lower()))
+                        conditions.append(getattr(
+                            col, op_map[item.tag_id.value],
+                        )(attr, right.value.lower()))
+
+                elif attr in Directory.search_fields:
+                    col = getattr(Directory, attr)
+                    if is_substring:
+                        conditions.append(col.ilike(get_substring(right)))
+                    else:
+                        conditions.append(getattr(
+                            col, op_map[item.tag_id.value],
+                        )(attr, right.value.lower()))
 
                 else:
                     if is_substring:
@@ -384,21 +395,24 @@ class SearchRequest(BaseRequest):
 
     async def whole_subtree_view(self):
         """Yield subtree result."""
-        query = select(Directory)\
-            .join(Directory.users).join(Directory.attributes)\
-            .filter(self.cast_filter2sql())\
-            .options(lazyload(Directory.path), lazyload(Directory.attributes))
+        try:
+            query = select(Directory)\
+                .join(Directory.users).join(Directory.attributes)\
+                .filter(self.cast_filter2sql())\
+                .options(lazyload(Directory.path))
+        except Exception as err:
+            print(err)
+        else:
+            async with async_session() as session:
+                result = await session.execute(query)
 
-        async with async_session() as session:
-            result = await session.execute(query)
-
-        for directory in result:
-            yield SearchResultEntry(
-                object_name=','.join(directory.path.path),
-                partial_attributes=[
-                    PartialAttribute(type=attr.name, vals=[attr.value])
-                    for attr in directory.attributes],
-            )
+            for directory in result:
+                yield SearchResultEntry(
+                    object_name=','.join(directory.path.path),
+                    partial_attributes=[
+                        PartialAttribute(type=attr.name, vals=[attr.value])
+                        for attr in directory.attributes],
+                )
 
 
 class ModifyRequest(BaseRequest):
