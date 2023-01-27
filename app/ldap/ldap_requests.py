@@ -6,12 +6,13 @@ from collections import defaultdict
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
+from sqlalchemy import and_, func, or_
 from sqlalchemy.future import select
 from sqlalchemy.orm import lazyload
 
 from config import settings
 from models.database import async_session
-from models.ldap3 import CatalogueSetting, Directory, Path, User
+from models.ldap3 import Attribute, CatalogueSetting, Directory, Path, User
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -24,7 +25,7 @@ from .ldap_responses import (
     SearchResultReference,
 )
 from .objects import DerefAliases, Scope
-from .utils import cast_filter2sql, get_base_dn
+from .utils import get_base_dn
 
 
 class BaseRequest(ABC, BaseModel):
@@ -85,19 +86,18 @@ class BindRequest(BaseRequest):
     @classmethod
     def from_data(cls, data) -> 'BindRequest':
         """Get bind from data dict."""
-        auth = data['field-1'][1].tag_id.value
-        auth_data = data['field-2']
+        auth = data[2].tag_id.value
 
         if auth == 0:
-            auth_choice = SimpleAuthentication(password=auth_data[2].value)
+            auth_choice = SimpleAuthentication(password=data[2].value)
         elif auth == 3:  # noqa: R506
             raise NotImplementedError('Sasl not supported')  # TODO: Add SASL
         else:
             raise ValueError('Auth version not supported')
 
         return cls(
-            version=auth_data[0].value,
-            name=auth_data[1].value,
+            version=data[0].value,
+            name=data[1].value,
             AuthenticationChoice=auth_choice,
         )
 
@@ -219,7 +219,7 @@ class SearchRequest(BaseRequest):
     size_limit: int = Field(ge=0, le=sys.maxsize)
     time_limit: int = Field(ge=0, le=sys.maxsize)
     types_only: bool
-    filter: str  # noqa: A003
+    filter: ASN1Row = Field(...)  # noqa: A003
     attributes: list[str]
 
     @classmethod
@@ -232,8 +232,8 @@ class SearchRequest(BaseRequest):
             time_limit,
             types_only,
             filter_,
-            attributes_link,
-        ) = data['field-2'][:8]
+            attributes,
+        ) = data[:8]
 
         return cls(
             base_object=base_object.value,
@@ -242,8 +242,8 @@ class SearchRequest(BaseRequest):
             size_limit=size_limit.value,
             time_limit=time_limit.value,
             types_only=types_only.value,
-            filter=filter_.value,
-            attributes=[field.value for field in data[attributes_link.value]],
+            filter=filter_,
+            attributes=[field.value for field in attributes.value],
         )
 
     @validator('base_object')
@@ -252,6 +252,58 @@ class SearchRequest(BaseRequest):
         if v == '':
             return None
         return v
+
+    def cast_filter2sql(self):
+        """Recursively cast Filter to SQLAlchemy conditions."""
+        op_map = {
+            3: 'eq',
+            5: 'ge',
+            6: 'le',
+        }
+
+        def get_substring(right: ASN1Row) -> str:  # RFC 4511
+            expr = right.value[0]
+            value = expr.value
+            index = expr.tag_id.value
+            return [f"{value}%", f"%{value}%", f"%{value}"][index]
+
+        def cast(expr):
+            conditions = []
+            for item in expr.value:
+                if item.tag_id.value in range(3):  # &|!
+                    conditions.append(cast(item))
+                    continue
+
+                left, right = item.value
+                attr = left.value.lower()
+                is_substring = item.tag_id.value == 4
+
+                if attr in User.attrs:
+                    col = getattr(User, attr)
+                    if is_substring:
+                        conditions.append(col.ilike(get_substring(right)))
+                    else:
+                        conditions.append(getattr(col, op_map[item.tag_id])(
+                            attr, right.value.lower()))
+
+                else:
+                    if is_substring:
+                        cond = Attribute.value.ilike(get_substring(right))
+                    else:
+                        cond = func.lower(
+                            Attribute.value) == right.value.lower()
+
+                    conditions.append(and_(
+                        func.lower(Attribute.name) == attr, cond))
+
+            if expr.tag_id.value == 0:
+                return and_(*conditions)
+            elif expr.tag_id.value == 1:
+                return or_(*conditions)
+            else:
+                raise TypeError
+
+        return cast(self.filter)
 
     @staticmethod
     async def get_root_dse(attributes: list[str])\
@@ -266,7 +318,7 @@ class SearchRequest(BaseRequest):
             clause = [CatalogueSetting.name == name for name in attributes]
             res = await session.execute(
                 select(CatalogueSetting).where(*clause))
-            for setting in res.scalar():
+            for setting in res:
                 data[setting.name].append(setting.value)
 
         if 'vendorName' in attributes:
@@ -287,14 +339,13 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
-        # TODO: refactor
-        if self.scope == Scope.SINGLEL_EVEL:
-            yield await self.single_level_view()
-        if self.scope == Scope.BASE_OBJECT:
-            yield await self.base_object_view()
-        if self.scope == Scope.WHOLE_SUBTREE:
-            yield await self.whole_subtree_view()
-
+        views = {
+            Scope.BASE_OBJECT: self.base_object_view,
+            Scope.SINGLEL_EVEL: self.single_level_view,
+            Scope.WHOLE_SUBTREE: self.whole_subtree_view,
+        }
+        async for response in views[self.scope]():
+            yield response
         yield SearchResultDone(resultCode=0)
 
     async def base_object_view(self):
@@ -333,11 +384,25 @@ class SearchRequest(BaseRequest):
 
     async def whole_subtree_view(self):
         """Yield subtree result."""
-        query = select(Directory)\
-            .join(Directory.users, Directory.attributes)\
-            .filter(cast_filter2sql(self.filter))
+        from loguru import logger  # NOTE: Debug
 
-        print(query)
+        query = select(Directory)\
+            .join(Directory.users).join(Directory.attributes)\
+            .filter(self.cast_filter2sql())
+        try:
+            print()
+            print()
+            logger.info(query)
+            print()
+            print()
+        except Exception as err:
+            logger.error(err)
+        import asyncio
+        await asyncio.sleep(0)
+        yield SearchResultEntry(
+            object_name='',
+            partial_attributes=[],
+        )
 
 
 class ModifyRequest(BaseRequest):
