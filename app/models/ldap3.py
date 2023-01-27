@@ -50,6 +50,7 @@ class Directory(Base):
         backref='directories', uselist=False)
 
     object_class: str = Column('objectClass', String, nullable=False)
+    objectclass: str = synonym('object_class')
 
     name = Column(String, nullable=False)
 
@@ -69,6 +70,11 @@ class Directory(Base):
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
     )
+
+    search_fields = {
+        'name',
+        'objectclass',
+    }
 
     def get_dn_prefix(self) -> str:
         """Get distinguished name prefix."""
@@ -121,6 +127,7 @@ class User(DirectoryReferenceMixin, Base):
     user_principal_name = Column(
         'userPrincipalName', String, nullable=False, unique=True)
 
+    mail = Column(String(255))
     display_name = Column('displayName', String, nullable=True)
     password = Column(String, nullable=True)
 
@@ -128,7 +135,8 @@ class User(DirectoryReferenceMixin, Base):
     userprincipalname: str = synonym('user_principal_name')
     displayname: str = synonym('display_name')
 
-    attrs = {
+    search_fields = {
+        'mail',
         'samaccountname',
         'userprincipalname',
         'displayname',
