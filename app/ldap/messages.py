@@ -58,9 +58,6 @@ class LDAPRequestMessage(LDAPMessage):
         dec.start(source)
         output = asn1todict(dec)
 
-        # from pprint import pprint
-        # pprint(output, indent=2)
-
         sequence = output[0]
         if sequence.tag_id.value != Numbers.Sequence:
             raise ValueError('Wrong schema')
