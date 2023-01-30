@@ -1,13 +1,11 @@
 """ASN1 parser and decoder wrapper with dataclasses."""
 
 import binascii
-from collections import defaultdict
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
 
 from asn1 import Classes, Decoder, Numbers, Tag, Types
-from loguru import logger
 
 
 @dataclass
@@ -95,53 +93,23 @@ def class_id_to_string(identifier: int):
     raise ValueError('Illegal class: {:#02x}'.format(identifier))
 
 
-def _parse_asn1_to_dict(
-    decoder: Decoder,
-    output: dict,
-    depth: int = 0,
-    trace: bool = False,
-):
-    """Collect ASN.1 data to dict."""
+def asn1todict(decoder: Decoder) -> list[ASN1Row]:
+    """Recursively collect ASN.1 data to list of ASNRows."""
+    out = []
     while not decoder.eof():
         tag = decoder.peek()
-        filed_name = f'field-{depth}'
 
         if tag.typ == Types.Primitive:
             tag, value = decoder.read()
             field = ASN1Row.from_tag(tag, value_to_string(tag, value))
-            output[filed_name].append(field)
-
-            if trace:
-                prefix = ' ' * 4 * depth
-                logger.info(
-                    f"{prefix}[{field.class_id}]"
-                    f"{field.tag_id}: {field.value}")
+            out.append(field)
 
         elif tag.typ == Types.Constructed:
-            new_depth = depth + 1
-
             decoder.enter()
-            _parse_asn1_to_dict(decoder, output, new_depth, trace)
+            new_out = asn1todict(decoder)
             decoder.leave()
 
-            field = ASN1Row.from_tag(tag, f'field-{new_depth}')
-            output[filed_name].append(field)
+            field = ASN1Row.from_tag(tag, new_out)
+            out.append(field)
 
-            if trace:
-                prefix = ' ' * 4 * depth
-                logger.info(f"{prefix}[{field.class_id}] {field.tag_id}")
-
-
-def asn1todict(data: bytes) -> dict[str, list[ASN1Row]]:
-    """Parse ASN1 data to dict.
-
-    Wraps mutable interaction to functional method.
-
-    :param bytes data: asn1 data
-    :return dict[str, list[ASN1Row]]: parsed structure
-    """
-    dec = Decoder()
-    dec.start(data)
-    output = defaultdict(list)  # type: ignore
-    _parse_asn1_to_dict(dec, output)
-    return output
+    return out

@@ -3,7 +3,6 @@
 import asyncio
 from traceback import format_exc
 
-from asyncio_pool import AioPool
 from loguru import logger
 from pydantic import ValidationError
 
@@ -76,15 +75,16 @@ class PoolClient:
 
     async def handle_single_response(self):
         """Get message from queue and handle it."""
-        message = await self.queue.get()
+        while True:
+            message = await self.queue.get()
 
-        async for response in message.create_response(self.session):
-            logger.info(
-                f"\nFrom: {self.addr!r}"
-                f"\nRequest: {message}\nResponse: {response}")
+            async for response in message.create_response(self.session):
+                logger.info(
+                    f"\nFrom: {self.addr!r}"
+                    f"\nRequest: {message}\nResponse: {response}")
 
-            self.writer.write(response.encode())
-            await self.writer.drain()
+                self.writer.write(response.encode())
+                await self.writer.drain()
 
     async def handle_responses(self):
         """Create pool of workers and apply handler to it.
@@ -93,9 +93,8 @@ class PoolClient:
         then every task awaits for queue object,
         cycle locks until pool completes at least 1 task.
         """
-        async with AioPool(self.num_workers) as pool:
-            while True:
-                await pool.spawn(self.handle_single_response())
+        await asyncio.gather(
+            *[self.handle_single_response() for _ in range(self.num_workers)])
 
 
 async def main():
