@@ -6,9 +6,9 @@ from collections import defaultdict
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, func, not_, or_
 from sqlalchemy.future import select
-from sqlalchemy.orm import lazyload
+from sqlalchemy.orm import joinedload, lazyload
 
 from config import settings
 from models.database import async_session
@@ -255,10 +255,11 @@ class SearchRequest(BaseRequest):
 
     def cast_filter2sql(self):
         """Recursively cast Filter to SQLAlchemy conditions."""
+        from operator import eq, ge, le
         op_map = {
-            3: 'eq',
-            5: 'ge',
-            6: 'le',
+            3: eq,
+            5: ge,
+            6: le,
         }
 
         def get_substring(right: ASN1Row) -> str:  # RFC 4511
@@ -267,53 +268,58 @@ class SearchRequest(BaseRequest):
             index = expr.tag_id.value
             return [f"{value}%", f"%{value}%", f"%{value}"][index]
 
+        def from_filter(model: type, item, attr, right):
+            is_substring = item.tag_id.value == 4
+            col = getattr(model, attr)
+
+            if is_substring:
+                return col.ilike(get_substring(right))
+            op_method = op_map[item.tag_id.value]
+            return op_method(func.lower(col), right.value.lower())
+
+        def cast_item(item):
+            if item.tag_id.value == 7:
+                attr = item.value.lower()
+
+                if attr in User.search_fields:
+                    return not_(eq(getattr(User, attr), None))
+
+                if attr in Directory.search_fields:
+                    return not_(eq(getattr(Directory, attr), None))
+
+                return func.lower(Attribute.value) == item.value.lower()
+
+            left, right = item.value
+            attr = left.value.lower()
+            is_substring = item.tag_id.value == 4
+
+            if attr in User.search_fields:
+                return from_filter(User, item, attr, right)
+            elif attr in Directory.search_fields:
+                return from_filter(Directory, item, attr, right)
+
+            else:
+                if is_substring:
+                    cond = Attribute.value.ilike(get_substring(right))
+                else:
+                    cond = func.lower(
+                        Attribute.value) == right.value.lower()
+
+                return and_(func.lower(Attribute.name) == attr, cond)
+
         def cast(expr):
             conditions = []
-            for item in expr.value:
-                if item.tag_id.value in range(3):  # &|!
-                    conditions.append(cast(item))
-                    continue
+            if expr.tag_id.value in range(3):
+                for item in expr.value:
+                    if item.tag_id.value in range(3):  # &|!
+                        conditions.append(cast(item))
+                        continue
 
-                left, right = item.value
-                attr = left.value.lower()
-                is_substring = item.tag_id.value == 4
+                    conditions.append(cast_item(item))
 
-                # TODO: DRY
-                if attr in User.search_fields:
-                    col = getattr(User, attr)
-                    if is_substring:
-                        conditions.append(col.ilike(get_substring(right)))
-                    else:
-                        conditions.append(getattr(
-                            col, op_map[item.tag_id.value],
-                        )(attr, right.value.lower()))
+                return [and_, or_, not_][expr.tag_id.value](*conditions)
 
-                elif attr in Directory.search_fields:
-                    col = getattr(Directory, attr)
-                    if is_substring:
-                        conditions.append(col.ilike(get_substring(right)))
-                    else:
-                        conditions.append(getattr(
-                            col, op_map[item.tag_id.value],
-                        )(attr, right.value.lower()))
-
-                else:
-                    if is_substring:
-                        cond = Attribute.value.ilike(get_substring(right))
-                    else:
-                        cond = func.lower(
-                            Attribute.value) == right.value.lower()
-
-                    conditions.append(and_(
-                        func.lower(Attribute.name) == attr, cond))
-
-            if expr.tag_id.value == 0:
-                return and_(*conditions)
-            elif expr.tag_id.value == 1:
-                return or_(*conditions)
-            else:
-                raise TypeError
-
+            return cast_item(expr)
         return cast(self.filter)
 
     @staticmethod
@@ -395,24 +401,30 @@ class SearchRequest(BaseRequest):
 
     async def whole_subtree_view(self):
         """Yield subtree result."""
-        try:
-            query = select(Directory)\
-                .join(Directory.users).join(Directory.attributes)\
-                .filter(self.cast_filter2sql())\
-                .options(lazyload(Directory.path))
-        except Exception as err:
-            print(err)
-        else:
-            async with async_session() as session:
-                result = await session.execute(query)
+        condition = self.cast_filter2sql()
 
-            for directory in result:
-                yield SearchResultEntry(
-                    object_name=','.join(directory.path.path),
-                    partial_attributes=[
-                        PartialAttribute(type=attr.name, vals=[attr.value])
-                        for attr in directory.attributes],
-                )
+        query = select(Directory)\
+            .join(User, isouter=True)\
+            .join(Attribute, isouter=True)\
+            .options(joinedload(Directory.path))
+
+        if condition is not None:
+            query = query.filter(condition)
+
+        async with async_session() as session:
+            results = await session.execute(query)
+
+        for directory in results.scalars():
+            attrs = defaultdict(list)
+            # TODO: Add attributes support
+            # for attr in directory.attributes:
+            #     attrs[attr.name].append(attr.value)
+            yield SearchResultEntry(
+                object_name=','.join(directory.path.path),
+                partial_attributes=[
+                    PartialAttribute(type=key, vals=value)
+                    for key, value in attrs.items()],
+            )
 
 
 class ModifyRequest(BaseRequest):
