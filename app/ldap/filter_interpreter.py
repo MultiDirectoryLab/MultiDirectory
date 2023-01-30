@@ -1,4 +1,7 @@
-"""LDAP filter asn1 syntax to sqlalchemy conditions interpreter."""
+"""LDAP filter asn1 syntax to sqlalchemy conditions interpreter.
+
+RFC 4511 reference.
+"""
 
 from operator import eq, ge, le
 
@@ -27,6 +30,7 @@ def _from_filter(model: type, item, attr, right):
 
 
 def _cast_item(item):
+    # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
         attr = item.value.lower()
 
