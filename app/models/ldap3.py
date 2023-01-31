@@ -53,6 +53,7 @@ class Directory(Base):
     objectclass: str = synonym('object_class')
 
     name = Column(String, nullable=False)
+    cn: str = synonym('name')
 
     created_at = Column(
         'whenCreated',
@@ -72,6 +73,7 @@ class Directory(Base):
     )
 
     search_fields = {
+        'cn',
         'name',
         'objectclass',
     }
