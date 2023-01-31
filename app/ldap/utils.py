@@ -1,11 +1,12 @@
 """Utils module for different functions."""
+from asyncio_cache import cache
 from sqlalchemy import select
 
 from models.database import async_session
 from models.ldap3 import CatalogueSetting
 
 
-# TODO: Add caching
+@cache
 async def get_base_dn() -> str:
     """Get base dn for e.g. DC=multifactor,DC=dev.
 

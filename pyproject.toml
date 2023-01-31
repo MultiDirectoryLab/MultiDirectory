@@ -15,6 +15,7 @@ asn1 = "^2.6.0"
 pydantic = "^1.10.2"
 loguru = "^0.6.0"
 sqlalchemy-utils = "^0.38.3"
+asyncio-cache = "^0.0.1"
 
 [tool.poetry.group.linters.dependencies]
 mypy = "^0.991"

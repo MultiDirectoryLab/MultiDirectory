@@ -33,6 +33,14 @@ optional = false
 python-versions = ">=3.8"
 
 [[package]]
+name = "asyncio-cache"
+version = "0.0.1"
+description = "A python library for asyncio caches (like functools cache and lru_cache)"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "asyncpg"
 version = "0.27.0"
 description = "An asyncio PostgreSQL driver"
@@ -767,7 +775,7 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "433c49941616b9c3ec2726cf512e1dfcd131f70738661dd6f29506b399dbdb42"
+content-hash = "53b57d2af2c27119bec33a6612ed83e024e8e49c238ee898ace27188f2564224"
 
 [metadata.files]
 alembic = [
@@ -781,6 +789,10 @@ asn1 = [
 astpretty = [
     {file = "astpretty-3.0.0-py2.py3-none-any.whl", hash = "sha256:15bfd47593667169485a1fa7938b8de9445b11057d6f2b6e214b2f70667f94b6"},
     {file = "astpretty-3.0.0.tar.gz", hash = "sha256:b08c95f32e5994454ea99882ff3c4a0afc8254c38998a0ed4b479dba448dc581"},
+]
+asyncio-cache = [
+    {file = "asyncio_cache-0.0.1-py3-none-any.whl", hash = "sha256:b1b0d9d90fa63f572846d68bb4ad9f99705fe89c8105ca26f2eafd10ff1dcccb"},
+    {file = "asyncio_cache-0.0.1.tar.gz", hash = "sha256:47dde01a991d01a21283838e9449ce7f0c5667e4a3392c8c157f9bb0706078cb"},
 ]
 asyncpg = [
     {file = "asyncpg-0.27.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:fca608d199ffed4903dce1bcd97ad0fe8260f405c1c225bdf0002709132171c2"},
