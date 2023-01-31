@@ -131,12 +131,16 @@ class BindRequest(BaseRequest):
 
             domain = domain_res.scalar()
 
+            bad_response = BindResponse(
+                resultCode=LDAPCodes.INVALID_CREDENTIALS,
+                matchedDN=domain.value,
+                errorMessage=(
+                    '80090308: LdapErr: DSID-0C090447, '
+                    'comment: AcceptSecurityContext error, data 52e, v3839'),
+            )
+
             if not domain or not path:
-                yield BindResponse(
-                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
-                    matchedDN=domain.value if domain else '',
-                    errorMessage='Path is invalid',
-                )
+                yield bad_response
                 return
 
             user_res = await session.execute(
@@ -144,19 +148,11 @@ class BindRequest(BaseRequest):
             user = user_res.scalar()
 
             if not user:
-                yield BindResponse(
-                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
-                    matchedDN=domain.value,
-                    errorMessage='User not found',
-                )
+                yield bad_response
                 return
 
             if not self.authentication_choice.is_valid(user):
-                yield BindResponse(
-                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
-                    matchedDN=domain.value,
-                    errorMessage='Invalid password',
-                )
+                yield bad_response
                 return
 
         ldap_session.name = domain.value
