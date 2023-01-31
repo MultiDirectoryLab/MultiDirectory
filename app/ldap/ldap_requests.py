@@ -345,13 +345,15 @@ class SearchRequest(BaseRequest):
         async with async_session() as session:
             results = await session.execute(query)
 
+        dn = await get_base_dn()
+
         for directory in results.scalars():
             attrs = defaultdict(list)
             # TODO: Add attributes support
             # for attr in directory.attributes:
             #     attrs[attr.name].append(attr.value)
             yield SearchResultEntry(
-                object_name=','.join(directory.path.path),
+                object_name=','.join(reversed(directory.path.path)) + ',' + dn,
                 partial_attributes=[
                     PartialAttribute(type=key, vals=value)
                     for key, value in attrs.items()],
