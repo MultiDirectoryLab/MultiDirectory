@@ -267,7 +267,7 @@ class SearchRequest(BaseRequest):
             clause = [CatalogueSetting.name == name for name in attributes]
             res = await session.execute(
                 select(CatalogueSetting).where(*clause))
-            for setting in res:
+            for setting in res.scalar():
                 data[setting.name].append(setting.value)
 
         if 'vendorName'.lower() in attributes:
