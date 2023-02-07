@@ -264,10 +264,11 @@ class SearchRequest(BaseRequest):
         attributes = [attr.lower() for attr in attributes]
         async with async_session() as session:
             data = defaultdict(list)
-            clause = [CatalogueSetting.name == name for name in attributes]
+            clause = [CatalogueSetting.name.ilike(name) for name in attributes]
             res = await session.execute(
                 select(CatalogueSetting).where(*clause))
-            for setting in res.scalar():
+
+            for setting in res.scalars():
                 data[setting.name].append(setting.value)
 
         if 'vendorName'.lower() in attributes:
