@@ -242,6 +242,10 @@ class SearchRequest(BaseRequest):
             attributes=[field.value for field in attributes.value],
         )
 
+    def _get_base_obj(self):
+        assert self.base_object, 'no baseObject'  # noqa: S101
+        return [obj.lower() for obj in self.base_object.split(',')]
+
     @validator('base_object')
     def empty_str_to_none(cls, v):  # noqa: N805
         """Set base_object value to None if it's value is empty str."""
@@ -257,6 +261,7 @@ class SearchRequest(BaseRequest):
         :param list[str] attributes: list of requested attrs
         :return defaultdict[str, list[str]]: queried attrs
         """
+        attributes = [attr.lower() for attr in attributes]
         async with async_session() as session:
             data = defaultdict(list)
             clause = [CatalogueSetting.name == name for name in attributes]
@@ -265,10 +270,19 @@ class SearchRequest(BaseRequest):
             for setting in res:
                 data[setting.name].append(setting.value)
 
-        if 'vendorName' in attributes:
+        if 'vendorName'.lower() in attributes:
             data['vendorName'].append(settings.VENDOR_NAME)
 
-        if 'vendorVersion' in attributes:
+        if 'supportedldapversion'.lower() in attributes:
+            data['supportedldapversion'].append(3)
+
+        if 'namingContexts'.lower() in attributes:
+            data['namingContexts'].append(await get_base_dn())
+
+        data['rootDomainNamingContext'].append(await get_base_dn())
+        data['defaultNamingContext'].append(await get_base_dn())
+
+        if 'vendorVersion'.lower() in attributes:
             data['vendorVersion'].append(settings.VENDOR_VERSION)
 
         return data
@@ -294,13 +308,17 @@ class SearchRequest(BaseRequest):
 
     async def base_object_view(self):
         """Yield base object response."""
-        attrs = await self.get_root_dse(self.attributes)
-        yield SearchResultEntry(
-            object_name='',
-            partial_attributes=[
-                PartialAttribute(type=name, vals=values)
-                for name, values in attrs.items()],
-        )
+        if self.base_object is None:
+            attrs = await self.get_root_dse(self.attributes)
+            yield SearchResultEntry(
+                object_name='',
+                partial_attributes=[
+                    PartialAttribute(type=name, vals=values)
+                    for name, values in attrs.items()],
+            )
+        else:
+            select(Directory)\
+                .join(Path).filter(Path.path == self._get_base_obj())
 
     async def single_level_view(self):
         """Yield single level result."""
