@@ -17,16 +17,16 @@ from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
 from .filter_interpreter import cast_filter2sql
 from .ldap_responses import (
+    BAD_SEARCH_RESPONSE,
     BaseResponse,
     BindResponse,
     PartialAttribute,
     SearchResultDone,
     SearchResultEntry,
     SearchResultReference,
-    BAD_SEARCH_RESPONSE,
 )
 from .objects import DerefAliases, Scope
-from .utils import get_base_dn
+from .utils import get_base_dn, get_domain, get_generalized_now
 
 
 class BaseRequest(ABC, BaseModel):
@@ -279,21 +279,18 @@ class SearchRequest(BaseRequest):
             for setting in res.scalars():
                 data[setting.name].append(setting.value)
 
-        if 'vendorName'.lower() in attributes:
-            data['vendorName'].append(settings.VENDOR_NAME)
+        base_dn = await get_base_dn()
+        domain = await get_domain()
 
-        if 'supportedldapversion'.lower() in attributes:
-            data['supportedldapversion'].append(3)
-
-        if 'namingContexts'.lower() in attributes:
-            data['namingContexts'].append(await get_base_dn())
-
-        data['rootDomainNamingContext'].append(await get_base_dn())
-        data['defaultNamingContext'].append(await get_base_dn())
-
-        if 'vendorVersion'.lower() in attributes:
-            data['vendorVersion'].append(settings.VENDOR_VERSION)
-
+        data['dnsHostName'] = domain
+        data['serviceName'] = domain
+        data['vendorName'].append(settings.VENDOR_NAME)
+        data['namingContexts'].append(base_dn)
+        data['rootDomainNamingContext'].append(base_dn)
+        data['supportedldapversion'].append(3)
+        data['defaultNamingContext'].append(base_dn)
+        data['vendorVersion'].append(settings.VENDOR_VERSION)
+        data['currentTime'] = get_generalized_now()
         return data
 
     async def handle(
