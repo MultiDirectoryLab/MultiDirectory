@@ -26,7 +26,7 @@ from .ldap_responses import (
     SearchResultReference,
 )
 from .objects import DerefAliases, Scope
-from .utils import get_base_dn, get_domain, get_generalized_now
+from .utils import get_base_dn, get_generalized_now
 
 
 class BaseRequest(ABC, BaseModel):
@@ -280,7 +280,7 @@ class SearchRequest(BaseRequest):
                 data[setting.name].append(setting.value)
 
         base_dn = await get_base_dn()
-        domain = await get_domain()
+        domain = await get_base_dn(True)
 
         data['dnsHostName'].append(domain)
         data['serviceName'].append(domain)
@@ -330,32 +330,47 @@ class SearchRequest(BaseRequest):
                     for name, values in attrs.items()],
             )
         else:
-            select(Directory)\
+            query = select(Directory)\
                 .join(Path).filter(Path.path == self._get_base_obj())
+            condition = cast_filter2sql(self.filter)
+            if condition is not None:
+                query = query.filter(condition)
 
-    async def single_level_view(self):
-        """Yield single level result."""
-        if not self.base_object:
-            self.base_object = await get_base_dn()
-        endp_q = select(Path).options(
-            lazyload(Path.endpoint, Path.directories)).where(
-            Path.path == self.base_object.lower().split(','),
-        )
-        async with async_session() as session:
-            result = await session.execute(endp_q)
-            base_path = result.scalar()
-            list_q = select(Directory)\
-                .filter(Directory.parent == base_path.endpoint)\
-                .options(lazyload(Directory.path))
-            dirs = await session.execute(list_q)
+            async with async_session() as session:
+                dirs = await session.execute(query)
 
-            for directory in dirs.scalar():
+            for directory in dirs.scalars():
                 yield SearchResultEntry(
                     object_name=''.join(directory.path.path),
                     partial_attributes=[
                         PartialAttribute(type='objectClass', vals=oc)
                         for oc in directory.get_object_class()],
                 )
+
+    async def single_level_view(self):
+        """Yield single level result."""
+        if not self.base_object:
+            self.base_object = await get_base_dn()
+        endp_q = select(Path).options(
+            joinedload(Path.endpoint, Path.directories)).where(
+            Path.path == self.base_object.lower().split(','),
+        )
+        async with async_session() as session:
+            result = await session.execute(endp_q)
+            base_path = result.scalar()
+            query = select(Directory)\
+                .filter(Directory.parent_id == base_path.endpoint_id)\
+                .options(joinedload(Directory.path))
+            dirs = await session.execute(query)
+
+            for directory in dirs.scalars():
+                yield SearchResultEntry(
+                    object_name=''.join(directory.path.path),
+                    partial_attributes=[
+                        PartialAttribute(type='objectClass', vals=oc)
+                        for oc in directory.get_object_class()],
+                )
+
 
     async def whole_subtree_view(self):
         """Yield subtree result."""
