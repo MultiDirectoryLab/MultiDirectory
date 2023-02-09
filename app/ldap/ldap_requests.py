@@ -282,15 +282,15 @@ class SearchRequest(BaseRequest):
         base_dn = await get_base_dn()
         domain = await get_domain()
 
-        data['dnsHostName'] = domain
-        data['serviceName'] = domain
+        data['dnsHostName'].append(domain)
+        data['serviceName'].append(domain)
         data['vendorName'].append(settings.VENDOR_NAME)
         data['namingContexts'].append(base_dn)
         data['rootDomainNamingContext'].append(base_dn)
         data['supportedldapversion'].append(3)
         data['defaultNamingContext'].append(base_dn)
         data['vendorVersion'].append(settings.VENDOR_VERSION)
-        data['currentTime'] = get_generalized_now()
+        data['currentTime'].append(get_generalized_now())
         return data
 
     async def handle(
