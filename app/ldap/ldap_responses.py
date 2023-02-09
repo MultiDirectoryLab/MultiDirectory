@@ -100,6 +100,16 @@ class SearchResultDone(LDAPResult, BaseResponse):
     PROTOCOL_OP: ClassVar[int] = 5
 
 
+BAD_SEARCH_RESPONSE = SearchResultDone(
+    resultCode=LDAPCodes.OPERATIONS_ERROR,
+    errorMessage=(
+        '000004DC: LdapErr: DSID-0C090A71, '
+        'comment: In order to perform this operation '
+        'a successful bind must be '
+        'completed on the connection., data 0, v3839'),
+)
+
+
 class SearchResultReference(BaseResponse):
     """List of uris."""
 

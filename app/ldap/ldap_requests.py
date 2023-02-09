@@ -23,6 +23,7 @@ from .ldap_responses import (
     SearchResultDone,
     SearchResultEntry,
     SearchResultReference,
+    BAD_SEARCH_RESPONSE,
 )
 from .objects import DerefAliases, Scope
 from .utils import get_base_dn
@@ -305,22 +306,19 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
-        if not ldap_session.user:
-            yield SearchResultDone(
-                resultCode=LDAPCodes.OPERATIONS_ERROR,
-                errorMessage=(
-                    '000004DC: LdapErr: DSID-0C090A71, '
-                    'comment: In order to perform this operation '
-                    'a successful bind must be '
-                    'completed on the connection., data 0, v3839'),
-            )
-
         views = {
             Scope.BASE_OBJECT: self.base_object_view,
             Scope.SINGLEL_EVEL: self.single_level_view,
             Scope.WHOLE_SUBTREE: self.whole_subtree_view,
         }
-        async for response in views[self.scope]():
+        handler = views[self.scope]
+        is_root_dse = handler == self.base_object_view and not self.base_object
+
+        if not is_root_dse and ldap_session.user is None:
+            yield BAD_SEARCH_RESPONSE
+            return
+
+        async for response in handler():
             yield response
         yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
 
