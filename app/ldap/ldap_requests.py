@@ -56,6 +56,10 @@ class AuthChoice(ABC, BaseModel):
     def is_valid(self, user: User):
         """Validate state."""
 
+    @abstractmethod
+    def is_anonymous(self):
+        """Return true if anonymous."""
+
 
 class SimpleAuthentication(AuthChoice):
     """Simple auth form."""
@@ -64,6 +68,9 @@ class SimpleAuthentication(AuthChoice):
 
     def is_valid(self, user: User):
         return self.password == user.password
+
+    def is_anonymous(self):
+        return not self.password
 
 
 class SaslAuthentication(AuthChoice):
@@ -118,8 +125,8 @@ class BindRequest(BaseRequest):
     async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
-        if ldap_session.name:
-            raise ValueError('User authed')
+        if not self.name and self.authentication_choice.is_anonymous():
+            yield BindResponse(resultCode=LDAPCodes.SUCCESS)
 
         async with async_session() as session:
             res = await session.execute(
