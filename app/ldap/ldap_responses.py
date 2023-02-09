@@ -87,14 +87,7 @@ class SearchResultEntry(BaseResponse):
             enc.enter(Numbers.Set)
 
             for val in attr.vals:
-                if Encoder._re_oid.match(val):
-                    enc.write(val, Numbers.ObjectIdentifier)
-
-                elif attr.type == 'currentTime':
-                    enc.write(val, Numbers.GeneralizedTime)
-
-                else:
-                    enc.write(val, Numbers.OctetString)
+                enc.write(val, Numbers.OctetString)
 
             enc.leave()
             enc.leave()
