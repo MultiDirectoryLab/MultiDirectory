@@ -305,6 +305,16 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
+        if not ldap_session.user:
+            yield SearchResultDone(
+                resultCode=LDAPCodes.OPERATIONS_ERROR,
+                errorMessage=(
+                    '000004DC: LdapErr: DSID-0C090A71, '
+                    'comment: In order to perform this operation '
+                    'a successful bind must be '
+                    'completed on the connection., data 0, v3839'),
+            )
+
         views = {
             Scope.BASE_OBJECT: self.base_object_view,
             Scope.SINGLEL_EVEL: self.single_level_view,
@@ -312,7 +322,7 @@ class SearchRequest(BaseRequest):
         }
         async for response in views[self.scope]():
             yield response
-        yield SearchResultDone(resultCode=0)
+        yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
 
     async def base_object_view(self):
         """Yield base object response."""
