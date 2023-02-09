@@ -10,7 +10,7 @@ from models.ldap3 import CatalogueSetting
 
 
 @cache
-async def get_base_dn() -> str:
+async def get_base_dn(normal: bool = False) -> str:
     """Get base dn for e.g. DC=multifactor,DC=dev.
 
     :return str: name for the base distinguished name.
@@ -20,20 +20,12 @@ async def get_base_dn() -> str:
             select(CatalogueSetting)
             .filter(CatalogueSetting.name == 'defaultNamingContext'),
         )
+        if normal:
+            return cat_result.scalar_one().value
+
         return ','.join((
             f'DC={value}' for value in
             cat_result.scalar_one().value.split('.')))
-
-
-@cache
-async def get_domain() -> str:
-    """Get domain name in normal form (multifactor.dev)."""
-    async with async_session() as session:
-        cat_result = await session.execute(
-            select(CatalogueSetting)
-            .filter(CatalogueSetting.name == 'defaultNamingContext'),
-        )
-        return cat_result.scalar_one().value
 
 
 def get_generalized_now():
