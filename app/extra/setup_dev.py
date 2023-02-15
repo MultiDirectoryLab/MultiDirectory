@@ -41,7 +41,7 @@ DATA = [  # noqa
     },
     {
         "name": "Users",
-        "object_class": "Users",
+        "object_class": "group",
         "children": [
             {"name": "User 3", "object_class": "User", "user": {
                 "sam_accout_name": "username3",
