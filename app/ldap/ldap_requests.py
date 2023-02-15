@@ -7,11 +7,11 @@ from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, lazyload
+from sqlalchemy.orm import joinedload, selectinload
 
 from config import settings
 from models.database import async_session
-from models.ldap3 import Attribute, CatalogueSetting, Directory, Path, User
+from models.ldap3 import CatalogueSetting, Directory, Path, User
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -294,6 +294,10 @@ class SearchRequest(BaseRequest):
         data['currentTime'].append(get_generalized_now())
         return data
 
+    @staticmethod
+    def _get_full_dn(path: Path, dn) -> str:
+        return ','.join(reversed(path.path)) + ',' + dn
+
     async def handle(
         self, ldap_session: Session,
     ) -> AsyncGenerator[
@@ -379,7 +383,9 @@ class SearchRequest(BaseRequest):
         query = select(Directory)\
             .join(User, isouter=True)\
             .join(Directory.attributes, isouter=True)\
-            .options(joinedload(Directory.path))
+            .options(
+                selectinload(Directory.path),
+                selectinload(Directory.attributes))
 
         if condition is not None:
             query = query.filter(condition)
@@ -394,7 +400,7 @@ class SearchRequest(BaseRequest):
 
                 if 'memberof' in self._get_attributes():
                     path_query = select(Path)\
-                        .options(joinedload(Path.directories))\
+                        .options(selectinload(Path.directories))\
                         .filter(Path.endpoint == directory)
                     path = await session.execute(path_query)
 
@@ -409,13 +415,13 @@ class SearchRequest(BaseRequest):
                     groups = await session.execute(sub_q)
                     for group in groups.scalars():
                         attrs['memberOf'].append(
-                            ','.join(reversed(group.path.path)) + ',' + dn)
+                            self._get_full_dn(group.path, dn))
 
                 for attr in directory.attributes:
                     attrs[attr.name].append(attr.value)
 
                 yield SearchResultEntry(
-                    object_name=','.join(reversed(directory.path.path)) + ',' + dn,
+                    object_name=self._get_full_dn(directory.path, dn),
                     partial_attributes=[
                         PartialAttribute(type=key, vals=value)
                         for key, value in attrs.items()],
