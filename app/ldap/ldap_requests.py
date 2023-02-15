@@ -261,15 +261,16 @@ class SearchRequest(BaseRequest):
             return None
         return v
 
-    @staticmethod
-    async def get_root_dse(attributes: list[str])\
-            -> defaultdict[str, list[str]]:
+    def _get_attributes(self):
+        return [attr.lower() for attr in self.attributes]
+
+    async def get_root_dse(self) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
         :param list[str] attributes: list of requested attrs
         :return defaultdict[str, list[str]]: queried attrs
         """
-        attributes = [attr.lower() for attr in attributes]
+        attributes = self._get_attributes()
         async with async_session() as session:
             data = defaultdict(list)
             clause = [CatalogueSetting.name.ilike(name) for name in attributes]
@@ -322,7 +323,7 @@ class SearchRequest(BaseRequest):
     async def base_object_view(self):
         """Yield base object response."""
         if self.base_object is None:
-            attrs = await self.get_root_dse(self.attributes)
+            attrs = await self.get_root_dse()
             yield SearchResultEntry(
                 object_name='',
                 partial_attributes=[
@@ -371,14 +372,13 @@ class SearchRequest(BaseRequest):
                         for oc in directory.get_object_class()],
                 )
 
-
     async def whole_subtree_view(self):
         """Yield subtree result."""
         condition = cast_filter2sql(self.filter)
 
         query = select(Directory)\
             .join(User, isouter=True)\
-            .join(Attribute, isouter=True)\
+            .join(Directory.attributes, isouter=True)\
             .options(joinedload(Directory.path))
 
         if condition is not None:
@@ -387,19 +387,39 @@ class SearchRequest(BaseRequest):
         async with async_session() as session:
             results = await session.execute(query)
 
-        dn = await get_base_dn()
+            dn = await get_base_dn()
 
-        for directory in results.scalars():
-            attrs = defaultdict(list)
-            # TODO: Add attributes support
-            # for attr in directory.attributes:
-            #     attrs[attr.name].append(attr.value)
-            yield SearchResultEntry(
-                object_name=','.join(reversed(directory.path.path)) + ',' + dn,
-                partial_attributes=[
-                    PartialAttribute(type=key, vals=value)
-                    for key, value in attrs.items()],
-            )
+            for directory in results.scalars():
+                attrs = defaultdict(list)
+
+                if 'memberof' in self._get_attributes():
+                    path_query = select(Path)\
+                        .options(joinedload(Path.directories))\
+                        .filter(Path.endpoint == directory)
+                    path = await session.execute(path_query)
+
+                    ids = [d.id for d in path.scalar().directories]
+
+                    sub_q = select(Directory)\
+                        .options(joinedload(Directory.path))\
+                        .filter(
+                            Directory.id.in_(ids),
+                            Directory.object_class.ilike('group'))
+
+                    groups = await session.execute(sub_q)
+                    for group in groups.scalars():
+                        attrs['memberOf'].append(
+                            ','.join(reversed(group.path.path)) + ',' + dn)
+
+                for attr in directory.attributes:
+                    attrs[attr.name].append(attr.value)
+
+                yield SearchResultEntry(
+                    object_name=','.join(reversed(directory.path.path)) + ',' + dn,
+                    partial_attributes=[
+                        PartialAttribute(type=key, vals=value)
+                        for key, value in attrs.items()],
+                )
 
 
 class ModifyRequest(BaseRequest):
