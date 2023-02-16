@@ -15,6 +15,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import (
     Mapped,
+    backref,
     declarative_mixin,
     declared_attr,
     relationship,
@@ -32,6 +33,22 @@ class CatalogueSetting(Base):
     id = Column(Integer, primary_key=True)  # noqa: A003
     name = Column(String, nullable=False, index=True)
     value = Column(String, nullable=False)
+
+
+class GroupMembership(Base):
+    """Group membership - path m2m relationship."""
+
+    __tablename__ = "GroupMemberships"
+    group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
+    group_child_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
+
+
+class UserMembership(Base):
+    """User membership - path m2m relationship."""
+
+    __tablename__ = "UserMemberships"
+    group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("Users.id"), primary_key=True)
 
 
 class DirectoryPath(Base):
@@ -130,7 +147,7 @@ class DirectoryReferenceMixin:
     def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
         return relationship(
             'Directory',
-            backref=f'{str(cls.__name__).lower()}s', lazy='joined')
+            backref=backref(str(cls.__name__).lower(), uselist=False), lazy='joined')
 
 
 class User(DirectoryReferenceMixin, Base):
@@ -158,11 +175,29 @@ class User(DirectoryReferenceMixin, Base):
         'displayname',
     }
 
+    groups: list['Group'] = relationship(
+        "Group", secondary=UserMembership.__table__, back_populates='users')
+
 
 class Group(DirectoryReferenceMixin, Base):
     """Group params."""
 
     __tablename__ = "Groups"
+
+    child_groups: list['Group'] = relationship(
+        "Group",
+        secondary=GroupMembership.__table__,
+        back_populates='parent_groups',
+        foreign_keys='GroupMembership.group_child_id', lazy='joined')
+
+    parent_groups: list['Group'] = relationship(
+        "Group",
+        secondary=GroupMembership.__table__,
+        back_populates='child_groups',
+        foreign_keys='GroupMembership.group_id', lazy='joined')
+
+    users: list[User] = relationship(
+        "User", secondary=UserMembership.__table__, back_populates='groups')
 
 
 class Computer(DirectoryReferenceMixin, Base):
@@ -178,6 +213,9 @@ class Attribute(DirectoryReferenceMixin, Base):
 
     name = Column(String, nullable=False, index=True)
     value = Column(String, nullable=False, index=True)
+
+    directory: Directory = relationship(
+        'Directory', backref='attributes', lazy='joined')
 
 
 class Path(Base):

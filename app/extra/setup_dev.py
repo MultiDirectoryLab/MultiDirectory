@@ -15,47 +15,70 @@ import asyncio
 
 from loguru import logger
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from models.database import AsyncSession, async_session
-from models.ldap3 import CatalogueSetting, Directory, User
+from models.ldap3 import (
+    CatalogueSetting,
+    Directory,
+    Group,
+    GroupMembership,
+    User,
+    UserMembership,
+)
 
 DATA = [  # noqa
+    {
+        "name": "Groups",
+        "object_class": "groups",
+        "children": [
+            {"name": "Administrators", "object_class": "group"},
+            {"name": "Committers", "object_class": "group"},
+            {"name": "Operators", "object_class": "group"},
+            {"name": "Guests", "object_class": "group", 'groups': [
+                "Operators", 'Committers']},
+        ],
+    },
     {
         "name": "IT",
         "object_class": "organizationUnit",
         "children": [
-            {"name": "User 1", "object_class": "User", "user": {
+            {"name": "User 1", "object_class": "User", "organizationalPerson": {
                 "sam_accout_name": "username1",
                 "user_principal_name": "username1@multifactor.dev",
                 "mail": "username1@multifactor.dev",
                 "display_name": "User 1",
-                "password": "password"}},
+                "password": "password",
+                "groups": ['Administrators', 'Operators']}},
 
-            {"name": "User 2", "object_class": "User", "user": {
+            {"name": "User 2", "object_class": "User", "organizationalPerson": {
                 "sam_accout_name": "username2",
                 "user_principal_name": "username2@multifactor.dev",
                 "mail": "username2@multifactor.dev",
                 "display_name": "User 2",
-                "password": "password"}},
+                "password": "password",
+                "groups": ['Administrators', 'Operators']}},
         ],
     },
     {
         "name": "Users",
-        "object_class": "group",
+        "object_class": "organizationUnit",
         "children": [
-            {"name": "User 3", "object_class": "User", "user": {
+            {"name": "User 3", "object_class": "User", "organizationalPerson": {
                 "sam_accout_name": "username3",
                 "user_principal_name": "username3@multifactor.dev",
                 "mail": "username3@multifactor.dev",
                 "display_name": "User 3",
-                "password": "password"}},
+                "password": "password",
+                "groups": ["Operators", "Guests"]}},
 
-            {"name": "User 4", "object_class": "User", "user": {
+            {"name": "User 4", "object_class": "User", "organizationalPerson": {
                 "sam_accout_name": "username4",
                 "user_principal_name": "username4@multifactor.dev",
                 "mail": "username4@multifactor.dev",
                 "display_name": "User 4",
-                "password": "password"}},
+                "password": "password",
+                "groups": ["Guests"]}},
         ],
     },
     {
@@ -63,7 +86,7 @@ DATA = [  # noqa
         "object_class": "organizationUnit",
         "children": [
             {"name": "Service Accounts", "object_class": "User", "children": [
-                {"name": "User 5", "object_class": "User", "user": {
+                {"name": "User 5", "object_class": "User", "organizationalPerson": {
                     "sam_accout_name": "username5",
                     "user_principal_name": "username5@multifactor.dev",
                     "mail": "username5@multifactor.dev",
@@ -75,7 +98,18 @@ DATA = [  # noqa
 ]
 
 
-async def create_dir(data, session: AsyncSession, parent: Directory | None = None):
+async def get_group(name, session):
+    return await session.scalar(
+        select(Group).join(Group.directory).filter(
+            Directory.name == name,
+            Directory.object_class == 'group',
+        ).options(
+            selectinload(Group.child_groups))
+    )
+
+
+async def create_dir(
+        data, session: AsyncSession, parent: Directory | None = None):
     """Create data recursively."""
     if not parent:
         dir_ = Directory(
@@ -98,18 +132,35 @@ async def create_dir(data, session: AsyncSession, parent: Directory | None = Non
             logger.debug(
                 f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
             session.add_all([dir_, path])
-            path.directories.extend([p.endpoint for p in parent.paths + [path]])
+            path.directories.extend(
+                [p.endpoint for p in parent.paths + [path]])
 
-    if 'user' in data:
-        user_data = data['user']
-        session.add(User(
+    if dir_.object_class == 'group':
+        group = Group(directory=dir_)
+        session.add(group)
+        session.commit()
+        for group_name in data.get('groups', []):
+            parent_group = await get_group(group_name, session)
+            session.add(GroupMembership(
+                group_id=parent_group.id, group_child_id=group.id))
+
+    if 'organizationalPerson' in data:
+        user_data = data['organizationalPerson']
+        user = User(
             directory=dir_,
             sam_accout_name=user_data['sam_accout_name'],
             user_principal_name=user_data['user_principal_name'],
             display_name=user_data['display_name'],
             mail=user_data['mail'],
             password=user_data['password'],
-        ))
+        )
+        session.add(user)
+
+        for group_name in user_data.get('groups', []):
+            parent_group = await get_group(group_name, session)
+            session.add(UserMembership(
+                group_id=parent_group.id, user_id=user.id))
+
     await session.commit()
 
     if 'children' in data:
@@ -139,8 +190,9 @@ async def setup_dev_enviroment() -> None:
         try:
             for data in DATA:
                 await create_dir(data, session)
-        except Exception as err:
-            logger.error(err)  # noqa
+        except Exception:
+            import traceback
+            logger.error(traceback.format_exc())  # noqa
 
 
 if __name__ == '__main__':
