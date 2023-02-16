@@ -16,7 +16,7 @@ import asyncio
 from loguru import logger
 from sqlalchemy.future import select
 
-from models.database import async_session
+from models.database import AsyncSession, async_session
 from models.ldap3 import CatalogueSetting, Directory, User
 
 DATA = [  # noqa
@@ -75,7 +75,7 @@ DATA = [  # noqa
 ]
 
 
-async def create_dir(data, session, parent: Directory | None = None):
+async def create_dir(data, session: AsyncSession, parent: Directory | None = None):
     """Create data recursively."""
     if not parent:
         dir_ = Directory(
@@ -98,7 +98,7 @@ async def create_dir(data, session, parent: Directory | None = None):
             logger.debug(
                 f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
             session.add_all([dir_, path])
-            dir_.paths.extend(parent.paths + [path])
+            path.directories.extend([p.endpoint for p in parent.paths + [path]])
 
     if 'user' in data:
         user_data = data['user']

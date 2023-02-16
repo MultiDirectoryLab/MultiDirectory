@@ -34,6 +34,14 @@ class CatalogueSetting(Base):
     value = Column(String, nullable=False)
 
 
+class DirectoryPath(Base):
+    """Directory - path m2m relationship."""
+
+    __tablename__ = "DirectoryPaths"
+    dir_id = Column(Integer, ForeignKey("Directory.id"), primary_key=True)
+    path_id = Column(Integer, ForeignKey("Paths.id"), primary_key=True)
+
+
 class Directory(Base):
     """Chierarcy of catalogue unit."""
 
@@ -67,6 +75,12 @@ class Directory(Base):
 
     path: 'Path' = relationship(
         "Path", back_populates="endpoint", lazy="joined", uselist=False)
+
+    paths: list['Path'] = relationship(
+        "Path",
+        secondary=DirectoryPath.__table__,
+        back_populates="directories",
+    )
 
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
@@ -166,14 +180,6 @@ class Attribute(DirectoryReferenceMixin, Base):
     value = Column(String, nullable=False, index=True)
 
 
-class DirectoryPath(Base):
-    """Directory - path m2m relationship."""
-
-    __tablename__ = "DirectoryPaths"
-    dir_id = Column(Integer, ForeignKey("Directory.id"), primary_key=True)
-    path_id = Column(Integer, ForeignKey("Paths.id"), primary_key=True)
-
-
 class Path(Base):
     """Directory path data."""
 
@@ -191,5 +197,5 @@ class Path(Base):
         secondary=DirectoryPath.__table__,
         order_by="Directory.depth",
         collection_class=ordering_list('depth'),
-        backref="paths",
+        back_populates="paths",
     )
