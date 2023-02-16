@@ -7,11 +7,11 @@ from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import settings
 from models.database import async_session
-from models.ldap3 import CatalogueSetting, Directory, Path, User
+from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -385,7 +385,13 @@ class SearchRequest(BaseRequest):
             .join(Directory.attributes, isouter=True)\
             .options(
                 selectinload(Directory.path),
-                selectinload(Directory.attributes))
+                selectinload(Directory.attributes),
+                subqueryload(Directory.group).subqueryload(
+                    Group.parent_groups).subqueryload(
+                        Group.directory).subqueryload(Directory.path),
+                subqueryload(Directory.user).subqueryload(
+                    User.groups).subqueryload(
+                        Group.directory).subqueryload(Directory.path))
 
         if condition is not None:
             query = query.filter(condition)
@@ -394,28 +400,18 @@ class SearchRequest(BaseRequest):
             results = await session.execute(query)
 
             dn = await get_base_dn()
-
             for directory in results.scalars():
                 attrs = defaultdict(list)
 
                 if 'memberof' in self._get_attributes():
-                    path_query = select(Path)\
-                        .options(selectinload(Path.directories))\
-                        .filter(Path.endpoint == directory)
-                    path = await session.execute(path_query)
-
-                    ids = [d.id for d in path.scalar().directories]
-
-                    sub_q = select(Directory)\
-                        .options(joinedload(Directory.path))\
-                        .filter(
-                            Directory.id.in_(ids),
-                            Directory.object_class.ilike('group'))
-
-                    groups = await session.execute(sub_q)
-                    for group in groups.scalars():
-                        attrs['memberOf'].append(
-                            self._get_full_dn(group.path, dn))
+                    if directory.object_class == 'group':
+                        for group in directory.group.parent_groups:
+                            attrs['memberOf'].append(
+                                self._get_full_dn(group.directory.path, dn))
+                    if directory.object_class == 'user':
+                        for group in directory.user.groups:
+                            attrs['memberOf'].append(
+                                self._get_full_dn(group.directory.path, dn))
 
                 for attr in directory.attributes:
                     attrs[attr.name].append(attr.value)
