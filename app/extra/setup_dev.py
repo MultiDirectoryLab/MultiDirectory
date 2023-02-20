@@ -43,56 +43,62 @@ DATA = [  # noqa
         "name": "IT",
         "object_class": "organizationUnit",
         "children": [
-            {"name": "User 1", "object_class": "User", "organizationalPerson": {
-                "sam_accout_name": "username1",
-                "user_principal_name": "username1@multifactor.dev",
-                "mail": "username1@multifactor.dev",
-                "display_name": "User 1",
-                "password": "password",
-                "groups": ['Administrators', 'Operators']}},
+            {"name": "User 1",
+                "object_class": "User", "organizationalPerson": {
+                    "sam_accout_name": "username1",
+                    "user_principal_name": "username1@multifactor.dev",
+                    "mail": "username1@multifactor.dev",
+                    "display_name": "User 1",
+                    "password": "password",
+                    "groups": ['Administrators', 'Operators']}},
 
-            {"name": "User 2", "object_class": "User", "organizationalPerson": {
-                "sam_accout_name": "username2",
-                "user_principal_name": "username2@multifactor.dev",
-                "mail": "username2@multifactor.dev",
-                "display_name": "User 2",
-                "password": "password",
-                "groups": ['Administrators', 'Operators']}},
+            {"name": "User 2",
+                "object_class": "User", "organizationalPerson": {
+                    "sam_accout_name": "username2",
+                    "user_principal_name": "username2@multifactor.dev",
+                    "mail": "username2@multifactor.dev",
+                    "display_name": "User 2",
+                    "password": "password",
+                    "groups": ['Administrators', 'Operators']}},
         ],
     },
     {
         "name": "Users",
         "object_class": "organizationUnit",
         "children": [
-            {"name": "User 3", "object_class": "User", "organizationalPerson": {
-                "sam_accout_name": "username3",
-                "user_principal_name": "username3@multifactor.dev",
-                "mail": "username3@multifactor.dev",
-                "display_name": "User 3",
-                "password": "password",
-                "groups": ["Operators", "Guests"]}},
+            {"name": "User 3",
+                "object_class": "User", "organizationalPerson": {
+                    "sam_accout_name": "username3",
+                    "user_principal_name": "username3@multifactor.dev",
+                    "mail": "username3@multifactor.dev",
+                    "display_name": "User 3",
+                    "password": "password",
+                    "groups": ["Operators", "Guests"]}},
 
-            {"name": "User 4", "object_class": "User", "organizationalPerson": {
-                "sam_accout_name": "username4",
-                "user_principal_name": "username4@multifactor.dev",
-                "mail": "username4@multifactor.dev",
-                "display_name": "User 4",
-                "password": "password",
-                "groups": ["Guests"]}},
+            {"name": "User 4",
+                "object_class": "User", "organizationalPerson": {
+                    "sam_accout_name": "username4",
+                    "user_principal_name": "username4@multifactor.dev",
+                    "mail": "username4@multifactor.dev",
+                    "display_name": "User 4",
+                    "password": "password",
+                    "groups": ["Guests"]}},
         ],
     },
     {
         "name": "2FA",
         "object_class": "organizationUnit",
         "children": [
-            {"name": "Service Accounts", "object_class": "User", "children": [
-                {"name": "User 5", "object_class": "User", "organizationalPerson": {
-                    "sam_accout_name": "username5",
-                    "user_principal_name": "username5@multifactor.dev",
-                    "mail": "username5@multifactor.dev",
-                    "display_name": "User 5",
-                    "password": "password"}},
-            ]},
+            {"name": "Service Accounts",
+                "object_class": "organizationUnit", "children": [
+                    {"name": "User 5",
+                        "object_class": "User", "organizationalPerson": {
+                            "sam_accout_name": "username5",
+                            "user_principal_name": "username5@multifactor.dev",
+                            "mail": "username5@multifactor.dev",
+                            "display_name": "User 5",
+                            "password": "password"}},
+                ]},
         ],
     },
 ]
