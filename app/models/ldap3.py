@@ -176,7 +176,10 @@ class User(DirectoryReferenceMixin, Base):
     }
 
     groups: list['Group'] = relationship(
-        "Group", secondary=UserMembership.__table__, back_populates='users')
+        "Group",
+        secondary=UserMembership.__table__,
+        back_populates='users',
+    )
 
 
 class Group(DirectoryReferenceMixin, Base):
@@ -184,20 +187,28 @@ class Group(DirectoryReferenceMixin, Base):
 
     __tablename__ = "Groups"
 
+    id = Column(Integer, primary_key=True)  # noqa: A003
+
     child_groups: list['Group'] = relationship(
         "Group",
         secondary=GroupMembership.__table__,
-        back_populates='parent_groups',
-        foreign_keys='GroupMembership.group_child_id', lazy='joined')
+        primaryjoin=id == GroupMembership.__table__.c.group_id,
+        secondaryjoin=id == GroupMembership.__table__.c.group_child_id,
+        back_populates='parent_groups')
 
     parent_groups: list['Group'] = relationship(
         "Group",
         secondary=GroupMembership.__table__,
-        back_populates='child_groups',
-        foreign_keys='GroupMembership.group_id', lazy='joined')
+        primaryjoin=id == GroupMembership.__table__.c.group_child_id,
+        secondaryjoin=id == GroupMembership.__table__.c.group_id,
+        back_populates='child_groups')
 
-    users: list[User] = relationship(
-        "User", secondary=UserMembership.__table__, back_populates='groups')
+    users: list['User'] = relationship(
+        "User",
+        secondary=UserMembership.__table__,
+        primaryjoin=id == UserMembership.__table__.c.group_id,
+        back_populates='groups',
+    )
 
 
 class Computer(DirectoryReferenceMixin, Base):

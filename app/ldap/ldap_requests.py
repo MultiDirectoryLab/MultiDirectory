@@ -130,14 +130,12 @@ class BindRequest(BaseRequest):
             yield BindResponse(resultCode=LDAPCodes.SUCCESS)
 
         async with async_session() as session:
-            res = await session.execute(
+            path = await session.scalar(
                 select(Path).where(Path.path == self.get_path()))
-            path = res.scalar()
-            domain_res = await session.execute(
+
+            domain = await session.scalar(
                 select(CatalogueSetting)
                 .where(CatalogueSetting.name == 'defaultNamingContext'))
-
-            domain = domain_res.scalar()
 
             bad_response = BindResponse(
                 resultCode=LDAPCodes.INVALID_CREDENTIALS,
@@ -151,9 +149,8 @@ class BindRequest(BaseRequest):
                 yield bad_response
                 return
 
-            user_res = await session.execute(
+            user = await session.scalar(
                 select(User).where(User.directory == path.endpoint))
-            user = user_res.scalar()
 
             if not user:
                 yield bad_response
@@ -379,36 +376,40 @@ class SearchRequest(BaseRequest):
     async def whole_subtree_view(self):
         """Yield subtree result."""
         condition = cast_filter2sql(self.filter)
-
         query = select(Directory)\
             .join(User, isouter=True)\
             .join(Directory.attributes, isouter=True)\
             .options(
                 selectinload(Directory.path),
-                selectinload(Directory.attributes),
-                subqueryload(Directory.group).subqueryload(
-                    Group.parent_groups).subqueryload(
-                        Group.directory).subqueryload(Directory.path),
-                subqueryload(Directory.user).subqueryload(
-                    User.groups).subqueryload(
-                        Group.directory).subqueryload(Directory.path))
+                selectinload(Directory.attributes))
+
+        if 'memberof' in self._get_attributes():
+            s1 = subqueryload(Directory.group).subqueryload(
+                Group.parent_groups).subqueryload(
+                    Group.directory).subqueryload(Directory.path)
+
+            s2 = subqueryload(Directory.user).subqueryload(
+                User.groups).subqueryload(
+                    Group.directory).subqueryload(Directory.path)
+
+            query = query.options(s1, s2)
 
         if condition is not None:
             query = query.filter(condition)
 
         async with async_session() as session:
-            results = await session.execute(query)
+            directories = await session.stream_scalars(query)
 
             dn = await get_base_dn()
-            for directory in results.scalars():
+            async for directory in directories:
                 attrs = defaultdict(list)
 
                 if 'memberof' in self._get_attributes():
-                    if directory.object_class == 'group':
+                    if directory.object_class.lower() == 'group':
                         for group in directory.group.parent_groups:
                             attrs['memberOf'].append(
                                 self._get_full_dn(group.directory.path, dn))
-                    if directory.object_class == 'user':
+                    if directory.object_class.lower() == 'user':
                         for group in directory.user.groups:
                             attrs['memberOf'].append(
                                 self._get_full_dn(group.directory.path, dn))
