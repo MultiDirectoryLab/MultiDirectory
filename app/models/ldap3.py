@@ -104,9 +104,9 @@ class Directory(Base):
     )
 
     search_fields = {
-        'cn',
-        'name',
-        'objectclass',
+        'cn': 'cn',
+        'name': 'name',
+        'objectclass': 'objectClass',
     }
 
     def get_dn_prefix(self) -> str:
@@ -169,10 +169,10 @@ class User(DirectoryReferenceMixin, Base):
     displayname: str = synonym('display_name')
 
     search_fields = {
-        'mail',
-        'samaccountname',
-        'userprincipalname',
-        'displayname',
+        'mail': 'mail',
+        'samaccountname': 'sAMAccountName',
+        'userprincipalname': 'userPrincipalName',
+        'displayname': 'displayName',
     }
 
     groups: list['Group'] = relationship(
