@@ -383,14 +383,16 @@ class SearchRequest(BaseRequest):
                 selectinload(Directory.path),
                 selectinload(Directory.attributes))
 
-        if 'memberof' in self._get_attributes():
-            s1 = subqueryload(Directory.group).subqueryload(
-                Group.parent_groups).subqueryload(
-                    Group.directory).subqueryload(Directory.path)
+        member_of = 'memberof' in self._get_attributes()
 
-            s2 = subqueryload(Directory.user).subqueryload(
-                User.groups).subqueryload(
-                    Group.directory).subqueryload(Directory.path)
+        if member_of:
+            s1 = selectinload(Directory.group).selectinload(
+                Group.parent_groups).selectinload(
+                    Group.directory).selectinload(Directory.path)
+
+            s2 = selectinload(Directory.user).selectinload(
+                User.groups).selectinload(
+                    Group.directory).selectinload(Directory.path)
 
             query = query.options(s1, s2)
 
@@ -404,15 +406,32 @@ class SearchRequest(BaseRequest):
             async for directory in directories:
                 attrs = defaultdict(list)
 
-                if 'memberof' in self._get_attributes():
-                    if directory.object_class.lower() == 'group':
-                        for group in directory.group.parent_groups:
-                            attrs['memberOf'].append(
-                                self._get_full_dn(group.directory.path, dn))
-                    if directory.object_class.lower() == 'user':
+                if directory.object_class.lower() == 'group' and member_of:
+                    for group in directory.group.parent_groups:
+                        attrs['memberOf'].append(
+                            self._get_full_dn(group.directory.path, dn))
+                if directory.object_class.lower() == 'user':
+                    if member_of:
                         for group in directory.user.groups:
                             attrs['memberOf'].append(
                                 self._get_full_dn(group.directory.path, dn))
+
+                    user_fields = (
+                        attr for attr in self._get_attributes()
+                        if attr in directory.user.search_fields)
+
+                    for attr in user_fields:
+                        attribute = getattr(directory.user, attr)
+                        attrs[directory.user.search_fields[attr]].append(
+                            attribute)
+
+                directory_fields = (
+                    attr for attr in self._get_attributes()
+                    if attr in directory.search_fields)
+
+                for attr in directory_fields:
+                    attribute = getattr(directory, attr)
+                    attrs[directory.search_fields[attr]].append(attribute)
 
                 for attr in directory.attributes:
                     attrs[attr.name].append(attr.value)
