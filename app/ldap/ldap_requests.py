@@ -7,7 +7,7 @@ from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, selectinload, subqueryload
+from sqlalchemy.orm import joinedload, selectinload
 
 from config import settings
 from models.database import async_session
