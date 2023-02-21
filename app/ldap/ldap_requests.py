@@ -1,5 +1,6 @@
 """LDAP requests structure bind."""
 
+import re
 import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -27,6 +28,9 @@ from .ldap_responses import (
 )
 from .objects import DerefAliases, Scope
 from .utils import get_base_dn, get_generalized_now
+
+email_re = re.compile(
+    r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
 
 
 class BaseRequest(ABC, BaseModel):
@@ -130,27 +134,37 @@ class BindRequest(BaseRequest):
             yield BindResponse(resultCode=LDAPCodes.SUCCESS)
 
         async with async_session() as session:
-            path = await session.scalar(
-                select(Path).where(Path.path == self.get_path()))
+            if '=' not in self.name:
+                if email_re.fullmatch(self.name):
+                    cond = User.user_principal_name == self.name
+                else:
+                    cond = User.sam_accout_name == self.name
 
-            domain = await session.scalar(
-                select(CatalogueSetting)
-                .where(CatalogueSetting.name == 'defaultNamingContext'))
+                user = await session.scalar(select(User).where(cond))
+            else:
 
-            bad_response = BindResponse(
-                resultCode=LDAPCodes.INVALID_CREDENTIALS,
-                matchedDN=domain.value,
-                errorMessage=(
-                    '80090308: LdapErr: DSID-0C090447, '
-                    'comment: AcceptSecurityContext error, data 52e, v3839'),
-            )
+                path = await session.scalar(
+                    select(Path).where(Path.path == self.get_path()))
 
-            if not domain or not path:
-                yield bad_response
-                return
+                domain = await session.scalar(
+                    select(CatalogueSetting)
+                    .where(CatalogueSetting.name == 'defaultNamingContext'))
 
-            user = await session.scalar(
-                select(User).where(User.directory == path.endpoint))
+                bad_response = BindResponse(
+                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
+                    matchedDN=domain.value,
+                    errorMessage=(
+                        '80090308: LdapErr: DSID-0C090447, '
+                        'comment: AcceptSecurityContext error, '
+                        'data 52e, v3839'),
+                )
+
+                if not domain or not path:
+                    yield bad_response
+                    return
+
+                user = await session.scalar(
+                    select(User).where(User.directory == path.endpoint))
 
             if not user:
                 yield bad_response
@@ -160,11 +174,8 @@ class BindRequest(BaseRequest):
                 yield bad_response
                 return
 
-        ldap_session.name = domain.value
         ldap_session.user = user
-        yield BindResponse(
-            resultCode=LDAPCodes.SUCCESS,
-            matchedDn=domain.value)
+        yield BindResponse(resultCode=LDAPCodes.SUCCESS, matchedDn='')
 
 
 class UnbindRequest(BaseRequest):
