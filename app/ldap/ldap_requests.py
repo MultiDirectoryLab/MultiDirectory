@@ -328,11 +328,17 @@ class SearchRequest(BaseRequest):
             yield BAD_SEARCH_RESPONSE
             return
 
-        async for response in handler():
+        try:
+            condition = cast_filter2sql(self.filter)
+        except Exception:
+            yield SearchResultDone(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            return
+
+        async for response in handler(condition):
             yield response
         yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
 
-    async def base_object_view(self):
+    async def base_object_view(self, condition):
         """Yield base object response."""
         if self.base_object is None:
             attrs = await self.get_root_dse()
@@ -345,7 +351,7 @@ class SearchRequest(BaseRequest):
         else:
             query = select(Directory)\
                 .join(Path).filter(Path.path == self._get_base_obj())
-            condition = cast_filter2sql(self.filter)
+
             if condition is not None:
                 query = query.filter(condition)
 
@@ -360,33 +366,36 @@ class SearchRequest(BaseRequest):
                         for oc in directory.get_object_class()],
                 )
 
-    async def single_level_view(self):
+    async def single_level_view(self, condition):
         """Yield single level result."""
-        if not self.base_object:
-            self.base_object = await get_base_dn()
-        endp_q = select(Path).options(
+        dn = await get_base_dn()
+        self.base_object.removesuffix(dn)
+
+        subquery = select(Path).options(  # noqa: ECE001
             joinedload(Path.endpoint, Path.directories)).where(
             Path.path == self.base_object.lower().split(','),
-        )
-        async with async_session() as session:
-            result = await session.execute(endp_q)
-            base_path = result.scalar()
-            query = select(Directory)\
-                .filter(Directory.parent_id == base_path.endpoint_id)\
-                .options(joinedload(Directory.path))
-            dirs = await session.execute(query)
+        ).subquery()
 
-            for directory in dirs.scalars():
+        query = select(Directory)\
+            .filter(Directory.parent_id == subquery.c.endpoint_id)\
+            .options(joinedload(Directory.path))
+
+        if condition is not None:
+            query = query.filter(condition)
+
+        async with async_session() as session:
+            dirs = await session.scalars(query)
+
+            for directory in dirs:
                 yield SearchResultEntry(
-                    object_name=''.join(directory.path.path),
+                    object_name=self._get_full_dn(directory.path, dn),
                     partial_attributes=[
                         PartialAttribute(type='objectClass', vals=oc)
                         for oc in directory.get_object_class()],
                 )
 
-    async def whole_subtree_view(self):
+    async def whole_subtree_view(self, condition):
         """Yield subtree result."""
-        condition = cast_filter2sql(self.filter)
         query = select(Directory)\
             .join(User, isouter=True)\
             .join(Directory.attributes, isouter=True)\
