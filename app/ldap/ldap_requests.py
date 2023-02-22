@@ -133,6 +133,15 @@ class BindRequest(BaseRequest):
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(resultCode=LDAPCodes.SUCCESS)
 
+        bad_response = BindResponse(
+            resultCode=LDAPCodes.INVALID_CREDENTIALS,
+            matchedDN='',
+            errorMessage=(
+                '80090308: LdapErr: DSID-0C090447, '
+                'comment: AcceptSecurityContext error, '
+                'data 52e, v3839'),
+        )
+
         async with async_session() as session:
             if '=' not in self.name:
                 if email_re.fullmatch(self.name):
@@ -149,15 +158,6 @@ class BindRequest(BaseRequest):
                 domain = await session.scalar(
                     select(CatalogueSetting)
                     .where(CatalogueSetting.name == 'defaultNamingContext'))
-
-                bad_response = BindResponse(
-                    resultCode=LDAPCodes.INVALID_CREDENTIALS,
-                    matchedDN=domain.value,
-                    errorMessage=(
-                        '80090308: LdapErr: DSID-0C090447, '
-                        'comment: AcceptSecurityContext error, '
-                        'data 52e, v3839'),
-                )
 
                 if not domain or not path:
                     yield bad_response
