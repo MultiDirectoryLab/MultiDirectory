@@ -6,7 +6,9 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import AsyncGenerator, ClassVar
 
-from pydantic import BaseModel, Field, validator
+from loguru import logger
+from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -258,17 +260,6 @@ class SearchRequest(BaseRequest):
             attributes=[field.value for field in attributes.value],
         )
 
-    def _get_base_obj(self):
-        assert self.base_object, 'no baseObject'  # noqa: S101
-        return [obj.lower() for obj in self.base_object.split(',')]
-
-    @validator('base_object')
-    def empty_str_to_none(cls, v):  # noqa: N805
-        """Set base_object value to None if it's value is empty str."""
-        if v == '':
-            return None
-        return v
-
     def _get_attributes(self):
         return [attr.lower() for attr in self.attributes]
 
@@ -295,11 +286,13 @@ class SearchRequest(BaseRequest):
         data['serviceName'].append(domain)
         data['vendorName'].append(settings.VENDOR_NAME)
         data['namingContexts'].append(base_dn)
+        data['namingContexts'].append('CN=Config,' + base_dn)
         data['rootDomainNamingContext'].append(base_dn)
         data['supportedldapversion'].append(3)
         data['defaultNamingContext'].append(base_dn)
         data['vendorVersion'].append(settings.VENDOR_VERSION)
         data['currentTime'].append(get_generalized_now())
+        data['subschemaSubentry'].append(base_dn)
         return data
 
     @staticmethod
@@ -316,13 +309,7 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
-        views = {
-            Scope.BASE_OBJECT: self.base_object_view,
-            Scope.SINGLEL_EVEL: self.single_level_view,
-            Scope.WHOLE_SUBTREE: self.whole_subtree_view,
-        }
-        handler = views[self.scope]
-        is_root_dse = handler == self.base_object_view and not self.base_object
+        is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
 
         if not is_root_dse and ldap_session.user is None:
             yield BAD_SEARCH_RESPONSE
@@ -334,76 +321,65 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(resultCode=LDAPCodes.OPERATIONS_ERROR)
             return
 
-        async for response in handler(condition):
+        async for response in self.tree_view(condition):
             yield response
         yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
 
-    async def base_object_view(self, condition):
-        """Yield base object response."""
-        if self.base_object is None:
-            attrs = await self.get_root_dse()
-            yield SearchResultEntry(
-                object_name='',
-                partial_attributes=[
-                    PartialAttribute(type=name, vals=values)
-                    for name, values in attrs.items()],
-            )
-        else:
-            query = select(Directory)\
-                .join(Path).filter(Path.path == self._get_base_obj())
-
-            if condition is not None:
-                query = query.filter(condition)
-
-            async with async_session() as session:
-                dirs = await session.execute(query)
-
-            for directory in dirs.scalars():
-                yield SearchResultEntry(
-                    object_name=''.join(directory.path.path),
-                    partial_attributes=[
-                        PartialAttribute(type='objectClass', vals=oc)
-                        for oc in directory.get_object_class()],
-                )
-
-    async def single_level_view(self, condition):
-        """Yield single level result."""
+    async def tree_view(self, condition):
+        """Yield tree result."""
         dn = await get_base_dn()
-        self.base_object.removesuffix(dn)
-
-        subquery = select(Path).options(  # noqa: ECE001
-            joinedload(Path.endpoint, Path.directories)).where(
-            Path.path == self.base_object.lower().split(','),
-        ).subquery()
-
-        query = select(Directory)\
-            .filter(Directory.parent_id == subquery.c.endpoint_id)\
-            .options(joinedload(Directory.path))
-
-        if condition is not None:
-            query = query.filter(condition)
-
-        async with async_session() as session:
-            dirs = await session.scalars(query)
-
-            for directory in dirs:
-                yield SearchResultEntry(
-                    object_name=self._get_full_dn(directory.path, dn),
-                    partial_attributes=[
-                        PartialAttribute(type='objectClass', vals=oc)
-                        for oc in directory.get_object_class()],
-                )
-
-    async def whole_subtree_view(self, condition):
-        """Yield subtree result."""
-        query = select(Directory)\
+        query = select(  # noqa: ECE001
+            Directory)\
             .join(User, isouter=True)\
             .join(Directory.attributes, isouter=True)\
+            .join(Directory.path)\
             .options(
                 selectinload(Directory.path),
                 selectinload(Directory.attributes))
 
         member_of = 'memberof' in self._get_attributes()
+
+        dn_is_base = self.base_object.lower() == dn.lower()
+        base_obj = self.base_object.lower().removesuffix(
+            ',' + dn.lower()).split(',')
+        search_path = [path for path in base_obj if path]
+
+        if self.scope == Scope.BASE_OBJECT:
+            if self.base_object:
+                if dn_is_base:
+                    attrs = defaultdict(list)
+                    attrs['serverState'].append('1')
+                    attrs['objectClass'].append('domain')
+                    attrs['objectClass'].append('domainDNS')
+                    attrs['objectClass'].append('top')
+                    yield SearchResultEntry(
+                        object_name=dn,
+                        partial_attributes=[
+                            PartialAttribute(type=key, vals=value)
+                            for key, value in attrs.items()])
+                    return
+                else:
+                    query = query.filter(Path.path == search_path)
+            else:
+                attrs = await self.get_root_dse()
+                yield SearchResultEntry(
+                    object_name='',
+                    partial_attributes=[
+                        PartialAttribute(type=name, vals=values)
+                        for name, values in attrs.items()],
+                )
+                return
+
+        elif self.scope == Scope.SINGLEL_EVEL:
+            if dn_is_base:
+                query = query.filter(func.cardinality(Path.path) == 1)
+            else:
+                logger.debug(search_path)
+                query = query.filter(
+                    # func.cardinality(Path.path) == len(search_path) + 1,
+                    Path.path[:len(search_path)] == search_path,
+                    # Path.path.contains(search_path),
+                )
 
         if member_of:
             s1 = selectinload(Directory.group).selectinload(
@@ -422,7 +398,6 @@ class SearchRequest(BaseRequest):
         async with async_session() as session:
             directories = await session.stream_scalars(query)
 
-            dn = await get_base_dn()
             async for directory in directories:
                 attrs = defaultdict(list)
 
@@ -430,7 +405,7 @@ class SearchRequest(BaseRequest):
                     for group in directory.group.parent_groups:
                         attrs['memberOf'].append(
                             self._get_full_dn(group.directory.path, dn))
-                if directory.object_class.lower() == 'user':
+                if directory.object_class.lower() == 'user' and member_of:
                     if member_of:
                         for group in directory.user.groups:
                             attrs['memberOf'].append(
