@@ -376,9 +376,8 @@ class SearchRequest(BaseRequest):
             else:
                 logger.debug(search_path)
                 query = query.filter(
-                    # func.cardinality(Path.path) == len(search_path) + 1,
-                    Path.path[:len(search_path)] == search_path,
-                    # Path.path.contains(search_path),
+                    func.cardinality(Path.path) == len(search_path) + 1,
+                    Path.path[0:len(search_path)] == search_path,
                 )
 
         if member_of:
