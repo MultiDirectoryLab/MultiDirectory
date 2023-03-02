@@ -335,14 +335,18 @@ class SearchRequest(BaseRequest):
             .join(Directory.path)\
             .options(
                 selectinload(Directory.path),
-                selectinload(Directory.attributes))
+                selectinload(Directory.attributes),
+                joinedload(Directory.user))
 
-        member_of = 'memberof' in self._get_attributes()
+        requested_attrs = self._get_attributes()
+        all_attrs = '*' in requested_attrs
+
+        member_of = 'memberof' in requested_attrs or all_attrs
 
         dn_is_base = self.base_object.lower() == dn.lower()
         base_obj = self.base_object.lower().removesuffix(
             ',' + dn.lower()).split(',')
-        search_path = [path for path in base_obj if path]
+        search_path = [path for path in reversed(base_obj) if path]
 
         if self.scope == Scope.BASE_OBJECT:
             if self.base_object:
@@ -358,8 +362,7 @@ class SearchRequest(BaseRequest):
                             PartialAttribute(type=key, vals=value)
                             for key, value in attrs.items()])
                     return
-                else:
-                    query = query.filter(Path.path == search_path)
+                query = query.filter(Path.path == search_path)
             else:
                 attrs = await self.get_root_dse()
                 yield SearchResultEntry(
@@ -374,11 +377,13 @@ class SearchRequest(BaseRequest):
             if dn_is_base:
                 query = query.filter(func.cardinality(Path.path) == 1)
             else:
-                logger.debug(search_path)
                 query = query.filter(
                     func.cardinality(Path.path) == len(search_path) + 1,
                     Path.path[0:len(search_path)] == search_path,
                 )
+
+        elif self.scope == Scope.WHOLE_SUBTREE and not dn_is_base:
+            query = query.filter(Path.path[0:len(search_path)] == search_path)
 
         if member_of:
             s1 = selectinload(Directory.group).selectinload(
@@ -399,29 +404,50 @@ class SearchRequest(BaseRequest):
 
             async for directory in directories:
                 attrs = defaultdict(list)
+                groups = []
 
-                if directory.object_class.lower() == 'group' and member_of:
-                    for group in directory.group.parent_groups:
-                        attrs['memberOf'].append(
-                            self._get_full_dn(group.directory.path, dn))
-                if directory.object_class.lower() == 'user' and member_of:
-                    if member_of:
-                        for group in directory.user.groups:
-                            attrs['memberOf'].append(
-                                self._get_full_dn(group.directory.path, dn))
+                if member_of:
+                    if directory.object_class.lower() == 'group' and (
+                            directory.group):
+                        groups += directory.group.parent_groups
+                        if all_attrs:
+                            attrs['objectClass'].append('top')
+                            attrs['instanceType'].append('4')
 
-                    user_fields = (
-                        attr for attr in self._get_attributes()
-                        if attr in directory.user.search_fields)
+                    if directory.object_class.lower() == 'user' and (
+                            directory.user):
+                        groups += directory.user.groups
 
-                    for attr in user_fields:
-                        attribute = getattr(directory.user, attr)
-                        attrs[directory.user.search_fields[attr]].append(
-                            attribute)
+                for group in groups:
+                    attrs['memberOf'].append(
+                        self._get_full_dn(group.directory.path, dn))
 
-                directory_fields = (
-                    attr for attr in self._get_attributes()
-                    if attr in directory.search_fields)
+                if directory.user:
+                    attrs['objectClass'].append('person')
+                    attrs['objectClass'].append('organizationalPerson')
+                    attrs['objectClass'].append('top')
+
+                    if all_attrs:
+                        user_fields = directory.user.search_fields.keys()
+                    else:
+                        user_fields = (
+                            attr for attr in requested_attrs if (
+                                directory.user and (
+                                    attr in directory.user.search_fields)))
+                else:
+                    user_fields = []
+
+                for attr in user_fields:
+                    attribute = getattr(directory.user, attr)
+                    attrs[directory.user.search_fields[attr]].append(
+                        attribute)
+
+                if all_attrs:
+                    directory_fields = directory.search_fields.keys()
+                else:
+                    directory_fields = (
+                        attr for attr in requested_attrs
+                        if attr in directory.search_fields)
 
                 for attr in directory_fields:
                     attribute = getattr(directory, attr)
