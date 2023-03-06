@@ -9,7 +9,8 @@ from pydantic import ValidationError
 from config import settings
 from ldap import LDAPRequestMessage, Session
 
-logger.add("logs/file_{time}.log", retention="10 days", rotation="1d")
+logger.add(
+    "logs/file_{time:DD-MM-YYYY}}.log", retention="10 days", rotation="1d")
 
 
 class PoolClient:
