@@ -25,6 +25,7 @@ from models.ldap3 import (
     GroupMembership,
     User,
     UserMembership,
+    Attribute,
 )
 
 DATA = [  # noqa
@@ -32,9 +33,12 @@ DATA = [  # noqa
         "name": "Groups",
         "object_class": "groups",
         "children": [
-            {"name": "Administrators", "object_class": "group"},
-            {"name": "Committers", "object_class": "group"},
-            {"name": "Operators", "object_class": "group"},
+            {"name": "Administrators", "object_class": "group",
+                "attributes": {"objectClass": ["top"]}},
+            {"name": "Committers", "object_class": "group",
+                "attributes": {"objectClass": ["top"]}},
+            {"name": "Operators", "object_class": "group",
+                "attributes": {"objectClass": ["top"]}},
             {"name": "Guests", "object_class": "group", 'groups': [
                 "Operators", 'Committers']},
         ],
@@ -43,62 +47,92 @@ DATA = [  # noqa
         "name": "IT",
         "object_class": "organizationUnit",
         "children": [
-            {"name": "User 1",
-                "object_class": "User", "organizationalPerson": {
+            {
+                "name": "User 1",
+                "object_class": "User",
+                "organizationalPerson": {
                     "sam_accout_name": "username1",
                     "user_principal_name": "username1@multifactor.dev",
                     "mail": "username1@multifactor.dev",
                     "display_name": "User 1",
                     "password": "password",
-                    "groups": ['Administrators', 'Operators']}},
-
-            {"name": "User 2",
-                "object_class": "User", "organizationalPerson": {
+                    "groups": ['Administrators', 'Operators'],
+                },
+                "attributes": {"objectClass": [
+                    "top", "person", "organizationalPerson"]},
+            },
+            {
+                "name": "User 2",
+                "object_class": "User",
+                "organizationalPerson": {
                     "sam_accout_name": "username2",
                     "user_principal_name": "username2@multifactor.dev",
                     "mail": "username2@multifactor.dev",
                     "display_name": "User 2",
                     "password": "password",
-                    "groups": ['Administrators', 'Operators']}},
+                    "groups": ['Administrators', 'Operators']
+                },
+                "attributes": {"objectClass": [
+                    "top", "person", "organizationalPerson"]},
+            },
         ],
     },
     {
         "name": "Users",
         "object_class": "organizationUnit",
         "children": [
-            {"name": "User 3",
-                "object_class": "User", "organizationalPerson": {
+            {
+                "name": "User 3",
+                "object_class": "User",
+                "organizationalPerson": {
                     "sam_accout_name": "username3",
                     "user_principal_name": "username3@multifactor.dev",
                     "mail": "username3@multifactor.dev",
                     "display_name": "User 3",
                     "password": "password",
-                    "groups": ["Operators", "Guests"]}},
-
-            {"name": "User 4",
-                "object_class": "User", "organizationalPerson": {
+                    "groups": ["Operators", "Guests"]
+                },
+                "attributes": {"objectClass": [
+                    "top", "person", "organizationalPerson"]},
+            },
+            {
+                "name": "User 4",
+                "object_class": "User",
+                "organizationalPerson": {
                     "sam_accout_name": "username4",
                     "user_principal_name": "username4@multifactor.dev",
                     "mail": "username4@multifactor.dev",
                     "display_name": "User 4",
                     "password": "password",
-                    "groups": ["Guests"]}},
+                    "groups": ["Guests"]
+                },
+                "attributes": {"objectClass": [
+                    "top", "person", "organizationalPerson"]},
+            },
         ],
     },
     {
         "name": "2FA",
         "object_class": "organizationUnit",
         "children": [
-            {"name": "Service Accounts",
-                "object_class": "organizationUnit", "children": [
-                    {"name": "User 5",
+            {
+                "name": "Service Accounts",
+                "object_class": "organizationUnit",
+                "children": [
+                    {
+                        "name": "User 5",
                         "object_class": "User", "organizationalPerson": {
                             "sam_accout_name": "username5",
                             "user_principal_name": "username5@multifactor.dev",
                             "mail": "username5@multifactor.dev",
                             "display_name": "User 5",
-                            "password": "password"}},
-                ]},
+                            "password": "password",
+                        },
+                        "attributes": {"objectClass": [
+                            "top", "person", "organizationalPerson"]},
+                    },
+                ],
+            },
         ],
     },
 ]
@@ -149,6 +183,12 @@ async def create_dir(
             parent_group = await get_group(group_name, session)
             session.add(GroupMembership(
                 group_id=parent_group.id, group_child_id=group.id))
+
+    if "attributes" in data:
+        attrs = data["attributes"]
+        for name, values in attrs.items():
+            for value in values:
+                session.add(Attribute(directory=dir_, name=name, value=value))
 
     if 'organizationalPerson' in data:
         user_data = data['organizationalPerson']

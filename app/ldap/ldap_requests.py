@@ -356,12 +356,27 @@ class SearchRequest(BaseRequest):
                     attrs['objectClass'].append('domain')
                     attrs['objectClass'].append('domainDNS')
                     attrs['objectClass'].append('top')
+
                     yield SearchResultEntry(
                         object_name=dn,
                         partial_attributes=[
                             PartialAttribute(type=key, vals=value)
                             for key, value in attrs.items()])
                     return
+
+                elif self.base_object.lower() == 'cn=schema,' + dn.lower():
+                    attrs = defaultdict(list)
+                    attrs['name'].append('Schema')
+                    attrs['objectClass'].append('subSchema')
+                    attrs['objectClass'].append('top')
+
+                    yield SearchResultEntry(
+                        object_name='cn=Schema,' + dn,
+                        partial_attributes=[
+                            PartialAttribute(type=key, vals=value)
+                            for key, value in attrs.items()])
+                    return
+
                 query = query.filter(Path.path == search_path)
             else:
                 attrs = await self.get_root_dse()
@@ -410,9 +425,6 @@ class SearchRequest(BaseRequest):
                     if directory.object_class.lower() == 'group' and (
                             directory.group):
                         groups += directory.group.parent_groups
-                        if all_attrs:
-                            attrs['objectClass'].append('top')
-                            attrs['instanceType'].append('4')
 
                     if directory.object_class.lower() == 'user' and (
                             directory.user):
@@ -423,10 +435,6 @@ class SearchRequest(BaseRequest):
                         self._get_full_dn(group.directory.path, dn))
 
                 if directory.user:
-                    attrs['objectClass'].append('person')
-                    attrs['objectClass'].append('organizationalPerson')
-                    attrs['objectClass'].append('top')
-
                     if all_attrs:
                         user_fields = directory.user.search_fields.keys()
                     else:
