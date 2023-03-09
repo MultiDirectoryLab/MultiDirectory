@@ -286,7 +286,7 @@ class SearchRequest(BaseRequest):
         data['serviceName'].append(domain)
         data['vendorName'].append(settings.VENDOR_NAME)
         data['namingContexts'].append(base_dn)
-        data['namingContexts'].append('CN=Config,' + base_dn)
+        data['namingContexts'].append('CN=Schema,' + base_dn)
         data['rootDomainNamingContext'].append(base_dn)
         data['supportedldapversion'].append(3)
         data['defaultNamingContext'].append(base_dn)
