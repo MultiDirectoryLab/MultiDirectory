@@ -281,19 +281,32 @@ class SearchRequest(BaseRequest):
 
         base_dn = await get_base_dn()
         domain = await get_base_dn(True)
+        schema = 'CN=Schema,' + base_dn
 
         data['dnsHostName'].append(domain)
         data['serviceName'].append(domain)
         data['vendorName'].append(settings.VENDOR_NAME)
         data['namingContexts'].append(base_dn)
-        data['namingContexts'].append('CN=Schema,' + base_dn)
+        data['namingContexts'].append(schema)
         data['rootDomainNamingContext'].append(base_dn)
         data['supportedldapversion'].append(3)
         data['defaultNamingContext'].append(base_dn)
         data['vendorVersion'].append(settings.VENDOR_VERSION)
         data['currentTime'].append(get_generalized_now())
-        data['subschemaSubentry'].append(base_dn)
+        data['subschemaSubentry'].append(schema)
         return data
+
+    def _get_subschema(self, dn):
+        attrs = defaultdict(list)
+        attrs['name'].append('Schema')
+        attrs['objectClass'].append('subSchema')
+        attrs['objectClass'].append('top')
+
+        return SearchResultEntry(
+            object_name='cn=Schema,' + dn,
+            partial_attributes=[
+                PartialAttribute(type=key, vals=value)
+                for key, value in attrs.items()])
 
     @staticmethod
     def _get_full_dn(path: Path, dn) -> str:
@@ -365,20 +378,12 @@ class SearchRequest(BaseRequest):
                     return
 
                 elif self.base_object.lower() == 'cn=schema,' + dn.lower():
-                    attrs = defaultdict(list)
-                    attrs['name'].append('Schema')
-                    attrs['objectClass'].append('subSchema')
-                    attrs['objectClass'].append('top')
-
-                    yield SearchResultEntry(
-                        object_name='cn=Schema,' + dn,
-                        partial_attributes=[
-                            PartialAttribute(type=key, vals=value)
-                            for key, value in attrs.items()])
+                    yield self._get_subschema(dn)
                     return
 
                 query = query.filter(Path.path == search_path)
             else:
+
                 attrs = await self.get_root_dse()
                 yield SearchResultEntry(
                     object_name='',
