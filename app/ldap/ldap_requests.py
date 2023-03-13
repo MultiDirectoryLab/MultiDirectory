@@ -280,7 +280,7 @@ class SearchRequest(BaseRequest):
             for setting in res.scalars():
                 data[setting.name].append(setting.value)
 
-            del data['defaultNamingContext']
+            data.pop('defaultNamingContext', None)
 
         base_dn = await get_base_dn()
         domain = await get_base_dn(True)
