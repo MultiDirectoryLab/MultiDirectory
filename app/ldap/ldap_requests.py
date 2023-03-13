@@ -289,6 +289,7 @@ class SearchRequest(BaseRequest):
             return data
 
         data['dnsHostName'].append(domain)
+        data['objectClass'].append('top')
         data['serverName'].append(domain)
         data['serviceName'].append(domain)
         data['dsServiceName'].append(domain)
@@ -297,18 +298,39 @@ class SearchRequest(BaseRequest):
         data['namingContexts'].append(base_dn)
         data['namingContexts'].append(schema)
         data['rootDomainNamingContext'].append(base_dn)
-        data['supportedldapversion'].append(3)
+        data['supportedLDAPVersion'].append(3)
         data['defaultNamingContext'].append(base_dn)
         data['vendorVersion'].append(settings.VENDOR_VERSION)
         data['currentTime'].append(get_generalized_now())
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
-        data['configurationNamingContext'].append(schema)
-        data['supportedControl'] = []
-        data['supportedLDAPPolicies'] = []
-        data['supportedSASLMechanisms'] = []
-        # highestCommittedUSN;
-        # supportedCapabilities;
+        # data['configurationNamingContext'].append(schema)
+        data['supportedSASLMechanisms'] = ['ANONYMOUS', 'EXTERNAL', 'PLAIN']
+        data['highestCommittedUSN'].append('126991')
+        data['supportedControl'] = [
+            '1.2.840.113556.1.4.319',
+            '1.2.840.113556.1.4.1948',
+        ]
+        data['domainFunctionality'].append('0')
+        data['supportedLDAPPolicies'] = [
+            'MaxPoolThreads',
+            'MaxDatagramRecv',
+            'MaxReceiveBuffer',
+            'InitRecvTimeout',
+            'MaxConnections',
+            'MaxConnIdleTime',
+            'MaxPageSize',
+            'MaxQueryDuration',
+            'MaxTempTableSize',
+            'MaxResultSetSize',
+            'MaxNotificationPerConn',
+            'MaxValRange',
+        ]
+        data['supportedCapabilities'] = [
+            '1.2.840.113556.1.4.800',
+            '1.2.840.113556.1.4.1670',
+            '1.2.840.113556.1.4.1791',
+        ]
         return data
 
     def _get_subschema(self, dn):
