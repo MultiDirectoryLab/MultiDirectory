@@ -40,7 +40,7 @@ DATA = [  # noqa
             {"name": "operators", "object_class": "group",
                 "attributes": {"objectClass": ["top"]}},
             {"name": "guests", "object_class": "group", 'groups': [
-                "Operators", 'Committers']},
+                "operators", 'committers']},
         ],
     },
     {
@@ -57,7 +57,7 @@ DATA = [  # noqa
                     "mail": "username1@multifactor.dev",
                     "display_name": "User 1",
                     "password": "password",
-                    "groups": ['Administrators', 'Operators'],
+                    "groups": ['administrators', 'operators'],
                 },
                 "attributes": {"objectClass": [
                     "top", "person", "organizationalPerson"]},
@@ -71,7 +71,7 @@ DATA = [  # noqa
                     "mail": "username2@multifactor.dev",
                     "display_name": "User 2",
                     "password": "password",
-                    "groups": ['Administrators', 'Operators']
+                    "groups": ['administrators', 'operators']
                 },
                 "attributes": {"objectClass": [
                     "top", "person", "organizationalPerson"]},
@@ -92,7 +92,7 @@ DATA = [  # noqa
                     "mail": "username3@multifactor.dev",
                     "display_name": "User 3",
                     "password": "password",
-                    "groups": ["Operators", "Guests"]
+                    "groups": ["operators", "guests"]
                 },
                 "attributes": {"objectClass": [
                     "top", "person", "organizationalPerson"]},
@@ -106,7 +106,7 @@ DATA = [  # noqa
                     "mail": "username4@multifactor.dev",
                     "display_name": "User 4",
                     "password": "password",
-                    "groups": ["Guests"]
+                    "groups": ["guests"]
                 },
                 "attributes": {"objectClass": [
                     "top", "person", "organizationalPerson"]},
