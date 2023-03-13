@@ -281,7 +281,11 @@ class SearchRequest(BaseRequest):
 
         base_dn = await get_base_dn()
         domain = await get_base_dn(True)
-        schema = 'CN=Schema,' + base_dn
+        schema = 'CN=Schema'
+
+        if attributes == ['subschemasubentry']:
+            data['subschemaSubentry'].append(schema)
+            return data
 
         data['dnsHostName'].append(domain)
         data['serviceName'].append(domain)
@@ -301,8 +305,6 @@ class SearchRequest(BaseRequest):
         attrs['name'].append('Schema')
         attrs['objectClass'].append('subSchema')
         attrs['objectClass'].append('top')
-        attrs['objectClasses'].append('(user group)')
-        attrs['attributeTypes'].append('')
 
         return SearchResultEntry(
             object_name='cn=Schema,' + dn,
@@ -379,15 +381,12 @@ class SearchRequest(BaseRequest):
                             for key, value in attrs.items()])
                     return
 
-                elif self.base_object.lower() == 'cn=schema,' + dn.lower():
+                elif self.base_object.lower() == 'cn=schema':
                     yield self._get_subschema(dn)
                     return
 
                 query = query.filter(Path.path == search_path)
             else:
-                if 'subschemasubentry' in requested_attrs:
-                    yield self._get_subschema(dn)
-                    return
                 attrs = await self.get_root_dse()
                 yield SearchResultEntry(
                     object_name='',
