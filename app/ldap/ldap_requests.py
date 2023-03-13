@@ -301,6 +301,8 @@ class SearchRequest(BaseRequest):
         attrs['name'].append('Schema')
         attrs['objectClass'].append('subSchema')
         attrs['objectClass'].append('top')
+        attrs['objectClasses'].append('(user group)')
+        attrs['attributeTypes'].append('')
 
         return SearchResultEntry(
             object_name='cn=Schema,' + dn,
@@ -383,7 +385,9 @@ class SearchRequest(BaseRequest):
 
                 query = query.filter(Path.path == search_path)
             else:
-
+                if 'subschemasubentry' in requested_attrs:
+                    yield self._get_subschema(dn)
+                    return
                 attrs = await self.get_root_dse()
                 yield SearchResultEntry(
                     object_name='',
