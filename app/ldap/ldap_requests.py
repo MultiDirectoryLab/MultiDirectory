@@ -289,7 +289,10 @@ class SearchRequest(BaseRequest):
             return data
 
         data['dnsHostName'].append(domain)
+        data['serverName'].append(domain)
         data['serviceName'].append(domain)
+        data['dsServiceName'].append(domain)
+        data['LDAPServiceName'].append(domain)
         data['vendorName'].append(settings.VENDOR_NAME)
         data['namingContexts'].append(base_dn)
         data['namingContexts'].append(schema)
@@ -299,6 +302,13 @@ class SearchRequest(BaseRequest):
         data['vendorVersion'].append(settings.VENDOR_VERSION)
         data['currentTime'].append(get_generalized_now())
         data['subschemaSubentry'].append(schema)
+        data['schemaNamingContext'].append(schema)
+        data['configurationNamingContext'].append(schema)
+        data['supportedControl'] = []
+        data['supportedLDAPPolicies'] = []
+        data['supportedSASLMechanisms'] = []
+        # highestCommittedUSN;
+        # supportedCapabilities;
         return data
 
     def _get_subschema(self, dn):
@@ -308,7 +318,7 @@ class SearchRequest(BaseRequest):
         attrs['objectClass'].append('top')
 
         return SearchResultEntry(
-            object_name='cn=Schema,' + dn,
+            object_name='CN=Schema',
             partial_attributes=[
                 PartialAttribute(type=key, vals=value)
                 for key, value in attrs.items()])
