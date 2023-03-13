@@ -24,7 +24,7 @@ async def get_base_dn(normal: bool = False) -> str:
             return cat_result.scalar_one().value
 
         return ','.join((
-            f'DC={value}' for value in
+            f'dc={value}' for value in
             cat_result.scalar_one().value.split('.')))
 
 
