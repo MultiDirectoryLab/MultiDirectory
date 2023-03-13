@@ -31,7 +31,7 @@ from models.ldap3 import (
 DATA = [  # noqa
     {
         "name": "groups",
-        "object_class": "groups",
+        "object_class": "container",
         "children": [
             {"name": "administrators", "object_class": "group",
                 "attributes": {"objectClass": ["top"]}},
@@ -46,7 +46,7 @@ DATA = [  # noqa
     {
         "name": "it",
         "object_class": "organizationalUnit",
-        "attributes": {"objectClass": ["top"]},
+        "attributes": {"objectClass": ["top", "container"]},
         "children": [
             {
                 "name": "user 1",
@@ -81,7 +81,7 @@ DATA = [  # noqa
     {
         "name": "users",
         "object_class": "organizationalUnit",
-        "attributes": {"objectClass": ["top"]},
+        "attributes": {"objectClass": ["top", "container"]},
         "children": [
             {
                 "name": "user 3",
@@ -116,12 +116,12 @@ DATA = [  # noqa
     {
         "name": "2fa",
         "object_class": "organizationalUnit",
-        "attributes": {"objectClass": ["top"]},
+        "attributes": {"objectClass": ["top", "container"]},
         "children": [
             {
                 "name": "service accounts",
                 "object_class": "organizationalUnit",
-                "attributes": {"objectClass": ["top"]},
+                "attributes": {"objectClass": ["top", "container"]},
                 "children": [
                     {
                         "name": "user 5",
