@@ -45,7 +45,7 @@ DATA = [  # noqa
     },
     {
         "name": "IT",
-        "object_class": "organizationUnit",
+        "object_class": "organizationalUnit",
         "children": [
             {
                 "name": "User 1",
@@ -79,7 +79,7 @@ DATA = [  # noqa
     },
     {
         "name": "Users",
-        "object_class": "organizationUnit",
+        "object_class": "organizationalUnit",
         "children": [
             {
                 "name": "User 3",
@@ -113,11 +113,11 @@ DATA = [  # noqa
     },
     {
         "name": "2FA",
-        "object_class": "organizationUnit",
+        "object_class": "organizationalUnit",
         "children": [
             {
                 "name": "Service Accounts",
-                "object_class": "organizationUnit",
+                "object_class": "organizationalUnit",
                 "children": [
                     {
                         "name": "User 5",
