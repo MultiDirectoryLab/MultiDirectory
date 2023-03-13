@@ -46,10 +46,11 @@ DATA = [  # noqa
     {
         "name": "IT",
         "object_class": "organizationalUnit",
+        "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "User 1",
-                "object_class": "User",
+                "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username1",
                     "user_principal_name": "username1@multifactor.dev",
@@ -63,7 +64,7 @@ DATA = [  # noqa
             },
             {
                 "name": "User 2",
-                "object_class": "User",
+                "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username2",
                     "user_principal_name": "username2@multifactor.dev",
@@ -80,10 +81,11 @@ DATA = [  # noqa
     {
         "name": "Users",
         "object_class": "organizationalUnit",
+        "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "User 3",
-                "object_class": "User",
+                "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username3",
                     "user_principal_name": "username3@multifactor.dev",
@@ -97,7 +99,7 @@ DATA = [  # noqa
             },
             {
                 "name": "User 4",
-                "object_class": "User",
+                "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username4",
                     "user_principal_name": "username4@multifactor.dev",
@@ -114,14 +116,16 @@ DATA = [  # noqa
     {
         "name": "2FA",
         "object_class": "organizationalUnit",
+        "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "Service Accounts",
                 "object_class": "organizationalUnit",
+                "attributes": {"objectClass": ["top"]},
                 "children": [
                     {
                         "name": "User 5",
-                        "object_class": "User", "organizationalPerson": {
+                        "object_class": "user", "organizationalPerson": {
                             "sam_accout_name": "username5",
                             "user_principal_name": "username5@multifactor.dev",
                             "mail": "username5@multifactor.dev",

@@ -491,7 +491,7 @@ class SearchRequest(BaseRequest):
                 for attr in user_fields:
                     attribute = getattr(directory.user, attr)
                     attrs[directory.user.search_fields[attr]].append(
-                        attribute)
+                        attribute.lower())
 
                 if all_attrs:
                     directory_fields = directory.search_fields.keys()
@@ -502,10 +502,11 @@ class SearchRequest(BaseRequest):
 
                 for attr in directory_fields:
                     attribute = getattr(directory, attr)
-                    attrs[directory.search_fields[attr]].append(attribute)
+                    attrs[directory.search_fields[attr]].append(
+                        attribute.lower())
 
                 for attr in directory.attributes:
-                    attrs[attr.name].append(attr.value)
+                    attrs[attr.name].append(attr.value.lower())
 
                 yield SearchResultEntry(
                     object_name=self._get_full_dn(directory.path, dn),
