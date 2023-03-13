@@ -119,7 +119,7 @@ DATA = [  # noqa
         "attributes": {"objectClass": ["top"]},
         "children": [
             {
-                "name": "service Accounts",
+                "name": "service accounts",
                 "object_class": "organizationalUnit",
                 "attributes": {"objectClass": ["top"]},
                 "children": [
