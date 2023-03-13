@@ -309,6 +309,7 @@ class SearchRequest(BaseRequest):
         data['highestCommittedUSN'].append('126991')
         data['supportedControl'] = [
             '1.2.840.113556.1.4.319',
+            '1.2.840.113556.1.4.529',
             '1.2.840.113556.1.4.1948',
         ]
         data['domainFunctionality'].append('0')
@@ -327,7 +328,7 @@ class SearchRequest(BaseRequest):
             'MaxValRange',
         ]
         data['supportedCapabilities'] = [
-            '1.2.840.113556.1.4.800',
+            '1.2.840.113556.1.4.2237',
             '1.2.840.113556.1.4.1670',
             '1.2.840.113556.1.4.1791',
         ]
