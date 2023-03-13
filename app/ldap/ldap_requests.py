@@ -227,7 +227,7 @@ class SearchRequest(BaseRequest):
 
     PROTOCOL_OP: ClassVar[int] = 3
 
-    base_object: str | None
+    base_object: str = ''
     scope: Scope
     deref_aliases: DerefAliases
     size_limit: int = Field(ge=0, le=sys.maxsize)
@@ -327,8 +327,9 @@ class SearchRequest(BaseRequest):
         Entry -> Reference (optional) -> Done
         """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
+        is_schema = self.base_object.lower() == 'cn=schema'
 
-        if not is_root_dse and ldap_session.user is None:
+        if not is_root_dse or not is_schema and ldap_session.user is None:
             yield BAD_SEARCH_RESPONSE
             return
 
