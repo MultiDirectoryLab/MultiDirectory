@@ -30,26 +30,26 @@ from models.ldap3 import (
 
 DATA = [  # noqa
     {
-        "name": "Groups",
+        "name": "groups",
         "object_class": "groups",
         "children": [
-            {"name": "Administrators", "object_class": "group",
+            {"name": "administrators", "object_class": "group",
                 "attributes": {"objectClass": ["top"]}},
-            {"name": "Committers", "object_class": "group",
+            {"name": "committers", "object_class": "group",
                 "attributes": {"objectClass": ["top"]}},
-            {"name": "Operators", "object_class": "group",
+            {"name": "operators", "object_class": "group",
                 "attributes": {"objectClass": ["top"]}},
-            {"name": "Guests", "object_class": "group", 'groups': [
+            {"name": "guests", "object_class": "group", 'groups': [
                 "Operators", 'Committers']},
         ],
     },
     {
-        "name": "IT",
+        "name": "it",
         "object_class": "organizationalUnit",
         "attributes": {"objectClass": ["top"]},
         "children": [
             {
-                "name": "User 1",
+                "name": "user 1",
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username1",
@@ -63,7 +63,7 @@ DATA = [  # noqa
                     "top", "person", "organizationalPerson"]},
             },
             {
-                "name": "User 2",
+                "name": "user 2",
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username2",
@@ -79,12 +79,12 @@ DATA = [  # noqa
         ],
     },
     {
-        "name": "Users",
+        "name": "users",
         "object_class": "organizationalUnit",
         "attributes": {"objectClass": ["top"]},
         "children": [
             {
-                "name": "User 3",
+                "name": "user 3",
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username3",
@@ -98,7 +98,7 @@ DATA = [  # noqa
                     "top", "person", "organizationalPerson"]},
             },
             {
-                "name": "User 4",
+                "name": "user 4",
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_accout_name": "username4",
@@ -114,17 +114,17 @@ DATA = [  # noqa
         ],
     },
     {
-        "name": "2FA",
+        "name": "2fa",
         "object_class": "organizationalUnit",
         "attributes": {"objectClass": ["top"]},
         "children": [
             {
-                "name": "Service Accounts",
+                "name": "service Accounts",
                 "object_class": "organizationalUnit",
                 "attributes": {"objectClass": ["top"]},
                 "children": [
                     {
-                        "name": "User 5",
+                        "name": "user 5",
                         "object_class": "user", "organizationalPerson": {
                             "sam_accout_name": "username5",
                             "user_principal_name": "username5@multifactor.dev",
