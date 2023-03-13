@@ -280,6 +280,8 @@ class SearchRequest(BaseRequest):
             for setting in res.scalars():
                 data[setting.name].append(setting.value)
 
+            del data['defaultNamingContext']
+
         base_dn = await get_base_dn()
         domain = await get_base_dn(True)
         schema = 'CN=Schema'
@@ -287,6 +289,8 @@ class SearchRequest(BaseRequest):
         if attributes == ['subschemasubentry']:
             data['subschemaSubentry'].append(schema)
             return data
+
+        logger.debug(base_dn)
 
         data['dnsHostName'].append(domain)
         data['objectClass'].append('top')
