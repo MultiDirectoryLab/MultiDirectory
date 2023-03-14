@@ -2,14 +2,14 @@
 from datetime import datetime
 
 import pytz
-from asyncio_cache import cache
+from asyncio_cache import cache as async_cache
 from sqlalchemy import select
 
 from models.database import async_session
 from models.ldap3 import CatalogueSetting
 
 
-@cache
+@async_cache
 async def get_base_dn(normal: bool = False) -> str:
     """Get base dn for e.g. DC=multifactor,DC=dev.
 
@@ -26,6 +26,24 @@ async def get_base_dn(normal: bool = False) -> str:
         return ','.join((
             f'dc={value}' for value in
             cat_result.scalar_one().value.split('.')))
+
+
+def get_attribute_types() -> list[str]:
+    """Get attribute types from file.
+
+    :return list[list[str]]: attrs
+    """
+    with open('extra/adTypes.txt', 'r') as file:
+        return [line.replace(')\n', ' )') for line in file]
+
+
+def get_object_classes() -> list[str]:
+    """Get attribute types from file.
+
+    :return list[list[str]]: attrs
+    """
+    with open('extra/adClasses.txt', 'r') as file:
+        return list(file)
 
 
 def get_generalized_now():

@@ -29,10 +29,19 @@ from .ldap_responses import (
     SearchResultReference,
 )
 from .objects import DerefAliases, Scope
-from .utils import get_base_dn, get_generalized_now
+from .utils import (
+    get_attribute_types,
+    get_base_dn,
+    get_generalized_now,
+    get_object_classes,
+)
 
 email_re = re.compile(
     r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
+
+
+ATTRIBUTE_TYPES = get_attribute_types()
+OBJECT_CLASSES = get_object_classes()
 
 
 class BaseRequest(ABC, BaseModel):
@@ -343,6 +352,9 @@ class SearchRequest(BaseRequest):
         attrs['name'].append('Schema')
         attrs['objectClass'].append('subSchema')
         attrs['objectClass'].append('top')
+
+        attrs['attributeTypes'] = ATTRIBUTE_TYPES
+        attrs['objectClasses'] = OBJECT_CLASSES
 
         return SearchResultEntry(
             object_name='CN=Schema',
