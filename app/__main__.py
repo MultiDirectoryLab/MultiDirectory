@@ -38,6 +38,7 @@ class PoolClient:
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
         self.reader = reader
         self.writer = writer
+        self.lock = asyncio.Lock()
         self.addr = writer.get_extra_info('peername')
         try:
             await asyncio.gather(
@@ -56,8 +57,10 @@ class PoolClient:
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await self.reader.read(4096)
+            async with self.lock:
+                data = await self.reader.read(4096)
             if not data:
+                logger.info('Connection terminated by client')
                 raise ConnectionAbortedError('Connection terminated by client')
 
             try:
@@ -81,11 +84,10 @@ class PoolClient:
         """Get message from queue and handle it."""
         while True:
             message = await self.queue.get()
+            logger.info(f"\nFrom: {self.addr!r}\nRequest: {message}\n")
 
             async for response in message.create_response(self.session):
-                logger.info(
-                    f"\nFrom: {self.addr!r}"
-                    f"\nRequest: {message}\nResponse: {response}")
+                logger.info(f"\nTo: {self.addr!r}\nResponse: {response}")
 
                 self.writer.write(response.encode())
                 await self.writer.drain()
