@@ -552,6 +552,19 @@ class CompareRequest(BaseRequest):
 
 class AbandonRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = 16
+    message_id: int
+
+    @classmethod
+    def from_data(cls, data):
+        """Create structure from ASN1Row dataclass list."""
+        logger.debug(data)
+        return cls(message_id=1)
+
+    async def handle(self, ldap_session: Session):
+        """Handle message with current user."""
+        import asyncio
+        await asyncio.sleep(0)
+        yield BaseResponse()  # type: ignore
 
 
 class ExtendedRequest(BaseRequest):
