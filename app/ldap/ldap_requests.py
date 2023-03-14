@@ -56,7 +56,7 @@ class BaseRequest(ABC, BaseModel):
     @abstractmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'BaseRequest':
         """Create structure from ASN1Row dataclass list."""
-        raise NotImplementedError()
+        raise NotImplementedError(f'Tried to access {cls.PROTOCOL_OP}')
 
     @abstractmethod
     async def handle(self, ldap_session: Session) -> \

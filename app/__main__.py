@@ -71,6 +71,7 @@ class PoolClient:
                 await self.writer.drain()
 
             except Exception as err:
+                logger.error(f'Unexpected {format_exc()}')
                 raise RuntimeError('Unexpected exception') from err
 
             else:
