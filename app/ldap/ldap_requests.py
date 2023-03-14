@@ -468,7 +468,11 @@ class SearchRequest(BaseRequest):
                 User.groups).selectinload(
                     Group.directory).selectinload(Directory.path)
 
-            query = query.options(s1, s2)
+            s3 = selectinload(Directory.group).selectinload(
+                Group.users).selectinload(
+                    User.directory).selectinload(Directory.path)
+
+            query = query.options(s1, s2, s3)
 
         if condition is not None:
             query = query.filter(condition)
@@ -484,6 +488,10 @@ class SearchRequest(BaseRequest):
                     if directory.object_class.lower() == 'group' and (
                             directory.group):
                         groups += directory.group.parent_groups
+
+                        for user in directory.group.users:
+                            attrs['member'].append(
+                                self._get_full_dn(user.directory.path, dn))
 
                     if directory.object_class.lower() == 'user' and (
                             directory.user):
