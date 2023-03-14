@@ -19,19 +19,28 @@ from sqlalchemy.orm import selectinload
 
 from models.database import AsyncSession, async_session
 from models.ldap3 import (
+    Attribute,
     CatalogueSetting,
     Directory,
     Group,
     GroupMembership,
     User,
     UserMembership,
-    Attribute,
 )
 
 DATA = [  # noqa
     {
         "name": "groups",
-        "object_class": "container",
+        "object_class": "group",
+        "attributes": {
+            "objectClass": ["top"],
+            'groupType': ['-2147483646'],
+            'instanceType': ['4'],
+            'objectGUID': ['{9aac5c3d-689f-4557-806a-f123ed6bb230}'],
+            'objectSid': ['S-1-5-21-625588008-872595822-1771925161-6007'],
+            'sAMAccountName': ['groups'],
+            'sAMAccountType': ['268435456'],
+        },
         "children": [
             {"name": "administrators", "object_class": "group",
                 "attributes": {"objectClass": ["top"]}},
