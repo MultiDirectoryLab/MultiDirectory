@@ -13,6 +13,7 @@ DC=multifactor
 """
 import asyncio
 
+from dev_data import DATA
 from loguru import logger
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -27,8 +28,6 @@ from models.ldap3 import (
     User,
     UserMembership,
 )
-
-from .dev_data import DATA
 
 
 async def get_group(name, session):
