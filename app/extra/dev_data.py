@@ -1,25 +1,45 @@
+group_attrs = {
+    "objectClass": ["top"],
+    'groupType': ['-2147483646'],
+    'instanceType': ['4'],
+    # 'objectGUID': ['{9aac5c3d-689f-4557-806a-f123ed6bb230}'],
+    # 'objectSid': ['S-1-5-21-625588008-872595822-1771925161-6007'],
+    'sAMAccountName': ['groups'],
+    'sAMAccountType': ['268435456'],
+}
+
+
 DATA = [  # noqa
     {
-        "name": "groups",
-        "object_class": "group",
+        "name": "main",
+        "object_class": "builtinDomain",
         "attributes": {
             "objectClass": ["top"],
-            'groupType': ['-2147483646'],
-            'instanceType': ['4'],
-            'objectGUID': ['{9aac5c3d-689f-4557-806a-f123ed6bb230}'],
-            'objectSid': ['S-1-5-21-625588008-872595822-1771925161-6007'],
-            'sAMAccountName': ['groups'],
-            'sAMAccountType': ['268435456'],
+            'sAMAccountName': ['main'],
         },
         "children": [
-            {"name": "administrators", "object_class": "group",
-                "attributes": {"objectClass": ["top"]}},
-            {"name": "committers", "object_class": "group",
-                "attributes": {"objectClass": ["top"]}},
-            {"name": "operators", "object_class": "group",
-                "attributes": {"objectClass": ["top"]}},
-            {"name": "guests", "object_class": "group", 'groups': [
-                "operators", 'committers']},
+            {
+                "name": "administrators",
+                "object_class": "group",
+                "attributes": group_attrs | {
+                    'sAMAccountName': ['administrators']},
+            },
+            {
+                "name": "committers",
+                "object_class": "group",
+                "attributes": group_attrs | {'sAMAccountName': ['committers']},
+            },
+            {
+                "name": "operators",
+                "object_class": "group",
+                "attributes": group_attrs | {'sAMAccountName': ['operators']},
+            },
+            {
+                "name": "guests",
+                "object_class": "group",
+                "attributes": group_attrs | {'sAMAccountName': ['guests']},
+                'groups': ["operators", 'committers'],
+            },
         ],
     },
     {
