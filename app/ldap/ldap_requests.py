@@ -404,7 +404,7 @@ class SearchRequest(BaseRequest):
             .options(
                 selectinload(Directory.path),
                 selectinload(Directory.attributes),
-                joinedload(Directory.user))
+                joinedload(Directory.user)).distinct(Directory.id)
 
         requested_attrs = self._get_attributes()
         all_attrs = '*' in requested_attrs
@@ -489,6 +489,9 @@ class SearchRequest(BaseRequest):
                             directory.group):
                         groups += directory.group.parent_groups
 
+                        attrs['distinguishedName'].append(
+                            self._get_full_dn(directory.path, dn))
+
                         for user in directory.group.users:
                             attrs['member'].append(
                                 self._get_full_dn(user.directory.path, dn))
@@ -572,7 +575,8 @@ class AbandonRequest(BaseRequest):
         """Handle message with current user."""
         import asyncio
         await asyncio.sleep(0)
-        yield BaseResponse()  # type: ignore
+        return
+        yield
 
 
 class ExtendedRequest(BaseRequest):
