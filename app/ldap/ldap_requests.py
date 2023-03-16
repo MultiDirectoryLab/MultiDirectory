@@ -407,7 +407,7 @@ class SearchRequest(BaseRequest):
                 joinedload(Directory.user)).distinct(Directory.id)
 
         requested_attrs = self._get_attributes()
-        all_attrs = '*' in requested_attrs
+        all_attrs = '*' in requested_attrs or not requested_attrs
 
         member_of = 'memberof' in requested_attrs or all_attrs
 
