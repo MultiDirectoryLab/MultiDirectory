@@ -1,6 +1,7 @@
 """Main MiltiDirecory module."""
 
 import asyncio
+import socket
 from traceback import format_exc
 
 from asn1 import Error as ASN1Error
@@ -57,18 +58,16 @@ class PoolClient:
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
-        bytes_sum = []
         while True:
             async with self.lock:
                 data = await self.reader.read(4096)
-                bytes_sum.append(data)
 
             if not data:
                 logger.info('Connection terminated by client')
                 raise ConnectionAbortedError('Connection terminated by client')
 
             try:
-                request = LDAPRequestMessage.from_bytes(b''.join(bytes_sum))
+                request = LDAPRequestMessage.from_bytes(data)
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
                 logger.warning(f'Invalid schema {format_exc()}')
@@ -76,11 +75,6 @@ class PoolClient:
                 self.writer.write(
                     LDAPRequestMessage.from_err(data, err).encode())
                 await self.writer.drain()
-
-            except ASN1Error:
-                if len(bytes_sum) >= 10:
-                    bytes_sum.clear()
-                continue
 
             except Exception as err:
                 logger.error(f'Unexpected {format_exc()}')
@@ -114,7 +108,11 @@ class PoolClient:
 
 async def main():
     """Start server and debug client."""
-    server = await asyncio.start_server(PoolClient(), str(settings.HOST), 389)
+    server = await asyncio.start_server(
+        PoolClient(),
+        str(settings.HOST), 389,
+        flags=socket.MSG_WAITALL,
+    )
 
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
     logger.info(f'Server on {addrs}')
