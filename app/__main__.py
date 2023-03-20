@@ -3,6 +3,7 @@
 import asyncio
 from traceback import format_exc
 
+from asn1 import Error as ASN1Error
 from loguru import logger
 from pydantic import ValidationError
 
@@ -56,15 +57,18 @@ class PoolClient:
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
+        bytes_sum = []
         while True:
             async with self.lock:
                 data = await self.reader.read(4096)
+                bytes_sum.append(data)
+
             if not data:
                 logger.info('Connection terminated by client')
                 raise ConnectionAbortedError('Connection terminated by client')
 
             try:
-                request = LDAPRequestMessage.from_bytes(data)
+                request = LDAPRequestMessage.from_bytes(b''.join(bytes_sum))
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
                 logger.warning(f'Invalid schema {format_exc()}')
@@ -72,6 +76,11 @@ class PoolClient:
                 self.writer.write(
                     LDAPRequestMessage.from_err(data, err).encode())
                 await self.writer.drain()
+
+            except ASN1Error:
+                if len(bytes_sum) >= 10:
+                    bytes_sum.clear()
+                continue
 
             except Exception as err:
                 logger.error(f'Unexpected {format_exc()}')
