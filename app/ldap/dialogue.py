@@ -1,6 +1,6 @@
 """Codes mapping."""
 
-from dataclasses import dataclass
+import asyncio
 from enum import Enum
 
 from models.ldap3 import User
@@ -57,9 +57,26 @@ class LDAPCodes(int, Enum):
     OTHER = 80
 
 
-@dataclass
 class Session:
     """Session for one client handling."""
 
+    def __init__(self) -> None:
+        """Set lock."""
+        self.lock = asyncio.Lock()
+
     user: User | None = None
-    name: str | None = None
+
+    async def set_user(self, user: User):
+        """Bind user to session concurrently save."""
+        async with self.lock:
+            self.user = user
+
+    async def delete_user(self):
+        """Unbind user from session concurrently save."""
+        async with self.lock:
+            self.user = None
+
+    async def get_user(self):
+        """Get user from session concurrently save."""
+        async with self.lock:
+            return self.user

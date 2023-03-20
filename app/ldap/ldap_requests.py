@@ -186,7 +186,7 @@ class BindRequest(BaseRequest):
                 yield bad_response
                 return
 
-        ldap_session.user = user
+        await ldap_session.set_user(user)
         yield BindResponse(resultCode=LDAPCodes.SUCCESS, matchedDn='')
 
 
@@ -205,8 +205,7 @@ class UnbindRequest(BaseRequest):
         """Handle unbind request, no need to send response."""
         if not ldap_session.user:
             raise ValueError('User not authed')
-        ldap_session.name = None
-        ldap_session.user = None
+        await ldap_session.delete_user()
         return  # declare empty async generator and exit
         yield
 
@@ -379,9 +378,11 @@ class SearchRequest(BaseRequest):
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == 'cn=schema'
 
-        if not (is_root_dse or is_schema) and ldap_session.user is None:
+        user = await ldap_session.get_user()
+        if not (is_root_dse or is_schema) and user is None:
             yield BAD_SEARCH_RESPONSE
             return
+        del user
 
         try:
             condition = cast_filter2sql(self.filter)
