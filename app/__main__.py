@@ -110,7 +110,7 @@ async def main():
     server = await asyncio.start_server(
         PoolClient(),
         str(settings.HOST), 389,
-        flags=socket.MSG_WAITALL,
+        flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
     )
 
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
