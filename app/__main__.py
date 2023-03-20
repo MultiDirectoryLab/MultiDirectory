@@ -4,7 +4,6 @@ import asyncio
 import socket
 from traceback import format_exc
 
-from asn1 import Error as ASN1Error
 from loguru import logger
 from pydantic import ValidationError
 
