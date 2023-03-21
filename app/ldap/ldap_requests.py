@@ -296,8 +296,6 @@ class SearchRequest(BaseRequest):
             data['subschemaSubentry'].append(schema)
             return data
 
-        logger.debug(base_dn)
-
         data['dnsHostName'].append(domain)
         data['objectClass'].append('top')
         data['serverName'].append(domain)
