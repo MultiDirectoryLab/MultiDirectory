@@ -203,8 +203,6 @@ class UnbindRequest(BaseRequest):
     async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
-        if not ldap_session.user:
-            raise ValueError('User not authed')
         await ldap_session.delete_user()
         return  # declare empty async generator and exit
         yield
