@@ -77,10 +77,17 @@ class LDAPRequestMessage(LDAPMessage):
         seq_fields = sequence.value
         message_id, protocol = seq_fields[:2]
 
+        controls = []
+
         try:
-            controls = seq_fields[2].value
+            for ctrl in seq_fields[2].value:
+                controls.append(Control(
+                    control_type=ctrl[0].value,
+                    criticality=ctrl[1].value,
+                    control_value=ctrl[2].value,
+                ))
         except IndexError:
-            controls = []
+            pass
 
         from loguru import logger
         logger.debug({"len": len(seq_fields), "content": seq_fields})
