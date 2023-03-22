@@ -4,12 +4,20 @@ from abc import ABC
 from typing import AsyncGenerator
 
 from asn1 import Classes, Decoder, Encoder, Numbers
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from .asn1parser import asn1todict
 from .dialogue import LDAPCodes, Session
 from .ldap_requests import BaseRequest, protocol_id_map
 from .ldap_responses import BaseResponse, LDAPResult
+
+
+class Control(BaseModel):
+    """Controls class."""
+
+    control_type: str
+    criticality: bool = False
+    control_value: str = ''
 
 
 class LDAPMessage(ABC, BaseModel):
@@ -18,14 +26,7 @@ class LDAPMessage(ABC, BaseModel):
     message_id: int = Field(..., alias='messageID')
     protocol_op: int = Field(..., alias='protocolOP')
     context: BaseRequest | BaseResponse = Field()
-    controls: int | None = 0
-
-    @validator('controls')
-    def default_controls(cls, v) -> int:  # noqa: N805
-        """Set zero if None."""
-        if v is None:
-            return 0
-        return v
+    controls: list[Control] = []
 
 
 class LDAPResponseMessage(LDAPMessage):
@@ -42,6 +43,17 @@ class LDAPResponseMessage(LDAPMessage):
         enc.enter(nr=self.context.PROTOCOL_OP, cls=Classes.Application)
         self.context.to_asn1(enc)
         enc.leave()
+
+        if self.controls:
+            enc.enter(Numbers.Sequence)
+            for control in self.controls:
+                enc.enter(Numbers.Sequence)
+                enc.write(control.control_type, Numbers.OctetString)
+                enc.write(control.criticality, Numbers.Boolean)
+                enc.write(control.control_value, Numbers.OctetString)
+                enc.leave()
+            enc.leave()
+
         enc.leave()
         return enc.output()
 
@@ -66,9 +78,12 @@ class LDAPRequestMessage(LDAPMessage):
         message_id, protocol = seq_fields[:2]
 
         try:
-            controls = seq_fields[2].tag_id.value
+            controls = seq_fields[2].value
         except IndexError:
-            controls = 0
+            controls = []
+
+        from loguru import logger
+        logger.debug({"len": len(seq_fields), "content": seq_fields})
 
         context = protocol_id_map[
             protocol.tag_id.value].from_data(protocol.value)
