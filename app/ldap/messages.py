@@ -82,9 +82,9 @@ class LDAPRequestMessage(LDAPMessage):
         try:
             for ctrl in seq_fields[2].value:
                 controls.append(Control(
-                    control_type=ctrl[0].value,
-                    criticality=ctrl[1].value,
-                    control_value=ctrl[2].value,
+                    control_type=ctrl.value[0].value,
+                    criticality=ctrl.value[1].value,
+                    control_value=ctrl.value[2].value,
                 ))
         except IndexError:
             pass
