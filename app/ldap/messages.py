@@ -121,4 +121,5 @@ class LDAPRequestMessage(LDAPMessage):
                 messageID=self.message_id,
                 protocolOP=response.PROTOCOL_OP,
                 context=response,
+                controls=self.controls,
             )
