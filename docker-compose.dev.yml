@@ -49,6 +49,25 @@ services:
     logging:
       driver: "none"
 
+  wireshark:
+    image: lscr.io/linuxserver/wireshark:latest
+    container_name: wireshark
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    network_mode: host
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Etc/UTC
+    volumes:
+      - wireshark:/config
+    ports:
+      - 3000:3000
+    restart: "no"
+
 volumes:
   postgres:
   pgadmin:
+  wireshark:
