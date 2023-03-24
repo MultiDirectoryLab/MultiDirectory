@@ -4,6 +4,7 @@ from abc import ABC
 from typing import AsyncGenerator
 
 from asn1 import Classes, Decoder, Encoder, Numbers
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from .asn1parser import asn1todict
@@ -86,11 +87,11 @@ class LDAPRequestMessage(LDAPMessage):
                     criticality=ctrl.value[1].value,
                     control_value=ctrl.value[2].value,
                 ))
-        except IndexError:
+        except (IndexError, ValueError, AttributeError):
             pass
 
-        from loguru import logger
-        logger.debug({"len": len(seq_fields), "content": seq_fields})
+        if len(seq_fields) >= 3:
+            logger.debug({"controls": seq_fields[2]})
 
         context = protocol_id_map[
             protocol.tag_id.value].from_data(protocol.value)
