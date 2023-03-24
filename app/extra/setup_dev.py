@@ -76,6 +76,7 @@ async def create_dir(
 
     if "attributes" in data:
         attrs = data["attributes"]
+        attrs['objectClass'].append(dir_.object_class)
         for name, values in attrs.items():
             for value in values:
                 session.add(Attribute(directory=dir_, name=name, value=value))

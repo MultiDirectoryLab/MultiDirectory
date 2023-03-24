@@ -106,7 +106,6 @@ class Directory(Base):
     search_fields = {
         'cn': 'cn',
         'name': 'name',
-        'objectclass': 'objectClass',
     }
 
     def get_dn_prefix(self) -> str:
@@ -127,9 +126,6 @@ class Directory(Base):
         return Path(
             path=pre_path + [self.get_dn()],
             endpoint=self)
-
-    def get_object_classes(self) -> list[str]:  # noqa
-        return ['top', self.object_class]
 
 
 @declarative_mixin
