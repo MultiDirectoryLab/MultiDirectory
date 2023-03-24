@@ -49,6 +49,19 @@ services:
     logging:
       driver: "none"
 
+  ssh-server:
+    container_name: ldap-ssh
+    image: mwaeckerlin/ssh
+    environment:
+      LDAPURI: "ldap://multidirectory"
+      LDAPBASE: "dc=multifactor,dc=dev"
+      LDAPBINDDN: "cn=user 3"
+      LDAPBINDPW: "password"
+      LDAPBASEUSERDN: "cn=users"
+      LDAPBASEGROUPDN: "cn=administrators,cn=main"
+    ports:
+      - "222:22"
+
   wireshark:
     image: lscr.io/linuxserver/wireshark:latest
     container_name: wireshark
