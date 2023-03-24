@@ -118,7 +118,7 @@ DATA = [  # noqa
                     "gidNumber": ["20000"],
                     "loginShell": ["/bin/bash"],
                     "homeDirectory": ["/home/jsmith"],
-                    "uid": "username3",
+                    "uid": ["username3"],
                 },
             },
             {
