@@ -9,7 +9,7 @@ services:
       dockerfile: ./app/local.Dockerfile
     image: multidirectory
     restart: "no" #unless-stopped
-    container_name: ldap
+    container_name: multidirectory
     volumes:
       - ./app:/app
     environment:
@@ -20,6 +20,8 @@ services:
       POSTGRES_HOST: postgres
     # command: bash -c "alembic upgrade head && python ."
     tty: true
+    expose:
+      - 389
     ports:
       - "389:389"
       - "636:636"
@@ -52,6 +54,38 @@ services:
     logging:
       driver: "none"
 
+  ssh-server:
+    container_name: ldap-ssh
+    image: mwaeckerlin/ssh
+    environment:
+      LDAPURI: "ldap://multidirectory"
+      LDAPBASE: "dc=multifactor,dc=dev"
+      LDAPBINDDN: "cn=user 3"
+      LDAPBINDPW: "password"
+      LDAPBASEUSERDN: "cn=users"
+      LDAPBASEGROUPDN: "cn=administrators,cn=main"
+    ports:
+      - "222:22"
+
+  wireshark:
+    image: lscr.io/linuxserver/wireshark:latest
+    container_name: wireshark
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - seccomp:unconfined #optional
+    # network_mode: host
+    environment:
+      - PUID=501
+      - PGID=20
+      - TZ=Etc/UTC
+    volumes:
+      - wireshark:/config
+    ports:
+      - 3000:3000
+    restart: "no"
+
 volumes:
   postgres:
   pgadmin:
+  wireshark:
