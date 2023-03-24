@@ -59,7 +59,8 @@ DATA = [  # noqa
                     "groups": ['administrators', 'operators'],
                 },
                 "attributes": {"objectClass": [
-                    "top", "person", "organizationalPerson"]},
+                    "top", "person",
+                    "organizationalPerson", "posixAccount"]},
             },
             {
                 "name": "user 2",
@@ -73,7 +74,8 @@ DATA = [  # noqa
                     "groups": ['administrators', 'operators']
                 },
                 "attributes": {"objectClass": [
-                    "top", "person", "organizationalPerson"]},
+                    "top", "person",
+                    "organizationalPerson", "posixAccount"]},
             },
         ],
     },
@@ -89,7 +91,8 @@ DATA = [  # noqa
             "groups": ['administrators', 'operators'],
         },
         "attributes": {"objectClass": [
-            "top", "person", "organizationalPerson"]},
+            "top", "person",
+            "organizationalPerson", "posixAccount"]},
     },
     {
         "name": "users",
@@ -109,11 +112,13 @@ DATA = [  # noqa
                 },
                 "attributes": {
                     "objectClass": [
-                        "top", "person", "organizationalPerson"],
+                        "top", "person",
+                        "organizationalPerson", "posixAccount"],
                     "uidNumber": ["20000"],
                     "gidNumber": ["20000"],
                     "loginShell": ["/bin/bash"],
                     "homeDirectory": ["/home/jsmith"],
+                    "uid": "username3",
                 },
             },
             {
@@ -125,10 +130,11 @@ DATA = [  # noqa
                     "mail": "username4@multifactor.dev",
                     "display_name": "User 4",
                     "password": "password",
-                    "groups": ["guests"]
+                    "groups": ["guests"],
                 },
                 "attributes": {"objectClass": [
-                    "top", "person", "organizationalPerson"]},
+                    "top", "person",
+                    "organizationalPerson", "posixAccount"]},
             },
         ],
     },
@@ -152,7 +158,8 @@ DATA = [  # noqa
                             "password": "password",
                         },
                         "attributes": {"objectClass": [
-                            "top", "person", "organizationalPerson"]},
+                            "top", "person",
+                            "organizationalPerson", "posixAccount"]},
                     },
                 ],
             },
