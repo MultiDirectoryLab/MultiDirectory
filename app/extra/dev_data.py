@@ -78,6 +78,20 @@ DATA = [  # noqa
         ],
     },
     {
+        "name": "user",
+        "object_class": "user",
+        "organizationalPerson": {
+            "sam_accout_name": "username0",
+            "user_principal_name": "username0@multifactor.dev",
+            "mail": "username0@multifactor.dev",
+            "display_name": "User 0",
+            "password": "password",
+            "groups": ['administrators', 'operators'],
+        },
+        "attributes": {"objectClass": [
+            "top", "person", "organizationalPerson"]},
+    },
+    {
         "name": "users",
         "object_class": "organizationalUnit",
         "attributes": {"objectClass": ["top", "container"]},
@@ -91,10 +105,16 @@ DATA = [  # noqa
                     "mail": "username3@multifactor.dev",
                     "display_name": "User 3",
                     "password": "password",
-                    "groups": ["operators", "guests"]
+                    "groups": ["operators", "administrators"],
                 },
-                "attributes": {"objectClass": [
-                    "top", "person", "organizationalPerson"]},
+                "attributes": {
+                    "objectClass": [
+                        "top", "person", "organizationalPerson"],
+                    "uidNumber": ["20000"],
+                    "gidNumber": ["20000"],
+                    "loginShell": ["/bin/bash"],
+                    "homeDirectory": ["/home/jsmith"],
+                },
             },
             {
                 "name": "user 4",
