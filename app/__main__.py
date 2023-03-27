@@ -90,7 +90,7 @@ class PoolClient:
 
             async for response in message.create_response(self.session):
                 logger.info(
-                    f"\nTo: {self.addr!r}\nResponse: {response}"[:1000])
+                    f"\nTo: {self.addr!r}\nResponse: {response}"[:3000])
 
                 self.writer.write(response.encode())
                 await self.writer.drain()
