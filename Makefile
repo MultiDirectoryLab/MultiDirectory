@@ -23,8 +23,7 @@ stage_down:
 
 stage_update:
 	git pull;
-	docker-compose -f docker-compose.dev.yml down;
+	make_down;
 	docker-compose -f docker-compose.dev.yml up -d --build;
 	docker exec -it multidirectory-ldap bash -c\
 		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
-	make stage_up
