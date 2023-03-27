@@ -1,3 +1,5 @@
+# local development commands
+
 build:
 	docker-compose build
 
@@ -10,6 +12,8 @@ run:
 recreate:
 	docker exec -it multidirectory bash -c\
 		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
+
+# server development commands
 
 stage_up:
 	docker-compose -f docker-compose.dev.yml up -d
