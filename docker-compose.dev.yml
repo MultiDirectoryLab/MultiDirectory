@@ -16,6 +16,7 @@ services:
       POSTGRES_HOST: postgres
     volumes:
       - ./logs:/app/logs
+      - ./certs:/certs
     command: bash -c "alembic upgrade head && python ."
     ports:
       - "389:389"
