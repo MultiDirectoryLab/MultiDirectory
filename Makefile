@@ -11,7 +11,6 @@ build:
 		openssl x509 -req -days 365 -in signreq.csr -signkey key.pem -out certificate.pem;\
 		openssl x509 -text -noout -in certificate.pem"
 
-
 up:
 	docker-compose down; docker-compose up
 
