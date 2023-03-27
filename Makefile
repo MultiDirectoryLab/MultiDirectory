@@ -1,7 +1,15 @@
 # local development commands
 
 build:
+	docker-compose down
 	docker-compose build
+	docker-compose run server bash -c\
+		"cd /certs;\
+		openssl genrsa -out key.pem 2048;\
+		openssl genrsa -aes256 -out key.pem 2048;\
+		openssl req -new -key key.pem -out signreq.csr;\
+		openssl x509 -req -days 365 -in signreq.csr -signkey key.pem -out certificate.pem;\
+		openssl x509 -text -noout -in certificate.pem"
 
 up:
 	docker-compose down; docker-compose up

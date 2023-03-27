@@ -12,6 +12,7 @@ services:
     container_name: multidirectory
     volumes:
       - ./app:/app
+      - ./certs:/certs
     environment:
       DEBUG: 1
       HOST: 0.0.0.0
@@ -22,6 +23,7 @@ services:
     tty: true
     expose:
       - 389
+      - 636
     ports:
       - "389:389"
       - "636:636"
