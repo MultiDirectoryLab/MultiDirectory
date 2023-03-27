@@ -3,6 +3,7 @@
 import asyncio
 import socket
 import ssl
+import sys
 from traceback import format_exc
 
 from loguru import logger
@@ -15,7 +16,9 @@ logger.add(
     "logs/file_{time:DD-MM-YYYY}.log",
     retention="10 days",
     rotation="1d",
-    colorize=True)
+    colorize=False)
+
+logger.add(sys.stdout, colorize=True)
 
 
 class PoolClient:
