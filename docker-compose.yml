@@ -64,6 +64,8 @@ services:
       LDAPBINDPW: "password"
       LDAPBASEUSERDN: "cn=users"
       LDAPBASEGROUPDN: "cn=administrators,cn=main"
+    volumes:
+      - ./ssh/sshd_config:/etc/ssh/sshd_config
     ports:
       - "222:22"
 
