@@ -17,6 +17,9 @@ up:
 run:
 	clear;docker exec -it multidirectory bash -c "python ."
 
+launch:
+	docker-compose down; docker-compose run bash -c "python ."
+
 recreate:
 	docker exec -it multidirectory bash -c\
 		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
@@ -31,7 +34,7 @@ stage_down:
 
 stage_update:
 	git pull;
-	make_down;
+	make stage_down;
 	docker-compose -f docker-compose.dev.yml up -d --build;
 	docker exec -it multidirectory-ldap bash -c\
 		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
