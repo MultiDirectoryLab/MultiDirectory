@@ -2,6 +2,7 @@
 
 import asyncio
 import socket
+import ssl
 from traceback import format_exc
 
 from loguru import logger
@@ -11,7 +12,10 @@ from config import settings
 from ldap import LDAPRequestMessage, Session
 
 logger.add(
-    "logs/file_{time:DD-MM-YYYY}.log", retention="10 days", rotation="1d")
+    "logs/file_{time:DD-MM-YYYY}.log",
+    retention="10 days",
+    rotation="1d",
+    colorize=True)
 
 
 class PoolClient:
@@ -25,9 +29,17 @@ class PoolClient:
     uses callable object for a single connection.
     """
 
-    def __init__(self, num_workers: int = 3):
+    def __init__(self, num_workers: int = 3, use_tls: bool = False):
         """Set workers number for single client concurrent handling."""
         self.num_workers = num_workers
+        self.use_tls = use_tls
+        self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        self.context.load_cert_chain(
+            '/certs/certificate.pem',
+            '/certs/key.pem',
+            'pass',
+        )
+        self.context.set_alpn_protocols(['ldaps'])
 
     async def __call__(
         self,
@@ -41,6 +53,12 @@ class PoolClient:
         self.writer = writer
         self.lock = asyncio.Lock()
         self.addr = writer.get_extra_info('peername')
+
+        if self.use_tls:
+            logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
+            await self.writer.start_tls(self.context)
+            logger.success(f"Successfully started TLS for {self.addr}")
+
         try:
             await asyncio.gather(
                 self.handle_request(),
@@ -106,18 +124,29 @@ class PoolClient:
             *[self.handle_single_response() for _ in range(self.num_workers)])
 
 
+async def _run_server(server):
+    async with server:
+        await server.serve_forever()
+
+
 async def main():
     """Start server and debug client."""
     server = await asyncio.start_server(
-        PoolClient(),
+        PoolClient(use_tls=False),
         str(settings.HOST), 389,
         flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
     )
-
+    ssl_server = await asyncio.start_server(
+        PoolClient(use_tls=True),
+        str(settings.HOST), 636,
+        flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
+    )
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
-    logger.info(f'Server on {addrs}')
-    async with server:
-        await server.serve_forever()
+    ssl_addrs = ', '.join(
+        str(sock.getsockname()) for sock in ssl_server.sockets)
+    logger.info(f'Server on {addrs}, {ssl_addrs}')
+
+    await asyncio.gather(_run_server(server), _run_server(ssl_server))
 
 
 if __name__ == '__main__':
