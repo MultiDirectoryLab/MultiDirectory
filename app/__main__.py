@@ -69,6 +69,8 @@ class PoolClient:
             logger.error(f"The connection {self.addr} raised {format_exc()}")
         except ConnectionAbortedError:
             writer.close()
+            await writer.wait_closed()
+            logger.success(f'Connection {self.addr} normally closed')
 
     async def handle_request(self):
         """Create request object and send it to queue.
@@ -81,7 +83,7 @@ class PoolClient:
                 data = await self.reader.read(4096)
 
             if not data:
-                logger.info('Connection terminated by client')
+                logger.info('Connection termination initialized by a client')
                 raise ConnectionAbortedError('Connection terminated by client')
 
             try:
