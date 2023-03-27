@@ -18,8 +18,6 @@ logger.add(
     rotation="1d",
     colorize=False)
 
-logger.add(sys.stdout, colorize=True)
-
 
 class PoolClient:
     """Async client handler.
