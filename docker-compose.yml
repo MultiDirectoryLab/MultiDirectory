@@ -60,7 +60,7 @@ services:
     container_name: ldap-ssh
     image: mwaeckerlin/ssh
     environment:
-      LDAPURI: "ldap://multidirectory"
+      LDAPURI: "ldaps://multidirectory"
       LDAPBASE: "dc=multifactor,dc=dev"
       LDAPBINDDN: "cn=user 3"
       LDAPBINDPW: "password"
