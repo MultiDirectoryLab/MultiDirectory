@@ -477,7 +477,7 @@ class SearchRequest(BaseRequest):
 
         async with async_session() as session:
             directories = await session.stream_scalars(query)
-            logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
+            # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
 
             async for directory in directories:
                 attrs = defaultdict(list)
