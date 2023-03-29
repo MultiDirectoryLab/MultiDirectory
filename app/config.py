@@ -1,6 +1,12 @@
 """Module with settings."""
 
-from pydantic import BaseSettings, IPvAnyAddress, PostgresDsn, validator
+from pydantic import (
+    AnyUrl,
+    BaseSettings,
+    IPvAnyAddress,
+    PostgresDsn,
+    validator,
+)
 
 
 class Settings(BaseSettings):
@@ -17,6 +23,8 @@ class Settings(BaseSettings):
     POSTGRES_PWD: str
 
     POSTGRES_URI: PostgresDsn = None  # type: ignore
+
+    HOSTNAME: AnyUrl | None = None
 
     @validator('POSTGRES_URI', pre=True, always=True)
     def create_postgres(cls, v, values):  # noqa: N805
