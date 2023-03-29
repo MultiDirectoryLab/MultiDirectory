@@ -33,6 +33,7 @@ def _cast_item(item):
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
         attr = item.value.lower()
+        attr = attr.replace('objectcategory', 'objectclass')
 
         if attr in User.search_fields:
             return not_(eq(getattr(User, attr), None))
@@ -44,6 +45,7 @@ def _cast_item(item):
 
     left, right = item.value
     attr = left.value.lower()
+    attr = attr.replace('objectcategory', 'objectclass')
 
     is_substring = item.tag_id.value == 4
 
