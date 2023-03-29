@@ -3,7 +3,6 @@
 import asyncio
 import socket
 import ssl
-import sys
 from traceback import format_exc
 
 from loguru import logger
@@ -17,6 +16,10 @@ logger.add(
     retention="10 days",
     rotation="1d",
     colorize=False)
+
+
+CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+CONTEXT.load_cert_chain('/certs/cert.pem', '/certs/privkey.pem')
 
 
 class PoolClient:
@@ -34,13 +37,6 @@ class PoolClient:
         """Set workers number for single client concurrent handling."""
         self.num_workers = num_workers
         self.use_tls = use_tls
-        self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        self.context.load_cert_chain(
-            '/certs/certificate.pem',
-            '/certs/key.pem',
-            'pass',
-        )
-        self.context.set_alpn_protocols(['ldaps'])
 
     async def __call__(
         self,
@@ -57,7 +53,7 @@ class PoolClient:
 
         if self.use_tls:
             logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
-            await self.writer.start_tls(self.context)
+            await self.writer.start_tls(CONTEXT)
             logger.success(f"Successfully started TLS for {self.addr}")
 
         try:
