@@ -18,8 +18,8 @@ logger.add(
     colorize=False)
 
 
-CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-CONTEXT.load_cert_chain('/certs/cert.pem', '/certs/privkey.pem')
+SSL_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+SSL_CONTEXT.load_cert_chain(settings.SSL_CERT, settings.SSL_KEY)
 
 
 class PoolClient:
@@ -49,11 +49,11 @@ class PoolClient:
         self.reader = reader
         self.writer = writer
         self.lock = asyncio.Lock()
-        self.addr = writer.get_extra_info('peername')
+        self.addr = ':'.join(map(str, writer.get_extra_info('peername')))
 
         if self.use_tls:
             logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
-            await self.writer.start_tls(CONTEXT)
+            await self.writer.start_tls(SSL_CONTEXT)
             logger.success(f"Successfully started TLS for {self.addr}")
 
         try:
