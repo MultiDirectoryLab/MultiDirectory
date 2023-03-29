@@ -64,6 +64,9 @@ class PoolClient:
         except RuntimeError:
             logger.error(f"The connection {self.addr} raised {format_exc()}")
         except ConnectionAbortedError:
+            logger.info(
+                f'Connection termination initialized by a client {self.addr}')
+        finally:
             writer.close()
             await writer.wait_closed()
             logger.success(f'Connection {self.addr} normally closed')
@@ -79,7 +82,6 @@ class PoolClient:
                 data = await self.reader.read(4096)
 
             if not data:
-                logger.info('Connection termination initialized by a client')
                 raise ConnectionAbortedError('Connection terminated by client')
 
             try:
