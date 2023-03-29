@@ -316,9 +316,9 @@ class SearchRequest(BaseRequest):
         data['supportedSASLMechanisms'] = ['ANONYMOUS', 'EXTERNAL', 'PLAIN']
         data['highestCommittedUSN'].append('126991')
         data['supportedControl'] = [
-            '1.2.840.113556.1.4.319',
-            '1.2.840.113556.1.4.529',
-            '1.2.840.113556.1.4.1948',
+            # '1.2.840.113556.1.4.319',
+            # '1.2.840.113556.1.4.529',
+            # '1.2.840.113556.1.4.1948',
         ]
         data['domainFunctionality'].append('0')
         data['supportedLDAPPolicies'] = [
