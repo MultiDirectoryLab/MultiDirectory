@@ -43,6 +43,7 @@ stage_build:  ## build stage server
 	docker-compose -f docker-compose.dev.yml build
 
 stage_up:  ## run app and detach
+	make stage_down;
 	docker-compose -f docker-compose.dev.yml up -d
 
 stage_down:  ## stop all services
