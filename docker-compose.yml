@@ -56,18 +56,23 @@ services:
     logging:
       driver: "none"
 
-  ssh-server:
-    container_name: ldap-ssh
-    image: mwaeckerlin/ssh
+  ssh:
+    container_name: md-ssh
+    image: ssh-ldap
+    build:
+      context: ./ssh
     environment:
-      LDAPURI: "ldaps://multidirectory"
-      LDAPBASE: "dc=multifactor,dc=dev"
-      LDAPBINDDN: "cn=user 3"
-      LDAPBINDPW: "password"
-      LDAPBASEUSERDN: "cn=users"
-      LDAPBASEGROUPDN: "cn=administrators,cn=main"
-    volumes:
-      - ./ssh/sshd_config:/etc/ssh/sshd_config
+      SERVER: "ldap://multidirectory"
+      BASE: "dc=multifactor,dc=dev"
+      BIND_DN: "cn=user,dc=multifactor,dc=dev"
+      BASE_PASSWORD: "password"
+      # LDAPBINDPW:
+      # LDAPBASEUSERDN: "cn=users"
+      # LDAPBASEGROUPDN: "cn=administrators,cn=main"
+    # volumes:
+    #   - ./ssh/sshd_config:/etc/ssh/sshd_config
+    restart: "no"
+
     ports:
       - "222:22"
 
