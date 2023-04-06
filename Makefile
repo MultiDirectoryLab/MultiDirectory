@@ -23,6 +23,9 @@ recreate:  ## re-run migration
 	docker exec -it multidirectory bash -c\
 		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
 
+down:
+	docker-compose down
+
 # server stage/development commands
 
 stage_gen_cert:  ## generate self-signed cert
