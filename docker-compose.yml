@@ -66,11 +66,6 @@ services:
       BASE: "dc=multifactor,dc=dev"
       BIND_DN: "cn=user,dc=multifactor,dc=dev"
       BASE_PASSWORD: "password"
-      # LDAPBINDPW:
-      # LDAPBASEUSERDN: "cn=users"
-      # LDAPBASEGROUPDN: "cn=administrators,cn=main"
-    # volumes:
-    #   - ./ssh/sshd_config:/etc/ssh/sshd_config
     restart: "no"
 
     ports:
