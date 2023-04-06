@@ -81,25 +81,25 @@ class PoolClient:
             async with self.lock:
                 data = await self.reader.read(4096)
 
-            if not data:
-                raise ConnectionAbortedError('Connection terminated by client')
+                if not data:
+                    raise ConnectionAbortedError('Connection terminated by client')
 
-            try:
-                request = LDAPRequestMessage.from_bytes(data)
+                try:
+                    request = LDAPRequestMessage.from_bytes(data)
 
-            except (ValidationError, IndexError, KeyError, ValueError) as err:
-                logger.warning(f'Invalid schema {format_exc()}')
+                except (ValidationError, IndexError, KeyError, ValueError) as err:
+                    logger.warning(f'Invalid schema {format_exc()}')
 
-                self.writer.write(
-                    LDAPRequestMessage.from_err(data, err).encode())
-                await self.writer.drain()
+                    self.writer.write(
+                        LDAPRequestMessage.from_err(data, err).encode())
+                    await self.writer.drain()
 
-            except Exception as err:
-                logger.error(f'Unexpected {format_exc()}')
-                raise RuntimeError('Unexpected exception') from err
+                except Exception as err:
+                    logger.error(f'Unexpected {format_exc()}')
+                    raise RuntimeError('Unexpected exception') from err
 
-            else:
-                await self.queue.put(request)
+                else:
+                    await self.queue.put(request)
 
     async def handle_single_response(self):
         """Get message from queue and handle it."""
