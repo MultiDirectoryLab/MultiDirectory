@@ -380,20 +380,6 @@ class SearchRequest(BaseRequest):
             return
         del user
 
-        try:
-            condition = cast_filter2sql(self.filter)
-        except Exception:
-            logger.error('Filter syntax error')
-            yield SearchResultDone(resultCode=LDAPCodes.OPERATIONS_ERROR)
-            return
-
-        async for response in self.tree_view(condition):
-            yield response
-        yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
-
-    async def tree_view(self, condition):
-        """Yield tree result."""
-        dn = await get_base_dn()
         query = select(  # noqa: ECE001
             Directory)\
             .join(User, isouter=True)\
@@ -402,7 +388,24 @@ class SearchRequest(BaseRequest):
             .options(
                 selectinload(Directory.path),
                 selectinload(Directory.attributes),
-                joinedload(Directory.user)).distinct(Directory.id)
+                joinedload(Directory.user))\
+            .distinct(Directory.id)
+
+        try:
+            cond, query = cast_filter2sql(self.filter, query)
+            query.filter(cond)
+        except Exception as err:
+            logger.error(f'Filter syntax error {err}')
+            yield SearchResultDone(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            return
+
+        async for response in self.tree_view(query):
+            yield response
+        yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
+
+    async def tree_view(self, query):
+        """Yield tree result."""
+        dn = await get_base_dn()
 
         requested_attrs = self._get_attributes()
         all_attrs = '*' in requested_attrs or not requested_attrs
@@ -471,9 +474,6 @@ class SearchRequest(BaseRequest):
                     User.directory).selectinload(Directory.path)
 
             query = query.options(s1, s2, s3)
-
-        if condition is not None:
-            query = query.filter(condition)
 
         async with async_session() as session:
             directories = await session.stream_scalars(query)
