@@ -393,7 +393,7 @@ class SearchRequest(BaseRequest):
 
         try:
             cond, query = cast_filter2sql(self.filter, query)
-            query.filter(cond)
+            query = query.filter(cond)
         except Exception as err:
             logger.error(f'Filter syntax error {err}')
             yield SearchResultDone(resultCode=LDAPCodes.OPERATIONS_ERROR)
