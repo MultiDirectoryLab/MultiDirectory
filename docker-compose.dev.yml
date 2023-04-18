@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   server:
-    build:
+    md:
       context: .
       dockerfile: ./app/Dockerfile
     image: multidirectory
