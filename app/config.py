@@ -36,6 +36,14 @@ class Settings(BaseSettings):
 
     VENDOR_NAME: str = "MultiFactor"
     VENDOR_VERSION: str = '0.1.2'
+    # to get a string run: `openssl rand -hex 32`
+    SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14
 
 
 settings = Settings()
+
+
+def get_settings():
+    raise NotImplementedError()
