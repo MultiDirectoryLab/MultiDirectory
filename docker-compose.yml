@@ -3,6 +3,21 @@
 version: "3.7"
 
 services:
+  traefik:
+    image: "traefik:v2.6"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
   md:
     build:
       context: .
@@ -19,6 +34,7 @@ services:
       POSTGRES_USER: user1
       POSTGRES_PWD: password123
       POSTGRES_HOST: postgres
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     # command: bash -c "alembic upgrade head && python ."
     tty: true
     expose:
@@ -27,6 +43,24 @@ services:
     ports:
       - "389:389"
       - "636:636"
+
+  api:
+    image: multidirectory
+    container_name: multidirectory_api
+    volumes:
+      - ./app:/app
+    environment:
+      DEBUG: 1
+      HOST: 0.0.0.0
+      POSTGRES_USER: user1
+      POSTGRES_PWD: password123
+      POSTGRES_HOST: postgres
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
+    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --reload"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.api.entrypoints=web"
 
   postgres:
     container_name: MD-postgres
@@ -55,6 +89,10 @@ services:
     restart: unless-stopped
     logging:
       driver: "none"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pg.rule=Host(`pg.localhost`)"
+      - "traefik.http.routers.pg.entrypoints=web"
 
   ssh:
     container_name: md-ssh
@@ -88,6 +126,11 @@ services:
     ports:
       - 3000:3000
     restart: "no"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ws.rule=Host(`ws.localhost`)"
+      - "traefik.http.routers.ws.entrypoints=web"
+      - "traefik.http.services.ws.loadbalancer.server.port=3000"
 
 volumes:
   postgres:
