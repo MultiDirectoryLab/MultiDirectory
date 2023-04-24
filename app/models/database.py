@@ -17,7 +17,12 @@ async_session = sessionmaker(
 Base = declarative_base()
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_session():
+    """Stub factory."""
+    raise NotImplementedError
+
+
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Acquire session."""
     async with async_session() as session:
         yield session
