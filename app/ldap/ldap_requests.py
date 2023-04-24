@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from config import settings
 from models.database import async_session
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
+from security import verify_password
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -36,7 +37,6 @@ from .utils import (
     get_object_classes,
     get_user,
 )
-
 
 ATTRIBUTE_TYPES = get_attribute_types()
 OBJECT_CLASSES = get_object_classes()
@@ -82,7 +82,7 @@ class SimpleAuthentication(AuthChoice):
 
     def is_valid(self, user: User | None):
         password = getattr(user, "password", None)
-        return bool(password) and self.password == password
+        return bool(password) and verify_password(self.password, password)
 
     def is_anonymous(self):
         return not self.password
