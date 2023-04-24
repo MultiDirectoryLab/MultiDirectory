@@ -1,9 +1,10 @@
 """Multidirectory api module."""
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 
+from api import auth_router
 from config import Settings, get_settings
-from models.database import AsyncSession, get_session
+from models.database import get_async_session, get_session
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -12,14 +13,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(name="multidirectory", debug=settings.DEBUG)
     app.dependency_overrides = {
         get_settings: lambda: settings,
+        get_session: get_async_session,
     }
-    app.dependency_overrides[AsyncSession] = get_session
+    app.include_router(auth_router)
     return app
-
-
-app = create_app()
-
-
-@app.get('/')
-def hello_world(settings: Settings = Depends(get_settings)):
-    return "Hello World!"
