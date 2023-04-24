@@ -28,6 +28,7 @@ from models.ldap3 import (
     User,
     UserMembership,
 )
+from security import get_password_hash
 
 
 async def get_group(name, session):
@@ -89,7 +90,7 @@ async def create_dir(
             user_principal_name=user_data['user_principal_name'],
             display_name=user_data['display_name'],
             mail=user_data['mail'],
-            password=user_data['password'],
+            password=get_password_hash(user_data['password']),
         )
         session.add(user)
 
