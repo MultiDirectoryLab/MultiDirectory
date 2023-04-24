@@ -17,6 +17,10 @@ loguru = "^0.6.0"
 sqlalchemy-utils = "^0.38.3"
 asyncio-cache = "^0.0.1"
 pytz = "^2022.7.1"
+fastapi = "^0.95.1"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+uvicorn = "^0.21.1"
 
 [tool.poetry.group.linters.dependencies]
 mypy = "^0.991"
@@ -37,10 +41,13 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
-known_first_party = ["ldap", "client", "config", "models"]
+known_first_party = ["ldap", "client", "config", "models", "api", "security"]
 include_trailing_comma = true
 line_length = 79
 multi_line_output = 3
 
 [tool.mypy]
 plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
+
+[tool.flake8]
+extend-immutable-calls = "Depends, fastapi.Depends, fastapi.params.Depends"

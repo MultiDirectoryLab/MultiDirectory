@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from config import settings
 from models.database import async_session
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
+from security import verify_password
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Session
@@ -34,11 +35,8 @@ from .utils import (
     get_base_dn,
     get_generalized_now,
     get_object_classes,
+    get_user,
 )
-
-email_re = re.compile(
-    r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
-
 
 ATTRIBUTE_TYPES = get_attribute_types()
 OBJECT_CLASSES = get_object_classes()
@@ -82,8 +80,9 @@ class SimpleAuthentication(AuthChoice):
 
     password: str
 
-    def is_valid(self, user: User):
-        return self.password == user.password
+    def is_valid(self, user: User | None):
+        password = getattr(user, "password", None)
+        return bool(password) and verify_password(self.password, password)
 
     def is_anonymous(self):
         return not self.password
@@ -124,20 +123,6 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    def get_domain(self):
-        """Get domain from name."""
-        return '.'.join([
-            item[3:].lower() for item in self.name.split(',')
-            if item[:2] in ('DC', 'dc')
-        ])
-
-    def get_path(self):
-        """Get path from name."""
-        return [
-            item.lower() for item in reversed(self.name.split(','))
-            if not item[:2] in ('DC', 'dc')
-        ]
-
     async def handle(self, ldap_session: Session) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
@@ -155,34 +140,9 @@ class BindRequest(BaseRequest):
         )
 
         async with async_session() as session:
-            if '=' not in self.name:
-                if email_re.fullmatch(self.name):
-                    cond = User.user_principal_name == self.name
-                else:
-                    cond = User.sam_accout_name == self.name
+            user = await get_user(session, self.name)
 
-                user = await session.scalar(select(User).where(cond))
-            else:
-
-                path = await session.scalar(
-                    select(Path).where(Path.path == self.get_path()))
-
-                domain = await session.scalar(
-                    select(CatalogueSetting)
-                    .where(CatalogueSetting.name == 'defaultNamingContext'))
-
-                if not domain or not path:
-                    yield bad_response
-                    return
-
-                user = await session.scalar(
-                    select(User).where(User.directory == path.endpoint))
-
-            if not user:
-                yield bad_response
-                return
-
-            if not self.authentication_choice.is_valid(user):
+            if not user or not self.authentication_choice.is_valid(user):
                 yield bad_response
                 return
 
