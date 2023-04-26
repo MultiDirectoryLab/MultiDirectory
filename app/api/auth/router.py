@@ -6,27 +6,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings, get_settings
 from models.database import get_session
 
-from .oauth2 import authenticate_user, create_token, get_current_user
-from .schema import Login, Token, UserModel
+from .oauth2 import (
+    authenticate_user,
+    create_token,
+    get_current_user,
+    get_current_user_refresh,
+    oauth2,
+)
+from .schema import OAuth2Form, Token, UserModel
 
 auth_router = APIRouter(prefix='/auth')
 
 
 @auth_router.post("/token/get")
 async def login_for_access_token(
-    form: Login,
+    form: OAuth2Form = Depends(),
     session: AsyncSession = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> Token:
-    """Get refresh and access token with login.
+    """Get refresh and access token on login.
 
-    :param Login form: password form, defaults to Depends()
-    :param Settings settings: app settings, defaults to Depends(get_settings)
-    :param AsyncSession session: sa session, defaults to Depends()
+    :param OAuth2PasswordRequestForm: password form
     :raises HTTPException: in invalid user
     :return Token: refresh and access token
     """
-    user = await authenticate_user(session, form.name, form.password)
+    user = await authenticate_user(session, form.username, form.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -35,17 +39,17 @@ async def login_for_access_token(
         )
 
     access_token = create_token(  # noqa: S106
-        data={"sub": user.id},
+        data={"sub": str(user.id)},
         secret=settings.SECRET_KEY,
         expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        token_type='access',
+        grant_type='access',
     )
 
     refresh_token = create_token(  # noqa: S106
-        data={"sub": user.id},
+        data={"sub": str(user.id)},
         secret=settings.SECRET_KEY,
         expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        token_type='refresh',
+        grant_type='refresh',
     )
 
     return Token(
@@ -56,10 +60,31 @@ async def login_for_access_token(
 
 
 @auth_router.post("/token/refresh")
-async def get_refresh_token(current_user: UserModel = Depends(get_current_user)) -> Token:
-    pass
+async def get_refresh_token(
+    user: UserModel = Depends(get_current_user_refresh),
+    settings: Settings = Depends(get_settings),
+    token: str = Depends(oauth2),
+) -> Token:
+    """Grant access token with refresh.
+
+    :param UserModel user: current user from refresh token
+    :param Settings settings: app settings
+    :param str token: refresh token
+    :return Token: refresh and access token
+    """
+    access_token = create_token(  # noqa: S106
+        data={"sub": str(user.id)},
+        secret=settings.SECRET_KEY,
+        expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        grant_type='access',
+    )
+    return Token(
+        access_token=access_token,
+        refresh_token=token,
+        type="bearer",
+    )
 
 
 @auth_router.get("/users/me/")
-async def users_me(current_user: UserModel = Depends(get_current_user)) -> UserModel:
-    return current_user
+async def users_me(user: UserModel = Depends(get_current_user)) -> UserModel:
+    return user
