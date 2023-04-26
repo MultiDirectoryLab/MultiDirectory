@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 
 import pytz
-from asyncio_cache import cache as async_cache
+from asyncstdlib.functools import cache
 from sqlalchemy import select
 
 from models.database import AsyncSession, async_session
@@ -13,7 +13,7 @@ email_re = re.compile(
     r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
 
 
-@async_cache
+@cache
 async def get_base_dn(normal: bool = False) -> str:
     """Get base dn for e.g. DC=multifactor,DC=dev.
 
