@@ -1,5 +1,7 @@
 """Schemas for auth module."""
 
+from fastapi.param_functions import Form
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
 from models.ldap3 import User
@@ -8,8 +10,20 @@ from models.ldap3 import User
 class Login(BaseModel):
     """Login form."""
 
-    name: str
+    username: str
     password: str
+
+
+class OAuth2Form(OAuth2PasswordRequestForm):
+    """OAuth2 custom form."""
+
+    def __init__(  # noqa: D107
+        self,
+        username: str = Form(),
+        password: str = Form(),
+    ):
+        self.username = username
+        self.password = password
 
 
 class Token(BaseModel):
