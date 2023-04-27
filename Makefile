@@ -23,7 +23,7 @@ recreate:  ## re-run migration
 	docker exec -it multidirectory bash -c\
 		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
 
-deploy:
+deploy:  ## deploy ready-to use
 	make build
 	make recreate
 	make up
