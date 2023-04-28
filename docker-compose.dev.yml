@@ -1,8 +1,38 @@
 version: "3.7"
 
 services:
+  traefik:
+    image: "traefik:latest"
+    container_name: traefik
+    command:
+      - --api
+      # - --metrics
+      # - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+      - --log.level=INFO
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --accesslog=true
+      - --accesslog.filepath=/var/log/traefik/access.log
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --certificatesresolvers.traefik-resolver.acme.tlschallenge=true
+      - --certificatesresolvers.traefik-resolver.acme.email=example@example.com
+      - --certificatesresolvers.traefik-resolver.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - ./logs/traefik/:/var/log/traefik
+      - ./certs:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+
   server:
-    md:
+    build:
       context: .
       dockerfile: ./app/Dockerfile
     image: multidirectory
@@ -14,6 +44,7 @@ services:
       POSTGRES_USER: user1
       POSTGRES_PWD: password123
       POSTGRES_HOST: postgres
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     volumes:
       - ./logs:/app/logs
       - ./certs:/certs
@@ -21,6 +52,25 @@ services:
     ports:
       - "389:389"
       - "636:636"
+
+  api:
+    image: multidirectory
+    container_name: multidirectory_api
+    volumes:
+      - ./app:/app
+    environment:
+      DEBUG: 1
+      HOST: 0.0.0.0
+      POSTGRES_USER: user1
+      POSTGRES_PWD: password123
+      POSTGRES_HOST: postgres
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
+    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0"
+      - "traefik.enable=true"
+      - "traefik.http.services.server.loadbalancer.server.port=8000"
+      - "traefik.http.routers.server.rule=Host(`md.multifactor.dev`)"
+      - "traefik.http.routers.server.entrypoints=websecure"
+      - "traefik.http.routers.server.tls.certresolver=md-resolver"
 
   postgres:
     container_name: MD-postgres
