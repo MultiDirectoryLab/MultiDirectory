@@ -25,9 +25,9 @@ recreate:  ## re-run migration
 
 deploy:  ## deploy ready-to-use
 	make build
-	make up
+	docker-compose down; docker-compose up -d
 	make recreate
-	make launch
+	make up
 
 down:
 	docker-compose down
