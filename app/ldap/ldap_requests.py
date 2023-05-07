@@ -173,25 +173,28 @@ class UnbindRequest(BaseRequest):
 class SearchRequest(BaseRequest):
     """Search request schema.
 
+    ```
     SearchRequest ::= [APPLICATION 3] SEQUENCE {
-    baseObject      LDAPDN,
-    scope           ENUMERATED {
-        baseObject              (0),
-        singleLevel             (1),
-        wholeSubtree            (2),
-        subordinateSubtree      (3),
-    },
-    derefAliases    ENUMERATED {
-        neverDerefAliases       (0),
-        derefInSearching        (1),
-        derefFindingBaseObj     (2),
-        derefAlways             (3) },
-    sizeLimit       INTEGER (0 ..  maxInt),
-    timeLimit       INTEGER (0 ..  maxInt),
-    typesOnly       BOOLEAN,
-    filter          Filter,
-    attributes      AttributeSelection
+        baseObject      LDAPDN,
+        scope           ENUMERATED {
+            baseObject              (0),
+            singleLevel             (1),
+            wholeSubtree            (2),
+            subordinateSubtree      (3),
+        },
+        derefAliases    ENUMERATED {
+            neverDerefAliases       (0),
+            derefInSearching        (1),
+            derefFindingBaseObj     (2),
+            derefAlways             (3)
+        },
+        sizeLimit       INTEGER (0 ..  maxInt),
+        timeLimit       INTEGER (0 ..  maxInt),
+        typesOnly       BOOLEAN,
+        filter          Filter,
+        attributes      AttributeSelection
     }
+    ```
     """
 
     PROTOCOL_OP: ClassVar[int] = 3
@@ -521,6 +524,7 @@ class Changes(BaseRequest):
 class ModifyRequest(BaseRequest):
     """Modify request.
 
+    ```
     ModifyRequest ::= [APPLICATION 6] SEQUENCE {
         object          LDAPDN,
         changes         SEQUENCE OF change SEQUENCE {
@@ -532,6 +536,7 @@ class ModifyRequest(BaseRequest):
             modification    PartialAttribute
         }
     }
+    ```
     """
 
     PROTOCOL_OP: ClassVar[int] = 6
@@ -543,12 +548,14 @@ class ModifyRequest(BaseRequest):
 class AddRequest(BaseRequest):
     """Add new entry.
 
+    ```
     AddRequest ::= [APPLICATION 8] SEQUENCE {
         entry           LDAPDN,
         attributes      AttributeList
     }
 
     AttributeList ::= SEQUENCE OF attribute Attribute
+    ```
     """
 
     PROTOCOL_OP: ClassVar[int] = 8
@@ -571,12 +578,14 @@ class DeleteRequest(BaseRequest):
 class ModifyDNRequest(BaseRequest):
     """Update DN.
 
+    ```
     ModifyDNRequest ::= [APPLICATION 12] SEQUENCE {
         entry           LDAPDN,
         newrdn          RelativeLDAPDN,
         deleteoldrdn    BOOLEAN,
         newSuperior     [0] LDAPDN OPTIONAL
     }
+    ```
 
     entry — The current DN for the target entry.
     newrdn — The new RDN to use assign to the entry. It may be the same as the
