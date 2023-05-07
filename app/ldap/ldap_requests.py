@@ -541,15 +541,62 @@ class ModifyRequest(BaseRequest):
 
 
 class AddRequest(BaseRequest):
+    """Add new entry.
+
+    AddRequest ::= [APPLICATION 8] SEQUENCE {
+        entry           LDAPDN,
+        attributes      AttributeList
+    }
+
+    AttributeList ::= SEQUENCE OF attribute Attribute
+    """
+
     PROTOCOL_OP: ClassVar[int] = 8
+
+    entry: str
+    attributes: list[PartialAttribute]
 
 
 class DeleteRequest(BaseRequest):
+    """Delete request.
+
+    DelRequest ::= [APPLICATION 10] LDAPDN
+    """
+
     PROTOCOL_OP: ClassVar[int] = 10
+
+    entry: str
 
 
 class ModifyDNRequest(BaseRequest):
+    """Update DN.
+
+    ModifyDNRequest ::= [APPLICATION 12] SEQUENCE {
+        entry           LDAPDN,
+        newrdn          RelativeLDAPDN,
+        deleteoldrdn    BOOLEAN,
+        newSuperior     [0] LDAPDN OPTIONAL
+    }
+
+    entry — The current DN for the target entry.
+    newrdn — The new RDN to use assign to the entry. It may be the same as the
+        current RDN if you only intend to move the entry beneath a new parent.
+        If the new RDN includes any attribute values that arent
+        already in the entry, the entry will be updated to include them.
+    deleteoldrdn — Indicates whether to delete any attribute values from the
+        entry that were in the original RDN but not in the new RDN.
+    newSuperior — The DN of the entry that should become the new
+        parent for the entry (and any of its subordinates).
+        This is optional, and if it is omitted, then the entry will be
+        left below the same parent and only the RDN will be altered.
+    """
+
     PROTOCOL_OP: ClassVar[int] = 12
+
+    entry: str
+    newrdn: str
+    deleteoldrdn: str
+    new_superior: str
 
 
 class CompareRequest(BaseRequest):
