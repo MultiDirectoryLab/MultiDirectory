@@ -1,6 +1,5 @@
 """LDAP requests structure bind."""
 
-import re
 import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -18,7 +17,7 @@ from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
 from security import verify_password
 
 from .asn1parser import ASN1Row
-from .dialogue import LDAPCodes, Session
+from .dialogue import LDAPCodes, Operation, Session
 from .filter_interpreter import cast_filter2sql
 from .ldap_responses import (
     BAD_SEARCH_RESPONSE,
@@ -61,6 +60,9 @@ class BaseRequest(ABC, BaseModel):
             AsyncGenerator[BaseResponse, None]:
         """Handle message with current user."""
         yield BaseResponse()  # type: ignore
+
+    class Config:  # noqa: D106
+        fields = {'PROTOCOL_OP': {'exclude': True}}
 
 
 class AuthChoice(ABC, BaseModel):
@@ -321,6 +323,15 @@ class SearchRequest(BaseRequest):
     def _get_full_dn(path: Path, dn) -> str:
         return ','.join(reversed(path.path)) + ',' + dn
 
+    def cast_filter(self, filter, query):
+        """Convert asn1 row filter to sqlalchemy obj.
+
+        :param ASN1Row filter: requested filter
+        :param sqlalchemy query: sqlalchemy query obj
+        :return tuple: condition and query objects
+        """
+        return cast_filter2sql(filter, query)
+
     async def handle(
         self, ldap_session: Session,
     ) -> AsyncGenerator[
@@ -352,7 +363,7 @@ class SearchRequest(BaseRequest):
             .distinct(Directory.id)
 
         try:
-            cond, query = cast_filter2sql(self.filter, query)
+            cond, query = self.cast_filter(self.filter, query)
             query = query.filter(cond)
         except Exception as err:
             logger.error(f'Filter syntax error {err}')
@@ -500,8 +511,33 @@ class SearchRequest(BaseRequest):
                 )
 
 
+class Changes(BaseRequest):
+    """Changes for mod request."""
+
+    operation: Operation
+    modification: PartialAttribute
+
+
 class ModifyRequest(BaseRequest):
+    """Modify request.
+
+    ModifyRequest ::= [APPLICATION 6] SEQUENCE {
+        object          LDAPDN,
+        changes         SEQUENCE OF change SEQUENCE {
+            operation       ENUMERATED {
+                add     (0),
+                delete  (1),
+                replace (2),
+            },
+            modification    PartialAttribute
+        }
+    }
+    """
+
     PROTOCOL_OP: ClassVar[int] = 6
+
+    object: str  # noqa: A003
+    changes: list[Changes]
 
 
 class AddRequest(BaseRequest):
