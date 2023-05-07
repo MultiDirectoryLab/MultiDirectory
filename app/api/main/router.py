@@ -6,24 +6,24 @@ from ldap.ldap_requests import AddRequest, ModifyDNRequest, ModifyRequest
 from ldap.ldap_responses import LDAPCodes, LDAPResult
 from models.database import AsyncSession, get_session
 
-from .schema import APISearchRequest, APISearchResponse, SearchResultDone
+from .schema import SearchRequest, SearchResponse, SearchResultDone
 
 entry_router = APIRouter(prefix='/entry')
 
 
 @entry_router.get('/search')
 async def search(
-    request: APISearchRequest = Depends(),
+    request: SearchRequest = Depends(),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> APISearchResponse:
+) -> SearchResponse:
     """Search request, fields descriped in RFC."""
     response_list = []
     async for response in request.handle():
         response_list.append(response)
 
     search_done: SearchResultDone = response_list.pop(-1)
-    return APISearchResponse(
+    return SearchResponse(
         result_code=search_done.result_code,
         search_result=response_list,
     )
