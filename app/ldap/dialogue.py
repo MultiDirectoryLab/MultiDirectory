@@ -6,6 +6,14 @@ from enum import Enum
 from models.ldap3 import User
 
 
+class Operation(int, Enum):
+    """Changes enum for modify request."""
+
+    ADD = 0
+    DELETE = 1
+    REPLACE = 2
+
+
 class LDAPCodes(int, Enum):
     """LDAP protocol codes mapping."""
 
