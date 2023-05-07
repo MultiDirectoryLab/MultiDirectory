@@ -8,7 +8,7 @@ from models.database import AsyncSession, get_session
 
 from .schema import APISearchRequest, APISearchResponse, SearchResultDone
 
-entry_router = APIRouter(prefix='/directories')
+entry_router = APIRouter(prefix='/entry')
 
 
 @entry_router.get('/search')
@@ -46,6 +46,7 @@ async def update(
 ) -> LDAPResult:
     return LDAPResult(result_code=LDAPCodes.SUCCESS)
 
+
 @entry_router.put('/update/dn')
 async def update_dn(
     request: ModifyDNRequest,
@@ -57,7 +58,7 @@ async def update_dn(
 
 @entry_router.delete('/delete')
 async def delete(
-    object: str,
+    object: str,  # noqa: A002
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> LDAPResult:
