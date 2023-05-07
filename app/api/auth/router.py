@@ -13,7 +13,7 @@ from .oauth2 import (
     get_current_user_refresh,
     oauth2,
 )
-from .schema import OAuth2Form, Token, UserModel
+from .schema import OAuth2Form, Token, User
 
 auth_router = APIRouter(prefix='/auth')
 
@@ -61,13 +61,13 @@ async def login_for_access_token(
 
 @auth_router.post("/token/refresh")
 async def get_refresh_token(
-    user: UserModel = Depends(get_current_user_refresh),
+    user: User = Depends(get_current_user_refresh),
     settings: Settings = Depends(get_settings),
     token: str = Depends(oauth2),
 ) -> Token:
     """Grant access token with refresh.
 
-    :param UserModel user: current user from refresh token
+    :param User user: current user from refresh token
     :param Settings settings: app settings
     :param str token: refresh token
     :return Token: refresh and access token
@@ -86,5 +86,5 @@ async def get_refresh_token(
 
 
 @auth_router.get("/users/me/")
-async def users_me(user: UserModel = Depends(get_current_user)) -> UserModel:
+async def users_me(user: User = Depends(get_current_user)) -> User:
     return user
