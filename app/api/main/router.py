@@ -11,7 +11,7 @@ from .schema import APISearchRequest, APISearchResponse, SearchResultDone
 entry_router = APIRouter(prefix='/directories')
 
 
-@entry_router.post('/search')
+@entry_router.get('/search')
 async def search(
     request: APISearchRequest = Depends(),
     session: AsyncSession = Depends(get_session),
@@ -29,7 +29,7 @@ async def search(
     )
 
 
-@entry_router.post('add')
+@entry_router.post('/add')
 async def add(
     request: AddRequest,
     session: AsyncSession = Depends(get_session),
