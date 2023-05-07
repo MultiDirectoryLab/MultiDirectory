@@ -85,6 +85,7 @@ async def get_refresh_token(
     )
 
 
-@auth_router.get("/users/me/")
+@auth_router.get("/me")
 async def users_me(user: User = Depends(get_current_user)) -> User:
+    """Get current user."""
     return user
