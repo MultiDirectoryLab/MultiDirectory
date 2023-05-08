@@ -1,8 +1,9 @@
 """Codes mapping."""
 
 import asyncio
-from enum import Enum
 from contextlib import asynccontextmanager
+from enum import Enum
+
 from models.ldap3 import User
 
 
