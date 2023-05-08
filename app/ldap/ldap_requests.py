@@ -8,11 +8,11 @@ from typing import AsyncGenerator, ClassVar
 from loguru import logger
 from pydantic import BaseModel, Field
 from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import settings
-from models.database import async_session
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
 from security import verify_password
 
@@ -56,7 +56,7 @@ class BaseRequest(ABC, BaseModel):
         raise NotImplementedError(f'Tried to access {cls.PROTOCOL_OP}')
 
     @abstractmethod
-    async def handle(self, ldap_session: Session) -> \
+    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle message with current user."""
         yield BaseResponse()  # type: ignore
@@ -125,7 +125,7 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    async def handle(self, ldap_session: Session) -> \
+    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
@@ -141,12 +141,11 @@ class BindRequest(BaseRequest):
                 'data 52e, v3839'),
         )
 
-        async with async_session() as session:
-            user = await get_user(session, self.name)
+        user = await get_user(session, self.name)
 
-            if not user or not self.authentication_choice.is_valid(user):
-                yield bad_response
-                return
+        if not user or not self.authentication_choice.is_valid(user):
+            yield bad_response
+            return
 
         await ldap_session.set_user(user)
         yield BindResponse(resultCode=LDAPCodes.SUCCESS, matchedDn='')
@@ -162,7 +161,7 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, ldap_session: Session) -> \
+    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ldap_session.delete_user()
@@ -235,23 +234,23 @@ class SearchRequest(BaseRequest):
     def _get_attributes(self):
         return [attr.lower() for attr in self.attributes]
 
-    async def get_root_dse(self) -> defaultdict[str, list[str]]:
+    async def get_root_dse(
+            self, session: AsyncSession) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
         :param list[str] attributes: list of requested attrs
         :return defaultdict[str, list[str]]: queried attrs
         """
         attributes = self._get_attributes()
-        async with async_session() as session:
-            data = defaultdict(list)
-            clause = [CatalogueSetting.name.ilike(name) for name in attributes]
-            res = await session.execute(
-                select(CatalogueSetting).where(*clause))
+        data = defaultdict(list)
+        clause = [CatalogueSetting.name.ilike(name) for name in attributes]
+        res = await session.execute(
+            select(CatalogueSetting).where(*clause))
 
-            for setting in res.scalars():
-                data[setting.name].append(setting.value)
+        for setting in res.scalars():
+            data[setting.name].append(setting.value)
 
-            data.pop('defaultNamingContext', None)
+        data.pop('defaultNamingContext', None)
 
         base_dn = await get_base_dn()
         domain = await get_base_dn(True)
@@ -336,7 +335,7 @@ class SearchRequest(BaseRequest):
         return cast_filter2sql(filter, query)
 
     async def handle(
-        self, ldap_session: Session,
+        self, ldap_session: Session, session: AsyncSession,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry, None,
     ]:
@@ -373,11 +372,11 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(resultCode=LDAPCodes.OPERATIONS_ERROR)
             return
 
-        async for response in self.tree_view(query):
+        async for response in self.tree_view(query, session):
             yield response
         yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
 
-    async def tree_view(self, query):
+    async def tree_view(self, query, session: AsyncSession):
         """Yield tree result."""
         dn = await get_base_dn()
 
@@ -413,7 +412,7 @@ class SearchRequest(BaseRequest):
 
                 query = query.filter(Path.path == search_path)
             else:
-                attrs = await self.get_root_dse()
+                attrs = await self.get_root_dse(session)
                 yield SearchResultEntry(
                     object_name='',
                     partial_attributes=[
@@ -449,69 +448,68 @@ class SearchRequest(BaseRequest):
 
             query = query.options(s1, s2, s3)
 
-        async with async_session() as session:
-            directories = await session.stream_scalars(query)
-            # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
+        directories = await session.stream_scalars(query)
+        # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
 
-            async for directory in directories:
-                attrs = defaultdict(list)
-                groups = []
+        async for directory in directories:
+            attrs = defaultdict(list)
+            groups = []
 
-                if member_of:
-                    if directory.object_class.lower() == 'group' and (
-                            directory.group):
-                        groups += directory.group.parent_groups
+            if member_of:
+                if directory.object_class.lower() == 'group' and (
+                        directory.group):
+                    groups += directory.group.parent_groups
 
-                        attrs['distinguishedName'].append(
-                            self._get_full_dn(directory.path, dn))
+                    attrs['distinguishedName'].append(
+                        self._get_full_dn(directory.path, dn))
 
-                        for user in directory.group.users:
-                            attrs['member'].append(
-                                self._get_full_dn(user.directory.path, dn))
+                    for user in directory.group.users:
+                        attrs['member'].append(
+                            self._get_full_dn(user.directory.path, dn))
 
-                    if directory.object_class.lower() == 'user' and (
-                            directory.user):
-                        groups += directory.user.groups
+                if directory.object_class.lower() == 'user' and (
+                        directory.user):
+                    groups += directory.user.groups
 
-                for group in groups:
-                    attrs['memberOf'].append(
-                        self._get_full_dn(group.directory.path, dn))
+            for group in groups:
+                attrs['memberOf'].append(
+                    self._get_full_dn(group.directory.path, dn))
 
-                if directory.user:
-                    if all_attrs:
-                        user_fields = directory.user.search_fields.keys()
-                    else:
-                        user_fields = (
-                            attr for attr in requested_attrs if (
-                                directory.user and (
-                                    attr in directory.user.search_fields)))
-                else:
-                    user_fields = []
-
-                for attr in user_fields:
-                    attribute = getattr(directory.user, attr)
-                    attrs[directory.user.search_fields[attr]].append(attribute)
-
+            if directory.user:
                 if all_attrs:
-                    directory_fields = directory.search_fields.keys()
+                    user_fields = directory.user.search_fields.keys()
                 else:
-                    directory_fields = (
-                        attr for attr in requested_attrs
-                        if attr in directory.search_fields)
+                    user_fields = (
+                        attr for attr in requested_attrs if (
+                            directory.user and (
+                                attr in directory.user.search_fields)))
+            else:
+                user_fields = []
 
-                for attr in directory_fields:
-                    attribute = getattr(directory, attr)
-                    attrs[directory.search_fields[attr]].append(attribute)
+            for attr in user_fields:
+                attribute = getattr(directory.user, attr)
+                attrs[directory.user.search_fields[attr]].append(attribute)
 
-                for attr in directory.attributes:
-                    attrs[attr.name].append(attr.value)
+            if all_attrs:
+                directory_fields = directory.search_fields.keys()
+            else:
+                directory_fields = (
+                    attr for attr in requested_attrs
+                    if attr in directory.search_fields)
 
-                yield SearchResultEntry(
-                    object_name=self._get_full_dn(directory.path, dn),
-                    partial_attributes=[
-                        PartialAttribute(type=key, vals=value)
-                        for key, value in attrs.items()],
-                )
+            for attr in directory_fields:
+                attribute = getattr(directory, attr)
+                attrs[directory.search_fields[attr]].append(attribute)
+
+            for attr in directory.attributes:
+                attrs[attr.name].append(attr.value)
+
+            yield SearchResultEntry(
+                object_name=self._get_full_dn(directory.path, dn),
+                partial_attributes=[
+                    PartialAttribute(type=key, vals=value)
+                    for key, value in attrs.items()],
+            )
 
 
 class Changes(BaseRequest):
