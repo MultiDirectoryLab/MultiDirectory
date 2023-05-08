@@ -22,6 +22,7 @@ passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 uvicorn = "^0.21.1"
 python-multipart = "^0.0.6"
 asyncstdlib = "^3.10.6"
+ldap-filter = "^0.2.2"
 
 [tool.poetry.group.linters.dependencies]
 mypy = "^0.991"
