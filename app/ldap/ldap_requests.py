@@ -325,14 +325,14 @@ class SearchRequest(BaseRequest):
     def _get_full_dn(path: Path, dn) -> str:
         return ','.join(reversed(path.path)) + ',' + dn
 
-    def cast_filter(self, filter, query):
-        """Convert asn1 row filter to sqlalchemy obj.
+    def cast_filter(self, filter_, query):
+        """Convert asn1 row filter_ to sqlalchemy obj.
 
-        :param ASN1Row filter: requested filter
+        :param ASN1Row filter_: requested filter_
         :param sqlalchemy query: sqlalchemy query obj
         :return tuple: condition and query objects
         """
-        return cast_filter2sql(filter, query)
+        return cast_filter2sql(filter_, query)
 
     async def handle(
         self, ldap_session: Session, session: AsyncSession,
