@@ -98,10 +98,10 @@ class Directory(Base):
         back_populates="directories",
     )
 
-    attributes: list['Attribute'] = relationship('Attribute', lazy='joined')
-    group: 'Group' = relationship('Group', lazy='joined')
-    user: 'User' = relationship('User', lazy='joined')
-    computer: 'Computer' = relationship('Computer', lazy='joined')
+    attributes: list['Attribute'] = relationship('Attribute')
+    group: 'Group' = relationship('Group', uselist=False)
+    user: 'User' = relationship('User', uselist=False)
+    computer: 'Computer' = relationship('Computer', uselist=False)
 
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
@@ -229,7 +229,7 @@ class Attribute(DirectoryReferenceMixin, Base):
     value = Column(String, nullable=False, index=True)
 
     directory: Directory = relationship(
-        'Directory', back_populates='attributes', lazy='joined')
+        'Directory', back_populates='attributes', uselist=False)
 
 
 class Path(Base):
