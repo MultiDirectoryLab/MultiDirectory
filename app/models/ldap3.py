@@ -15,7 +15,6 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import (
     Mapped,
-    backref,
     declarative_mixin,
     declared_attr,
     relationship,
