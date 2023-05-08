@@ -344,14 +344,23 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
+        async with ldap_session.lock() as user:
+            async for response in self.get_result(bool(user), session):
+                yield response
+
+    async def get_result(self, user_logged: bool, session: AsyncSession):
+        """Create response.
+
+        :param bool user_logged: is user in session
+        :param AsyncSession session: sa session
+        :yield SearchResult: search result
+        """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == 'cn=schema'
 
-        user = await ldap_session.get_user()
-        if not (is_root_dse or is_schema) and user is None:
+        if not (is_root_dse or is_schema) and not user_logged:
             yield BAD_SEARCH_RESPONSE
             return
-        del user
 
         query = select(  # noqa: ECE001
             Directory)\

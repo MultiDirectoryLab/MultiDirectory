@@ -152,4 +152,4 @@ class Session:
     async def lock(self):
         """Lock session, user cannot be deleted or get while lock is set."""
         async with self._lock:
-            yield
+            yield self._user
