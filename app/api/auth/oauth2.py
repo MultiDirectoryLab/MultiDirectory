@@ -16,7 +16,7 @@ from .schema import User
 ALGORITHM = "HS256"
 
 
-oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get")
+oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get", auto_error=False)
 
 
 async def authenticate_user(
@@ -104,6 +104,17 @@ async def get_current_user(  # noqa: D103
     token: str = Depends(oauth2),
 ) -> User:
     return await get_user_from_token(settings, session, token, 'access')
+
+
+async def get_current_user_or_none(  # noqa: D103
+    settings: Settings = Depends(get_settings),
+    session: AsyncSession = Depends(get_session),
+    token: str = Depends(oauth2),
+) -> User | None:
+    try:
+        return await get_user_from_token(settings, session, token, 'access')
+    except Exception:
+        return None
 
 
 async def get_current_user_refresh(  # noqa: D103
