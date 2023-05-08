@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 from asn1 import Classes, Decoder, Encoder, Numbers
 from loguru import logger
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .asn1parser import asn1todict
 from .dialogue import LDAPCodes, Session
@@ -133,13 +134,15 @@ class LDAPRequestMessage(LDAPMessage):
                 errorMessage=str(err)),
         )
 
-    async def create_response(self, session: Session) -> \
-            AsyncGenerator[LDAPResponseMessage, None]:
+    async def create_response(
+        self, ldap_session: Session,
+        session: AsyncSession,
+    ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 
         :yield LDAPResponseMessage: create response for context.
         """
-        async for response in self.context.handle(session):
+        async for response in self.context.handle(ldap_session, session):
             yield LDAPResponseMessage(
                 messageID=self.message_id,
                 protocolOP=response.PROTOCOL_OP,

@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from config import settings
 from ldap import LDAPRequestMessage, Session
+from models.database import AsyncSession, async_session
 
 logger.add(
     "logs/file_{time:DD-MM-YYYY}.log",
@@ -57,10 +58,11 @@ class PoolClient:
             logger.success(f"Successfully started TLS for {self.addr}")
 
         try:
-            await asyncio.gather(
-                self.handle_request(),
-                self.handle_responses(),
-            )
+            async with async_session() as session:
+                await asyncio.gather(
+                    self.handle_request(),
+                    self.handle_responses(session),
+                )
         except RuntimeError:
             logger.error(f"The connection {self.addr} raised {format_exc()}")
         except ConnectionAbortedError:
@@ -82,12 +84,16 @@ class PoolClient:
                 data = await self.reader.read(4096)
 
                 if not data:
-                    raise ConnectionAbortedError('Connection terminated by client')
+                    raise ConnectionAbortedError(
+                        'Connection terminated by client')
 
                 try:
                     request = LDAPRequestMessage.from_bytes(data)
 
-                except (ValidationError, IndexError, KeyError, ValueError) as err:
+                except (
+                    ValidationError, IndexError,
+                    KeyError, ValueError,
+                ) as err:
                     logger.warning(f'Invalid schema {format_exc()}')
 
                     self.writer.write(
@@ -101,20 +107,21 @@ class PoolClient:
                 else:
                     await self.queue.put(request)
 
-    async def handle_single_response(self):
+    async def handle_single_response(self, session: AsyncSession):
         """Get message from queue and handle it."""
         while True:
-            message = await self.queue.get()
+            message: LDAPRequestMessage = await self.queue.get()
             logger.info(f"\nFrom: {self.addr!r}\nRequest: {message}\n")
 
-            async for response in message.create_response(self.session):
+            async for response in message.create_response(
+                    self.session, session):
                 logger.info(
                     f"\nTo: {self.addr!r}\nResponse: {response}"[:3000])
 
                 self.writer.write(response.encode())
                 await self.writer.drain()
 
-    async def handle_responses(self):
+    async def handle_responses(self, session: AsyncSession):
         """Create pool of workers and apply handler to it.
 
         Spawns (default 5) workers,
@@ -122,7 +129,8 @@ class PoolClient:
         cycle locks until pool completes at least 1 task.
         """
         await asyncio.gather(
-            *[self.handle_single_response() for _ in range(self.num_workers)])
+            *[self.handle_single_response(session)
+                for _ in range(self.num_workers)])
 
 
 async def _run_server(server):

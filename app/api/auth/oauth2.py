@@ -8,28 +8,35 @@ from jose import JWTError, jwt
 from config import Settings, get_settings
 from ldap.utils import get_user
 from models.database import AsyncSession, get_session
-from models.ldap3 import User
+from models.ldap3 import User as DBUser
 from security import verify_password
 
-from .schema import UserModel
+from .schema import User
 
 ALGORITHM = "HS256"
 
 
-oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get")
+oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get", auto_error=False)
 
 
 async def authenticate_user(
     session: AsyncSession,
     username: str,
     password: str,
-) -> UserModel | None:
+) -> User | None:
+    """Get user and verify password.
+
+    :param AsyncSession session: sa session
+    :param str username: any str
+    :param str password: any str
+    :return User | None: User model (pydantic)
+    """
     user = await get_user(session, username)
     if not user:
         return None
     if not verify_password(password, user.password):
         return None
-    return UserModel.from_db(user)
+    return User.from_db(user)
 
 
 def create_token(
@@ -57,14 +64,14 @@ async def get_user_from_token(
     session: AsyncSession = Depends(get_session),
     token: str = Depends(oauth2),
     grant_type: Literal['access', 'refresh'] = 'access',
-) -> UserModel:
+) -> User:
     """Get user from jwt.
 
     :param Settings settings: app settings, defaults to Depends(get_settings)
     :param AsyncSession session: sa session, defaults to Depends(get_session)
     :param str token: oauth2 obj, defaults to Depends(oauth2)
     :raises credentials_exception: 401
-    :return UserModel: user for api response
+    :return User: user for api response
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -84,24 +91,35 @@ async def get_user_from_token(
     if payload.get("grant_type") != grant_type:
         raise credentials_exception
 
-    user = await session.get(User, int(user_id))
+    user = await session.get(DBUser, int(user_id))
     if user is None:
         raise credentials_exception
 
-    return UserModel.from_db(user)
+    return User.from_db(user)
 
 
 async def get_current_user(  # noqa: D103
     settings: Settings = Depends(get_settings),
     session: AsyncSession = Depends(get_session),
     token: str = Depends(oauth2),
-) -> UserModel:
+) -> User:
     return await get_user_from_token(settings, session, token, 'access')
+
+
+async def get_current_user_or_none(  # noqa: D103
+    settings: Settings = Depends(get_settings),
+    session: AsyncSession = Depends(get_session),
+    token: str = Depends(oauth2),
+) -> User | None:
+    try:
+        return await get_user_from_token(settings, session, token, 'access')
+    except Exception:
+        return None
 
 
 async def get_current_user_refresh(  # noqa: D103
     settings: Settings = Depends(get_settings),
     session: AsyncSession = Depends(get_session),
     token: str = Depends(oauth2),
-) -> UserModel:
+) -> User:
     return await get_user_from_token(settings, session, token, 'refresh')

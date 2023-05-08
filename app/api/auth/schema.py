@@ -4,7 +4,7 @@ from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-from models.ldap3 import User
+from models.ldap3 import User as DBUser
 
 
 class Login(BaseModel):
@@ -34,7 +34,7 @@ class Token(BaseModel):
     type: str  # noqa: A003
 
 
-class UserModel(BaseModel):
+class User(BaseModel):
     """User model, alias for db user."""
 
     id: int  # noqa: A003
@@ -44,7 +44,7 @@ class UserModel(BaseModel):
     display_name: str
 
     @classmethod
-    def from_db(cls, user: User) -> 'UserModel':
+    def from_db(cls, user: DBUser) -> 'User':
         """Create model from db model."""
         return cls(
             id=user.id,
