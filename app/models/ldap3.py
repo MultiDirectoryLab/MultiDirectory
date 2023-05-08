@@ -99,6 +99,11 @@ class Directory(Base):
         back_populates="directories",
     )
 
+    attributes: list['Attribute'] = relationship('Attribute', lazy='joined')
+    group: 'Group' = relationship('Group', lazy='joined')
+    user: 'User' = relationship('User', lazy='joined')
+    computer: 'Computer' = relationship('Computer', lazy='joined')
+
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
     )
@@ -143,7 +148,10 @@ class DirectoryReferenceMixin:
     def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
         return relationship(
             'Directory',
-            backref=backref(str(cls.__name__).lower(), uselist=False), lazy='joined')
+            back_populates=str(cls.__name__).lower(),
+            uselist=False,
+            lazy='joined',
+        )
 
 
 class User(DirectoryReferenceMixin, Base):
@@ -222,7 +230,7 @@ class Attribute(DirectoryReferenceMixin, Base):
     value = Column(String, nullable=False, index=True)
 
     directory: Directory = relationship(
-        'Directory', backref='attributes', lazy='joined')
+        'Directory', back_populates='attributes', lazy='joined')
 
 
 class Path(Base):
