@@ -2,7 +2,7 @@
 
 import asyncio
 from enum import Enum
-
+from contextlib import asynccontextmanager
 from models.ldap3 import User
 
 
@@ -118,21 +118,37 @@ class Session:
 
     def __init__(self) -> None:
         """Set lock."""
-        self.lock = asyncio.Lock()
+        self._lock = asyncio.Lock()
+        self._user: User | None = None
 
-    user: User | None = None
+    @property
+    def user(self) -> User | None:
+        """User getter, not implemented."""
+        raise NotImplementedError(
+            'Cannot manually get user, use `get_user()` instead')
+
+    @user.setter
+    def user(self, user: User):
+        raise NotImplementedError(
+            'Cannot manually set user, use `set_user()` instead')
 
     async def set_user(self, user: User):
         """Bind user to session concurrently save."""
-        async with self.lock:
-            self.user = user
+        async with self._lock:
+            self._user = user
 
     async def delete_user(self):
         """Unbind user from session concurrently save."""
-        async with self.lock:
-            self.user = None
+        async with self._lock:
+            self._user = None
 
     async def get_user(self):
         """Get user from session concurrently save."""
-        async with self.lock:
-            return self.user
+        async with self._lock:
+            return self._user
+
+    @asynccontextmanager
+    async def lock(self):
+        """Lock session, user cannot be deleted or get while lock is set."""
+        async with self._lock:
+            yield
