@@ -13,7 +13,14 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import settings
-from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
+from models.ldap3 import (
+    Attribute,
+    CatalogueSetting,
+    Directory,
+    Group,
+    Path,
+    User,
+)
 from security import verify_password
 
 from .asn1parser import ASN1Row
@@ -21,6 +28,7 @@ from .dialogue import LDAPCodes, Operation, Session
 from .filter_interpreter import cast_filter2sql
 from .ldap_responses import (
     BAD_SEARCH_RESPONSE,
+    AddResponse,
     BaseResponse,
     BindResponse,
     PartialAttribute,
@@ -359,7 +367,7 @@ class SearchRequest(BaseRequest):
         is_schema = self.base_object.lower() == 'cn=schema'
 
         if not (is_root_dse or is_schema) and not user_logged:
-            yield BAD_SEARCH_RESPONSE
+            yield SearchResultDone(**BAD_SEARCH_RESPONSE)
             return
 
         query = select(  # noqa: ECE001
@@ -570,6 +578,52 @@ class AddRequest(BaseRequest):
     entry: str
     attributes: list[PartialAttribute]
 
+    @classmethod
+    def from_data(cls, data):  # noqa: D102
+        entry, attributes = data
+        attributes = [
+            PartialAttribute(
+                type=attr.value[0].value,
+                vals=[val.value for val in attr.value[1].value])
+            for attr in attributes.value
+        ]
+        return cls(entry=entry.value, attributes=attributes)
+
+    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
+            AsyncGenerator[AddResponse, None]:
+        """Add request handler."""
+        if not await ldap_session.get_user():
+            yield AddResponse(**BAD_SEARCH_RESPONSE)
+
+        base_dn = await get_base_dn()
+        obj = self.entry.lower().removesuffix(
+            ',' + base_dn.lower()).split(',')
+        new_dn = obj.pop(0)
+        search_path = reversed(obj)
+        query = select(Directory)\
+            .join(Directory.path)\
+            .options(selectinload(Directory.paths))\
+            .filter(Path.path == search_path)
+        parent = await session.scalar(query)
+        new_dir = Directory(
+            object_class='',
+            name=new_dn.split('=')[1],
+            parent=parent,
+        )
+        path = new_dir.create_path(parent)
+        attributes = []
+
+        for attr in self.attributes:
+            for value in attr.vals:
+                attributes.append(
+                    Attribute(name=attr.type, value=value, directory=new_dir))
+        async with session.begin_nested():
+            session.add_all([new_dir, path] + attributes)
+            path.directories.extend(
+                [p.endpoint for p in parent.paths + [path]])
+        await session.commit()
+        yield AddResponse(resultCode=LDAPCodes.SUCCESS)
+
 
 class DeleteRequest(BaseRequest):
     """Delete request.
@@ -644,13 +698,3 @@ class ExtendedRequest(BaseRequest):
 protocol_id_map: dict[int, type[BaseRequest]] = \
     {request.PROTOCOL_OP: request  # type: ignore
         for request in BaseRequest.__subclasses__()}
-
-
-#     7: 'Modify Response',
-#     9: 'Add Response',
-#     11: 'Delete Response',
-#     13: 'Modify DN Response',
-#     15: 'compare Response',
-#     19: 'Search Result Reference',
-#     24: 'Extended Response',
-#     25: 'intermediate Response',

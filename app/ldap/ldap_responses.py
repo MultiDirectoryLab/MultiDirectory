@@ -100,14 +100,14 @@ class SearchResultDone(LDAPResult, BaseResponse):
     PROTOCOL_OP: ClassVar[int] = 5
 
 
-BAD_SEARCH_RESPONSE = SearchResultDone(
-    resultCode=LDAPCodes.OPERATIONS_ERROR,
-    errorMessage=(
+BAD_SEARCH_RESPONSE = {
+    'resultCode': LDAPCodes.OPERATIONS_ERROR,
+    'errorMessage': (
         '000004DC: LdapErr: DSID-0C090A71, '
         'comment: In order to perform this operation '
         'a successful bind must be '
         'completed on the connection., data 0, v3839'),
-)
+}
 
 
 class SearchResultReference(BaseResponse):
@@ -116,3 +116,23 @@ class SearchResultReference(BaseResponse):
     PROTOCOL_OP: ClassVar[int] = 19
 
     values: list[AnyUrl]
+
+
+class ModifyResponse(LDAPResult, BaseResponse):
+    """Modify response."""
+
+    PROTOCOL_OP: ClassVar[int] = 7
+
+
+class AddResponse(LDAPResult, BaseResponse):
+    """Modify response."""
+
+    PROTOCOL_OP: ClassVar[int] = 9
+
+#     9: 'Add Response'
+#     11: 'Delete Response'
+#     13: 'Modify DN Response'
+#     15: 'compare Response'
+#     19: 'Search Result Reference'
+#     24: 'Extended Response'
+#     25: 'intermediate Response'
