@@ -5,7 +5,7 @@ from ldap.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap.ldap_responses import SearchResultDone, SearchResultEntry
 
 
-class SearchRequest(LDAPSearchRequest):
+class SearchRequest(LDAPSearchRequest):  # noqa: D101
     filter: str  # noqa: A003
 
     def cast_filter(self, filter_, query):
@@ -14,5 +14,5 @@ class SearchRequest(LDAPSearchRequest):
         return cast_str_filter2sql(Filter.parse(filter_).simplify(), query)
 
 
-class SearchResponse(SearchResultDone):
+class SearchResponse(SearchResultDone):  # noqa: D101
     search_result: list[SearchResultEntry]
