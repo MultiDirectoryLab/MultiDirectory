@@ -90,18 +90,24 @@ class Directory(Base):
     depth = Column(Integer)
 
     path: 'Path' = relationship(
-        "Path", back_populates="endpoint", lazy="joined", uselist=False)
+        "Path", back_populates="endpoint",
+        lazy="joined", uselist=False,
+        cascade="all,delete",
+    )
 
     paths: list['Path'] = relationship(
         "Path",
         secondary=DirectoryPath.__table__,
         back_populates="directories",
+        cascade="all,delete",
     )
 
-    attributes: list['Attribute'] = relationship('Attribute')
-    group: 'Group' = relationship('Group', uselist=False)
-    user: 'User' = relationship('User', uselist=False)
-    computer: 'Computer' = relationship('Computer', uselist=False)
+    attributes: list['Attribute'] = relationship(
+        'Attribute', cascade="all,delete")
+    group: 'Group' = relationship('Group', uselist=False, cascade="all,delete")
+    user: 'User' = relationship('User', uselist=False, cascade="all,delete")
+    computer: 'Computer' = relationship(
+        'Computer', uselist=False, cascade="all,delete")
 
     __table_args__ = (
         UniqueConstraint('parentId', 'name', name='name_parent_uc'),
