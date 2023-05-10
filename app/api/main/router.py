@@ -1,13 +1,13 @@
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
-from api.auth import User, get_current_user, get_current_user_or_none
-from ldap.ldap_requests import AddRequest, ModifyDNRequest, ModifyRequest
+from api.auth import User, get_current_user_or_none
+from ldap.ldap_requests import AddRequest, ModifyDNRequest, ModifyRequest, DeleteRequest
 from ldap.ldap_responses import LDAPCodes, LDAPResult
 from ldap.dialogue import Session as LDAPSession
 from models.database import AsyncSession, get_session
 
-from .schema import SearchRequest, SearchResponse, SearchResultDone
+from .schema import SearchRequest, SearchResponse, SearchResultDone, handle_user
 
 entry_router = APIRouter(prefix='/entry')
 
@@ -38,10 +38,7 @@ async def add(
     session: AsyncSession = Depends(get_session),
     user: User | None = Depends(get_current_user_or_none),
 ) -> LDAPResult:
-    ldap_session = LDAPSession()
-    await ldap_session.set_user(user)
-    async for response in request.handle(ldap_session, session):
-        return response
+    return await handle_user(request, user, session)
 
 
 @entry_router.patch('/update')
@@ -64,8 +61,8 @@ async def update_dn(
 
 @entry_router.delete('/delete')
 async def delete(
-    object: str,  # noqa: A002
+    request: DeleteRequest,  # noqa: A002
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
-    return LDAPResult(result_code=LDAPCodes.SUCCESS)
+    return await handle_user(request, user, session)
