@@ -129,8 +129,12 @@ class AddResponse(LDAPResult, BaseResponse):
 
     PROTOCOL_OP: ClassVar[int] = 9
 
-#     9: 'Add Response'
-#     11: 'Delete Response'
+
+class DeleteResponse(LDAPResult, BaseResponse):
+    """Delete response."""
+
+    PROTOCOL_OP: ClassVar[int] = 11
+
 #     13: 'Modify DN Response'
 #     15: 'compare Response'
 #     19: 'Search Result Reference'

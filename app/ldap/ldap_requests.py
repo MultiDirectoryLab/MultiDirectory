@@ -7,7 +7,7 @@ from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
@@ -31,6 +31,7 @@ from .ldap_responses import (
     AddResponse,
     BaseResponse,
     BindResponse,
+    DeleteResponse,
     PartialAttribute,
     SearchResultDone,
     SearchResultEntry,
@@ -634,6 +635,33 @@ class DeleteRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = 10
 
     entry: str
+
+    @classmethod
+    def from_data(cls, data):  # noqa: D102
+        return cls(entry=data)
+
+    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
+            AsyncGenerator[DeleteResponse, None]:
+        """Delete request handler."""
+        if not await ldap_session.get_user():
+            yield DeleteResponse(**BAD_SEARCH_RESPONSE)
+
+        base_dn = await get_base_dn()
+        obj = self.entry.lower().removesuffix(
+            ',' + base_dn.lower()).split(',')
+        search_path = reversed(obj)
+
+        query = select(Directory)\
+            .join(Directory.path)\
+            .options(selectinload(Directory.paths))\
+            .filter(Path.path == search_path)
+
+        obj = await session.scalar(query)
+
+        await session.delete(obj)
+        await session.commit()
+
+        yield DeleteResponse(resultCode=LDAPCodes.SUCCESS)
 
 
 class ModifyDNRequest(BaseRequest):
