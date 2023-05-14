@@ -1,13 +1,24 @@
+"""Main API module, mirrors ldap schema."""
+
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
 from api.auth import User, get_current_user_or_none
-from ldap.ldap_requests import AddRequest, ModifyDNRequest, ModifyRequest, DeleteRequest
+from ldap.ldap_requests import (
+    AddRequest,
+    DeleteRequest,
+    ModifyDNRequest,
+    ModifyRequest,
+)
 from ldap.ldap_responses import LDAPCodes, LDAPResult
-from ldap.dialogue import Session as LDAPSession
 from models.database import AsyncSession, get_session
 
-from .schema import SearchRequest, SearchResponse, SearchResultDone, handle_user
+from .schema import (
+    SearchRequest,
+    SearchResponse,
+    SearchResultDone,
+    handle_user,
+)
 
 entry_router = APIRouter(prefix='/entry')
 
