@@ -599,19 +599,31 @@ class AddRequest(BaseRequest):
         base_dn = await get_base_dn()
         obj = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
-        new_dn = obj.pop(0)
-        search_path = reversed(obj)
-        query = select(Directory)\
-            .join(Directory.path)\
-            .options(selectinload(Directory.paths))\
-            .filter(Path.path == search_path)
-        parent = await session.scalar(query)
-        new_dir = Directory(
-            object_class='',
-            name=new_dn.split('=')[1],
-            parent=parent,
-        )
-        path = new_dir.create_path(parent)
+
+        if len(obj) == 1:
+            new_dir = Directory(
+                object_class='',
+                name=obj[0].split('=')[1],
+            )
+            path = new_dir.create_path()
+            ext_path = [path]
+
+        else:
+            new_dn = obj.pop(0)
+            search_path = reversed(obj)
+            query = select(Directory)\
+                .join(Directory.path)\
+                .options(selectinload(Directory.paths))\
+                .filter(Path.path == search_path)
+            parent = await session.scalar(query)
+            new_dir = Directory(
+                object_class='',
+                name=new_dn.split('=')[1],
+                parent=parent,
+            )
+            path = new_dir.create_path(parent)
+            ext_path = parent.paths + [path]
+
         attributes = []
 
         for attr in self.attributes:
@@ -620,8 +632,7 @@ class AddRequest(BaseRequest):
                     Attribute(name=attr.type, value=value, directory=new_dir))
         async with session.begin_nested():
             session.add_all([new_dir, path] + attributes)
-            path.directories.extend(
-                [p.endpoint for p in parent.paths + [path]])
+            path.directories.extend([p.endpoint for p in ext_path])
         await session.commit()
         yield AddResponse(resultCode=LDAPCodes.SUCCESS)
 
@@ -657,6 +668,8 @@ class DeleteRequest(BaseRequest):
             .filter(Path.path == search_path)
 
         obj = await session.scalar(query)
+        if not obj:
+            yield DeleteResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
 
         await session.delete(obj)
         await session.commit()
