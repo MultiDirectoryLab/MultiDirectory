@@ -228,8 +228,8 @@ class SearchRequest(BaseRequest):
     base_object: str = ''
     scope: Scope
     deref_aliases: DerefAliases
-    size_limit: int = Field(ge=0, le=sys.maxsize)
-    time_limit: int = Field(ge=0, le=sys.maxsize)
+    size_limit: int = Field(ge=0, le=sys.maxsize, example=10000)
+    time_limit: int = Field(ge=0, le=sys.maxsize, example=10000)
     types_only: bool
     filter: ASN1Row = Field(...)  # noqa: A003
     attributes: list[str]
