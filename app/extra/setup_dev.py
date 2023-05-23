@@ -69,7 +69,6 @@ async def create_dir(
     if dir_.object_class == 'group':
         group = Group(directory=dir_)
         session.add(group)
-        session.commit()
         for group_name in data.get('groups', []):
             parent_group = await get_group(group_name, session)
             session.add(GroupMembership(
