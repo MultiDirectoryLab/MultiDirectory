@@ -32,6 +32,7 @@ from .ldap_responses import (
     BaseResponse,
     BindResponse,
     DeleteResponse,
+    ModifyResponse,
     PartialAttribute,
     SearchResultDone,
     SearchResultEntry,
@@ -548,7 +549,7 @@ class SearchRequest(BaseRequest):
             )
 
 
-class Changes(BaseRequest):
+class Changes(BaseModel):
     """Changes for mod request."""
 
     operation: Operation
@@ -577,6 +578,26 @@ class ModifyRequest(BaseRequest):
 
     object: str  # noqa: A003
     changes: list[Changes]
+
+    @classmethod
+    def from_data(cls, data):  # noqa: D102
+        entry, proto_changes = data
+
+        changes = []
+        for change in proto_changes.value:
+            changes.append(Changes(
+                operation=Operation(int(change.value[0].value)),
+                modification=PartialAttribute(
+                    type=change.value[1].value[0].value,
+                    vals=[
+                        attr.value for attr in change.value[1].value[1].value],
+                ),
+            ))
+        return cls(object=entry.value, changes=changes)
+
+    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
+            AsyncGenerator[ModifyResponse, None]:
+        yield ModifyResponse(resultCode=LDAPCodes.SUCCESS)
 
 
 class AddRequest(BaseRequest):
