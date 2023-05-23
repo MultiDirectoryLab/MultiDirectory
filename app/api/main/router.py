@@ -13,12 +13,7 @@ from ldap.ldap_requests import (
 from ldap.ldap_responses import LDAPCodes, LDAPResult
 from models.database import AsyncSession, get_session
 
-from .schema import (
-    SearchRequest,
-    SearchResponse,
-    SearchResultDone,
-    handle_user,
-)
+from .schema import SearchRequest, SearchResponse, SearchResultDone
 
 entry_router = APIRouter(prefix='/entry')
 
@@ -29,17 +24,15 @@ async def search(
     session: AsyncSession = Depends(get_session),
     user: User | None = Depends(get_current_user_or_none),
 ) -> SearchResponse:
-    """Search request, fields descriped in RFC."""
-    response_list = []
-    async for response in request.get_result(bool(user), session):
-        response_list.append(response)
+    """Search request."""
+    responses = await request.handle_api(user, session, False)
+    search_done: SearchResultDone = responses.pop(-1)
 
-    search_done: SearchResultDone = response_list.pop(-1)
     return SearchResponse(
         resultCode=search_done.result_code,
         matchedDN=search_done.matched_dn,
         errorMessage=search_done.error_message,
-        search_result=response_list,
+        search_result=responses,
     )
 
 
@@ -49,7 +42,7 @@ async def add(
     session: AsyncSession = Depends(get_session),
     user: User | None = Depends(get_current_user_or_none),
 ) -> LDAPResult:
-    return await handle_user(request, user, session)
+    return await request.handle_api(user, session)
 
 
 @entry_router.patch('/update')
@@ -76,4 +69,4 @@ async def delete(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
-    return await handle_user(request, user, session)
+    return await request.handle_api(user, session)

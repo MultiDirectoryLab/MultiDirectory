@@ -7,7 +7,7 @@ from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, func
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
@@ -72,6 +72,24 @@ class BaseRequest(ABC, BaseModel):
 
     class Config:  # noqa: D106
         fields = {'PROTOCOL_OP': {'exclude': True}}
+
+    async def handle_api(
+        self, user,
+        session: AsyncSession,
+        single: bool = True,
+    ) -> list[BaseResponse] | BaseResponse:
+        """Hanlde response with api user.
+
+        :param DBUser user: user from db
+        :param AsyncSession session: db session
+        :return list[BaseResponse]: list of handled responses
+        """
+        responses = [
+            response async for response in self.handle(Session(user), session)]
+
+        if single:
+            return responses[0]
+        return responses
 
 
 class AuthChoice(ABC, BaseModel):

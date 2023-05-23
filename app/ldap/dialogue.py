@@ -117,10 +117,10 @@ class LDAPCodes(int, Enum):
 class Session:
     """Session for one client handling."""
 
-    def __init__(self) -> None:
+    def __init__(self, user: User | None = None) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
-        self._user: User | None = None
+        self._user: User | None = user
 
     @property
     def user(self) -> User | None:
