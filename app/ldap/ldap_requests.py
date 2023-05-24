@@ -598,6 +598,9 @@ class ModifyRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
+        if not await ldap_session.get_user():
+            yield ModifyResponse(**BAD_SEARCH_RESPONSE)
+
         base_dn = await get_base_dn()
         obj = self.object.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
@@ -610,6 +613,9 @@ class ModifyRequest(BaseRequest):
             .filter(Path.path == search_path)  # noqa
 
         directory = await session.scalar(query)
+
+        if not directory:
+            yield ModifyResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
 
         async with session.begin_nested():
             for change in self.changes:
