@@ -609,7 +609,10 @@ class ModifyRequest(BaseRequest):
         query = select(Directory)\
             .join(Directory.path)\
             .join(Directory.attributes)\
-            .options(selectinload(Directory.paths))\
+            .join(User, isouter=True)\
+            .options(
+                selectinload(Directory.paths),
+                joinedload(Directory.user))\
             .filter(Path.path == search_path)  # noqa
 
         directory = await session.scalar(query)
@@ -617,28 +620,32 @@ class ModifyRequest(BaseRequest):
         if not directory:
             yield ModifyResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
 
-        async with session.begin_nested():
-            for change in self.changes:
-                if change.operation == Operation.ADD:
-                    await self._add(change, directory, session)
+        for change in self.changes:
+            if change.operation == Operation.ADD:
+                await self._add(change, directory, session)
 
-                elif change.operation == Operation.DELETE:
-                    attrs = []
-                    for value in change.modification.vals:
+            elif change.operation == Operation.DELETE:
+                attrs = []
+                name = change.modification.type.lower()
+
+                for value in change.modification.vals:
+                    if name not in (
+                            Directory.search_fields | User.search_fields):
                         attrs.append(and_(
                             Attribute.name == change.modification.type,
                             Attribute.value == value))
 
+                if attrs:
                     del_query = delete(Attribute).filter(
                         Attribute.directory == directory, or_(*attrs))
 
                     await session.execute(del_query)
                     await session.commit()
 
-                elif change.operation == Operation.REPLACE:
-                    await session.delete(directory.attributes)
-                    await session.commit()
-                    await self._add(change, directory, session)
+            elif change.operation == Operation.REPLACE:
+                await session.delete(directory.attributes)
+                await session.commit()
+                await self._add(change, directory, session)
 
         yield ModifyResponse(resultCode=LDAPCodes.SUCCESS)
 
@@ -649,11 +656,20 @@ class ModifyRequest(BaseRequest):
     ):
         attrs = []
         for value in change.modification.vals:
-            attrs.append(Attribute(
-                name=change.modification.type,
-                value=value,
-                directory=directory,
-            ))
+            name = change.modification.type.lower()
+
+            if name in Directory.search_fields:
+                setattr(directory, name, value)
+
+            elif name in User.search_fields and directory.user:
+                setattr(directory.user, name, value)
+
+            else:
+                attrs.append(Attribute(
+                    name=change.modification.type,
+                    value=value,
+                    directory=directory,
+                ))
         session.add_all(attrs)
         await session.commit()
 
