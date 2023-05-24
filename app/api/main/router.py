@@ -51,7 +51,7 @@ async def update(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
-    return LDAPResult(result_code=LDAPCodes.SUCCESS)
+    return await request.handle_api(user, session)
 
 
 @entry_router.put('/update/dn')
