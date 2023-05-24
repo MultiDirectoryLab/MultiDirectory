@@ -1,6 +1,6 @@
 """Schemas for main router."""
 
-from pydantic import Field
+from pydantic import AnyUrl, BaseModel, Field
 
 from ldap.filter_interpreter import Filter, cast_str_filter2sql
 from ldap.ldap_requests import SearchRequest as LDAPSearchRequest
@@ -18,3 +18,13 @@ class SearchRequest(LDAPSearchRequest):  # noqa: D101
 
 class SearchResponse(SearchResultDone):  # noqa: D101
     search_result: list[SearchResultEntry]
+
+
+class SetupRequest(BaseModel):
+    """Setup app form."""
+
+    domain: AnyUrl
+    username: str
+    user_principal_name: str
+    display_name: str
+    password: str

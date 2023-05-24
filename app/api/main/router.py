@@ -13,9 +13,31 @@ from ldap.ldap_requests import (
 from ldap.ldap_responses import LDAPCodes, LDAPResult
 from models.database import AsyncSession, get_session
 
-from .schema import SearchRequest, SearchResponse, SearchResultDone
+from .schema import (
+    SearchRequest,
+    SearchResponse,
+    SearchResultDone,
+    SetupRequest,
+)
 
 entry_router = APIRouter(prefix='/entry')
+
+
+@entry_router.get('/setup')
+async def check_setup(
+    request: SetupRequest,
+    session: AsyncSession = Depends(get_session),
+) -> bool:
+    """Check if initial setup needed."""
+    return False
+
+
+@entry_router.post('/setup')
+async def first_setup(
+    request: SetupRequest,
+    session: AsyncSession = Depends(get_session),
+) -> LDAPResult:
+    """Perform initial setup."""
 
 
 @entry_router.post('/search')
