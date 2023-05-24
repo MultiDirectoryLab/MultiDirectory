@@ -42,6 +42,7 @@ async def add(
     session: AsyncSession = Depends(get_session),
     user: User | None = Depends(get_current_user_or_none),
 ) -> LDAPResult:
+    """Add view."""
     return await request.handle_api(user, session)
 
 
@@ -51,6 +52,7 @@ async def update(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
+    """Update view."""
     return await request.handle_api(user, session)
 
 
@@ -60,6 +62,7 @@ async def update_dn(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
+    """Update DN view."""
     return LDAPResult(result_code=LDAPCodes.SUCCESS)
 
 
@@ -69,4 +72,5 @@ async def delete(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
+    """Delete DN view."""
     return await request.handle_api(user, session)
