@@ -7,7 +7,7 @@ from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import and_, delete, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
@@ -597,7 +597,59 @@ class ModifyRequest(BaseRequest):
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[ModifyResponse, None]:
+        """Change request handler."""
+        base_dn = await get_base_dn()
+        obj = self.object.lower().removesuffix(
+            ',' + base_dn.lower()).split(',')
+        search_path = reversed(obj)
+
+        query = select(Directory)\
+            .join(Directory.path)\
+            .join(Directory.attributes)\
+            .options(selectinload(Directory.paths))\
+            .filter(Path.path == search_path)  # noqa
+
+        directory = await session.scalar(query)
+
+        async with session.begin_nested():
+            for change in self.changes:
+                if change.operation == Operation.ADD:
+                    await self._add(change, directory, session)
+
+                elif change.operation == Operation.DELETE:
+                    attrs = []
+                    for value in change.modification.vals:
+                        attrs.append(and_(
+                            Attribute.name == change.modification.type,
+                            Attribute.value == value))
+
+                    del_query = delete(Attribute).filter(
+                        Attribute.directory == directory, or_(*attrs))
+
+                    await session.execute(del_query)
+                    await session.commit()
+
+                elif change.operation == Operation.REPLACE:
+                    await session.delete(directory.attributes)
+                    await session.commit()
+                    await self._add(change, directory, session)
+
         yield ModifyResponse(resultCode=LDAPCodes.SUCCESS)
+
+    async def _add(
+        self, change: Changes,
+        directory: Directory,
+        session: AsyncSession,
+    ):
+        attrs = []
+        for value in change.modification.vals:
+            attrs.append(Attribute(
+                name=change.modification.type,
+                value=value,
+                directory=directory,
+            ))
+        session.add_all(attrs)
+        await session.commit()
 
 
 class AddRequest(BaseRequest):
