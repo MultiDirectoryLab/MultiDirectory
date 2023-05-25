@@ -23,8 +23,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build docker image
-        env:
-          REPOSITORY_VAR: ${{ vars.REPOSITORY_VAR }}
         run: |
-          docker build -f app/Dockerfile . --tag ghcr.io/$REPOSITORY_VAR/multidirectory:latest --cache-from ghcr.io/$REPOSITORY_VAR/multidirectory:latest
-          docker push ghcr.io/$REPOSITORY_VAR/multidirectory:latest
+          echo ${{ github.repository }}
+          docker build -f app/Dockerfile . --tag ghcr.io/${{ github.repository }}/multidirectory:latest --cache-from ghcr.io/${{ github.repository }}/multidirectory:latest
+          docker push ghcr.io/${{ github.repository }}/multidirectory:latest
