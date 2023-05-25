@@ -20,6 +20,5 @@ jobs:
 
       - name: Build docker image
         run: |
-          cd app
-          docker build . --tag ghcr.io/multifactor/multidirectory:latest
+          docker build . --tag ghcr.io/multifactor/multidirectory:latest < app/Dockerfile
           docker push ghcr.io/multifactor/multidirectory:latest
