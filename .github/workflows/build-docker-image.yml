@@ -1,5 +1,11 @@
 name: build
-on: [push]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
 jobs:
   build-app:
     runs-on: ubuntu-latest
@@ -12,7 +18,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build the hello-docker Docker image
+      - name: Build docker image
         run: |
-               docker build ./app --tag ghcr.io/multifactor/multidirectory:latest
-               docker push ghcr.io/multifactor/multidirectory:latest
+          cd app
+          docker build . --tag ghcr.io/multifactor/multidirectory:latest
+          docker push ghcr.io/multifactor/multidirectory:latest
