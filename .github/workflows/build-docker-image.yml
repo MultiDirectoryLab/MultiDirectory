@@ -7,13 +7,15 @@ on:
   pull_request:
 
 env:
-  # Setting an environment variable with the value of a configuration variable
-  env_var: ${{ vars.ENV_CONTEXT_VAR }}
+  REPO: ${{ github.repository }}
 
 jobs:
   build-app:
     runs-on: ubuntu-latest
     steps:
+      - name: downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
       - uses: actions/checkout@v2
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
@@ -23,7 +25,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build docker image
+        env:
+          TAG: ghcr.io/${{ env.REPO }}:${{ github.sha }}
         run: |
-          echo ${{ github.repository }}
-          docker build -f app/Dockerfile . --tag ghcr.io/${{ github.repository }}/multidirectory:latest --cache-from ghcr.io/${{ github.repository }}/multidirectory:latest
-          docker push ghcr.io/${{ github.repository }}/multidirectory:latest
+          echo $TAG
+          docker build -f app/Dockerfile . --tag $TAG --cache-from $TAG
+          docker push $TAG
