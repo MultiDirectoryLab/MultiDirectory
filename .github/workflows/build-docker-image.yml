@@ -27,7 +27,8 @@ jobs:
       - name: Build docker image
         env:
           TAG: ghcr.io/${{ env.REPO }}:${{ github.sha }}
+          LATEST_TAG: ghcr.io/${{ env.REPO }}:latest
         run: |
           echo $TAG
-          docker build -f app/Dockerfile . --tag $TAG --cache-from $TAG
+          docker build -f app/Dockerfile . --tag $TAG --cache-from $LATEST_TAG
           docker push $TAG
