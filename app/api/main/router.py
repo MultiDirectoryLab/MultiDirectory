@@ -24,10 +24,7 @@ entry_router = APIRouter(prefix='/entry')
 
 
 @entry_router.get('/setup')
-async def check_setup(
-    request: SetupRequest,
-    session: AsyncSession = Depends(get_session),
-) -> bool:
+async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
     """Check if initial setup needed."""
     return False
 
