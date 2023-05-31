@@ -5,37 +5,43 @@ services:
     image: "traefik:latest"
     container_name: traefik
     command:
-      - --api
       # - --metrics
       # - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
-      - --log.level=INFO
+      - --log.level=DEBUG
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
-      - --accesslog=true
-      - --accesslog.filepath=/var/log/traefik/access.log
+      # - --accesslog=true
+      # - --accesslog.filepath=/var/log/traefik/access.log
+      - --accesslog.format=json
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.web.http.redirections.entryPoint.to=websecure
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
       - --entrypoints.web.http.redirections.entrypoint.permanent=true
-      - --certificatesresolvers.traefik-resolver.acme.tlschallenge=true
-      - --certificatesresolvers.traefik-resolver.acme.email=example@example.com
-      - --certificatesresolvers.traefik-resolver.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.md-resolver.acme.tlschallenge=true
+      - --certificatesresolvers.md-resolver.acme.email=rex49513@gmail.com
+      - --certificatesresolvers.md-resolver.acme.storage=/letsencrypt/acme.json
     ports:
       - "80:80"
+      - "8080:8080"
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - ./logs/traefik/:/var/log/traefik
       - ./certs:/letsencrypt
-    labels:
-      - "traefik.enable=true"
 
-  server:
-    build:
-      context: .
-      dockerfile: ./app/Dockerfile
-    image: multidirectory
+    depends_on:
+      - api_server
+
+  interface:
+    image: ghcr.io/multifactorlab/multidirectory-web-admin:latest
+    container_name: multidirectory_interface
+    environment:
+      API_URL: http://51.250.75.206:8000
+    ports:
+      - "8088:80"
+
+  ldap_server:
+    image: ghcr.io/multifactorlab/multidirectory:latest
     restart: unless-stopped
     container_name: multidirectory-ldap
     environment:
@@ -53,24 +59,24 @@ services:
       - "389:389"
       - "636:636"
 
-  api:
-    image: multidirectory
+  api_server:
+    image: ghcr.io/multifactorlab/multidirectory:latest
     container_name: multidirectory_api
-    volumes:
-      - ./app:/app
+    restart: unless-stopped
     environment:
-      DEBUG: 1
+      DEBUG: 0
       HOST: 0.0.0.0
       POSTGRES_USER: user1
       POSTGRES_PWD: password123
       POSTGRES_HOST: postgres
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
-    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0"
+    labels:
       - "traefik.enable=true"
-      - "traefik.http.services.server.loadbalancer.server.port=8000"
-      - "traefik.http.routers.server.rule=Host(`md.multifactor.dev`)"
-      - "traefik.http.routers.server.entrypoints=websecure"
-      - "traefik.http.routers.server.tls.certresolver=md-resolver"
+      - "traefik.http.routers.api_server.rule=Host(`md.multifactor.dev`)"
+      - "traefik.http.routers.api_server.entrypoints=websecure"
+      - "traefik.http.routers.api_server.tls.certresolver=md-resolver"
+      - "traefik.http.services.api_server.loadbalancer.server.port=8000"
+    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000"
 
   postgres:
     container_name: MD-postgres
@@ -100,18 +106,18 @@ services:
     logging:
       driver: "none"
 
-  ssh-server:
-    container_name: md-ssh
-    image: ssh-ldap
-    build:
-      context: ./ssh
-    environment:
-      SERVER: "ldap://multidirectory"
-      BASE: "dc=multifactor,dc=dev"
-      BIND_DN: "cn=user,dc=multifactor,dc=dev"
-      BASE_PASSWORD: "password"
-    ports:
-      - "222:22"
+  # ssh-server:
+  #   container_name: md-ssh
+  #   image: ssh-ldap
+  #   build:
+  #     context: ./ssh
+  #   environment:
+  #     SERVER: "ldap://multidirectory"
+  #     BASE: "dc=multifactor,dc=dev"
+  #     BIND_DN: "cn=user,dc=multifactor,dc=dev"
+  #     BASE_PASSWORD: "password"
+  #   ports:
+  #     - "222:22"
 
   wireshark:
     image: lscr.io/linuxserver/wireshark:latest
@@ -132,6 +138,7 @@ services:
     restart: "no"
 
 volumes:
+  traefik:
   postgres:
   pgadmin:
   wireshark:
