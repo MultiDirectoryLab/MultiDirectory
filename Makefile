@@ -46,12 +46,12 @@ stage_up:  ## run app and detach
 	docker-compose -f docker-compose.dev.yml up -d
 
 stage_down:  ## stop all services
-	docker-compose -f docker-compose.dev.yml down || true
+	docker-compose -f docker-compose.dev.yml down --remove-orphans || true
 
 stage_update:  ## update service
-	git pull;
 	make stage_down;
 	make stage_build;
+	docker-compose -f docker-compose.dev.yml pull;
 	make stage_up;
 	docker exec -it multidirectory-ldap bash -c\
 		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
