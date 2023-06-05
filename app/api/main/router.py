@@ -1,6 +1,6 @@
 """Main API module, mirrors ldap schema."""
 
-from fastapi import Depends
+from fastapi.params import Depends
 from fastapi.routing import APIRouter
 
 from api.auth import User, get_current_user_or_none
@@ -13,28 +13,9 @@ from ldap.ldap_requests import (
 from ldap.ldap_responses import LDAPCodes, LDAPResult
 from models.database import AsyncSession, get_session
 
-from .schema import (
-    SearchRequest,
-    SearchResponse,
-    SearchResultDone,
-    SetupRequest,
-)
+from .schema import SearchRequest, SearchResponse, SearchResultDone
 
 entry_router = APIRouter(prefix='/entry')
-
-
-@entry_router.get('/setup')
-async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
-    """Check if initial setup needed."""
-    return False
-
-
-@entry_router.post('/setup')
-async def first_setup(
-    request: SetupRequest,
-    session: AsyncSession = Depends(get_session),
-) -> LDAPResult:
-    """Perform initial setup."""
 
 
 @entry_router.post('/search')
