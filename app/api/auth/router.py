@@ -1,10 +1,15 @@
 """Auth api."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings, get_settings
+from ldap.ldap_responses import LDAPCodes, LDAPResult
 from models.database import get_session
+from models.ldap3 import Attribute, CatalogueSetting, Directory
+from models.ldap3 import User as DBUser
+from security import get_password_hash
 
 from .oauth2 import (
     authenticate_user,
@@ -13,7 +18,7 @@ from .oauth2 import (
     get_current_user_refresh,
     oauth2,
 )
-from .schema import OAuth2Form, Token, User
+from .schema import OAuth2Form, SetupRequest, Token, User
 
 auth_router = APIRouter(prefix='/auth')
 
@@ -89,3 +94,49 @@ async def get_refresh_token(
 async def users_me(user: User = Depends(get_current_user)) -> User:
     """Get current user."""
     return user
+
+
+@auth_router.get('/setup')
+async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
+    """Check if initial setup needed."""
+    return bool(await session.scalar(
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+    ))
+
+
+@auth_router.post('/setup')
+async def first_setup(
+    request: SetupRequest,
+    session: AsyncSession = Depends(get_session),
+) -> LDAPResult:
+    """Perform initial setup."""
+    domain = request.domain.replace('http://', '').replace('https://', '')
+
+    directory = Directory(object_class='user', name=request.username)
+    path = directory.create_path()
+    attrs = []
+
+    object_classes = (
+        'user', 'top', 'person', 'organizationalPerson', 'posixAccount')
+
+    for oc in object_classes:
+        attrs.append(
+            Attribute(name='objectClass', value=oc, directory=directory))
+
+    user = DBUser(
+        sam_accout_name=request.username,
+        display_name=request.display_name,
+        user_principal_name=request.user_principal_name,
+        mail=request.mail,
+        password=get_password_hash(request.password),
+        directory=directory,
+    )
+    catalogue = CatalogueSetting(name='defaultNamingContext', value=domain)
+
+    async with session.begin_nested():
+        session.add_all([catalogue, directory, user] + attrs)
+        directory.paths.append(path)
+        await session.commit()
+
+    return LDAPResult(resultCode=LDAPCodes.SUCCESS)
