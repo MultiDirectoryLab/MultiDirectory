@@ -2,7 +2,7 @@
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import AnyHttpUrl, BaseModel, EmailStr
 
 from models.ldap3 import User as DBUser
 
@@ -53,3 +53,14 @@ class User(BaseModel):
             mail=user.mail,
             display_name=user.display_name,
         )
+
+
+class SetupRequest(BaseModel):
+    """Setup app form."""
+
+    domain: AnyHttpUrl
+    username: str
+    user_principal_name: str
+    display_name: str
+    mail: EmailStr
+    password: str

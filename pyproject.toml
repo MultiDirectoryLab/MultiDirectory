@@ -12,7 +12,7 @@ sqlalchemy = {extras = ["asyncio", "mypy"], version = "^1.4.44"}
 asyncpg = "^0.27.0"
 alembic = "^1.8.1"
 asn1 = "^2.6.0"
-pydantic = "^1.10.2"
+pydantic = {extras = ["email"], version = "^1.10.8"}
 loguru = "^0.6.0"
 sqlalchemy-utils = "^0.38.3"
 pytz = "^2022.7.1"
