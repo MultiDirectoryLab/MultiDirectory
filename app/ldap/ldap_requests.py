@@ -8,6 +8,7 @@ from typing import AsyncGenerator, ClassVar
 from loguru import logger
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, delete, func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
@@ -623,7 +624,7 @@ class ModifyRequest(BaseRequest):
 
         directory = await session.scalar(query)
 
-        if not directory:
+        if len(obj) > 1 and not directory:
             yield ModifyResponse(resultCode=LDAPCodes.NO_SUCH_OBJECT)
             return
 
@@ -741,6 +742,11 @@ class AddRequest(BaseRequest):
                 .options(selectinload(Directory.paths))\
                 .filter(Path.path == search_path)
             parent = await session.scalar(query)
+
+            if not parent:
+                yield AddResponse(resultCode=LDAPCodes.NO_SUCH_OBJECT)
+                return
+
             new_dir = Directory(
                 object_class='',
                 name=new_dn.split('=')[1],
@@ -755,10 +761,17 @@ class AddRequest(BaseRequest):
             for value in attr.vals:
                 attributes.append(
                     Attribute(name=attr.type, value=value, directory=new_dir))
+
         async with session.begin_nested():
-            session.add_all([new_dir, path] + attributes)
-            path.directories.extend([p.endpoint for p in ext_path])
-        await session.commit()
+            try:
+                session.add_all([new_dir, path] + attributes)
+                path.directories.extend([p.endpoint for p in ext_path])
+                await session.commit()
+            except IntegrityError:
+                await session.rollback()
+                yield AddResponse(resultCode=LDAPCodes.ENTRY_ALREADY_EXISTS)
+                return
+
         yield AddResponse(resultCode=LDAPCodes.SUCCESS)
 
 
