@@ -45,6 +45,7 @@ from .utils import (
     get_generalized_now,
     get_object_classes,
     get_user,
+    validate_entry,
 )
 
 ATTRIBUTE_TYPES = get_attribute_types()
@@ -598,8 +599,9 @@ class ModifyRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
-        if not await ldap_session.get_user():
+        if not ldap_session.user:
             yield ModifyResponse(**BAD_SEARCH_RESPONSE)
+            return
 
         base_dn = await get_base_dn()
         obj = self.object.lower().removesuffix(
@@ -619,6 +621,7 @@ class ModifyRequest(BaseRequest):
 
         if not directory:
             yield ModifyResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            return
 
         for change in self.changes:
             if change.operation == Operation.ADD:
@@ -706,8 +709,13 @@ class AddRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[AddResponse, None]:
         """Add request handler."""
-        if not await ldap_session.get_user():
+        if not ldap_session.user:
             yield AddResponse(**BAD_SEARCH_RESPONSE)
+            return
+
+        if not validate_entry(self.entry):
+            yield AddResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+            return
 
         base_dn = await get_base_dn()
         obj = self.entry.lower().removesuffix(
@@ -769,6 +777,7 @@ class DeleteRequest(BaseRequest):
         """Delete request handler."""
         if not await ldap_session.get_user():
             yield DeleteResponse(**BAD_SEARCH_RESPONSE)
+            return
 
         base_dn = await get_base_dn()
         obj = self.entry.lower().removesuffix(
@@ -783,6 +792,7 @@ class DeleteRequest(BaseRequest):
         obj = await session.scalar(query)
         if not obj:
             yield DeleteResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            return
 
         await session.delete(obj)
         await session.commit()
