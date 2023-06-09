@@ -102,3 +102,16 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 
     return await session.scalar(
         select(User).where(User.directory == path.endpoint))
+
+
+def validate_entry(entry: str) -> bool:
+    """Validate entry str.
+
+    cn=first,dc=example,dc=com -> valid
+    cn=first,dc=example,dc=com -> valid
+    :param str entry: any str
+    :return bool: result
+    """
+    return all(
+        part.split('=')[0] in ('cn', 'ou', 'dc') and len(part.split('=')) == 2
+        for part in entry.split(','))
