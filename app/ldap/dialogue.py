@@ -125,8 +125,7 @@ class Session:
     @property
     def user(self) -> User | None:
         """User getter, not implemented."""
-        raise NotImplementedError(
-            'Cannot manually get user, use `get_user()` instead')
+        return self._user
 
     @user.setter
     def user(self, user: User):
