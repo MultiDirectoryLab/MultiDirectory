@@ -604,6 +604,10 @@ class ModifyRequest(BaseRequest):
             return
 
         base_dn = await get_base_dn()
+        if not validate_entry(self.object.lower()):
+            yield ModifyResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+            return
+
         obj = self.object.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
         search_path = reversed(obj)
@@ -620,7 +624,7 @@ class ModifyRequest(BaseRequest):
         directory = await session.scalar(query)
 
         if not directory:
-            yield ModifyResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            yield ModifyResponse(resultCode=LDAPCodes.NO_SUCH_OBJECT)
             return
 
         for change in self.changes:
@@ -713,7 +717,7 @@ class AddRequest(BaseRequest):
             yield AddResponse(**BAD_SEARCH_RESPONSE)
             return
 
-        if not validate_entry(self.entry):
+        if not validate_entry(self.entry.lower()):
             yield AddResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
@@ -775,8 +779,12 @@ class DeleteRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
-        if not await ldap_session.get_user():
+        if not ldap_session.user:
             yield DeleteResponse(**BAD_SEARCH_RESPONSE)
+            return
+
+        if not validate_entry(self.entry.lower()):
+            yield DeleteResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
         base_dn = await get_base_dn()
@@ -791,7 +799,7 @@ class DeleteRequest(BaseRequest):
 
         obj = await session.scalar(query)
         if not obj:
-            yield DeleteResponse(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            yield DeleteResponse(resultCode=LDAPCodes.NO_SUCH_OBJECT)
             return
 
         await session.delete(obj)
