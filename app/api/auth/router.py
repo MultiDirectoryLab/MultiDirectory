@@ -111,12 +111,12 @@ async def first_setup(
     session: AsyncSession = Depends(get_session),
 ) -> LDAPResult:
     """Perform initial setup."""
-    setup_available = bool(await session.scalar(
+    setup_already_performed = await session.scalar(
         select(CatalogueSetting)
         .filter(CatalogueSetting.name == 'defaultNamingContext'),
-    ))
+    )
 
-    if not setup_available:
+    if setup_already_performed:
         return LDAPResult(resultCode=LDAPCodes.ENTRY_ALREADY_EXISTS)
 
     domain = request.domain.replace('http://', '').replace('https://', '')
