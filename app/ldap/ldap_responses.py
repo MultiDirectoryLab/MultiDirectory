@@ -25,6 +25,9 @@ class LDAPResult(BaseModel):
     matched_dn: str = Field('', alias='matchedDN')
     error_message: str = Field('', alias="errorMessage")
 
+    class Config:  # noqa
+        allow_population_by_field_name = True
+
 
 class BaseResponse(ABC, BaseModel):
     """Base class for Response."""
@@ -101,7 +104,7 @@ class SearchResultDone(LDAPResult, BaseResponse):
 
 
 BAD_SEARCH_RESPONSE = {
-    'resultCode': LDAPCodes.OPERATIONS_ERROR,
+    'result_code': LDAPCodes.OPERATIONS_ERROR,
     'errorMessage': (
         '000004DC: LdapErr: DSID-0C090A71, '
         'comment: In order to perform this operation '
@@ -135,7 +138,12 @@ class DeleteResponse(LDAPResult, BaseResponse):
 
     PROTOCOL_OP: ClassVar[int] = 11
 
-#     13: 'Modify DN Response'
+
+class ModifyDNResponse(LDAPResult, BaseResponse):
+    """Delete response."""
+
+    PROTOCOL_OP: ClassVar[int] = 13
+
 #     15: 'compare Response'
 #     19: 'Search Result Reference'
 #     24: 'Extended Response'

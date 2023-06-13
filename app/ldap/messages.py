@@ -129,7 +129,7 @@ class LDAPRequestMessage(LDAPMessage):
             messageID=message_id,
             protocolOP=protocol_op,
             context=LDAPResult(
-                resultCode=LDAPCodes.PROTOCOL_ERROR,
+                result_code=LDAPCodes.PROTOCOL_ERROR,
                 matchedDN='',
                 errorMessage=str(err)),
         )

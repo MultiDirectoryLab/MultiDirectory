@@ -29,7 +29,7 @@ async def search(
     search_done: SearchResultDone = responses.pop(-1)
 
     return SearchResponse(
-        resultCode=search_done.result_code,
+        result_code=search_done.result_code,
         matchedDN=search_done.matched_dn,
         errorMessage=search_done.error_message,
         search_result=responses,

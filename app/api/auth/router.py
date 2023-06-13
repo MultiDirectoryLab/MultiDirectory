@@ -117,7 +117,7 @@ async def first_setup(
     )
 
     if setup_already_performed:
-        return LDAPResult(resultCode=LDAPCodes.ENTRY_ALREADY_EXISTS)
+        return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
 
     domain = request.domain.replace('http://', '').replace('https://', '')
 
@@ -147,4 +147,4 @@ async def first_setup(
         directory.paths.append(path)
         await session.commit()
 
-    return LDAPResult(resultCode=LDAPCodes.SUCCESS)
+    return LDAPResult(result_code=LDAPCodes.SUCCESS)
