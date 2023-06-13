@@ -10,7 +10,7 @@ from ldap.ldap_requests import (
     ModifyDNRequest,
     ModifyRequest,
 )
-from ldap.ldap_responses import LDAPCodes, LDAPResult
+from ldap.ldap_responses import LDAPResult
 from models.database import AsyncSession, get_session
 
 from .schema import SearchRequest, SearchResponse, SearchResultDone
@@ -63,7 +63,7 @@ async def update_dn(
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
     """Update DN view."""
-    return LDAPResult(result_code=LDAPCodes.SUCCESS)
+    return await request.handle_api(user, session)
 
 
 @entry_router.delete('/delete')
