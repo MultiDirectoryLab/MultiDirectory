@@ -868,13 +868,14 @@ class ModifyDNRequest(BaseRequest):
     def from_data(cls, data):
         """Create structure from ASN1Row dataclass list."""
         return cls(
-            entry=data[0],
-            newrdn=data[1],
-            deleteoldrdn=data[2],
-            new_superior=data[3],
+            entry=data[0].value,
+            newrdn=data[1].value,
+            deleteoldrdn=data[2].value,
+            new_superior=data[3].value,
         )
 
-    async def handle(self, ldap_session: Session, session: AsyncSession):
+    async def handle(self, ldap_session: Session, session: AsyncSession) ->\
+            AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         yield ModifyDNResponse(result_code=LDAPCodes.SUCCESS)
 
