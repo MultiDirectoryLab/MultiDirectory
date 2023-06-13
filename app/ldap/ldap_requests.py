@@ -1,5 +1,5 @@
 """LDAP requests structure bind."""
-
+import asyncio
 import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -112,11 +112,20 @@ class SimpleAuthentication(AuthChoice):
 
     password: str
 
-    def is_valid(self, user: User | None):
+    def is_valid(self, user: User | None) -> bool:
+        """Check if pwd is valid for user.
+
+        :param User | None user: indb user
+        :return bool: status
+        """
         password = getattr(user, "password", None)
         return bool(password) and verify_password(self.password, password)
 
-    def is_anonymous(self):
+    def is_anonymous(self) -> bool:
+        """Check if auth is anonymous.
+
+        :return bool: status
+        """
         return not self.password
 
 
@@ -306,7 +315,7 @@ class SearchRequest(BaseRequest):
         data['currentTime'].append(get_generalized_now())
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
-        # data['configurationNamingContext'].append(schema)
+        # data['configurationNamingContext'].append(schema)  # noqa
         data['supportedSASLMechanisms'] = ['ANONYMOUS', 'EXTERNAL', 'PLAIN']
         data['highestCommittedUSN'].append('126991')
         data['supportedControl'] = [
@@ -431,7 +440,7 @@ class SearchRequest(BaseRequest):
 
         if self.scope == Scope.BASE_OBJECT:
             if self.base_object:
-                if dn_is_base:
+                if dn_is_base:  # noqa
                     attrs = defaultdict(list)
                     attrs['serverState'].append('1')
                     attrs['objectClass'].append('domain')
@@ -488,7 +497,7 @@ class SearchRequest(BaseRequest):
             query = query.options(s1, s2, s3)
 
         directories = await session.stream_scalars(query)
-        # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
+        # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 
         async for directory in directories:
             attrs = defaultdict(list)
@@ -613,14 +622,15 @@ class ModifyRequest(BaseRequest):
             ',' + base_dn.lower()).split(',')
         search_path = reversed(obj)
 
-        query = select(Directory)\
+        query = select(   # noqa: ECE001
+            Directory)\
             .join(Directory.path)\
             .join(Directory.attributes)\
             .join(User, isouter=True)\
             .options(
                 selectinload(Directory.paths),
                 joinedload(Directory.user))\
-            .filter(Path.path == search_path)  # noqa
+            .filter(Path.path == search_path)
 
         directory = await session.scalar(query)
 
@@ -868,9 +878,8 @@ class AbandonRequest(BaseRequest):
         logger.debug(data)
         return cls(message_id=1)
 
-    async def handle(self, ldap_session: Session):
+    async def handle(self, ldap_session: Session, session: AsyncSession):
         """Handle message with current user."""
-        import asyncio
         await asyncio.sleep(0)
         return
         yield
