@@ -33,6 +33,7 @@ from .ldap_responses import (
     BaseResponse,
     BindResponse,
     DeleteResponse,
+    ModifyDNResponse,
     ModifyResponse,
     PartialAttribute,
     SearchResultDone,
@@ -168,11 +169,11 @@ class BindRequest(BaseRequest):
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
-            yield BindResponse(resultCode=LDAPCodes.SUCCESS)
+            yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
         bad_response = BindResponse(
-            resultCode=LDAPCodes.INVALID_CREDENTIALS,
+            result_code=LDAPCodes.INVALID_CREDENTIALS,
             matchedDN='',
             errorMessage=(
                 '80090308: LdapErr: DSID-0C090447, '
@@ -187,7 +188,7 @@ class BindRequest(BaseRequest):
             return
 
         await ldap_session.set_user(user)
-        yield BindResponse(resultCode=LDAPCodes.SUCCESS, matchedDn='')
+        yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
 
 
 class UnbindRequest(BaseRequest):
@@ -417,12 +418,12 @@ class SearchRequest(BaseRequest):
             query = query.filter(cond)
         except Exception as err:
             logger.error(f'Filter syntax error {err}')
-            yield SearchResultDone(resultCode=LDAPCodes.OPERATIONS_ERROR)
+            yield SearchResultDone(result_code=LDAPCodes.OPERATIONS_ERROR)
             return
 
         async for response in self.tree_view(query, session):
             yield response
-        yield SearchResultDone(resultCode=LDAPCodes.SUCCESS)
+        yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
 
     async def tree_view(self, query, session: AsyncSession):
         """Yield tree result."""
@@ -615,7 +616,7 @@ class ModifyRequest(BaseRequest):
 
         base_dn = await get_base_dn()
         if not validate_entry(self.object.lower()):
-            yield ModifyResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+            yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
         obj = self.object.lower().removesuffix(
@@ -635,7 +636,7 @@ class ModifyRequest(BaseRequest):
         directory = await session.scalar(query)
 
         if len(obj) > 1 and not directory:
-            yield ModifyResponse(resultCode=LDAPCodes.NO_SUCH_OBJECT)
+            yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
         for change in self.changes:
@@ -665,7 +666,7 @@ class ModifyRequest(BaseRequest):
                 await session.commit()
                 await self._add(change, directory, session)
 
-        yield ModifyResponse(resultCode=LDAPCodes.SUCCESS)
+        yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     async def _add(
         self, change: Changes,
@@ -729,7 +730,7 @@ class AddRequest(BaseRequest):
             return
 
         if not validate_entry(self.entry.lower()):
-            yield AddResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+            yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
         base_dn = await get_base_dn()
@@ -754,7 +755,7 @@ class AddRequest(BaseRequest):
             parent = await session.scalar(query)
 
             if not parent:
-                yield AddResponse(resultCode=LDAPCodes.NO_SUCH_OBJECT)
+                yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
 
             new_dir = Directory(
@@ -779,10 +780,10 @@ class AddRequest(BaseRequest):
                 await session.commit()
             except IntegrityError:
                 await session.rollback()
-                yield AddResponse(resultCode=LDAPCodes.ENTRY_ALREADY_EXISTS)
+                yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
                 return
 
-        yield AddResponse(resultCode=LDAPCodes.SUCCESS)
+        yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
 
 class DeleteRequest(BaseRequest):
@@ -807,7 +808,7 @@ class DeleteRequest(BaseRequest):
             return
 
         if not validate_entry(self.entry.lower()):
-            yield DeleteResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+            yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
         base_dn = await get_base_dn()
@@ -822,13 +823,13 @@ class DeleteRequest(BaseRequest):
 
         obj = await session.scalar(query)
         if not obj:
-            yield DeleteResponse(resultCode=LDAPCodes.NO_SUCH_OBJECT)
+            yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
         await session.delete(obj)
         await session.commit()
 
-        yield DeleteResponse(resultCode=LDAPCodes.SUCCESS)
+        yield DeleteResponse(result_code=LDAPCodes.SUCCESS)
 
 
 class ModifyDNRequest(BaseRequest):
@@ -860,8 +861,22 @@ class ModifyDNRequest(BaseRequest):
 
     entry: str
     newrdn: str
-    deleteoldrdn: str
+    deleteoldrdn: bool
     new_superior: str
+
+    @classmethod
+    def from_data(cls, data):
+        """Create structure from ASN1Row dataclass list."""
+        return cls(
+            entry=data[0],
+            newrdn=data[1],
+            deleteoldrdn=data[2],
+            new_superior=data[3],
+        )
+
+    async def handle(self, ldap_session: Session, session: AsyncSession):
+        """Handle message with current user."""
+        yield ModifyDNResponse(result_code=LDAPCodes.SUCCESS)
 
 
 class CompareRequest(BaseRequest):
