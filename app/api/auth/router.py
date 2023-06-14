@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings, get_settings
@@ -143,8 +144,12 @@ async def first_setup(
     catalogue = CatalogueSetting(name='defaultNamingContext', value=domain)
 
     async with session.begin_nested():
-        session.add_all([catalogue, directory, user] + attrs)
-        directory.paths.append(path)
-        await session.commit()
+        try:
+            session.add_all([catalogue, directory, user] + attrs)
+            directory.paths.append(path)
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
 
     return LDAPResult(result_code=LDAPCodes.SUCCESS)
