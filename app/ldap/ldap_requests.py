@@ -7,11 +7,11 @@ from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, delete, func, or_
+from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import settings
 from models.ldap3 import (
@@ -409,7 +409,7 @@ class SearchRequest(BaseRequest):
             .join(Directory.path)\
             .options(
                 selectinload(Directory.path),
-                selectinload(Directory.attributes),
+                subqueryload(Directory.attributes),
                 joinedload(Directory.user))\
             .distinct(Directory.id)
 
@@ -855,6 +855,12 @@ class ModifyDNRequest(BaseRequest):
         parent for the entry (and any of its subordinates).
         This is optional, and if it is omitted, then the entry will be
         left below the same parent and only the RDN will be altered.
+
+    example:
+        entry='cn=main,dc=multifactor,dc=dev'
+        newrdn='cn=main2'
+        deleteoldrdn=True
+        new_superior='dc=multifactor,dc=dev'
     """
 
     PROTOCOL_OP: ClassVar[int] = 12
@@ -877,6 +883,82 @@ class ModifyDNRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) ->\
             AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
+        base_dn = await get_base_dn()
+        obj = self.entry.lower().removesuffix(
+            ',' + base_dn.lower()).split(',')
+
+        query = select(Directory)\
+            .join(Directory.path)\
+            .options(selectinload(Directory.paths))\
+            .filter(Path.path == reversed(obj))
+
+        new_sup = self.new_superior.lower().removesuffix(
+            ',' + base_dn.lower()).split(',')
+
+        new_sup_query = select(Directory)\
+            .join(Directory.path)\
+            .options(selectinload(Directory.path))\
+            .filter(Path.path == reversed(new_sup))
+
+        directory = await session.scalar(query)
+
+        if not directory:
+            yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        dn_is_base = self.new_superior.lower() == base_dn.lower()
+        if dn_is_base:
+            new_directory = Directory(
+                object_class='',
+                name=self.newrdn.split('=')[1],
+            )
+            new_path = new_directory.create_path()
+        else:
+            new_base_directory = await session.scalar(new_sup_query)
+            if not new_base_directory:
+                yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+                return
+
+            new_directory = Directory(
+                object_class='',
+                name=self.newrdn.split('=')[1],
+                parent=new_base_directory,
+            )
+            new_path = new_directory.create_path(new_base_directory)
+
+        async with session.begin_nested():
+            session.add_all([new_directory, new_path])
+            await session.commit()
+
+        async with session.begin_nested():
+            await session.execute(
+                update(Directory)
+                .where(Directory.parent == directory)
+                .values(parent_id=new_directory.id))
+
+            q = update(Path)\
+                .values({Path.path[directory.depth]: self.newrdn})\
+                .where(Path.directories.any(id=directory.id))
+            from sqlalchemy.dialects import postgresql
+
+            logger.debug(q.compile(
+                dialect=postgresql.dialect(),  # type: ignore
+                compile_kwargs={"literal_binds": True}))  # noqa
+
+            # await session.execute(
+            #     q, execution_options={"synchronize_session": 'fetch'})
+
+            await session.commit()
+
+        async with session.begin_nested():
+            await session.execute(
+                update(Attribute)
+                .where(Attribute.directory == directory)
+                .values(directory_id=new_directory.id))
+            await session.commit()
+
+        await session.delete(directory)
+
         yield ModifyDNResponse(result_code=LDAPCodes.SUCCESS)
 
 
@@ -900,6 +982,7 @@ class AbandonRequest(BaseRequest):
         return
         yield
 
+\
 
 class ExtendedRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = 23
