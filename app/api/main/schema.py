@@ -18,4 +18,3 @@ class SearchRequest(LDAPSearchRequest):  # noqa: D101
 
 class SearchResponse(SearchResultDone):  # noqa: D101
     search_result: list[SearchResultEntry]
-
