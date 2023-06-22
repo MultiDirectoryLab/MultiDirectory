@@ -937,16 +937,17 @@ class ModifyDNRequest(BaseRequest):
                 .values(parent_id=new_directory.id))
 
             q = update(Path)\
-                .values({Path.path[directory.depth]: self.newrdn})\
+                .values({Path.path[directory.depth + 1]: self.newrdn})\
                 .where(Path.directories.any(id=directory.id))
+
             from sqlalchemy.dialects import postgresql
 
             logger.debug(q.compile(
                 dialect=postgresql.dialect(),  # type: ignore
                 compile_kwargs={"literal_binds": True}))  # noqa
 
-            # await session.execute(
-            #     q, execution_options={"synchronize_session": 'fetch'})
+            await session.execute(
+                q, execution_options={"synchronize_session": 'fetch'})
 
             await session.commit()
 
@@ -982,7 +983,6 @@ class AbandonRequest(BaseRequest):
         return
         yield
 
-\
 
 class ExtendedRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = 23
