@@ -51,6 +51,7 @@ async def create_dir(
             logger.debug(f"creating {dir_.object_class}:{dir_.name}")
             session.add_all([dir_, path])
             dir_.paths.append(path)
+            dir_.depth = len(path.path)
 
     else:
         dir_ = Directory(
@@ -65,6 +66,7 @@ async def create_dir(
             session.add_all([dir_, path])
             path.directories.extend(
                 [p.endpoint for p in parent.paths + [path]])
+            dir_.depth = len(path.path)
 
     if dir_.object_class == 'group':
         group = Group(directory=dir_)

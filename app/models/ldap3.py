@@ -254,6 +254,5 @@ class Path(Base):
         "Directory",
         secondary=DirectoryPath.__table__,
         order_by="Directory.depth",
-        collection_class=ordering_list('depth'),
         back_populates="paths",
     )

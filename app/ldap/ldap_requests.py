@@ -736,14 +736,14 @@ class AddRequest(BaseRequest):
         base_dn = await get_base_dn()
         obj = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
+        has_no_parent = len(obj) == 1
 
-        if len(obj) == 1:
+        if has_no_parent:
             new_dir = Directory(
                 object_class='',
                 name=obj[0].split('=')[1],
             )
             path = new_dir.create_path()
-            ext_path = [path]
 
         else:
             new_dn = obj.pop(0)
@@ -764,19 +764,32 @@ class AddRequest(BaseRequest):
                 parent=parent,
             )
             path = new_dir.create_path(parent)
-            ext_path = parent.paths + [path]
 
         attributes = []
+        users_oc = ('organizationalPerson', 'person', 'posixAccount', 'user')
+        user_fields = (
+            'mail', 'sAMAccountName',
+            'userPrincipalName', 'displayName')
+
+        user_attributes = []
 
         for attr in self.attributes:
             for value in attr.vals:
-                attributes.append(
-                    Attribute(name=attr.type, value=value, directory=new_dir))
+                if value in users_oc or attr.type in user_fields:
+                    user_attributes.append({attr.type: value})
+                else:
+                    attributes.append(Attribute(
+                        name=attr.type, value=value, directory=new_dir))
 
         async with session.begin_nested():
             try:
+                new_dir.depth = len(path.path)
                 session.add_all([new_dir, path] + attributes)
-                path.directories.extend([p.endpoint for p in ext_path])
+                if has_no_parent:
+                    path.directories.extend(
+                        [p.endpoint for p in parent.paths + [path]])
+                else:
+                    new_dir.paths.append(path)
                 await session.commit()
             except IntegrityError:
                 await session.rollback()
@@ -937,7 +950,7 @@ class ModifyDNRequest(BaseRequest):
                 .values(parent_id=new_directory.id))
 
             q = update(Path)\
-                .values({Path.path[directory.depth + 1]: self.newrdn})\
+                .values({Path.path[directory.depth]: self.newrdn})\
                 .where(Path.directories.any(id=directory.id))
 
             from sqlalchemy.dialects import postgresql
