@@ -765,26 +765,37 @@ class AddRequest(BaseRequest):
             )
             path = new_dir.create_path(parent)
 
+        user = None
         attributes = []
-        users_oc = ('organizationalPerson', 'person', 'posixAccount', 'user')
-        user_fields = (
-            'mail', 'sAMAccountName',
-            'userPrincipalName', 'displayName')
-
-        user_attributes = []
+        user_attributes = {}
+        user_fields = User.search_fields.values()
 
         for attr in self.attributes:
             for value in attr.vals:
-                if value in users_oc or attr.type in user_fields:
-                    user_attributes.append({attr.type: value})
+                if attr.type in user_fields:
+                    user_attributes[attr.type] = value
                 else:
                     attributes.append(Attribute(
                         name=attr.type, value=value, directory=new_dir))
 
+        if 'sAMAccountName' in user_attributes\
+                or 'userPrincipalName' in user_attributes:
+            user = User(
+                sam_accout_name=user_attributes['sAMAccountName'],
+                user_principal_name=user_attributes['userPrincipalName'],
+                mail=user_attributes.get('mail'),
+                display_name=user_attributes.get('displayName'),
+                directory=new_dir,
+            )
+
         async with session.begin_nested():
             try:
                 new_dir.depth = len(path.path)
-                session.add_all([new_dir, path] + attributes)
+                items_to_add = [new_dir, path] + attributes
+                if user is not None:
+                    items_to_add.append(user)
+
+                session.add_all(items_to_add)
                 if has_no_parent:
                     path.directories.extend(
                         [p.endpoint for p in parent.paths + [path]])
@@ -999,6 +1010,7 @@ class AbandonRequest(BaseRequest):
 
 class ExtendedRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = 23
+    request_name: str
 
 
 protocol_id_map: dict[int, type[BaseRequest]] = \
