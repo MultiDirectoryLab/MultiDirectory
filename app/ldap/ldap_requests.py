@@ -480,7 +480,7 @@ class SearchRequest(BaseRequest):
                 )
 
         elif self.scope == Scope.WHOLE_SUBTREE and not dn_is_base:
-            query = query.filter(Path.path[0:len(search_path)] == search_path)
+            query = query.filter(Path.path[1:len(search_path)] == search_path)
 
         if member_of:
             s1 = selectinload(Directory.group).selectinload(
