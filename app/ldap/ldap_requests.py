@@ -711,6 +711,10 @@ class AddRequest(BaseRequest):
     entry: str
     attributes: list[PartialAttribute]
 
+    @property
+    def attr_names(self):  # noqa
+        return {attr.type: attr.vals for attr in self.attributes}
+
     @classmethod
     def from_data(cls, data):  # noqa: D102
         entry, attributes = data
@@ -766,9 +770,13 @@ class AddRequest(BaseRequest):
             path = new_dir.create_path(parent)
 
         user = None
+        group = None
         attributes = []
         user_attributes = {}
         user_fields = User.search_fields.values()
+
+        if 'group' in self.attr_names.get('objectClass', []):
+            group = Group(directory=new_dir)
 
         for attr in self.attributes:
             for value in attr.vals:
@@ -794,6 +802,9 @@ class AddRequest(BaseRequest):
                 items_to_add = [new_dir, path] + attributes
                 if user is not None:
                     items_to_add.append(user)
+
+                if 'group' in self.attr_names.get('objectClass', []):
+                    items_to_add.append(Group(directory=new_dir))
 
                 session.add_all(items_to_add)
                 if has_no_parent:
