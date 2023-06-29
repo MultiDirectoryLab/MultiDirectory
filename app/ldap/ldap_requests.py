@@ -770,13 +770,9 @@ class AddRequest(BaseRequest):
             path = new_dir.create_path(parent)
 
         user = None
-        group = None
         attributes = []
         user_attributes = {}
         user_fields = User.search_fields.values()
-
-        if 'group' in self.attr_names.get('objectClass', []):
-            group = Group(directory=new_dir)
 
         for attr in self.attributes:
             for value in attr.vals:
@@ -808,10 +804,10 @@ class AddRequest(BaseRequest):
 
                 session.add_all(items_to_add)
                 if has_no_parent:
+                    new_dir.paths.append(path)
+                else:
                     path.directories.extend(
                         [p.endpoint for p in parent.paths + [path]])
-                else:
-                    new_dir.paths.append(path)
                 await session.commit()
             except IntegrityError:
                 await session.rollback()
