@@ -455,10 +455,12 @@ class SearchRequest(BaseRequest):
                         partial_attributes=[
                             PartialAttribute(type=key, vals=value)
                             for key, value in attrs.items()])
+                    yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
                     return
 
                 elif self.base_object.lower() == 'cn=schema':
                     yield self._get_subschema(dn)
+                    yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
                     return
 
                 query = query.filter(Path.path == search_path)
@@ -470,6 +472,7 @@ class SearchRequest(BaseRequest):
                         PartialAttribute(type=name, vals=values)
                         for name, values in attrs.items()],
                 )
+                yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
                 return
 
         elif self.scope == Scope.SINGLEL_EVEL:
