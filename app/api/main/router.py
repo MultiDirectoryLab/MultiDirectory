@@ -26,13 +26,15 @@ async def search(
 ) -> SearchResponse:
     """Search request."""
     responses = await request.handle_api(user, session, False)
-    search_done: SearchResultDone = responses.pop(-1)
+    metadata: SearchResultDone = responses.pop(-1)
 
     return SearchResponse(
-        result_code=search_done.result_code,
-        matchedDN=search_done.matched_dn,
-        errorMessage=search_done.error_message,
+        result_code=metadata.result_code,
+        matchedDN=metadata.matched_dn,
+        errorMessage=metadata.error_message,
         search_result=responses,
+        total_objects=metadata.total_objects,
+        total_pages=metadata.total_pages,
     )
 
 
