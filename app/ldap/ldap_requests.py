@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +22,7 @@ from models.ldap3 import (
     Path,
     User,
 )
-from security import verify_password
+from security import get_password_hash, verify_password
 
 from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Operation, Session
@@ -703,6 +703,9 @@ class AddRequest(BaseRequest):
     }
 
     AttributeList ::= SEQUENCE OF attribute Attribute
+
+    password - only JSON API field, added only for user creation,
+    skips validation if target entity is not user.
     ```
     """
 
@@ -710,6 +713,8 @@ class AddRequest(BaseRequest):
 
     entry: str
     attributes: list[PartialAttribute]
+
+    password: SecretStr | None = Field(None, example='password')
 
     @property
     def attr_names(self):  # noqa
@@ -791,6 +796,8 @@ class AddRequest(BaseRequest):
                 display_name=user_attributes.get('displayName'),
                 directory=new_dir,
             )
+            if self.password is not None:
+                user.password = get_password_hash(self.password)
 
         async with session.begin_nested():
             try:
