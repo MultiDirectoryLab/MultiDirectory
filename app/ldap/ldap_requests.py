@@ -426,7 +426,6 @@ class SearchRequest(BaseRequest):
 
         async for response in self.tree_view(query, session):
             yield response
-        yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
 
     async def tree_view(self, query, session: AsyncSession):
         """Yield tree result."""
@@ -500,9 +499,15 @@ class SearchRequest(BaseRequest):
 
             query = query.options(s1, s2, s3)
 
+        pages_total = 0
+        count = 0
+
         if self.page_number is not None:
             count = await session.scalar(query.with_entities(func.count()))
             pages_total = int(ceil(count / float(self.size_limit)))
+            start = (self.page_number - 1) * self.size_limit
+            end = start + self.size_limit
+            query = query.offset(start).limit(end)
 
         directories = await session.stream_scalars(query)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
@@ -566,6 +571,12 @@ class SearchRequest(BaseRequest):
                     PartialAttribute(type=key, vals=value)
                     for key, value in attrs.items()],
             )
+
+        yield SearchResultDone(
+            result_code=LDAPCodes.SUCCESS,
+            total_pages=pages_total,
+            total_objects=count,
+        )
 
 
 class Changes(BaseModel):
