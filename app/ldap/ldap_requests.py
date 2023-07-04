@@ -3,6 +3,7 @@ import asyncio
 import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from math import ceil
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
@@ -246,6 +247,8 @@ class SearchRequest(BaseRequest):
     types_only: bool
     filter: ASN1Row = Field(...)  # noqa: A003
     attributes: list[str]
+
+    page_number: int | None = Field(None, ge=0)  # only API method
 
     @classmethod
     def from_data(cls, data):  # noqa: D102
@@ -496,6 +499,10 @@ class SearchRequest(BaseRequest):
                     User.directory).selectinload(Directory.path)
 
             query = query.options(s1, s2, s3)
+
+        if self.page_number is not None:
+            count = await session.scalar(query.with_entities(func.count()))
+            pages_total = int(ceil(count / float(self.size_limit)))
 
         directories = await session.stream_scalars(query)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
@@ -797,7 +804,8 @@ class AddRequest(BaseRequest):
                 directory=new_dir,
             )
             if self.password is not None:
-                user.password = get_password_hash(self.password)
+                user.password = get_password_hash(
+                    self.password.get_secret_value())
 
         async with session.begin_nested():
             try:
