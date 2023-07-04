@@ -37,11 +37,14 @@ class BaseResponse(ABC, BaseModel):
     def PROTOCOL_OP(self) -> int:  # noqa: N802, D102
         """Protocol OP response code."""
 
-    def to_asn1(self, enc: Encoder) -> None:
-        """Serialize flat structure to bytes, write to encoder buffer."""
+    def _get_asn1_fields(self) -> dict:  # noqa
         fields = self.dict()
         fields.pop('PROTOCOL_OP', None)
-        for value in fields.values():
+        return fields
+
+    def to_asn1(self, enc: Encoder) -> None:
+        """Serialize flat structure to bytes, write to encoder buffer."""
+        for value in self._get_asn1_fields().values():
             enc.write(value, type_map[type(value)])
 
 
@@ -101,6 +104,15 @@ class SearchResultDone(LDAPResult, BaseResponse):
     """LDAP result."""
 
     PROTOCOL_OP: ClassVar[int] = 5
+    # API fields
+    total_pages: int = 0
+    total_objects: int = 0
+
+    def _get_asn1_fields(self) -> dict:  # noqa
+        fields = super()._get_asn1_fields()
+        fields.pop('total_pages')
+        fields.pop('total_objects')
+        return fields
 
 
 BAD_SEARCH_RESPONSE = {
