@@ -242,13 +242,13 @@ class SearchRequest(BaseRequest):
     base_object: str = ''
     scope: Scope
     deref_aliases: DerefAliases
-    size_limit: int = Field(ge=0, le=sys.maxsize, example=10000)
-    time_limit: int = Field(ge=0, le=sys.maxsize, example=10000)
+    size_limit: int = Field(ge=0, le=sys.maxsize, example=1000)
+    time_limit: int = Field(ge=0, le=sys.maxsize, example=1000)
     types_only: bool
     filter: ASN1Row = Field(...)  # noqa: A003
     attributes: list[str]
 
-    page_number: int | None = Field(None, ge=0)  # only API method
+    page_number: int | None = Field(None, ge=1)  # only API method
 
     @classmethod
     def from_data(cls, data):  # noqa: D102
@@ -506,7 +506,8 @@ class SearchRequest(BaseRequest):
         count = 0
 
         if self.page_number is not None:
-            count = await session.scalar(query.with_entities(func.count()))
+            count = await session.scalar(
+                select(func.count()).select_from(query))
             pages_total = int(ceil(count / float(self.size_limit)))
             start = (self.page_number - 1) * self.size_limit
             end = start + self.size_limit
