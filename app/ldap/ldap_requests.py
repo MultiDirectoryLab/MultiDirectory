@@ -986,6 +986,7 @@ class ModifyDNRequest(BaseRequest):
         """Handle message with current user."""
         if not ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
+            return
 
         base_dn = await get_base_dn()
         obj = self.entry.lower().removesuffix(
