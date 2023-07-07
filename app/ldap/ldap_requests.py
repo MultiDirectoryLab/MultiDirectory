@@ -3,6 +3,7 @@ import asyncio
 import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from functools import cached_property
 from math import ceil
 from typing import AsyncGenerator, ClassVar
 
@@ -13,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
+from sqlalchemy.sql.expression import Select
 
 from config import settings
 from models.ldap3 import (
@@ -250,6 +252,12 @@ class SearchRequest(BaseRequest):
 
     page_number: int | None = Field(None, ge=1)  # only API method
 
+    class Config:
+        """Allow class to use property."""
+
+        arbitrary_types_allowed = True
+        keep_untouched = (cached_property,)
+
     @classmethod
     def from_data(cls, data):  # noqa: D102
         (
@@ -274,7 +282,8 @@ class SearchRequest(BaseRequest):
             attributes=[field.value for field in attributes.value],
         )
 
-    def _get_attributes(self):
+    @cached_property
+    def requested_attrs(self):  # noqa
         return [attr.lower() for attr in self.attributes]
 
     async def get_root_dse(
@@ -284,7 +293,7 @@ class SearchRequest(BaseRequest):
         :param list[str] attributes: list of requested attrs
         :return defaultdict[str, list[str]]: queried attrs
         """
-        attributes = self._get_attributes()
+        attributes = self.requested_attrs
         data = defaultdict(list)
         clause = [CatalogueSetting.name.ilike(name) for name in attributes]
         res = await session.execute(
@@ -405,6 +414,80 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(**BAD_SEARCH_RESPONSE)
             return
 
+        if self.scope == Scope.BASE_OBJECT:
+            if (metadata := await self.get_base_data(session)):
+                yield metadata
+                yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
+                return
+
+        query = self.build_query(await get_base_dn())
+
+        try:
+            cond, query = self.cast_filter(self.filter, query)
+            query = query.filter(cond)
+        except Exception as err:
+            logger.error(f'Filter syntax error {err}')
+            yield SearchResultDone(result_code=LDAPCodes.PROTOCOL_ERROR)
+            return
+
+        query, pages_total, count = await self.paginate_query(query, session)
+
+        async for response in self.tree_view(query, session):
+            yield response
+
+        yield SearchResultDone(
+            result_code=LDAPCodes.SUCCESS,
+            total_pages=pages_total,
+            total_objects=count,
+        )
+
+    async def get_base_data(
+            self, session: AsyncSession) -> SearchResultEntry | None:
+        """Get base server data.
+
+        :param AsyncSession session: sqlalchemy session
+        :return SearchResultEntry | None: optional result
+        """
+        dn = await get_base_dn()
+
+        if self.base_object:
+            if self.base_object.lower() == dn.lower():  # noqa  # domain info
+                attrs = defaultdict(list)
+                attrs['serverState'].append('1')
+                attrs['objectClass'].append('domain')
+                attrs['objectClass'].append('domainDNS')
+                attrs['objectClass'].append('top')
+
+                return SearchResultEntry(
+                    object_name=dn,
+                    partial_attributes=[
+                        PartialAttribute(type=key, vals=value)
+                        for key, value in attrs.items()])
+
+            elif self.base_object.lower() == 'cn=schema':  # subschema subentry
+                return self._get_subschema(dn)
+
+        else:
+            attrs = await self.get_root_dse(session)  # RootDSE
+            return SearchResultEntry(
+                object_name='',
+                partial_attributes=[
+                    PartialAttribute(type=name, vals=values)
+                    for name, values in attrs.items()],
+            )
+
+        return None
+
+    @cached_property
+    def member_of(self):  # noqa
+        return 'memberof' in self.requested_attrs or self.all_attrs
+
+    @cached_property
+    def all_attrs(self):  # noqa
+        return '*' in self.requested_attrs or not self.requested_attrs
+
+    def build_query(self, dn) -> Select:
+        """Build tree query."""
         query = select(  # noqa: ECE001
             Directory)\
             .join(User, isouter=True)\
@@ -416,64 +499,13 @@ class SearchRequest(BaseRequest):
                 joinedload(Directory.user))\
             .distinct(Directory.id)
 
-        try:
-            cond, query = self.cast_filter(self.filter, query)
-            query = query.filter(cond)
-        except Exception as err:
-            logger.error(f'Filter syntax error {err}')
-            yield SearchResultDone(result_code=LDAPCodes.OPERATIONS_ERROR)
-            return
-
-        async for response in self.tree_view(query, session):
-            yield response
-
-    async def tree_view(self, query, session: AsyncSession):
-        """Yield tree result."""
-        dn = await get_base_dn()
-
-        requested_attrs = self._get_attributes()
-        all_attrs = '*' in requested_attrs or not requested_attrs
-
-        member_of = 'memberof' in requested_attrs or all_attrs
-
         dn_is_base = self.base_object.lower() == dn.lower()
         base_obj = self.base_object.lower().removesuffix(
             ',' + dn.lower()).split(',')
         search_path = [path for path in reversed(base_obj) if path]
 
-        if self.scope == Scope.BASE_OBJECT:
-            if self.base_object:
-                if dn_is_base:  # noqa
-                    attrs = defaultdict(list)
-                    attrs['serverState'].append('1')
-                    attrs['objectClass'].append('domain')
-                    attrs['objectClass'].append('domainDNS')
-                    attrs['objectClass'].append('top')
-
-                    yield SearchResultEntry(
-                        object_name=dn,
-                        partial_attributes=[
-                            PartialAttribute(type=key, vals=value)
-                            for key, value in attrs.items()])
-                    yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
-                    return
-
-                elif self.base_object.lower() == 'cn=schema':
-                    yield self._get_subschema(dn)
-                    yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
-                    return
-
-                query = query.filter(Path.path == search_path)
-            else:
-                attrs = await self.get_root_dse(session)
-                yield SearchResultEntry(
-                    object_name='',
-                    partial_attributes=[
-                        PartialAttribute(type=name, vals=values)
-                        for name, values in attrs.items()],
-                )
-                yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
-                return
+        if self.scope == Scope.BASE_OBJECT and self.base_object:
+            query = query.filter(Path.path == search_path)
 
         elif self.scope == Scope.SINGLEL_EVEL:
             if dn_is_base:
@@ -487,7 +519,7 @@ class SearchRequest(BaseRequest):
         elif self.scope == Scope.WHOLE_SUBTREE and not dn_is_base:
             query = query.filter(Path.path[1:len(search_path)] == search_path)
 
-        if member_of:
+        if self.member_of:
             s1 = selectinload(Directory.group).selectinload(
                 Group.parent_groups).selectinload(
                     Group.directory).selectinload(Directory.path)
@@ -502,25 +534,39 @@ class SearchRequest(BaseRequest):
 
             query = query.options(s1, s2, s3)
 
-        pages_total = 0
-        count = 0
+        return query  # noqa
 
-        if self.page_number is not None:
-            count = await session.scalar(
-                select(func.count()).select_from(query))
-            pages_total = int(ceil(count / float(self.size_limit)))
-            start = (self.page_number - 1) * self.size_limit
-            end = start + self.size_limit
-            query = query.offset(start).limit(end)
+    async def paginate_query(
+        self, query: Select, session: AsyncSession,
+    ) -> tuple[Select, int, int]:
+        """Paginate query.
 
+        :param _type_ query: _description_
+        :param _type_ session: _description_
+        :return tuple[select, int, int]: query, pages_total, count
+        """
+        if self.page_number is None:
+            return query, 0, 0
+
+        count = await session.scalar(
+            select(func.count()).select_from(query))
+        start = (self.page_number - 1) * self.size_limit
+        end = start + self.size_limit
+        query = query.offset(start).limit(end)
+
+        return query, int(ceil(count / float(self.size_limit))), count
+
+    async def tree_view(self, query, session: AsyncSession):
+        """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
+        dn = await get_base_dn()
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 
         async for directory in directories:
             attrs = defaultdict(list)
             groups = []
 
-            if member_of:
+            if self.member_of:
                 if directory.object_class.lower() == 'group' and (
                         directory.group):
                     groups += directory.group.parent_groups
@@ -541,11 +587,11 @@ class SearchRequest(BaseRequest):
                     self._get_full_dn(group.directory.path, dn))
 
             if directory.user:
-                if all_attrs:
+                if self.all_attrs:
                     user_fields = directory.user.search_fields.keys()
                 else:
                     user_fields = (
-                        attr for attr in requested_attrs if (
+                        attr for attr in self.requested_attrs if (
                             directory.user and (
                                 attr in directory.user.search_fields)))
             else:
@@ -555,11 +601,11 @@ class SearchRequest(BaseRequest):
                 attribute = getattr(directory.user, attr)
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
-            if all_attrs:
+            if self.all_attrs:
                 directory_fields = directory.search_fields.keys()
             else:
                 directory_fields = (
-                    attr for attr in requested_attrs
+                    attr for attr in self.requested_attrs
                     if attr in directory.search_fields)
 
             for attr in directory_fields:
@@ -575,12 +621,6 @@ class SearchRequest(BaseRequest):
                     PartialAttribute(type=key, vals=value)
                     for key, value in attrs.items()],
             )
-
-        yield SearchResultDone(
-            result_code=LDAPCodes.SUCCESS,
-            total_pages=pages_total,
-            total_objects=count,
-        )
 
 
 class Changes(BaseModel):
