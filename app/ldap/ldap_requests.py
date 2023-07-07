@@ -31,7 +31,7 @@ from .asn1parser import ASN1Row
 from .dialogue import LDAPCodes, Operation, Session
 from .filter_interpreter import cast_filter2sql
 from .ldap_responses import (
-    BAD_SEARCH_RESPONSE,
+    INVALID_ACCESS_RESPONSE,
     AddResponse,
     BaseResponse,
     BindResponse,
@@ -411,7 +411,7 @@ class SearchRequest(BaseRequest):
         is_schema = self.base_object.lower() == 'cn=schema'
 
         if not (is_root_dse or is_schema) and not user_logged:
-            yield SearchResultDone(**BAD_SEARCH_RESPONSE)
+            yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
 
         if self.scope == Scope.BASE_OBJECT:
@@ -673,7 +673,7 @@ class ModifyRequest(BaseRequest):
             AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
-            yield ModifyResponse(**BAD_SEARCH_RESPONSE)
+            yield ModifyResponse(**INVALID_ACCESS_RESPONSE)
             return
 
         base_dn = await get_base_dn()
@@ -797,7 +797,7 @@ class AddRequest(BaseRequest):
             AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
-            yield AddResponse(**BAD_SEARCH_RESPONSE)
+            yield AddResponse(**INVALID_ACCESS_RESPONSE)
             return
 
         if not validate_entry(self.entry.lower()):
@@ -905,7 +905,7 @@ class DeleteRequest(BaseRequest):
             AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
         if not ldap_session.user:
-            yield DeleteResponse(**BAD_SEARCH_RESPONSE)
+            yield DeleteResponse(**INVALID_ACCESS_RESPONSE)
             return
 
         if not validate_entry(self.entry.lower()):
@@ -984,6 +984,9 @@ class ModifyDNRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) ->\
             AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
+        if not ldap_session.user:
+            yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
+
         base_dn = await get_base_dn()
         obj = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')

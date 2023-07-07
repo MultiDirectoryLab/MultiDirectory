@@ -115,7 +115,7 @@ class SearchResultDone(LDAPResult, BaseResponse):
         return fields
 
 
-BAD_SEARCH_RESPONSE = {
+INVALID_ACCESS_RESPONSE = {
     'result_code': LDAPCodes.OPERATIONS_ERROR,
     'errorMessage': (
         '000004DC: LdapErr: DSID-0C090A71, '
