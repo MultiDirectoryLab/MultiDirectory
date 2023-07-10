@@ -122,12 +122,23 @@ async def first_setup(
 
     domain = request.domain.replace('http://', '').replace('https://', '')
 
-    directory = Directory(object_class='user', name=request.username)
+    users_ou = Directory(name='users')
+    directory = Directory(
+        object_class='user',
+        name=request.username,
+        parent=users_ou,
+    )
+    users_ou_path = users_ou.create_path('ou')
     path = directory.create_path()
     attrs = []
 
     object_classes = (
         'user', 'top', 'person', 'organizationalPerson', 'posixAccount')
+
+    users_oc = ("organizationalUnit", "top", "container")
+    for oc in users_oc:
+        attrs.append(
+            Attribute(name='objectClass', value=oc, directory=users_ou))
 
     for oc in object_classes:
         attrs.append(
@@ -145,8 +156,11 @@ async def first_setup(
 
     async with session.begin_nested():
         try:
-            session.add_all([catalogue, directory, user] + attrs)
+            paths = path + users_ou_path
+            session.add_all(
+                [catalogue, directory, user, users_ou] + attrs + paths)
             directory.paths.append(path)
+            users_ou.paths.append(users_ou_path)
             await session.commit()
         except IntegrityError:
             await session.rollback()
