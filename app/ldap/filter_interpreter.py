@@ -94,9 +94,9 @@ def _from_str_filter(model: type, is_substring: bool, item: Filter):
     col = getattr(model, item.attr)
 
     if is_substring:
-        return col.ilike(item.value.replace('*', '%'))
+        return col.ilike(item.val.replace('*', '%'))
     op_method = {'=': eq, '>=': ge, '<=': le, '~=': ne}[item.comp]
-    return op_method(func.lower(col), item.value)
+    return op_method(func.lower(col), item.val)
 
 
 def _cast_filt_item(item: Filter, query):
