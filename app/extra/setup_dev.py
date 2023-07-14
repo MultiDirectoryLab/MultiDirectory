@@ -13,7 +13,6 @@ DC=multifactor
 """
 import asyncio
 
-from dev_data import DATA
 from loguru import logger
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -30,8 +29,10 @@ from models.ldap3 import (
 )
 from security import get_password_hash
 
+from .dev_data import DATA
 
-async def get_group(name, session):
+
+async def _get_group(name, session):
     return await session.scalar(
         select(Group).join(Group.directory).filter(
             Directory.name == name,
@@ -39,7 +40,7 @@ async def get_group(name, session):
         ).options(selectinload(Group.child_groups)))
 
 
-async def create_dir(
+async def _create_dir(
         data, session: AsyncSession, parent: Directory | None = None):
     """Create data recursively."""
     if not parent:
@@ -72,7 +73,7 @@ async def create_dir(
         group = Group(directory=dir_)
         session.add(group)
         for group_name in data.get('groups', []):
-            parent_group = await get_group(group_name, session)
+            parent_group = await _get_group(group_name, session)
             session.add(GroupMembership(
                 group_id=parent_group.id, group_child_id=group.id))
 
@@ -96,7 +97,7 @@ async def create_dir(
         session.add(user)
 
         for group_name in user_data.get('groups', []):
-            parent_group = await get_group(group_name, session)
+            parent_group = await _get_group(group_name, session)
             session.add(UserMembership(
                 group_id=parent_group.id, user_id=user.id))
 
@@ -104,22 +105,22 @@ async def create_dir(
 
     if 'children' in data:
         for n_data in data['children']:
-            await create_dir(n_data, session, dir_)
+            await _create_dir(n_data, session, dir_)
 
 
-async def setup_dev_enviroment() -> None:
-    """Create directories and users for development enviroment."""
+async def setup_enviroment(base_dn="multifactor.dev", base_data=DATA) -> None:
+    """Create directories and users for enviroment."""
     async with async_session() as session:
         cat_result = await session.execute(
             select(CatalogueSetting)
-            .filter(CatalogueSetting.name == 'defaultNamingContext')
+            .filter(CatalogueSetting.name == 'defaultNamingContext'),
         )
         if cat_result.scalar():
             logger.warning('dev data already set up')
             return
 
         catalogue = CatalogueSetting(
-            name='defaultNamingContext', value='multifactor.dev')
+            name='defaultNamingContext', value=base_dn)
 
         async with session.begin_nested():
             session.add(catalogue)
@@ -127,12 +128,12 @@ async def setup_dev_enviroment() -> None:
 
     async with async_session() as session:
         try:
-            for data in DATA:
-                await create_dir(data, session)
+            for data in base_data:
+                await _create_dir(data, session)
         except Exception:
             import traceback
             logger.error(traceback.format_exc())  # noqa
 
 
 if __name__ == '__main__':
-    asyncio.run(setup_dev_enviroment())
+    asyncio.run(setup_enviroment())

@@ -809,15 +809,16 @@ class AddRequest(BaseRequest):
             ',' + base_dn.lower()).split(',')
         has_no_parent = len(obj) == 1
 
+        new_dn, name = obj[0].split('=')
+
         if has_no_parent:
             new_dir = Directory(
                 object_class='',
-                name=obj[0].split('=')[1],
+                name=name,
             )
-            path = new_dir.create_path()
+            path = new_dir.create_path(dn=new_dn)
 
         else:
-            new_dn = obj.pop(0)
             search_path = reversed(obj)
             query = select(Directory)\
                 .join(Directory.path)\
@@ -831,10 +832,10 @@ class AddRequest(BaseRequest):
 
             new_dir = Directory(
                 object_class='',
-                name=new_dn.split('=')[1],
+                name=name,
                 parent=parent,
             )
-            path = new_dir.create_path(parent)
+            path = new_dir.create_path(parent, new_dn)
 
         user = None
         attributes = []

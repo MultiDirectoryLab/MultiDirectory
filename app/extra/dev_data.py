@@ -1,9 +1,9 @@
+"""Data variables."""
+
 group_attrs = {
     "objectClass": ["top"],
     'groupType': ['-2147483646'],
     'instanceType': ['4'],
-    # 'objectGUID': ['{9aac5c3d-689f-4557-806a-f123ed6bb230}'],
-    # 'objectSid': ['S-1-5-21-625588008-872595822-1771925161-6007'],
     'sAMAccountName': ['groups'],
     'sAMAccountType': ['268435456'],
 }

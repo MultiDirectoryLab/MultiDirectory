@@ -1,6 +1,6 @@
 """MultiDirectory LDAP models."""
 
-from typing import Optional
+from typing import Optional, Literal
 
 from sqlalchemy import (
     Column,
@@ -12,7 +12,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import (
     Mapped,
     declarative_mixin,
@@ -22,6 +21,8 @@ from sqlalchemy.orm import (
 )
 
 from .database import Base
+
+DistinguishedNamePrefix = Literal['cn', 'ou', 'dc']
 
 
 class CatalogueSetting(Base):
@@ -125,16 +126,20 @@ class Directory(Base):
             'domain': 'DC',
         }.get(self.object_class, 'CN')  # type: ignore
 
-    def get_dn(self) -> str:
+    def get_dn(self, dn: DistinguishedNamePrefix = 'cn') -> str:
         """Get distinguished name."""
-        return f"{self.get_dn_prefix()}={self.name}".lower()
+        return f"{dn}={self.name}".lower()
 
-    def create_path(self, parent: Optional['Directory'] = None) -> 'Path':
+    def create_path(
+        self,
+        parent: Optional['Directory'] = None,
+        dn: DistinguishedNamePrefix = 'cn',
+    ) -> 'Path':
         """Create Path from a new directory."""
         pre_path: list[str] =\
             parent.path.path if parent else []  # type: ignore
         return Path(
-            path=pre_path + [self.get_dn()],
+            path=pre_path + [self.get_dn(dn)],
             endpoint=self)
 
 

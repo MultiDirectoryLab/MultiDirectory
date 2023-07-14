@@ -1,10 +1,15 @@
 """Schemas for auth module."""
 
+import re
+
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import AnyHttpUrl, BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 
 from models.ldap3 import User as DBUser
+
+domain_regex = "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z]{2,6}"
+domain_re = re.compile(domain_regex)
 
 
 class Login(BaseModel):
@@ -58,9 +63,15 @@ class User(BaseModel):
 class SetupRequest(BaseModel):
     """Setup app form."""
 
-    domain: AnyHttpUrl
+    domain: str
     username: str
     user_principal_name: str
     display_name: str
     mail: EmailStr
     password: str
+
+    @validator('domain')
+    def validate_domain(cls, v):  # noqa
+        if re.match(domain_re, v) is None:
+            raise ValueError('Invalid domain value')
+        return v.lower().replace('http://', '').replace('https://', '')
