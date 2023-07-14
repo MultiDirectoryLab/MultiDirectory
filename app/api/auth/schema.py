@@ -74,4 +74,4 @@ class SetupRequest(BaseModel):
     def validate_domain(cls, v):  # noqa
         if re.match(domain_re, v) is None:
             raise ValueError('Invalid domain value')
-        return v.lower()
+        return v.lower().replace('http://', '').replace('https://', '')
