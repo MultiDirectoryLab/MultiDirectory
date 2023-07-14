@@ -1,5 +1,6 @@
 """Auth api."""
 
+from extra.setup_dev import setup_enviroment
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -8,9 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings, get_settings
 from ldap.ldap_responses import LDAPCodes, LDAPResult
 from models.database import get_session
-from models.ldap3 import Attribute, CatalogueSetting, Directory
-from models.ldap3 import User as DBUser
-from security import get_password_hash
+from models.ldap3 import CatalogueSetting
 
 from .oauth2 import (
     authenticate_user,
@@ -120,48 +119,55 @@ async def first_setup(
     if setup_already_performed:
         return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
 
-    domain = request.domain.replace('http://', '').replace('https://', '')
-
-    users_ou = Directory(name='users')
-    directory = Directory(
-        object_class='user',
-        name=request.username,
-        parent=users_ou,
-    )
-    users_ou_path = users_ou.create_path('ou')
-    path = directory.create_path()
-    attrs = []
-
-    object_classes = (
-        'user', 'top', 'person', 'organizationalPerson', 'posixAccount')
-
-    users_oc = ("organizationalUnit", "top", "container")
-    for oc in users_oc:
-        attrs.append(
-            Attribute(name='objectClass', value=oc, directory=users_ou))
-
-    for oc in object_classes:
-        attrs.append(
-            Attribute(name='objectClass', value=oc, directory=directory))
-
-    user = DBUser(
-        sam_accout_name=request.username,
-        display_name=request.display_name,
-        user_principal_name=request.user_principal_name,
-        mail=request.mail,
-        password=get_password_hash(request.password),
-        directory=directory,
-    )
-    catalogue = CatalogueSetting(name='defaultNamingContext', value=domain)
+    data = [  # noqa
+        {
+            "name": "groups",
+            "object_class": "container",
+            "attributes": {
+                "objectClass": ["top"],
+                'sAMAccountName': ['groups'],
+            },
+            "children": [
+                {
+                    "name": "domain admins",
+                    "object_class": "group",
+                    "attributes": {
+                        "objectClass": ["top"],
+                        'groupType': ['-2147483646'],
+                        'instanceType': ['4'],
+                        'sAMAccountName': ['domain admins'],
+                        'sAMAccountType': ['268435456'],
+                    },
+                },
+            ],
+        },
+        {
+            "name": "users",
+            "object_class": "organizationalUnit",
+            "attributes": {"objectClass": ["top", "container"]},
+            "children": [
+                {
+                    "name": request.username,
+                    "object_class": "user",
+                    "organizationalPerson": {
+                        "sam_accout_name": request.username,
+                        "user_principal_name": request.user_principal_name,
+                        "mail": request.mail,
+                        "display_name": request.display_name,
+                        "password": request.password,
+                        "groups": ['domain admins'],
+                    },
+                    "attributes": {"objectClass": [
+                        "top", "person",
+                        "organizationalPerson", "posixAccount"]},
+                },
+            ],
+        },
+    ]
 
     async with session.begin_nested():
         try:
-            paths = path + users_ou_path
-            session.add_all(
-                [catalogue, directory, user, users_ou] + attrs + paths)
-            directory.paths.append(path)
-            users_ou.paths.append(users_ou_path)
-            await session.commit()
+            await setup_enviroment(request.domain, data)
         except IntegrityError:
             await session.rollback()
             return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
