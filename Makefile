@@ -21,7 +21,7 @@ launch:  ## run standalone app without tty container
 
 recreate:  ## re-run migration
 	docker exec -it multidirectory bash -c\
-		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
+		"alembic downgrade -1; alembic upgrade head; python -m extra.setup_dev"
 
 deploy:  ## deploy ready-to-use
 	make build
