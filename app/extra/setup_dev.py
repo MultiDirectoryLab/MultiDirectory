@@ -46,7 +46,7 @@ async def _create_dir(
     if not parent:
         dir_ = Directory(
             object_class=data['object_class'], name=data['name'])
-        path = dir_.create_path()
+        path = dir_.create_path(dn=dir_.get_dn_prefix())
 
         async with session.begin_nested():
             logger.debug(f"creating {dir_.object_class}:{dir_.name}")
@@ -59,7 +59,7 @@ async def _create_dir(
             object_class=data['object_class'],
             name=data['name'],
             parent=parent)
-        path = dir_.create_path(parent)
+        path = dir_.create_path(parent, dir_.get_dn_prefix())
 
         async with session.begin_nested():
             logger.debug(

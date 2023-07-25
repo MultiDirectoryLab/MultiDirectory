@@ -122,9 +122,9 @@ class Directory(Base):
     def get_dn_prefix(self) -> str:
         """Get distinguished name prefix."""
         return {
-            'organizationalUnit': 'OU',
-            'domain': 'DC',
-        }.get(self.object_class, 'CN')  # type: ignore
+            'organizationalUnit': 'ou',
+            'domain': 'dc',
+        }.get(self.object_class, 'cn')  # type: ignore
 
     def get_dn(self, dn: DistinguishedNamePrefix = 'cn') -> str:
         """Get distinguished name."""
