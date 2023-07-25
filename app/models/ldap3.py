@@ -1,6 +1,6 @@
 """MultiDirectory LDAP models."""
 
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from sqlalchemy import (
     Column,
