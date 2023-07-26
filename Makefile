@@ -54,4 +54,4 @@ stage_update:  ## update service
 	docker-compose -f docker-compose.dev.yml pull;
 	make stage_up;
 	docker exec -it multidirectory-ldap bash -c\
-		"alembic downgrade -1; alembic upgrade head; PYTHONPATH=/app python extra/setup_dev.py"
+		"alembic downgrade -1; alembic upgrade head; python -m extra.setup_dev"
