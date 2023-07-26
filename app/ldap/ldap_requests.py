@@ -809,7 +809,7 @@ class AddRequest(BaseRequest):
             ',' + base_dn.lower()).split(',')
         has_no_parent = len(obj) == 1
 
-        new_dn, name = obj[0].split('=')
+        new_dn, name = obj.pop(0).split('=')
 
         if has_no_parent:
             new_dir = Directory(
