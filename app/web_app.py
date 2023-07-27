@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api import auth_router, entry_router
 from config import Settings, get_settings
-from models.database import get_async_session, get_session
+from models.database import create_get_async_session, get_session
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -15,7 +15,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     origins = ["*"]
     app.dependency_overrides = {
         get_settings: lambda: settings,
-        get_session: get_async_session,
+        get_session: create_get_async_session(settings),
     }
     app.include_router(auth_router)
     app.include_router(entry_router)
