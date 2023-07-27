@@ -16,7 +16,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 from sqlalchemy.sql.expression import Select
 
-from config import settings
+from config import VENDOR_NAME, VENDOR_VERSION
 from models.ldap3 import (
     Attribute,
     CatalogueSetting,
@@ -304,8 +304,8 @@ class SearchRequest(BaseRequest):
 
         data.pop('defaultNamingContext', None)
 
-        base_dn = await get_base_dn()
-        domain = await get_base_dn(True)
+        base_dn = await get_base_dn(session)
+        domain = await get_base_dn(session, True)
         schema = 'CN=Schema'
 
         if attributes == ['subschemasubentry']:
@@ -318,13 +318,13 @@ class SearchRequest(BaseRequest):
         data['serviceName'].append(domain)
         data['dsServiceName'].append(domain)
         data['LDAPServiceName'].append(domain)
-        data['vendorName'].append(settings.VENDOR_NAME)
+        data['vendorName'].append(VENDOR_NAME)
+        data['vendorVersion'].append(VENDOR_VERSION)
         data['namingContexts'].append(base_dn)
         data['namingContexts'].append(schema)
         data['rootDomainNamingContext'].append(base_dn)
         data['supportedLDAPVersion'].append(3)
         data['defaultNamingContext'].append(base_dn)
-        data['vendorVersion'].append(settings.VENDOR_VERSION)
         data['currentTime'].append(get_generalized_now())
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
@@ -420,7 +420,7 @@ class SearchRequest(BaseRequest):
                 yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
                 return
 
-        query = self.build_query(await get_base_dn())
+        query = self.build_query(await get_base_dn(session))
 
         try:
             cond, query = self.cast_filter(self.filter, query)
@@ -448,7 +448,7 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sqlalchemy session
         :return SearchResultEntry | None: optional result
         """
-        dn = await get_base_dn()
+        dn = await get_base_dn(session)
 
         if self.base_object:
             if self.base_object.lower() == dn.lower():  # noqa  # domain info
@@ -559,7 +559,7 @@ class SearchRequest(BaseRequest):
     async def tree_view(self, query, session: AsyncSession):
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
-        dn = await get_base_dn()
+        dn = await get_base_dn(session)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 
         async for directory in directories:
@@ -676,7 +676,7 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(**INVALID_ACCESS_RESPONSE)
             return
 
-        base_dn = await get_base_dn()
+        base_dn = await get_base_dn(session)
         if not validate_entry(self.object.lower()):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
@@ -804,7 +804,7 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        base_dn = await get_base_dn()
+        base_dn = await get_base_dn(session)
         obj = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
         has_no_parent = len(obj) == 1
@@ -913,7 +913,7 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        base_dn = await get_base_dn()
+        base_dn = await get_base_dn(session)
         obj = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
         search_path = reversed(obj)
@@ -989,7 +989,7 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
 
-        base_dn = await get_base_dn()
+        base_dn = await get_base_dn(session)
         obj = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
 
