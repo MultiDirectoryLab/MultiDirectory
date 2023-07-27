@@ -5,8 +5,8 @@ from datetime import datetime
 import pytz
 from asyncstdlib.functools import cache
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.database import AsyncSession, async_session
 from models.ldap3 import CatalogueSetting, Path, User
 
 email_re = re.compile(
@@ -14,22 +14,21 @@ email_re = re.compile(
 
 
 @cache
-async def get_base_dn(normal: bool = False) -> str:
+async def get_base_dn(session: AsyncSession, normal: bool = False) -> str:
     """Get base dn for e.g. DC=multifactor,DC=dev.
 
     :return str: name for the base distinguished name.
     """
-    async with async_session() as session:
-        cat_result = await session.execute(
-            select(CatalogueSetting)
-            .filter(CatalogueSetting.name == 'defaultNamingContext'),
-        )
-        if normal:
-            return cat_result.scalar_one().value
+    cat_result = await session.execute(
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+    )
+    if normal:
+        return cat_result.scalar_one().value
 
-        return ','.join((
-            f'dc={value}' for value in
-            cat_result.scalar_one().value.split('.')))
+    return ','.join((
+        f'dc={value}' for value in
+        cat_result.scalar_one().value.split('.')))
 
 
 def get_attribute_types() -> list[str]:
