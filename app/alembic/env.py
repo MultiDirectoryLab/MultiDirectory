@@ -5,7 +5,8 @@ from logging.config import fileConfig
 
 from alembic import context
 
-from models.database import Base, engine
+from config import Settings
+from models.database import Base, get_engine
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -30,12 +31,14 @@ def do_run_migrations(connection):
         context.run_migrations()
 
 
-async def run_migrations_online():
+async def run_migrations_online(settings: Settings | None = None):
     """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
+    settings = settings or Settings()
+    engine = get_engine(settings)
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
