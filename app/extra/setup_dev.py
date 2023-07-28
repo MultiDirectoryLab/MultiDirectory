@@ -17,7 +17,8 @@ from loguru import logger
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from models.database import AsyncSession, async_session
+from config import Settings
+from models.database import AsyncSession, create_session_factory
 from models.ldap3 import (
     Attribute,
     CatalogueSetting,
@@ -101,39 +102,43 @@ async def _create_dir(
             session.add(UserMembership(
                 group_id=parent_group.id, user_id=user.id))
 
-    await session.commit()
-
     if 'children' in data:
         for n_data in data['children']:
             await _create_dir(n_data, session, dir_)
 
 
-async def setup_enviroment(base_dn="multifactor.dev", base_data=DATA) -> None:
+async def setup_enviroment(
+        session: AsyncSession, *, data, dn="multifactor.dev") -> None:
     """Create directories and users for enviroment."""
-    async with async_session() as session:
-        cat_result = await session.execute(
-            select(CatalogueSetting)
-            .filter(CatalogueSetting.name == 'defaultNamingContext'),
-        )
-        if cat_result.scalar():
-            logger.warning('dev data already set up')
-            return
+    cat_result = await session.execute(
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+    )
+    if cat_result.scalar():
+        logger.warning('dev data already set up')
+        return
 
-        catalogue = CatalogueSetting(
-            name='defaultNamingContext', value=base_dn)
+    catalogue = CatalogueSetting(
+        name='defaultNamingContext', value=dn)
 
-        async with session.begin_nested():
-            session.add(catalogue)
+    async with session.begin_nested():
+        session.add(catalogue)
+
+    try:
+        for unit in data:
+            await _create_dir(unit, session)
+    except Exception:
+        import traceback
+        logger.error(traceback.format_exc())  # noqa
+    else:
         await session.commit()
-
-    async with async_session() as session:
-        try:
-            for data in base_data:
-                await _create_dir(data, session)
-        except Exception:
-            import traceback
-            logger.error(traceback.format_exc())  # noqa
 
 
 if __name__ == '__main__':
-    asyncio.run(setup_enviroment())
+    AsyncSessionFactory = create_session_factory(Settings())
+
+    async def execute():  # noqa
+        async with AsyncSessionFactory() as session:
+            await setup_enviroment(session, data=DATA)
+
+    asyncio.run(execute())

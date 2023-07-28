@@ -8,19 +8,15 @@ from traceback import format_exc
 from loguru import logger
 from pydantic import ValidationError
 
-from config import settings
+from config import Settings
 from ldap import LDAPRequestMessage, Session
-from models.database import AsyncSession, async_session
+from models.database import AsyncSession, create_session_factory
 
 logger.add(
     "logs/file_{time:DD-MM-YYYY}.log",
     retention="10 days",
     rotation="1d",
     colorize=False)
-
-
-SSL_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-SSL_CONTEXT.load_cert_chain(settings.SSL_CERT, settings.SSL_KEY)
 
 
 class PoolClient:
@@ -34,10 +30,16 @@ class PoolClient:
     uses callable object for a single connection.
     """
 
-    def __init__(self, num_workers: int = 3, use_tls: bool = False):
+    def __init__(
+        self,
+        settings: Settings,
+        num_workers: int = 3,
+        use_tls: bool = False,
+    ):
         """Set workers number for single client concurrent handling."""
         self.num_workers = num_workers
         self.use_tls = use_tls
+        self.settings = settings
 
     async def __call__(
         self,
@@ -45,20 +47,26 @@ class PoolClient:
         writer: asyncio.StreamWriter,
     ):
         """Create session, queue and start message handlers concurrently."""
-        self.session = Session()
+        self.ldap_session = Session()
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
         self.reader = reader
         self.writer = writer
         self.lock = asyncio.Lock()
         self.addr = ':'.join(map(str, writer.get_extra_info('peername')))
 
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(
+            self.settings.SSL_CERT, self.settings.SSL_KEY)
+
         if self.use_tls:
             logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
-            await self.writer.start_tls(SSL_CONTEXT)
+            await self.writer.start_tls(ssl_context)
             logger.success(f"Successfully started TLS for {self.addr}")
 
+        AsyncSessionFactory = create_session_factory(self.settings)  # noqa
+
         try:
-            async with async_session() as session:
+            async with AsyncSessionFactory() as session:
                 await asyncio.gather(
                     self.handle_request(),
                     self.handle_responses(session),
@@ -114,7 +122,7 @@ class PoolClient:
             logger.info(f"\nFrom: {self.addr!r}\nRequest: {message}\n")
 
             async for response in message.create_response(
-                    self.session, session):
+                    self.ldap_session, session):
                 logger.info(
                     f"\nTo: {self.addr!r}\nResponse: {response}"[:3000])
 
@@ -140,13 +148,14 @@ async def _run_server(server):
 
 async def main():
     """Start server and debug client."""
+    settings = Settings()
     server = await asyncio.start_server(
-        PoolClient(use_tls=False),
+        PoolClient(settings, use_tls=False),
         str(settings.HOST), 389,
         flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
     )
     ssl_server = await asyncio.start_server(
-        PoolClient(use_tls=True),
+        PoolClient(settings, use_tls=True),
         str(settings.HOST), 636,
         flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
     )
