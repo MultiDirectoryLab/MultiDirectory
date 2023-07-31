@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ldap.dialogue import Session
 from app.ldap.ldap_requests import (
@@ -13,9 +14,9 @@ from app.security import get_password_hash
 
 
 @pytest.mark.asyncio()
-async def test_bind_ok_and_unbind(session):
+async def test_bind_ok_and_unbind(
+        session: AsyncSession, ldap_session: Session):
     """Test ok bind."""
-    ldap_session = Session()
     directory = Directory(name='user0', object_class='')
     user = User(
         sam_accout_name='user0',
@@ -29,13 +30,13 @@ async def test_bind_ok_and_unbind(session):
 
     bind = BindRequest(
         version=0,
-        name='user0',
+        name=user.sam_accout_name,
         AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
     )
 
     result = await anext(bind.handle(ldap_session, session))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
-    assert ldap_session.user.sam_accout_name == user.sam_accout_name
+    assert ldap_session.user.sam_accout_name == user.sam_accout_name  # type: ignore  # noqa
 
     with pytest.raises(StopAsyncIteration):
         await anext(UnbindRequest().handle(ldap_session, session))
@@ -43,9 +44,9 @@ async def test_bind_ok_and_unbind(session):
 
 
 @pytest.mark.asyncio()
-async def test_bind_invalid_password_or_user(session):
+async def test_bind_invalid_password_or_user(
+        session: AsyncSession, ldap_session: Session):
     """Test invalid password bind."""
-    ldap_session = Session()
     directory = Directory(name='user0', object_class='')
     user = User(
         sam_accout_name='user0',
@@ -88,9 +89,8 @@ async def test_bind_invalid_password_or_user(session):
 
 
 @pytest.mark.asyncio()
-async def test_anonymous_bind(session):
+async def test_anonymous_bind(session: AsyncSession, ldap_session: Session):
     """Test anonymous."""
-    ldap_session = Session()
     bind = BindRequest(
         version=0,
         name='',
@@ -99,4 +99,11 @@ async def test_anonymous_bind(session):
 
     result = await anext(bind.handle(ldap_session, session))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
+    assert ldap_session.user is None
+
+
+@pytest.mark.asyncio()
+async def test_anonymous_unbind(session: AsyncSession, ldap_session: Session):
+    with pytest.raises(StopAsyncIteration):
+        await anext(UnbindRequest().handle(ldap_session, session))
     assert ldap_session.user is None

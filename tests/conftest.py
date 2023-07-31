@@ -2,6 +2,7 @@
 
 import asyncio
 from typing import AsyncGenerator, Generator
+from app.ldap.dialogue import Session
 
 import pytest
 import pytest_asyncio
@@ -55,3 +56,9 @@ async def session(engine, migrations) -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         yield session
         await session.rollback()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def ldap_session() -> AsyncGenerator[Session, None]:
+    """Yield empty session."""
+    yield Session()
