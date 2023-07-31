@@ -52,8 +52,5 @@ multi_line_output = 3
 [tool.mypy]
 plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
 
-[tool.flake8]
-extend-immutable-calls = "Depends, fastapi.Depends, fastapi.params.Depends"
-
 [tool.pytest.ini_options]
 pythonpath = ["/app"]
