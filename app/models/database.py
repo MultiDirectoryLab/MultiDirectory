@@ -1,6 +1,6 @@
 """Database primitives."""
 
-from typing import AsyncGenerator
+from typing import AsyncContextManager, AsyncGenerator, Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -34,7 +34,10 @@ def create_get_async_session(settings: Settings):
     return get_async_session
 
 
-def create_session_factory(settings: Settings):  # noqa
+def create_session_factory(
+    settings: Settings,
+) -> Callable[..., AsyncContextManager[AsyncSession]]:
+    """Create session factory."""
     from contextlib import asynccontextmanager
     get_async_session = create_get_async_session(settings)
     return asynccontextmanager(get_async_session)
