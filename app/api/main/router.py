@@ -70,7 +70,7 @@ async def update_dn(
 
 @entry_router.delete('/delete')
 async def delete(
-    request: DeleteRequest,  # noqa: A002
+    request: DeleteRequest,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user_or_none),
 ) -> LDAPResult:
