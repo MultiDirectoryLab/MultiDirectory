@@ -34,3 +34,4 @@ async def test_bind_ok(session):
 
     async for result in bind.handle(ldap_session, session):
         assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
+    assert ldap_session.user.sam_accout_name == user.sam_accout_name
