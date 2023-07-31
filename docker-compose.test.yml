@@ -18,7 +18,7 @@ services:
       POSTGRES_PWD: password123
       POSTGRES_HOST: postgres
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
-    command: bash -c "python -m pytest -s"
+    command: bash -c "python -m pytest -s -W ignore::DeprecationWarning"
 
   postgres:
     container_name: MD-test-postgres
