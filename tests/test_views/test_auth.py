@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from unittest.mock import AsyncMock
 
 from app.ldap.dialogue import Session
 from app.ldap.ldap_requests import (
@@ -104,6 +105,9 @@ async def test_anonymous_bind(session: AsyncSession, ldap_session: Session):
 
 @pytest.mark.asyncio()
 async def test_anonymous_unbind(session: AsyncSession, ldap_session: Session):
+    """Test anonymous call."""
+    ldap_session.delete_user = AsyncMock()  # type: ignore
     with pytest.raises(StopAsyncIteration):
         await anext(UnbindRequest().handle(ldap_session, session))
     assert ldap_session.user is None
+    ldap_session.delete_user.assert_called()
