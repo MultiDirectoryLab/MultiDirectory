@@ -1,3 +1,5 @@
+"""Test main config."""
+
 import asyncio
 from typing import AsyncGenerator, Generator
 
@@ -18,16 +20,32 @@ def event_loop(request) -> Generator:  # noqa: indirect usage
 
 
 @pytest.fixture(scope="session")
-def settings(pmr_postgres_config) -> Settings:
+def settings() -> Settings:
     """Get settings."""
     return Settings()
 
 
-@pytest_asyncio.fixture(scope="function")
-async def session(settings) -> AsyncGenerator[AsyncSession, None]:
-    """Get session and aquire after completion."""
-    engine = get_engine(settings)
+@pytest.fixture(scope="session")
+def engine(settings) -> Settings:
+    """Get settings."""
+    return get_engine(settings)
 
+
+@pytest_asyncio.fixture(scope="session")
+async def migrations(engine):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def session(engine, migrations) -> AsyncGenerator[AsyncSession, None]:
+    """Get session and aquire after completion."""
     async_session = sessionmaker(
         engine,
         expire_on_commit=False,
@@ -35,12 +53,5 @@ async def session(settings) -> AsyncGenerator[AsyncSession, None]:
     )
 
     async with async_session() as session:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
         yield session
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-    await engine.dispose()
+        await session.rollback()
