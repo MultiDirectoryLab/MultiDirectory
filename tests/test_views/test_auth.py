@@ -1,6 +1,7 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import AsyncMock
 
 from app.ldap.dialogue import Session
 from app.ldap.ldap_requests import (
