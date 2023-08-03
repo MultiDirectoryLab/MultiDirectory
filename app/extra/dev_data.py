@@ -166,3 +166,50 @@ DATA = [  # noqa
         ],
     },
 ]
+
+
+TEST_DATA = [  # noqa
+    {
+        "name": "groups",
+        "object_class": "container",
+        "attributes": {
+            "objectClass": ["top"],
+            'sAMAccountName': ['groups'],
+        },
+        "children": [
+            {
+                "name": "domain admins",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top"],
+                    'groupType': ['-2147483646'],
+                    'instanceType': ['4'],
+                    'sAMAccountName': ['domain admins'],
+                    'sAMAccountType': ['268435456'],
+                },
+            },
+        ],
+    },
+    {
+        "name": "users",
+        "object_class": "organizationalUnit",
+        "attributes": {"objectClass": ["top", "container"]},
+        "children": [
+            {
+                "name": "user0",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_accout_name": "user0",
+                    "user_principal_name": "user0",
+                    "mail": "user0@mail.com",
+                    "display_name": "user0",
+                    "password": "password",
+                    "groups": ['domain admins'],
+                },
+                "attributes": {"objectClass": [
+                    "top", "person",
+                    "organizationalPerson", "posixAccount"]},
+            },
+        ],
+    },
+]
