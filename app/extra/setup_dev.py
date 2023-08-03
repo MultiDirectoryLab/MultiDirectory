@@ -50,7 +50,7 @@ async def _create_dir(
         path = dir_.create_path(dn=dir_.get_dn_prefix())
 
         async with session.begin_nested():
-            logger.debug(f"creating {dir_.object_class}:{dir_.name}")
+            # logger.debug(f"creating {dir_.object_class}:{dir_.name}")
             session.add_all([dir_, path])
             dir_.paths.append(path)
             dir_.depth = len(path.path)
@@ -63,8 +63,8 @@ async def _create_dir(
         path = dir_.create_path(parent, dir_.get_dn_prefix())
 
         async with session.begin_nested():
-            logger.debug(
-                f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
+            # logger.debug(
+            #     f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
             session.add_all([dir_, path])
             path.directories.extend(
                 [p.endpoint for p in parent.paths + [path]])
@@ -99,8 +99,11 @@ async def _create_dir(
 
         for group_name in user_data.get('groups', []):
             parent_group = await _get_group(group_name, session)
+            await session.flush()
             session.add(UserMembership(
                 group_id=parent_group.id, user_id=user.id))
+
+    await session.flush()
 
     if 'children' in data:
         for n_data in data['children']:
@@ -130,8 +133,7 @@ async def setup_enviroment(
     except Exception:
         import traceback
         logger.error(traceback.format_exc())  # noqa
-    else:
-        await session.commit()
+        raise
 
 
 if __name__ == '__main__':
