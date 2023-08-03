@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 from unittest.mock import AsyncMock
 
 import pytest
@@ -133,3 +134,27 @@ async def test_ldap_bind(session, settings):
 
     result = await proc.wait()
     assert result == 0
+
+
+@pytest.mark.asyncio()
+async def test_ldap3_bind(session, ldap_client, event_loop):
+    """Test ldap3 bind."""
+    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
+
+    user = TEST_DATA[1]['children'][0][
+        'organizationalPerson']['sam_accout_name']
+    password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+
+    assert not ldap_client.bound
+
+    result = await event_loop.run_in_executor(None, ldap_client.bind)
+    assert result
+    assert ldap_client.bound
+
+    result = await event_loop.run_in_executor(
+        None, partial(ldap_client.rebind, user=user, password=password))
+    assert result
+    assert ldap_client.bound
+
+    result = await event_loop.run_in_executor(None, ldap_client.unbind)
+    assert not ldap_client.bound

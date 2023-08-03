@@ -4,6 +4,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Generator
 
+import ldap3
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -91,3 +92,12 @@ def server(settings, event_loop: asyncio.BaseEventLoop, session_factory):
     event_loop.run_until_complete(asyncio.sleep(.1))
     yield
     task.cancel()
+
+
+@pytest.fixture(scope='session')
+def ldap_client(settings: Settings):
+    """Get ldap clinet without a creds."""
+    return ldap3.Connection(
+        ldap3.Server(str(settings.HOST), settings.PORT, get_info=None),
+        auto_bind=False,
+    )
