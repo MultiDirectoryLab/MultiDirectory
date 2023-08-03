@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
 from config import Settings, get_settings
-from ldap.utils import get_user
+from ldap_protocol.utils import get_user
 from models.database import AsyncSession, get_session
 from models.ldap3 import User as DBUser
 from security import verify_password

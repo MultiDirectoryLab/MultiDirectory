@@ -7,8 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings, get_settings
-from ldap.ldap_responses import LDAPCodes, LDAPResult
-from ldap.utils import get_base_dn
+from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
+from ldap_protocol.utils import get_base_dn
 from models.database import get_session
 from models.ldap3 import CatalogueSetting
 
