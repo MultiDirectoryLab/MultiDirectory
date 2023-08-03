@@ -32,6 +32,7 @@ async def test_bind_ok_and_unbind(
         directory=directory,
     )
     session.add_all([directory, user])
+    await session.commit()
 
     bind = BindRequest(
         version=0,
@@ -62,6 +63,7 @@ async def test_bind_invalid_password_or_user(
         directory=directory,
     )
     session.add_all([directory, user])
+    await session.commit()
 
     bind = BindRequest(
         version=0,
@@ -121,6 +123,7 @@ async def test_anonymous_unbind(session: AsyncSession, ldap_session: Session):
 async def test_ldap_bind(session, settings):
     """Test ldapsearch on server."""
     await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
+    await session.commit()
 
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
@@ -140,6 +143,7 @@ async def test_ldap_bind(session, settings):
 async def test_ldap3_bind(session, ldap_client, event_loop):
     """Test ldap3 bind."""
     await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
+    await session.commit()
 
     user = TEST_DATA[1]['children'][0][
         'organizationalPerson']['sam_accout_name']
