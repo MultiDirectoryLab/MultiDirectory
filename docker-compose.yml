@@ -131,6 +131,8 @@ services:
       - "traefik.http.routers.ws.rule=Host(`ws.localhost`)"
       - "traefik.http.routers.ws.entrypoints=web"
       - "traefik.http.services.ws.loadbalancer.server.port=3000"
+    logging:
+      driver: "none"
 
 volumes:
   postgres:

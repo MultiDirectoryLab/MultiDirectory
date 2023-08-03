@@ -2,9 +2,9 @@
 
 from pydantic import Field
 
-from ldap.filter_interpreter import Filter, cast_str_filter2sql
-from ldap.ldap_requests import SearchRequest as LDAPSearchRequest
-from ldap.ldap_responses import SearchResultDone, SearchResultEntry
+from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
+from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
+from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 
 
 class SearchRequest(LDAPSearchRequest):  # noqa: D101

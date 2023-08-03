@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     DEBUG: bool
     HOST: IPvAnyAddress
+    PORT: int = 389
+    USE_CORE_TLS: bool = False
 
     POSTGRES_SCHEMA: str = 'postgresql+asyncpg'
     POSTGRES_DB: str = 'postgres'

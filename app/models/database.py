@@ -21,10 +21,12 @@ def get_engine(settings: Settings):  # noqa
 
 def create_get_async_session(settings: Settings):
     """Acquire session creator func."""
+    engine = get_engine(settings)
+
     async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
         """Acquire session."""
         async_session = sessionmaker(
-            get_engine(settings),
+            engine,
             expire_on_commit=False,
             class_=AsyncSession,
         )

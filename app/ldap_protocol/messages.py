@@ -135,7 +135,8 @@ class LDAPRequestMessage(LDAPMessage):
         )
 
     async def create_response(
-        self, ldap_session: Session,
+        self,
+        ldap_session: Session,
         session: AsyncSession,
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
