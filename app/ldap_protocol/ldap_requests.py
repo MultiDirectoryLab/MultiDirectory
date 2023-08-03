@@ -183,7 +183,6 @@ class BindRequest(BaseRequest):
                 'comment: AcceptSecurityContext error, '
                 'data 52e, v3839'),
         )
-
         user = await get_user(session, self.name)
 
         if not user or not self.authentication_choice.is_valid(user):
