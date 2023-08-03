@@ -4,16 +4,25 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Generator
 
+import httpx
 import ldap3
 import pytest
 import pytest_asyncio
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from app.__main__ import PoolClientHandler
-from app.config import Settings
+from app.config import Settings, get_settings
 from app.ldap_protocol.dialogue import Session
 from app.models.database import Base, get_engine
+from app.web_app import create_app, get_session
+
+
+class TestHandler(PoolClientHandler):  # noqa
+    @staticmethod
+    def log_addrs(server):  # noqa
+        pass
 
 
 @pytest.fixture(scope="session")
@@ -52,19 +61,48 @@ async def migrations(engine):
 @pytest.fixture(scope='session')
 def session_factory(engine):
     """Create session factory with engine."""
-    yield sessionmaker(
+    return sessionmaker(
         engine,
         expire_on_commit=False,
+        autoflush=False,
+        autocommit=False,
         class_=AsyncSession,
     )
 
 
+@asynccontextmanager
+async def test_session(session_factory, engine):  # noqa
+    connection = await engine.connect()
+    trans = await connection.begin()
+    async_session = session_factory(bind=connection)
+    nested = await connection.begin_nested()
+
+    @event.listens_for(async_session.sync_session, "after_transaction_end")
+    def end_savepoint(session, transaction):
+        nonlocal nested
+
+        if not nested.is_active:
+            nested = connection.sync_connection.begin_nested()
+
+    yield async_session
+
+    await trans.rollback()
+    await async_session.close()
+    await connection.close()
+
+
 @pytest_asyncio.fixture(scope="function")
-async def session(session_factory) -> AsyncGenerator[AsyncSession, None]:
+async def session(session_factory, engine, handler) -> AsyncGenerator[AsyncSession, None]:
     """Get session and aquire after completion."""
-    async with session_factory() as session:
+    async with test_session(session_factory, engine) as session:
+        @asynccontextmanager
+        async def create_session():
+            yield session
+
+        # runtime session sync for server and client
+        handler.create_session = create_session
+
         yield session
-        await session.rollback()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -73,22 +111,16 @@ async def ldap_session() -> AsyncGenerator[Session, None]:
     yield Session()
 
 
+@pytest.fixture(scope="session")
+def handler(settings):
+    """Create test handler."""
+    return TestHandler(settings)
+
+
 @pytest.fixture(scope="session", autouse=True)
-def server(settings, event_loop: asyncio.BaseEventLoop, session_factory):
+def _server(event_loop: asyncio.BaseEventLoop, handler):
     """Run server in background."""
-    class TestHandler(PoolClientHandler):
-        @asynccontextmanager
-        async def create_session(self):
-            async with session_factory() as session:
-                yield session
-                await session.rollback()
-
-        @staticmethod
-        def log_addrs(server: asyncio.base_events.Server):
-            pass
-
-    task = asyncio.ensure_future(
-        TestHandler(settings).start(), loop=event_loop)
+    task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(.1))
     yield
     task.cancel()
@@ -101,3 +133,20 @@ def ldap_client(settings: Settings):
         ldap3.Server(str(settings.HOST), settings.PORT, get_info=None),
         auto_bind=False,
     )
+
+
+@pytest_asyncio.fixture(scope='session')
+async def http_client(session_factory, settings, engine):
+    """Async client for fastapi tests."""
+    app = create_app(settings)
+
+    async def get_test_async_session():
+        async with test_session(session_factory, engine) as session:
+            yield session
+
+    app.dependency_overrides = {
+        get_session: get_test_async_session,
+        get_settings: lambda: settings,
+    }
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        yield client
