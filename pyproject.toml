@@ -36,7 +36,6 @@ types-pytz = "^2022.7.1.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.0"
-ldap3 = "^2.9.1"
 pytest-asyncio = "^0.21.1"
 
 [build-system]
@@ -44,7 +43,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
-known_first_party = ["ldap", "client", "config", "models", "api", "security"]
+known_first_party = ["ldap_protocol", "client", "config", "models", "api", "security"]
 include_trailing_comma = true
 line_length = 79
 multi_line_output = 3
