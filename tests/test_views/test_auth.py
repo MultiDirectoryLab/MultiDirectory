@@ -1,10 +1,12 @@
+import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ldap.dialogue import Session
-from app.ldap.ldap_requests import (
+from app.extra import TEST_DATA, setup_enviroment
+from app.ldap_protocol.dialogue import Session
+from app.ldap_protocol.ldap_requests import (
     BindRequest,
     BindResponse,
     LDAPCodes,
@@ -112,3 +114,22 @@ async def test_anonymous_unbind(session: AsyncSession, ldap_session: Session):
         await anext(UnbindRequest().handle(ldap_session, session))
     assert ldap_session.user is None
     ldap_session.delete_user.assert_called()
+
+
+@pytest.mark.asyncio()
+async def test_ldap_bind(session, settings):
+    """Test ldapsearch on server."""
+    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-D',
+        TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name'],
+        '-x', '-w',
+        TEST_DATA[1]['children'][0]['organizationalPerson']['password'],
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    result = await proc.wait()
+    assert result == 0
