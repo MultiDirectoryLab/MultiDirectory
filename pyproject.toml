@@ -38,6 +38,7 @@ types-pytz = "^2022.7.1.0"
 pytest = "^7.2.0"
 pytest-asyncio = "^0.21.1"
 ldap3 = "^2.9.1"
+httpx = "^0.24.1"
 
 [build-system]
 requires = ["poetry-core"]
