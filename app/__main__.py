@@ -47,44 +47,44 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ):
         """Create session, queue and start message handlers concurrently."""
-        self.ldap_session = Session()
-        self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
-        self.reader = reader
-        self.writer = writer
-        self.lock = asyncio.Lock()
-        self.addr = ':'.join(map(str, writer.get_extra_info('peername')))
+        ldap_session = Session(reader, writer)
 
         if self.settings.USE_CORE_TLS:
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ssl_context.load_cert_chain(
                 self.settings.SSL_CERT, self.settings.SSL_KEY)
-            logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
-            await self.writer.start_tls(ssl_context)
-            logger.success(f"Successfully started TLS for {self.addr}")
+            logger.info(
+                f"Starting TLS for {ldap_session.addr}, ciphers loaded")
+            await ldap_session.writer.start_tls(ssl_context)
+            logger.success(f"Successfully started TLS for {ldap_session.addr}")
 
-        handle = asyncio.create_task(self.handle_responses())
+        handle = asyncio.create_task(self.handle_responses(ldap_session))
 
         try:
-            await asyncio.gather(self.handle_request(), handle)
+            await asyncio.gather(self.handle_request(ldap_session), handle)
         except RuntimeError:
-            logger.error(f"The connection {self.addr} raised {format_exc()}")
+            logger.error(
+                f"The connection {ldap_session.addr} raised {format_exc()}")
         except ConnectionAbortedError:
             logger.info(
-                f'Connection termination initialized by a client {self.addr}')
+                'Connection termination initialized '
+                f'by a client {ldap_session.addr}')
         finally:
-            writer.close()
-            await writer.wait_closed()
+            ldap_session.writer.close()
+            await ldap_session.writer.wait_closed()
             await handle
-            logger.success(f'Connection {self.addr} normally closed')
+            await ldap_session.queue.join()
+            logger.success(f'Connection {ldap_session.addr} normally closed')
 
-    async def handle_request(self):
+    @staticmethod
+    async def handle_request(ldap_session: Session):
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await self.reader.read(4096)
+            data = await ldap_session.reader.read(4096)
 
             if not data:
                 raise ConnectionAbortedError(
@@ -99,16 +99,16 @@ class PoolClientHandler:
             ) as err:
                 logger.warning(f'Invalid schema {format_exc()}')
 
-                self.writer.write(
+                ldap_session.writer.write(
                     LDAPRequestMessage.from_err(data, err).encode())
-                await self.writer.drain()
+                await ldap_session.writer.drain()
 
             except Exception as err:
                 logger.error(f'Unexpected {format_exc()}')
                 raise RuntimeError('Unexpected exception') from err
 
             else:
-                await self.queue.put(request)
+                await ldap_session.queue.put(request)
 
     @asynccontextmanager
     async def create_session(self):
@@ -116,22 +116,23 @@ class PoolClientHandler:
         async with self.AsyncSessionFactory() as session:
             yield session
 
-    async def handle_single_response(self):
+    async def handle_single_response(self, ldap_session: Session):
         """Get message from queue and handle it."""
         while True:
-            message = await self.queue.get()
-            logger.info(f"\nFrom: {self.addr!r}\nRequest: {message}\n")
+            message = await ldap_session.queue.get()
+            logger.info(f"\nFrom: {ldap_session.addr!r}\nRequest: {message}\n")
 
             async with self.create_session() as session:
                 async for response in message.create_response(
-                        self.ldap_session, session):
+                        ldap_session, session):
                     logger.info(
-                        f"\nTo: {self.addr!r}\nResponse: {response}"[:3000])
+                        f"""\nTo: {ldap_session.addr!r}\n
+                        Response: {response}"""[:3000])
 
-                    self.writer.write(response.encode())
-                    await self.writer.drain()
+                    ldap_session.writer.write(response.encode())
+                    await ldap_session.writer.drain()
 
-    async def handle_responses(self):
+    async def handle_responses(self, ldap_session: Session):
         """Create pool of workers and apply handler to it.
 
         Spawns (default 5) workers,
@@ -139,7 +140,8 @@ class PoolClientHandler:
         cycle locks until pool completes at least 1 task.
         """
         await asyncio.gather(
-            *[self.handle_single_response() for _ in range(self.num_workers)])
+            *[self.handle_single_response(ldap_session)
+                for _ in range(self.num_workers)])
 
     async def get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
@@ -152,10 +154,7 @@ class PoolClientHandler:
     async def run_server(server: asyncio.base_events.Server):
         """Run server."""
         async with server:
-            try:
-                await server.serve_forever()
-            finally:
-                server.close()
+            await server.serve_forever()
 
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server):  # noqa
@@ -166,7 +165,10 @@ class PoolClientHandler:
         """Run and log tcp server."""
         server = await self.get_server()
         self.log_addrs(server)
-        await self.run_server(server)
+        try:
+            await self.run_server(server)
+        finally:
+            server.close()
 
 
 if __name__ == '__main__':
