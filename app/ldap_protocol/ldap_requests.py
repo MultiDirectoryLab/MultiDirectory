@@ -92,7 +92,8 @@ class BaseRequest(ABC, BaseModel):
         :return list[BaseResponse]: list of handled responses
         """
         responses = [
-            response async for response in self.handle(Session(user), session)]
+            response async for response in self.handle(
+                Session(user=user), session)]
 
         if single:
             return responses[0]
