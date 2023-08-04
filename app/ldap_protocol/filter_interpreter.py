@@ -6,7 +6,6 @@ RFC 4511 reference.
 from operator import eq, ge, le, ne
 
 from ldap_filter import Filter
-from loguru import logger
 from sqlalchemy import and_, func, not_, or_
 from sqlalchemy.orm import aliased
 
@@ -100,8 +99,6 @@ def _from_str_filter(model: type, is_substring: bool, item: Filter):
 
 
 def _cast_filt_item(item: Filter, query):
-    logger.debug((item.attr, item.comp, item.val))
-
     if item.val == '*':
         if item.attr in User.search_fields:
             return not_(eq(getattr(User, item.attr), None)), query
@@ -137,11 +134,9 @@ def _cast_filt_item(item: Filter, query):
 
 def cast_str_filter2sql(expr: Filter, query):
     """Cast ldap filter to sa query."""
-    logger.debug(expr.to_string())
     if expr.type == "group":
         conditions = []
         for item in expr.filters:
-            logger.debug(item)
             if expr.type == "group":
                 cond, query = cast_str_filter2sql(item, query)
                 conditions.append(cond)
