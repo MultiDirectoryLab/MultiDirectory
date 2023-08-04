@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from app.__main__ import PoolClientHandler
-from app.config import Settings, get_settings
+from app.config import Settings
 from app.ldap_protocol.dialogue import Session
 from app.models.database import Base, get_engine
 from app.web_app import create_app, get_session
@@ -92,14 +92,23 @@ async def test_session(session_factory, engine):  # noqa
 
 
 @pytest_asyncio.fixture(scope="function")
-async def session(session_factory, engine, handler) -> AsyncGenerator[AsyncSession, None]:
+async def session(
+    session_factory,
+    engine,
+    handler,
+    app,
+) -> AsyncGenerator[AsyncSession, None]:
     """Get session and aquire after completion."""
     async with test_session(session_factory, engine) as session:
         @asynccontextmanager
         async def create_session():
             yield session
 
+        async def get_test_async_session():
+            yield session
+
         # runtime session sync for server and client
+        app.dependency_overrides[get_session] = get_test_async_session
         handler.create_session = create_session
 
         yield session
@@ -135,18 +144,13 @@ def ldap_client(settings: Settings):
     )
 
 
+@pytest.fixture(scope='session')
+def app(settings):  # noqa
+    return create_app(settings)
+
+
 @pytest_asyncio.fixture(scope='session')
-async def http_client(session_factory, settings, engine):
+async def http_client(app):
     """Async client for fastapi tests."""
-    app = create_app(settings)
-
-    async def get_test_async_session():
-        async with test_session(session_factory, engine) as session:
-            yield session
-
-    app.dependency_overrides = {
-        get_session: get_test_async_session,
-        get_settings: lambda: settings,
-    }
     async with httpx.AsyncClient(app=app, base_url="http://test") as client:
         yield client
