@@ -142,5 +142,6 @@ if __name__ == '__main__':
     async def execute():  # noqa
         async with AsyncSessionFactory() as session:
             await setup_enviroment(session, data=DATA)
+            await session.commit()
 
     asyncio.run(execute())
