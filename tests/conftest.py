@@ -46,7 +46,7 @@ def engine(settings) -> Settings:
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def migrations(engine):
+async def _migrations(engine):
     """Run simple migrations."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -135,7 +135,7 @@ def _server(event_loop: asyncio.BaseEventLoop, handler):
     task.cancel()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def ldap_client(settings: Settings):
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
