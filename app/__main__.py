@@ -58,10 +58,11 @@ class PoolClientHandler:
             await ldap_session.writer.start_tls(ssl_context)
             logger.success(f"Successfully started TLS for {ldap_session.addr}")
 
-        handle = asyncio.create_task(self.handle_responses(ldap_session))
-
         try:
-            await asyncio.gather(self.handle_request(ldap_session), handle)
+            await asyncio.gather(
+                self.handle_request(ldap_session),
+                self.handle_responses(ldap_session),
+            )
         except RuntimeError:
             logger.error(
                 f"The connection {ldap_session.addr} raised {format_exc()}")
@@ -72,7 +73,6 @@ class PoolClientHandler:
         finally:
             ldap_session.writer.close()
             await ldap_session.writer.wait_closed()
-            await handle
             await ldap_session.queue.join()
             logger.success(f'Connection {ldap_session.addr} normally closed')
 
@@ -128,9 +128,9 @@ class PoolClientHandler:
                     logger.info(
                         f"""\nTo: {ldap_session.addr!r}\n
                         Response: {response}"""[:3000])
-
                     ldap_session.writer.write(response.encode())
                     await ldap_session.writer.drain()
+            ldap_session.queue.task_done()
 
     async def handle_responses(self, ldap_session: Session):
         """Create pool of workers and apply handler to it.
