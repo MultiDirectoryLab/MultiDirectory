@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   md-test:
-    image: ghcr.io/multifactorlab/multidirectory_test:latest
+    image: ${TAG}
     restart: "no"
     volumes:
       - ./app:/app
