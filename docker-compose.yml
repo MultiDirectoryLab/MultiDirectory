@@ -21,7 +21,7 @@ services:
   md:
     build:
       context: .
-      dockerfile: ./app/local.Dockerfile
+      dockerfile: ./app/.docker/local.Dockerfile
     image: multidirectory
     restart: "no" #unless-stopped
     container_name: multidirectory
