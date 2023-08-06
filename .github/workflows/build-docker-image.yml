@@ -52,7 +52,9 @@ jobs:
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:latest
           DOCKER_BUILDKIT: '1'
-        run: docker-compose -f docker-compose.remote.test.yml up
+        run: |
+          docker-compose -f docker-compose.remote.test.yml up
+          docker-compose -f docker-compose.remote.test.yml down
 
   build-app:
     runs-on: ubuntu-latest
