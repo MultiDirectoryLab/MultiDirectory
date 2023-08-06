@@ -56,7 +56,7 @@ jobs:
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:latest
         run: docker-compose -f docker-compose.remote.test.yml up
-      - name: Run tests
+      - name: Teardown tests
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:latest
         run: docker-compose -f docker-compose.remote.test.yml down
