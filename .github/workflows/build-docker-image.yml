@@ -25,7 +25,8 @@ jobs:
       - name: Build docker image
         env:
           TAG: ghcr.io/${{ env.REPO }}:latest
+          DOCKER_BUILDKIT: 1
         run: |
           echo $TAG
-          docker build -f app/Dockerfile . --tag $TAG --cache-from $TAG
+          docker build -f app/Dockerfile . --tag $TAG --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from $TAG
           docker push $TAG
