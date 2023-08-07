@@ -24,8 +24,8 @@ class OAuth2Form(OAuth2PasswordRequestForm):
 
     def __init__(  # noqa: D107
         self,
-        username: str = Form(),
-        password: str = Form(),
+        username: str = Form(),  # noqa: B008
+        password: str = Form(),  # noqa: B008
     ):
         self.username = username
         self.password = password
