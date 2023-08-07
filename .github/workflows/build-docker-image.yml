@@ -83,5 +83,6 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
+          echo $TAG2
           docker build -f .docker/Dockerfile . --tag $TAG $TAG2 --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
           docker push $TAG $TAG2
