@@ -73,13 +73,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get Tag
+        id: vars
+        run: echo ::set-output name=tag::${git describe --abbrev=0}
+
       - name: Build docker image
         env:
           TAG: ghcr.io/${{ env.REPO }}:latest
-          TAG2: ghcr.io/${{ env.REPO }}:${{ github.ref_name }}
+          TAG2: ghcr.io/${{ env.REPO }}:${{ steps.vars.outputs.tag }}
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
           echo $TAG2
-          docker build -f .docker/Dockerfile . --tag $TAG $TAG2 --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          docker build -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
           docker push $TAG $TAG2
