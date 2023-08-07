@@ -1,8 +1,13 @@
 """Module with settings."""
 
+import tomllib
+
 from pydantic import BaseSettings, IPvAnyAddress, PostgresDsn, validator
 
-VENDOR_VERSION = '0.1.2'
+with open("/pyproject.toml", "rb") as f:
+    VENDOR_VERSION = tomllib.load(f)['tool']['poetry']['version']
+
+
 VENDOR_NAME = "MultiFactor"
 
 
