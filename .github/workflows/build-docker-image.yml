@@ -8,6 +8,15 @@ env:
   REPO: ${{ github.repository }}
 
 jobs:
+  update-semver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: haya14busa/action-update-semver@v1
+        id: version
+        with:
+          major_version_tag_only: false  # (optional, default is "false")
+
   build-tests:
     runs-on: ubuntu-latest
     steps:
@@ -60,7 +69,7 @@ jobs:
 
   build-app:
     runs-on: ubuntu-latest
-    needs: [build-tests, run-tests]
+    needs: [build-tests, run-tests, update-semver]
     steps:
       - name: downcase REPO
         run: |
@@ -73,17 +82,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get Tag
-        id: vars
-        run: echo ::set-output name=tag::${git describe --abbrev=0}
-
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}:latest
-          TAG2: ghcr.io/${{ env.REPO }}:${{ steps.vars.outputs.tag }}
+          TAG: ghcr.io/${{ env.REPO }}
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
-          echo $TAG2
-          docker build -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-          docker push $TAG $TAG2
+          tag_v=$(git describe --tags $(git rev-list --tags --max-count=1))
+          ver_tag=$(echo $tag_v | sed 's/v//')
+          docker build -f .docker/Dockerfile . -t $TAG:latest -t $TAG:${ver_tag} --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          docker push $TAG:latest $TAG:${ver_tag}
