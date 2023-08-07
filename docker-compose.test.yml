@@ -4,7 +4,7 @@ services:
   md-test:
     build:
       context: .
-      dockerfile: ./app/.docker/test.Dockerfile
+      dockerfile: ./.docker/test.Dockerfile
     restart: "no"
     container_name: multidirectory-test
     volumes:
