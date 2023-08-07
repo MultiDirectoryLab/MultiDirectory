@@ -15,7 +15,7 @@ jobs:
       - uses: haya14busa/action-update-semver@v1
         id: version
         with:
-          major_version_tag_only: false  # (optional, default is "false")
+          major_version_tag_only: true  # (optional, default is "false")
 
   build-tests:
     runs-on: ubuntu-latest
