@@ -60,7 +60,7 @@ jobs:
 
   build-app:
     runs-on: ubuntu-latest
-    needs: [build-tests, run-tests, update-semver]
+    needs: [build-tests, run-tests]
     steps:
       - name: downcase REPO
         run: |
