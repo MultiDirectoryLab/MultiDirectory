@@ -1,8 +1,5 @@
 name: build
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
@@ -79,7 +76,7 @@ jobs:
       - name: Build docker image
         env:
           TAG: ghcr.io/${{ env.REPO }}:latest
-          TAG2: ghcr.io/${{ env.REPO }}:${{ github.event.number }}
+          TAG2: ghcr.io/${{ env.REPO }}:${{ github.ref_name }}
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
