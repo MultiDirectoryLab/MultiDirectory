@@ -79,7 +79,7 @@ jobs:
       - name: Build docker image
         env:
           TAG: ghcr.io/${{ env.REPO }}:latest
-          TAG2: ghcr.io/${{ env.REPO }}:${{github.event.pull_request.number}}
+          TAG2: ghcr.io/${{ env.REPO }}:${{ github.event.number }}
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
