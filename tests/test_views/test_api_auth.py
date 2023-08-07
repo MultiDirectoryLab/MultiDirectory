@@ -23,6 +23,11 @@ async def test_first_setup_and_oauth(http_client, session):
         "matchedDN": "",
         "errorMessage": "",
     }
+
+    response = await http_client.get("/auth/setup")
+    assert response.status_code == 200
+    assert response.json() is True
+
     auth = await http_client.post("auth/token/get", data={
         "username": "test", "password": "password"})
     assert auth.status_code == 200
