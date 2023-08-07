@@ -99,7 +99,10 @@ async def users_me(user: User = Depends(get_current_user)) -> User:
 
 @auth_router.get('/setup')
 async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
-    """Check if initial setup needed."""
+    """Check if initial setup needed.
+
+    True if setup already complete, False if setup is needed.
+    """
     return bool(await session.scalar(
         select(CatalogueSetting)
         .filter(CatalogueSetting.name == 'defaultNamingContext'),
@@ -169,6 +172,7 @@ async def first_setup(
     async with session.begin_nested():
         try:
             await setup_enviroment(session, dn=request.domain, data=data)
+            await session.commit()
         except IntegrityError:
             await session.rollback()
             return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
