@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     POSTGRES_HOST: str
     POSTGRES_USER: str
-    POSTGRES_PWD: str
+    POSTGRES_PASSWORD: str
 
     POSTGRES_URI: PostgresDsn = None  # type: ignore
 
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
         return (
             f"{values['POSTGRES_SCHEMA']}://"  # type: ignore
             f"{values['POSTGRES_USER']}:"
-            f"{values['POSTGRES_PWD']}@"
+            f"{values['POSTGRES_PASSWORD']}@"
             f"{values['POSTGRES_HOST']}/"
             f"{values['POSTGRES_DB']}"
         )
