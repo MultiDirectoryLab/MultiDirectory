@@ -31,7 +31,7 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
-          docker build -f app/.docker/test.Dockerfile . --tag $TAG --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          docker build -f .docker/test.Dockerfile . --tag $TAG --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
           docker push $TAG
 
   run-tests:
@@ -82,5 +82,5 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
-          docker build -f app/.docker/Dockerfile . --tag $TAG --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          docker build -f .docker/Dockerfile . --tag $TAG --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
           docker push $TAG
