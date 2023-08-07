@@ -32,7 +32,7 @@ services:
       DEBUG: 1
       HOST: 0.0.0.0
       POSTGRES_USER: user1
-      POSTGRES_PWD: password123
+      POSTGRES_PASSWORD: password123
       POSTGRES_HOST: postgres
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     command: bash -c "alembic upgrade head && python ."
@@ -53,7 +53,7 @@ services:
       DEBUG: 1
       HOST: 0.0.0.0
       POSTGRES_USER: user1
-      POSTGRES_PWD: password123
+      POSTGRES_PASSWORD: password123
       POSTGRES_HOST: postgres
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --reload"
