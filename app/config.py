@@ -14,8 +14,8 @@ VENDOR_NAME = "MultiFactor"
 class Settings(BaseSettings):
     """Settigns with database dsn."""
 
-    DEBUG: bool
-    HOST: IPvAnyAddress
+    DEBUG: bool = False
+    HOST: IPvAnyAddress = "0.0.0.0"  # type: ignore  # noqa
     PORT: int = 389
     USE_CORE_TLS: bool = False
 

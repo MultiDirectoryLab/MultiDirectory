@@ -30,7 +30,6 @@ services:
       - ./certs:/certs
     environment:
       DEBUG: 1
-      HOST: 0.0.0.0
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
       POSTGRES_HOST: postgres
@@ -51,7 +50,6 @@ services:
       - ./app:/app
     environment:
       DEBUG: 1
-      HOST: 0.0.0.0
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
       POSTGRES_HOST: postgres
