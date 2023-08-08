@@ -55,9 +55,13 @@ services:
     command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --reload"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.api.rule=Host(`api.localhost`) && PathPrefix(`/api`)"
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.services.api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.api.service=api"
+      - "traefik.http.routers.api.middlewares=api_strip"
+      - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
+      - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
 
   postgres:
     container_name: MD-postgres
