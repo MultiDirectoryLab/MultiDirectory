@@ -52,7 +52,6 @@ services:
       DEBUG: 0
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
-      POSTGRES_HOST: postgres
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     volumes:
       - ./logs:/app/logs
@@ -70,7 +69,6 @@ services:
       DEBUG: 0
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
-      POSTGRES_HOST: postgres
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     labels:
       - "traefik.enable=true"
