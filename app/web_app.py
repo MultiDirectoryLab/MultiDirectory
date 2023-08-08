@@ -11,7 +11,11 @@ from models.database import create_get_async_session, get_session
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create FastAPI app with dependencies overrides."""
     settings = settings or Settings()
-    app = FastAPI(name="multidirectory", debug=settings.DEBUG)
+    app = FastAPI(
+        name="multidirectory",
+        debug=settings.DEBUG,
+        root_path="/api",
+    )
     origins = ["*"]
     app.dependency_overrides = {
         get_settings: lambda: settings,
