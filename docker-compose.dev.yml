@@ -50,7 +50,6 @@ services:
     container_name: multidirectory-ldap
     environment:
       DEBUG: 0
-      HOST: 0.0.0.0
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
       POSTGRES_HOST: postgres
@@ -69,7 +68,6 @@ services:
     restart: unless-stopped
     environment:
       DEBUG: 0
-      HOST: 0.0.0.0
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
       POSTGRES_HOST: postgres
