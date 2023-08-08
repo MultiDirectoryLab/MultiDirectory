@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     POSTGRES_SCHEMA: str = 'postgresql+asyncpg'
     POSTGRES_DB: str = 'postgres'
 
-    POSTGRES_HOST: str
+    POSTGRES_HOST: str = "postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
