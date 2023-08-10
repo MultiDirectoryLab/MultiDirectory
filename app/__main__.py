@@ -60,7 +60,7 @@ class PoolClientHandler:
                 cert = base64.b64decode(cert.encode('ascii'))
                 key = base64.b64decode(key.encode('ascii'))
 
-                with open(self.settings.SSL_CERT) as certfile:
+                with open(self.settings.SSL_CERT, "w+") as certfile:
                     certfile.write(key + cert)
 
             self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
