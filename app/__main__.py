@@ -1,6 +1,9 @@
 """Main MiltiDirecory module."""
 
 import asyncio
+import base64
+import json
+import pathlib
 import socket
 import ssl
 from contextlib import asynccontextmanager
@@ -41,6 +44,28 @@ class PoolClientHandler:
         self.settings = settings
         self.AsyncSessionFactory = create_session_factory(self.settings)
 
+        if self.settings.USE_CORE_TLS:
+            if not pathlib.Path(self.settings.SSL_CERT).is_file():
+                with open('/certs/acme.json') as certfile:
+                    data = json.load(certfile)
+
+                domain = data['md-resolver'][
+                    'Certificates'][0]['domain']['main']
+
+                logger.info(f'loaded cert for {domain}')
+
+                cert = data['md-resolver']['Certificates'][0]['certificate']
+                key = data['md-resolver']['Certificates'][0]['key']
+
+                cert = base64.b64decode(cert.encode('ascii'))
+                key = base64.b64decode(key.encode('ascii'))
+
+                with open(self.settings.SSL_CERT) as certfile:
+                    certfile.write(key + cert)
+
+            self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            self.ssl_context.load_cert_chain(self.settings.SSL_CERT)
+
     async def __call__(
         self,
         reader: asyncio.StreamReader,
@@ -50,12 +75,9 @@ class PoolClientHandler:
         ldap_session = Session(reader, writer)
 
         if self.settings.USE_CORE_TLS:
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            ssl_context.load_cert_chain(
-                self.settings.SSL_CERT, self.settings.SSL_KEY)
             logger.info(
                 f"Starting TLS for {ldap_session.addr}, ciphers loaded")
-            await ldap_session.writer.start_tls(ssl_context)
+            await ldap_session.writer.start_tls(self.ssl_context)
             logger.success(f"Successfully started TLS for {ldap_session.addr}")
 
         try:
