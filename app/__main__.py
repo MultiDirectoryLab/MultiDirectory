@@ -120,10 +120,7 @@ class PoolClientHandler:
             try:
                 request = LDAPRequestMessage.from_bytes(data)
 
-            except (
-                ValidationError, IndexError,
-                KeyError, ValueError,
-            ) as err:
+            except (ValidationError, IndexError, KeyError, ValueError) as err:
                 logger.warning(f'Invalid schema {format_exc()}')
 
                 ldap_session.writer.write(
