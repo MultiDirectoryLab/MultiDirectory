@@ -33,7 +33,8 @@ from security import get_password_hash
 from .dev_data import DATA
 
 
-async def _get_group(name, session):
+async def get_group(name, session):
+    """Get group by name."""
     return await session.scalar(
         select(Group).join(Group.directory).filter(
             Directory.name == name,
@@ -74,7 +75,7 @@ async def _create_dir(
         group = Group(directory=dir_)
         session.add(group)
         for group_name in data.get('groups', []):
-            parent_group = await _get_group(group_name, session)
+            parent_group = await get_group(group_name, session)
             session.add(GroupMembership(
                 group_id=parent_group.id, group_child_id=group.id))
 
@@ -98,7 +99,7 @@ async def _create_dir(
         session.add(user)
 
         for group_name in user_data.get('groups', []):
-            parent_group = await _get_group(group_name, session)
+            parent_group = await get_group(group_name, session)
             await session.flush()
             session.add(UserMembership(
                 group_id=parent_group.id, user_id=user.id))
