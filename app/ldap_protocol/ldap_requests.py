@@ -7,7 +7,6 @@ from functools import cached_property
 from math import ceil
 from typing import AsyncGenerator, ClassVar
 
-from extra.setup_dev import get_group
 from loguru import logger
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import and_, delete, func, or_, update
@@ -796,6 +795,28 @@ class AddRequest(BaseRequest):
         ]
         return cls(entry=entry.value, attributes=attributes)
 
+    async def get_group(self, dn: str, session) -> Group:
+        """Get group dir."""
+        dn = await get_base_dn(session)
+        dn_is_base = dn.lower() == dn.lower()
+
+        if dn_is_base:
+            raise AttributeError('Cannot set memberOf with base dn')
+
+        base_obj = dn.lower().removesuffix(
+            ',' + dn.lower()).split(',')
+        search_path = [path for path in reversed(base_obj) if path]
+        query = select(   # noqa: ECE001
+            Directory)\
+            .join(Directory.path)\
+            .filter(Path.path == search_path)\
+            .options(selectinload(Directory.group).selectinload(
+                Group.parent_groups).selectinload(
+                    Group.directory).selectinload(Directory.path))
+
+        directory = await session.scalar(query)
+        return directory.group
+
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[AddResponse, None]:
         """Add request handler."""
@@ -845,7 +866,7 @@ class AddRequest(BaseRequest):
         items_to_add = []
         attributes = []
         user_attributes = {}
-        group_attributes: list[tuple[str, str]] = []
+        group_attributes: list[str] = []
         user_fields = User.search_fields.values()
 
         for attr in self.attributes:
@@ -854,7 +875,7 @@ class AddRequest(BaseRequest):
                     user_attributes[attr.type] = value
 
                 elif attr.type == 'memberOf':
-                    group_attributes.append((attr.type, value))
+                    group_attributes.append(value)
                 else:
                     attributes.append(Attribute(
                         name=attr.type, value=value, directory=new_dir))
@@ -873,7 +894,7 @@ class AddRequest(BaseRequest):
                     self.password.get_secret_value())
 
             for group_name in group_attributes:
-                parent_group = await get_group(group_name, session)
+                parent_group = await self.get_group(group_name, session)
                 items_to_add.append(UserMembership(
                     group_id=parent_group.id, user=user.id))
 
@@ -882,7 +903,7 @@ class AddRequest(BaseRequest):
             items_to_add.append(group)
 
             for group_name in group_attributes:
-                parent_group = await get_group(group_name, session)
+                parent_group = await self.get_group(group_name, session)
                 items_to_add.append(GroupMembership(
                     group_id=parent_group.id, group_child_id=group.id))
 
