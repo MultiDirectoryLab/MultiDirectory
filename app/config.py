@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     HOSTNAME: str | None = None
 
     SSL_CERT: str = '/certs/cert.pem'
+    SSL_KEY: str = '/certs/privkey.pem'
 
     @validator('POSTGRES_URI', pre=True, always=True)
     def create_postgres(cls, v, values):  # noqa: N805

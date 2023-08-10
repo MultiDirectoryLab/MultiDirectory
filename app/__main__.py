@@ -45,26 +45,32 @@ class PoolClientHandler:
         self.AsyncSessionFactory = create_session_factory(self.settings)
 
         if self.settings.USE_CORE_TLS:
-            if not pathlib.Path(self.settings.SSL_CERT).is_file():
-                with open('/certs/acme.json') as certfile:
-                    data = json.load(certfile)
+            with open('/certs/acme.json') as certfile:
+                data = json.load(certfile)
 
-                domain = data['md-resolver'][
-                    'Certificates'][0]['domain']['main']
+            domain = data['md-resolver'][
+                'Certificates'][0]['domain']['main']
 
-                logger.info(f'loaded cert for {domain}')
+            logger.info(f'loaded cert for {domain}')
 
-                cert = data['md-resolver']['Certificates'][0]['certificate']
-                key = data['md-resolver']['Certificates'][0]['key']
+            cert = data['md-resolver']['Certificates'][0]['certificate']
+            key = data['md-resolver']['Certificates'][0]['key']
 
-                cert = base64.b64decode(cert.encode('ascii'))
-                key = base64.b64decode(key.encode('ascii'))
+            cert = base64.b64decode(cert.encode('ascii')).decode()
+            key = base64.b64decode(key.encode('ascii')).decode()
 
-                with open(self.settings.SSL_CERT, "w+") as certfile:
-                    certfile.write(key + cert)
+            with (
+                open(self.settings.SSL_CERT, "w+") as certfile,
+                open(self.settings.SSL_KEY, "w+") as keyfile,
+            ):
+                certfile.write(cert)
+                keyfile.write(cert)
 
             self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            self.ssl_context.load_cert_chain(self.settings.SSL_CERT)
+            self.ssl_context.load_cert_chain(
+                self.settings.SSL_CERT,
+                self.settings.SSL_KEY,
+            )
 
     async def __call__(
         self,
