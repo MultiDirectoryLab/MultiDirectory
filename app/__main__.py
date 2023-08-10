@@ -3,7 +3,6 @@
 import asyncio
 import base64
 import json
-import pathlib
 import socket
 import ssl
 from contextlib import asynccontextmanager
@@ -64,7 +63,7 @@ class PoolClientHandler:
                 open(self.settings.SSL_KEY, "w+") as keyfile,
             ):
                 certfile.write(cert)
-                keyfile.write(cert)
+                keyfile.write(key)
 
             self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             self.ssl_context.load_cert_chain(
