@@ -70,6 +70,8 @@ class PoolClientHandler:
                 self.settings.SSL_CERT,
                 self.settings.SSL_KEY,
             )
+            self.ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+            self.ssl_context.maximum_version = ssl.TLSVersion.SSLv3
 
     async def __call__(
         self,
