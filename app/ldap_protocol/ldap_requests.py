@@ -7,6 +7,7 @@ from functools import cached_property
 from math import ceil
 from typing import AsyncGenerator, ClassVar
 
+from extra.setup_dev import get_group
 from loguru import logger
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import and_, delete, func, or_, update
@@ -22,8 +23,10 @@ from models.ldap3 import (
     CatalogueSetting,
     Directory,
     Group,
+    GroupMembership,
     Path,
     User,
+    UserMembership,
 )
 from security import get_password_hash, verify_password
 
@@ -837,15 +840,21 @@ class AddRequest(BaseRequest):
             )
             path = new_dir.create_path(parent, new_dn)
 
+        group = None
         user = None
+        items_to_add = []
         attributes = []
         user_attributes = {}
+        group_attributes: list[tuple[str, str]] = []
         user_fields = User.search_fields.values()
 
         for attr in self.attributes:
             for value in attr.vals:
                 if attr.type in user_fields:
                     user_attributes[attr.type] = value
+
+                elif attr.type == 'memberOf':
+                    group_attributes.append((attr.type, value))
                 else:
                     attributes.append(Attribute(
                         name=attr.type, value=value, directory=new_dir))
@@ -863,15 +872,26 @@ class AddRequest(BaseRequest):
                 user.password = get_password_hash(
                     self.password.get_secret_value())
 
+            for group_name in group_attributes:
+                parent_group = await get_group(group_name, session)
+                items_to_add.append(UserMembership(
+                    group_id=parent_group.id, user=user.id))
+
+        elif 'group' in self.attr_names.get('objectClass', []):
+            group = Group(directory=new_dir)
+            items_to_add.append(group)
+
+            for group_name in group_attributes:
+                parent_group = await get_group(group_name, session)
+                items_to_add.append(GroupMembership(
+                    group_id=parent_group.id, group_child_id=group.id))
+
         async with session.begin_nested():
             try:
                 new_dir.depth = len(path.path)
-                items_to_add = [new_dir, path] + attributes
+                items_to_add.extend([new_dir, path] + attributes)
                 if user is not None:
                     items_to_add.append(user)
-
-                if 'group' in self.attr_names.get('objectClass', []):
-                    items_to_add.append(Group(directory=new_dir))
 
                 session.add_all(items_to_add)
                 if has_no_parent:
