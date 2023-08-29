@@ -13,18 +13,10 @@ from ldap_protocol.ldap_responses import (
     ModifyResponse,
     PartialAttribute,
 )
-from ldap_protocol.utils import (
-    get_attribute_types,
-    get_base_dn,
-    get_object_classes,
-    validate_entry,
-)
+from ldap_protocol.utils import get_base_dn, validate_entry
 from models.ldap3 import Attribute, Directory, Path, User
 
 from .base import BaseRequest
-
-ATTRIBUTE_TYPES = get_attribute_types()
-OBJECT_CLASSES = get_object_classes()
 
 
 class Changes(BaseModel):
