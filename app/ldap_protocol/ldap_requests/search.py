@@ -327,7 +327,7 @@ class SearchRequest(BaseRequest):
                 joinedload(Directory.user))\
             .distinct(Directory.id)
 
-        dn_is_base = self.base_object.lower() == dn.lower()
+        root_is_base = self.base_object.lower() == dn.lower()
         base_obj = self.base_object.lower().removesuffix(
             ',' + dn.lower()).split(',')
         search_path = [path for path in reversed(base_obj) if path]
@@ -336,7 +336,7 @@ class SearchRequest(BaseRequest):
             query = query.filter(Path.path == search_path)
 
         elif self.scope == Scope.SINGLEL_EVEL:
-            if dn_is_base:
+            if root_is_base:
                 query = query.filter(func.cardinality(Path.path) == 1)
             else:
                 query = query.filter(
@@ -344,7 +344,7 @@ class SearchRequest(BaseRequest):
                     Path.path[0:len(search_path)] == search_path,
                 )
 
-        elif self.scope == Scope.WHOLE_SUBTREE and not dn_is_base:
+        elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
             query = query.filter(Path.path[1:len(search_path)] == search_path)
 
         if self.member_of:
