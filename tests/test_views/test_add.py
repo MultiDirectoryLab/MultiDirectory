@@ -112,3 +112,53 @@ async def test_ldap_user_add_with_group(session, settings):
 
     assert sorted(group.directory.path.path) == sorted(
         ['cn=domain admins', 'cn=groups'])
+
+
+@pytest.mark.asyncio()
+async def test_ldap_user_add_group_with_group(session, settings):
+    """Test ldapadd on server."""
+    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
+    await session.commit()
+
+    user = TEST_DATA[1]['children'][0]['organizationalPerson']
+
+    dn = "cn=twisted,cn=groups,dc=multidurectory,dc=test\n"
+
+    with tempfile.NamedTemporaryFile("w") as file:
+        file.write((
+            f"dn: {dn}"
+            "name: twisted\n"
+            "cn: twisted\n"
+            "objectClass: group\n"
+            "objectClass: top\n"
+            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n"
+        ))
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            'ldapadd',
+            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
+            '-f', file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+
+        result = await proc.wait()
+
+        assert result == 0
+
+    membership = selectinload(Directory.group).selectinload(
+        Group.parent_groups).selectinload(
+            Group.directory).selectinload(Directory.path)
+
+    query = select(Directory)\
+        .options(membership)\
+        .join(Directory.path).filter(Path.path == ["cn=groups", "cn=twisted"])
+
+    new_dir = await session.scalar(query)
+
+    assert new_dir.name == "twisted"
+
+    group = new_dir.group.parent_groups[0]
+
+    assert sorted(group.directory.path.path) == sorted(
+        ['cn=domain admins', 'cn=groups'])
