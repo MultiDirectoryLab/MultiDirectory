@@ -69,14 +69,15 @@ class AddRequest(BaseRequest):
 
     async def get_group(self, dn: str, session) -> Group:
         """Get group dir."""
-        dn = await get_base_dn(session)
-        dn_is_base = dn.lower() == dn.lower()
+        base_dn = await get_base_dn(session)
+        dn_is_base = dn.lower() == base_dn.lower()
 
         if dn_is_base:
             raise AttributeError('Cannot set memberOf with base dn')
 
         base_obj = dn.lower().removesuffix(
-            ',' + dn.lower()).split(',')
+            ',' + base_dn.lower()).split(',')
+
         search_path = [path for path in reversed(base_obj) if path]
         query = select(   # noqa: ECE001
             Directory)\
@@ -137,6 +138,7 @@ class AddRequest(BaseRequest):
         user = None
         items_to_add = []
         attributes = []
+        parent_groups = []
         user_attributes = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.values()
@@ -152,41 +154,39 @@ class AddRequest(BaseRequest):
                     attributes.append(Attribute(
                         name=attr.type, value=value, directory=new_dir))
 
+        for group_name in group_attributes:
+            if p_group := await self.get_group(group_name, session):
+                parent_groups.append(p_group)
+
         if 'sAMAccountName' in user_attributes\
                 or 'userPrincipalName' in user_attributes:
             user = User(
-                sam_accout_name=user_attributes['sAMAccountName'],
-                user_principal_name=user_attributes['userPrincipalName'],
+                sam_accout_name=user_attributes.get('sAMAccountName'),
+                user_principal_name=user_attributes.get('userPrincipalName'),
                 mail=user_attributes.get('mail'),
                 display_name=user_attributes.get('displayName'),
                 directory=new_dir,
             )
+
             if self.password is not None:
                 user.password = get_password_hash(
                     self.password.get_secret_value())
 
-            for group_name in group_attributes:
-                parent_group = await self.get_group(group_name, session)
-                items_to_add.append(UserMembership(
-                    group_id=parent_group.id, user=user.id))
+            items_to_add.append(user)
+            user.groups.extend(parent_groups)
 
         elif 'group' in self.attr_names.get('objectClass', []):
             group = Group(directory=new_dir)
             items_to_add.append(group)
-
-            for group_name in group_attributes:
-                parent_group = await self.get_group(group_name, session)
-                items_to_add.append(GroupMembership(
-                    group_id=parent_group.id, group_child_id=group.id))
+            group.parent_groups.extend(parent_groups)
 
         async with session.begin_nested():
             try:
                 new_dir.depth = len(path.path)
                 items_to_add.extend([new_dir, path] + attributes)
-                if user is not None:
-                    items_to_add.append(user)
 
                 session.add_all(items_to_add)
+
                 if has_no_parent:
                     new_dir.paths.append(path)
                 else:
