@@ -15,15 +15,7 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.utils import get_base_dn, validate_entry
-from models.ldap3 import (
-    Attribute,
-    Directory,
-    Group,
-    GroupMembership,
-    Path,
-    User,
-    UserMembership,
-)
+from models.ldap3 import Attribute, Directory, Group, Path, User
 from security import get_password_hash
 
 from .base import BaseRequest
