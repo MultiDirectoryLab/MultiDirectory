@@ -394,8 +394,11 @@ class SearchRequest(BaseRequest):
             attrs = defaultdict(list)
             groups = []
 
+            for attr in directory.attributes:
+                attrs[attr.name].append(attr.value)
+
             if self.member_of:
-                if directory.object_class.lower() == 'group' and (
+                if 'group' in attrs['objectClass'] and (
                         directory.group):
                     groups += directory.group.parent_groups
 
@@ -406,7 +409,7 @@ class SearchRequest(BaseRequest):
                         attrs['member'].append(
                             self._get_full_dn(user.directory.path, dn))
 
-                if directory.object_class.lower() == 'user' and (
+                if 'user' in attrs['objectClass'] and (
                         directory.user):
                     groups += directory.user.groups
 
@@ -440,8 +443,6 @@ class SearchRequest(BaseRequest):
                 attribute = getattr(directory, attr)
                 attrs[directory.search_fields[attr]].append(attribute)
 
-            for attr in directory.attributes:
-                attrs[attr.name].append(attr.value)
 
             yield SearchResultEntry(
                 object_name=self._get_full_dn(directory.path, dn),
