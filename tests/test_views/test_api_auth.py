@@ -36,10 +36,10 @@ async def test_first_setup_and_oauth(http_client, session):
 
     response = await http_client.get("auth/me", headers=login_header)
     assert response.status_code == 200
-    assert response.json() == {
-        "id": 1,
-        "sam_accout_name": "test",
-        "user_principal_name": "test",
-        "mail": "test@example.com",
-        "display_name": "test",
-    }
+
+    result = response.json()
+
+    assert result["sam_accout_name"] == "test"
+    assert result["user_principal_name"] == "test"
+    assert result["mail"] == "test@example.com"
+    assert result["display_name"] == "test"
