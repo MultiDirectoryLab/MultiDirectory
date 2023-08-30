@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.extra import TEST_DATA, setup_enviroment
 from app.ldap_protocol.dialogue import Session
-from app.ldap_protocol.ldap_requests import (
+from app.ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
     LDAPCodes,
