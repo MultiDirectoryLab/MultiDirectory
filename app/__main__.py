@@ -150,8 +150,8 @@ class PoolClientHandler:
                 async for response in message.create_response(
                         ldap_session, session):
                     logger.info(
-                        f"""\nTo: {ldap_session.addr!r}\n
-                        Response: {response}"""[:3000])
+                        f"\nTo: {ldap_session.addr!r}\n"
+                        f"Response: {response}"[:3000])
                     ldap_session.writer.write(response.encode())
                     await ldap_session.writer.drain()
             ldap_session.queue.task_done()
