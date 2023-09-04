@@ -144,14 +144,16 @@ class PoolClientHandler:
         """Get message from queue and handle it."""
         while True:
             message = await ldap_session.queue.get()
-            logger.info(f"\nFrom: {ldap_session.addr!r}\nRequest: {message}\n")
+            logger.info(
+                f"\nFrom: {ldap_session.addr!r}\n"
+                f"Request: {message.json()}\n")
 
             async with self.create_session() as session:
                 async for response in message.create_response(
                         ldap_session, session):
                     logger.info(
                         f"\nTo: {ldap_session.addr!r}\n"
-                        f"Response: {response}"[:3000])
+                        f"Response: {response.json()}"[:3000])
                     ldap_session.writer.write(response.encode())
                     await ldap_session.writer.drain()
             ldap_session.queue.task_done()
