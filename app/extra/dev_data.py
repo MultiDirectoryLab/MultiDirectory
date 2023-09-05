@@ -206,9 +206,12 @@ TEST_DATA = [  # noqa
                     "password": "password",
                     "groups": ['domain admins'],
                 },
-                "attributes": {"objectClass": [
-                    "top", "person",
-                    "organizationalPerson", "posixAccount"]},
+                "attributes": {
+                    "objectClass": [
+                        "top", "person",
+                        "organizationalPerson", "posixAccount"],
+                    "posixEmail": ["abctest@mail.com"],
+                },
             },
         ],
     },

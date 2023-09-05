@@ -12,6 +12,7 @@ DC=multifactor
       CN=User 5
 """
 import asyncio
+from itertools import chain
 
 from loguru import logger
 from sqlalchemy.future import select
@@ -79,9 +80,11 @@ async def _create_dir(
                 group_id=parent_group.id, group_child_id=group.id))
 
     if "attributes" in data:
-        attrs = data["attributes"]
-        attrs['objectClass'].append(dir_.object_class)
-        for name, values in attrs.items():
+        attrs = chain(
+            data["attributes"].items(),
+            [('objectClass', [dir_.object_class])])
+
+        for name, values in attrs:
             for value in values:
                 session.add(Attribute(directory=dir_, name=name, value=value))
 
