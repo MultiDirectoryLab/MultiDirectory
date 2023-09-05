@@ -2,7 +2,7 @@
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel
-from sqlalchemy import and_, delete, or_
+from sqlalchemy import and_, delete, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
@@ -93,7 +93,7 @@ class ModifyRequest(BaseRequest):
 
         directory = await session.scalar(query)
 
-        if len(obj) > 1 and not directory:
+        if len(obj) == 0 or not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
@@ -102,29 +102,41 @@ class ModifyRequest(BaseRequest):
                 await self._add(change, directory, session)
 
             elif change.operation == Operation.DELETE:
-                attrs = []
-                name = change.modification.type.lower()
-
-                for value in change.modification.vals:
-                    if name not in (
-                            Directory.search_fields | User.search_fields):
-                        attrs.append(and_(
-                            Attribute.name == change.modification.type,
-                            Attribute.value == value))
-
-                if attrs:
-                    del_query = delete(Attribute).filter(
-                        Attribute.directory == directory, or_(*attrs))
-
-                    await session.execute(del_query)
-                    await session.commit()
+                await self._delete(change, directory, session)
 
             elif change.operation == Operation.REPLACE:
-                await session.delete(directory.attributes)
-                await session.commit()
-                await self._add(change, directory, session)
+                async with session.begin_nested():
+                    await self._delete(change, directory, session, True)
+                    await self._add(change, directory, session)
+
+            await session.commit()
 
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+
+    async def _delete(
+        self,
+        change: Changes,
+        directory: Directory,
+        session: AsyncSession,
+        name_only: bool = False,
+    ):
+        attrs = []
+        name = change.modification.type.lower()
+
+        if name_only or not change.modification.vals:
+            attrs.append(Attribute.name == change.modification.type)
+        else:
+            for value in change.modification.vals:
+                if name not in (Directory.search_fields | User.search_fields):
+                    attrs.append(and_(
+                        Attribute.name == change.modification.type,
+                        Attribute.value == value))
+
+        if attrs:
+            del_query = delete(Attribute).filter(
+                Attribute.directory == directory, or_(*attrs))
+
+            await session.execute(del_query)
 
     async def _add(
         self, change: Changes,
@@ -136,10 +148,16 @@ class ModifyRequest(BaseRequest):
             name = change.modification.type.lower()
 
             if name in Directory.search_fields:
-                setattr(directory, name, value)
+                await session.execute(
+                    update(Directory)
+                    .filter(Directory.id == directory.id)
+                    .values({name: value}))
 
             elif name in User.search_fields and directory.user:
-                setattr(directory.user, name, value)
+                await session.execute(
+                    update(User)
+                    .filter(User.directory == directory)
+                    .values({name: value}))
 
             else:
                 attrs.append(Attribute(
@@ -147,5 +165,6 @@ class ModifyRequest(BaseRequest):
                     value=value,
                     directory=directory,
                 ))
+
         session.add_all(attrs)
         await session.commit()
