@@ -1,7 +1,7 @@
 """Test main config."""
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import AsyncGenerator, Generator
 
 import httpx
@@ -29,8 +29,9 @@ class TestHandler(PoolClientHandler):  # noqa
 def event_loop() -> Generator:  # noqa: indirect usage
     loop = asyncio.new_event_loop()
     yield loop
-    asyncio.gather(*asyncio.tasks.all_tasks(loop)).cancel()
-    loop.close()
+    with suppress(asyncio.CancelledError, RuntimeError):
+        asyncio.gather(*asyncio.tasks.all_tasks(loop)).cancel()
+        loop.close()
 
 
 @pytest.fixture(scope="session")
