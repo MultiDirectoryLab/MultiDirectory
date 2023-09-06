@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import and_, delete, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 
 from ldap_protocol.dialogue import LDAPCodes, Operation, Session
 from ldap_protocol.ldap_responses import (
@@ -14,9 +14,10 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.utils import get_base_dn, validate_entry
-from models.ldap3 import Attribute, Directory, Path, User
+from models.ldap3 import Attribute, Directory, Group, Path, User
 
 from .base import BaseRequest
+from .mixins import GroupMemberManagerMixin
 
 
 class Changes(BaseModel):
@@ -26,7 +27,7 @@ class Changes(BaseModel):
     modification: PartialAttribute
 
 
-class ModifyRequest(BaseRequest):
+class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
     """Modify request.
 
     ```
@@ -81,6 +82,9 @@ class ModifyRequest(BaseRequest):
             ',' + base_dn.lower()).split(',')
         search_path = reversed(obj)
 
+        membership1 = selectinload(Directory.user).selectinload(User.groups)
+        membership2 = selectinload(Directory.group).selectinload(Group.parent_groups)
+
         query = select(   # noqa: ECE001
             Directory)\
             .join(Directory.path)\
@@ -88,7 +92,7 @@ class ModifyRequest(BaseRequest):
             .join(User, isouter=True)\
             .options(
                 selectinload(Directory.paths),
-                joinedload(Directory.user))\
+                membership1, membership2)\
             .filter(Path.path == search_path)
 
         directory = await session.scalar(query)
@@ -123,6 +127,26 @@ class ModifyRequest(BaseRequest):
         attrs = []
         name = change.modification.type.lower()
 
+        if name == 'memberof':
+            if name_only or not change.modification.vals:
+                if directory.group:
+                    directory.group.parent_groups.clear()
+
+                elif directory.user:
+                    directory.user.groups.clear()
+
+            else:
+                groups = await self.get_groups(change.modification.vals, session)
+                for group in groups:
+                    if directory.group:
+                        directory.group.parent_groups.remove(group)
+
+                    elif directory.user:
+                        directory.user.groups.remove(group)
+
+            await session.commit()
+            return
+
         if name_only or not change.modification.vals:
             attrs.append(Attribute.name == change.modification.type)
         else:
@@ -144,9 +168,20 @@ class ModifyRequest(BaseRequest):
         session: AsyncSession,
     ):
         attrs = []
-        for value in change.modification.vals:
-            name = change.modification.type.lower()
+        name = change.modification.type.lower()
 
+        if name == 'memberof':
+            groups = await self.get_groups(change.modification.vals, session)
+            if directory.group:
+                directory.group.parent_groups.extend(groups)
+
+            elif directory.user:
+                directory.user.groups.extend(groups)
+
+            await session.commit()
+            return
+
+        for value in change.modification.vals:
             if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
