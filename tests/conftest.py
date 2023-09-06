@@ -133,7 +133,8 @@ def _server(event_loop: asyncio.BaseEventLoop, handler):
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(.1))
     yield
-    task.cancel()
+    with suppress(asyncio.CancelledError):
+        task.cancel()
 
 
 @pytest.fixture()
