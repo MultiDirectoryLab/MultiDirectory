@@ -111,6 +111,7 @@ class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
             elif change.operation == Operation.REPLACE:
                 async with session.begin_nested():
                     await self._delete(change, directory, session, True)
+                    await session.flush()
                     await self._add(change, directory, session)
 
             await session.commit()
@@ -136,7 +137,8 @@ class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
                     directory.user.groups.clear()
 
             else:
-                groups = await self.get_groups(change.modification.vals, session)
+                groups = await self.get_groups(
+                    change.modification.vals, session)
                 for group in groups:
                     if directory.group:
                         directory.group.parent_groups.remove(group)
@@ -144,7 +146,6 @@ class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
                     elif directory.user:
                         directory.user.groups.remove(group)
 
-            await session.commit()
             return
 
         if name_only or not change.modification.vals:
@@ -202,4 +203,3 @@ class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
                 ))
 
         session.add_all(attrs)
-        await session.commit()
