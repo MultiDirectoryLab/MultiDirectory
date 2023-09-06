@@ -443,7 +443,6 @@ class SearchRequest(BaseRequest):
                 attribute = getattr(directory, attr)
                 attrs[directory.search_fields[attr]].append(attribute)
 
-
             yield SearchResultEntry(
                 object_name=self._get_full_dn(directory.path, dn),
                 partial_attributes=[
