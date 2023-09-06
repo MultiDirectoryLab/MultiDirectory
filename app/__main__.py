@@ -5,7 +5,7 @@ import base64
 import json
 import socket
 import ssl
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from traceback import format_exc
 
 from loguru import logger
@@ -98,9 +98,11 @@ class PoolClientHandler:
                 'Connection termination initialized '
                 f'by a client {ldap_session.addr}')
         finally:
-            ldap_session.writer.close()
-            await ldap_session.writer.wait_closed()
-            await ldap_session.queue.join()
+            with suppress(RuntimeError):
+                ldap_session.writer.close()
+                await ldap_session.writer.wait_closed()
+                await ldap_session.queue.join()
+
             logger.success(f'Connection {ldap_session.addr} normally closed')
 
     @staticmethod
