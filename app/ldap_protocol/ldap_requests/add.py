@@ -19,9 +19,10 @@ from models.ldap3 import Attribute, Directory, Group, Path, User
 from security import get_password_hash
 
 from .base import BaseRequest
+from .mixins import GroupMemberManagerMixin
 
 
-class AddRequest(BaseRequest):
+class AddRequest(BaseRequest, GroupMemberManagerMixin):
     """Add new entry.
 
     ```
@@ -58,29 +59,6 @@ class AddRequest(BaseRequest):
             for attr in attributes.value
         ]
         return cls(entry=entry.value, attributes=attributes)
-
-    async def get_group(self, dn: str, session) -> Group:
-        """Get group dir."""
-        base_dn = await get_base_dn(session)
-        dn_is_base = dn.lower() == base_dn.lower()
-
-        if dn_is_base:
-            raise AttributeError('Cannot set memberOf with base dn')
-
-        base_obj = dn.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-
-        search_path = [path for path in reversed(base_obj) if path]
-        query = select(   # noqa: ECE001
-            Directory)\
-            .join(Directory.path)\
-            .filter(Path.path == search_path)\
-            .options(selectinload(Directory.group).selectinload(
-                Group.parent_groups).selectinload(
-                    Group.directory).selectinload(Directory.path))
-
-        directory = await session.scalar(query)
-        return directory.group
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[AddResponse, None]:
@@ -130,7 +108,7 @@ class AddRequest(BaseRequest):
         user = None
         items_to_add = []
         attributes = []
-        parent_groups = []
+        parent_groups: list[Group] = []
         user_attributes = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.values()
@@ -146,9 +124,7 @@ class AddRequest(BaseRequest):
                     attributes.append(Attribute(
                         name=attr.type, value=value, directory=new_dir))
 
-        for group_name in group_attributes:
-            if p_group := await self.get_group(group_name, session):
-                parent_groups.append(p_group)
+        parent_groups = await self.get_groups(group_attributes, session)
 
         if 'sAMAccountName' in user_attributes\
                 or 'userPrincipalName' in user_attributes:
