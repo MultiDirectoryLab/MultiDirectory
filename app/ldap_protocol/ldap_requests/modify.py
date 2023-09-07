@@ -13,11 +13,10 @@ from ldap_protocol.ldap_responses import (
     ModifyResponse,
     PartialAttribute,
 )
-from ldap_protocol.utils import get_base_dn, validate_entry
+from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
 from models.ldap3 import Attribute, Directory, Group, Path, User
 
 from .base import BaseRequest
-from .mixins import GroupMemberManagerMixin
 
 
 class Changes(BaseModel):
@@ -27,7 +26,7 @@ class Changes(BaseModel):
     modification: PartialAttribute
 
 
-class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
+class ModifyRequest(BaseRequest):
     """Modify request.
 
     ```
@@ -137,7 +136,7 @@ class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
                     directory.user.groups.clear()
 
             else:
-                groups = await self.get_groups(
+                groups = await get_groups(
                     change.modification.vals, session)
                 for group in groups:
                     if directory.group:
@@ -172,7 +171,7 @@ class ModifyRequest(BaseRequest, GroupMemberManagerMixin):
         name = change.modification.type.lower()
 
         if name == 'memberof':
-            groups = await self.get_groups(change.modification.vals, session)
+            groups = await get_groups(change.modification.vals, session)
             if directory.group:
                 directory.group.parent_groups.extend(groups)
 

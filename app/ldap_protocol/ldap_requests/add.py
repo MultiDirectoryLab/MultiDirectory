@@ -14,15 +14,14 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
-from ldap_protocol.utils import get_base_dn, validate_entry
+from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
 from models.ldap3 import Attribute, Directory, Group, Path, User
 from security import get_password_hash
 
 from .base import BaseRequest
-from .mixins import GroupMemberManagerMixin
 
 
-class AddRequest(BaseRequest, GroupMemberManagerMixin):
+class AddRequest(BaseRequest):
     """Add new entry.
 
     ```
@@ -124,7 +123,7 @@ class AddRequest(BaseRequest, GroupMemberManagerMixin):
                     attributes.append(Attribute(
                         name=attr.type, value=value, directory=new_dir))
 
-        parent_groups = await self.get_groups(group_attributes, session)
+        parent_groups = await get_groups(group_attributes, session)
 
         if 'sAMAccountName' in user_attributes\
                 or 'userPrincipalName' in user_attributes:
