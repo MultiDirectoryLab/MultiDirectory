@@ -262,7 +262,7 @@ async def test_ldap_membersip_user_replace(session, settings):
 
 
 @pytest.mark.asyncio()
-async def test_ldap_membersip_group_replace(session, settings):
+async def test_ldap_membersip_grp_replace(session, settings):
     """Test ldapmodify on server."""
     await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
     await session.commit()
