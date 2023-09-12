@@ -6,14 +6,17 @@ import json
 import socket
 import ssl
 from contextlib import asynccontextmanager, suppress
+from ipaddress import ip_network
 from traceback import format_exc
 
 from loguru import logger
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
 from models.database import create_session_factory
+from models.ldap3 import NetworkPolicy
 
 logger.add(
     "logs/file_{time:DD-MM-YYYY}.log",
@@ -78,6 +81,14 @@ class PoolClientHandler:
     ):
         """Create session, queue and start message handlers concurrently."""
         ldap_session = Session(reader, writer)
+
+        async with self.create_session() as session:
+            policies = await session.scalars(select(NetworkPolicy))
+            if not policies:
+                policies = [ip_network('0.0.0.0/0')]
+
+        if not any([ldap_session.ip in policy for policy in policies]):
+            return
 
         if self.settings.USE_CORE_TLS:
             logger.info(

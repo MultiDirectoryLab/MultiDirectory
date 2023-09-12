@@ -3,6 +3,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from enum import Enum
+from ipaddress import IPv4Address, ip_address
 from typing import TYPE_CHECKING
 
 from models.ldap3 import User
@@ -121,6 +122,9 @@ class LDAPCodes(int, Enum):
 class Session:
     """Session for one client handling."""
 
+    ip: IPv4Address
+    addr: str
+
     def __init__(
         self,
         reader: asyncio.StreamReader | None = None,
@@ -133,11 +137,11 @@ class Session:
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
         self.reader = reader
         self.writer = writer
-        self.addr = None
 
         if self.writer:
             self.addr = ':'.join(
                 map(str, self.writer.get_extra_info('peername')))
+            self.ip = ip_address(self.addr)  # type: ignore
 
     @property
     def user(self) -> User | None:
