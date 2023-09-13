@@ -5,15 +5,18 @@ import base64
 import json
 import socket
 import ssl
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
+from ipaddress import IPv4Network
 from traceback import format_exc
 
 from loguru import logger
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
 from models.database import create_session_factory
+from models.ldap3 import NetworkPolicy
 
 logger.add(
     "logs/file_{time:DD-MM-YYYY}.log",
@@ -77,33 +80,39 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ):
         """Create session, queue and start message handlers concurrently."""
-        ldap_session = Session(reader, writer)
+        async with Session(reader, writer) as ldap_session:
+            if not await self.is_ip_allowed(ldap_session):
+                logger.warning(f"Whitelist violation from {ldap_session.addr}")
+                return
 
-        if self.settings.USE_CORE_TLS:
-            logger.info(
-                f"Starting TLS for {ldap_session.addr}, ciphers loaded")
-            await ldap_session.writer.start_tls(self.ssl_context)
-            logger.success(f"Successfully started TLS for {ldap_session.addr}")
+            if self.settings.USE_CORE_TLS:
+                ldap_session.start_tls(self.ssl_context)
 
-        try:
-            await asyncio.gather(
-                self.handle_request(ldap_session),
-                self.handle_responses(ldap_session),
-            )
-        except RuntimeError:
-            logger.error(
-                f"The connection {ldap_session.addr} raised {format_exc()}")
-        except ConnectionAbortedError:
-            logger.info(
-                'Connection termination initialized '
-                f'by a client {ldap_session.addr}')
-        finally:
-            with suppress(RuntimeError):
-                ldap_session.writer.close()
-                await ldap_session.writer.wait_closed()
-                await ldap_session.queue.join()
+            try:
+                await asyncio.gather(
+                    self.handle_request(ldap_session),
+                    self.handle_responses(ldap_session),
+                )
+            except RuntimeError:
+                logger.error(
+                    f"The connection {ldap_session.addr} "
+                    f"raised {format_exc()}")
+            except ConnectionAbortedError:
+                logger.info(
+                    'Connection termination initialized '
+                    f'by a client {ldap_session.addr}')
 
-            logger.success(f'Connection {ldap_session.addr} normally closed')
+    async def get_policies(self) -> list[IPv4Network]:
+        """Get network policies."""
+        async with self.create_session() as session:
+            return [policy.netmask for policy in await session.scalars(
+                select(NetworkPolicy).filter_by(enabled=True))]
+
+    async def is_ip_allowed(self, ldap_session):
+        """Check if client ip is valid."""
+        return any([
+            ldap_session.ip in policy
+            for policy in await self.get_policies()])
 
     @staticmethod
     async def handle_request(ldap_session: Session):

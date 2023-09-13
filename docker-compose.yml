@@ -34,7 +34,7 @@ services:
       POSTGRES_PASSWORD: password123
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     command: bash -c "alembic upgrade head && python ."
-    # tty: true
+    tty: true
     expose:
       - 389
       - 636
@@ -53,6 +53,7 @@ services:
       POSTGRES_PASSWORD: password123
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
     command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --reload"
+    tty: true
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`api.localhost`) && PathPrefix(`/api`)"
@@ -94,45 +95,45 @@ services:
       - "traefik.http.routers.pg.entrypoints=web"
       - "traefik.http.services.pg.loadbalancer.server.port=80"
 
-  ssh:
-    container_name: md-ssh
-    image: ssh-ldap
-    build:
-      context: ./ssh
-    environment:
-      SERVER: "ldap://multidirectory"
-      BASE: "dc=multifactor,dc=dev"
-      BIND_DN: "cn=user,dc=multifactor,dc=dev"
-      BASE_PASSWORD: "password"
-    restart: "no"
+  # ssh:
+  #   container_name: md-ssh
+  #   image: ssh-ldap
+  #   build:
+  #     context: ./ssh
+  #   environment:
+  #     SERVER: "ldap://multidirectory"
+  #     BASE: "dc=multifactor,dc=dev"
+  #     BIND_DN: "cn=user,dc=multifactor,dc=dev"
+  #     BASE_PASSWORD: "password"
+  #   restart: "no"
 
-    ports:
-      - "222:22"
+  #   ports:
+  #     - "222:22"
 
-  wireshark:
-    image: lscr.io/linuxserver/wireshark:latest
-    container_name: wireshark
-    cap_add:
-      - NET_ADMIN
-    security_opt:
-      - seccomp:unconfined #optional
-    # network_mode: host
-    environment:
-      - PUID=501
-      - PGID=20
-      - TZ=Etc/UTC
-    volumes:
-      - wireshark:/config
-    ports:
-      - 3000:3000
-    restart: "no"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ws.rule=Host(`ws.localhost`)"
-      - "traefik.http.routers.ws.entrypoints=web"
-      - "traefik.http.services.ws.loadbalancer.server.port=3000"
-    logging:
-      driver: "none"
+  # wireshark:
+  #   image: lscr.io/linuxserver/wireshark:latest
+  #   container_name: wireshark
+  #   cap_add:
+  #     - NET_ADMIN
+  #   security_opt:
+  #     - seccomp:unconfined #optional
+  #   # network_mode: host
+  #   environment:
+  #     - PUID=501
+  #     - PGID=20
+  #     - TZ=Etc/UTC
+  #   volumes:
+  #     - wireshark:/config
+  #   ports:
+  #     - 3000:3000
+  #   restart: "no"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.ws.rule=Host(`ws.localhost`)"
+  #     - "traefik.http.routers.ws.entrypoints=web"
+  #     - "traefik.http.services.ws.loadbalancer.server.port=3000"
+  #   logging:
+  #     driver: "none"
 
 volumes:
   postgres:

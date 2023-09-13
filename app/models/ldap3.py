@@ -3,6 +3,7 @@
 from typing import Literal, Optional
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -19,6 +20,7 @@ from sqlalchemy.orm import (
     relationship,
     synonym,
 )
+from sqlalchemy.sql import expression
 
 from .database import Base
 
@@ -261,3 +263,14 @@ class Path(Base):
         order_by="Directory.depth",
         back_populates="paths",
     )
+
+
+class NetworkPolicy(Base):
+    """Network policy data."""
+
+    __tablename__ = "Policies"
+
+    id = Column(Integer, primary_key=True)  # noqa: A003
+    name = Column(String, nullable=False, unique=True)
+    netmask = Column(postgresql.CIDR, nullable=False, unique=True)
+    enabled = Column(Boolean, server_default=expression.true(), nullable=False)

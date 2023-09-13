@@ -85,7 +85,7 @@ async def get_user_from_token(
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-    except JWTError:
+    except (JWTError, AttributeError):
         raise credentials_exception
 
     if payload.get("grant_type") != grant_type:

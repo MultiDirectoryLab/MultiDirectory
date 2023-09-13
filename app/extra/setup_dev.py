@@ -26,6 +26,7 @@ from models.ldap3 import (
     Directory,
     Group,
     GroupMembership,
+    NetworkPolicy,
     User,
     UserMembership,
 )
@@ -129,6 +130,8 @@ async def setup_enviroment(
 
     async with session.begin_nested():
         session.add(catalogue)
+        session.add(NetworkPolicy(
+            name='default open policy', netmask='0.0.0.0/0'))
 
     try:
         for unit in data:
