@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, validator
 class Policy(BaseModel):
     """Network Policy model."""
 
-    name: str = Field(..., example='local network')
+    name: str = Field(..., example='local network', max_length=100)
     netmask: IPv4Interface | tuple[IPv4Address, IPv4Address] = Field(
         ..., example="172.0.0.0/8")
 
