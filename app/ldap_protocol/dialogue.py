@@ -183,7 +183,7 @@ class Session:
     async def __aenter__(self) -> 'Session':  # noqa
         return self
 
-    async def __aexit__(self):
+    async def __aexit__(self, exc_type, exc, tb):
         """Close writer and queue."""
         with suppress(RuntimeError):
             await self.queue.join()
