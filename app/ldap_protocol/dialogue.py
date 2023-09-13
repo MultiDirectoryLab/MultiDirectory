@@ -1,10 +1,13 @@
 """Codes mapping."""
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from enum import Enum
 from ipaddress import IPv4Address, ip_address
+from ssl import SSLContext
 from typing import TYPE_CHECKING
+
+from loguru import logger
 
 from models.ldap3 import User
 
@@ -124,6 +127,8 @@ class Session:
 
     ip: IPv4Address
     addr: str
+    reader: asyncio.StreamReader
+    writer: asyncio.StreamWriter
 
     def __init__(
         self,
@@ -135,13 +140,14 @@ class Session:
         self._lock = asyncio.Lock()
         self._user: User | None = user
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
-        self.reader = reader
-        self.writer = writer
 
-        if self.writer:
+        if reader and writer:
+            self.reader = reader
+            self.writer = writer
+
             self.addr = ':'.join(
                 map(str, self.writer.get_extra_info('peername')))
-            self.ip = ip_address(self.addr)  # type: ignore
+            self.ip = ip_address(self.addr.split(':')[0])  # type: ignore
 
     @property
     def user(self) -> User | None:
@@ -173,3 +179,20 @@ class Session:
         """Lock session, user cannot be deleted or get while lock is set."""
         async with self._lock:
             yield self._user
+
+    async def __aenter__(self) -> 'Session':  # noqa
+        return self
+
+    async def __aexit__(self):
+        """Close writer and queue."""
+        with suppress(RuntimeError):
+            await self.queue.join()
+            self.writer.close()
+            await self.writer.wait_closed()
+
+        logger.success(f'Connection {self.addr} closed')
+
+    async def start_tls(self, ssl_context: SSLContext):  # noqa
+        logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
+        await self.writer.start_tls(ssl_context)
+        logger.success(f"Successfully started TLS for {self.addr}")
