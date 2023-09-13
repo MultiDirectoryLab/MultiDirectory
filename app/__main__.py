@@ -105,12 +105,8 @@ class PoolClientHandler:
     async def get_policies(self) -> list[IPv4Network]:
         """Get network policies."""
         async with self.create_session() as session:
-            policies = await session.scalars(
-                select(NetworkPolicy).filter_by(enabled=True))
-            if policies:
-                return [policy.netmask for policy in policies]
-
-            return [IPv4Network('0.0.0.0/0')]
+            return [policy.netmask for policy in await session.scalars(
+                select(NetworkPolicy).filter_by(enabled=True))]
 
     async def is_ip_allowed(self, ldap_session):
         """Check if client ip is valid."""
@@ -205,7 +201,6 @@ class PoolClientHandler:
     async def start(self):
         """Run and log tcp server."""
         server = await self.get_server()
-        logger.info(await self.get_policies())
         self.log_addrs(server)
         try:
             await self.run_server(server)
