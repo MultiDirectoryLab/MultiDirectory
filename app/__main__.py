@@ -5,8 +5,8 @@ import base64
 import json
 import socket
 import ssl
-from contextlib import asynccontextmanager, suppress
-from ipaddress import ip_network
+from contextlib import asynccontextmanager
+from ipaddress import IPv4Network
 from traceback import format_exc
 
 from loguru import logger
@@ -80,41 +80,43 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ):
         """Create session, queue and start message handlers concurrently."""
-        ldap_session = Session(reader, writer)
+        async with Session(reader, writer) as ldap_session:
+            if not await self.is_ip_allowed(ldap_session):
+                logger.warning(f"Whitelist violation from {ldap_session.addr}")
+                return
 
+            if self.settings.USE_CORE_TLS:
+                ldap_session.start_tls(self.ssl_context)
+
+            try:
+                await asyncio.gather(
+                    self.handle_request(ldap_session),
+                    self.handle_responses(ldap_session),
+                )
+            except RuntimeError:
+                logger.error(
+                    f"The connection {ldap_session.addr} "
+                    f"raised {format_exc()}")
+            except ConnectionAbortedError:
+                logger.info(
+                    'Connection termination initialized '
+                    f'by a client {ldap_session.addr}')
+
+    async def get_policies(self) -> list[IPv4Network]:
+        """Get network policies."""
         async with self.create_session() as session:
-            policies = await session.scalars(select(NetworkPolicy))
-            if not policies:
-                policies = [ip_network('0.0.0.0/0')]
+            policies = await session.scalars(
+                select(NetworkPolicy).filter_by(enabled=True))
+            if policies:
+                return [policy.netmask for policy in policies]
 
-        if not any([ldap_session.ip in policy for policy in policies]):
-            return
+            return [IPv4Network('0.0.0.0/0')]
 
-        if self.settings.USE_CORE_TLS:
-            logger.info(
-                f"Starting TLS for {ldap_session.addr}, ciphers loaded")
-            await ldap_session.writer.start_tls(self.ssl_context)
-            logger.success(f"Successfully started TLS for {ldap_session.addr}")
-
-        try:
-            await asyncio.gather(
-                self.handle_request(ldap_session),
-                self.handle_responses(ldap_session),
-            )
-        except RuntimeError:
-            logger.error(
-                f"The connection {ldap_session.addr} raised {format_exc()}")
-        except ConnectionAbortedError:
-            logger.info(
-                'Connection termination initialized '
-                f'by a client {ldap_session.addr}')
-        finally:
-            with suppress(RuntimeError):
-                ldap_session.writer.close()
-                await ldap_session.writer.wait_closed()
-                await ldap_session.queue.join()
-
-            logger.success(f'Connection {ldap_session.addr} normally closed')
+    async def is_ip_allowed(self, ldap_session):
+        """Check if client ip is valid."""
+        return any([
+            ldap_session.ip in policy
+            for policy in await self.get_policies()])
 
     @staticmethod
     async def handle_request(ldap_session: Session):
@@ -203,6 +205,7 @@ class PoolClientHandler:
     async def start(self):
         """Run and log tcp server."""
         server = await self.get_server()
+        logger.info(await self.get_policies())
         self.log_addrs(server)
         try:
             await self.run_server(server)
