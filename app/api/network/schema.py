@@ -9,24 +9,35 @@ class Policy(BaseModel):
     """Network Policy model."""
 
     name: str = Field(..., example='local network', max_length=100)
-    netmask: IPv4Interface | tuple[IPv4Address, IPv4Address] = Field(
+    netmasks: list[IPv4Interface | tuple[IPv4Address, IPv4Address]] = Field(
         ..., example="172.0.0.0/8")
 
-    @validator('netmask')
+    @validator('netmasks')
     def validate_range(cls, value):  # noqa: N805
-        """Validate range or return pure value."""
-        if isinstance(value, tuple):
-            return list(summarize_address_range(value[0], value[1]))[0]
-        return value
+        """Validate range or return networks range."""
+        values = []
+        for item in value:
+            if isinstance(item, tuple):
+                values.extend(list(summarize_address_range(item[0], item[1])))
+            else:
+                values.append(item)
+        return values
 
 
 class PolicyResponse(BaseModel):
-    """Network Policy model."""
+    """Network Policy model for response."""
 
     id: int  # noqa
     name: str
-    netmask: IPv4Interface
+    netmasks: list[IPv4Interface]
     enabled: bool
 
     class Config:  # noqa
         orm_mode = True
+
+
+class PolicyUpdate(BaseModel):
+    """Update request."""
+
+    id: int  # noqa
+    is_enabled: bool

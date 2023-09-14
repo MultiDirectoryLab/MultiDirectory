@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5c519e0f989c
+Revision ID: 2aa649ab4be0
 Revises: d5272e9889c5
-Create Date: 2023-09-11 16:14:43.098422
+Create Date: 2023-09-14 08:51:19.043535
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5c519e0f989c'
+revision = '2aa649ab4be0'
 down_revision = 'd5272e9889c5'
 branch_labels = None
 depends_on = None
@@ -21,11 +21,11 @@ def upgrade() -> None:
     op.create_table('Policies',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
-    sa.Column('netmask', postgresql.CIDR(), nullable=False),
+    sa.Column('netmasks', postgresql.ARRAY(postgresql.CIDR()), nullable=False),
     sa.Column('enabled', sa.Boolean(), server_default=sa.text('true'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name'),
-    sa.UniqueConstraint('netmask')
+    sa.UniqueConstraint('netmasks')
     )
     # ### end Alembic commands ###
 
