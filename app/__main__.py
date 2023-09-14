@@ -6,8 +6,9 @@ import json
 import socket
 import ssl
 from contextlib import asynccontextmanager
-from ipaddress import IPv4Network
+from ipaddress import IPv4Address, IPv4Network
 from traceback import format_exc
+from typing import AsyncGenerator
 
 from loguru import logger
 from pydantic import ValidationError
@@ -81,7 +82,7 @@ class PoolClientHandler:
     ):
         """Create session, queue and start message handlers concurrently."""
         async with Session(reader, writer) as ldap_session:
-            if not await self.is_ip_allowed(ldap_session):
+            if not await self.is_ip_allowed(ldap_session.ip):
                 logger.warning(f"Whitelist violation from {ldap_session.addr}")
                 return
 
@@ -102,17 +103,23 @@ class PoolClientHandler:
                     'Connection termination initialized '
                     f'by a client {ldap_session.addr}')
 
-    async def get_policies(self) -> list[IPv4Network]:
+    async def get_policies(self) -> AsyncGenerator[IPv4Network, None]:
         """Get network policies."""
         async with self.create_session() as session:
-            return [policy.netmask for policy in await session.scalars(
-                select(NetworkPolicy).filter_by(enabled=True))]
+            policies = await session.stream_scalars(
+                select(NetworkPolicy).filter_by(enabled=True))
 
-    async def is_ip_allowed(self, ldap_session):
+            async for policy in policies:
+                for netmask in policy.netmasks:
+                    yield netmask
+
+    async def is_ip_allowed(self, ip: IPv4Address):
         """Check if client ip is valid."""
-        return any([
-            ldap_session.ip in policy
-            for policy in await self.get_policies()])
+        # NOTE: db query netmasks.in_() is better?
+        async for policy in self.get_policies():
+            if ip in policy:
+                return True
+        return False
 
     @staticmethod
     async def handle_request(ldap_session: Session):
