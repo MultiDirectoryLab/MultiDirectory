@@ -41,6 +41,9 @@ services:
     ports:
       - "389:389"
       - "636:636"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   api:
     image: multidirectory
@@ -63,6 +66,9 @@ services:
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     container_name: MD-postgres
@@ -76,6 +82,13 @@ services:
        - postgres:/data/postgres
     ports:
       - "5432:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
 
   pgadmin:
     container_name: pgadmin_container
