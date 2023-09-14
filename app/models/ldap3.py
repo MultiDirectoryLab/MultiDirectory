@@ -272,5 +272,6 @@ class NetworkPolicy(Base):
 
     id = Column(Integer, primary_key=True)  # noqa: A003
     name = Column(String, nullable=False, unique=True)
-    netmask = Column(postgresql.CIDR, nullable=False, unique=True)
+    netmasks = Column(
+        postgresql.ARRAY(postgresql.CIDR), nullable=False, unique=True)
     enabled = Column(Boolean, server_default=expression.true(), nullable=False)
