@@ -162,7 +162,7 @@ async def test_check_policy(handler, session):
 
 
 @pytest.mark.asyncio()
-async def test_404(http_client, handler, session):
+async def test_404(http_client, session):
     """Delete policy."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
