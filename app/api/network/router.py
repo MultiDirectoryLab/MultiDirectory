@@ -1,8 +1,9 @@
 """Network policies."""
 
+from fastapi import HTTPException, status
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
-from sqlalchemy import delete, select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from api.auth import User, get_current_user
@@ -14,19 +15,24 @@ from .schema import Policy, PolicyResponse, PolicyUpdate
 network_router = APIRouter()
 
 
-@network_router.post('/policy')
+@network_router.post('/policy', status_code=status.HTTP_201_CREATED)
 async def add_network_policy(
     policy: Policy,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> bool:
+) -> PolicyResponse:
     """Add newtwork."""
+    new_policy = NetworkPolicy(name=policy.name, netmasks=policy.netmasks)
+
     try:
-        session.add(NetworkPolicy(name=policy.name, netmasks=policy.netmasks))
+        session.add(new_policy)
         await session.commit()
     except IntegrityError:
-        return False
-    return True
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail='Entry already exists')
+
+    await session.refresh(new_policy)
+    return PolicyResponse.from_orm(new_policy)
 
 
 @network_router.get('/policy')
@@ -47,7 +53,14 @@ async def delete_network_policy(
     user: User = Depends(get_current_user),
 ) -> bool:
     """Delete network."""
-    await session.execute(delete(NetworkPolicy).filter_by(id=policy_id))
+    selected_policy = await session.get(
+        NetworkPolicy, policy_id, with_for_update=True)
+
+    if not selected_policy:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
+
+    await session.delete(selected_policy)
+    await session.commit()
     return True
 
 
@@ -56,10 +69,21 @@ async def switch_network_policy(
     policy: PolicyUpdate,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> bool:
+) -> PolicyResponse:
     """Set state of network."""
-    await session.execute(
-        update(NetworkPolicy)
-        .values(enabled=policy.is_enabled)
-        .filter_by(id=policy.id))
-    return True
+    selected_policy = await session.get(
+        NetworkPolicy, policy.id, with_for_update=True)
+
+    if not selected_policy:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
+
+    selected_policy.enabled = policy.is_enabled
+
+    if policy.name:
+        selected_policy.name = policy.name
+
+    if policy.netmasks:
+        selected_policy.netmasks = policy.netmasks
+
+    await session.commit()
+    return PolicyResponse.from_orm(selected_policy)
