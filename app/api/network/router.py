@@ -85,5 +85,10 @@ async def switch_network_policy(
     if policy.netmasks:
         selected_policy.netmasks = policy.netmasks
 
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail='Entry already exists')
+
     return PolicyResponse.from_orm(selected_policy)
