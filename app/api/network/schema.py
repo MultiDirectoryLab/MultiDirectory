@@ -4,13 +4,14 @@ from ipaddress import IPv4Address, IPv4Interface, summarize_address_range
 
 from pydantic import BaseModel, Field, validator
 
+IPv4IntefaceListType = list[IPv4Interface | tuple[IPv4Address, IPv4Address]]
+
 
 class Policy(BaseModel):
     """Network Policy model."""
 
     name: str = Field(..., example='local network', max_length=100)
-    netmasks: list[IPv4Interface | tuple[IPv4Address, IPv4Address]] = Field(
-        ..., example="172.0.0.0/8")
+    netmasks: IPv4IntefaceListType = Field(..., example=["172.0.0.0/8"])
 
     @validator('netmasks')
     def validate_range(cls, value):  # noqa: N805
@@ -40,4 +41,6 @@ class PolicyUpdate(BaseModel):
     """Update request."""
 
     id: int  # noqa
+    name: str | None
+    netmasks: IPv4IntefaceListType | None
     is_enabled: bool
