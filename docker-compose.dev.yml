@@ -132,7 +132,7 @@ services:
 
   postgres:
     container_name: MD-postgres
-    image: postgres
+    image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
