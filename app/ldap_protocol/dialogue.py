@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from models.ldap3 import User
+from models.ldap3 import NetworkPolicy, User
 
 if TYPE_CHECKING:
     from .messages import LDAPRequestMessage
@@ -129,6 +129,7 @@ class Session:
     addr: str
     reader: asyncio.StreamReader
     writer: asyncio.StreamWriter
+    policy: NetworkPolicy | None
 
     def __init__(
         self,
