@@ -6,13 +6,13 @@ import json
 import socket
 import ssl
 from contextlib import asynccontextmanager
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Address
 from traceback import format_exc
-from typing import AsyncGenerator
 
 from loguru import logger
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.orm import joinedload
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
@@ -82,7 +82,9 @@ class PoolClientHandler:
     ):
         """Create session, queue and start message handlers concurrently."""
         async with Session(reader, writer) as ldap_session:
-            if not await self.is_ip_allowed(ldap_session.ip):
+            if (policy := await self.get_policy(ldap_session.ip)) is not None:
+                ldap_session.policy = policy
+            else:
                 logger.warning(f"Whitelist violation from {ldap_session.addr}")
                 return
 
@@ -103,23 +105,18 @@ class PoolClientHandler:
                     'Connection termination initialized '
                     f'by a client {ldap_session.addr}')
 
-    async def get_policies(self) -> AsyncGenerator[IPv4Network, None]:
+    async def get_policy(self, ip: IPv4Address) -> NetworkPolicy | None:
         """Get network policies."""
         async with self.create_session() as session:
-            policies = await session.stream_scalars(
-                select(NetworkPolicy).filter_by(enabled=True))
-
-            async for policy in policies:
-                for netmask in policy.netmasks:
-                    yield netmask
-
-    async def is_ip_allowed(self, ip: IPv4Address):
-        """Check if client ip is valid."""
-        # NOTE: db query netmasks.in_() is better?
-        async for policy in self.get_policies():
-            if ip in policy:
-                return True
-        return False
+            return await session.scalar((  # noqa
+                select(NetworkPolicy)
+                .filter_by(enabled=True)
+                .filter(
+                    text(':ip << ANY("Policies".netmasks)').bindparams(ip=ip))
+                .order_by(NetworkPolicy.priority.asc())
+                .options(joinedload(NetworkPolicy.group))
+                .limit(1)
+            ))
 
     @staticmethod
     async def handle_request(ldap_session: Session):
@@ -161,20 +158,24 @@ class PoolClientHandler:
     async def handle_single_response(self, ldap_session: Session):
         """Get message from queue and handle it."""
         while True:
-            message = await ldap_session.queue.get()
-            logger.info(
-                f"\nFrom: {ldap_session.addr!r}\n"
-                f"Request: {message.json()}\n")
+            try:
+                message = await ldap_session.queue.get()
+                logger.info(
+                    f"\nFrom: {ldap_session.addr!r}\n"
+                    f"Request: {message.model_dump_json()}\n")
 
-            async with self.create_session() as session:
-                async for response in message.create_response(
-                        ldap_session, session):
-                    logger.info(
-                        f"\nTo: {ldap_session.addr!r}\n"
-                        f"Response: {response.json()}"[:3000])
-                    ldap_session.writer.write(response.encode())
-                    await ldap_session.writer.drain()
-            ldap_session.queue.task_done()
+                async with self.create_session() as session:
+                    async for response in message.create_response(
+                            ldap_session, session):
+                        logger.info(
+                            f"\nTo: {ldap_session.addr!r}\n"
+                            f"Response: {response.model_dump_json()}"[:3000])
+                        ldap_session.writer.write(response.encode())
+                        await ldap_session.writer.drain()
+                ldap_session.queue.task_done()
+            except Exception as err:
+                logger.error(f'Unexpected exception {err}')
+                raise err
 
     async def handle_responses(self, ldap_session: Session):
         """Create pool of workers and apply handler to it.
