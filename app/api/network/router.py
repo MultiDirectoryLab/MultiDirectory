@@ -22,7 +22,12 @@ async def add_network_policy(
     user: User = Depends(get_current_user),
 ) -> PolicyResponse:
     """Add newtwork."""
-    new_policy = NetworkPolicy(name=policy.name, netmasks=policy.netmasks)
+    new_policy = NetworkPolicy(
+        name=policy.name,
+        netmasks=policy.complete_netmasks,
+        priority=policy.priority,
+        raw=policy.model_dump(mode='json')['netmasks'],
+    )
 
     try:
         session.add(new_policy)
@@ -32,7 +37,7 @@ async def add_network_policy(
             status.HTTP_400_BAD_REQUEST, detail='Entry already exists')
 
     await session.refresh(new_policy)
-    return PolicyResponse.from_orm(new_policy)
+    return PolicyResponse.model_validate(new_policy)
 
 
 @network_router.get('/policy')
