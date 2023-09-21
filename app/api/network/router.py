@@ -30,7 +30,8 @@ async def add_network_policy(
         if policy.group:
             group_dir = await get_group(policy.group, session)
     except ValueError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid group DN")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid group DN")
 
     new_policy = NetworkPolicy(
         name=policy.name,
@@ -45,7 +46,7 @@ async def add_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, detail='Entry already exists')
+            status.HTTP_422_UNPROCESSABLE_ENTITY, 'Entry already exists')
 
     await session.refresh(new_policy)
 
@@ -126,12 +127,31 @@ async def switch_network_policy(
         selected_policy.name = policy.name
 
     if policy.netmasks:
-        selected_policy.netmasks = policy.netmasks
+        selected_policy.netmasks = policy.complete_netmasks
+        selected_policy.raw = policy.netmasks
+
+    if policy.group:
+        try:
+            group_dir = await get_group(policy.group, session)
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid group DN")
+
+        policy.group = get_path_dn(group_dir.path, await get_base_dn(session))
+        selected_policy.group = group_dir.group
 
     try:
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, detail='Entry already exists')
+            status.HTTP_422_UNPROCESSABLE_ENTITY, 'Entry already exists')
 
-    return PolicyResponse.from_orm(selected_policy)
+    return PolicyResponse(
+        id=selected_policy.id,
+        name=selected_policy.name,
+        netmasks=selected_policy.netmasks,
+        raw=selected_policy.raw,
+        enabled=selected_policy.enabled,
+        priority=selected_policy.priority,
+        group=policy.group,
+    )
