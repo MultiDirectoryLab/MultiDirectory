@@ -151,3 +151,36 @@ async def get_groups(
         directory.group
         async for directory in result
         if directory.group is not None]
+
+
+async def get_group(dn: str, session) -> Directory:
+    """Get dir with group by dn.
+
+    :param str dn: Distinguished Name
+    :param AsyncSession session: SA session
+    :raises AttributeError: on invalid dn
+    :return Directory: dir with group
+    """
+    base_dn = await get_base_dn(session)
+    dn_is_base = dn.lower() == base_dn.lower()
+
+    if dn_is_base:
+        raise ValueError('Cannot set memberOf with base dn')
+
+    path = list(reversed(
+        dn.lower().removesuffix(',' + base_dn.lower()).split(',')))
+
+    directory = await session.scalar(
+        select(Directory)
+        .join(Directory.path).filter(Path.path == path)
+        .options(selectinload(Directory.group), selectinload(Directory.path)))
+
+    if not directory:
+        raise ValueError("Group not found")
+
+    return directory
+
+
+def get_path_dn(path: Path, base_dn: str) -> str:
+    """Get DN from path."""
+    return ','.join(reversed(path.path)) + ',' + base_dn

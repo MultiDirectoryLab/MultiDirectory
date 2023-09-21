@@ -226,7 +226,8 @@ class Group(DirectoryReferenceMixin, Base):
         back_populates='groups',
     )
 
-    policies: 'NetworkPolicy' = relationship('NetworkPolicy', cascade="delete")
+    policies: 'NetworkPolicy' = relationship(
+        'NetworkPolicy', cascade="delete", back_populates="group")
 
 
 class Computer(DirectoryReferenceMixin, Base):
@@ -284,4 +285,5 @@ class NetworkPolicy(Base):
     priority = Column(Integer, nullable=False, unique=True)
 
     group_id = Column(Integer, ForeignKey("Groups.id"), nullable=True)
-    group: 'Group' = relationship('Group', uselist=False, cascade="delete")
+    group: 'Group' = relationship(
+        'Group', uselist=False, cascade="delete", back_populates="policies")

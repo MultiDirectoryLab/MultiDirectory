@@ -8,7 +8,10 @@ from pydantic import (
     Field,
     computed_field,
     field_serializer,
+    field_validator,
 )
+
+from ldap_protocol.utils import validate_entry
 
 
 class IPRange(BaseModel):
@@ -27,6 +30,17 @@ class Policy(BaseModel):
     name: str = Field(example='local network', max_length=100)
     netmasks: IPv4IntefaceListType = Field(example=["172.0.0.0/8"])
     priority: int
+    group: str | None = None
+
+    @field_validator('group')
+    @classmethod
+    def validate_group(cls, group):  # noqa
+        if group is None:
+            return group
+        elif validate_entry(group):
+            return group
+
+        raise ValueError('Invalid DN')
 
     @computed_field
     def complete_netmasks(self) -> IPv4IntefaceListType:
@@ -72,6 +86,7 @@ class PolicyResponse(BaseModel):
     raw: list[str | dict]
     priority: int
     enabled: bool
+    group: str | None = None
 
 
 class PolicyUpdate(BaseModel):
