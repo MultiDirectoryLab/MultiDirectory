@@ -24,7 +24,24 @@ class IPRange(BaseModel):
 IPv4IntefaceListType = list[IPv4Address | IPv4Network | IPRange]
 
 
-class Policy(BaseModel):
+class NetmasksMixin:
+    """Netmasks comuted value container."""
+
+    @computed_field
+    @property
+    def complete_netmasks(self) -> IPv4IntefaceListType:
+        """Validate range or return networks range."""
+        values = []
+        for item in self.netmasks:
+            if isinstance(item, IPRange):
+                values.extend(
+                    list(summarize_address_range(item.start, item.end)))
+            else:
+                values.append(IPv4Network(item))
+        return values
+
+
+class Policy(BaseModel, NetmasksMixin):
     """Network Policy model."""
 
     name: str = Field(example='local network', max_length=100)
@@ -41,18 +58,6 @@ class Policy(BaseModel):
             return group
 
         raise ValueError('Invalid DN')
-
-    @computed_field
-    def complete_netmasks(self) -> IPv4IntefaceListType:
-        """Validate range or return networks range."""
-        values = []
-        for item in self.netmasks:
-            if isinstance(item, IPRange):
-                values.extend(
-                    list(summarize_address_range(item.start, item.end)))
-            else:
-                values.append(IPv4Network(item))
-        return values
 
     @field_serializer('netmasks')
     @classmethod
@@ -89,10 +94,11 @@ class PolicyResponse(BaseModel):
     group: str | None = None
 
 
-class PolicyUpdate(BaseModel):
+class PolicyUpdate(BaseModel, NetmasksMixin):
     """Update request."""
 
     id: int  # noqa
-    name: str | None
-    netmasks: IPv4IntefaceListType | None
+    name: str | None = None
+    netmasks: IPv4IntefaceListType | None = None
+    group: str | None = None
     is_enabled: bool
