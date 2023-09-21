@@ -27,17 +27,21 @@ async def test_add_policy(http_client, session):
         '172.8.4.0/24',
     ]
 
+    raw_netmasks = [
+        "127.0.0.1",
+        {"start": "172.0.0.2", "end": "172.255.1.5"},
+        "172.8.4.0/24",
+    ]
+
     auth = await http_client.post("auth/token/get", data={
         "username": "user0", "password": "password"})
     login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
 
     response = await http_client.post("/policy", json={
         "name": "local seriveses",
-        "netmasks": [
-            "127.0.0.1",
-            ["172.0.0.2", "172.255.1.5"],
-            "172.8.4.0/24",
-        ],
+        "netmasks": raw_netmasks,
+        "priority": 2,
+        'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
     }, headers=login_headers)
 
     assert response.status_code == 201
@@ -53,13 +57,19 @@ async def test_add_policy(http_client, session):
     assert response == [
         {
             'enabled': True,
-            'name': 'default open policy',
+            'name': 'Default open policy',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'group': None,
+            'priority': 1,
         },
         {
             'enabled': True,
             'name': 'local seriveses',
             'netmasks': compare_netmasks,
+            'raw': raw_netmasks,
+            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+            'priority': 2,
         },
     ]
 
@@ -83,14 +93,22 @@ async def test_switch_policy(http_client, session):
     assert response == [
         {
             'enabled': True,
-            'name': 'default open policy',
+            'name': 'Default open policy',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'priority': 1,
+            'group': None,
         },
     ]
 
     response = await http_client.put(
         "/policy",
-        json={'id': pol_id, 'is_enabled': False}, headers=login_headers)
+        json={
+            'id': pol_id, 'is_enabled': False,
+            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+            'name': 'Default open policy 2',
+        }, headers=login_headers)
+
     assert response.status_code == 200
 
     response = response.json()
@@ -98,8 +116,12 @@ async def test_switch_policy(http_client, session):
 
     assert response == {
         'enabled': False,
-        'name': 'default open policy',
-        'netmasks': ['0.0.0.0/0']}
+        'name': 'Default open policy 2',
+        'netmasks': ['0.0.0.0/0'],
+        'raw': ['0.0.0.0/0'],
+        'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+        'priority': 1,
+    }
 
     response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
@@ -110,8 +132,11 @@ async def test_switch_policy(http_client, session):
     assert response == [
         {
             'enabled': False,
-            'name': 'default open policy',
+            'name': 'Default open policy 2',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'priority': 1,
+            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
         },
     ]
 
@@ -135,8 +160,11 @@ async def test_delete_policy(http_client, session):
     assert response == [
         {
             'enabled': True,
-            'name': 'default open policy',
+            'name': 'Default open policy',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'group': None,
+            'priority': 1,
         },
     ]
 
@@ -156,9 +184,8 @@ async def test_check_policy(handler, session):
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
-    assert [policy async for policy in handler.get_policies()] \
-        == [IPv4Network("0.0.0.0/0")]
-    assert await handler.is_ip_allowed(IPv4Address("127.0.0.1"))
+    policy = await handler.get_policy(IPv4Address("127.0.0.1"))
+    assert policy.netmasks == [IPv4Network("0.0.0.0/0")]
 
 
 @pytest.mark.asyncio()
