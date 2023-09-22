@@ -12,7 +12,7 @@ from ldap_protocol.utils import get_base_dn, get_group, get_path_dn
 from models.database import AsyncSession, get_session
 from models.ldap3 import Directory, Group, NetworkPolicy
 
-from .schema import Policy, PolicyResponse, PolicyUpdate
+from .schema import Policy, PolicyResponse, PolicyUpdate, SwapRequest
 
 network_router = APIRouter()
 
@@ -23,12 +23,24 @@ async def add_network_policy(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> PolicyResponse:
-    """Add newtwork."""
+    """Add policy.
+
+    :param Policy policy: policy to add
+    :param User user: requires login, defaults to Depends(get_current_user)
+    :raises HTTPException: 422 invalid group DN
+    :raises HTTPException: 422 Entry already exists
+    :return PolicyResponse: Ready policy
+    """
     group_dir = None
+    group = None
+    group_dn = None
 
     try:
         if policy.group:
             group_dir = await get_group(policy.group, session)
+            group = group_dir.group
+            group_dn = get_path_dn(group_dir.path, await get_base_dn(session))
+
     except ValueError:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid group DN")
@@ -38,7 +50,7 @@ async def add_network_policy(
         netmasks=policy.complete_netmasks,
         priority=policy.priority,
         raw=policy.model_dump(mode='json')['netmasks'],
-        group=group_dir.group,
+        group=group,
     )
 
     try:
@@ -50,8 +62,6 @@ async def add_network_policy(
 
     await session.refresh(new_policy)
 
-    group = get_path_dn(group_dir.path, await get_base_dn(session))
-
     return PolicyResponse(
         id=new_policy.id,
         name=new_policy.name,
@@ -59,7 +69,7 @@ async def add_network_policy(
         raw=new_policy.raw,
         enabled=new_policy.enabled,
         priority=new_policy.priority,
-        group=group,
+        group=group_dn,
     )
 
 
@@ -68,7 +78,11 @@ async def get_network_policies(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> list[PolicyResponse]:
-    """Get network."""
+    """Get network.
+
+    :param User user: requires login, defaults to Depends(get_current_user)
+    :return list[PolicyResponse]: all policies
+    """
     base_dn = await get_base_dn(session)
     options = selectinload(NetworkPolicy.group)\
         .selectinload(Group.directory)\
@@ -87,7 +101,8 @@ async def get_network_policies(
                 if policy.group else None),
         )
         for policy in await session.scalars(
-            select(NetworkPolicy).options(options))]
+            select(NetworkPolicy).options(options)
+            .order_by(NetworkPolicy.priority.asc()))]
 
 
 @network_router.delete('/policy')
@@ -114,7 +129,15 @@ async def switch_network_policy(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> PolicyResponse:
-    """Set state of network."""
+    """Set state of network.
+
+    :param PolicyUpdate policy: update request
+    :param User user: requires login, defaults to Depends(get_current_user)
+    :raises HTTPException: 404 policy not found
+    :raises HTTPException: 422 Invalid group DN
+    :raises HTTPException: 422 Entry already exists
+    :return PolicyResponse: Policy from database
+    """
     selected_policy = await session.get(
         NetworkPolicy, policy.id, with_for_update=True)
 
