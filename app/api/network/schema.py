@@ -1,5 +1,6 @@
 """Network models."""
 
+import sys
 from ipaddress import IPv4Address, IPv4Network, summarize_address_range
 
 from pydantic import (
@@ -46,7 +47,7 @@ class Policy(BaseModel, NetmasksMixin):
 
     name: str = Field(example='local network', max_length=100)
     netmasks: IPv4IntefaceListType = Field(example=["172.0.0.0/8"])
-    priority: int
+    priority: int = Field(ge=1, le=sys.maxsize, example=2)
     group: str | None = None
 
     @field_validator('group')
@@ -89,7 +90,7 @@ class PolicyResponse(BaseModel):
     name: str
     netmasks: list[IPv4Network]
     raw: list[str | dict]
-    priority: int
+    priority: int = Field(ge=1, le=sys.maxsize, example=2)
     enabled: bool
     group: str | None = None
 
@@ -102,3 +103,10 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     netmasks: IPv4IntefaceListType | None = None
     group: str | None = None
     is_enabled: bool
+
+
+class SwapRequest(BaseModel):
+    """Swap priority values."""
+
+    first_policy_id: int = Field(ge=1, le=sys.maxsize, example=2)
+    second_policy_id: int = Field(ge=1, le=sys.maxsize, example=2)
