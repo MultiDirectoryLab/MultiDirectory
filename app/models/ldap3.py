@@ -226,7 +226,7 @@ class Group(DirectoryReferenceMixin, Base):
         back_populates='groups',
     )
 
-    policies: 'NetworkPolicy' = relationship(
+    policies: list['NetworkPolicy'] = relationship(
         'NetworkPolicy', back_populates="group")
 
 
