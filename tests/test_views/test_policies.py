@@ -210,3 +210,49 @@ async def test_404(http_client, session):
         "/policy",
         json={'id': some_id, 'is_enabled': False}, headers=login_headers)
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio()
+async def test_swap(http_client, session):
+    """Test swap policies."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    auth = await http_client.post("auth/token/get", data={
+        "username": "user0", "password": "password"})
+    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
+
+    response = await http_client.post("/policy", json={
+        "name": "local seriveses",
+        "netmasks": [
+            "127.0.0.1",
+            {"start": "172.0.0.2", "end": "172.255.1.5"},
+            "172.8.4.0/24",
+        ],
+        "priority": 2,
+    }, headers=login_headers)
+
+    get_response = await http_client.get("/policy", headers=login_headers)
+    get_response = get_response.json()
+
+    assert get_response[0]['priority'] == 1
+    assert get_response[0]['name'] == "Default open policy"
+    assert get_response[1]['priority'] == 2
+
+    swap_response = await http_client.post("/policy/swap", json={
+        'first_policy_id': get_response[0]['id'],
+        'second_policy_id': get_response[1]['id']}, headers=login_headers)
+
+    assert swap_response.json() == {
+        "first_policy_id": get_response[0]['id'],
+        "first_policy_priority": 2,
+        "second_policy_id": get_response[1]['id'],
+        "second_policy_priority": 1,
+    }
+
+    response = await http_client.get("/policy", headers=login_headers)
+    response = response.json()
+
+    assert response[0]['priority'] == 1
+    assert response[1]['priority'] == 2
+    assert response[1]['name'] == "Default open policy"
