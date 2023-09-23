@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.extra import TEST_DATA, setup_enviroment
 from app.ldap_protocol.utils import get_group, get_user, is_user_group_valid
-from app.models import User
+from app.models import NetworkPolicy, User
 
 
 @pytest.mark.asyncio()
@@ -191,6 +191,22 @@ async def test_check_policy(handler, session):
 
     policy = await handler.get_policy(IPv4Address("127.0.0.1"))
     assert policy.netmasks == [IPv4Network("0.0.0.0/0")]
+
+
+@pytest.mark.asyncio()
+async def test_specific_policy_ok(handler, session):
+    """Test specific ip."""
+    session.add(NetworkPolicy(
+        name='Local policy',
+        netmasks=[IPv4Network('127.100.10.5/32')],
+        raw=['127.100.10.5/32'],
+        enabled=True,
+        priority=1,
+    ))
+    await session.commit()
+    policy = await handler.get_policy(IPv4Address("127.100.10.5"))
+    assert policy.netmasks == [IPv4Network("127.100.10.5/32")]
+    assert not await handler.get_policy(IPv4Address("127.100.10.4"))
 
 
 @pytest.mark.asyncio()
