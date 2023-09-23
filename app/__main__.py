@@ -114,7 +114,6 @@ class PoolClientHandler:
                 .filter(
                     text(':ip << ANY("Policies".netmasks)').bindparams(ip=ip))
                 .order_by(NetworkPolicy.priority.asc())
-                .options(joinedload(NetworkPolicy.group))
                 .limit(1)
             ))
 
