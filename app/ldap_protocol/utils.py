@@ -8,7 +8,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
+from models.ldap3 import (
+    CatalogueSetting,
+    Directory,
+    Group,
+    NetworkPolicy,
+    Path,
+    User,
+)
 
 email_re = re.compile(
     r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
@@ -184,3 +191,28 @@ async def get_group(dn: str, session) -> Directory:
 def get_path_dn(path: Path, base_dn: str) -> str:
     """Get DN from path."""
     return ','.join(reversed(path.path)) + ',' + base_dn
+
+
+async def is_user_group_valid(
+    user: User,
+    policy: NetworkPolicy,
+    session: AsyncSession,
+) -> bool:
+    """Validate user groups, is it including to policy."""
+    if user is None:
+        return False
+
+    if policy.group_id is None:
+        return True
+
+    group = await session.scalar((  # noqa: ECE001
+        select(Group)
+        .join(Group.users)
+        .join(Group.policies, isouter=True)
+        .filter(
+            Group.users.contains(user),
+            Group.policies.contains(policy))
+        .limit(1)
+    ))
+
+    return bool(group)
