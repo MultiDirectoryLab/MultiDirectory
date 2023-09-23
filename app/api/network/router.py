@@ -5,14 +5,20 @@ from fastapi.params import Depends
 from fastapi.routing import APIRouter
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import make_transient, selectinload
 
 from api.auth import User, get_current_user
 from ldap_protocol.utils import get_base_dn, get_group, get_path_dn
 from models.database import AsyncSession, get_session
 from models.ldap3 import Directory, Group, NetworkPolicy
 
-from .schema import Policy, PolicyResponse, PolicyUpdate, SwapRequest
+from .schema import (
+    Policy,
+    PolicyResponse,
+    PolicyUpdate,
+    SwapRequest,
+    SwapResponse,
+)
 
 network_router = APIRouter()
 
@@ -177,4 +183,43 @@ async def switch_network_policy(
         enabled=selected_policy.enabled,
         priority=selected_policy.priority,
         group=policy.group,
+    )
+
+
+@network_router.post('/policy/swap')
+async def swap_network_policy(
+    swap: SwapRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> SwapResponse:
+    """Swap priorities.
+
+    :param int first_policy_id: policy to swap
+    :param int second_policy_id: policy to swap
+    :param User user: needs login, defaults to Depends(get_current_user)
+    :raises HTTPException: 404
+    :return SwapResponse: policy new priorities
+    """
+    policy1 = await session.get(
+        NetworkPolicy, swap.first_policy_id, with_for_update=True)
+    policy2 = await session.get(
+        NetworkPolicy, swap.second_policy_id, with_for_update=True)
+
+    if not policy1 or not policy2:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
+
+    await session.delete(policy1)
+    await session.commit()
+
+    policy1.priority, policy2.priority = policy2.priority, policy1.priority
+
+    make_transient(policy1)
+    session.add(policy1)
+    await session.commit()
+
+    return SwapResponse(
+        first_policy_id=policy1.id,
+        first_policy_priority=policy1.priority,
+        second_policy_id=policy2.id,
+        second_policy_priority=policy2.priority,
     )

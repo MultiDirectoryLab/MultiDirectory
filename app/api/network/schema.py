@@ -108,5 +108,14 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
 class SwapRequest(BaseModel):
     """Swap priority values."""
 
-    first_policy_id: int = Field(ge=1, le=sys.maxsize, example=2)
-    second_policy_id: int = Field(ge=1, le=sys.maxsize, example=2)
+    first_policy_id: int
+    second_policy_id: int
+
+
+class SwapResponse(BaseModel):
+    """Swap priority values."""
+
+    first_policy_id: int
+    first_policy_priority: int = Field(ge=1, le=sys.maxsize, example=2)
+    second_policy_id: int
+    second_policy_priority: int = Field(ge=1, le=sys.maxsize, example=2)
