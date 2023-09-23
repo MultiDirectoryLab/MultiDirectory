@@ -1,9 +1,14 @@
 """Test policy api."""
+import asyncio
 from ipaddress import IPv4Address, IPv4Network
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.extra import TEST_DATA, setup_enviroment
+from app.ldap_protocol.utils import get_group, get_user, is_user_group_valid
+from app.models import User
 
 
 @pytest.mark.asyncio()
@@ -256,3 +261,78 @@ async def test_swap(http_client, session):
     assert response[0]['priority'] == 1
     assert response[1]['priority'] == 2
     assert response[1]['name'] == "Default open policy"
+
+
+@pytest.mark.asyncio()
+async def test_check_policy_group(handler, session, settings):
+    """Delete policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    user = await get_user(session, "user0")
+    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+
+    assert await is_user_group_valid(user, policy, session)
+
+    group_dir = await get_group(
+        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+
+    policy.group = group_dir.group
+    await session.commit()
+
+    assert await is_user_group_valid(user, policy, session)
+
+
+@pytest.mark.asyncio()
+async def test_bind_policy(handler, session, settings):
+    """Delete policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
+    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+
+    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+    group_dir = await get_group(
+        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+    policy.group = group_dir.group
+    await session.commit()
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-D', un, '-x', '-w', pw)
+
+    result = await proc.wait()
+    assert result == 0
+
+
+@pytest.mark.asyncio()
+async def test_bind_policy_missing_group(handler, session, settings):
+    """Delete policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
+    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+
+    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+    group_dir = await get_group(
+        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+    user = await session.scalar(
+        select(User).filter_by(display_name="user0")
+        .options(selectinload(User.groups)))
+
+    policy.group = group_dir.group
+    user.groups.clear()
+    await session.commit()
+
+    assert not await is_user_group_valid(user, policy, session)
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-D', un, '-x', '-w', pw)
+
+    result = await proc.wait()
+    assert result == 49
