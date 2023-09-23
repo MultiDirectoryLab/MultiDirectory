@@ -131,7 +131,11 @@ async def setup_enviroment(
     async with session.begin_nested():
         session.add(catalogue)
         session.add(NetworkPolicy(
-            name='default open policy', netmasks=['0.0.0.0/0']))
+            name='Default open policy',
+            netmasks=['0.0.0.0/0'],
+            raw=['0.0.0.0/0'],
+            priority=1,
+        ))
 
     try:
         for unit in data:

@@ -16,7 +16,7 @@ async def get_session():
 
 
 def get_engine(settings: Settings):  # noqa
-    return create_async_engine(settings.POSTGRES_URI, pool_size=10)
+    return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
 
 
 def create_get_async_session(settings: Settings):

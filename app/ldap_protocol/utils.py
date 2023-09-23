@@ -8,7 +8,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
+from models.ldap3 import (
+    CatalogueSetting,
+    Directory,
+    Group,
+    NetworkPolicy,
+    Path,
+    User,
+)
 
 email_re = re.compile(
     r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
@@ -151,3 +158,61 @@ async def get_groups(
         directory.group
         async for directory in result
         if directory.group is not None]
+
+
+async def get_group(dn: str, session) -> Directory:
+    """Get dir with group by dn.
+
+    :param str dn: Distinguished Name
+    :param AsyncSession session: SA session
+    :raises AttributeError: on invalid dn
+    :return Directory: dir with group
+    """
+    base_dn = await get_base_dn(session)
+    dn_is_base = dn.lower() == base_dn.lower()
+
+    if dn_is_base:
+        raise ValueError('Cannot set memberOf with base dn')
+
+    path = list(reversed(
+        dn.lower().removesuffix(',' + base_dn.lower()).split(',')))
+
+    directory = await session.scalar(
+        select(Directory)
+        .join(Directory.path).filter(Path.path == path)
+        .options(selectinload(Directory.group), selectinload(Directory.path)))
+
+    if not directory:
+        raise ValueError("Group not found")
+
+    return directory
+
+
+def get_path_dn(path: Path, base_dn: str) -> str:
+    """Get DN from path."""
+    return ','.join(reversed(path.path)) + ',' + base_dn
+
+
+async def is_user_group_valid(
+    user: User,
+    policy: NetworkPolicy,
+    session: AsyncSession,
+) -> bool:
+    """Validate user groups, is it including to policy."""
+    if user is None:
+        return False
+
+    if policy.group_id is None:
+        return True
+
+    group = await session.scalar((  # noqa: ECE001
+        select(Group)
+        .join(Group.users)
+        .join(Group.policies, isouter=True)
+        .filter(
+            Group.users.contains(user),
+            Group.policies.contains(policy))
+        .limit(1)
+    ))
+
+    return bool(group)

@@ -1,9 +1,14 @@
 """Test policy api."""
+import asyncio
 from ipaddress import IPv4Address, IPv4Network
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.extra import TEST_DATA, setup_enviroment
+from app.ldap_protocol.utils import get_group, get_user, is_user_group_valid
+from app.models import NetworkPolicy, User
 
 
 @pytest.mark.asyncio()
@@ -27,17 +32,21 @@ async def test_add_policy(http_client, session):
         '172.8.4.0/24',
     ]
 
+    raw_netmasks = [
+        "127.0.0.1",
+        {"start": "172.0.0.2", "end": "172.255.1.5"},
+        "172.8.4.0/24",
+    ]
+
     auth = await http_client.post("auth/token/get", data={
         "username": "user0", "password": "password"})
     login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
 
     response = await http_client.post("/policy", json={
         "name": "local seriveses",
-        "netmasks": [
-            "127.0.0.1",
-            ["172.0.0.2", "172.255.1.5"],
-            "172.8.4.0/24",
-        ],
+        "netmasks": raw_netmasks,
+        "priority": 2,
+        'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
     }, headers=login_headers)
 
     assert response.status_code == 201
@@ -53,13 +62,19 @@ async def test_add_policy(http_client, session):
     assert response == [
         {
             'enabled': True,
-            'name': 'default open policy',
+            'name': 'Default open policy',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'group': None,
+            'priority': 1,
         },
         {
             'enabled': True,
             'name': 'local seriveses',
             'netmasks': compare_netmasks,
+            'raw': raw_netmasks,
+            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+            'priority': 2,
         },
     ]
 
@@ -83,14 +98,22 @@ async def test_switch_policy(http_client, session):
     assert response == [
         {
             'enabled': True,
-            'name': 'default open policy',
+            'name': 'Default open policy',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'priority': 1,
+            'group': None,
         },
     ]
 
     response = await http_client.put(
         "/policy",
-        json={'id': pol_id, 'is_enabled': False}, headers=login_headers)
+        json={
+            'id': pol_id, 'is_enabled': False,
+            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+            'name': 'Default open policy 2',
+        }, headers=login_headers)
+
     assert response.status_code == 200
 
     response = response.json()
@@ -98,8 +121,12 @@ async def test_switch_policy(http_client, session):
 
     assert response == {
         'enabled': False,
-        'name': 'default open policy',
-        'netmasks': ['0.0.0.0/0']}
+        'name': 'Default open policy 2',
+        'netmasks': ['0.0.0.0/0'],
+        'raw': ['0.0.0.0/0'],
+        'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+        'priority': 1,
+    }
 
     response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
@@ -110,8 +137,11 @@ async def test_switch_policy(http_client, session):
     assert response == [
         {
             'enabled': False,
-            'name': 'default open policy',
+            'name': 'Default open policy 2',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'priority': 1,
+            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
         },
     ]
 
@@ -135,8 +165,11 @@ async def test_delete_policy(http_client, session):
     assert response == [
         {
             'enabled': True,
-            'name': 'default open policy',
+            'name': 'Default open policy',
             'netmasks': ['0.0.0.0/0'],
+            'raw': ['0.0.0.0/0'],
+            'group': None,
+            'priority': 1,
         },
     ]
 
@@ -156,9 +189,24 @@ async def test_check_policy(handler, session):
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
-    assert [policy async for policy in handler.get_policies()] \
-        == [IPv4Network("0.0.0.0/0")]
-    assert await handler.is_ip_allowed(IPv4Address("127.0.0.1"))
+    policy = await handler.get_policy(IPv4Address("127.0.0.1"))
+    assert policy.netmasks == [IPv4Network("0.0.0.0/0")]
+
+
+@pytest.mark.asyncio()
+async def test_specific_policy_ok(handler, session):
+    """Test specific ip."""
+    session.add(NetworkPolicy(
+        name='Local policy',
+        netmasks=[IPv4Network('127.100.10.5/32')],
+        raw=['127.100.10.5/32'],
+        enabled=True,
+        priority=1,
+    ))
+    await session.commit()
+    policy = await handler.get_policy(IPv4Address("127.100.10.5"))
+    assert policy.netmasks == [IPv4Network("127.100.10.5/32")]
+    assert not await handler.get_policy(IPv4Address("127.100.10.4"))
 
 
 @pytest.mark.asyncio()
@@ -183,3 +231,124 @@ async def test_404(http_client, session):
         "/policy",
         json={'id': some_id, 'is_enabled': False}, headers=login_headers)
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio()
+async def test_swap(http_client, session):
+    """Test swap policies."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    auth = await http_client.post("auth/token/get", data={
+        "username": "user0", "password": "password"})
+    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
+
+    response = await http_client.post("/policy", json={
+        "name": "local seriveses",
+        "netmasks": [
+            "127.0.0.1",
+            {"start": "172.0.0.2", "end": "172.255.1.5"},
+            "172.8.4.0/24",
+        ],
+        "priority": 2,
+    }, headers=login_headers)
+
+    get_response = await http_client.get("/policy", headers=login_headers)
+    get_response = get_response.json()
+
+    assert get_response[0]['priority'] == 1
+    assert get_response[0]['name'] == "Default open policy"
+    assert get_response[1]['priority'] == 2
+
+    swap_response = await http_client.post("/policy/swap", json={
+        'first_policy_id': get_response[0]['id'],
+        'second_policy_id': get_response[1]['id']}, headers=login_headers)
+
+    assert swap_response.json() == {
+        "first_policy_id": get_response[0]['id'],
+        "first_policy_priority": 2,
+        "second_policy_id": get_response[1]['id'],
+        "second_policy_priority": 1,
+    }
+
+    response = await http_client.get("/policy", headers=login_headers)
+    response = response.json()
+
+    assert response[0]['priority'] == 1
+    assert response[1]['priority'] == 2
+    assert response[1]['name'] == "Default open policy"
+
+
+@pytest.mark.asyncio()
+async def test_check_policy_group(handler, session, settings):
+    """Delete policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    user = await get_user(session, "user0")
+    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+
+    assert await is_user_group_valid(user, policy, session)
+
+    group_dir = await get_group(
+        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+
+    policy.group = group_dir.group
+    await session.commit()
+
+    assert await is_user_group_valid(user, policy, session)
+
+
+@pytest.mark.asyncio()
+async def test_bind_policy(handler, session, settings):
+    """Delete policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
+    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+
+    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+    group_dir = await get_group(
+        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+    policy.group = group_dir.group
+    await session.commit()
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-D', un, '-x', '-w', pw)
+
+    result = await proc.wait()
+    assert result == 0
+
+
+@pytest.mark.asyncio()
+async def test_bind_policy_missing_group(handler, session, settings):
+    """Delete policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
+    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+
+    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+    group_dir = await get_group(
+        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+    user = await session.scalar(
+        select(User).filter_by(display_name="user0")
+        .options(selectinload(User.groups)))
+
+    policy.group = group_dir.group
+    user.groups.clear()
+    await session.commit()
+
+    assert not await is_user_group_valid(user, policy, session)
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-D', un, '-x', '-w', pw)
+
+    result = await proc.wait()
+    assert result == 49

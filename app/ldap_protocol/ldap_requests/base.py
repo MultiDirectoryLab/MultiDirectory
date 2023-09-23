@@ -30,9 +30,6 @@ class BaseRequest(ABC, BaseModel):
         """Handle message with current user."""
         yield BaseResponse()  # type: ignore
 
-    class Config:  # noqa: D106
-        fields = {'PROTOCOL_OP': {'exclude': True}}
-
     async def handle_api(
         self, user,
         session: AsyncSession,

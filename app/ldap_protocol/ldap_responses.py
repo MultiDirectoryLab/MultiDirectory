@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import ClassVar
 
 from asn1 import Encoder, Numbers
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, field_validator
 
 from .dialogue import LDAPCodes
 
@@ -26,7 +26,7 @@ class LDAPResult(BaseModel):
     error_message: str = Field('', alias="errorMessage")
 
     class Config:  # noqa
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class BaseResponse(ABC, BaseModel):
@@ -59,6 +59,16 @@ class PartialAttribute(BaseModel):
 
     type: str  # noqa: A003
     vals: list[str]
+
+    @field_validator('type', mode="before")
+    @classmethod
+    def validate_type(cls, v) -> str:  # noqa
+        return str(v)
+
+    @field_validator('vals', mode="before")
+    @classmethod
+    def validate_vals(cls, vals: list[str]) -> str:  # noqa
+        return [str(v) for v in vals]
 
 
 class SearchResultEntry(BaseResponse):
