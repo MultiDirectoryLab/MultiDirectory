@@ -226,6 +226,9 @@ class Group(DirectoryReferenceMixin, Base):
         back_populates='groups',
     )
 
+    policies: list['NetworkPolicy'] = relationship(
+        'NetworkPolicy', back_populates="group")
+
 
 class Computer(DirectoryReferenceMixin, Base):
     """Computers data."""
@@ -272,6 +275,15 @@ class NetworkPolicy(Base):
 
     id = Column(Integer, primary_key=True)  # noqa: A003
     name = Column(String, nullable=False, unique=True)
+
+    raw = Column(postgresql.JSON, nullable=False)
     netmasks = Column(
-        postgresql.ARRAY(postgresql.CIDR), nullable=False, unique=True)
+        postgresql.ARRAY(postgresql.CIDR),
+        nullable=False, unique=True, index=True)
+
     enabled = Column(Boolean, server_default=expression.true(), nullable=False)
+    priority = Column(Integer, nullable=False, unique=True)
+
+    group_id = Column(Integer, ForeignKey("Groups.id"), nullable=True)
+    group: 'Group' = relationship(
+        'Group', uselist=False, back_populates="policies")

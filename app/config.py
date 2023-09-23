@@ -2,7 +2,8 @@
 
 import tomllib
 
-from pydantic import BaseSettings, IPvAnyAddress, PostgresDsn, validator
+from pydantic import IPvAnyAddress, PostgresDsn, validator
+from pydantic_settings import BaseSettings
 
 with open("/pyproject.toml", "rb") as f:
     VENDOR_VERSION = tomllib.load(f)['tool']['poetry']['version']

@@ -84,7 +84,7 @@ class SearchRequest(BaseRequest):
         """Allow class to use property."""
 
         arbitrary_types_allowed = True
-        keep_untouched = (cached_property,)
+        ignored_types = (cached_property,)
 
     @classmethod
     def from_data(cls, data):  # noqa: D102
