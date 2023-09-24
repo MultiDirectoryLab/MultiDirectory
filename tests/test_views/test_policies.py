@@ -80,8 +80,8 @@ async def test_add_policy(http_client, session):
 
 
 @pytest.mark.asyncio()
-async def test_switch_policy(http_client, session):
-    """Switch policy."""
+async def test_update_policy(http_client, session):
+    """Update policy."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
@@ -109,7 +109,7 @@ async def test_switch_policy(http_client, session):
     response = await http_client.put(
         "/policy",
         json={
-            'id': pol_id, 'is_enabled': False,
+            'id': pol_id,
             'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
             'name': 'Default open policy 2',
         }, headers=login_headers)
@@ -120,7 +120,7 @@ async def test_switch_policy(http_client, session):
     response.pop('id')
 
     assert response == {
-        'enabled': False,
+        'enabled': True,
         'name': 'Default open policy 2',
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
@@ -136,7 +136,7 @@ async def test_switch_policy(http_client, session):
 
     assert response == [
         {
-            'enabled': False,
+            'enabled': True,
             'name': 'Default open policy 2',
             'netmasks': ['0.0.0.0/0'],
             'raw': ['0.0.0.0/0'],
@@ -150,6 +150,13 @@ async def test_switch_policy(http_client, session):
 async def test_delete_policy(http_client, session):
     """Delete policy."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    session.add(NetworkPolicy(
+        name='Local policy',
+        netmasks=[IPv4Network('127.100.10.5/32')],
+        raw=['127.100.10.5/32'],
+        enabled=True,
+        priority=2,
+    ))
     await session.commit()
 
     auth = await http_client.post("auth/token/get", data={
@@ -161,26 +168,78 @@ async def test_delete_policy(http_client, session):
     response = response.json()
 
     pol_id = response[0].pop('id')
+    pol_id2 = response[1].pop('id')
 
-    assert response == [
-        {
-            'enabled': True,
-            'name': 'Default open policy',
-            'netmasks': ['0.0.0.0/0'],
-            'raw': ['0.0.0.0/0'],
-            'group': None,
-            'priority': 1,
-        },
-    ]
+    assert response[0] == {
+        'enabled': True,
+        'name': 'Default open policy',
+        'netmasks': ['0.0.0.0/0'],
+        'raw': ['0.0.0.0/0'],
+        'group': None,
+        'priority': 1,
+    }
 
     response = await http_client.delete(
-        "/policy", params={'policy_id': pol_id}, headers=login_headers)
+        f"/policy/{pol_id}", headers=login_headers)
     assert response.status_code == 200
+    assert response.json() is True
 
     response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
 
-    assert response.json() == []
+    assert len(response.json()) == 1
+
+    response = await http_client.delete(
+        f"/policy/{pol_id2}", headers=login_headers)
+    assert response.status_code == 422
+    assert response.json()['detail'] == "At least one policy should be active"
+
+
+@pytest.mark.asyncio()
+async def test_switch_policy(http_client, session):
+    """Switch policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    session.add(NetworkPolicy(
+        name='Local policy',
+        netmasks=[IPv4Network('127.100.10.5/32')],
+        raw=['127.100.10.5/32'],
+        enabled=True,
+        priority=2,
+    ))
+    await session.commit()
+
+    auth = await http_client.post("auth/token/get", data={
+        "username": "user0", "password": "password"})
+    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
+
+    response = await http_client.get("/policy", headers=login_headers)
+    assert response.status_code == 200
+    response = response.json()
+
+    pol_id = response[0].pop('id')
+    pol_id2 = response[1].pop('id')
+
+    assert response[0] == {
+        'enabled': True,
+        'name': 'Default open policy',
+        'netmasks': ['0.0.0.0/0'],
+        'raw': ['0.0.0.0/0'],
+        'group': None,
+        'priority': 1,
+    }
+
+    response = await http_client.patch(
+        f"/policy/{pol_id}", headers=login_headers)
+    assert response.status_code == 200
+    assert response.json() is True
+
+    response = await http_client.get("/policy", headers=login_headers)
+    assert response.json()[0]['enabled'] is False
+
+    response = await http_client.patch(
+        f"/policy/{pol_id2}", headers=login_headers)
+    assert response.status_code == 422
+    assert response.json()['detail'] == "At least one policy should be active"
 
 
 @pytest.mark.asyncio()
@@ -224,12 +283,16 @@ async def test_404(http_client, session):
     some_id = response.json()[0]['id'] + 1
 
     response = await http_client.delete(
-        "/policy", params={'policy_id': some_id}, headers=login_headers)
+        f"/policy/{some_id}", headers=login_headers)
+    assert response.status_code == 404
+
+    response = await http_client.patch(
+        f"/policy/{some_id}", headers=login_headers)
     assert response.status_code == 404
 
     response = await http_client.put(
         "/policy",
-        json={'id': some_id, 'is_enabled': False}, headers=login_headers)
+        json={'id': some_id, "name": '123'}, headers=login_headers)
     assert response.status_code == 404
 
 
