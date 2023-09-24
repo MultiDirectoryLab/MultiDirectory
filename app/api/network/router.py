@@ -19,6 +19,7 @@ from .schema import (
     SwapRequest,
     SwapResponse,
 )
+from .utils import check_policy_count
 
 network_router = APIRouter()
 
@@ -111,31 +112,69 @@ async def get_network_policies(
             .order_by(NetworkPolicy.priority.asc()))]
 
 
-@network_router.delete('/policy')
+@network_router.delete('/policy/{policy_id}')
 async def delete_network_policy(
     policy_id: int,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> bool:
-    """Delete network."""
-    selected_policy = await session.get(
+    """Delete policy.
+
+    :param int policy_id: id
+    :param User user: requires login
+    :raises HTTPException: 404
+    :raises HTTPException: 422 On last active policy,
+        at least 1 should be in database.
+    :return bool: status of delete
+    """
+    policy = await session.get(
         NetworkPolicy, policy_id, with_for_update=True)
 
-    if not selected_policy:
+    if not policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
 
-    await session.delete(selected_policy)
+    await check_policy_count(session)
+    await session.delete(policy)
+    await session.commit()
+    return True
+
+
+@network_router.patch('/policy/{policy_id}')
+async def switch_network_policy(
+    policy_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> bool:
+    """Switch state of policy.
+
+    :param int policy_id: id
+    :param User user: requires login
+    :raises HTTPException: 404
+    :raises HTTPException: 422 On last active policy,
+        at least 1 should be active
+    :return bool: status of update
+    """
+    policy = await session.get(
+        NetworkPolicy, policy_id, with_for_update=True)
+
+    if not policy:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
+
+    if policy.enabled:
+        await check_policy_count(session)
+
+    policy.enabled = not policy.enabled
     await session.commit()
     return True
 
 
 @network_router.put('/policy')
-async def switch_network_policy(
+async def update_network_policy(
     policy: PolicyUpdate,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> PolicyResponse:
-    """Set state of network.
+    """Update policy.
 
     :param PolicyUpdate policy: update request
     :param User user: requires login, defaults to Depends(get_current_user)
@@ -149,8 +188,6 @@ async def switch_network_policy(
 
     if not selected_policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
-
-    selected_policy.enabled = policy.is_enabled
 
     if policy.name:
         selected_policy.name = policy.name

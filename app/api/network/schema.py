@@ -10,6 +10,7 @@ from pydantic import (
     computed_field,
     field_serializer,
     field_validator,
+    model_validator,
 )
 
 from ldap_protocol.utils import validate_entry
@@ -102,7 +103,14 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     name: str | None = None
     netmasks: IPv4IntefaceListType | None = None
     group: str | None = None
-    is_enabled: bool
+
+    @model_validator(mode='after')
+    def check_passwords_match(self) -> 'PolicyUpdate':
+        """Validate if all fields are empty."""
+        if not self.name and not self.netmasks and not self.group:
+            raise ValueError("Name, netmasks and group cannot be empty")
+
+        return self
 
 
 class SwapRequest(BaseModel):
