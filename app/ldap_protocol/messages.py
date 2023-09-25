@@ -5,7 +5,7 @@ from typing import AsyncGenerator
 
 from asn1 import Classes, Decoder, Encoder, Numbers
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SerializeAsAny
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .asn1parser import asn1todict
@@ -27,14 +27,14 @@ class LDAPMessage(ABC, BaseModel):
 
     message_id: int = Field(..., alias='messageID')
     protocol_op: int = Field(..., alias='protocolOP')
-    context: BaseRequest | BaseResponse = Field()
+    context: BaseRequest | BaseResponse
     controls: list[Control] = []
 
 
 class LDAPResponseMessage(LDAPMessage):
     """Response message."""
 
-    context: BaseResponse
+    context: SerializeAsAny[BaseResponse]
 
     def encode(self) -> bytes:
         """Encode message to asn1."""
