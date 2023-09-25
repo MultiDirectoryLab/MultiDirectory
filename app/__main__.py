@@ -12,7 +12,6 @@ from traceback import format_exc
 from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import select, text
-from sqlalchemy.orm import joinedload
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
@@ -125,7 +124,7 @@ class PoolClientHandler:
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await ldap_session.reader.read(4096)
+            data = await ldap_session.reader.read(1500)
 
             if not data:
                 raise ConnectionAbortedError(
