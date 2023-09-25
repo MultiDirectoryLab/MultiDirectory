@@ -12,6 +12,7 @@ from traceback import format_exc
 from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import select, text
+from sqlalchemy.orm import selectinload
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
@@ -110,6 +111,7 @@ class PoolClientHandler:
             return await session.scalar((  # noqa
                 select(NetworkPolicy)
                 .filter_by(enabled=True)
+                .options(selectinload(NetworkPolicy.groups))
                 .filter(
                     text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
                 .order_by(NetworkPolicy.priority.asc())
