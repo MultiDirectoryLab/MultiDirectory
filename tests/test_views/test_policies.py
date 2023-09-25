@@ -7,7 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.extra import TEST_DATA, setup_enviroment
-from app.ldap_protocol.utils import get_group, get_user, is_user_group_valid
+from app.ldap_protocol.utils import (
+    get_group,
+    get_groups,
+    get_user,
+    is_user_group_valid,
+)
 from app.models import NetworkPolicy, User
 
 
@@ -46,7 +51,7 @@ async def test_add_policy(http_client, session):
         "name": "local seriveses",
         "netmasks": raw_netmasks,
         "priority": 2,
-        'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+        'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
     }, headers=login_headers)
 
     assert response.status_code == 201
@@ -65,7 +70,7 @@ async def test_add_policy(http_client, session):
             'name': 'Default open policy',
             'netmasks': ['0.0.0.0/0'],
             'raw': ['0.0.0.0/0'],
-            'group': None,
+            'groups': [],
             'priority': 1,
         },
         {
@@ -73,7 +78,7 @@ async def test_add_policy(http_client, session):
             'name': 'local seriveses',
             'netmasks': compare_netmasks,
             'raw': raw_netmasks,
-            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+            'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
             'priority': 2,
         },
     ]
@@ -102,7 +107,7 @@ async def test_update_policy(http_client, session):
             'netmasks': ['0.0.0.0/0'],
             'raw': ['0.0.0.0/0'],
             'priority': 1,
-            'group': None,
+            'groups': [],
         },
     ]
 
@@ -110,7 +115,7 @@ async def test_update_policy(http_client, session):
         "/policy",
         json={
             'id': pol_id,
-            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+            'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
             'name': 'Default open policy 2',
         }, headers=login_headers)
 
@@ -124,7 +129,7 @@ async def test_update_policy(http_client, session):
         'name': 'Default open policy 2',
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
-        'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+        'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
         'priority': 1,
     }
 
@@ -141,7 +146,7 @@ async def test_update_policy(http_client, session):
             'netmasks': ['0.0.0.0/0'],
             'raw': ['0.0.0.0/0'],
             'priority': 1,
-            'group': 'cn=domain admins,cn=groups,dc=md,dc=test',
+            'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
         },
     ]
 
@@ -175,7 +180,7 @@ async def test_delete_policy(http_client, session):
         'name': 'Default open policy',
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
-        'group': None,
+        'groups': [],
         'priority': 1,
     }
 
@@ -221,7 +226,7 @@ async def test_switch_policy(http_client, session):
         'name': 'Default open policy',
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
-        'group': None,
+        'groups': [],
         'priority': 1,
     }
 
@@ -353,7 +358,7 @@ async def test_check_policy_group(handler, session, settings):
     group_dir = await get_group(
         'cn=domain admins,cn=groups,dc=md,dc=test', session)
 
-    policy.group = group_dir.group
+    policy.groups.append(group_dir.group)
     await session.commit()
 
     assert await is_user_group_valid(user, policy, session)
@@ -371,7 +376,7 @@ async def test_bind_policy(handler, session, settings):
     policy = await handler.get_policy(IPv4Address('127.0.0.1'))
     group_dir = await get_group(
         'cn=domain admins,cn=groups,dc=md,dc=test', session)
-    policy.group = group_dir.group
+    policy.groups.append(group_dir.group)
     await session.commit()
 
     proc = await asyncio.create_subprocess_exec(
@@ -393,13 +398,13 @@ async def test_bind_policy_missing_group(handler, session, settings):
     pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
 
     policy = await handler.get_policy(IPv4Address('127.0.0.1'))
-    group_dir = await get_group(
-        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+
     user = await session.scalar(
         select(User).filter_by(display_name="user0")
         .options(selectinload(User.groups)))
 
-    policy.group = group_dir.group
+    policy.groups = await get_groups(
+        ['cn=domain admins,cn=groups,dc=md,dc=test'], session)
     user.groups.clear()
     await session.commit()
 
