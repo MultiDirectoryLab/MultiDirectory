@@ -3,7 +3,8 @@
 from fastapi import HTTPException, status
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
-from sqlalchemy import select
+from fastapi.responses import RedirectResponse
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import make_transient, selectinload
 
@@ -80,7 +81,7 @@ async def add_network_policy(
     )
 
 
-@network_router.get('/policy')
+@network_router.get('/policy', name='policy')
 async def get_network_policies(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
@@ -112,12 +113,12 @@ async def get_network_policies(
             .order_by(NetworkPolicy.priority.asc()))]
 
 
-@network_router.delete('/policy/{policy_id}')
+@network_router.delete('/policy/{policy_id}', response_class=RedirectResponse)
 async def delete_network_policy(
     policy_id: int,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> bool:
+) -> list[PolicyResponse]:
     """Delete policy.
 
     :param int policy_id: id
@@ -134,9 +135,20 @@ async def delete_network_policy(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
 
     await check_policy_count(session)
-    await session.delete(policy)
-    await session.commit()
-    return True
+
+    async with session.begin_nested():
+        await session.delete(policy)
+        await session.flush()
+        await session.execute((
+            update(NetworkPolicy)
+            .values({'priority': NetworkPolicy.priority - 1})
+            .filter(NetworkPolicy.priority > policy.priority)
+        ))
+        await session.commit()
+
+    return RedirectResponse(
+        network_router.url_path_for('policy'),
+        status_code=status.HTTP_302_FOUND)
 
 
 @network_router.patch('/policy/{policy_id}')

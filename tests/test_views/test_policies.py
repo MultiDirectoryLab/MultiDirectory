@@ -180,14 +180,11 @@ async def test_delete_policy(http_client, session):
     }
 
     response = await http_client.delete(
-        f"/policy/{pol_id}", headers=login_headers)
+        f"/policy/{pol_id}", headers=login_headers, follow_redirects=True)
     assert response.status_code == 200
-    assert response.json() is True
-
-    response = await http_client.get("/policy", headers=login_headers)
-    assert response.status_code == 200
-
     assert len(response.json()) == 1
+    assert response.json()[0]['name'] == "Local policy"
+    assert response.json()[0]['priority'] == 1
 
     response = await http_client.delete(
         f"/policy/{pol_id2}", headers=login_headers)
