@@ -134,10 +134,8 @@ async def get_groups(
     paths = []
 
     for dn in dn_list:
-        dn_is_base = dn.lower() == base_dn.lower()
-
-        if dn_is_base:
-            raise AttributeError('Cannot set memberOf with base dn')
+        if dn.lower() == base_dn.lower():  # dn_is_base
+            continue
 
         base_obj = dn.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
@@ -148,9 +146,11 @@ async def get_groups(
         Directory)\
         .join(Directory.path)\
         .filter(Path.path.in_(paths))\
-        .options(selectinload(Directory.group).selectinload(
-            Group.parent_groups).selectinload(
-                Group.directory).selectinload(Directory.path))
+        .options(
+            selectinload(Directory.path),
+            selectinload(Directory.group).selectinload(
+                Group.parent_groups).selectinload(
+                    Group.directory).selectinload(Directory.path))
 
     result = await session.stream_scalars(query)
 
@@ -202,17 +202,14 @@ async def is_user_group_valid(
     if user is None:
         return False
 
-    if policy.group_id is None:
+    if not policy.groups:
         return True
 
     group = await session.scalar((  # noqa: ECE001
         select(Group)
         .join(Group.users)
         .join(Group.policies, isouter=True)
-        .filter(
-            Group.users.contains(user),
-            Group.policies.contains(policy))
+        .filter(Group.users.contains(user) & Group.policies.contains(policy))
         .limit(1)
     ))
-
     return bool(group)
