@@ -61,6 +61,15 @@ class DirectoryPath(Base):
     path_id = Column(Integer, ForeignKey("Paths.id"), primary_key=True)
 
 
+class PolicyMembership(Base):
+    """Policy membership - path m2m relationship."""
+
+    __tablename__ = "PolicyMemberships"
+    group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
+    policy_id = Column(
+        Integer, ForeignKey("Policies.id"), primary_key=True)
+
+
 class Directory(Base):
     """Chierarcy of catalogue unit."""
 
@@ -227,7 +236,11 @@ class Group(DirectoryReferenceMixin, Base):
     )
 
     policies: list['NetworkPolicy'] = relationship(
-        'NetworkPolicy', back_populates="group")
+        "NetworkPolicy",
+        secondary=PolicyMembership.__table__,
+        primaryjoin=id == PolicyMembership.__table__.c.group_id,
+        back_populates='groups',
+    )
 
 
 class Computer(DirectoryReferenceMixin, Base):
@@ -284,6 +297,8 @@ class NetworkPolicy(Base):
     enabled = Column(Boolean, server_default=expression.true(), nullable=False)
     priority = Column(Integer, nullable=False, unique=True)
 
-    group_id = Column(Integer, ForeignKey("Groups.id"), nullable=True)
-    group: 'Group' = relationship(
-        'Group', uselist=False, back_populates="policies")
+    groups: list['Group'] = relationship(
+        "Group",
+        secondary=PolicyMembership.__table__,
+        back_populates='policies',
+    )
