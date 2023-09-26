@@ -316,6 +316,7 @@ async def test_swap(http_client, session):
             "172.8.4.0/24",
         ],
         "priority": 2,
+        'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
     }, headers=login_headers)
 
     get_response = await http_client.get("/policy", headers=login_headers)
@@ -340,6 +341,8 @@ async def test_swap(http_client, session):
     response = response.json()
 
     assert response[0]['priority'] == 1
+    assert response[0]['groups'] == [
+        'cn=domain admins,cn=groups,dc=md,dc=test']
     assert response[1]['priority'] == 2
     assert response[1]['name'] == "Default open policy"
 
