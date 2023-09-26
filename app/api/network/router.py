@@ -1,6 +1,6 @@
 """Network policies."""
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
@@ -109,6 +109,7 @@ async def get_network_policies(
 @network_router.delete('/policy/{policy_id}', response_class=RedirectResponse)
 async def delete_network_policy(
     policy_id: int,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> list[PolicyResponse]:
@@ -141,7 +142,8 @@ async def delete_network_policy(
 
     return RedirectResponse(
         network_router.url_path_for('policy'),
-        status_code=status.HTTP_302_FOUND)
+        status_code=status.HTTP_302_FOUND,
+        headers=request.headers)
 
 
 @network_router.patch('/policy/{policy_id}')
@@ -244,10 +246,14 @@ async def swap_network_policy(
     :raises HTTPException: 404
     :return SwapResponse: policy new priorities
     """
+    options = [selectinload(NetworkPolicy.groups)]
+
     policy1 = await session.get(
-        NetworkPolicy, swap.first_policy_id, with_for_update=True)
+        NetworkPolicy, swap.first_policy_id,
+        with_for_update=True, options=options)
     policy2 = await session.get(
-        NetworkPolicy, swap.second_policy_id, with_for_update=True)
+        NetworkPolicy, swap.second_policy_id,
+        with_for_update=True, options=options)
 
     if not policy1 or not policy2:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
