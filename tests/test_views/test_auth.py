@@ -22,6 +22,11 @@ from app.security import get_password_hash
 async def test_bind_ok_and_unbind(
         session: AsyncSession, ldap_session: Session):
     """Test ok bind."""
+    class MutePolicyBindRequest(BindRequest):
+        @staticmethod
+        async def is_user_group_valid(*args, **kwargs):
+            return True
+
     directory = Directory(name='user0', object_class='')
     user = User(
         sam_accout_name='user0',
@@ -34,7 +39,7 @@ async def test_bind_ok_and_unbind(
     session.add_all([directory, user])
     await session.commit()
 
-    bind = BindRequest(
+    bind = MutePolicyBindRequest(
         version=0,
         name=user.sam_accout_name,
         AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
