@@ -198,7 +198,13 @@ async def is_user_group_valid(
     policy: NetworkPolicy,
     session: AsyncSession,
 ) -> bool:
-    """Validate user groups, is it including to policy."""
+    """Validate user groups, is it including to policy.
+
+    :param User user: db user
+    :param NetworkPolicy policy: db policy
+    :param AsyncSession session: db
+    :return bool: status
+    """
     if user is None:
         return False
 
