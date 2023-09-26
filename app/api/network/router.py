@@ -246,10 +246,14 @@ async def swap_network_policy(
     :raises HTTPException: 404
     :return SwapResponse: policy new priorities
     """
+    options = [selectinload(NetworkPolicy.groups)]
+
     policy1 = await session.get(
-        NetworkPolicy, swap.first_policy_id, with_for_update=True)
+        NetworkPolicy, swap.first_policy_id,
+        with_for_update=True, options=options)
     policy2 = await session.get(
-        NetworkPolicy, swap.second_policy_id, with_for_update=True)
+        NetworkPolicy, swap.second_policy_id,
+        with_for_update=True, options=options)
 
     if not policy1 or not policy2:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
