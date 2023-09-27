@@ -295,7 +295,11 @@ class NetworkPolicy(Base):
         nullable=False, unique=True, index=True)
 
     enabled = Column(Boolean, server_default=expression.true(), nullable=False)
-    priority = Column(Integer, nullable=False, unique=True)
+    priority = Column(Integer, nullable=False)
+
+    priority_uc = UniqueConstraint(
+        priority, name='priority_uc',
+        deferrable=True, initially='DEFERRED')
 
     groups: list['Group'] = relationship(
         "Group",

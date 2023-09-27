@@ -154,5 +154,7 @@ def app(settings):  # noqa
 @pytest_asyncio.fixture(scope='session')
 async def http_client(app):
     """Async client for fastapi tests."""
-    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+    async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app, root_path='/api'),
+            base_url="http://test") as client:
         yield client

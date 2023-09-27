@@ -1,8 +1,8 @@
-"""empty message
+"""Policy.
 
-Revision ID: 109d13eb0e35
+Revision ID: 7ee82f79e990
 Revises: d5272e9889c5
-Create Date: 2023-09-25 17:34:27.320581
+Create Date: 2023-09-26 21:44:45.495076
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '109d13eb0e35'
+revision = '7ee82f79e990'
 down_revision = 'd5272e9889c5'
 branch_labels = None
 depends_on = None
@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Column('priority', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name'),
-    sa.UniqueConstraint('priority')
+    sa.UniqueConstraint('priority', deferrable='True', initially='DEFERRED', name='priority_uc')
     )
     op.create_index(op.f('ix_Policies_netmasks'), 'Policies', ['netmasks'], unique=True)
     op.create_table('PolicyMemberships',
