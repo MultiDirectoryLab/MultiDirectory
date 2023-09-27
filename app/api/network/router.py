@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import make_transient, selectinload
+from sqlalchemy.orm import selectinload
 
 from api.auth import User, get_current_user
 from ldap_protocol.utils import get_base_dn, get_groups, get_path_dn
@@ -106,7 +106,10 @@ async def get_network_policies(
             .order_by(NetworkPolicy.priority.asc()))]
 
 
-@network_router.delete('/policy/{policy_id}', response_class=RedirectResponse)
+@network_router.delete(
+    '/policy/{policy_id}',
+    response_class=RedirectResponse,
+    status_code=status.HTTP_303_SEE_OTHER)
 async def delete_network_policy(
     policy_id: int,
     request: Request,
@@ -141,9 +144,10 @@ async def delete_network_policy(
         await session.commit()
 
     return RedirectResponse(
-        network_router.url_path_for('policy'),
-        status_code=status.HTTP_302_FOUND,
-        headers=request.headers)
+        request.scope.get('root_path') + network_router.url_path_for('policy'),
+        status_code=status.HTTP_303_SEE_OTHER,
+        headers=request.headers,
+    )
 
 
 @network_router.patch('/policy/{policy_id}')
@@ -246,25 +250,17 @@ async def swap_network_policy(
     :raises HTTPException: 404
     :return SwapResponse: policy new priorities
     """
-    options = [selectinload(NetworkPolicy.groups)]
-
     policy1 = await session.get(
         NetworkPolicy, swap.first_policy_id,
-        with_for_update=True, options=options)
+        with_for_update=True)
     policy2 = await session.get(
         NetworkPolicy, swap.second_policy_id,
-        with_for_update=True, options=options)
+        with_for_update=True)
 
     if not policy1 or not policy2:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
 
-    await session.delete(policy1)
-    await session.commit()
-
     policy1.priority, policy2.priority = policy2.priority, policy1.priority
-
-    make_transient(policy1)
-    session.add(policy1)
     await session.commit()
 
     return SwapResponse(
