@@ -1,7 +1,7 @@
 """Test policy api."""
 import asyncio
 from ipaddress import IPv4Address, IPv4Network
-
+import httpx
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -152,7 +152,7 @@ async def test_update_policy(http_client, session):
 
 
 @pytest.mark.asyncio()
-async def test_delete_policy(http_client, session):
+async def test_delete_policy(http_client: httpx.AsyncClient, session):
     """Delete policy."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     session.add(NetworkPolicy(
@@ -185,11 +185,16 @@ async def test_delete_policy(http_client, session):
     }
 
     response = await http_client.delete(
-        f"/policy/{pol_id}", headers=login_headers, follow_redirects=True)
+        f"/policy/{pol_id}", headers=login_headers, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.next_request.url.path == '/api/policy'
+    response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]['name'] == "Local policy"
-    assert response.json()[0]['priority'] == 1
+    response = response.json()
+
+    assert len(response) == 1
+    assert response[0]['name'] == "Local policy"
+    assert response[0]['priority'] == 1
 
     response = await http_client.delete(
         f"/policy/{pol_id2}", headers=login_headers)
@@ -246,7 +251,7 @@ async def test_switch_policy(http_client, session):
 
 @pytest.mark.asyncio()
 async def test_check_policy(handler, session):
-    """Delete policy."""
+    """Check policy."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
@@ -349,7 +354,7 @@ async def test_swap(http_client, session):
 
 @pytest.mark.asyncio()
 async def test_check_policy_group(handler, session, settings):
-    """Delete policy."""
+    """Check policy."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
@@ -369,7 +374,7 @@ async def test_check_policy_group(handler, session, settings):
 
 @pytest.mark.asyncio()
 async def test_bind_policy(handler, session, settings):
-    """Delete policy."""
+    """Bind with policy."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
@@ -393,7 +398,7 @@ async def test_bind_policy(handler, session, settings):
 
 @pytest.mark.asyncio()
 async def test_bind_policy_missing_group(handler, session, settings):
-    """Delete policy."""
+    """Bind policy fail."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
