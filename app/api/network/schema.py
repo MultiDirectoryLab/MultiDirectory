@@ -47,7 +47,7 @@ class NetmasksMixin:
     def validate_group(cls, groups):  # noqa
         if not groups:
             return groups
-        elif all(validate_entry(group) for group in groups):
+        if all(validate_entry(group) for group in groups):
             return groups
 
         raise ValueError('Invalid DN')
