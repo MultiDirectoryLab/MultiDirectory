@@ -7,8 +7,10 @@ from ipaddress import IPv4Address, ip_address
 from ssl import SSLContext
 from typing import TYPE_CHECKING
 
+import httpx
 from loguru import logger
 
+from config import Settings
 from models.ldap3 import NetworkPolicy, User
 
 if TYPE_CHECKING:
@@ -130,17 +132,23 @@ class Session:
     reader: asyncio.StreamReader
     writer: asyncio.StreamWriter
     policy: NetworkPolicy | None
+    client: httpx.AsyncClient
+    settings: Settings
 
     def __init__(
         self,
         reader: asyncio.StreamReader | None = None,
         writer: asyncio.StreamWriter | None = None,
         user: User | None = None,
+        settings: Settings | None = None,
     ) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
         self._user: User | None = user
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
+
+        if settings:
+            self.settings = settings
 
         if reader and writer:
             self.reader = reader
@@ -182,6 +190,7 @@ class Session:
             yield self._user
 
     async def __aenter__(self) -> 'Session':  # noqa
+        self.client = await httpx.AsyncClient().__aenter__()
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -191,6 +200,7 @@ class Session:
             self.writer.close()
             await self.writer.wait_closed()
 
+        await self.client.__aexit__(exc_type, exc, tb)
         logger.success(f'Connection {self.addr} closed')
 
     async def start_tls(self, ssl_context: SSLContext):  # noqa

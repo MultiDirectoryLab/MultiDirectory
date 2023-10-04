@@ -63,7 +63,7 @@ class LDAPResponseMessage(LDAPMessage):
 class LDAPRequestMessage(LDAPMessage):
     """Request message interface."""
 
-    context: BaseRequest
+    context: SerializeAsAny[BaseRequest]
 
     @classmethod
     def from_bytes(cls, source: bytes):

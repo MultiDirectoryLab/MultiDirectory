@@ -81,7 +81,8 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ):
         """Create session, queue and start message handlers concurrently."""
-        async with Session(reader, writer) as ldap_session:
+        async with Session(
+                reader, writer, settings=self.settings) as ldap_session:
             if (policy := await self.get_policy(ldap_session.ip)) is not None:
                 ldap_session.policy = policy
             else:
@@ -119,14 +120,28 @@ class PoolClientHandler:
             ))
 
     @staticmethod
-    async def handle_request(ldap_session: Session):
+    async def read(reader: asyncio.StreamReader, size: int = 1024) -> bytes:
+        """Read N packets by 1kB."""
+        data = []
+
+        for _ in range(10240):  # read 10MB
+            packet = await reader.read(size)
+            data.append(packet)
+            if len(packet) != size:
+                break
+
+        return b"".join(data)
+
+    @classmethod
+    async def handle_request(cls, ldap_session: Session):
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await ldap_session.reader.read(1500)
+            data = await cls.read(ldap_session.reader)
+            # data = await ldap_session.reader.read(1500)
 
             if not data:
                 raise ConnectionAbortedError(
