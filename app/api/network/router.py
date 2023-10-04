@@ -22,10 +22,10 @@ from .schema import (
 )
 from .utils import check_policy_count
 
-network_router = APIRouter()
+network_router = APIRouter(prefix='/policy')
 
 
-@network_router.post('/policy', status_code=status.HTTP_201_CREATED)
+@network_router.post('', status_code=status.HTTP_201_CREATED)
 async def add_network_policy(
     policy: Policy,
     session: AsyncSession = Depends(get_session),
@@ -74,7 +74,7 @@ async def add_network_policy(
     )
 
 
-@network_router.get('/policy', name='policy')
+@network_router.get('', name='policy')
 async def get_network_policies(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
@@ -107,7 +107,7 @@ async def get_network_policies(
 
 
 @network_router.delete(
-    '/policy/{policy_id}',
+    '/{policy_id}',
     response_class=RedirectResponse,
     status_code=status.HTTP_303_SEE_OTHER)
 async def delete_network_policy(
@@ -150,7 +150,7 @@ async def delete_network_policy(
     )
 
 
-@network_router.patch('/policy/{policy_id}')
+@network_router.patch('/{policy_id}')
 async def switch_network_policy(
     policy_id: int,
     session: AsyncSession = Depends(get_session),
@@ -179,7 +179,7 @@ async def switch_network_policy(
     return True
 
 
-@network_router.put('/policy')
+@network_router.put('')
 async def update_network_policy(
     policy: PolicyUpdate,
     session: AsyncSession = Depends(get_session),
@@ -236,7 +236,7 @@ async def update_network_policy(
     )
 
 
-@network_router.post('/policy/swap')
+@network_router.post('/swap')
 async def swap_network_policy(
     swap: SwapRequest,
     session: AsyncSession = Depends(get_session),
