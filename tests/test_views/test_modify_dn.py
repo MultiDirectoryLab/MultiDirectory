@@ -38,7 +38,6 @@ async def test_ldap_modify_dn(session, settings):
             stderr=asyncio.subprocess.PIPE)
 
         res = await proc.wait()
-        print(await proc.stdout.read())
         assert res == 0
 
     query = select(Directory)\
