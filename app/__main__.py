@@ -12,7 +12,7 @@ from traceback import format_exc
 from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import select, text
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
@@ -81,7 +81,8 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ):
         """Create session, queue and start message handlers concurrently."""
-        async with Session(reader, writer) as ldap_session:
+        async with Session(
+                reader, writer, settings=self.settings) as ldap_session:
             if (policy := await self.get_policy(ldap_session.ip)) is not None:
                 ldap_session.policy = policy
             else:
@@ -111,6 +112,7 @@ class PoolClientHandler:
             return await session.scalar((  # noqa
                 select(NetworkPolicy)
                 .filter_by(enabled=True)
+                .options(selectinload(NetworkPolicy.groups))
                 .filter(
                     text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
                 .order_by(NetworkPolicy.priority.asc())
@@ -118,14 +120,28 @@ class PoolClientHandler:
             ))
 
     @staticmethod
-    async def handle_request(ldap_session: Session):
+    async def read(reader: asyncio.StreamReader, size: int = 1024) -> bytes:
+        """Read N packets by 1kB."""
+        data = []
+
+        for _ in range(10240):  # read 10MB
+            packet = await reader.read(size)
+            data.append(packet)
+            if len(packet) != size:
+                break
+
+        return b"".join(data)
+
+    @classmethod
+    async def handle_request(cls, ldap_session: Session):
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await ldap_session.reader.read(4096)
+            data = await cls.read(ldap_session.reader)
+            # data = await ldap_session.reader.read(1500)
 
             if not data:
                 raise ConnectionAbortedError(

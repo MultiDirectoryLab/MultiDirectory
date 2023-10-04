@@ -42,6 +42,16 @@ class NetmasksMixin:
                 values.append(IPv4Network(item))
         return values
 
+    @field_validator('groups')
+    @classmethod
+    def validate_group(cls, groups):  # noqa
+        if not groups:
+            return groups
+        if all(validate_entry(group) for group in groups):
+            return groups
+
+        raise ValueError('Invalid DN')
+
 
 class Policy(BaseModel, NetmasksMixin):
     """Network Policy model."""
@@ -49,17 +59,7 @@ class Policy(BaseModel, NetmasksMixin):
     name: str = Field(example='local network', max_length=100)
     netmasks: IPv4IntefaceListType = Field(example=["172.0.0.0/8"])
     priority: int = Field(ge=1, le=sys.maxsize, example=2)
-    group: str | None = None
-
-    @field_validator('group')
-    @classmethod
-    def validate_group(cls, group):  # noqa
-        if group is None:
-            return group
-        elif validate_entry(group):
-            return group
-
-        raise ValueError('Invalid DN')
+    groups: list[str] = []
 
     @field_serializer('netmasks')
     @classmethod
@@ -93,7 +93,7 @@ class PolicyResponse(BaseModel):
     raw: list[str | dict]
     priority: int = Field(ge=1, le=sys.maxsize, example=2)
     enabled: bool
-    group: str | None = None
+    groups: list[str] = []
 
 
 class PolicyUpdate(BaseModel, NetmasksMixin):
@@ -102,7 +102,7 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     id: int  # noqa
     name: str | None = None
     netmasks: IPv4IntefaceListType | None = None
-    group: str | None = None
+    groups: list[str] | None = None
 
     @model_validator(mode='after')
     def check_passwords_match(self) -> 'PolicyUpdate':

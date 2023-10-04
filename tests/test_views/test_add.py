@@ -115,6 +115,7 @@ async def test_ldap_user_add_with_group(session, settings):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_ldap_user_add_group_with_group(session, settings):
     """Test ldapadd on server."""
     await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)

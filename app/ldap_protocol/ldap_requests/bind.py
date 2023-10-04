@@ -84,6 +84,11 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
+    @staticmethod
+    async def is_user_group_valid(user, ldap_session, session) -> bool:
+        """Test compability."""
+        return await is_user_group_valid(user, ldap_session.policy, session)
+
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
@@ -107,7 +112,7 @@ class BindRequest(BaseRequest):
 
         await ldap_session.set_user(user)
 
-        if not await is_user_group_valid(user, ldap_session.policy, session):
+        if not await self.is_user_group_valid(user, ldap_session, session):
             yield bad_response
             return
 

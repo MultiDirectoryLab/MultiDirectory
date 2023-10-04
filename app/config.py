@@ -1,8 +1,9 @@
 """Module with settings."""
 
 import tomllib
+from functools import cached_property
 
-from pydantic import IPvAnyAddress, PostgresDsn, validator
+from pydantic import IPvAnyAddress, PostgresDsn, computed_field, validator
 from pydantic_settings import BaseSettings
 
 with open("/pyproject.toml", "rb") as f:
@@ -52,6 +53,17 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14
 
+    @computed_field
+    @cached_property
+    def MFA_API_URI(self) -> str:  # noqa: N802
+        """Multifactor API url.
 
-def get_settings():
+        :return str: url
+        """
+        if self.DEBUG:
+            return 'https://api.multifactor.dev/access/requests/ra'
+        return 'https://api.multifactor.ru/access/requests/ra'
+
+
+def get_settings():  # noqa: D103
     raise NotImplementedError()
