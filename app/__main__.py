@@ -91,7 +91,7 @@ class PoolClientHandler:
                 return
 
             if self.settings.USE_CORE_TLS:
-                ldap_session.start_tls(self.ssl_context)
+                await ldap_session.start_tls(self.ssl_context)
 
             try:
                 await asyncio.gather(
