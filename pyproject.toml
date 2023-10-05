@@ -25,6 +25,7 @@ ldap-filter = "^0.2.2"
 httpx = "^0.25.0"
 fastapi = "^0.103.1"
 pydantic-settings = "^2.0.3"
+uvloop = "^0.17.0"
 
 [tool.poetry.group.linters.dependencies]
 mypy = "^0.991"

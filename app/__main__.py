@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from ipaddress import IPv4Address
 from traceback import format_exc
 
+import uvloop
 from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import select, text
@@ -232,4 +233,5 @@ class PoolClientHandler:
 
 
 if __name__ == '__main__':
-    asyncio.run(PoolClientHandler(Settings()).start())
+    with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
+        runner.run(PoolClientHandler(Settings()).start())

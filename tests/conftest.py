@@ -8,6 +8,7 @@ import httpx
 import ldap3
 import pytest
 import pytest_asyncio
+import uvloop
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -27,7 +28,7 @@ class TestHandler(PoolClientHandler):  # noqa
 
 @pytest.fixture(scope="session")
 def event_loop() -> Generator:  # noqa: indirect usage
-    loop = asyncio.new_event_loop()
+    loop = uvloop.new_event_loop()
     yield loop
     with suppress(asyncio.CancelledError, RuntimeError):
         asyncio.gather(*asyncio.tasks.all_tasks(loop)).cancel()
