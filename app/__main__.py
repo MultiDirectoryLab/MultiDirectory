@@ -3,11 +3,14 @@
 import asyncio
 import base64
 import json
+import math
 import socket
 import ssl
 from contextlib import asynccontextmanager
+from io import BytesIO
 from ipaddress import IPv4Address
 from traceback import format_exc
+from typing import cast
 
 import uvloop
 from loguru import logger
@@ -27,6 +30,9 @@ logger.add(
     colorize=False)
 
 
+infinity = cast(int, math.inf)
+
+
 class PoolClientHandler:
     """Async client handler.
 
@@ -42,11 +48,13 @@ class PoolClientHandler:
         self,
         settings: Settings,
         num_workers: int = 3,
+        rcv_size: int = 1024,
     ):
         """Set workers number for single client concurrent handling."""
         self.num_workers = num_workers
         self.settings = settings
         self.AsyncSessionFactory = create_session_factory(self.settings)
+        self._size = rcv_size
 
         if self.settings.USE_CORE_TLS:
             with open('/certs/acme.json') as certfile:
@@ -95,8 +103,8 @@ class PoolClientHandler:
 
             try:
                 await asyncio.gather(
-                    self.handle_request(ldap_session),
-                    self.handle_responses(ldap_session),
+                    self._handle_request(ldap_session),
+                    self._handle_responses(ldap_session),
                 )
             except RuntimeError:
                 logger.error(
@@ -120,28 +128,62 @@ class PoolClientHandler:
                 .limit(1)
             ))
 
-    @staticmethod
-    async def read(reader: asyncio.StreamReader, size: int = 1024) -> bytes:
+    async def recieve(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""
-        data = []
+        buffer = BytesIO()
 
-        for _ in range(10240):  # read 10MB
-            packet = await reader.read(size)
-            data.append(packet)
-            if len(packet) != size:
+        while True:
+            packet = await reader.read(self._size)
+            actual_size = buffer.write(packet)
+            computed_size = self._compute_ldap_message_size(buffer.getvalue())
+
+            if reader.at_eof() or actual_size >= computed_size:
                 break
 
-        return b"".join(data)
+        return buffer.getvalue()
 
-    @classmethod
-    async def handle_request(cls, ldap_session: Session):
+    @staticmethod
+    def _compute_ldap_message_size(data: bytes) -> int:
+        """Compute LDAP Message size according to BER definite length rules.
+
+        returns infinity if too few data to compute message length.
+
+        BER definite length - short form.
+        Highest bit of byte 1 is 0, message length is in the last 7 bits -
+            Value can be up to 127 bytes long
+
+        BER definite length - long form.
+        Highest bit of byte 1 is 1, last 7 bits
+        counts the number of following octets containing the value length.
+
+        source:
+        https://github.com/cannatag/ldap3/blob/dev/ldap3/strategy/base.py#L455
+
+        :param bytes data: body
+        :return int: actual size
+        """
+        if len(data) > 2:
+            if data[1] <= 127:  # short
+                return data[1] + 2
+
+            bytes_length = data[1] - 128  # long
+            if len(data) >= bytes_length + 2:
+                value_length = 0
+                cont = bytes_length
+                for byte in data[2:2 + bytes_length]:
+                    cont -= 1
+                    value_length += byte * (256 ** cont)
+                return value_length + 2 + bytes_length
+        return infinity
+
+    async def _handle_request(self, ldap_session: Session):
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await cls.read(ldap_session.reader)
+            data = await self.recieve(ldap_session.reader)
             # data = await ldap_session.reader.read(1500)
 
             if not data:
@@ -171,7 +213,7 @@ class PoolClientHandler:
         async with self.AsyncSessionFactory() as session:
             yield session
 
-    async def handle_single_response(self, ldap_session: Session):
+    async def _handle_single_response(self, ldap_session: Session):
         """Get message from queue and handle it."""
         while True:
             try:
@@ -193,7 +235,7 @@ class PoolClientHandler:
                 logger.error(f'Unexpected exception {err}')
                 raise err
 
-    async def handle_responses(self, ldap_session: Session):
+    async def _handle_responses(self, ldap_session: Session):
         """Create pool of workers and apply handler to it.
 
         Spawns (default 5) workers,
@@ -201,10 +243,10 @@ class PoolClientHandler:
         cycle locks until pool completes at least 1 task.
         """
         await asyncio.gather(
-            *[self.handle_single_response(ldap_session)
+            *[self._handle_single_response(ldap_session)
                 for _ in range(self.num_workers)])
 
-    async def get_server(self) -> asyncio.base_events.Server:
+    async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
         return await asyncio.start_server(
             self, str(self.settings.HOST), self.settings.PORT,
@@ -212,7 +254,7 @@ class PoolClientHandler:
         )
 
     @staticmethod
-    async def run_server(server: asyncio.base_events.Server):
+    async def _run_server(server: asyncio.base_events.Server):
         """Run server."""
         async with server:
             await server.serve_forever()
@@ -224,12 +266,13 @@ class PoolClientHandler:
 
     async def start(self):
         """Run and log tcp server."""
-        server = await self.get_server()
+        server = await self._get_server()
         self.log_addrs(server)
         try:
-            await self.run_server(server)
+            await self._run_server(server)
         finally:
             server.close()
+            await server.wait_closed()
 
 
 if __name__ == '__main__':
