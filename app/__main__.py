@@ -30,7 +30,7 @@ logger.add(
     colorize=False)
 
 
-inf = cast(int, math.inf)
+infinity = cast(int, math.inf)
 
 
 class PoolClientHandler:
@@ -128,7 +128,7 @@ class PoolClientHandler:
                 .limit(1)
             ))
 
-    async def _read(self, reader: asyncio.StreamReader) -> bytes:
+    async def recieve(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""
         buffer = BytesIO()
 
@@ -136,15 +136,14 @@ class PoolClientHandler:
             packet = await reader.read(self._size)
             actual_size = buffer.write(packet)
             computed_size = self._compute_ldap_message_size(buffer.getvalue())
-            logger.debug((f"{actual_size}/{computed_size}"))
 
-            if actual_size >= computed_size:
+            if reader.at_eof() or actual_size >= computed_size:
                 break
 
         return buffer.getvalue()
 
     @staticmethod
-    def _compute_ldap_message_size(data: bytes) -> int | inf:
+    def _compute_ldap_message_size(data: bytes) -> int:
         """Compute LDAP Message size according to BER definite length rules.
 
         returns infinity if too few data to compute message length.
@@ -175,7 +174,7 @@ class PoolClientHandler:
                     cont -= 1
                     value_length += byte * (256 ** cont)
                 return value_length + 2 + bytes_length
-        return float('inf')
+        return infinity
 
     async def _handle_request(self, ldap_session: Session):
         """Create request object and send it to queue.
@@ -184,7 +183,7 @@ class PoolClientHandler:
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await self.read(ldap_session.reader)
+            data = await self.recieve(ldap_session.reader)
             # data = await ldap_session.reader.read(1500)
 
             if not data:
@@ -273,6 +272,7 @@ class PoolClientHandler:
             await self._run_server(server)
         finally:
             server.close()
+            await server.wait_closed()
 
 
 if __name__ == '__main__':
