@@ -3,13 +3,14 @@
 import asyncio
 import base64
 import json
-import numbers
+import math
 import socket
 import ssl
 from contextlib import asynccontextmanager
 from io import BytesIO
 from ipaddress import IPv4Address
 from traceback import format_exc
+from typing import cast
 
 import uvloop
 from loguru import logger
@@ -27,6 +28,9 @@ logger.add(
     retention="10 days",
     rotation="1d",
     colorize=False)
+
+
+inf = cast(int, math.inf)
 
 
 class PoolClientHandler:
@@ -99,8 +103,8 @@ class PoolClientHandler:
 
             try:
                 await asyncio.gather(
-                    self.handle_request(ldap_session),
-                    self.handle_responses(ldap_session),
+                    self._handle_request(ldap_session),
+                    self._handle_responses(ldap_session),
                 )
             except RuntimeError:
                 logger.error(
@@ -124,14 +128,14 @@ class PoolClientHandler:
                 .limit(1)
             ))
 
-    async def read(self, reader: asyncio.StreamReader) -> bytes:
+    async def _read(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""
         buffer = BytesIO()
 
         while True:
             packet = await reader.read(self._size)
             actual_size = buffer.write(packet)
-            computed_size = self.compute_ldap_message_size(buffer.getvalue())
+            computed_size = self._compute_ldap_message_size(buffer.getvalue())
             logger.debug((f"{actual_size}/{computed_size}"))
 
             if actual_size >= computed_size:
@@ -140,7 +144,7 @@ class PoolClientHandler:
         return buffer.getvalue()
 
     @staticmethod
-    def compute_ldap_message_size(data: bytes) -> numbers.Real:
+    def _compute_ldap_message_size(data: bytes) -> int | inf:
         """Compute LDAP Message size according to BER definite length rules.
 
         returns infinity if too few data to compute message length.
@@ -173,7 +177,7 @@ class PoolClientHandler:
                 return value_length + 2 + bytes_length
         return float('inf')
 
-    async def handle_request(self, ldap_session: Session):
+    async def _handle_request(self, ldap_session: Session):
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
@@ -210,7 +214,7 @@ class PoolClientHandler:
         async with self.AsyncSessionFactory() as session:
             yield session
 
-    async def handle_single_response(self, ldap_session: Session):
+    async def _handle_single_response(self, ldap_session: Session):
         """Get message from queue and handle it."""
         while True:
             try:
@@ -232,7 +236,7 @@ class PoolClientHandler:
                 logger.error(f'Unexpected exception {err}')
                 raise err
 
-    async def handle_responses(self, ldap_session: Session):
+    async def _handle_responses(self, ldap_session: Session):
         """Create pool of workers and apply handler to it.
 
         Spawns (default 5) workers,
@@ -240,10 +244,10 @@ class PoolClientHandler:
         cycle locks until pool completes at least 1 task.
         """
         await asyncio.gather(
-            *[self.handle_single_response(ldap_session)
+            *[self._handle_single_response(ldap_session)
                 for _ in range(self.num_workers)])
 
-    async def get_server(self) -> asyncio.base_events.Server:
+    async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
         return await asyncio.start_server(
             self, str(self.settings.HOST), self.settings.PORT,
@@ -251,7 +255,7 @@ class PoolClientHandler:
         )
 
     @staticmethod
-    async def run_server(server: asyncio.base_events.Server):
+    async def _run_server(server: asyncio.base_events.Server):
         """Run server."""
         async with server:
             await server.serve_forever()
@@ -263,10 +267,10 @@ class PoolClientHandler:
 
     async def start(self):
         """Run and log tcp server."""
-        server = await self.get_server()
+        server = await self._get_server()
         self.log_addrs(server)
         try:
-            await self.run_server(server)
+            await self._run_server(server)
         finally:
             server.close()
 
