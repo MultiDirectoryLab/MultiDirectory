@@ -3,9 +3,11 @@
 import asyncio
 import base64
 import json
+import numbers
 import socket
 import ssl
 from contextlib import asynccontextmanager
+from io import BytesIO
 from ipaddress import IPv4Address
 from traceback import format_exc
 
@@ -42,11 +44,13 @@ class PoolClientHandler:
         self,
         settings: Settings,
         num_workers: int = 3,
+        rcv_size: int = 1024,
     ):
         """Set workers number for single client concurrent handling."""
         self.num_workers = num_workers
         self.settings = settings
         self.AsyncSessionFactory = create_session_factory(self.settings)
+        self._size = rcv_size
 
         if self.settings.USE_CORE_TLS:
             with open('/certs/acme.json') as certfile:
@@ -120,28 +124,63 @@ class PoolClientHandler:
                 .limit(1)
             ))
 
-    @staticmethod
-    async def read(reader: asyncio.StreamReader, size: int = 1024) -> bytes:
+    async def read(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""
-        data = []
+        buffer = BytesIO()
 
-        for _ in range(10240):  # read 10MB
-            packet = await reader.read(size)
-            data.append(packet)
-            if len(packet) != size:
+        while True:
+            packet = await reader.read(self._size)
+            actual_size = buffer.write(packet)
+            computed_size = self.compute_ldap_message_size(buffer.getvalue())
+            logger.debug((f"{actual_size}/{computed_size}"))
+
+            if actual_size >= computed_size:
                 break
 
-        return b"".join(data)
+        return buffer.getvalue()
 
-    @classmethod
-    async def handle_request(cls, ldap_session: Session):
+    @staticmethod
+    def compute_ldap_message_size(data: bytes) -> numbers.Real:
+        """Compute LDAP Message size according to BER definite length rules.
+
+        returns infinity if too few data to compute message length.
+
+        BER definite length - short form.
+        Highest bit of byte 1 is 0, message length is in the last 7 bits -
+            Value can be up to 127 bytes long
+
+        BER definite length - long form.
+        Highest bit of byte 1 is 1, last 7 bits
+        counts the number of following octets containing the value length.
+
+        source:
+        https://github.com/cannatag/ldap3/blob/dev/ldap3/strategy/base.py#L455
+
+        :param bytes data: body
+        :return int: actual size
+        """
+        if len(data) > 2:
+            if data[1] <= 127:  # short
+                return data[1] + 2
+
+            bytes_length = data[1] - 128  # long
+            if len(data) >= bytes_length + 2:
+                value_length = 0
+                cont = bytes_length
+                for byte in data[2:2 + bytes_length]:
+                    cont -= 1
+                    value_length += byte * (256 ** cont)
+                return value_length + 2 + bytes_length
+        return float('inf')
+
+    async def handle_request(self, ldap_session: Session):
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         while True:
-            data = await cls.read(ldap_session.reader)
+            data = await self.read(ldap_session.reader)
             # data = await ldap_session.reader.read(1500)
 
             if not data:
