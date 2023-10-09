@@ -206,7 +206,7 @@ async def update_network_policy(
 
     if policy.netmasks:
         selected_policy.netmasks = policy.complete_netmasks
-        selected_policy.raw = policy.netmasks
+        selected_policy.raw = policy.model_dump(mode='json')['netmasks']
 
     if policy.groups is not None and len(policy.groups) > 0:
         base_dn = await get_base_dn(session)

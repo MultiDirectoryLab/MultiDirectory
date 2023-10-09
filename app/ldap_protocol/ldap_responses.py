@@ -1,8 +1,9 @@
 """LDAP response containers."""
 
 from abc import ABC, abstractmethod
-from typing import ClassVar
+from typing import Annotated, ClassVar
 
+import annotated_types
 from asn1 import Encoder, Numbers
 from pydantic import AnyUrl, BaseModel, Field, field_validator
 
@@ -16,6 +17,8 @@ type_map = {
     None: Numbers.Null,
     LDAPCodes: Numbers.Enumerated,
 }
+
+MAX_STR = Annotated[str, annotated_types.Len(max_length=8100)]
 
 
 class LDAPResult(BaseModel):
@@ -57,8 +60,8 @@ class BindResponse(LDAPResult, BaseResponse):
 class PartialAttribute(BaseModel):
     """Partial attribite structure. Description in rfc2251 4.1.6."""
 
-    type: str  # noqa: A003
-    vals: list[str]
+    type: MAX_STR  # noqa: A003
+    vals: list[MAX_STR]
 
     @field_validator('type', mode="before")
     @classmethod
