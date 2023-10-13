@@ -1,13 +1,18 @@
-from datetime import datetime, timedelta
-from typing import Literal
+"""OAuth modules."""
 
+from datetime import datetime, timedelta
+from typing import Annotated, Literal
+
+from asyncstdlib.functools import cache
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy import select
 
 from config import Settings, get_settings
 from ldap_protocol.utils import get_user
 from models.database import AsyncSession, get_session
+from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 from security import verify_password
 
@@ -17,6 +22,18 @@ ALGORITHM = "HS256"
 
 
 oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get", auto_error=False)
+
+
+@cache
+async def get_mfa_secret(
+        session: Annotated[AsyncSession, Depends(get_session)]) -> str | None:
+    """Mfa secret get.
+
+    :param AsyncSession session: session
+    :return str | None: secret if set
+    """
+    return await session.scalar(
+        select(CatalogueSetting).filter_by(name='mfa_secret'))
 
 
 async def authenticate_user(
@@ -56,7 +73,7 @@ def create_token(
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire, 'grant_type': grant_type})
-    return jwt.encode(to_encode, secret, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, secret)
 
 
 async def get_user_from_token(
@@ -64,6 +81,7 @@ async def get_user_from_token(
     session: AsyncSession = Depends(get_session),
     token: str = Depends(oauth2),
     grant_type: Literal['access', 'refresh'] = 'access',
+    mfa_secret: str | None = Depends(get_mfa_secret),
 ) -> User:
     """Get user from jwt.
 
@@ -80,12 +98,18 @@ async def get_user_from_token(
     )
 
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=ALGORITHM)
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=ALGORITHM)
     except (JWTError, AttributeError):
+        if not mfa_secret:
+            raise credentials_exception
+
+        try:  # retry with mfa secret
+            payload = jwt.decode(token, mfa_secret, algorithms=ALGORITHM)
+        except (JWTError, AttributeError):
+            raise credentials_exception
+
+    user_id: str = payload.get("sub")
+    if user_id is None:
         raise credentials_exception
 
     if payload.get("grant_type") != grant_type:
