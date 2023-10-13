@@ -61,9 +61,13 @@ class Settings(BaseSettings):
         :return str: url
         """
         if self.DEBUG:
-            return 'https://api.multifactor.dev/access/requests/ra'
-        return 'https://api.multifactor.ru/access/requests/ra'
+            return 'https://api.multifactor.dev/access'
+        return 'https://api.multifactor.ru/access'
 
 
 def get_settings():  # noqa: D103
+    raise NotImplementedError()
+
+
+def get_queue_pool():  # noqa
     raise NotImplementedError()
