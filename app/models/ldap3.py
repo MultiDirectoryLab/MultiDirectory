@@ -333,7 +333,7 @@ class NetworkPolicy(Base):
         back_populates='policies',
     )
     mfa_status: MFAFlags = Column(
-        Enum(MFAFlags), default=MFAFlags.DISABLED, nullable=True)
+        Enum(MFAFlags), server_default='DISABLED', nullable=False)
 
     mfa_groups: list['Group'] = relationship(
         "Group", secondary=PolicyMFAMembership.__table__,
