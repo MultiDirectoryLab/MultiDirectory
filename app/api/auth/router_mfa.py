@@ -23,7 +23,7 @@ from sqlalchemy import delete
 
 from api.auth import User, get_current_user
 from config import get_queue_pool
-from ldap_protocol.multifactor import MultifactorAPI, get_auth
+from ldap_protocol.multifactor import Creds, MultifactorAPI, get_auth
 from models.database import AsyncSession, get_session
 from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
@@ -68,7 +68,7 @@ async def callback_mfa(
     access_token: Annotated[str, Form(alias='accessToken')],
     pool: dict[str, asyncio.Queue[str]] = Depends(get_queue_pool),
     session: AsyncSession = Depends(get_session),
-    mfa_creds: tuple[str, str] | None = Depends(get_auth),
+    mfa_creds: Creds | None = Depends(get_auth),
 ) -> bool:
     """Disassemble mfa token and send it to websocket.
 
@@ -82,12 +82,9 @@ async def callback_mfa(
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    key, secret = mfa_creds
-
-    logger.info((access_token, mfa_creds))
-
     try:
-        payload = jwt.decode(access_token, secret, audience=key)
+        payload = jwt.decode(
+            access_token, mfa_creds.secret, audience=mfa_creds.key)
     except (JWTError, AttributeError, JWKError):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
 
@@ -169,7 +166,7 @@ async def two_factor_protocol(
             status.WS_1013_TRY_AGAIN_LATER, 'To factor timeout')
         return
     except WebSocketDisconnect:
-        logger.warning('Two factor connect interrupt')
+        logger.warning('Two factor interrupt')
         return
     finally:
         del pool[user.display_name]

@@ -1,14 +1,19 @@
 """MFA integration."""
 import asyncio
+from collections import namedtuple
 from json import JSONDecodeError
+from typing import Annotated
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, HTTPException
+from loguru import logger
 from sqlalchemy import select
 
 from config import Settings, get_settings
 from models.database import AsyncSession, get_session
 from models.ldap3 import CatalogueSetting
+
+Creds = namedtuple('Creds', ['key', 'secret'])
 
 
 class _MultifactorError(Exception):
@@ -16,7 +21,8 @@ class _MultifactorError(Exception):
 
 
 async def get_auth(
-        session: AsyncSession = Depends(get_session)) -> tuple[str, str]:
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> Creds | None:
     """Get API creds.
 
     :return tuple[str, str]: api key and secret
@@ -27,9 +33,9 @@ async def get_auth(
     key, secret = await asyncio.gather(session.scalar(q1), session.scalar(q2))
 
     if not key or not secret:
-        return None, None
+        return None
 
-    return key.value, secret.value
+    return Creds(key.value, secret.value)
 
 
 async def get_client():
@@ -92,11 +98,12 @@ class MultifactorAPI:
             return False
         return True
 
-    async def get_create_mfa(self, username: str, callback_url: str, sub: str):
+    async def get_create_mfa(self, username: str, callback_url: str, uid: int):
         data = {
             "identity": username,
             "claims": {
-                "sub": sub,
+                "uid": str(uid),
+                "grant_type": "multifactor",
             },
             "callback": {
                 "action": callback_url,
@@ -108,22 +115,25 @@ class MultifactorAPI:
                 self.settings.MFA_API_URI + self.CREATE_URL,
                 auth=self.auth,
                 json=data)
-        except httpx.TimeoutException:
-            raise self.MultifactorError('API timeout')
+            logger.debug(response.json())
+            return response.json()['model']['url']
 
-        return response['model']['url']
+        except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
+            raise self.MultifactorError(f'MFA API error: {err}') from err
 
     @classmethod
     async def from_di(
         cls,
-        credentials: tuple[str, str] = Depends(get_auth),
+        credentials: Annotated[Creds, Depends(get_auth)],
         client: httpx.AsyncClient = Depends(get_client),
         settings: Settings = Depends(get_settings),
     ) -> 'MultifactorAPI':
         """Get api from DI.
 
         :param httpx.AsyncClient client: httpx client
-        :param tuple[str, str] credentials: creds
-        :return MultifactorAPI: _description_
+        :param Creds credentials: creds
+        :return MultifactorAPI: mfa integration
         """
-        return cls(credentials[0], credentials[1], client, settings)
+        if credentials is None:
+            raise HTTPException(401)
+        return cls(credentials.key, credentials.secret, client, settings)
