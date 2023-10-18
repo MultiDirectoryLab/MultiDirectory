@@ -45,14 +45,14 @@ async def login_for_access_token(
         )
 
     access_token = create_token(  # noqa: S106
-        data={"sub": str(user.id)},
+        uid=user.id,
         secret=settings.SECRET_KEY,
         expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         grant_type='access',
     )
 
     refresh_token = create_token(  # noqa: S106
-        data={"sub": str(user.id)},
+        uid=user.id,
         secret=settings.SECRET_KEY,
         expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
         grant_type='refresh',
@@ -79,7 +79,7 @@ async def get_refresh_token(
     :return Token: refresh and access token
     """
     access_token = create_token(  # noqa: S106
-        data={"sub": str(user.id)},
+        uid=user.id,
         secret=settings.SECRET_KEY,
         expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         grant_type='access',
