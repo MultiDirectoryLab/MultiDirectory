@@ -1,24 +1,34 @@
 """Network policies."""
 
+import asyncio
 import operator
-from asyncio import Queue
 from json import JSONDecodeError
 from typing import Annotated
 
-from fastapi import Body, Depends, Form, HTTPException, WebSocket, status
+from fastapi import (
+    Body,
+    Depends,
+    Form,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
+from jose.exceptions import JWKError
+from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import delete
 
 from api.auth import User, get_current_user
 from config import get_queue_pool
-from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.multifactor import MultifactorAPI, get_auth
 from models.database import AsyncSession, get_session
 from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
-from .oauth2 import authenticate_user, get_mfa_secret
+from .oauth2 import authenticate_user
 from .schema import Login
 
 mfa_router = APIRouter(prefix='/multifactor')
@@ -49,34 +59,39 @@ async def setup_mfa(
         session.add(CatalogueSetting(name='mfa_key', value=mfa_key))
         session.add(CatalogueSetting(name='mfa_secret', value=mfa_secret))
         await session.commit()
-        get_mfa_secret.cache_clear()
 
     return True
 
 
-@mfa_router.post('/create', name='callback_mfa')
+@mfa_router.post('/create', name='callback_mfa', include_in_schema=False)
 async def callback_mfa(
-    access_token: Annotated[str, Form()],
-    pool: dict[str, Queue[str]] = Depends(get_queue_pool),
+    access_token: Annotated[str, Form(alias='accessToken')],
+    pool: dict[str, asyncio.Queue[str]] = Depends(get_queue_pool),
     session: AsyncSession = Depends(get_session),
-    mfa_secret: str | None = Depends(get_mfa_secret),
+    mfa_creds: tuple[str, str] | None = Depends(get_auth),
 ) -> bool:
-    """Disassemble mfa token and send it to websocket. Callback endpoint for MFA.
+    """Disassemble mfa token and send it to websocket.
+
+    Callback endpoint for MFA.
 
     :param Annotated[str, Form access_token: access token from multifactor
     :param str | None mfa_secret: multifactor secret from settings
     :raises HTTPException: 404
     :return bool: status
     """
-    if not mfa_secret:
+    if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    key, secret = mfa_creds
+
+    logger.info((access_token, mfa_creds))
 
     try:
-        payload = jwt.decode(access_token, mfa_secret)
-    except (JWTError, AttributeError):
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
+        payload = jwt.decode(access_token, secret, audience=key)
+    except (JWTError, AttributeError, JWKError):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-    user_id: str = payload.get("sub")
+    user_id: str = payload.get("uid")
     if user_id is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
@@ -89,7 +104,7 @@ async def callback_mfa(
     if not queue:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    await queue.put(user)
+    await queue.put(access_token)
 
     return True
 
@@ -99,8 +114,8 @@ async def two_factor_protocol(
     websocket: WebSocket,
     session: AsyncSession = Depends(get_session),
     api: MultifactorAPI = Depends(MultifactorAPI.from_di),
-    pool: dict[str, Queue[str]] = Depends(get_queue_pool),
-):
+    pool: dict[str, asyncio.Queue[str]] = Depends(get_queue_pool),
+) -> None:
     """Authenticate with two factor app.
 
     Protocol description:
@@ -132,24 +147,33 @@ async def two_factor_protocol(
             status.WS_1002_PROTOCOL_ERROR, 'Invalid credentials')
         return
 
-    base_url = str(websocket.base_url)\
-        .replace("wss://", "https://")\
-        .replace("ws://", "http://")
+    try:
+        redirect_url = await api.get_create_mfa(
+            user.display_name, websocket.url_for('callback_mfa'), user.id)
 
-    result = await api.get_create_mfa(
-        user.display_name,
-        base_url + mfa_router.url_path_for('callback_mfa'),
-        str(user.id),
-    )
+    except MultifactorAPI.MultifactorError as err:
+        logger.error(err.__traceback__)
+        await websocket.close(
+            status.WS_1013_TRY_AGAIN_LATER, 'Multifactor error')
+        return
 
-    await websocket.send_json({'status': 'pending', 'message': result})
+    await websocket.send_json({'status': 'pending', 'message': redirect_url})
 
-    queue = Queue(maxsize=1)
+    queue = asyncio.Queue(maxsize=1)
     pool[user.display_name] = queue
 
-    token = await queue.get()
+    try:
+        token = await asyncio.wait_for(queue.get(), timeout=120)
+    except TimeoutError:
+        await websocket.close(
+            status.WS_1013_TRY_AGAIN_LATER, 'To factor timeout')
+        return
+    except WebSocketDisconnect:
+        logger.warning('Two factor connect interrupt')
+        return
+    finally:
+        del pool[user.display_name]
 
-    del pool[user.display_name]
     await websocket.send_json({'status': 'success', 'message': token})
 
     await websocket.close()
