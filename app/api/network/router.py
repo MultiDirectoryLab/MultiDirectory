@@ -144,7 +144,7 @@ async def delete_network_policy(
         await session.commit()
 
     return RedirectResponse(
-        request.scope.get('root_path') + network_router.url_path_for('policy'),
+        request.url_for('policy'),
         status_code=status.HTTP_303_SEE_OTHER,
         headers=request.headers,
     )
