@@ -10,7 +10,8 @@ from config import Settings, get_settings
 from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
 from ldap_protocol.utils import get_base_dn
 from models.database import get_session
-from models.ldap3 import CatalogueSetting
+from models.ldap3 import CatalogueSetting, Directory, Group
+from models.ldap3 import User as DBUser
 
 from .oauth2 import (
     authenticate_user,
@@ -37,12 +38,29 @@ async def login_for_access_token(
     :return Token: refresh and access token
     """
     user = await authenticate_user(session, form.username, form.password)
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    admin_group = await session.scalar(
+        select(Group)
+        .join(Group.users)
+        .filter(DBUser.id == user.id, Directory.name == "domain admins"))
+
+    if not admin_group:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    mfa_enabled = await session.scalar(
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name.in_('mfa_key', 'mfa_secret')))
+
+    if mfa_enabled:
+        raise HTTPException(
+            status.HTTP_426_UPGRADE_REQUIRED, detail='Requires MFA connect')
 
     access_token = create_token(  # noqa: S106
         uid=user.id,
