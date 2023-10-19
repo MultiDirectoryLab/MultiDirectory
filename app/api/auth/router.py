@@ -56,7 +56,7 @@ async def login_for_access_token(
 
     mfa_enabled = await session.scalar(
         select(CatalogueSetting)
-        .filter(CatalogueSetting.name.in_('mfa_key', 'mfa_secret')))
+        .filter(CatalogueSetting.name.in_(['mfa_key', 'mfa_secret'])))
 
     if mfa_enabled:
         raise HTTPException(
