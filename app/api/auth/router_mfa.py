@@ -38,26 +38,35 @@ mfa_router = APIRouter(prefix='/multifactor')
 async def setup_mfa(
     mfa_key: Annotated[str, Body()],
     mfa_secret: Annotated[str, Body()],
+    is_ldap_scope: Annotated[bool, Body()] = True,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
 
     :param str mfa_key: multifactor key
+    :param Annotated[bool, Body is_ldap_scope: _description_, defaults to True
     :param str mfa_secret: multifactor api secret
     :return bool: status
     """
+    if is_ldap_scope:
+        key_name = 'mfa_key_ldap'
+        secret_name = 'mfa_secret_ldap'  # noqa
+    else:
+        key_name = 'mfa_key'
+        secret_name = 'mfa_secret'  # noqa
+
     async with session.begin_nested():
         await session.execute((
             delete(CatalogueSetting)
             .filter(operator.or_(
-                CatalogueSetting.name == 'mfa_key',
-                CatalogueSetting.name == 'mfa_secret',
+                CatalogueSetting.name == key_name,
+                CatalogueSetting.name == secret_name,
             ))
         ))
         await session.flush()
-        session.add(CatalogueSetting(name='mfa_key', value=mfa_key))
-        session.add(CatalogueSetting(name='mfa_secret', value=mfa_secret))
+        session.add(CatalogueSetting(name=key_name, value=mfa_key))
+        session.add(CatalogueSetting(name=secret_name, value=mfa_secret))
         await session.commit()
 
     return True
@@ -129,6 +138,11 @@ async def two_factor_protocol(
     :param dict[str, Queue[str]] pool: queue pool for async comms, depends
     """
     await websocket.accept()
+    if not api:
+        await websocket.close(
+            status.WS_1002_PROTOCOL_ERROR, 'Missing API credentials')
+        return
+
     await websocket.send_json({'status': 'connected', 'message': ''})
 
     try:
@@ -166,7 +180,7 @@ async def two_factor_protocol(
             status.WS_1013_TRY_AGAIN_LATER, 'To factor timeout')
         return
     except WebSocketDisconnect:
-        logger.warning('Two factor interrupt')
+        logger.warning(f'Two factor interrupt for {user.display_name}')
         return
     finally:
         del pool[user.display_name]
