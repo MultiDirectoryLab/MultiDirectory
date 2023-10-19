@@ -98,7 +98,16 @@ class MultifactorAPI:
             return False
         return True
 
-    async def get_create_mfa(self, username: str, callback_url: str, uid: int):
+    async def get_create_mfa(
+            self, username: str, callback_url: str, uid: int) -> str:
+        """Create mfa link.
+
+        :param str username: un
+        :param str callback_url: callback uri to send token
+        :param int uid: user id
+        :raises self.MultifactorError: on invalid json, Key or timeout
+        :return str: url to open in new page
+        """
         data = {
             "identity": username,
             "claims": {
@@ -115,7 +124,6 @@ class MultifactorAPI:
                 self.settings.MFA_API_URI + self.CREATE_URL,
                 auth=self.auth,
                 json=data)
-            logger.debug(response.json())
             return response.json()['model']['url']
 
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
@@ -135,5 +143,5 @@ class MultifactorAPI:
         :return MultifactorAPI: mfa integration
         """
         if credentials is None:
-            raise HTTPException(401)
+            return None
         return cls(credentials.key, credentials.secret, client, settings)
