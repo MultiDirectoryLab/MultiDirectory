@@ -15,6 +15,47 @@ from app.ldap_protocol.multifactor import MultifactorAPI, get_auth
 from app.models import CatalogueSetting
 
 
+class StubWebSocket:
+    """Stub interface for WebSocket."""
+
+    def __init__(self) -> None:
+        """Set 3 channels."""
+        self.q = asyncio.Queue(maxsize=1)
+        self.q1 = asyncio.Queue(maxsize=1)
+        self.q2 = asyncio.Queue(maxsize=1)
+
+    async def accept(self):
+        """Stub signal method."""
+
+    async def close(self, code=1000, data=None):
+        """Server side interface."""
+        await self.q2.put((code, data))
+
+    async def send_json(self, data):
+        """Server side interface."""
+        await self.q1.put(data)
+
+    async def receive_json(self):
+        """Server side interface."""
+        return await self.q.get()
+
+    async def catch_close(self):
+        """Client side interface."""
+        return await self.q2.get()
+
+    async def client_send_json(self, data):
+        """Client side interface."""
+        await self.q.put(data)
+
+    async def client_receive_json(self):
+        """Client side interface."""
+        return await self.q1.get()
+
+    def url_for(self, url):
+        """Get url."""
+        return url
+
+
 @pytest.mark.asyncio()
 async def test_set_mfa(http_client: httpx.AsyncClient, session):
     """Set mfa."""
@@ -39,7 +80,11 @@ async def test_set_mfa(http_client: httpx.AsyncClient, session):
 
 
 @pytest.mark.asyncio()
-async def test_connect_mfa(app: FastAPI, session, http_client: httpx.AsyncClient, settings: Settings):
+async def test_connect_mfa(
+        app: FastAPI,
+        session,
+        http_client: httpx.AsyncClient,
+        settings: Settings):
     """Test websocket mfa."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     session.add(CatalogueSetting(name='mfa_secret', value=settings.SECRET_KEY))
@@ -51,36 +96,6 @@ async def test_connect_mfa(app: FastAPI, session, http_client: httpx.AsyncClient
     class TestMultifactorAPI(MultifactorAPI):
         async def get_create_mfa(*args, **kwargs):
             nonlocal redirect_url
-            return redirect_url
-
-    class StubWebSocket:
-        def __init__(self) -> None:
-            self.q = asyncio.Queue(maxsize=1)
-            self.q1 = asyncio.Queue(maxsize=1)
-            self.q2 = asyncio.Queue(maxsize=1)
-
-        async def accept(self):
-            pass
-
-        async def close(self, code=1000, data=None):
-            await self.q2.put((code, data))
-
-        async def send_json(self, data):
-            await self.q1.put(data)
-
-        async def receive_json(self):
-            return await self.q.get()
-
-        async def catch_close(self):
-            return await self.q2.get()
-
-        async def client_send_json(self, data):
-            await self.q.put(data)
-
-        async def client_receive_json(self):
-            return await self.q1.get()
-
-        def url_for(self, *args, **kwargs):
             return redirect_url
 
     ws = StubWebSocket()
