@@ -6,7 +6,6 @@ from json import JSONDecodeError
 from typing import Annotated
 
 from fastapi import (
-    Body,
     Depends,
     Form,
     HTTPException,
@@ -22,25 +21,23 @@ from pydantic import ValidationError
 from sqlalchemy import delete
 
 from api.auth import User, get_current_user
-from config import get_queue_pool
+from config import Settings, get_queue_pool, get_settings
 from ldap_protocol.multifactor import Creds, MultifactorAPI, get_auth
 from models.database import AsyncSession, get_session
 from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
 from .oauth2 import authenticate_user
-from .schema import Login
+from .schema import Login, MFACreateRequest
 
 mfa_router = APIRouter(prefix='/multifactor')
 
 
 @mfa_router.post('/setup', status_code=status.HTTP_201_CREATED)
 async def setup_mfa(
-    mfa_key: Annotated[str, Body()],
-    mfa_secret: Annotated[str, Body()],
-    is_ldap_scope: Annotated[bool, Body()] = True,
-    user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    mfa: MFACreateRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
 
@@ -49,24 +46,18 @@ async def setup_mfa(
     :param str mfa_secret: multifactor api secret
     :return bool: status
     """
-    if is_ldap_scope:
-        key_name = 'mfa_key_ldap'
-        secret_name = 'mfa_secret_ldap'  # noqa
-    else:
-        key_name = 'mfa_key'
-        secret_name = 'mfa_secret'  # noqa
-
     async with session.begin_nested():
         await session.execute((
             delete(CatalogueSetting)
             .filter(operator.or_(
-                CatalogueSetting.name == key_name,
-                CatalogueSetting.name == secret_name,
+                CatalogueSetting.name == mfa.key_name,
+                CatalogueSetting.name == mfa.secret_name,
             ))
         ))
         await session.flush()
-        session.add(CatalogueSetting(name=key_name, value=mfa_key))
-        session.add(CatalogueSetting(name=secret_name, value=mfa_secret))
+        session.add(CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key))
+        session.add(
+            CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret))
         await session.commit()
 
     return True
@@ -75,9 +66,9 @@ async def setup_mfa(
 @mfa_router.post('/create', name='callback_mfa', include_in_schema=False)
 async def callback_mfa(
     access_token: Annotated[str, Form(alias='accessToken')],
-    pool: dict[str, asyncio.Queue[str]] = Depends(get_queue_pool),
-    session: AsyncSession = Depends(get_session),
-    mfa_creds: Creds | None = Depends(get_auth),
+    pool: Annotated[dict[str, asyncio.Queue[str]], Depends(get_queue_pool)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    mfa_creds: Annotated[Creds | None, Depends(get_auth)],
 ) -> bool:
     """Disassemble mfa token and send it to websocket.
 
@@ -118,9 +109,10 @@ async def callback_mfa(
 @mfa_router.websocket('/connect')
 async def two_factor_protocol(
     websocket: WebSocket,
-    session: AsyncSession = Depends(get_session),
-    api: MultifactorAPI = Depends(MultifactorAPI.from_di),
-    pool: dict[str, asyncio.Queue[str]] = Depends(get_queue_pool),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    api: Annotated[MultifactorAPI, Depends(MultifactorAPI.from_di)],
+    pool: Annotated[dict[str, asyncio.Queue[str]], Depends(get_queue_pool)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
     """Authenticate with two factor app.
 
@@ -148,9 +140,11 @@ async def two_factor_protocol(
     try:
         creds = Login.model_validate(await websocket.receive_json())
         user = await authenticate_user(session, creds.username, creds.password)
-    except (ValidationError, UnicodeDecodeError, JSONDecodeError):
+    except (ValidationError, UnicodeDecodeError, JSONDecodeError) as err:
         await websocket.close(
-            status.WS_1007_INVALID_FRAME_PAYLOAD_DATA, 'Invalid data')
+            status.WS_1007_INVALID_FRAME_PAYLOAD_DATA,
+            f'Invalid data: {err}',
+        )
         return
 
     if not user:
@@ -174,7 +168,10 @@ async def two_factor_protocol(
     pool[user.display_name] = queue
 
     try:
-        token = await asyncio.wait_for(queue.get(), timeout=120)
+        token = await asyncio.wait_for(
+            queue.get(),
+            timeout=settings.MFA_TIMEOUT_SECONDS,
+        )
     except TimeoutError:
         await websocket.close(
             status.WS_1013_TRY_AGAIN_LATER, 'To factor timeout')
