@@ -1,10 +1,11 @@
 """Schemas for auth module."""
 
 import re
+from typing import Literal
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, computed_field, validator
 
 from models.ldap3 import User as DBUser
 
@@ -48,8 +49,10 @@ class User(BaseModel):
     mail: str
     display_name: str
 
+    _access_type: Literal['access', 'refresh', 'multifactor']
+
     @classmethod
-    def from_db(cls, user: DBUser) -> 'User':
+    def from_db(cls, user: DBUser, access: str) -> 'User':
         """Create model from db model."""
         return cls(
             id=user.id,
@@ -57,6 +60,7 @@ class User(BaseModel):
             user_principal_name=user.user_principal_name,
             mail=user.mail,
             display_name=user.display_name,
+            _access_type=access,
         )
 
 
@@ -75,3 +79,25 @@ class SetupRequest(BaseModel):
         if re.match(domain_re, v) is None:
             raise ValueError('Invalid domain value')
         return v.lower().replace('http://', '').replace('https://', '')
+
+
+class MFACreateRequest(BaseModel):
+    """Crete MFA creds request."""
+
+    mfa_key: str
+    mfa_secret: str
+    is_ldap_scope: bool
+
+    @computed_field
+    def key_name(self) -> str:  # noqa
+        if self.is_ldap_scope:
+            return 'mfa_key_ldap'
+
+        return 'mfa_key'
+
+    @computed_field
+    def secret_name(self) -> str:  # noqa
+        if self.is_ldap_scope:
+            return 'mfa_secret_ldap'
+
+        return 'mfa_secret'
