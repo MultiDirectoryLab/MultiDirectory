@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14
 
+    MFA_TIMEOUT_SECONDS: int = 60
+
     @computed_field
     @cached_property
     def MFA_API_URI(self) -> str:  # noqa: N802
