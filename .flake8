@@ -1,3 +1,2 @@
 [flake8]
-extend-immutable-calls = Depends,fastapi.Depends,fastapi.params.Depends
 extend-ignore = S101, I900
