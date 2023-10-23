@@ -139,8 +139,8 @@ class MultifactorAPI:
     async def from_di(
         cls,
         credentials: Annotated[Creds, Depends(get_auth)],
-        client: httpx.AsyncClient = Depends(get_client),
-        settings: Settings = Depends(get_settings),
+        client: Annotated[httpx.AsyncClient, Depends(get_client)],
+        settings: Annotated[Settings, Depends(get_settings)],
     ) -> 'MultifactorAPI':
         """Get api from DI.
 
