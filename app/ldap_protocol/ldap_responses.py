@@ -18,7 +18,7 @@ type_map = {
     LDAPCodes: Numbers.Enumerated,
 }
 
-MAX_STR = Annotated[str, annotated_types.Len(max_length=8100)]
+MAX_STR = Annotated[str, annotated_types.Len(max_length=81000)]
 
 
 class LDAPResult(BaseModel):
