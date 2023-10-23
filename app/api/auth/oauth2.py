@@ -1,14 +1,14 @@
 """OAuth modules."""
 
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
 from config import Settings, get_settings
-from ldap_protocol.multifactor import get_auth
+from ldap_protocol.multifactor import Creds, get_auth
 from ldap_protocol.utils import get_user
 from models.database import AsyncSession, get_session
 from models.ldap3 import User as DBUser
@@ -16,12 +16,12 @@ from security import verify_password
 
 from .schema import User
 
-ALGORITHM = "HS256"
-
+_ALGORITHM = "HS256"
+_ACCESS_TYPES = {'access', 'multifactor'}
 
 oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get", auto_error=False)
 
-CREDENTIALS_EXCEPTION = HTTPException(
+_CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"},
@@ -45,7 +45,7 @@ async def authenticate_user(
         return None
     if not verify_password(password, user.password):
         return None
-    return User.from_db(user)
+    return User.from_db(user, access='access')
 
 
 def create_token(
@@ -74,69 +74,72 @@ def create_token(
     return jwt.encode(to_encode, secret)
 
 
-async def get_user_from_token(
-    settings: Settings = Depends(get_settings),
-    session: AsyncSession = Depends(get_session),
-    token: str = Depends(oauth2),
-    grant_type: Literal['access', 'refresh'] = 'access',
-    mfa_creds: str | None = Depends(get_auth),
+async def _get_user_from_token(
+    settings: Settings,
+    session: AsyncSession,
+    token: str,
+    mfa_creds: Creds | None,
 ) -> User:
     """Get user from jwt.
 
     :param Settings settings: app settings, defaults to Depends(get_settings)
     :param AsyncSession session: sa session, defaults to Depends(get_session)
     :param str token: oauth2 obj, defaults to Depends(oauth2)
-    :raises CREDENTIALS_EXCEPTION: 401
+    :raises _CREDENTIALS_EXCEPTION: 401
     :return User: user for api response
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=ALGORITHM)
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=_ALGORITHM)
     except (JWTError, AttributeError):
         if not mfa_creds:
-            raise CREDENTIALS_EXCEPTION
+            raise _CREDENTIALS_EXCEPTION
 
         try:  # retry with mfa secret
             payload = jwt.decode(
                 token, mfa_creds.secret, audience=mfa_creds.key)
         except (JWTError, AttributeError):
-            raise CREDENTIALS_EXCEPTION
+            raise _CREDENTIALS_EXCEPTION
 
     user_id: str = payload.get("uid")
     if user_id is None:
-        raise CREDENTIALS_EXCEPTION
-
-    if payload.get("grant_type") != grant_type:
-        raise CREDENTIALS_EXCEPTION
+        raise _CREDENTIALS_EXCEPTION
 
     user = await session.get(DBUser, int(user_id))
     if user is None:
-        raise CREDENTIALS_EXCEPTION
+        raise _CREDENTIALS_EXCEPTION
 
-    return User.from_db(user)
+    return User.from_db(user, access=payload.get("grant_type"))
 
 
 async def get_current_user(  # noqa: D103
-    settings: Settings = Depends(get_settings),
-    session: AsyncSession = Depends(get_session),
-    token: str = Depends(oauth2),
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    token: Annotated[str, Depends(oauth2)],
+    mfa_creds: Annotated[str | None, Depends(get_auth)],
 ) -> User:
-    return await get_user_from_token(settings, session, token, 'access')
+    return await _get_user_from_token(settings, session, token, mfa_creds)
 
 
 async def get_current_user_or_none(  # noqa: D103
-    settings: Settings = Depends(get_settings),
-    session: AsyncSession = Depends(get_session),
-    token: str = Depends(oauth2),
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    token: Annotated[str, Depends(oauth2)],
+    mfa_creds: Annotated[str | None, Depends(get_auth)],
 ) -> User | None:
     try:
-        return await get_user_from_token(settings, session, token, 'access')
+        return await _get_user_from_token(settings, session, token, mfa_creds)
     except Exception:
         return None
 
 
 async def get_current_user_refresh(  # noqa: D103
-    settings: Settings = Depends(get_settings),
-    session: AsyncSession = Depends(get_session),
-    token: str = Depends(oauth2),
+    settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    token: Annotated[str, Depends(oauth2)],
+    mfa_creds: Annotated[str | None, Depends(get_auth)],
 ) -> User:
-    return await get_user_from_token(settings, session, token, 'refresh')
+    user = await _get_user_from_token(settings, session, token, mfa_creds)
+    if user._access_type not in ('refresh', 'multifactor'):
+        raise _CREDENTIALS_EXCEPTION
+
+    return user
