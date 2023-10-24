@@ -70,7 +70,7 @@ async def test_set_mfa(http_client: httpx.AsyncClient, session):
         "/multifactor/setup", headers=login_headers,
         json={'mfa_key': "123", 'mfa_secret': "123", 'is_ldap_scope': False})
 
-    assert response.json() is True
+    assert response.json() is {'success': True}
     assert response.status_code == 201
 
     assert await session.scalar(select(CatalogueSetting).filter_by(
