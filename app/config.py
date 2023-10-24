@@ -63,8 +63,8 @@ class Settings(BaseSettings):
         :return str: url
         """
         if self.DEBUG:
-            return 'https://api.multifactor.dev/access'
-        return 'https://api.multifactor.ru/access'
+            return 'https://api.multifactor.dev'
+        return 'https://api.multifactor.ru'
 
 
 def get_settings():  # noqa: D103
