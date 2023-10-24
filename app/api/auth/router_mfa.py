@@ -114,7 +114,10 @@ async def callback_mfa(
         payload = jwt.decode(
             access_token, mfa_creds.secret, audience=mfa_creds.key)
     except (JWTError, AttributeError, JWKError):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Invalid token",
+        )
 
     user_id: str = payload.get("uid")
     if user_id is None:
