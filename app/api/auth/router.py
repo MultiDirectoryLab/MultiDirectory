@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings, get_settings
 from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
+from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.utils import get_base_dn
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
@@ -90,6 +91,7 @@ async def get_refresh_token(
     user: Annotated[User, Depends(get_current_user_refresh)],
     settings: Annotated[Settings, Depends(get_settings)],
     token: Annotated[str, Depends(oauth2)],
+    mfa: Annotated[MultifactorAPI | None, Depends(MultifactorAPI.from_di)],
 ) -> Token:
     """Grant access token with refresh.
 
@@ -98,12 +100,21 @@ async def get_refresh_token(
     :param str token: refresh token
     :return Token: refresh and access token
     """
-    access_token = create_token(  # noqa: S106
-        uid=user.id,
-        secret=settings.SECRET_KEY,
-        expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        grant_type='access',
-    )
+    if user._access_type == 'multifactor':
+        if not mfa:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        access_token = mfa.refresh_token(token)
+        token = access_token
+
+    else:
+        access_token = create_token(  # noqa: S106
+            uid=user.id,
+            secret=settings.SECRET_KEY,
+            expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+            grant_type='access',
+        )
+
     return Token(
         access_token=access_token,
         refresh_token=token,
