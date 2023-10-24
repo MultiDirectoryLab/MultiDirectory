@@ -161,7 +161,12 @@ class MultifactorAPI:
             raise self.MultifactorError(f'MFA API error: {err}') from err
 
     async def refresh_token(self, token: str) -> str:
+        """Refresh mfa token.
 
+        :param str token: str jwt token
+        :raises self.MultifactorError: on api err
+        :return str: new token
+        """
         try:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.CREATE_URL,
@@ -178,7 +183,7 @@ class MultifactorAPI:
     @classmethod
     async def from_di(
         cls,
-        credentials: Annotated[Creds, Depends(get_auth)],
+        credentials: Annotated[Creds | None, Depends(get_auth)],
         client: Annotated[httpx.AsyncClient, Depends(get_client)],
         settings: Annotated[Settings, Depends(get_settings)],
     ) -> 'MultifactorAPI':
