@@ -22,13 +22,18 @@ from sqlalchemy import delete
 
 from api.auth import User, get_current_user
 from config import Settings, get_queue_pool, get_settings
-from ldap_protocol.multifactor import Creds, MultifactorAPI, get_auth
+from ldap_protocol.multifactor import (
+    Creds,
+    MultifactorAPI,
+    get_auth,
+    get_auth_ldap,
+)
 from models.database import AsyncSession, get_session
 from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
 from .oauth2 import authenticate_user
-from .schema import Login, MFACreateRequest
+from .schema import Login, MFACreateRequest, MFAGetResponse
 
 mfa_router = APIRouter(prefix='/multifactor')
 
@@ -63,13 +68,36 @@ async def setup_mfa(
     return True
 
 
+@mfa_router.post('/get')
+async def get_mfa(
+    user: Annotated[User, Depends(get_current_user)],
+    mfa_creds: Annotated[Creds | None, Depends(get_auth)],
+    mfa_creds_ldap: Annotated[Creds | None, Depends(get_auth_ldap)],
+) -> MFAGetResponse:
+    """Get MFA creds.
+
+    :return MFAGetResponse: response
+    """
+    if not mfa_creds:
+        mfa_creds = Creds(None, None)
+    if not mfa_creds_ldap:
+        mfa_creds_ldap = Creds(None, None)
+
+    return MFAGetResponse(
+        mfa_key=mfa_creds.key,
+        mfa_secret=mfa_creds.secret,
+        mfa_key_ldap=mfa_creds_ldap.key,
+        mfa_secret_ldap=mfa_creds_ldap.secret,
+    )
+
+
 @mfa_router.post('/create', name='callback_mfa', include_in_schema=False)
 async def callback_mfa(
     access_token: Annotated[str, Form(alias='accessToken')],
     pool: Annotated[dict[str, asyncio.Queue[str]], Depends(get_queue_pool)],
     session: Annotated[AsyncSession, Depends(get_session)],
     mfa_creds: Annotated[Creds | None, Depends(get_auth)],
-) -> bool:
+) -> dict:
     """Disassemble mfa token and send it to websocket.
 
     Callback endpoint for MFA.
@@ -77,7 +105,7 @@ async def callback_mfa(
     :param Annotated[str, Form access_token: access token from multifactor
     :param str | None mfa_secret: multifactor secret from settings
     :raises HTTPException: 404
-    :return bool: status
+    :return dict: status
     """
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -102,8 +130,9 @@ async def callback_mfa(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     await queue.put(access_token)
+    logger.debug(access_token)
 
-    return True
+    return {'success': True}
 
 
 @mfa_router.websocket('/connect')

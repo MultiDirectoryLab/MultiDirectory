@@ -21,15 +21,17 @@ class _MultifactorError(Exception):
     """MFA exc."""
 
 
-async def get_auth(
-    session: Annotated[AsyncSession, Depends(get_session)],
+async def _get_creds(
+    session: AsyncSession,
+    key_name: str,
+    secret_name: str,
 ) -> Creds | None:
     """Get API creds.
 
     :return tuple[str, str]: api key and secret
     """
-    q1 = select(CatalogueSetting).filter_by(name='mfa_key')
-    q2 = select(CatalogueSetting).filter_by(name='mfa_secret')
+    q1 = select(CatalogueSetting).filter_by(name=key_name)
+    q2 = select(CatalogueSetting).filter_by(name=secret_name)
 
     key, secret = await asyncio.gather(session.scalar(q1), session.scalar(q2))
 
@@ -37,6 +39,28 @@ async def get_auth(
         return None
 
     return Creds(key.value, secret.value)
+
+
+async def get_auth(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> Creds | None:
+    """Admin creds get.
+
+    :param Annotated[AsyncSession, Depends session: session
+    :return Creds | None: optional creds
+    """
+    return await _get_creds(session, 'mfa_key', 'mfa_secret')
+
+
+async def get_auth_ldap(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> Creds | None:
+    """Admin creds get.
+
+    :param Annotated[AsyncSession, Depends session: session
+    :return Creds | None: optional creds
+    """
+    return await _get_creds(session, 'mfa_key_ldap', 'mfa_secret_ldap')
 
 
 async def get_client():
@@ -50,8 +74,9 @@ class MultifactorAPI:
 
     MultifactorError = _MultifactorError
 
-    CHECK_URL = "/requests/ra"
-    CREATE_URL = "/requests"
+    CHECK_URL = "/access/requests/ra"
+    CREATE_URL = "/access/requests"
+    REFRESH_URL = "/token/refresh"
 
     client: httpx.AsyncClient
     settings: Settings
@@ -131,6 +156,21 @@ class MultifactorAPI:
             response_data = response.json()
             logger.info(response_data)
             return response_data['model']['url']
+
+        except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
+            raise self.MultifactorError(f'MFA API error: {err}') from err
+
+    async def refresh_token(self, token: str) -> str:
+
+        try:
+            response = await self.client.post(
+                self.settings.MFA_API_URI + self.CREATE_URL,
+                auth=self.auth,
+                json={"AccessToken": token})
+
+            response_data = response.json()
+            logger.info(response_data)
+            return response_data['model']
 
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
             raise self.MultifactorError(f'MFA API error: {err}') from err
