@@ -5,7 +5,7 @@ from typing import Literal
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, computed_field, validator
+from pydantic import BaseModel, EmailStr, SecretStr, computed_field, validator
 
 from models.ldap3 import User as DBUser
 
@@ -101,3 +101,12 @@ class MFACreateRequest(BaseModel):
             return 'mfa_secret_ldap'
 
         return 'mfa_secret'
+
+
+class MFAGetResponse(BaseModel):
+    """Secret creds of api."""
+
+    mfa_key: str | None
+    mfa_secret: SecretStr | None
+    mfa_key_ldap: str | None
+    mfa_secret_ldap: SecretStr | None
