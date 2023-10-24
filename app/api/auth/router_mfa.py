@@ -188,8 +188,8 @@ async def two_factor_protocol(
         redirect_url = await api.get_create_mfa(
             user.display_name, websocket.url_for('callback_mfa'), user.id)
 
-    except MultifactorAPI.MultifactorError as err:
-        logger.error(err.__traceback__)
+    except MultifactorAPI.MultifactorError:
+        logger.exception("API error")
         await websocket.close(
             status.WS_1013_TRY_AGAIN_LATER, 'Multifactor error')
         return
