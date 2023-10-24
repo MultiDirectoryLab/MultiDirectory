@@ -1,5 +1,7 @@
 """Auth api."""
 
+from typing import Annotated
+
 from extra.setup_dev import setup_enviroment
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -27,9 +29,9 @@ auth_router = APIRouter(prefix='/auth')
 
 @auth_router.post("/token/get")
 async def login_for_access_token(
-    form: OAuth2Form = Depends(),
-    session: AsyncSession = Depends(get_session),
-    settings: Settings = Depends(get_settings),
+    form: Annotated[OAuth2Form, Depends()],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Token:
     """Get refresh and access token on login.
 
@@ -85,9 +87,9 @@ async def login_for_access_token(
 
 @auth_router.post("/token/refresh")
 async def get_refresh_token(
-    user: User = Depends(get_current_user_refresh),
-    settings: Settings = Depends(get_settings),
-    token: str = Depends(oauth2),
+    user: Annotated[User, Depends(get_current_user_refresh)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    token: Annotated[str, Depends(oauth2)],
 ) -> Token:
     """Grant access token with refresh.
 
@@ -110,13 +112,14 @@ async def get_refresh_token(
 
 
 @auth_router.get("/me")
-async def users_me(user: User = Depends(get_current_user)) -> User:
+async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
     """Get current user."""
     return user
 
 
 @auth_router.get('/setup')
-async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
+async def check_setup(
+        session: Annotated[AsyncSession, Depends(get_session)]) -> bool:
     """Check if initial setup needed.
 
     True if setup already complete, False if setup is needed.
@@ -130,7 +133,7 @@ async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
 @auth_router.post('/setup')
 async def first_setup(
     request: SetupRequest,
-    session: AsyncSession = Depends(get_session),
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> LDAPResult:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
