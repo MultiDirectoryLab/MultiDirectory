@@ -273,7 +273,7 @@ class Attribute(DirectoryReferenceMixin, Base):
     __tablename__ = "Attributes"
 
     name = Column(String, nullable=False, index=True)
-    value = Column(String, nullable=False, index=True)
+    value = Column(String, nullable=False)
 
     directory: Directory = relationship(
         'Directory', back_populates='attributes', uselist=False)

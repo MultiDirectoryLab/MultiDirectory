@@ -18,8 +18,6 @@ type_map = {
     LDAPCodes: Numbers.Enumerated,
 }
 
-MAX_STR = Annotated[str, annotated_types.Len(max_length=81000)]
-
 
 class LDAPResult(BaseModel):
     """Base LDAP result structure."""
@@ -60,8 +58,8 @@ class BindResponse(LDAPResult, BaseResponse):
 class PartialAttribute(BaseModel):
     """Partial attribite structure. Description in rfc2251 4.1.6."""
 
-    type: MAX_STR  # noqa: A003
-    vals: list[MAX_STR]
+    type: Annotated[str, annotated_types.Len(max_length=8100)]  # noqa: A003
+    vals: list[Annotated[str, annotated_types.Len(max_length=100000)]]
 
     @field_validator('type', mode="before")
     @classmethod
