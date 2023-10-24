@@ -1116,31 +1116,6 @@ pymysql = ["pymysql", "pymysql (<1)"]
 sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
-name = "sqlalchemy-utils"
-version = "0.38.3"
-description = "Various utility functions for SQLAlchemy."
-category = "main"
-optional = false
-python-versions = "~=3.6"
-
-[package.dependencies]
-SQLAlchemy = ">=1.3"
-
-[package.extras]
-arrow = ["arrow (>=0.3.4)"]
-babel = ["Babel (>=1.3)"]
-color = ["colour (>=0.0.4)"]
-encrypted = ["cryptography (>=0.6)"]
-intervals = ["intervals (>=0.7.1)"]
-password = ["passlib (>=1.6,<2.0)"]
-pendulum = ["pendulum (>=2.0.5)"]
-phone = ["phonenumbers (>=5.9.2)"]
-test = ["Jinja2 (>=2.3)", "Pygments (>=1.2)", "backports.zoneinfo", "docutils (>=0.10)", "flake8 (>=2.4.0)", "flexmock (>=0.9.7)", "isort (>=4.2.2)", "pg8000 (>=1.12.4)", "psycopg2 (>=2.5.1)", "psycopg2cffi (>=2.8.1)", "pymysql", "pyodbc", "pytest (>=2.7.1)", "python-dateutil (>=2.6)", "pytz (>=2014.2)"]
-test-all = ["Babel (>=1.3)", "Jinja2 (>=2.3)", "Pygments (>=1.2)", "arrow (>=0.3.4)", "backports.zoneinfo", "colour (>=0.0.4)", "cryptography (>=0.6)", "docutils (>=0.10)", "flake8 (>=2.4.0)", "flexmock (>=0.9.7)", "furl (>=0.4.1)", "intervals (>=0.7.1)", "isort (>=4.2.2)", "passlib (>=1.6,<2.0)", "pendulum (>=2.0.5)", "pg8000 (>=1.12.4)", "phonenumbers (>=5.9.2)", "psycopg2 (>=2.5.1)", "psycopg2cffi (>=2.8.1)", "pymysql", "pyodbc", "pytest (>=2.7.1)", "python-dateutil", "python-dateutil (>=2.6)", "pytz (>=2014.2)"]
-timezone = ["python-dateutil"]
-url = ["furl (>=0.4.1)"]
-
-[[package]]
 name = "sqlalchemy2-stubs"
 version = "0.0.2a35"
 description = "Typing Stubs for SQLAlchemy 1.4"
@@ -1242,7 +1217,7 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "c374a5fc5aec0fc4e9ac9221fe0b12befbee50a22077ee9560614975d2f76256"
+content-hash = "71a56d16bba7200a6312ca722d0b7f1f2be63b99596a02640eb073a79b3a4680"
 
 [metadata.files]
 alembic = [
@@ -2059,10 +2034,6 @@ sqlalchemy = [
     {file = "SQLAlchemy-1.4.49-cp39-cp39-win32.whl", hash = "sha256:ec2268de67f73b43320383947e74700e95c6770d0c68c4e615e9897e46296294"},
     {file = "SQLAlchemy-1.4.49-cp39-cp39-win_amd64.whl", hash = "sha256:bbdf16372859b8ed3f4d05f925a984771cd2abd18bd187042f24be4886c2a15f"},
     {file = "SQLAlchemy-1.4.49.tar.gz", hash = "sha256:06ff25cbae30c396c4b7737464f2a7fc37a67b7da409993b182b024cec80aed9"},
-]
-sqlalchemy-utils = [
-    {file = "SQLAlchemy-Utils-0.38.3.tar.gz", hash = "sha256:9f9afba607a40455cf703adfa9846584bf26168a0c5a60a70063b70d65051f4d"},
-    {file = "SQLAlchemy_Utils-0.38.3-py3-none-any.whl", hash = "sha256:5c13b5d08adfaa85f3d4e8ec09a75136216fad41346980d02974a70a77988bf9"},
 ]
 sqlalchemy2-stubs = [
     {file = "sqlalchemy2-stubs-0.0.2a35.tar.gz", hash = "sha256:bd5d530697d7e8c8504c7fe792ef334538392a5fb7aa7e4f670bfacdd668a19d"},
