@@ -65,7 +65,7 @@ async def get_auth_ldap(
 
 async def get_client():
     """Get async client for DI."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=4) as client:
         yield client
 
 
