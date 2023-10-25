@@ -17,7 +17,6 @@ from security import verify_password
 from .schema import User
 
 _ALGORITHM = "HS256"
-_ACCESS_TYPES = {'access', 'multifactor'}
 
 oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get", auto_error=False)
 
