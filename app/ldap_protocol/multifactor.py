@@ -137,7 +137,7 @@ class MultifactorAPI:
         data = {
             "identity": username,
             "claims": {
-                "uid": str(uid),
+                "uid": uid,
                 "grant_type": "multifactor",
             },
             "callback": {
