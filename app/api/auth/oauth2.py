@@ -68,7 +68,7 @@ def create_token(
         extra_data = {}
 
     to_encode = extra_data.copy()
-    to_encode['uid'] = str(uid)
+    to_encode['uid'] = uid
     expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire, 'grant_type': grant_type})
     return jwt.encode(to_encode, secret)
@@ -100,11 +100,11 @@ async def _get_user_from_token(
         except (JWTError, AttributeError):
             raise _CREDENTIALS_EXCEPTION
 
-    user_id: str = payload.get("uid")
+    user_id: int = payload.get("uid")
     if user_id is None:
         raise _CREDENTIALS_EXCEPTION
 
-    user = await session.get(DBUser, int(user_id))
+    user = await session.get(DBUser, user_id)
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
