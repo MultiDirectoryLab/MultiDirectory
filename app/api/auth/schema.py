@@ -53,7 +53,7 @@ class User(BaseModel):
     _exp: int
 
     @classmethod
-    def from_db(cls, user: DBUser, access: str, exp: int) -> 'User':
+    def from_db(cls, user: DBUser, access: str, exp: int = 0) -> 'User':
         """Create model from db model."""
         return cls(
             id=user.id,
