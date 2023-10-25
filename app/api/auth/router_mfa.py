@@ -119,7 +119,7 @@ async def callback_mfa(
             "Invalid token",
         )
 
-    user_id: int = payload.get("uid")
+    user_id: int = int(payload.get("uid"))
     if user_id is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 

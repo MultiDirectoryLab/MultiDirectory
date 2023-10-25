@@ -99,7 +99,7 @@ async def _get_user_from_token(
         except (JWTError, AttributeError):
             raise _CREDENTIALS_EXCEPTION
 
-    user_id: int = payload.get("uid")
+    user_id: int = int(payload.get("uid"))
     if user_id is None:
         raise _CREDENTIALS_EXCEPTION
 
