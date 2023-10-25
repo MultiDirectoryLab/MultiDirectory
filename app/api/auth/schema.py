@@ -49,8 +49,8 @@ class User(BaseModel):
     mail: str
     display_name: str
 
-    _access_type: Literal['access', 'refresh', 'multifactor']
-    _exp: int
+    access_type: Literal['access', 'refresh', 'multifactor']
+    exp: int
 
     @classmethod
     def from_db(cls, user: DBUser, access: str, exp: int = 0) -> 'User':
@@ -61,8 +61,8 @@ class User(BaseModel):
             user_principal_name=user.user_principal_name,
             mail=user.mail,
             display_name=user.display_name,
-            _access_type=access,
-            _exp=exp,
+            access_type=access,
+            exp=exp,
         )
 
 
