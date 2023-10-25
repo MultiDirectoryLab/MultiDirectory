@@ -108,7 +108,7 @@ async def _get_user_from_token(
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
-    return User.from_db(user, access=payload.get("grant_type"))
+    return User.from_db(user, payload.get("grant_type"), payload.get("exp"))
 
 
 async def get_current_user(  # noqa: D103
@@ -117,7 +117,14 @@ async def get_current_user(  # noqa: D103
     token: Annotated[str, Depends(oauth2)],
     mfa_creds: Annotated[str | None, Depends(get_auth)],
 ) -> User:
-    return await _get_user_from_token(settings, session, token, mfa_creds)
+    user = await _get_user_from_token(settings, session, token, mfa_creds)
+
+    if user._access_type == 'multifactor' and\
+            user._exp < (
+                datetime.utcnow().timestamp() - settings.MFA_TOKEN_LEEWAY):
+        raise _CREDENTIALS_EXCEPTION
+
+    return user
 
 
 async def get_current_user_or_none(  # noqa: D103
@@ -127,7 +134,7 @@ async def get_current_user_or_none(  # noqa: D103
     mfa_creds: Annotated[str | None, Depends(get_auth)],
 ) -> User | None:
     try:
-        return await _get_user_from_token(settings, session, token, mfa_creds)
+        return await get_current_user(settings, session, token, mfa_creds)
     except Exception:
         return None
 

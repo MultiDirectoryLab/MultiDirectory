@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14
 
     MFA_TIMEOUT_SECONDS: int = 60
+    MFA_TOKEN_LEEWAY: int = 15
 
     @computed_field
     @cached_property

@@ -50,9 +50,10 @@ class User(BaseModel):
     display_name: str
 
     _access_type: Literal['access', 'refresh', 'multifactor']
+    _exp: int
 
     @classmethod
-    def from_db(cls, user: DBUser, access: str) -> 'User':
+    def from_db(cls, user: DBUser, access: str, exp: int) -> 'User':
         """Create model from db model."""
         return cls(
             id=user.id,
@@ -61,6 +62,7 @@ class User(BaseModel):
             mail=user.mail,
             display_name=user.display_name,
             _access_type=access,
+            _exp=exp,
         )
 
 
