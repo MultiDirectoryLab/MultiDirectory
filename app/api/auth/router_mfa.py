@@ -32,7 +32,7 @@ from models.database import AsyncSession, get_session
 from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
-from .oauth2 import authenticate_user
+from .oauth2 import ALGORITHM, authenticate_user
 from .schema import Login, MFACreateRequest, MFAGetResponse
 
 mfa_router = APIRouter(prefix='/multifactor')
@@ -110,13 +110,17 @@ async def callback_mfa(
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
+    logger.debug((access_token, mfa_creds.secret, mfa_creds.key))
     try:
         payload = jwt.decode(
-            access_token, mfa_creds.secret, audience=mfa_creds.key)
-    except (JWTError, AttributeError, JWKError):
+            access_token,
+            mfa_creds.secret,
+            audience=mfa_creds.key,
+            algorithms=ALGORITHM)
+    except (JWTError, AttributeError, JWKError) as err:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Invalid token",
+            f"Invalid token {err}",
         )
 
     user_id: int = int(payload.get("uid"))
@@ -130,7 +134,7 @@ async def callback_mfa(
 
     queue = pool.get(user.display_name)
     if not queue:
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status.HTTP_408_REQUEST_TIMEOUT)
 
     await queue.put(access_token)
     logger.debug(access_token)

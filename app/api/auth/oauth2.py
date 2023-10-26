@@ -16,7 +16,7 @@ from security import verify_password
 
 from .schema import User
 
-_ALGORITHM = "HS256"
+ALGORITHM = "HS256"
 
 oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get", auto_error=False)
 
@@ -88,14 +88,17 @@ async def _get_user_from_token(
     :return User: user for api response
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=_ALGORITHM)
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=ALGORITHM)
     except (JWTError, AttributeError):
         if not mfa_creds:
             raise _CREDENTIALS_EXCEPTION
 
         try:  # retry with mfa secret
             payload = jwt.decode(
-                token, mfa_creds.secret, audience=mfa_creds.key)
+                token,
+                mfa_creds.secret,
+                audience=mfa_creds.key,
+                algorithms=ALGORITHM)
         except (JWTError, AttributeError):
             raise _CREDENTIALS_EXCEPTION
 
@@ -145,7 +148,7 @@ async def get_current_user_refresh(  # noqa: D103
     mfa_creds: Annotated[str | None, Depends(get_auth)],
 ) -> User:
     user = await _get_user_from_token(settings, session, token, mfa_creds)
-    if user._access_type not in ('refresh', 'multifactor'):
+    if user.access_type not in ('refresh', 'multifactor'):
         raise _CREDENTIALS_EXCEPTION
 
     return user
