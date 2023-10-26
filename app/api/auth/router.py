@@ -100,11 +100,11 @@ async def get_refresh_token(
     :param str token: refresh token
     :return Token: refresh and access token
     """
-    if user._access_type == 'multifactor':
+    if user.access_type == 'multifactor':
         if not mfa:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-        access_token = mfa.refresh_token(token)
+        access_token = await mfa.refresh_token(token)
         token = access_token
 
     else:
