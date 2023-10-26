@@ -169,7 +169,7 @@ class MultifactorAPI:
         """
         try:
             response = await self.client.post(
-                self.settings.MFA_API_URI + self.CREATE_URL,
+                self.settings.MFA_API_URI + self.REFRESH_URL,
                 auth=self.auth,
                 json={"AccessToken": token})
 
