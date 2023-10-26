@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14
 
+    MFA_TIMEOUT_SECONDS: int = 60
+    MFA_TOKEN_LEEWAY: int = 15
+
     @computed_field
     @cached_property
     def MFA_API_URI(self) -> str:  # noqa: N802
@@ -61,9 +64,13 @@ class Settings(BaseSettings):
         :return str: url
         """
         if self.DEBUG:
-            return 'https://api.multifactor.dev/access/requests/ra'
-        return 'https://api.multifactor.ru/access/requests/ra'
+            return 'https://api.multifactor.dev'
+        return 'https://api.multifactor.ru'
 
 
 def get_settings():  # noqa: D103
+    raise NotImplementedError()
+
+
+def get_queue_pool():  # noqa
     raise NotImplementedError()

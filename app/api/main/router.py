@@ -1,5 +1,7 @@
 """Main API module, mirrors ldap schema."""
 
+from typing import Annotated
+
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
 
@@ -21,8 +23,8 @@ entry_router = APIRouter(prefix='/entry')
 @entry_router.post('/search')
 async def search(
     request: SearchRequest,
-    session: AsyncSession = Depends(get_session),
-    user: User | None = Depends(get_current_user_or_none),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User | None, Depends(get_current_user_or_none)],
 ) -> SearchResponse:
     """Search request."""
     responses = await request.handle_api(user, session, False)
@@ -41,8 +43,8 @@ async def search(
 @entry_router.post('/add')
 async def add(
     request: AddRequest,
-    session: AsyncSession = Depends(get_session),
-    user: User | None = Depends(get_current_user_or_none),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User | None, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
     """Add view."""
     return await request.handle_api(user, session)
@@ -51,8 +53,8 @@ async def add(
 @entry_router.patch('/update')
 async def update(
     request: ModifyRequest,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user_or_none),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
     """Update view."""
     return await request.handle_api(user, session)
@@ -61,8 +63,8 @@ async def update(
 @entry_router.put('/update/dn')
 async def update_dn(
     request: ModifyDNRequest,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user_or_none),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
     """Update DN view."""
     return await request.handle_api(user, session)
@@ -71,8 +73,8 @@ async def update_dn(
 @entry_router.delete('/delete')
 async def delete(
     request: DeleteRequest,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user_or_none),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
     """Delete DN view."""
     return await request.handle_api(user, session)

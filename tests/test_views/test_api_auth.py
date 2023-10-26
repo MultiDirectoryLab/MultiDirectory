@@ -3,6 +3,7 @@ import pytest
 
 
 @pytest.mark.asyncio()
+@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_first_setup_and_oauth(http_client, session):
     """Test api first setup."""
     response = await http_client.get("/auth/setup")

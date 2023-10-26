@@ -1,5 +1,7 @@
 """Auth api."""
 
+from typing import Annotated
+
 from extra.setup_dev import setup_enviroment
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -8,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings, get_settings
 from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
+from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.utils import get_base_dn
 from models.database import get_session
-from models.ldap3 import CatalogueSetting
+from models.ldap3 import CatalogueSetting, Directory, Group
+from models.ldap3 import User as DBUser
 
 from .oauth2 import (
     authenticate_user,
@@ -26,9 +30,9 @@ auth_router = APIRouter(prefix='/auth')
 
 @auth_router.post("/token/get")
 async def login_for_access_token(
-    form: OAuth2Form = Depends(),
-    session: AsyncSession = Depends(get_session),
-    settings: Settings = Depends(get_settings),
+    form: Annotated[OAuth2Form, Depends()],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Token:
     """Get refresh and access token on login.
 
@@ -37,6 +41,7 @@ async def login_for_access_token(
     :return Token: refresh and access token
     """
     user = await authenticate_user(session, form.username, form.password)
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,15 +49,31 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    admin_group = await session.scalar(
+        select(Group)
+        .join(Group.users)
+        .filter(DBUser.id == user.id, Directory.name == "domain admins"))
+
+    if not admin_group:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    mfa_enabled = await session.scalar(
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name.in_(['mfa_key', 'mfa_secret'])))
+
+    if mfa_enabled:
+        raise HTTPException(
+            status.HTTP_426_UPGRADE_REQUIRED, detail='Requires MFA connect')
+
     access_token = create_token(  # noqa: S106
-        data={"sub": str(user.id)},
+        uid=user.id,
         secret=settings.SECRET_KEY,
         expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         grant_type='access',
     )
 
     refresh_token = create_token(  # noqa: S106
-        data={"sub": str(user.id)},
+        uid=user.id,
         secret=settings.SECRET_KEY,
         expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
         grant_type='refresh',
@@ -67,9 +88,10 @@ async def login_for_access_token(
 
 @auth_router.post("/token/refresh")
 async def get_refresh_token(
-    user: User = Depends(get_current_user_refresh),
-    settings: Settings = Depends(get_settings),
-    token: str = Depends(oauth2),
+    user: Annotated[User, Depends(get_current_user_refresh)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    token: Annotated[str, Depends(oauth2)],
+    mfa: Annotated[MultifactorAPI | None, Depends(MultifactorAPI.from_di)],
 ) -> Token:
     """Grant access token with refresh.
 
@@ -78,12 +100,21 @@ async def get_refresh_token(
     :param str token: refresh token
     :return Token: refresh and access token
     """
-    access_token = create_token(  # noqa: S106
-        data={"sub": str(user.id)},
-        secret=settings.SECRET_KEY,
-        expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        grant_type='access',
-    )
+    if user.access_type == 'multifactor':
+        if not mfa:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        access_token = await mfa.refresh_token(token)
+        token = access_token
+
+    else:
+        access_token = create_token(  # noqa: S106
+            uid=user.id,
+            secret=settings.SECRET_KEY,
+            expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+            grant_type='access',
+        )
+
     return Token(
         access_token=access_token,
         refresh_token=token,
@@ -92,13 +123,14 @@ async def get_refresh_token(
 
 
 @auth_router.get("/me")
-async def users_me(user: User = Depends(get_current_user)) -> User:
+async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
     """Get current user."""
     return user
 
 
 @auth_router.get('/setup')
-async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
+async def check_setup(
+        session: Annotated[AsyncSession, Depends(get_session)]) -> bool:
     """Check if initial setup needed.
 
     True if setup already complete, False if setup is needed.
@@ -112,7 +144,7 @@ async def check_setup(session: AsyncSession = Depends(get_session)) -> bool:
 @auth_router.post('/setup')
 async def first_setup(
     request: SetupRequest,
-    session: AsyncSession = Depends(get_session),
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> LDAPResult:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(

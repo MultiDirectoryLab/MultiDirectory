@@ -1,5 +1,7 @@
 """Network policies."""
 
+from typing import Annotated
+
 from fastapi import HTTPException, Request, status
 from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
@@ -28,8 +30,8 @@ network_router = APIRouter(prefix='/policy')
 @network_router.post('', status_code=status.HTTP_201_CREATED)
 async def add_network_policy(
     policy: Policy,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> PolicyResponse:
     """Add policy.
 
@@ -76,8 +78,8 @@ async def add_network_policy(
 
 @network_router.get('', name='policy')
 async def get_network_policies(
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> list[PolicyResponse]:
     """Get network.
 
@@ -113,8 +115,8 @@ async def get_network_policies(
 async def delete_network_policy(
     policy_id: int,
     request: Request,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> list[PolicyResponse]:
     """Delete policy.
 
@@ -144,7 +146,7 @@ async def delete_network_policy(
         await session.commit()
 
     return RedirectResponse(
-        request.scope.get('root_path') + network_router.url_path_for('policy'),
+        request.url_for('policy'),
         status_code=status.HTTP_303_SEE_OTHER,
         headers=request.headers,
     )
@@ -153,8 +155,8 @@ async def delete_network_policy(
 @network_router.patch('/{policy_id}')
 async def switch_network_policy(
     policy_id: int,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> bool:
     """Switch state of policy.
 
@@ -182,8 +184,8 @@ async def switch_network_policy(
 @network_router.put('')
 async def update_network_policy(
     policy: PolicyUpdate,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> PolicyResponse:
     """Update policy.
 
@@ -239,8 +241,8 @@ async def update_network_policy(
 @network_router.post('/swap')
 async def swap_network_policy(
     swap: SwapRequest,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> SwapResponse:
     """Swap priorities.
 
