@@ -38,7 +38,7 @@ def event_loop() -> Generator:  # noqa: indirect usage
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     """Get settings."""
-    return Settings()
+    return Settings(MFA_TIMEOUT_SECONDS=1)
 
 
 @pytest.fixture(scope="session")

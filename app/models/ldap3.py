@@ -1,11 +1,13 @@
 """MultiDirectory LDAP models."""
 
+import enum
 from typing import Literal, Optional
 
 from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
     Integer,
     String,
@@ -65,6 +67,15 @@ class PolicyMembership(Base):
     """Policy membership - path m2m relationship."""
 
     __tablename__ = "PolicyMemberships"
+    group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
+    policy_id = Column(
+        Integer, ForeignKey("Policies.id"), primary_key=True)
+
+
+class PolicyMFAMembership(Base):
+    """Policy membership - path m2m relationship."""
+
+    __tablename__ = "PolicyMFAMemberships"
     group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
     policy_id = Column(
         Integer, ForeignKey("Policies.id"), primary_key=True)
@@ -242,6 +253,13 @@ class Group(DirectoryReferenceMixin, Base):
         back_populates='groups',
     )
 
+    mfa_policies: list['NetworkPolicy'] = relationship(
+        "NetworkPolicy",
+        secondary=PolicyMFAMembership.__table__,
+        primaryjoin=id == PolicyMFAMembership.__table__.c.group_id,
+        back_populates='mfa_groups',
+    )
+
 
 class Computer(DirectoryReferenceMixin, Base):
     """Computers data."""
@@ -255,7 +273,7 @@ class Attribute(DirectoryReferenceMixin, Base):
     __tablename__ = "Attributes"
 
     name = Column(String, nullable=False, index=True)
-    value = Column(String, nullable=False, index=True)
+    value = Column(String, nullable=False)
 
     directory: Directory = relationship(
         'Directory', back_populates='attributes', uselist=False)
@@ -279,6 +297,14 @@ class Path(Base):
         order_by="Directory.depth",
         back_populates="paths",
     )
+
+
+class MFAFlags(int, enum.Enum):
+    """Two-Factor auth action."""
+
+    DISABLED = 0
+    ENABLED = 1
+    WHITELIST = 2
 
 
 class NetworkPolicy(Base):
@@ -305,4 +331,11 @@ class NetworkPolicy(Base):
         "Group",
         secondary=PolicyMembership.__table__,
         back_populates='policies',
+    )
+    mfa_status: MFAFlags = Column(
+        Enum(MFAFlags), server_default='DISABLED', nullable=False)
+
+    mfa_groups: list['Group'] = relationship(
+        "Group", secondary=PolicyMFAMembership.__table__,
+        back_populates='mfa_policies',
     )
