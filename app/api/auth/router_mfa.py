@@ -4,6 +4,7 @@ import asyncio
 import operator
 from json import JSONDecodeError
 from typing import Annotated
+from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import (
     Depends,
@@ -189,8 +190,11 @@ async def two_factor_protocol(
         return
 
     try:
+        url = list(urlsplit(str(websocket.url_for('callback_mfa'))))
+        url[0] = "https://" if settings.USE_CORE_TLS else "http://"
+
         redirect_url = await api.get_create_mfa(
-            user.display_name, websocket.url_for('callback_mfa'), user.id)
+            user.display_name, urlunsplit(url), user.id)
 
     except MultifactorAPI.MultifactorError:
         logger.exception("API error")
