@@ -8,7 +8,6 @@ import httpx
 from fastapi import Depends
 from loguru import logger
 from sqlalchemy import select
-from starlette.datastructures import URL
 
 from config import Settings, get_settings
 from models.database import AsyncSession, get_session
@@ -125,7 +124,7 @@ class MultifactorAPI:
         return True
 
     async def get_create_mfa(
-            self, username: str, callback_url: URL, uid: int) -> str:
+            self, username: str, callback_url: str, uid: int) -> str:
         """Create mfa link.
 
         :param str username: un
@@ -141,7 +140,7 @@ class MultifactorAPI:
                 "grant_type": "multifactor",
             },
             "callback": {
-                "action": str(callback_url),
+                "action": callback_url,
                 "target": "_self",
             },
         }
