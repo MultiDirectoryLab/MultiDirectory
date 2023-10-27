@@ -8,7 +8,7 @@ services:
     command:
       # - --metrics
       # - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
-      - --log.level=ERROR
+      - "--log.level=ERROR"
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       # - --accesslog=true
@@ -110,11 +110,16 @@ services:
     container_name: multidirectory_api
     restart: unless-stopped
     environment:
+      USE_CORE_TLS: 1
       DEBUG: 1
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
     hostname: api_server
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - ./logs:/app/logs
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
@@ -125,8 +130,10 @@ services:
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"
 
-    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop"
+
+    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop --reload"
     depends_on:
       - postgres
 
@@ -156,23 +163,23 @@ services:
   #   ports:
   #     - "222:22"
 
-  wireshark:
-    image: lscr.io/linuxserver/wireshark:latest
-    container_name: wireshark
-    cap_add:
-      - NET_ADMIN
-    security_opt:
-      - seccomp:unconfined
-    network_mode: host
-    environment:
-      - PUID=1001
-      - PGID=1001
-      - TZ=Etc/UTC
-    volumes:
-      - wireshark:/config
-    ports:
-      - 3000:3000
-    restart: "no"
+  # wireshark:
+  #   image: lscr.io/linuxserver/wireshark:latest
+  #   container_name: wireshark
+  #   cap_add:
+  #     - NET_ADMIN
+  #   security_opt:
+  #     - seccomp:unconfined
+  #   network_mode: host
+  #   environment:
+  #     - PUID=1001
+  #     - PGID=1001
+  #     - TZ=Etc/UTC
+  #   volumes:
+  #     - wireshark:/config
+  #   ports:
+  #     - 3000:3000
+  #   restart: "no"
 
 volumes:
   traefik:
