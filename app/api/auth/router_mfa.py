@@ -191,7 +191,7 @@ async def two_factor_protocol(
 
     try:
         url = list(urlsplit(str(websocket.url_for('callback_mfa'))))
-        url[0] = "https://" if settings.USE_CORE_TLS else "http://"
+        url[0] = "https" if settings.USE_CORE_TLS else "http"
 
         redirect_url = await api.get_create_mfa(
             user.display_name, urlunsplit(url), user.id)
