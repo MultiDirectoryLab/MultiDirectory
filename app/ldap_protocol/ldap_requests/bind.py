@@ -1,21 +1,48 @@
 """LDAP requests bind."""
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, ClassVar
-
+from enum import Enum
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
+from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.utils import get_user, is_user_group_valid
-from models.ldap3 import User
+from models.ldap3 import Group, MFAFlags, User
 from security import verify_password
 
 from .base import BaseRequest
+from loguru import logger
 
 
-class AuthChoice(ABC, BaseModel):
+class SASLMethod(str, Enum):
+    """SASL choices."""
+
+    PLAIN = "PLAIN"
+    EXTERNAL = "EXTERNAL"
+    GSSAPI = "GSSAPI"
+    CRAM_MD5 = "CRAM-MD5"
+    DIGEST_MD5 = "DIGEST-MD5"
+    SCRAM_SHA_1 = "SCRAM-SHA-1"
+    SCRAM_SHA_256 = "SCRAM-SHA-256"
+    OAUTHBEARER = "OAUTHBEARER"
+    UNBOUNDID_CERTIFICATE_PLUS_PASSWORD = "UNBOUNDID-CERTIFICATE-PLUS-PASSWORD"
+    UNBOUNDID_TOTP = "UNBOUNDID-TOTP"
+    UNBOUNDID_DELIVERED_OTP = "UNBOUNDID-DELIVERED-OTP"
+    UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
+
+
+class AuthMethod(int, Enum):
+    """Auth choice."""
+
+    SIMPLE = 0
+    SASL = 3
+
+
+class BasicLDAPAuth(ABC, BaseModel):
     """Auth base class."""
 
     @abstractmethod
@@ -27,7 +54,7 @@ class AuthChoice(ABC, BaseModel):
         """Return true if anonymous."""
 
 
-class SimpleAuthentication(AuthChoice):
+class SimpleAuthentication(BasicLDAPAuth):
     """Simple auth form."""
 
     password: str
@@ -49,10 +76,10 @@ class SimpleAuthentication(AuthChoice):
         return not self.password
 
 
-class SaslAuthentication(AuthChoice):
+class SaslAuthentication(BasicLDAPAuth):
     """Sasl auth form."""
 
-    mechanism: str
+    mechanism: SASLMethod
     credentials: bytes
 
 
@@ -71,10 +98,10 @@ class BindRequest(BaseRequest):
         """Get bind from data dict."""
         auth = data[2].tag_id.value
 
-        if auth == 0:
+        if auth == AuthMethod.SIMPLE:
             auth_choice = SimpleAuthentication(password=data[2].value)
-        elif auth == 3:  # noqa: R506
-            raise NotImplementedError('Sasl not supported')  # TODO: Add SASL
+        elif auth == AuthMethod.SASL:  # noqa: R506
+            auth_choice = SaslAuthentication(mechanism=data[2].value)
         else:
             raise ValueError('Auth version not supported')
 
@@ -84,10 +111,50 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
+    BAD_RESPONSE: ClassVar[BindResponse] = BindResponse(
+        result_code=LDAPCodes.INVALID_CREDENTIALS,
+        matchedDN='',
+        errorMessage=(
+            '80090308: LdapErr: DSID-0C090447, '
+            'comment: AcceptSecurityContext error, '
+            'data 52e, v3839'),
+    )
+
     @staticmethod
     async def is_user_group_valid(user, ldap_session, session) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
+
+    async def check_mfa(
+            self, user: User,
+            ldap_session: Session, session: AsyncSession) -> BindResponse:
+        """Check mfa api.
+
+        :param User user: db user
+        :param Session ldap_session: ldap session
+        :param AsyncSession session: db session
+        :return BindResponse: response
+        """
+        if user.is_mfa_set_up is False:
+            return self.BAD_RESPONSE
+
+        key, secret = await MultifactorAPI.get_auth(session)
+        api = MultifactorAPI(
+            key, secret,
+            client=ldap_session.client,
+            settings=ldap_session.settings,
+        )
+        try:
+            mfa_status = api.ldap_validate_mfa(
+                user.display_name,
+                self.authentication_choice.password)
+        except MultifactorAPI.MultifactorError as err:
+            return BindResponse(
+                result_code=LDAPCodes.INAPPROPRIATE_AUTHENTICATION,
+                errorMessage=str(err), matchedDn='')
+        else:
+            if mfa_status is False:
+                return self.BAD_RESPONSE
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[BindResponse, None]:
@@ -95,26 +162,38 @@ class BindRequest(BaseRequest):
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
-
-        bad_response = BindResponse(
-            result_code=LDAPCodes.INVALID_CREDENTIALS,
-            matchedDN='',
-            errorMessage=(
-                '80090308: LdapErr: DSID-0C090447, '
-                'comment: AcceptSecurityContext error, '
-                'data 52e, v3839'),
-        )
         user = await get_user(session, self.name)
 
         if not user or not self.authentication_choice.is_valid(user):
-            yield bad_response
+            yield self.BAD_RESPONSE
             return
-
-        await ldap_session.set_user(user)
 
         if not await self.is_user_group_valid(user, ldap_session, session):
-            yield bad_response
+            yield self.BAD_RESPONSE
             return
+
+        if policy := getattr(ldap_session, 'policy', None):
+            if policy.mfa_status == MFAFlags.ENABLED:
+                if user.is_mfa_set_up is False:
+                    yield self.BAD_RESPONSE
+                    return
+
+                yield self.check_mfa(user, ldap_session, session)
+                return
+
+            if policy.mfa_status == MFAFlags.WHITELIST:
+                group = await session.scalar(select(Group).filter(
+                    Group.mfa_policies.contains(policy),
+                    Group.users.contains(user),
+                ))
+                if not group or (group and not user.is_mfa_set_up):
+                    yield self.BAD_RESPONSE
+                    return
+
+                yield self.check_mfa(user, ldap_session, session)
+                return
+
+        await ldap_session.set_user(user)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
 
