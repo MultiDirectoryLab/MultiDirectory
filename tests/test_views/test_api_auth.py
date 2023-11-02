@@ -1,6 +1,8 @@
 """Test api calls."""
 import pytest
 
+from app.extra import TEST_DATA, setup_enviroment
+
 
 @pytest.mark.asyncio()
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
@@ -44,3 +46,31 @@ async def test_first_setup_and_oauth(http_client, session):
     assert result["user_principal_name"] == "test"
     assert result["mail"] == "test@example.com"
     assert result["display_name"] == "test"
+
+
+@pytest.mark.asyncio()
+async def test_update_password(http_client, session):
+    """Update policy."""
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await session.commit()
+
+    auth = await http_client.post("auth/token/get", data={
+        "username": "user0", "password": "password"})
+    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
+
+    response = await http_client.patch("auth/user/password", json={
+        "identity": "user0",
+        "new_password": "password1",
+    }, headers=login_headers)
+
+    assert response.status_code == 200
+    assert response.json() is True
+
+    new_auth = await http_client.post("auth/token/get", data={
+        "username": "user0", "password": "password"})
+    assert new_auth.status_code == 401
+
+    new_auth = await http_client.post("auth/token/get", data={
+        "username": "user0", "password": "password1"})
+    assert new_auth.status_code == 200
+    assert new_auth.json()['type'] == 'bearer'
