@@ -3,7 +3,7 @@
 from typing import Annotated
 
 from extra.setup_dev import setup_enviroment
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +22,9 @@ from .oauth2 import (
     get_current_user,
     get_current_user_refresh,
     oauth2,
+    get_user,
 )
+from security import get_password_hash
 from .schema import OAuth2Form, SetupRequest, Token, User
 
 auth_router = APIRouter(prefix='/auth')
@@ -126,6 +128,31 @@ async def get_refresh_token(
 async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
     """Get current user."""
     return user
+
+
+@auth_router.put('/user/password')
+async def password_update(
+    identity: Annotated[str, Body(example='admin')],
+    new_password: Annotated[str, Body(example='password')],
+    _: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> bool:
+    """Update user's password.
+
+    :param Annotated[str, Body identity: user identity, any username or DN
+    :param Annotated[str, Body new_password: password to set
+    :raises HTTPException: 404 if user not found
+    :return bool: status
+    """
+    user = await get_user(session, identity)
+
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    user.password = get_password_hash(new_password)
+    await session.commit()
+
+    return True
 
 
 @auth_router.get('/setup')
