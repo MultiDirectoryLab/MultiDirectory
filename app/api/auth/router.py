@@ -3,7 +3,7 @@
 from typing import Annotated
 
 from extra.setup_dev import setup_enviroment
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,16 +15,16 @@ from ldap_protocol.utils import get_base_dn
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
 from models.ldap3 import User as DBUser
+from security import get_password_hash
 
 from .oauth2 import (
     authenticate_user,
     create_token,
     get_current_user,
     get_current_user_refresh,
-    oauth2,
     get_user,
+    oauth2,
 )
-from security import get_password_hash
 from .schema import OAuth2Form, SetupRequest, Token, User
 
 auth_router = APIRouter(prefix='/auth')
@@ -130,7 +130,7 @@ async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
     return user
 
 
-@auth_router.put('/user/password')
+@auth_router.patch('/user/password')
 async def password_update(
     identity: Annotated[str, Body(example='admin')],
     new_password: Annotated[str, Body(example='password')],
@@ -139,11 +139,12 @@ async def password_update(
 ) -> bool:
     """Update user's password.
 
-    :param Annotated[str, Body identity: user identity, any username or DN
-    :param Annotated[str, Body new_password: password to set
+    - **identity**: user identity, any username or DN
+    - **new_password**: password to set
+    \f
     :raises HTTPException: 404 if user not found
     :return bool: status
-    """
+    """  # noqa
     user = await get_user(session, identity)
 
     if not user:
