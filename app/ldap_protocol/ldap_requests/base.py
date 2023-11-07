@@ -1,5 +1,4 @@
 """LDAP message abstract structure."""
-import json
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator
 
@@ -18,6 +17,7 @@ logger.add(
     filter=lambda rec: "event" in rec["extra"],
     retention="10 days",
     rotation="1d",
+    level='DEBUG',
     colorize=False,
     catch=True,
     serialize=False)
@@ -54,22 +54,14 @@ class BaseRequest(ABC, BaseModel):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        target = user.user_principal_name if user is not None else None
-        api_logger.debug(json.dumps({
-            'request_from': target,
-            'data': self.model_dump_json(),
-        }, indent=4))
+        api_logger.info(self.model_dump_json())
 
         responses = [
             response async for response in self.handle(
                 Session(user=user), session)]
 
-        for i, response in enumerate(responses):
-            api_logger.debug(json.dumps({
-                'response_to': target,
-                'response_row': i,
-                'data': response.model_dump_json(),
-            }, indent=4))
+        for response in responses:
+            api_logger.info(response.model_dump_json(indent=4))
 
         if single:
             return responses[0]
