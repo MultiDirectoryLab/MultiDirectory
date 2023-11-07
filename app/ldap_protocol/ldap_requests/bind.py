@@ -1,7 +1,9 @@
 """LDAP requests bind."""
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, ClassVar
 from enum import Enum
+from typing import AsyncGenerator, ClassVar
+
+from loguru import logger
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +17,6 @@ from models.ldap3 import Group, MFAFlags, User
 from security import verify_password
 
 from .base import BaseRequest
-from loguru import logger
 
 
 class SASLMethod(str, Enum):
@@ -35,15 +36,13 @@ class SASLMethod(str, Enum):
     UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
 
 
-class AuthMethod(int, Enum):
-    """Auth choice."""
-
-    SIMPLE = 0
-    SASL = 3
-
-
-class BasicLDAPAuth(ABC, BaseModel):
+class AbstractLDAPAuth(ABC, BaseModel):
     """Auth base class."""
+
+    @property
+    @abstractmethod
+    def METHOD_ID(self) -> int:  # noqa: N802, D102
+        """Abstract method id."""
 
     @abstractmethod
     def is_valid(self, user: User):
@@ -54,8 +53,10 @@ class BasicLDAPAuth(ABC, BaseModel):
         """Return true if anonymous."""
 
 
-class SimpleAuthentication(BasicLDAPAuth):
+class SimpleAuthentication(AbstractLDAPAuth):
     """Simple auth form."""
+
+    METHOD_ID: ClassVar[int] = 0
 
     password: str
 
@@ -76,8 +77,10 @@ class SimpleAuthentication(BasicLDAPAuth):
         return not self.password
 
 
-class SaslAuthentication(BasicLDAPAuth):
+class SaslAuthentication(AbstractLDAPAuth):
     """Sasl auth form."""
+
+    METHOD_ID: ClassVar[int] = 3
 
     mechanism: SASLMethod
     credentials: bytes
@@ -98,10 +101,10 @@ class BindRequest(BaseRequest):
         """Get bind from data dict."""
         auth = data[2].tag_id.value
 
-        if auth == AuthMethod.SIMPLE:
+        if auth == SimpleAuthentication.METHOD_ID:
             auth_choice = SimpleAuthentication(password=data[2].value)
-        elif auth == AuthMethod.SASL:  # noqa: R506
-            auth_choice = SaslAuthentication(mechanism=data[2].value)
+        elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
+            raise NotImplementedError
         else:
             raise ValueError('Auth version not supported')
 
