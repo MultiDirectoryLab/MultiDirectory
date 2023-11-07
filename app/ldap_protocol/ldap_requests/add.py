@@ -163,6 +163,5 @@ class AddRequest(BaseRequest):
             except IntegrityError:
                 await session.rollback()
                 yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
-                return
-
-        yield AddResponse(result_code=LDAPCodes.SUCCESS)
+            else:
+                yield AddResponse(result_code=LDAPCodes.SUCCESS)
