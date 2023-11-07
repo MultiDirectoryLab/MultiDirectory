@@ -55,7 +55,7 @@ class BaseRequest(ABC, BaseModel):
         :return list[BaseResponse]: list of handled responses
         """
         target = user.user_principal_name if user else None
-        api_logger.info(json.dumps({
+        api_logger.debug(json.dumps({
             'request_from': target,
             'data': self.model_dump(),
         }, indent=4))
@@ -65,7 +65,7 @@ class BaseRequest(ABC, BaseModel):
                 Session(user=user), session)]
 
         for i, response in enumerate(responses):
-            api_logger.info(json.dumps({
+            api_logger.debug(json.dumps({
                 'response_to': target,
                 'response_row': i,
                 'data': response.model_dump(),
