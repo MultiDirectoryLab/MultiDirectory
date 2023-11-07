@@ -54,10 +54,10 @@ class BaseRequest(ABC, BaseModel):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        target = user.user_principal_name if user else None
+        target = user.user_principal_name if user is not None else None
         api_logger.debug(json.dumps({
             'request_from': target,
-            'data': self.model_dump(),
+            'data': self.model_dump_json(),
         }, indent=4))
 
         responses = [
@@ -68,7 +68,7 @@ class BaseRequest(ABC, BaseModel):
             api_logger.debug(json.dumps({
                 'response_to': target,
                 'response_row': i,
-                'data': response.model_dump(),
+                'data': response.model_dump_json(),
             }, indent=4))
 
         if single:
