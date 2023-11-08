@@ -28,11 +28,8 @@ services:
     volumes:
       - ./app:/app
       - ./certs:/certs
-    environment:
-      DEBUG: 1
-      POSTGRES_USER: user1
-      POSTGRES_PASSWORD: password123
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
+    env_file:
+      local.env
     command: bash -c "alembic upgrade head && python ."
     tty: true
     expose:
@@ -42,19 +39,16 @@ services:
       - "389:389"
       - "636:636"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
 
   api:
     image: multidirectory
     container_name: multidirectory_api
     volumes:
       - ./app:/app
-    environment:
-      DEBUG: 1
-      POSTGRES_USER: user1
-      POSTGRES_PASSWORD: password123
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
+    env_file:
+      local.env
     command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --reload --loop uvloop"
     tty: true
     labels:
@@ -66,6 +60,17 @@ services:
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  migrations:
+    image: multidirectory
+    container_name: multidirectory_migrations
+    restart: "no"
+    env_file:
+      local.env
+    command: alembic upgrade head
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,31 +127,6 @@ services:
 
   #   ports:
   #     - "222:22"
-
-  # wireshark:
-  #   image: lscr.io/linuxserver/wireshark:latest
-  #   container_name: wireshark
-  #   cap_add:
-  #     - NET_ADMIN
-  #   security_opt:
-  #     - seccomp:unconfined #optional
-  #   # network_mode: host
-  #   environment:
-  #     - PUID=501
-  #     - PGID=20
-  #     - TZ=Etc/UTC
-  #   volumes:
-  #     - wireshark:/config
-  #   ports:
-  #     - 3000:3000
-  #   restart: "no"
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.ws.rule=Host(`ws.localhost`)"
-  #     - "traefik.http.routers.ws.entrypoints=web"
-  #     - "traefik.http.services.ws.loadbalancer.server.port=3000"
-  #   logging:
-  #     driver: "none"
 
 volumes:
   postgres:
