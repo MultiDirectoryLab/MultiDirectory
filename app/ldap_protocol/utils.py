@@ -88,9 +88,9 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     """
     if '=' not in name:
         if email_re.fullmatch(name):
-            cond = User.user_principal_name == name or User.mail == name
+            cond = User.user_principal_name.ilike(name) | User.mail.ilike(name)
         else:
-            cond = User.sam_accout_name == name
+            cond = User.sam_accout_name.ilike(name)
 
         return await session.scalar(select(User).where(cond))
 
