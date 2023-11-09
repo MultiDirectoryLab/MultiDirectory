@@ -5,7 +5,7 @@ from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
@@ -59,6 +59,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
     METHOD_ID: ClassVar[int] = 0
 
     password: str
+    mfa_key: str | None = Field(max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
@@ -102,7 +103,15 @@ class BindRequest(BaseRequest):
         auth = data[2].tag_id.value
 
         if auth == SimpleAuthentication.METHOD_ID:
-            auth_choice = SimpleAuthentication(password=data[2].value)
+            payload: str = data[2].value
+
+            password = payload[:-6]
+            mfa_key = payload.removeprefix(password)
+
+            auth_choice = SimpleAuthentication(
+                password=password,
+                mfa_key=mfa_key or None,
+            )
         elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
             raise NotImplementedError
         else:
@@ -148,7 +157,7 @@ class BindRequest(BaseRequest):
         try:
             return await api.ldap_validate_mfa(
                 user.display_name,
-                self.authentication_choice.password)
+                self.authentication_choice.mfa_key)
         except MultifactorAPI.MultifactorError:
             logger.exception('MFA failed')
             return False
@@ -178,10 +187,11 @@ class BindRequest(BaseRequest):
                     return
 
             if policy.mfa_status == MFAFlags.WHITELIST:
-                group = await session.scalar(select(Group).filter(
+                group = await session.scalar(select(exists().where(
                     Group.mfa_policies.contains(policy),
                     Group.users.contains(user),
-                ))
+                )))
+
                 if not group or not creds:
                     yield self.BAD_RESPONSE
                     return
