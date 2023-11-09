@@ -14,6 +14,7 @@ from pydantic import (
 )
 
 from ldap_protocol.utils import validate_entry
+from models.ldap3 import MFAFlags
 
 
 class IPRange(BaseModel):
@@ -52,6 +53,16 @@ class NetmasksMixin:
 
         raise ValueError('Invalid DN')
 
+    @field_validator('mfa_groups')
+    @classmethod
+    def validate_group(cls, mfa_groups):  # noqa
+        if not mfa_groups:
+            return mfa_groups
+        if all(validate_entry(group) for group in mfa_groups):
+            return mfa_groups
+
+        raise ValueError('Invalid DN')
+
 
 class Policy(BaseModel, NetmasksMixin):
     """Network Policy model."""
@@ -60,6 +71,8 @@ class Policy(BaseModel, NetmasksMixin):
     netmasks: IPv4IntefaceListType = Field(example=["172.0.0.0/8"])
     priority: int = Field(ge=1, le=sys.maxsize, example=2)
     groups: list[str] = []
+    mfa_status: MFAFlags = MFAFlags.DISABLED
+    mfa_groups: list[str] = []
 
     @field_serializer('netmasks')
     @classmethod
@@ -94,6 +107,8 @@ class PolicyResponse(BaseModel):
     priority: int = Field(ge=1, le=sys.maxsize, example=2)
     enabled: bool
     groups: list[str] = []
+    mfa_status: MFAFlags
+    mfa_groups: list[str] = []
 
 
 class PolicyUpdate(BaseModel, NetmasksMixin):
@@ -103,6 +118,8 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     name: str | None = None
     netmasks: IPv4IntefaceListType | None = None
     groups: list[str] | None = None
+    mfa_status: MFAFlags | None
+    mfa_groups: list[str] | None
 
     @model_validator(mode='after')
     def check_passwords_match(self) -> 'PolicyUpdate':

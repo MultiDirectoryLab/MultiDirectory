@@ -46,15 +46,24 @@ async def add_network_policy(
         netmasks=policy.complete_netmasks,
         priority=policy.priority,
         raw=policy.model_dump(mode='json')['netmasks'],
+        mfa_status=policy.mfa_status,
     )
     group_dns = []
+    mfa_group_dns = []
+
+    base_dn = await get_base_dn(session)
 
     if policy.groups:
-        base_dn = await get_base_dn(session)
         groups = await get_groups(policy.groups, session)
         new_policy.groups = groups
         group_dns = [
             get_path_dn(group.directory.path, base_dn) for group in groups]
+
+    if policy.mfa_groups:
+        mfa_groups = await get_groups(policy.mfa_groups, session)
+        new_policy.mfa_groups = mfa_groups
+        mfa_group_dns = [
+            get_path_dn(group.directory.path, base_dn) for group in mfa_groups]
 
     try:
         session.add(new_policy)
@@ -73,6 +82,8 @@ async def add_network_policy(
         enabled=new_policy.enabled,
         priority=new_policy.priority,
         groups=group_dns,
+        mfa_status=new_policy.mfa_status,
+        mfa_groups=mfa_group_dns,
     )
 
 
@@ -87,7 +98,10 @@ async def get_network_policies(
     :return list[PolicyResponse]: all policies
     """
     base_dn = await get_base_dn(session)
-    options = selectinload(NetworkPolicy.groups)\
+    groups = selectinload(NetworkPolicy.groups)\
+        .selectinload(Group.directory)\
+        .selectinload(Directory.path)
+    mfa_groups = selectinload(NetworkPolicy.mfa_groups)\
         .selectinload(Group.directory)\
         .selectinload(Directory.path)
 
@@ -102,9 +116,13 @@ async def get_network_policies(
             groups=(
                 get_path_dn(group.directory.path, base_dn)
                 for group in policy.groups),
+            mfa_status=policy.mfa_status,
+            mfa_groups=(
+                get_path_dn(group.directory.path, base_dn)
+                for group in policy.mfa_groups),
         )
         for policy in await session.scalars(
-            select(NetworkPolicy).options(options)
+            select(NetworkPolicy).options(groups, mfa_groups)
             .order_by(NetworkPolicy.priority.asc()))]
 
 
@@ -198,7 +216,11 @@ async def update_network_policy(
     """
     selected_policy = await session.get(
         NetworkPolicy, policy.id, with_for_update=True,
-        options=[selectinload(NetworkPolicy.groups)])
+        options=[
+            selectinload(NetworkPolicy.groups),
+            selectinload(NetworkPolicy.mfa_groups),
+        ],
+    )
 
     if not selected_policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
@@ -210,6 +232,9 @@ async def update_network_policy(
         selected_policy.netmasks = policy.complete_netmasks
         selected_policy.raw = policy.model_dump(mode='json')['netmasks']
 
+    if policy.mfa_status is not None:
+        selected_policy.mfa_status = policy.mfa_status
+
     if policy.groups is not None and len(policy.groups) > 0:
         base_dn = await get_base_dn(session)
         groups = await get_groups(policy.groups, session)
@@ -219,6 +244,17 @@ async def update_network_policy(
         selected_policy.groups = groups
 
     elif policy.groups is not None and len(policy.groups) == 0:
+        selected_policy.groups.clear()
+
+    if policy.mfa_groups is not None and len(policy.mfa_groups) > 0:
+        base_dn = await get_base_dn(session)
+        groups = await get_groups(policy.mfa_groups, session)
+        policy.mfa_groups = [
+            get_path_dn(group.directory.path, base_dn) for group in groups]
+
+        selected_policy.mfa_groups = groups
+
+    elif policy.mfa_groups is not None and len(policy.mfa_groups) == 0:
         selected_policy.groups.clear()
 
     try:
@@ -235,6 +271,8 @@ async def update_network_policy(
         enabled=selected_policy.enabled,
         priority=selected_policy.priority,
         groups=policy.groups,
+        mfa_status=policy.mfa_status,
+        mfa_groups=policy.mfa_groups,
     )
 
 
