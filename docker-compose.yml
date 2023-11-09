@@ -30,7 +30,7 @@ services:
       - ./certs:/certs
     env_file:
       local.env
-    command: bash -c "alembic upgrade head && python ."
+    command: python .
     tty: true
     expose:
       - 389
@@ -49,11 +49,11 @@ services:
       - ./app:/app
     env_file:
       local.env
-    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --reload --loop uvloop"
+    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --reload --loop uvloop
     tty: true
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`api.localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.rule=Host(`md.localhost`) && PathPrefix(`/api`)"
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.services.api.loadbalancer.server.port=8000"
       - "traefik.http.routers.api.service=api"
@@ -127,6 +127,21 @@ services:
 
   #   ports:
   #     - "222:22"
+
+  interface:
+    image: ghcr.io/multifactorlab/multidirectory-web-admin:latest
+    container_name: multidirectory_interface
+    restart: "no"
+    hostname: interface
+    env_file:
+      local.env
+    environment:
+      API_URL: http://md.localhost/api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.interface.rule=Host(`md.localhost`)"
+      - "traefik.http.routers.interface.entrypoints=web"
+      - "traefik.http.services.interface.loadbalancer.server.port=80"
 
 volumes:
   postgres:
