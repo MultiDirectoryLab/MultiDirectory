@@ -94,6 +94,7 @@ class MultifactorAPI:
         self.settings = settings
         self.auth: tuple[str] = (key, secret)
 
+    @logger.catch(reraise=True)
     async def ldap_validate_mfa(self, username: str, password: str) -> bool:
         """Validate multifactor.
 
@@ -104,13 +105,14 @@ class MultifactorAPI:
         :raises MultifactorError: Invalid status
         :return bool: status
         """
+        logger.debug(f'LDAP MFA request: {username}, {password}')
         try:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.CHECK_URL,
                 auth=self.auth,
                 json={"Identity": username, "passCode": password}, timeout=42)
-
             data = response.json()
+            logger.info(data)
         except httpx.ConnectTimeout as err:
             raise self.MultifactorError('API Timeout') from err
         except JSONDecodeError as err:
@@ -123,6 +125,7 @@ class MultifactorAPI:
             return False
         return True
 
+    @logger.catch(reraise=True)
     async def get_create_mfa(
             self, username: str, callback_url: str, uid: int) -> str:
         """Create mfa link.
