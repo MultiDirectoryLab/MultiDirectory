@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
-from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.multifactor import Creds, MultifactorAPI, get_auth_ldap
 from ldap_protocol.utils import get_user, is_user_group_valid
 from models.ldap3 import Group, MFAFlags, User
 from security import verify_password
@@ -30,7 +30,7 @@ class SASLMethod(str, Enum):
     SCRAM_SHA_1 = "SCRAM-SHA-1"
     SCRAM_SHA_256 = "SCRAM-SHA-256"
     OAUTHBEARER = "OAUTHBEARER"
-    UNBOUNDID_CERTIFICATE_PLUS_PASSWORD = "UNBOUNDID-CERTIFICATE-PLUS-PASSWORD"
+    UNBOUNDID_CERTIFICATE_PLUS_PASSWORD = "UNBOUNDID-CERTIFICATE-PLUS-PASSWORD"  # noqa
     UNBOUNDID_TOTP = "UNBOUNDID-TOTP"
     UNBOUNDID_DELIVERED_OTP = "UNBOUNDID-DELIVERED-OTP"
     UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
@@ -129,8 +129,10 @@ class BindRequest(BaseRequest):
         return await is_user_group_valid(user, ldap_session.policy, session)
 
     async def check_mfa(
-            self, user: User,
-            ldap_session: Session, session: AsyncSession) -> BindResponse:
+            self,
+            user: User,
+            creds: Creds,
+            ldap_session: Session) -> BindResponse:
         """Check mfa api.
 
         :param User user: db user
@@ -138,26 +140,18 @@ class BindRequest(BaseRequest):
         :param AsyncSession session: db session
         :return BindResponse: response
         """
-        if user.is_mfa_set_up is False:
-            return self.BAD_RESPONSE
-
-        key, secret = await MultifactorAPI.get_auth(session)
         api = MultifactorAPI(
-            key, secret,
+            creds.key, creds.secret,
             client=ldap_session.client,
             settings=ldap_session.settings,
         )
         try:
-            mfa_status = api.ldap_validate_mfa(
+            return await api.ldap_validate_mfa(
                 user.display_name,
                 self.authentication_choice.password)
-        except MultifactorAPI.MultifactorError as err:
-            return BindResponse(
-                result_code=LDAPCodes.INAPPROPRIATE_AUTHENTICATION,
-                errorMessage=str(err), matchedDn='')
-        else:
-            if mfa_status is False:
-                return self.BAD_RESPONSE
+        except MultifactorAPI.MultifactorError:
+            logger.exception('MFA failed')
+            return False
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[BindResponse, None]:
@@ -176,24 +170,26 @@ class BindRequest(BaseRequest):
             return
 
         if policy := getattr(ldap_session, 'policy', None):
+            creds = await get_auth_ldap(session)
+
             if policy.mfa_status == MFAFlags.ENABLED:
-                if user.is_mfa_set_up is False:
+                if not creds:
                     yield self.BAD_RESPONSE
                     return
-
-                yield self.check_mfa(user, ldap_session, session)
-                return
 
             if policy.mfa_status == MFAFlags.WHITELIST:
                 group = await session.scalar(select(Group).filter(
                     Group.mfa_policies.contains(policy),
                     Group.users.contains(user),
                 ))
-                if not group or (group and not user.is_mfa_set_up):
+                if not group or not creds:
                     yield self.BAD_RESPONSE
                     return
 
-                yield self.check_mfa(user, ldap_session, session)
+            mfa_status = await self.check_mfa(user, creds, ldap_session)
+
+            if not mfa_status:
+                yield self.BAD_RESPONSE
                 return
 
         await ldap_session.set_user(user)
