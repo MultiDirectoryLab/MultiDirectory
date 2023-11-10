@@ -160,12 +160,12 @@ class BindRequest(BaseRequest):
             if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
 
                 if policy.mfa_status == MFAFlags.WHITELIST:
-                    group = await session.scalar(select(exists().where(
+                    group_exists = await session.scalar(select(exists().where(
                         Group.mfa_policies.contains(policy),
                         Group.users.contains(user),
                     )))
 
-                    if not group:
+                    if not group_exists:
                         yield self.BAD_RESPONSE
                         return
 
