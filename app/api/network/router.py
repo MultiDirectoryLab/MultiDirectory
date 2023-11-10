@@ -201,7 +201,7 @@ async def switch_network_policy(
 
 @network_router.put('')
 async def update_network_policy(
-    policy: PolicyUpdate,
+    request: PolicyUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> PolicyResponse:
@@ -215,7 +215,7 @@ async def update_network_policy(
     :return PolicyResponse: Policy from database
     """
     selected_policy = await session.get(
-        NetworkPolicy, policy.id, with_for_update=True,
+        NetworkPolicy, request.id, with_for_update=True,
         options=[
             selectinload(NetworkPolicy.groups),
             selectinload(NetworkPolicy.mfa_groups),
@@ -225,37 +225,37 @@ async def update_network_policy(
     if not selected_policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
 
-    if policy.name:
-        selected_policy.name = policy.name
+    if request.name:
+        selected_policy.name = request.name
 
-    if policy.netmasks:
-        selected_policy.netmasks = policy.complete_netmasks
-        selected_policy.raw = policy.model_dump(mode='json')['netmasks']
+    if request.netmasks:
+        selected_policy.netmasks = request.complete_netmasks
+        selected_policy.raw = request.model_dump(mode='json')['netmasks']
 
-    if policy.mfa_status is not None:
-        selected_policy.mfa_status = policy.mfa_status
+    if request.mfa_status is not None:
+        selected_policy.mfa_status = request.mfa_status
 
-    if policy.groups is not None and len(policy.groups) > 0:
-        base_dn = await get_base_dn(session)
-        groups = await get_groups(policy.groups, session)
-        policy.groups = [
-            get_path_dn(group.directory.path, base_dn) for group in groups]
+    base_dn = await get_base_dn(session)
 
+    if request.groups is not None and len(request.groups) > 0:
+        groups = await get_groups(request.groups, session)
         selected_policy.groups = groups
 
-    elif policy.groups is not None and len(policy.groups) == 0:
-        selected_policy.groups.clear()
-
-    if policy.mfa_groups is not None and len(policy.mfa_groups) > 0:
-        base_dn = await get_base_dn(session)
-        groups = await get_groups(policy.mfa_groups, session)
-        policy.mfa_groups = [
+        request.groups = [
             get_path_dn(group.directory.path, base_dn) for group in groups]
 
-        selected_policy.mfa_groups = groups
-
-    elif policy.mfa_groups is not None and len(policy.mfa_groups) == 0:
+    elif request.groups is not None and len(request.groups) == 0:
         selected_policy.groups.clear()
+
+    if request.mfa_groups is not None and len(request.mfa_groups) > 0:
+        mfa_groups = await get_groups(request.mfa_groups, session)
+        selected_policy.mfa_groups = mfa_groups
+
+        request.mfa_groups = [
+            get_path_dn(group.directory.path, base_dn) for group in mfa_groups]
+
+    elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
+        selected_policy.mfa_groups.clear()
 
     try:
         await session.commit()
@@ -270,9 +270,9 @@ async def update_network_policy(
         raw=selected_policy.raw,
         enabled=selected_policy.enabled,
         priority=selected_policy.priority,
-        groups=policy.groups,
-        mfa_status=policy.mfa_status,
-        mfa_groups=policy.mfa_groups,
+        groups=request.groups,
+        mfa_status=selected_policy.mfa_status,
+        mfa_groups=request.mfa_groups,
     )
 
 
