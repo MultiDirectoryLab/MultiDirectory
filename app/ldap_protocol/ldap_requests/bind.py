@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import AsyncGenerator, ClassVar
 
-from loguru import logger
 from pydantic import BaseModel, Field
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
-from ldap_protocol.multifactor import Creds, MultifactorAPI, get_auth_ldap
 from ldap_protocol.utils import get_user, is_user_group_valid
 from models.ldap3 import Group, MFAFlags, User
 from security import verify_password
@@ -59,7 +57,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
     METHOD_ID: ClassVar[int] = 0
 
     password: str
-    mfa_key: str | None = Field(max_length=6, min_length=6)
+    otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
@@ -106,11 +104,15 @@ class BindRequest(BaseRequest):
             payload: str = data[2].value
 
             password = payload[:-6]
-            mfa_key = payload.removeprefix(password)
+            otpassword = payload.removeprefix(password)
+
+            if not otpassword.isdecimal():
+                otpassword = None
+                password = payload
 
             auth_choice = SimpleAuthentication(
                 password=password,
-                mfa_key=mfa_key or None,
+                otpassword=otpassword,
             )
         elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
             raise NotImplementedError
@@ -137,37 +139,13 @@ class BindRequest(BaseRequest):
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
 
-    async def check_mfa(
-            self,
-            user: User,
-            creds: Creds,
-            ldap_session: Session) -> BindResponse:
-        """Check mfa api.
-
-        :param User user: db user
-        :param Session ldap_session: ldap session
-        :param AsyncSession session: db session
-        :return BindResponse: response
-        """
-        api = MultifactorAPI(
-            creds.key, creds.secret,
-            client=ldap_session.client,
-            settings=ldap_session.settings,
-        )
-        try:
-            return await api.ldap_validate_mfa(
-                user.display_name,
-                self.authentication_choice.mfa_key)
-        except MultifactorAPI.MultifactorError:
-            logger.exception('MFA failed')
-            return False
-
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
+
         user = await get_user(session, self.name)
 
         if not user or not self.authentication_choice.is_valid(user):
@@ -179,28 +157,26 @@ class BindRequest(BaseRequest):
             return
 
         if policy := getattr(ldap_session, 'policy', None):
-            creds = await get_auth_ldap(session)
+            if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
 
-            if policy.mfa_status == MFAFlags.ENABLED:
-                if not creds:
+                if policy.mfa_status == MFAFlags.WHITELIST:
+                    group = await session.scalar(select(exists().where(
+                        Group.mfa_policies.contains(policy),
+                        Group.users.contains(user),
+                    )))
+
+                    if not group:
+                        yield self.BAD_RESPONSE
+                        return
+
+                mfa_status = await ldap_session.check_mfa(
+                    user.display_name,
+                    self.authentication_choice.otpassword,
+                    session)
+
+                if mfa_status is False:
                     yield self.BAD_RESPONSE
                     return
-
-            if policy.mfa_status == MFAFlags.WHITELIST:
-                group = await session.scalar(select(exists().where(
-                    Group.mfa_policies.contains(policy),
-                    Group.users.contains(user),
-                )))
-
-                if not group or not creds:
-                    yield self.BAD_RESPONSE
-                    return
-
-            mfa_status = await self.check_mfa(user, creds, ldap_session)
-
-            if not mfa_status:
-                yield self.BAD_RESPONSE
-                return
 
         await ldap_session.set_user(user)
 
