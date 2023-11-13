@@ -15,6 +15,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import (
     Mapped,
     declarative_mixin,
@@ -27,6 +28,19 @@ from sqlalchemy.sql import expression
 from .database import Base
 
 DistinguishedNamePrefix = Literal['cn', 'ou', 'dc']
+
+UniqueConstraint.argument_for("postgresql", 'nulls_not_distinct', None)
+
+
+@compiles(UniqueConstraint, "postgresql")
+def compile_create_uc(create, compiler, **kw):
+    """Add NULLS NOT DISTINCT if its in args."""
+    stmt = compiler.visit_unique_constraint(create, **kw)
+    postgresql_opts = create.dialect_options["postgresql"]
+
+    if postgresql_opts.get("nulls_not_distinct"):
+        return stmt.rstrip().replace("UNIQUE (", "UNIQUE NULLS NOT DISTINCT (")
+    return stmt
 
 
 class CatalogueSetting(Base):
@@ -133,7 +147,10 @@ class Directory(Base):
         'Computer', uselist=False, cascade="all,delete")
 
     __table_args__ = (
-        UniqueConstraint('parentId', 'name', name='name_parent_uc'),
+        UniqueConstraint(
+            'parentId', 'name',
+            postgresql_nulls_not_distinct=True,
+            name='name_parent_uc'),
     )
 
     search_fields = {
