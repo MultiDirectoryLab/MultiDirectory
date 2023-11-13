@@ -270,9 +270,9 @@ async def update_network_policy(
         raw=selected_policy.raw,
         enabled=selected_policy.enabled,
         priority=selected_policy.priority,
-        groups=request.groups,
+        groups=request.groups or [],
         mfa_status=selected_policy.mfa_status,
-        mfa_groups=request.mfa_groups,
+        mfa_groups=request.mfa_groups or [],
     )
 
 

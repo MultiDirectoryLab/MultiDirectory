@@ -73,6 +73,8 @@ async def test_add_policy(http_client, session):
             'raw': ['0.0.0.0/0'],
             'groups': [],
             'priority': 1,
+            'mfa_groups': [],
+            'mfa_status': 0,
         },
         {
             'enabled': True,
@@ -81,6 +83,8 @@ async def test_add_policy(http_client, session):
             'raw': raw_netmasks,
             'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
             'priority': 2,
+            'mfa_groups': [],
+            'mfa_status': 0,
         },
     ]
 
@@ -108,6 +112,8 @@ async def test_update_policy(http_client, session):
             'netmasks': ['0.0.0.0/0'],
             'raw': ['0.0.0.0/0'],
             'priority': 1,
+            'mfa_groups': [],
+            'mfa_status': 0,
             'groups': [],
         },
     ]
@@ -131,6 +137,8 @@ async def test_update_policy(http_client, session):
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
         'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
+        'mfa_groups': [],
+        'mfa_status': 0,
         'priority': 1,
     }
 
@@ -146,6 +154,8 @@ async def test_update_policy(http_client, session):
             'name': 'Default open policy 2',
             'netmasks': ['0.0.0.0/0'],
             'raw': ['0.0.0.0/0'],
+            'mfa_groups': [],
+            'mfa_status': 0,
             'priority': 1,
             'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
         },
@@ -182,6 +192,8 @@ async def test_delete_policy(http_client: httpx.AsyncClient, session):
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
         'groups': [],
+        'mfa_groups': [],
+        'mfa_status': 0,
         'priority': 1,
     }
 
@@ -233,6 +245,8 @@ async def test_switch_policy(http_client, session):
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
         'groups': [],
+        'mfa_groups': [],
+        'mfa_status': 0,
         'priority': 1,
     }
 

@@ -118,8 +118,8 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     name: str | None = None
     netmasks: IPv4IntefaceListType | None = None
     groups: list[str] | None = None
-    mfa_status: MFAFlags | None
-    mfa_groups: list[str] | None
+    mfa_status: MFAFlags | None = None
+    mfa_groups: list[str] | None = None
 
     @model_validator(mode='after')
     def check_passwords_match(self) -> 'PolicyUpdate':
