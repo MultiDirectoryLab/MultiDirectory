@@ -73,8 +73,8 @@ class MultifactorAPI:
 
     MultifactorError = _MultifactorError
 
-    CHECK_URL = "/access/requests/ra"
-    CREATE_URL = "/access/requests"
+    AUTH_URL_USERS = "/access/requests/ra"
+    AUTH_URL_ADMIN = "/access/requests"
     REFRESH_URL = "/token/refresh"
 
     client: httpx.AsyncClient
@@ -94,6 +94,7 @@ class MultifactorAPI:
         self.settings = settings
         self.auth: tuple[str] = (key, secret)
 
+    @logger.catch(reraise=True)
     async def ldap_validate_mfa(self, username: str, password: str) -> bool:
         """Validate multifactor.
 
@@ -104,13 +105,15 @@ class MultifactorAPI:
         :raises MultifactorError: Invalid status
         :return bool: status
         """
+        logger.debug(f'LDAP MFA request: {username}, {password}')
         try:
             response = await self.client.post(
-                self.settings.MFA_API_URI + self.CHECK_URL,
+                self.settings.MFA_API_URI + self.AUTH_URL_USERS,
                 auth=self.auth,
                 json={"Identity": username, "passCode": password}, timeout=42)
 
             data = response.json()
+            logger.info(data)
         except httpx.ConnectTimeout as err:
             raise self.MultifactorError('API Timeout') from err
         except JSONDecodeError as err:
@@ -119,10 +122,11 @@ class MultifactorAPI:
         if response.status_code != 200:
             raise self.MultifactorError('Status error')
 
-        if data['success'] is not True:
+        if data.get('model', {}).get('status') != 'Granted':
             return False
         return True
 
+    @logger.catch(reraise=True)
     async def get_create_mfa(
             self, username: str, callback_url: str, uid: int) -> str:
         """Create mfa link.
@@ -148,7 +152,7 @@ class MultifactorAPI:
             logger.debug(data)
 
             response = await self.client.post(
-                self.settings.MFA_API_URI + self.CREATE_URL,
+                self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
                 auth=self.auth,
                 json=data)
 

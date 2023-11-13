@@ -12,16 +12,6 @@ from ldap_protocol.ldap_responses import BaseResponse
 
 api_logger = logger.bind(event=True)
 
-logger.add(
-    "logs/json_ldap_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: "event" in rec["extra"],
-    retention="10 days",
-    rotation="1d",
-    level='DEBUG',
-    colorize=False,
-    catch=True,
-    serialize=False)
-
 
 class BaseRequest(ABC, BaseModel):
     """Base request builder."""

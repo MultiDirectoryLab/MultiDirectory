@@ -1,22 +1,46 @@
 """LDAP requests bind."""
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.utils import get_user, is_user_group_valid
-from models.ldap3 import User
+from models.ldap3 import Group, MFAFlags, User
 from security import verify_password
 
 from .base import BaseRequest
 
 
-class AuthChoice(ABC, BaseModel):
+class SASLMethod(str, Enum):
+    """SASL choices."""
+
+    PLAIN = "PLAIN"
+    EXTERNAL = "EXTERNAL"
+    GSSAPI = "GSSAPI"
+    CRAM_MD5 = "CRAM-MD5"
+    DIGEST_MD5 = "DIGEST-MD5"
+    SCRAM_SHA_1 = "SCRAM-SHA-1"
+    SCRAM_SHA_256 = "SCRAM-SHA-256"
+    OAUTHBEARER = "OAUTHBEARER"
+    UNBOUNDID_CERTIFICATE_PLUS_PASSWORD = "UNBOUNDID-CERTIFICATE-PLUS-PASSWORD"  # noqa
+    UNBOUNDID_TOTP = "UNBOUNDID-TOTP"
+    UNBOUNDID_DELIVERED_OTP = "UNBOUNDID-DELIVERED-OTP"
+    UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
+
+
+class AbstractLDAPAuth(ABC, BaseModel):
     """Auth base class."""
+
+    @property
+    @abstractmethod
+    def METHOD_ID(self) -> int:  # noqa: N802, D102
+        """Abstract method id."""
 
     @abstractmethod
     def is_valid(self, user: User):
@@ -27,10 +51,13 @@ class AuthChoice(ABC, BaseModel):
         """Return true if anonymous."""
 
 
-class SimpleAuthentication(AuthChoice):
+class SimpleAuthentication(AbstractLDAPAuth):
     """Simple auth form."""
 
+    METHOD_ID: ClassVar[int] = 0
+
     password: str
+    otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
@@ -49,10 +76,12 @@ class SimpleAuthentication(AuthChoice):
         return not self.password
 
 
-class SaslAuthentication(AuthChoice):
+class SaslAuthentication(AbstractLDAPAuth):
     """Sasl auth form."""
 
-    mechanism: str
+    METHOD_ID: ClassVar[int] = 3
+
+    mechanism: SASLMethod
     credentials: bytes
 
 
@@ -71,10 +100,22 @@ class BindRequest(BaseRequest):
         """Get bind from data dict."""
         auth = data[2].tag_id.value
 
-        if auth == 0:
-            auth_choice = SimpleAuthentication(password=data[2].value)
-        elif auth == 3:  # noqa: R506
-            raise NotImplementedError('Sasl not supported')  # TODO: Add SASL
+        if auth == SimpleAuthentication.METHOD_ID:
+            payload: str = data[2].value
+
+            password = payload[:-6]
+            otpassword = payload.removeprefix(password)
+
+            if not otpassword.isdecimal():
+                otpassword = None
+                password = payload
+
+            auth_choice = SimpleAuthentication(
+                password=password,
+                otpassword=otpassword,
+            )
+        elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
+            raise NotImplementedError
         else:
             raise ValueError('Auth version not supported')
 
@@ -83,6 +124,15 @@ class BindRequest(BaseRequest):
             name=data[1].value,
             AuthenticationChoice=auth_choice,
         )
+
+    BAD_RESPONSE: ClassVar[BindResponse] = BindResponse(
+        result_code=LDAPCodes.INVALID_CREDENTIALS,
+        matchedDN='',
+        errorMessage=(
+            '80090308: LdapErr: DSID-0C090447, '
+            'comment: AcceptSecurityContext error, '
+            'data 52e, v3839'),
+    )
 
     @staticmethod
     async def is_user_group_valid(user, ldap_session, session) -> bool:
@@ -96,25 +146,39 @@ class BindRequest(BaseRequest):
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        bad_response = BindResponse(
-            result_code=LDAPCodes.INVALID_CREDENTIALS,
-            matchedDN='',
-            errorMessage=(
-                '80090308: LdapErr: DSID-0C090447, '
-                'comment: AcceptSecurityContext error, '
-                'data 52e, v3839'),
-        )
         user = await get_user(session, self.name)
 
         if not user or not self.authentication_choice.is_valid(user):
-            yield bad_response
+            yield self.BAD_RESPONSE
             return
-
-        await ldap_session.set_user(user)
 
         if not await self.is_user_group_valid(user, ldap_session, session):
-            yield bad_response
+            yield self.BAD_RESPONSE
             return
+
+        if policy := getattr(ldap_session, 'policy', None):
+            if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
+
+                if policy.mfa_status == MFAFlags.WHITELIST:
+                    group_exists = await session.scalar(select(exists().where(
+                        Group.mfa_policies.contains(policy),
+                        Group.users.contains(user),
+                    )))
+
+                    if not group_exists:
+                        yield self.BAD_RESPONSE
+                        return
+
+                mfa_status = await ldap_session.check_mfa(
+                    user.display_name,
+                    self.authentication_choice.otpassword,
+                    session)
+
+                if mfa_status is False:
+                    yield self.BAD_RESPONSE
+                    return
+
+        await ldap_session.set_user(user)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
 
