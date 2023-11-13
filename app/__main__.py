@@ -199,7 +199,7 @@ class PoolClientHandler:
                 await ldap_session.writer.drain()
 
             except Exception as err:
-                raise RuntimeError from err
+                raise RuntimeError(err) from err
 
             else:
                 await ldap_session.queue.put(request)
@@ -229,7 +229,7 @@ class PoolClientHandler:
                         await ldap_session.writer.drain()
                 ldap_session.queue.task_done()
             except Exception as err:
-                raise RuntimeError from err
+                raise RuntimeError(err) from err
 
     async def _handle_responses(self, ldap_session: Session):
         """Create pool of workers and apply handler to it.
