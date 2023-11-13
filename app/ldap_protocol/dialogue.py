@@ -9,8 +9,10 @@ from typing import TYPE_CHECKING
 
 import httpx
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from ldap_protocol.multifactor import MultifactorAPI, get_auth_ldap
 from models.ldap3 import NetworkPolicy, User
 
 if TYPE_CHECKING:
@@ -135,6 +137,8 @@ class Session:
     client: httpx.AsyncClient
     settings: Settings
 
+    _mfa_api_class: type[MultifactorAPI] = MultifactorAPI
+
     def __init__(
         self,
         reader: asyncio.StreamReader | None = None,
@@ -207,3 +211,32 @@ class Session:
         logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
         await self.writer.start_tls(ssl_context)
         logger.success(f"Successfully started TLS for {self.addr}")
+
+    async def check_mfa(
+        self,
+        identity: str,
+        otp: str,
+        session: AsyncSession,
+    ) -> bool:
+        """Check mfa api.
+
+        :param User user: db user
+        :param Session ldap_session: ldap session
+        :param AsyncSession session: db session
+        :return bool: response
+        """
+        creds = await get_auth_ldap(session)
+
+        if creds is None:
+            return False
+
+        api = self._mfa_api_class(
+            creds.key, creds.secret,
+            client=self.client,
+            settings=self.settings,
+        )
+        try:
+            return await api.ldap_validate_mfa(identity, otp)
+        except MultifactorAPI.MultifactorError:
+            logger.exception('MFA failed')
+            return False

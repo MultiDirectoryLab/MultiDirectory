@@ -1,8 +1,8 @@
-"""Init migration.
+"""empty message
 
-Revision ID: c268ae3b74dc
+Revision ID: f4a7fde509d4
 Revises:
-Create Date: 2023-10-26 13:03:56.295065
+Create Date: 2023-11-13 16:07:06.467150
 
 """
 import sqlalchemy as sa
@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c268ae3b74dc'
+revision = 'f4a7fde509d4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,7 +28,7 @@ def upgrade() -> None:
     sa.Column('depth', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['parentId'], ['Directory.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('parentId', 'name', name='name_parent_uc')
+    sa.UniqueConstraint('parentId', 'name', name='name_parent_uc', postgresql_nulls_not_distinct=True)
     )
     op.create_index(op.f('ix_Directory_parentId'), 'Directory', ['parentId'], unique=False)
     op.create_table('Policies',
@@ -151,4 +151,5 @@ def downgrade() -> None:
     op.drop_table('Policies')
     op.drop_index(op.f('ix_Directory_parentId'), table_name='Directory')
     op.drop_table('Directory')
+    op.execute(sa.text('DROP TYPE mfaflags'))
     # ### end Alembic commands ###

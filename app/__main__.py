@@ -107,9 +107,7 @@ class PoolClientHandler:
                     self._handle_responses(ldap_session),
                 )
             except RuntimeError:
-                logger.error(
-                    f"The connection {ldap_session.addr} "
-                    f"raised {format_exc()}")
+                logger.exception(f"The connection {ldap_session.addr} raised")
             except ConnectionAbortedError:
                 logger.info(
                     'Connection termination initialized '
@@ -201,8 +199,7 @@ class PoolClientHandler:
                 await ldap_session.writer.drain()
 
             except Exception as err:
-                logger.error(f'Unexpected {format_exc()}')
-                raise RuntimeError('Unexpected exception') from err
+                raise RuntimeError(err) from err
 
             else:
                 await ldap_session.queue.put(request)
@@ -232,8 +229,7 @@ class PoolClientHandler:
                         await ldap_session.writer.drain()
                 ldap_session.queue.task_done()
             except Exception as err:
-                logger.error(f'Unexpected exception {err}')
-                raise err
+                raise RuntimeError(err) from err
 
     async def _handle_responses(self, ldap_session: Session):
         """Create pool of workers and apply handler to it.
