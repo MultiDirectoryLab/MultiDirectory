@@ -10,7 +10,6 @@ packages = [{include = "app"}]
 python = "^3.11"
 sqlalchemy = {extras = ["asyncio", "mypy"], version = "^1.4.44"}
 asyncpg = "^0.27.0"
-alembic = "^1.8.1"
 asn1 = "^2.6.0"
 pydantic = {version = "2.3", extras = ["email"]}
 loguru = "^0.6.0"
@@ -26,6 +25,7 @@ fastapi = "^0.103.1"
 pydantic-settings = "^2.0.3"
 uvloop = "^0.17.0"
 websockets = "^11.0.3"
+alembic = "^1.12.1"
 
 [tool.poetry.group.linters.dependencies]
 mypy = "^0.991"

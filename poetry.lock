@@ -1218,7 +1218,7 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "71a56d16bba7200a6312ca722d0b7f1f2be63b99596a02640eb073a79b3a4680"
+content-hash = "bfcbe6064e97f4a9b9e28b1638fdc55e2a5f02b9885660bd98aeb33a0fd91b79"
 
 [metadata.files]
 alembic = [
