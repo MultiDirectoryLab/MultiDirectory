@@ -159,24 +159,23 @@ class BindRequest(BaseRequest):
         if policy := getattr(ldap_session, 'policy', None):
             if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
 
+                check_group = True
+
                 if policy.mfa_status == MFAFlags.WHITELIST:
-                    group_exists = await session.scalar(select(exists().where(
+                    check_group = await session.scalar(select(exists().where(
                         Group.mfa_policies.contains(policy),
                         Group.users.contains(user),
                     )))
 
-                    if not group_exists:
+                if check_group:
+                    mfa_status = await ldap_session.check_mfa(
+                        user.display_name,
+                        self.authentication_choice.otpassword,
+                        session)
+
+                    if mfa_status is False:
                         yield self.BAD_RESPONSE
                         return
-
-                mfa_status = await ldap_session.check_mfa(
-                    user.display_name,
-                    self.authentication_choice.otpassword,
-                    session)
-
-                if mfa_status is False:
-                    yield self.BAD_RESPONSE
-                    return
 
         await ldap_session.set_user(user)
 
