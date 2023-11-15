@@ -3,6 +3,7 @@ from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel
 from sqlalchemy import and_, delete, or_, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -113,7 +114,12 @@ class ModifyRequest(BaseRequest):
                     await session.flush()
                     await self._add(change, directory, session)
 
-            await session.commit()
+            try:
+                await session.commit()
+            except IntegrityError:
+                yield ModifyResponse(
+                    result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+                return
 
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
