@@ -30,7 +30,7 @@ services:
       - ./certs:/certs
     env_file:
       local.env
-    command: python .
+    command: python . -oo
     tty: true
     expose:
       - 389

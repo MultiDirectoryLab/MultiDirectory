@@ -136,7 +136,6 @@ class Directory(Base):
         "Path",
         secondary=DirectoryPath.__table__,
         back_populates="directories",
-        cascade="all,delete",
     )
 
     attributes: list['Attribute'] = relationship(
