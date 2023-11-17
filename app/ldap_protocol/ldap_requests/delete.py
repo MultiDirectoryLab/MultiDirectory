@@ -49,7 +49,6 @@ class DeleteRequest(BaseRequest):
 
         query = select(Directory)\
             .join(Directory.path)\
-            .options(selectinload(Directory.paths))\
             .filter(Path.path == search_path)
 
         obj = await session.scalar(query)
