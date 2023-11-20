@@ -1,5 +1,6 @@
 """Main MiltiDirecory module."""
 
+import argparse
 import asyncio
 import base64
 import json
@@ -272,5 +273,26 @@ class PoolClientHandler:
 
 
 if __name__ == '__main__':
-    with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
-        runner.run(PoolClientHandler(Settings()).start())
+    parser = argparse.ArgumentParser(
+        prog='MultiDirectory',
+        description='Run ldap server')
+    parser.add_argument(
+        '--loop',
+        choices=['asyncio', 'uvloop'],
+        default='asyncio',
+        required=True,
+    )
+    args = parser.parse_args()
+
+    settings = Settings()
+    server = PoolClientHandler(settings)
+
+    logger.info(f'Started LDAP server with {args.loop}')
+
+    if args.loop == 'uvloop':
+        with asyncio.Runner(
+                loop_factory=uvloop.new_event_loop,
+                debug=settings.DEBUG) as runner:
+            runner.run(server.start())
+    elif args.loop == 'asyncio':
+        asyncio.run(server.start(), debug=settings.DEBUG)
