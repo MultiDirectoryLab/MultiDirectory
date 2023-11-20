@@ -196,7 +196,7 @@ async def first_setup(
                     "name": "domain admins",
                     "object_class": "group",
                     "attributes": {
-                        "objectClass": ["top"],
+                        "objectClass": ["top", 'posixGroup'],
                         'groupType': ['-2147483646'],
                         'instanceType': ['4'],
                         'sAMAccountName': ['domain admins'],
@@ -221,9 +221,15 @@ async def first_setup(
                         "password": request.password,
                         "groups": ['domain admins'],
                     },
-                    "attributes": {"objectClass": [
-                        "top", "person",
-                        "organizationalPerson", "posixAccount"]},
+                    "attributes": {
+                        "objectClass": [
+                            "top", "person",
+                            "organizationalPerson",
+                            "posixAccount",
+                            "shadowAccount",
+                        ],
+                        "loginShell": ["/bin/bash"],
+                    },
                 },
             ],
         },
