@@ -324,7 +324,8 @@ class SearchRequest(BaseRequest):
             .options(
                 selectinload(Directory.path),
                 subqueryload(Directory.attributes),
-                joinedload(Directory.user))\
+                joinedload(Directory.user),
+                joinedload(Directory.group))\
             .distinct(Directory.id)
 
         root_is_base = self.base_object.lower() == dn.lower()
@@ -397,13 +398,14 @@ class SearchRequest(BaseRequest):
             for attr in directory.attributes:
                 attrs[attr.name].append(attr.value)
 
+            distinguished_name = self._get_full_dn(directory.path, dn)
+
+            attrs['distinguishedName'].append(distinguished_name)
+
             if self.member_of:
                 if 'group' in attrs['objectClass'] and (
                         directory.group):
                     groups += directory.group.parent_groups
-
-                    attrs['distinguishedName'].append(
-                        self._get_full_dn(directory.path, dn))
 
                     for user in directory.group.users:
                         attrs['member'].append(
@@ -428,6 +430,21 @@ class SearchRequest(BaseRequest):
             else:
                 user_fields = []
 
+            if directory.group:
+                if self.all_attrs:
+                    group_fields = directory.group.search_fields.keys()
+                else:
+                    group_fields = (
+                        attr for attr in self.requested_attrs if (
+                            directory.group and (
+                                attr in directory.group.search_fields)))
+            else:
+                group_fields = []
+
+            for attr in group_fields:
+                attribute = getattr(directory.group, attr)
+                attrs[directory.group.search_fields[attr]].append(attribute)
+
             for attr in user_fields:
                 attribute = getattr(directory.user, attr)
                 attrs[directory.user.search_fields[attr]].append(attribute)
@@ -444,7 +461,7 @@ class SearchRequest(BaseRequest):
                 attrs[directory.search_fields[attr]].append(attribute)
 
             yield SearchResultEntry(
-                object_name=self._get_full_dn(directory.path, dn),
+                object_name=distinguished_name,
                 partial_attributes=[
                     PartialAttribute(type=key, vals=value)
                     for key, value in attrs.items()],

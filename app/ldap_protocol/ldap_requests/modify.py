@@ -83,7 +83,8 @@ class ModifyRequest(BaseRequest):
         search_path = reversed(obj)
 
         membership1 = selectinload(Directory.user).selectinload(User.groups)
-        membership2 = selectinload(Directory.group).selectinload(Group.parent_groups)
+        membership2 = selectinload(Directory.group)\
+            .selectinload(Group.parent_groups)
 
         query = select(   # noqa: ECE001
             Directory)\
@@ -188,16 +189,23 @@ class ModifyRequest(BaseRequest):
             return
 
         for value in change.modification.vals:
-            if name in Directory.search_fields:
+            is_ro = name in Directory.ro_fields
+            if name in Directory.search_fields and not is_ro:
                 await session.execute(
                     update(Directory)
                     .filter(Directory.id == directory.id)
                     .values({name: value}))
 
-            elif name in User.search_fields and directory.user:
+            elif name in User.search_fields and directory.user and not is_ro:
                 await session.execute(
                     update(User)
                     .filter(User.directory == directory)
+                    .values({name: value}))
+
+            elif name in Group.search_fields and directory.group and not is_ro:
+                await session.execute(
+                    update(Group)
+                    .filter(Group.directory == directory)
                     .values({name: value}))
 
             else:

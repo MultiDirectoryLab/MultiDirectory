@@ -100,6 +100,11 @@ async def _create_dir(
             password=get_password_hash(user_data['password']),
         )
         session.add(user)
+        await session.flush()
+        session.add(Attribute(
+            directory=dir_,
+            name='homeDirectory',
+            value=f"/home/{user.uid}"))
 
         for group_name in user_data.get('groups', []):
             parent_group = await _get_group(group_name, session)
