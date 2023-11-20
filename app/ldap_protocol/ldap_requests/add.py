@@ -111,10 +111,16 @@ class AddRequest(BaseRequest):
         user_attributes = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.values()
+        group_fields = Group.search_fields.values()
 
         for attr in self.attributes:
             for value in attr.vals:
-                if attr.type in user_fields:
+                is_ro = attr.type in Directory.ro_fields
+
+                if attr.type in user_fields and not is_ro:
+                    user_attributes[attr.type] = value
+
+                elif attr.type in group_fields and not is_ro:
                     user_attributes[attr.type] = value
 
                 elif attr.type == 'memberOf':

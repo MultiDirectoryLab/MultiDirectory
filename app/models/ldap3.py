@@ -157,6 +157,12 @@ class Directory(Base):
         'name': 'name',
     }
 
+    ro_fields = {
+        "uid",
+        "uidnumber",
+        "gidnumber",
+    }
+
     def get_dn_prefix(self) -> str:
         """Get distinguished name prefix."""
         return {
@@ -219,12 +225,16 @@ class User(DirectoryReferenceMixin, Base):
     samaccountname: str = synonym('sam_accout_name')
     userprincipalname: str = synonym('user_principal_name')
     displayname: str = synonym('display_name')
+    uid: str = synonym('sam_accout_name')
+    uidnumber: int = synonym('id')
 
     search_fields = {
         'mail': 'mail',
         'samaccountname': 'sAMAccountName',
         'userprincipalname': 'userPrincipalName',
         'displayname': 'displayName',
+        'uid': 'uid',
+        'uidnumber': 'uidNumber',
     }
 
     groups: list['Group'] = relationship(
@@ -240,6 +250,8 @@ class Group(DirectoryReferenceMixin, Base):
     __tablename__ = "Groups"
 
     id = Column(Integer, primary_key=True)  # noqa: A003
+    gidnumber: str = synonym('id')
+    search_fields = {'gidnumber': 'gidNumber'}
 
     child_groups: list['Group'] = relationship(
         "Group",
