@@ -30,7 +30,7 @@ services:
       - ./certs:/certs
     env_file:
       local.env
-    command: python . -oo
+    command: python -OO . --loop uvloop
     tty: true
     expose:
       - 389
