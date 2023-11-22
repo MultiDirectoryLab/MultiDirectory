@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import AsyncGenerator, ClassVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -56,7 +56,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
 
     METHOD_ID: ClassVar[int] = 0
 
-    password: str
+    password: SecretStr
     otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
@@ -66,7 +66,8 @@ class SimpleAuthentication(AbstractLDAPAuth):
         :return bool: status
         """
         password = getattr(user, "password", None)
-        return bool(password) and verify_password(self.password, password)
+        return bool(password) and verify_password(
+            self.password.get_secret_value(), password)
 
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.

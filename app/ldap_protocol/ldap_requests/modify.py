@@ -189,20 +189,22 @@ class ModifyRequest(BaseRequest):
             return
 
         for value in change.modification.vals:
-            is_ro = name in Directory.ro_fields
-            if name in Directory.search_fields and not is_ro:
+            if name in Directory.ro_fields:
+                continue
+
+            if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
                     .filter(Directory.id == directory.id)
                     .values({name: value}))
 
-            elif name in User.search_fields and directory.user and not is_ro:
+            elif name in User.search_fields and directory.user:
                 await session.execute(
                     update(User)
                     .filter(User.directory == directory)
                     .values({name: value}))
 
-            elif name in Group.search_fields and directory.group and not is_ro:
+            elif name in Group.search_fields and directory.group:
                 await session.execute(
                     update(Group)
                     .filter(Group.directory == directory)
