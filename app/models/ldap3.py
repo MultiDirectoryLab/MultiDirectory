@@ -159,8 +159,6 @@ class Directory(Base):
 
     ro_fields = {
         "uid",
-        "uidnumber",
-        "gidnumber",
     }
 
     def get_dn_prefix(self) -> str:
@@ -227,21 +225,12 @@ class User(DirectoryReferenceMixin, Base):
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
 
-    @property
-    def uidnumber(self) -> int:
-        """Get uidNumber, id times 1000 for unix spec.
-
-        :return int: uidNumber
-        """
-        return self.id * 1000
-
     search_fields = {
         'mail': 'mail',
         'samaccountname': 'sAMAccountName',
         'userprincipalname': 'userPrincipalName',
         'displayname': 'displayName',
         'uid': 'uid',
-        'uidnumber': 'uidNumber',
     }
 
     groups: list['Group'] = relationship(
@@ -257,15 +246,7 @@ class Group(DirectoryReferenceMixin, Base):
     __tablename__ = "Groups"
 
     id = Column(Integer, primary_key=True)  # noqa: A003
-    search_fields = {'gidnumber': 'gidNumber'}
-
-    @property
-    def gidnumber(self) -> int:
-        """Get gidNumber, id times 1000 for unix spec.
-
-        :return int: gidNumber
-        """
-        return self.id * 1000
+    search_fields = {}
 
     child_groups: list['Group'] = relationship(
         "Group",

@@ -14,7 +14,12 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
-from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
+from ldap_protocol.utils import (
+    create_integer_hash,
+    get_base_dn,
+    get_groups,
+    validate_entry,
+)
 from models.ldap3 import Attribute, Directory, Group, Path, User
 from security import get_password_hash
 
@@ -111,7 +116,6 @@ class AddRequest(BaseRequest):
         user_attributes = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.values()
-        group_fields = Group.search_fields.values()
 
         for attr in self.attributes:
             for value in attr.vals:
@@ -119,9 +123,6 @@ class AddRequest(BaseRequest):
                     continue
 
                 if attr.type in user_fields:
-                    user_attributes[attr.type] = value
-
-                elif attr.type in group_fields:
                     user_attributes[attr.type] = value
 
                 elif attr.type == 'memberOf':
@@ -132,8 +133,12 @@ class AddRequest(BaseRequest):
 
         parent_groups = await get_groups(group_attributes, session)
 
-        if 'sAMAccountName' in user_attributes\
-                or 'userPrincipalName' in user_attributes:
+        is_user = 'sAMAccountName' in user_attributes\
+            or 'userPrincipalName' in user_attributes
+
+        is_group = 'group' in self.attr_names.get('objectClass', [])
+
+        if is_user:
             user = User(
                 sam_accout_name=user_attributes.get('sAMAccountName'),
                 user_principal_name=user_attributes.get('userPrincipalName'),
@@ -149,10 +154,21 @@ class AddRequest(BaseRequest):
             items_to_add.append(user)
             user.groups.extend(parent_groups)
 
-        elif 'group' in self.attr_names.get('objectClass', []):
+            attributes.append(Attribute(
+                name='uidNumber',
+                value=str(create_integer_hash(user.sam_accout_name)),
+                directory=new_dir))
+
+        elif is_group:
             group = Group(directory=new_dir)
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
+
+        if is_user or is_group:
+            attributes.append(Attribute(
+                name='gidNumber',
+                value=str(create_integer_hash(new_dir.name)),
+                directory=new_dir))
 
         async with session.begin_nested():
             try:
