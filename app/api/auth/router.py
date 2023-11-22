@@ -229,6 +229,8 @@ async def first_setup(
                             "shadowAccount",
                         ],
                         "loginShell": ["/bin/bash"],
+                        "uidNumber": ["1000"],
+                        "gidNumber": ["10000"],
                     },
                 },
             ],
