@@ -1,4 +1,5 @@
 """Utils module for different functions."""
+import hashlib
 import re
 from datetime import datetime
 
@@ -219,3 +220,13 @@ async def is_user_group_valid(
         .limit(1)
     ))
     return bool(group)
+
+
+def create_integer_hash(text: str, size: int = 15) -> int:
+    """Create integer hash from text.
+
+    :param str text: any string
+    :param int size: fixed size of hash, defaults to 15
+    :return int: hash
+    """
+    return int(hashlib.sha256(text.encode('utf-8')).hexdigest(), 16) % 10**15
