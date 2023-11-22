@@ -159,6 +159,16 @@ class AddRequest(BaseRequest):
                 value=str(create_integer_hash(user.sam_accout_name)),
                 directory=new_dir))
 
+            attributes.append(Attribute(
+                name='homeDirectory',
+                value=f'/home/{user.sam_accout_name}',
+                directory=new_dir))
+
+            attributes.append(Attribute(
+                name='loginShell',
+                value='/bin/bash',
+                directory=new_dir))
+
         elif is_group:
             group = Group(directory=new_dir)
             items_to_add.append(group)
