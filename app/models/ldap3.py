@@ -226,7 +226,14 @@ class User(DirectoryReferenceMixin, Base):
     userprincipalname: str = synonym('user_principal_name')
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
-    uidnumber: int = synonym('id')
+
+    @property
+    def uidnumber(self) -> int:
+        """Get uidNumber, id times 1000 for unix spec.
+
+        :return int: uidNumber
+        """
+        return self.id * 1000
 
     search_fields = {
         'mail': 'mail',
@@ -250,8 +257,15 @@ class Group(DirectoryReferenceMixin, Base):
     __tablename__ = "Groups"
 
     id = Column(Integer, primary_key=True)  # noqa: A003
-    gidnumber: str = synonym('id')
     search_fields = {'gidnumber': 'gidNumber'}
+
+    @property
+    def gidnumber(self) -> int:
+        """Get gidNumber, id times 1000 for unix spec.
+
+        :return int: gidNumber
+        """
+        return self.id * 1000
 
     child_groups: list['Group'] = relationship(
         "Group",
