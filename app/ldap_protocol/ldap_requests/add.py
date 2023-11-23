@@ -176,8 +176,8 @@ class AddRequest(BaseRequest):
 
         if is_user or is_group:
             attributes.append(Attribute(
-                name='gidNumber',
-                value=str(create_integer_hash(new_dir.name)),
+                name='gidNumber',  # reverse dir name if it matches samAN
+                value=str(create_integer_hash(new_dir.name[::-1])),
                 directory=new_dir))
 
         async with session.begin_nested():
