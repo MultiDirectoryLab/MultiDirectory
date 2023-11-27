@@ -21,4 +21,4 @@ def get_password_hash(password: str) -> str:
     :param str password: raw pwd
     :return str: hash
     """
-    return pwd_context.hash(password)
+    return pwd_context.hash(password, max_rounds=9)
