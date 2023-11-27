@@ -157,31 +157,16 @@ class SearchRequest(BaseRequest):
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
         # data['configurationNamingContext'].append(schema)  # noqa
-        data['supportedSASLMechanisms'] = ['ANONYMOUS', 'EXTERNAL', 'PLAIN']
+        data['supportedSASLMechanisms'] = ['ANONYMOUS']
         data['highestCommittedUSN'].append('126991')
-        data['supportedControl'] = [
-            # '1.2.840.113556.1.4.319',
-            # '1.2.840.113556.1.4.529',
-            # '1.2.840.113556.1.4.1948',
-        ]
+        data['supportedControl'] = []
         data['domainFunctionality'].append('0')
         data['supportedLDAPPolicies'] = [
-            'MaxPoolThreads',
-            'MaxDatagramRecv',
-            'MaxReceiveBuffer',
-            'InitRecvTimeout',
-            'MaxConnections',
             'MaxConnIdleTime',
             'MaxPageSize',
-            'MaxQueryDuration',
-            'MaxTempTableSize',
-            'MaxResultSetSize',
-            'MaxNotificationPerConn',
             'MaxValRange',
         ]
         data['supportedCapabilities'] = [
-            '1.2.840.113556.1.4.2237',
-            '1.2.840.113556.1.4.1670',
             '1.2.840.113556.1.4.1791',
         ]
         return data
