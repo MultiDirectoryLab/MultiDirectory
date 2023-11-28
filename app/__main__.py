@@ -71,7 +71,7 @@ class PoolClientHandler:
             try:
                 domain = data['md-resolver'][
                     'Certificates'][0]['domain']['main']
-            except KeyError:
+            except (KeyError, IndexError):
                 logger.critical('Cannot load SSL cert for MultiDirectory')
                 raise
 
