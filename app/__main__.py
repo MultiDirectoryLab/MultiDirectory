@@ -63,8 +63,12 @@ class PoolClientHandler:
             with open('/certs/acme.json') as certfile:
                 data = json.load(certfile)
 
-            domain = data['md-resolver'][
-                'Certificates'][0]['domain']['main']
+            try:
+                domain = data['md-resolver'][
+                    'Certificates'][0]['domain']['main']
+            except KeyError:
+                logger.critical('Cannot load SSL cert for MultiDirectory')
+                raise
 
             logger.info(f'loaded cert for {domain}')
 
