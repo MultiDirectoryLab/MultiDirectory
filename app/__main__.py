@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import base64
+import os
 import json
 import math
 import socket
@@ -60,6 +61,10 @@ class PoolClientHandler:
         self.ssl_context = None
 
         if self.settings.USE_CORE_TLS:
+            if not os.path.exists('/certs/acme.json'):
+                logger.critical('Cannot load SSL cert for MultiDirectory')
+                raise
+
             with open('/certs/acme.json') as certfile:
                 data = json.load(certfile)
 
