@@ -116,7 +116,7 @@ class MultifactorAPI:
                 self.settings.MFA_API_URI + self.AUTH_URL_USERS,
                 auth=self.auth,
                 headers=self._generate_trace_id_header(),
-                json={"Identity": username, "passCode": password}, timeout=42)
+                json={"Identity": username, "passCode": password}, timeout=60)
 
             data = response.json()
             logger.info(data)
