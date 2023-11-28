@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import base64
+import os
 import json
 import math
 import socket
@@ -57,12 +58,22 @@ class PoolClientHandler:
         self.AsyncSessionFactory = create_session_factory(self.settings)
         self._size = rcv_size
 
+        self.ssl_context = None
+
         if self.settings.USE_CORE_TLS:
+            if not os.path.exists('/certs/acme.json'):
+                logger.critical('Cannot load SSL cert for MultiDirectory')
+                raise
+
             with open('/certs/acme.json') as certfile:
                 data = json.load(certfile)
 
-            domain = data['md-resolver'][
-                'Certificates'][0]['domain']['main']
+            try:
+                domain = data['md-resolver'][
+                    'Certificates'][0]['domain']['main']
+            except (KeyError, IndexError):
+                logger.critical('Cannot load SSL cert for MultiDirectory')
+                raise
 
             logger.info(f'loaded cert for {domain}')
 
@@ -79,7 +90,7 @@ class PoolClientHandler:
                 certfile.write(cert)
                 keyfile.write(key)
 
-            self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.ssl_context.load_cert_chain(
                 self.settings.SSL_CERT,
                 self.settings.SSL_KEY,
@@ -98,9 +109,6 @@ class PoolClientHandler:
             else:
                 logger.warning(f"Whitelist violation from {ldap_session.addr}")
                 return
-
-            if self.settings.USE_CORE_TLS:
-                await ldap_session.start_tls(self.ssl_context)
 
             try:
                 await asyncio.gather(
@@ -248,6 +256,7 @@ class PoolClientHandler:
         return await asyncio.start_server(
             self, str(self.settings.HOST), self.settings.PORT,
             flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
+            ssl=self.ssl_context,
         )
 
     @staticmethod

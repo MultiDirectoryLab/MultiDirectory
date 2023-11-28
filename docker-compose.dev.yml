@@ -58,6 +58,20 @@ services:
       - "traefik.http.routers.interface.tls.certresolver=md-resolver"
       - "traefik.http.services.interface.loadbalancer.server.port=80"
 
+  migrations:
+    image: ghcr.io/multifactorlab/multidirectory:latest
+    container_name: multidirectory_migrations
+    restart: "no"
+    environment:
+      DEBUG: 1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   ldap_server:
     image: ghcr.io/multifactorlab/multidirectory:latest
     container_name: multidirectory-ldap
@@ -66,9 +80,10 @@ services:
     volumes:
       - ./certs:/certs
       - ./logs:/app/logs
-    command: bash -c "alembic upgrade head && python ."
+    command: python . --loop uvloop
+    tty: true
     environment:
-      DEBUG: 0
+      DEBUG: 1
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
@@ -80,7 +95,8 @@ services:
       - traefik.tcp.routers.ldap_server.service=ldap_server-svc
       - traefik.tcp.routers.ldap_server.entrypoints=ldap
     depends_on:
-      - postgres
+      migrations:
+        condition: service_completed_successfully
 
   ldaps_server:
     image: ghcr.io/multifactorlab/multidirectory:latest
@@ -95,13 +111,14 @@ services:
       POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
     depends_on:
-      - postgres
+      migrations:
+        condition: service_completed_successfully
     volumes:
       - ./app:/app
       - ./certs:/certs
       - ./logs:/app/logs
-    command: bash -c "alembic upgrade head && python ."
-    # tty: true
+    command: python . --loop uvloop
+    tty: true
     ports:
       - 636:636
 
@@ -133,9 +150,10 @@ services:
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"
 
 
-    command: bash -c "alembic upgrade head && uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop --reload"
+    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop --reload
     depends_on:
-      - postgres
+      migrations:
+        condition: service_completed_successfully
 
   postgres:
     container_name: MD-postgres
@@ -149,6 +167,12 @@ services:
        - postgres:/data/postgres
     expose:
       - 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U user"]
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
 
   # ssh-server:
   #   container_name: md-ssh
