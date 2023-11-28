@@ -4,7 +4,6 @@ import asyncio
 from contextlib import asynccontextmanager, suppress
 from enum import Enum
 from ipaddress import IPv4Address, ip_address
-from ssl import SSLContext
 from typing import TYPE_CHECKING
 
 import httpx
@@ -206,11 +205,6 @@ class Session:
 
         await self.client.__aexit__(exc_type, exc, tb)
         logger.success(f'Connection {self.addr} closed')
-
-    async def start_tls(self, ssl_context: SSLContext):  # noqa
-        logger.info(f"Starting TLS for {self.addr}, ciphers loaded")
-        await self.writer.start_tls(ssl_context)
-        logger.success(f"Successfully started TLS for {self.addr}")
 
     async def check_mfa(
         self,
