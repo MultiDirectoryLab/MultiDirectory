@@ -170,7 +170,7 @@ class BindRequest(BaseRequest):
 
                 if check_group:
                     mfa_status = await ldap_session.check_mfa(
-                        user.display_name,
+                        user.user_principal_name,
                         self.authentication_choice.otpassword,
                         session)
 
