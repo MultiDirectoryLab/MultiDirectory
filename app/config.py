@@ -2,6 +2,7 @@
 
 import tomllib
 from functools import cached_property
+from typing import Literal
 
 from pydantic import IPvAnyAddress, PostgresDsn, computed_field, validator
 from pydantic_settings import BaseSettings
@@ -55,6 +56,7 @@ class Settings(BaseSettings):
 
     MFA_TIMEOUT_SECONDS: int = 60
     MFA_TOKEN_LEEWAY: int = 15
+    MFA_API_SOURCE: Literal['dev', 'ru'] = 'ru'
 
     @computed_field
     @cached_property
@@ -63,7 +65,7 @@ class Settings(BaseSettings):
 
         :return str: url
         """
-        if self.DEBUG:
+        if self.MFA_API_SOURCE == 'dev':
             return 'https://api.multifactor.dev'
         return 'https://api.multifactor.ru'
 
