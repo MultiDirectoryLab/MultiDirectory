@@ -133,7 +133,7 @@ async def callback_mfa(
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    queue = pool.get(user.display_name)
+    queue = pool.get(user.user_principal_name)
     if not queue:
         raise HTTPException(status.HTTP_408_REQUEST_TIMEOUT)
 
@@ -194,7 +194,7 @@ async def two_factor_protocol(
         url[0] = "https" if settings.USE_CORE_TLS else "http"
 
         redirect_url = await api.get_create_mfa(
-            user.display_name, urlunsplit(url), user.id)
+            user.user_principal_name, urlunsplit(url), user.id)
 
     except MultifactorAPI.MultifactorError:
         logger.exception("API error")
@@ -205,7 +205,7 @@ async def two_factor_protocol(
     await websocket.send_json({'status': 'pending', 'message': redirect_url})
 
     queue = asyncio.Queue(maxsize=1)
-    pool[user.display_name] = queue
+    pool[user.user_principal_name] = queue
 
     try:
         token = await asyncio.wait_for(
@@ -217,10 +217,10 @@ async def two_factor_protocol(
             status.WS_1013_TRY_AGAIN_LATER, 'To factor timeout')
         return
     except WebSocketDisconnect:
-        logger.warning(f'Two factor interrupt for {user.display_name}')
+        logger.warning(f'Two factor interrupt for {user.user_principal_name}')
         return
     finally:
-        del pool[user.display_name]
+        del pool[user.user_principal_name]
 
     await websocket.send_json({'status': 'success', 'message': token})
 
