@@ -231,6 +231,6 @@ class Session:
         )
         try:
             return await api.ldap_validate_mfa(identity, otp)
-        except MultifactorAPI.MultifactorError:
-            logger.exception('MFA failed')
+        except MultifactorAPI.MultifactorError as err:
+            logger.critical(f'MFA failed with {err}')
             return False

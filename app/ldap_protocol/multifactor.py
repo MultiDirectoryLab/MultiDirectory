@@ -1,5 +1,6 @@
 """MFA integration."""
 import asyncio
+import uuid
 from collections import namedtuple
 from json import JSONDecodeError
 from typing import Annotated
@@ -73,7 +74,7 @@ class MultifactorAPI:
 
     MultifactorError = _MultifactorError
 
-    AUTH_URL_USERS = "/access/requests/ra"
+    AUTH_URL_USERS = "/access/requests/md"
     AUTH_URL_ADMIN = "/access/requests"
     REFRESH_URL = "/token/refresh"
 
@@ -94,6 +95,10 @@ class MultifactorAPI:
         self.settings = settings
         self.auth: tuple[str] = (key, secret)
 
+    @staticmethod
+    def _generate_trace_id_header() -> dict[str, str]:
+        return {"mf-trace-id": f"md:{uuid.uuid4()}"}
+
     @logger.catch(reraise=True)
     async def ldap_validate_mfa(self, username: str, password: str) -> bool:
         """Validate multifactor.
@@ -105,15 +110,25 @@ class MultifactorAPI:
         :raises MultifactorError: Invalid status
         :return bool: status
         """
+        passcode = password or 'm'
         logger.debug(f'LDAP MFA request: {username}, {password}')
         try:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.AUTH_URL_USERS,
                 auth=self.auth,
-                json={"Identity": username, "passCode": password}, timeout=42)
+                headers=self._generate_trace_id_header(),
+                json={
+                    "Identity": username,
+                    "passCode": passcode,
+                    "GroupPolicyPreset": {},
+                }, timeout=60)
 
             data = response.json()
-            logger.info(data)
+            logger.info({
+                "response": data,
+                "req_content": response.request.content.decode(),
+                "req_headers": response.request.headers,
+            })
         except httpx.ConnectTimeout as err:
             raise self.MultifactorError('API Timeout') from err
         except JSONDecodeError as err:
@@ -154,6 +169,7 @@ class MultifactorAPI:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
                 auth=self.auth,
+                headers=self._generate_trace_id_header(),
                 json=data)
 
             response_data = response.json()
@@ -174,6 +190,7 @@ class MultifactorAPI:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.REFRESH_URL,
                 auth=self.auth,
+                headers=self._generate_trace_id_header(),
                 json={"AccessToken": token})
 
             response_data = response.json()
