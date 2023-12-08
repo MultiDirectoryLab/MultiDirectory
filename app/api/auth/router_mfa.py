@@ -2,6 +2,7 @@
 
 import asyncio
 import operator
+import traceback
 from json import JSONDecodeError
 from typing import Annotated
 from urllib.parse import urlsplit, urlunsplit
@@ -197,7 +198,7 @@ async def two_factor_protocol(
             user.user_principal_name, urlunsplit(url), user.id)
 
     except MultifactorAPI.MultifactorError:
-        logger.exception("API error")
+        logger.critical(f"API error {traceback.format_exc()}")
         await websocket.close(
             status.WS_1013_TRY_AGAIN_LATER, 'Multifactor error')
         return
