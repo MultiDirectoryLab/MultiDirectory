@@ -63,17 +63,6 @@ class NetmasksMixin:
 
         raise ValueError('Invalid DN')
 
-
-class Policy(BaseModel, NetmasksMixin):
-    """Network Policy model."""
-
-    name: str = Field(example='local network', max_length=100)
-    netmasks: IPv4IntefaceListType = Field(example=["172.0.0.0/8"])
-    priority: int = Field(ge=1, le=sys.maxsize, example=2)
-    groups: list[str] = []
-    mfa_status: MFAFlags = MFAFlags.DISABLED
-    mfa_groups: list[str] = []
-
     @field_serializer('netmasks')
     @classmethod
     def netmasks_serialize(
@@ -93,6 +82,17 @@ class Policy(BaseModel, NetmasksMixin):
                 values.append(str(netmask))
 
         return values
+
+
+class Policy(BaseModel, NetmasksMixin):
+    """Network Policy model."""
+
+    name: str = Field(example='local network', max_length=100)
+    netmasks: IPv4IntefaceListType = Field(example=["172.0.0.0/8"])
+    priority: int = Field(ge=1, le=sys.maxsize, example=2)
+    groups: list[str] = []
+    mfa_status: MFAFlags = MFAFlags.DISABLED
+    mfa_groups: list[str] = []
 
 
 class PolicyResponse(BaseModel):
