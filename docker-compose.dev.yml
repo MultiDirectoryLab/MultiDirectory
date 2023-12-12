@@ -87,6 +87,7 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      MFA_API_SOURCE: dev
     ports:
       - 389:389
     labels:
@@ -110,6 +111,7 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      MFA_API_SOURCE: dev
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -132,6 +134,7 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      MFA_API_SOURCE: dev
     hostname: api_server
     volumes:
       - ./app:/app
