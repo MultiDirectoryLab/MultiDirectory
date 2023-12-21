@@ -84,7 +84,7 @@ services:
     environment:
       SERVER: "ldap://multidirectory_ldap"
       BASE: "dc=md,dc=multifactor,dc=dev"
-      BIND_DN: "cn=admin,dc=md,dc=multifactor,dc=dev"
+      BIND_DN: "admin"
       BASE_PASSWORD: "password"
     ports:
       - "222:22"
