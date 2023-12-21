@@ -76,7 +76,7 @@ services:
       retries: 10
       start_period: 3s
 
-  ssh-server:
+  ssh:
     container_name: md-ssh
     image: ssh-ldap
     build:
