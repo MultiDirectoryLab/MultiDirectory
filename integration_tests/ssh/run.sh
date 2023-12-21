@@ -1,3 +1,5 @@
+#!/bin/bash
+
 curl -X 'POST' \
   'http://localhost:8000/auth/setup' \
   -H 'accept: application/json' \
@@ -10,6 +12,10 @@ curl -X 'POST' \
   "mail": "admin@example.com",
   "password": "password"
 }' -m 30;
-echo "performing ssh conn"
-sshpass -p password ssh admin@localhost -p 222
-echo $?
+echo "performing ssh conn";
+sshpass -p password \
+  ssh \
+  -o UserKnownHostsFile=/dev/null \
+  -o StrictHostKeyChecking=no \
+  admin@localhost -p 222 "exit 0";
+exit $?;
