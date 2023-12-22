@@ -78,7 +78,7 @@ services:
 
   ssh:
     container_name: md-ssh
-    image: ghcr.io/multifactorlab/ssh_test:latest
+    image: ghcr.io/multifactorlab/multidirectory_ssh_test:latest
     environment:
       SERVER: "ldap://multidirectory_ldap"
       BASE: "dc=md,dc=multifactor,dc=dev"
