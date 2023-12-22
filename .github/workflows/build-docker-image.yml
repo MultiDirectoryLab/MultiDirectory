@@ -58,6 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-tests, build-ssh]
     steps:
+      - uses: actions/checkout@v2
       - name: run ssh test
         run: |
           cd integration_tests/ssh
@@ -94,7 +95,7 @@ jobs:
 
   build-app:
     runs-on: ubuntu-latest
-    needs: [build-tests, run-tests]
+    needs: [build-tests, run-ssh-test, run-tests]
     steps:
       - name: downcase REPO
         run: |
