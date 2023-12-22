@@ -28,7 +28,7 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
-          docker build -f .docker/test.Dockerfile . --tag $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          docker build -f integration_tests/ssh/test.Dockerfile . --tag $TAG --build-arg BUILDKIT_INLINE_CACHE=1
           docker push $TAG
 
   build-tests:
