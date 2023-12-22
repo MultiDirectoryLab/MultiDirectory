@@ -65,13 +65,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull tests
+        run: cd integration_tests/ssh && docker-compose pull
+      - name: run test enviroment
+        run: cd integration_tests/ssh && docker-compose up -d
       - name: run ssh test
-        run: |
-          cd integration_tests/ssh
-          docker compose pull
-          docker compose up -d
-          ./run.sh
-          docker compose down -v
+        run: cd integration_tests/ssh && ./run.sh
+      - name: shutdown test enviroment
+        run: cd integration_tests/ssh && docker-compose up -d
 
   run-tests:
     runs-on: ubuntu-latest
