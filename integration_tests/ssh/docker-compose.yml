@@ -1,0 +1,91 @@
+version: "3.7"
+
+services:
+  migrations:
+    image: ghcr.io/multifactorlab/multidirectory_test:latest
+    container_name: multidirectory_migrations
+    restart: "no"
+    environment:
+      DEBUG: 1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test_pwd
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api_server:
+    image: ghcr.io/multifactorlab/multidirectory_test:latest
+    container_name: multidirectory_api
+    restart: unless-stopped
+    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --loop uvloop
+    environment:
+      USE_CORE_TLS: 1
+      DEBUG: 1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test_pwd
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      MFA_API_SOURCE: dev
+    hostname: api_server
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    ports:
+      - 8000:8000
+    healthcheck:
+      test: curl --fail http://localhost:8000/auth/setup || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
+
+  multidirectory_ldap:
+    image: ghcr.io/multifactorlab/multidirectory:latest
+    container_name: multidirectory_ldap
+    restart: unless-stopped
+    hostname: multidirectory_ldap
+    command: python . --loop uvloop
+    tty: true
+    environment:
+      DEBUG: 1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test_pwd
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      MFA_API_SOURCE: dev
+    expose:
+      - 389
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  postgres:
+    container_name: MD-ssh-postgres
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test_pwd
+      PGDATA: /data/postgres
+    expose:
+      - 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U user"]
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
+
+  ssh:
+    container_name: md-ssh
+    image: ghcr.io/multifactorlab/multidirectory_ssh_test:latest
+    environment:
+      SERVER: "ldap://multidirectory_ldap"
+      BASE: "dc=md,dc=multifactor,dc=dev"
+      BIND_DN: "admin"
+      BASE_PASSWORD: "password"
+    ports:
+      - "222:22"
+    depends_on:
+      api_server:
+        condition: service_healthy
