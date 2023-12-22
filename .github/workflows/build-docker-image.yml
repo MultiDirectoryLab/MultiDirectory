@@ -54,6 +54,17 @@ jobs:
           docker build -f .docker/test.Dockerfile . --tag $TAG --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
           docker push $TAG
 
+  run-ssh-test:
+    runs-on: ubuntu-latest
+    needs: [build-tests, build-ssh]
+    steps:
+      - name: run ssh test
+        run: |
+          cd integration_tests/ssh
+          docker compose up -d
+          ./run.sh
+          docker compose down -v
+
   run-tests:
     runs-on: ubuntu-latest
     needs: build-tests
