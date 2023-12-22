@@ -12,10 +12,12 @@ curl -X 'POST' \
   "mail": "admin@example.com",
   "password": "password"
 }' -m 30;
-echo "performing ssh conn";
+echo "\nperforming ssh conn\n";
 sshpass -p password \
   ssh \
   -o UserKnownHostsFile=/dev/null \
   -o StrictHostKeyChecking=no \
+  -o ConnectTimeout=30 \
+  -o ConnectionAttempts=3 \
   admin@localhost -p 222 "exit 0";
 exit $?;
