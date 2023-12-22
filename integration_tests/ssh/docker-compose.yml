@@ -46,7 +46,6 @@ services:
     restart: unless-stopped
     hostname: multidirectory_ldap
     command: python . --loop uvloop
-    tty: true
     environment:
       DEBUG: 1
       POSTGRES_USER: user
@@ -86,6 +85,19 @@ services:
       BASE_PASSWORD: "password"
     ports:
       - "222:22"
+    healthcheck:
+      test: service ssh status | grep 'sshd is running.'
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
+
+  connect:
+    image: ghcr.io/multifactorlab/multidirectory:latest
     depends_on:
+      ssh:
+        condition: service_healthy
+      multidirectory_ldap:
+        condition: service_started
       api_server:
         condition: service_healthy
