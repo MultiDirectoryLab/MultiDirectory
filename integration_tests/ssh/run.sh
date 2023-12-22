@@ -12,7 +12,7 @@ curl -X 'POST' \
   "mail": "admin@example.com",
   "password": "password"
 }' -m 30;
-echo "performing ssh conn";
+echo "\nperforming ssh conn\n";
 sshpass -p password \
   ssh \
   -o UserKnownHostsFile=/dev/null \
