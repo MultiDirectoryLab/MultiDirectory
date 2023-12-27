@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: ./.docker/test.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
     restart: "no"
     container_name: multidirectory-test
     volumes:
