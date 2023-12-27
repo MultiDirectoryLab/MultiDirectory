@@ -41,7 +41,7 @@ services:
       start_period: 3s
 
   multidirectory_ldap:
-    image: ghcr.io/multifactorlab/multidirectory:latest
+    image: ghcr.io/multifactorlab/multidirectory_test:latest
     container_name: multidirectory_ldap
     restart: unless-stopped
     hostname: multidirectory_ldap
