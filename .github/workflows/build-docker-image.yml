@@ -127,6 +127,4 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
-          docker build -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-          docker push $TAG2
-          docker push $TAG
+          docker build --push --target=runtime -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1

@@ -22,6 +22,9 @@ services:
     build:
       context: .
       dockerfile: ./.docker/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
     image: multidirectory
     restart: "no" #unless-stopped
     container_name: multidirectory
@@ -112,21 +115,6 @@ services:
       - "traefik.http.routers.pg.rule=Host(`pg.localhost`)"
       - "traefik.http.routers.pg.entrypoints=web"
       - "traefik.http.services.pg.loadbalancer.server.port=80"
-
-  # ssh:
-  #   container_name: md-ssh
-  #   image: ssh-ldap
-  #   build:
-  #     context: ./ssh
-  #   environment:
-  #     SERVER: "ldap://multidirectory"
-  #     BASE: "dc=multifactor,dc=dev"
-  #     BIND_DN: "cn=user,dc=multifactor,dc=dev"
-  #     BASE_PASSWORD: "password"
-  #   restart: "no"
-
-  #   ports:
-  #     - "222:22"
 
   interface:
     image: ghcr.io/multifactorlab/multidirectory-web-admin:latest
