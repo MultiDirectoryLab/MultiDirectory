@@ -4,9 +4,6 @@ services:
   md-test:
     image: ${TAG}
     restart: "no"
-    volumes:
-      - ./app:/app
-      - ./tests:/app/tests
     environment:
       DEBUG: 1
       POSTGRES_USER: user1
