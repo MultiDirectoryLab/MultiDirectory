@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --with test --no-
 FROM python:3.11-slim-buster as runtime
 
 WORKDIR /app
-RUN set -eux; apt-get update -y && apt-get install ldap-utils --no-install-recommends -y
+RUN set -eux; apt-get update -y && apt-get install ldap-utils curl --no-install-recommends -y
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH" \
