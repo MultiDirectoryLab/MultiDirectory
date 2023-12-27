@@ -51,8 +51,8 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
-          docker build -f .docker/test.Dockerfile . --tag $TAG --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-          docker push $TAG
+          docker build --push --target=runtime -f .docker/Dockerfile . -t $TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+
 
   run-ssh-test:
     runs-on: ubuntu-latest
