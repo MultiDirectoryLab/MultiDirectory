@@ -3,9 +3,10 @@
 import binascii
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
-from asn1 import Classes, Decoder, Numbers, Tag, Types
+from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
+from pydantic import AfterValidator
 
 
 @dataclass
@@ -113,3 +114,13 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
             out.append(field)
 
     return out
+
+
+def _validate_oid(oid: str):
+    """Validate ldap oid with regex."""
+    if not Encoder._re_oid.match(oid):
+        raise ValueError('Invalid LDAPOID')
+    return oid
+
+
+LDAPOID = Annotated[str, AfterValidator(_validate_oid)]
