@@ -5,7 +5,9 @@ from typing import Annotated, ClassVar
 
 import annotated_types
 from asn1 import Encoder, Numbers
-from pydantic import AnyUrl, BaseModel, Field, field_validator
+from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny, field_validator
+
+from ldap_protocol.asn1parser import LDAPOID
 
 from .dialogue import LDAPCodes
 
@@ -167,7 +169,25 @@ class ModifyDNResponse(LDAPResult, BaseResponse):
 
     PROTOCOL_OP: ClassVar[int] = 13
 
+
+class BaseExtendedResponseValue(ABC, BaseModel):
+    """Base extended response proxy class."""
+
+
+class ExtendedResponse(BaseModel):
+    """Described in RFC 4511 section 4.12.
+
+    ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+        COMPONENTS OF LDAPResult,
+        responseName     [10] LDAPOID OPTIONAL,
+        responseValue    [11] OCTET STRING OPTIONAL }
+    """
+
+    PROTOCOL_OP: ClassVar[int] = 24
+    response_name: LDAPOID
+    response_value: SerializeAsAny[BaseExtendedResponseValue]
+
+
 #     15: 'compare Response'
 #     19: 'Search Result Reference'
-#     24: 'Extended Response'
 #     25: 'intermediate Response'
