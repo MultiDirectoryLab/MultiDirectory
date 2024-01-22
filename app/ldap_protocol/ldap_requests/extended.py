@@ -3,10 +3,11 @@
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, ClassVar
 
+from asn1 import Decoder
 from pydantic import BaseModel, SerializeAsAny
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.asn1parser import LDAPOID
+from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.dialogue import Session
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
@@ -19,7 +20,12 @@ from .base import BaseRequest
 class BaseExtendedValue(ABC, BaseModel):
     """Base extended request body."""
 
-    request_id: ClassVar[LDAPOID]
+    REQUEST_ID: ClassVar[LDAPOID]
+
+    @classmethod
+    @abstractmethod
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'BaseExtendedValue':
+        """Create model from data, decoded from responseValue bytes."""
 
     @abstractmethod
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
@@ -28,7 +34,13 @@ class BaseExtendedValue(ABC, BaseModel):
 
 
 class PasswdModifyRsponse(BaseExtendedResponseValue):
-    pass
+    """Password modify response.
+
+    PasswdModifyResponseValue ::= SEQUENCE {
+        genPasswd       [0]     OCTET STRING OPTIONAL }
+    """
+
+    gen_passwd: str
 
 
 class PasswdModifyRequestValue(BaseExtendedValue):
@@ -45,16 +57,25 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         userIdentity    [0]  OCTET STRING OPTIONAL
         oldPasswd       [1]  OCTET STRING OPTIONAL
         newPasswd       [2]  OCTET STRING OPTIONAL }
-
-    PasswdModifyResponseValue ::= SEQUENCE {
-        genPasswd       [0]     OCTET STRING OPTIONAL }
     """
 
-    request_id: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.1"
+    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.1"
+    user_identity: str | None = None
+    old_password: str
+    new_password: str
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[PasswdModifyRsponse, None]:
         pass
+
+    @classmethod
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'BaseExtendedValue':
+        """Create model from data, decoded from responseValue bytes."""
+
+
+EXTENDED_REQUEST_OID_MAP = {
+    PasswdModifyRequestValue.REQUEST_ID: PasswdModifyRequestValue,
+}
 
 
 class ExtendedRequest(BaseRequest):
@@ -73,3 +94,23 @@ class ExtendedRequest(BaseRequest):
             AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
         yield await self.request_value.handle(ldap_session, session)
+
+    @classmethod
+    @abstractmethod
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'ExtendedRequest':
+        """Create extended request from asn.1 decoded string.
+
+        :param dict[str, list[ASN1Row]] data: any data
+        :return ExtendedRequest: universal request
+        """
+        dec = Decoder()
+        dec.start(data[1].value)
+        output = asn1todict(dec)
+
+        oid = data[0].value
+        ext_request = EXTENDED_REQUEST_OID_MAP[oid]
+
+        return cls(
+            request_name=oid,
+            request_value=ext_request.from_data(output[0].value),
+        )
