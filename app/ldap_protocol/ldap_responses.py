@@ -188,6 +188,6 @@ class ExtendedResponse(BaseModel):
     response_value: SerializeAsAny[BaseExtendedResponseValue]
 
 
-#     15: 'compare Response'
-#     19: 'Search Result Reference'
-#     25: 'intermediate Response'
+# 15: 'compare Response'
+# 19: 'Search Result Reference'
+# 25: 'intermediate Response'
