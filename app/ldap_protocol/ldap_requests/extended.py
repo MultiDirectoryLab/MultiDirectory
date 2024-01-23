@@ -33,7 +33,7 @@ class BaseExtendedValue(ABC, BaseModel):
         """Generate specific extended resoponse."""
 
 
-class PasswdModifyRsponse(BaseExtendedResponseValue):
+class PasswdModifyResponse(BaseExtendedResponseValue):
     """Password modify response.
 
     PasswdModifyResponseValue ::= SEQUENCE {
@@ -65,12 +65,14 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     new_password: str
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[PasswdModifyRsponse, None]:
-        pass
+            AsyncGenerator[PasswdModifyResponse, None]:
+        return PasswdModifyResponse(gen_passwd=self.new_password)
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'BaseExtendedValue':
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> \
+            'PasswdModifyRequestValue':
         """Create model from data, decoded from responseValue bytes."""
+        return cls(old_password=data[0].value, new_password=data[1].value)
 
 
 EXTENDED_REQUEST_OID_MAP = {
@@ -93,10 +95,14 @@ class ExtendedRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
-        yield await self.request_value.handle(ldap_session, session)
+        response = await self.request_value.handle(ldap_session, session)
+        yield ExtendedResponse(
+            result_code=0,
+            response_name=self.request_name,
+            response_value=response,
+        )
 
     @classmethod
-    @abstractmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'ExtendedRequest':
         """Create extended request from asn.1 decoded string.
 
