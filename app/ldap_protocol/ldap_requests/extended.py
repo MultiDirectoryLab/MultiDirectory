@@ -71,7 +71,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             PasswdModifyResponse:
         """Update password of current or selected user."""
-        if not ldap_session.user:
+        if not ldap_session.user or not ldap_session.settings.USE_CORE_TLS:
             raise PermissionError
 
         if self.user_identity is not None:
