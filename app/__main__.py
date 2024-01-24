@@ -11,6 +11,7 @@ import ssl
 from contextlib import asynccontextmanager
 from io import BytesIO
 from ipaddress import IPv4Address
+from tempfile import NamedTemporaryFile
 from traceback import format_exc
 from typing import cast
 
@@ -61,40 +62,29 @@ class PoolClientHandler:
         self.ssl_context = None
 
         if self.settings.USE_CORE_TLS:
-            if not os.path.exists('/certs/acme.json'):
-                logger.critical('Cannot load SSL cert for MultiDirectory')
-                raise
-
-            with open('/certs/acme.json') as certfile:
-                data = json.load(certfile)
-
-            try:
-                domain = data['md-resolver'][
-                    'Certificates'][0]['domain']['main']
-            except (KeyError, IndexError):
-                logger.critical('Cannot load SSL cert for MultiDirectory')
-                raise
-
-            logger.info(f'loaded cert for {domain}')
-
-            cert = data['md-resolver']['Certificates'][0]['certificate']
-            key = data['md-resolver']['Certificates'][0]['key']
-
-            cert = base64.b64decode(cert.encode('ascii')).decode()
-            key = base64.b64decode(key.encode('ascii')).decode()
-
             with (
-                open(self.settings.SSL_CERT, "w+") as certfile,
-                open(self.settings.SSL_KEY, "w+") as keyfile,
+                NamedTemporaryFile('w+') as certfile,
+                NamedTemporaryFile('w+') as keyfile,
             ):
-                certfile.write(cert)
-                keyfile.write(key)
+                if os.path.exists('/certs/cert.pem') and os.path.exists(
+                        '/certs/privkey.pem'):
+                    cert_name = self.settings.SSL_CERT
+                    key_name = self.settings.SSL_KEY
+                    logger.success('Found existing cert and key, loading...')
 
-            self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-            self.ssl_context.load_cert_chain(
-                self.settings.SSL_CERT,
-                self.settings.SSL_KEY,
-            )
+                else:
+                    cert, key = self._read_acme_cert()
+                    certfile.write(cert)
+                    keyfile.write(key)
+
+                    certfile.seek(0)
+                    keyfile.seek(0)
+
+                    cert_name = certfile.name
+                    key_name = keyfile.name
+
+                self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+                self.ssl_context.load_cert_chain(cert_name, key_name)
 
     async def __call__(
         self,
@@ -148,6 +138,32 @@ class PoolClientHandler:
                 break
 
         return buffer.getvalue()
+
+    @staticmethod
+    def _read_acme_cert() -> tuple[str, str]:
+        if not os.path.exists('/certs/acme.json'):
+            logger.critical('Cannot load SSL cert for MultiDirectory')
+            raise
+
+        with open('/certs/acme.json') as certfile:
+            data = json.load(certfile)
+
+        try:
+            domain = data['md-resolver'][
+                'Certificates'][0]['domain']['main']
+        except (KeyError, IndexError):
+            logger.critical('Cannot load SSL cert for MultiDirectory')
+            raise
+
+        logger.info(f'loaded cert for {domain}')
+
+        cert = data['md-resolver']['Certificates'][0]['certificate']
+        key = data['md-resolver']['Certificates'][0]['key']
+
+        cert = base64.b64decode(cert.encode('ascii')).decode()
+        key = base64.b64decode(key.encode('ascii')).decode()
+
+        return cert, key
 
     @staticmethod
     def _compute_ldap_message_size(data: bytes) -> int:
