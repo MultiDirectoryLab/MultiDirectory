@@ -4,15 +4,19 @@ from abc import ABC, abstractmethod
 from typing import AsyncGenerator, ClassVar
 
 from asn1 import Decoder
+from loguru import logger
 from pydantic import BaseModel, SerializeAsAny
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
-from ldap_protocol.dialogue import Session
+from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
 )
+from ldap_protocol.utils import get_user
+from models import User
+from security import get_password_hash, verify_password
 
 from .base import BaseRequest
 
@@ -29,7 +33,7 @@ class BaseExtendedValue(ABC, BaseModel):
 
     @abstractmethod
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[BaseExtendedResponseValue, None]:
+            BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
 
@@ -65,13 +69,35 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     new_password: str
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[PasswdModifyResponse, None]:
-        return PasswdModifyResponse(gen_passwd=self.new_password)
+            PasswdModifyResponse:
+        """Update password of current or selected user."""
+        if not ldap_session.user:
+            raise PermissionError
+
+        if self.user_identity is not None:
+            user = get_user(session, self.user_identity)
+            if not user:
+                raise PermissionError
+        else:
+            user = await session.get(User, ldap_session.user.id)
+
+        if verify_password(self.old_password, user.password):
+            user.password = get_password_hash(self.new_password)
+            await session.commit()
+            return PasswdModifyResponse(gen_passwd=self.new_password)
+        raise PermissionError
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> \
             'PasswdModifyRequestValue':
         """Create model from data, decoded from responseValue bytes."""
+        if len(data) == 3:
+            return cls(
+                user_identity=data[0].value,
+                old_password=data[1].value,
+                new_password=data[2].value,
+            )
+
         return cls(old_password=data[0].value, new_password=data[1].value)
 
 
@@ -95,12 +121,21 @@ class ExtendedRequest(BaseRequest):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
-        response = await self.request_value.handle(ldap_session, session)
-        yield ExtendedResponse(
-            result_code=0,
-            response_name=self.request_name,
-            response_value=response,
-        )
+        try:
+            response = await self.request_value.handle(ldap_session, session)
+        except Exception as err:
+            logger.error(err)  # noqa
+            yield ExtendedResponse(
+                result_code=LDAPCodes.OPERATIONS_ERROR,
+                response_name=self.request_name,
+                response_value=None,
+            )
+        else:
+            yield ExtendedResponse(
+                result_code=LDAPCodes.SUCCESS,
+                response_name=self.request_name,
+                response_value=response,
+            )
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'ExtendedRequest':
