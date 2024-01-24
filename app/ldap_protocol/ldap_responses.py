@@ -191,14 +191,15 @@ class ExtendedResponse(LDAPResult, BaseResponse):
 
     PROTOCOL_OP: ClassVar[int] = 24
     response_name: LDAPOID
-    response_value: SerializeAsAny[BaseExtendedResponseValue]
+    response_value: SerializeAsAny[BaseExtendedResponseValue] | None
 
     def to_asn1(self, enc: Encoder) -> None:
         """Serialize flat structure to bytes, write to encoder buffer."""
         super().to_asn1(enc)
-        with enc.construct(Numbers.OctetString):
-            with enc.construct(Numbers.Sequence):
-                self.response_value.to_asn1(enc)
+        if self.response_value is not None:
+            with enc.construct(Numbers.OctetString):
+                with enc.construct(Numbers.Sequence):
+                    self.response_value.to_asn1(enc)
 
 
 # 15: 'compare Response'
