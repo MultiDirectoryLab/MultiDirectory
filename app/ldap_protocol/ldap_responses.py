@@ -44,8 +44,7 @@ class BaseEncoder:
     def to_asn1(self, enc: Encoder) -> None:
         """Serialize flat structure to bytes, write to encoder buffer."""
         for value in self._get_asn1_fields().values():
-            if assigned_type := type_map.get(type(value)):
-                enc.write(value, assigned_type)
+            enc.write(value, type_map[type(value)])
 
 
 class BaseResponse(ABC, BaseModel, BaseEncoder):
@@ -195,11 +194,10 @@ class ExtendedResponse(LDAPResult, BaseResponse):
 
     def to_asn1(self, enc: Encoder) -> None:
         """Serialize flat structure to bytes, write to encoder buffer."""
-        super().to_asn1(enc)
-        if self.response_value is not None:
-            with enc.construct(Numbers.OctetString):
-                with enc.construct(Numbers.Sequence):
-                    self.response_value.to_asn1(enc)
+        enc.write(self.result_code, type_map[type(self.result_code)])
+        enc.write(self.matched_dn, type_map[type(self.matched_dn)])
+        enc.write(self.error_message, type_map[type(self.error_message)])
+        # NOTE: docs requires name and value but clients ignores it
 
 
 # 15: 'compare Response'
