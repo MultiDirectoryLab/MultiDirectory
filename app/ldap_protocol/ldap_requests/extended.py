@@ -6,6 +6,7 @@ from typing import AsyncGenerator, ClassVar
 from asn1 import Decoder
 from loguru import logger
 from pydantic import BaseModel, SerializeAsAny
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
@@ -15,7 +16,7 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.utils import get_user
-from models import User
+from models import Attribute, User
 from security import get_password_hash, verify_password
 
 from .base import BaseRequest
@@ -44,7 +45,7 @@ class PasswdModifyResponse(BaseExtendedResponseValue):
         genPasswd       [0]     OCTET STRING OPTIONAL }
     """
 
-    gen_passwd: str
+    gen_passwd: str = ''
 
 
 class PasswdModifyRequestValue(BaseExtendedValue):
@@ -71,21 +72,32 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             PasswdModifyResponse:
         """Update password of current or selected user."""
-        if not ldap_session.user or not ldap_session.settings.USE_CORE_TLS:
-            raise PermissionError
+        if not ldap_session.settings.USE_CORE_TLS:
+            raise PermissionError('TLS required')
 
         if self.user_identity is not None:
-            user = get_user(session, self.user_identity)
+            user = await get_user(session, self.user_identity)
             if not user:
-                raise PermissionError
+                raise PermissionError('Cannot acquire user by DN')
         else:
+            if not ldap_session.user:
+                raise PermissionError('Anonymous user')
+
             user = await session.get(User, ldap_session.user.id)
 
         if verify_password(self.old_password, user.password):
             user.password = get_password_hash(self.new_password)
+            await session.execute(  # update bind reject attribute
+                update(Attribute)
+                .values({'value': '1'})
+                .where(
+                    Attribute.directory_id == user.directory_id,
+                    Attribute.name == 'pwdLastSet',
+                    Attribute.value == '0',
+                ))
             await session.commit()
-            return PasswdModifyResponse(gen_passwd=self.new_password)
-        raise PermissionError
+            return PasswdModifyResponse()
+        raise PermissionError('No user provided')
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> \
@@ -102,7 +114,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
 
 EXTENDED_REQUEST_OID_MAP = {
-    PasswdModifyRequestValue.REQUEST_ID: PasswdModifyRequestValue,
+    req.REQUEST_ID: req for req in
+    [PasswdModifyRequestValue]
 }
 
 
@@ -123,8 +136,8 @@ class ExtendedRequest(BaseRequest):
         """Call proxy handler."""
         try:
             response = await self.request_value.handle(ldap_session, session)
-        except Exception as err:
-            logger.error(err)  # noqa
+        except PermissionError as err:
+            logger.critical(err)  # noqa
             yield ExtendedResponse(
                 result_code=LDAPCodes.OPERATIONS_ERROR,
                 response_name=self.request_name,
