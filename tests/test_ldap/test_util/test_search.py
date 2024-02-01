@@ -91,7 +91,8 @@ async def test_bind_policy_missing_group(handler, session, settings):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_bind(session, settings):
+@pytest.mark.usefixtures('session')
+async def test_ldap_bind(settings):
     """Test ldapsearch on server."""
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
