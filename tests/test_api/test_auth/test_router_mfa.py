@@ -110,8 +110,6 @@ async def test_connect_mfa(
 
     user = await authenticate_user(session, 'user0', 'password')
 
-    assert user is not None
-
     token = create_token(
         user.id,
         settings.SECRET_KEY,
@@ -120,9 +118,7 @@ async def test_connect_mfa(
         extra_data={'aud': '123'})
 
     async with asyncio.TaskGroup() as tg:
-        tg.create_task(
-            two_factor_protocol(ws, session, mfa, pool, settings),
-        )
+        tg.create_task(two_factor_protocol(ws, session, mfa, pool, settings))
         message1 = tg.create_task(ws.client_receive_json())
 
         tg.create_task(ws.client_send_json(
