@@ -6,16 +6,14 @@ import tempfile
 import pytest
 from sqlalchemy import select
 
-from app.extra import TEST_DATA, setup_enviroment
+from app.extra import TEST_DATA
 from app.models.ldap3 import Directory
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_delete(session, settings):
-    """Test ldapadd on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
+    """Test ldapdelete on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
     dn = "cn=test,dc=multidurectory,dc=test"
@@ -51,4 +49,6 @@ async def test_ldap_delete(session, settings):
         stderr=asyncio.subprocess.PIPE)
 
     assert await proc.wait() == 0
-    assert not await session.scalar(select(Directory).filter_by(name="test"))
+    assert not await session.scalar(
+        select(Directory).filter_by(name="test"),
+    )

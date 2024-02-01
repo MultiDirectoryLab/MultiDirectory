@@ -4,12 +4,13 @@ from functools import partial
 
 import pytest
 
-from app.extra import TEST_DATA, setup_enviroment
+from app.extra import TEST_DATA
 from app.ldap_protocol.utils import get_user
 from app.security import verify_password
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_anonymous_pwd_change(
     session,
     event_loop,
@@ -17,12 +18,9 @@ async def test_anonymous_pwd_change(
     settings,
 ):
     """Test anonymous pwd change."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
     settings.USE_CORE_TLS = True
 
-    user = "cn=user0,ou=users,dc=md,dc=test"
+    user = "cn=user0,ou=users,dc=multidurectory,dc=test"
     password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
     new_test_password = 'password123'  # noqa
     await event_loop.run_in_executor(None, ldap_client.bind)
@@ -48,6 +46,7 @@ async def test_anonymous_pwd_change(
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_bind_pwd_change(
     session,
     event_loop,
@@ -55,12 +54,9 @@ async def test_bind_pwd_change(
     settings,
 ):
     """Test anonymous pwd change."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
     settings.USE_CORE_TLS = True
 
-    user = "cn=user0,ou=users,dc=md,dc=test"
+    user = "cn=user0,ou=users,dc=multidurectory,dc=test"
     password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
     new_test_password = 'password123'  # noqa
     await event_loop.run_in_executor(
@@ -77,6 +73,8 @@ async def test_bind_pwd_change(
     assert result
 
     user = await get_user(session, user)
+
+    assert user is not None
 
     assert verify_password(new_test_password, user.password)
 

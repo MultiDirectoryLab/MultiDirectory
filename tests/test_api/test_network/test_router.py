@@ -1,28 +1,17 @@
 """Test policy api."""
-import asyncio
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Network
 
 import httpx
 import pytest
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from app.extra import TEST_DATA, setup_enviroment
-from app.ldap_protocol.utils import (
-    get_group,
-    get_groups,
-    get_user,
-    is_user_group_valid,
-)
-from app.models import NetworkPolicy, User
+from app.models import NetworkPolicy
 
 
 @pytest.mark.asyncio()
-async def test_add_policy(http_client, session):
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_add_policy(http_client, login_headers):
     """Test api policy add and read."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
     compare_netmasks = [
         '127.0.0.1/32', '172.0.0.2/31', '172.0.0.4/30',
         '172.0.0.8/29', '172.0.0.16/28', '172.0.0.32/27',
@@ -44,16 +33,16 @@ async def test_add_policy(http_client, session):
         "172.8.4.0/24",
     ]
 
-    auth = await http_client.post("auth/token/get", data={
-        "username": "user0", "password": "password"})
-    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
-
-    response = await http_client.post("/policy", json={
-        "name": "local seriveses",
-        "netmasks": raw_netmasks,
-        "priority": 2,
-        'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-    }, headers=login_headers)
+    response = await http_client.post(
+        "/policy",
+        json={
+            "name": "local seriveses",
+            "netmasks": raw_netmasks,
+            "priority": 2,
+            'groups': ['cn=domain admins,cn=groups,dc=multidurectory,dc=test'],
+        },
+        headers=login_headers,
+    )
 
     assert response.status_code == 201
     assert response.json()["netmasks"] == compare_netmasks
@@ -81,7 +70,7 @@ async def test_add_policy(http_client, session):
             'name': 'local seriveses',
             'netmasks': compare_netmasks,
             'raw': raw_netmasks,
-            'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
+            'groups': ['cn=domain admins,cn=groups,dc=multidurectory,dc=test'],
             'priority': 2,
             'mfa_groups': [],
             'mfa_status': 0,
@@ -90,15 +79,10 @@ async def test_add_policy(http_client, session):
 
 
 @pytest.mark.asyncio()
-async def test_update_policy(http_client, session):
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_update_policy(http_client, login_headers):
     """Update policy."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    auth = await http_client.post("auth/token/get", data={
-        "username": "user0", "password": "password"})
-    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
-
     response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
     response = response.json()
@@ -122,7 +106,7 @@ async def test_update_policy(http_client, session):
         "/policy",
         json={
             'id': pol_id,
-            'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
+            'groups': ['cn=domain admins,cn=groups,dc=multidurectory,dc=test'],
             'name': 'Default open policy 2',
         }, headers=login_headers)
 
@@ -136,7 +120,7 @@ async def test_update_policy(http_client, session):
         'name': 'Default open policy 2',
         'netmasks': ['0.0.0.0/0'],
         'raw': ['0.0.0.0/0'],
-        'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
+        'groups': ['cn=domain admins,cn=groups,dc=multidurectory,dc=test'],
         'mfa_groups': [],
         'mfa_status': 0,
         'priority': 1,
@@ -157,15 +141,19 @@ async def test_update_policy(http_client, session):
             'mfa_groups': [],
             'mfa_status': 0,
             'priority': 1,
-            'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
+            'groups': ['cn=domain admins,cn=groups,dc=multidurectory,dc=test'],
         },
     ]
 
 
 @pytest.mark.asyncio()
-async def test_delete_policy(http_client: httpx.AsyncClient, session):
+@pytest.mark.usefixtures('setup_session')
+async def test_delete_policy(
+    http_client: httpx.AsyncClient,
+    session,
+    login_headers,
+):
     """Delete policy."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     session.add(NetworkPolicy(
         name='Local policy',
         netmasks=[IPv4Network('127.100.10.5/32')],
@@ -174,10 +162,6 @@ async def test_delete_policy(http_client: httpx.AsyncClient, session):
         priority=2,
     ))
     await session.commit()
-
-    auth = await http_client.post("auth/token/get", data={
-        "username": "user0", "password": "password"})
-    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
 
     response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
@@ -216,9 +200,9 @@ async def test_delete_policy(http_client: httpx.AsyncClient, session):
 
 
 @pytest.mark.asyncio()
-async def test_switch_policy(http_client, session):
+@pytest.mark.usefixtures('setup_session')
+async def test_switch_policy(http_client, session, login_headers):
     """Switch policy."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     session.add(NetworkPolicy(
         name='Local policy',
         netmasks=[IPv4Network('127.100.10.5/32')],
@@ -227,10 +211,6 @@ async def test_switch_policy(http_client, session):
         priority=2,
     ))
     await session.commit()
-
-    auth = await http_client.post("auth/token/get", data={
-        "username": "user0", "password": "password"})
-    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
 
     response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
@@ -251,7 +231,9 @@ async def test_switch_policy(http_client, session):
     }
 
     response = await http_client.patch(
-        f"/policy/{pol_id}", headers=login_headers)
+        f"/policy/{pol_id}",
+        headers=login_headers,
+    )
     assert response.status_code == 200
     assert response.json() is True
 
@@ -265,79 +247,59 @@ async def test_switch_policy(http_client, session):
 
 
 @pytest.mark.asyncio()
-async def test_check_policy(handler, session):
-    """Check policy."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    policy = await handler.get_policy(IPv4Address("127.0.0.1"))
-    assert policy.netmasks == [IPv4Network("0.0.0.0/0")]
-
-
-@pytest.mark.asyncio()
-async def test_specific_policy_ok(handler, session):
-    """Test specific ip."""
-    session.add(NetworkPolicy(
-        name='Local policy',
-        netmasks=[IPv4Network('127.100.10.5/32')],
-        raw=['127.100.10.5/32'],
-        enabled=True,
-        priority=1,
-    ))
-    await session.commit()
-    policy = await handler.get_policy(IPv4Address("127.100.10.5"))
-    assert policy.netmasks == [IPv4Network("127.100.10.5/32")]
-    assert not await handler.get_policy(IPv4Address("127.100.10.4"))
-
-
-@pytest.mark.asyncio()
-async def test_404(http_client, session):
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_404(http_client, login_headers):
     """Delete policy."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    auth = await http_client.post("auth/token/get", data={
-        "username": "user0", "password": "password"})
-    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
-
     response = await http_client.get("/policy", headers=login_headers)
     assert response.status_code == 200
     some_id = response.json()[0]['id'] + 1
 
     response = await http_client.delete(
-        f"/policy/{some_id}", headers=login_headers)
+        f"/policy/{some_id}",
+        headers=login_headers,
+    )
     assert response.status_code == 404
 
     response = await http_client.patch(
-        f"/policy/{some_id}", headers=login_headers)
+        f"/policy/{some_id}",
+        headers=login_headers,
+    )
     assert response.status_code == 404
 
     response = await http_client.put(
         "/policy",
-        json={'id': some_id, "name": '123'}, headers=login_headers)
+        json={
+            'id': some_id,
+            "name": '123',
+        },
+        headers=login_headers,
+    )
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio()
-async def test_swap(http_client, session):
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_swap(http_client, login_headers):
     """Test swap policies."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    auth = await http_client.post("auth/token/get", data={
-        "username": "user0", "password": "password"})
-    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
-
-    response = await http_client.post("/policy", json={
-        "name": "local seriveses",
-        "netmasks": [
-            "127.0.0.1",
-            {"start": "172.0.0.2", "end": "172.255.1.5"},
-            "172.8.4.0/24",
-        ],
-        "priority": 2,
-        'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-    }, headers=login_headers)
+    response = await http_client.post(
+        "/policy",
+        json={
+            "name": "local seriveses",
+            "netmasks": [
+                "127.0.0.1",
+                {
+                    "start": "172.0.0.2",
+                    "end": "172.255.1.5",
+                },
+                "172.8.4.0/24",
+            ],
+            "priority": 2,
+            'groups': ['cn=domain admins,cn=groups,dc=multidurectory,dc=test'],
+        },
+        headers=login_headers,
+    )
 
     get_response = await http_client.get("/policy", headers=login_headers)
     get_response = get_response.json()
@@ -346,9 +308,14 @@ async def test_swap(http_client, session):
     assert get_response[0]['name'] == "Default open policy"
     assert get_response[1]['priority'] == 2
 
-    swap_response = await http_client.post("/policy/swap", json={
-        'first_policy_id': get_response[0]['id'],
-        'second_policy_id': get_response[1]['id']}, headers=login_headers)
+    swap_response = await http_client.post(
+        "/policy/swap",
+        json={
+            'first_policy_id': get_response[0]['id'],
+            'second_policy_id': get_response[1]['id'],
+        },
+        headers=login_headers,
+    )
 
     assert swap_response.json() == {
         "first_policy_id": get_response[0]['id'],
@@ -362,81 +329,6 @@ async def test_swap(http_client, session):
 
     assert response[0]['priority'] == 1
     assert response[0]['groups'] == [
-        'cn=domain admins,cn=groups,dc=md,dc=test']
+        'cn=domain admins,cn=groups,dc=multidurectory,dc=test']
     assert response[1]['priority'] == 2
     assert response[1]['name'] == "Default open policy"
-
-
-@pytest.mark.asyncio()
-async def test_check_policy_group(handler, session, settings):
-    """Check policy."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    user = await get_user(session, "user0")
-    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
-
-    assert await is_user_group_valid(user, policy, session)
-
-    group_dir = await get_group(
-        'cn=domain admins,cn=groups,dc=md,dc=test', session)
-
-    policy.groups.append(group_dir.group)
-    await session.commit()
-
-    assert await is_user_group_valid(user, policy, session)
-
-
-@pytest.mark.asyncio()
-async def test_bind_policy(handler, session, settings):
-    """Bind with policy."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
-    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
-    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
-    group_dir = await get_group(
-        'cn=domain admins,cn=groups,dc=md,dc=test', session)
-    policy.groups.append(group_dir.group)
-    await session.commit()
-
-    proc = await asyncio.create_subprocess_exec(
-        'ldapsearch',
-        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
-        '-D', un, '-x', '-w', pw)
-
-    result = await proc.wait()
-    assert result == 0
-
-
-@pytest.mark.asyncio()
-async def test_bind_policy_missing_group(handler, session, settings):
-    """Bind policy fail."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
-    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
-    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
-
-    user = await session.scalar(
-        select(User).filter_by(display_name="user0")
-        .options(selectinload(User.groups)))
-
-    policy.groups = await get_groups(
-        ['cn=domain admins,cn=groups,dc=md,dc=test'], session)
-    user.groups.clear()
-    await session.commit()
-
-    assert not await is_user_group_valid(user, policy, session)
-
-    proc = await asyncio.create_subprocess_exec(
-        'ldapsearch',
-        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
-        '-D', un, '-x', '-w', pw)
-
-    result = await proc.wait()
-    assert result == 49

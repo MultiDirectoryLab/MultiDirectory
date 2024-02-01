@@ -18,6 +18,7 @@ from app.config import Settings
 from app.ldap_protocol.dialogue import Session
 from app.models.database import Base, get_engine
 from app.web_app import create_app, get_session
+from app.extra import TEST_DATA, setup_enviroment
 
 
 class TestHandler(PoolClientHandler):  # noqa
@@ -117,6 +118,13 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def setup_session(session) -> None:
+    """Get session and aquire after completion."""
+    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
+    await session.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
 async def ldap_session() -> AsyncGenerator[Session, None]:
     """Yield empty session."""
     yield Session()
@@ -143,7 +151,6 @@ def ldap_client(settings: Settings):
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
         ldap3.Server(str(settings.HOST), settings.PORT, get_info=None),
-        auto_bind=False,
     )
 
 
@@ -159,3 +166,16 @@ async def http_client(app):
             transport=httpx.ASGITransport(app=app, root_path='/api'),
             base_url="http://test") as client:
         yield client
+
+
+@pytest_asyncio.fixture(scope='function')
+async def login_headers(http_client):
+    """Get ldap clinet without a creds."""
+    user = TEST_DATA[1]['children'][0][
+        'organizationalPerson']['sam_accout_name']
+    password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+
+    auth = await http_client.post("auth/token/get", data={
+        "username": user, "password": password})
+
+    return {'Authorization': f"Bearer {auth.json()['access_token']}"}

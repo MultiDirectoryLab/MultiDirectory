@@ -8,28 +8,24 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, subqueryload
 
-from app.extra import TEST_DATA, setup_enviroment
+from app.extra import TEST_DATA
 from app.models.ldap3 import Directory, Group, Path, User
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_root_add(session, settings):
     """Test ldapadd on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
-    dn = "cn=test,dc=multidurectory,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            f"dn: {dn}\n"
+            "dn: cn=test,dc=multidurectory,dc=test\n"
             "name: test\n"
             "cn: test\n"
             "objectClass: organization\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -60,18 +56,14 @@ async def test_ldap_root_add(session, settings):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_user_add_with_group(session, settings):
     """Test ldapadd on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
-    dn = "cn=test,dc=multidurectory,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            f"dn: {dn}\n"
+            "dn: cn=test,dc=multidurectory,dc=test\n"
             "name: test\n"
             "cn: test\n"
             "userPrincipalName: test\n"
@@ -81,7 +73,7 @@ async def test_ldap_user_add_with_group(session, settings):
             "objectClass: person\n"
             "objectClass: posixAccount\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -115,19 +107,15 @@ async def test_ldap_user_add_with_group(session, settings):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_ldap_user_add_group_with_group(session, settings):
     """Test ldapadd on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
-    dn = "cn=twisted,cn=groups,dc=multidurectory,dc=test\n"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
-            f"dn: {dn}"
+            "dn: cn=twisted,cn=groups,dc=multidurectory,dc=test\n"
             "name: twisted\n"
             "cn: twisted\n"
             "objectClass: group\n"
