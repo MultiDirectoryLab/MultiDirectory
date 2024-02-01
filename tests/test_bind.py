@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.extra import TEST_DATA
+from app.ldap_protocol.dialogue import Session
 from app.ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
@@ -12,7 +13,6 @@ from app.ldap_protocol.ldap_requests.bind import (
     SimpleAuthentication,
     UnbindRequest,
 )
-from app.ldap_protocol.dialogue import Session
 from app.models.ldap3 import Directory, User
 from app.security import get_password_hash
 

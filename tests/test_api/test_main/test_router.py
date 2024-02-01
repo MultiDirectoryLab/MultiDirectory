@@ -1,8 +1,8 @@
 """Test API."""
 import pytest
 
-from app.ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
+from app.ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE
 
 
 @pytest.mark.asyncio()

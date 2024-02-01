@@ -15,10 +15,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.__main__ import PoolClientHandler
 from app.config import Settings
+from app.extra import TEST_DATA, setup_enviroment
 from app.ldap_protocol.dialogue import Session
 from app.models.database import Base, get_engine
 from app.web_app import create_app, get_session
-from app.extra import TEST_DATA, setup_enviroment
 
 
 class TestHandler(PoolClientHandler):  # noqa
