@@ -33,16 +33,12 @@ async def test_add_policy(http_client, login_headers):
         "172.8.4.0/24",
     ]
 
-    response = await http_client.post(
-        "/policy",
-        json={
-            "name": "local seriveses",
-            "netmasks": raw_netmasks,
-            "priority": 2,
-            'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-        },
-        headers=login_headers,
-    )
+    response = await http_client.post("/policy", json={
+        "name": "local seriveses",
+        "netmasks": raw_netmasks,
+        "priority": 2,
+        'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
+    }, headers=login_headers)
 
     assert response.status_code == 201
     assert response.json()["netmasks"] == compare_netmasks
