@@ -26,6 +26,7 @@ pydantic-settings = "^2.0.3"
 uvloop = "^0.17.0"
 websockets = "^11.0.3"
 alembic = "^1.12.1"
+ldap3 = "^2.9.1"
 
 [tool.poetry.group.linters.dependencies]
 mypy = "^0.991"
@@ -39,8 +40,10 @@ types-pytz = "^2022.7.1.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.0"
+pytest-cov = "^4.1.0"
+gevent = "^23.9.1"
+coverage = "7.3.4"
 pytest-asyncio = "^0.21.1"
-ldap3 = "^2.9.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -54,6 +57,20 @@ multi_line_output = 3
 
 [tool.mypy]
 plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = ["/app"]
+addopts = [
+    "--cov",
+    "--cov-report=xml:coverage.xml",
+    "--cov-report=html",
+    "--cov-report=term-missing:skip-covered"
+]
+asyncio_mode = "auto"
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.run]
+concurrency = ["thread", "gevent"]

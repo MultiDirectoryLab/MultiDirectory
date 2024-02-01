@@ -10,7 +10,6 @@ from sqlalchemy import select
 from app.api.auth.oauth2 import authenticate_user, create_token
 from app.api.auth.router_mfa import get_queue_pool, two_factor_protocol
 from app.config import Settings
-from app.extra import TEST_DATA, setup_enviroment
 from app.ldap_protocol.multifactor import MultifactorAPI, get_auth
 from app.models import CatalogueSetting
 
@@ -57,18 +56,18 @@ class StubWebSocket:
 
 
 @pytest.mark.asyncio()
-async def test_set_mfa(http_client: httpx.AsyncClient, session):
+@pytest.mark.usefixtures('setup_session')
+async def test_set_mfa(http_client: httpx.AsyncClient, session, login_headers):
     """Set mfa."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    await session.commit()
-
-    auth = await http_client.post("auth/token/get", data={
-        "username": "user0", "password": "password"})
-    login_headers = {'Authorization': f"Bearer {auth.json()['access_token']}"}
-
     response = await http_client.post(
-        "/multifactor/setup", headers=login_headers,
-        json={'mfa_key': "123", 'mfa_secret': "123", 'is_ldap_scope': False})
+        "/multifactor/setup",
+        headers=login_headers,
+        json={
+            'mfa_key': "123",
+            'mfa_secret': "123",
+            'is_ldap_scope': False,
+        },
+    )
 
     assert response.json() is True
     assert response.status_code == 201
@@ -80,14 +79,16 @@ async def test_set_mfa(http_client: httpx.AsyncClient, session):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_connect_mfa(
         app: FastAPI,
         session,
         http_client: httpx.AsyncClient,
         settings: Settings):
     """Test websocket mfa."""
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
-    session.add(CatalogueSetting(name='mfa_secret', value=settings.SECRET_KEY))
+    session.add(
+        CatalogueSetting(name='mfa_secret', value=settings.SECRET_KEY),
+    )
     session.add(CatalogueSetting(name='mfa_key', value='123'))
     await session.commit()
 
@@ -108,8 +109,10 @@ async def test_connect_mfa(
     app.dependency_overrides[get_queue_pool] = lambda: pool
 
     user = await authenticate_user(session, 'user0', 'password')
+
     token = create_token(
-        user.id, settings.SECRET_KEY,
+        user.id,
+        settings.SECRET_KEY,
         settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         grant_type='multifactor',
         extra_data={'aud': '123'})
