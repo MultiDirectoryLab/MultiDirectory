@@ -39,23 +39,23 @@ down:
 # server stage/development commands
 
 stage_gen_cert:  ## generate self-signed cert
-	docker compose -f docker compose.dev.yml run server bash -c "cd /certs; openssl req -nodes -new -x509 -keyout privkey.pem -out cert.pem"
+	docker compose -f docker-compose.dev.yml run server bash -c "cd /certs; openssl req -nodes -new -x509 -keyout privkey.pem -out cert.pem"
 
 stage_build:  ## build stage server
-	docker compose -f docker compose.dev.yml down
-	docker compose -f docker compose.dev.yml build
+	docker compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.dev.yml build
 
 stage_up:  ## run app and detach
 	make stage_down;
-	docker compose -f docker compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml up -d
 
 stage_down:  ## stop all services
-	docker compose -f docker compose.dev.yml down --remove-orphans || true
+	docker compose -f docker-compose.dev.yml down --remove-orphans || true
 
 stage_update:  ## update service
 	make stage_down;
 	make stage_build;
-	docker compose -f docker compose.dev.yml pull;
+	docker compose -f docker-compose.dev.yml pull;
 	make stage_up;
 	docker exec -it multidirectory-ldap bash -c\
 		"alembic downgrade -1; alembic upgrade head; python -m extra.setup_dev"
