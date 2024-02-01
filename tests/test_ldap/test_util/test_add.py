@@ -19,14 +19,14 @@ async def test_ldap_root_add(session, settings):
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write(
+        file.write((
             "dn: cn=test,dc=md,dc=test\n"
             "name: test\n"
             "cn: test\n"
             "objectClass: organization\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n",
-        )
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+        ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapadd',
