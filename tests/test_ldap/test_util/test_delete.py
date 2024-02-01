@@ -6,19 +6,17 @@ import tempfile
 import pytest
 from sqlalchemy import select
 
-from app.extra import TEST_DATA, setup_enviroment
+from app.extra import TEST_DATA
 from app.models.ldap3 import Directory
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_delete(session, settings):
-    """Test ldapadd on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
+    """Test ldapdelete on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
-    dn = "cn=test,dc=multidurectory,dc=test"
+    dn = "cn=test,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
@@ -27,7 +25,7 @@ async def test_ldap_delete(session, settings):
             "cn: test\n"
             "objectClass: organization\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -51,4 +49,6 @@ async def test_ldap_delete(session, settings):
         stderr=asyncio.subprocess.PIPE)
 
     assert await proc.wait() == 0
-    assert not await session.scalar(select(Directory).filter_by(name="test"))
+    assert not await session.scalar(
+        select(Directory).filter_by(name="test"),
+    )

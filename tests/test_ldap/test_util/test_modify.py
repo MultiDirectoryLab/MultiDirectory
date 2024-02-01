@@ -8,19 +8,17 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
-from app.extra import TEST_DATA, setup_enviroment
+from app.extra import TEST_DATA
 from app.models.ldap3 import Directory, Group, Path, User
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_base_modify(session, settings):
     """Test ldapmodify on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
-    dn = "cn=user0,ou=users,dc=multidurectory,dc=test"
+    dn = "cn=user0,ou=users,dc=md,dc=test"
 
     query = select(Directory)\
         .options(
@@ -91,14 +89,12 @@ async def test_ldap_base_modify(session, settings):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_delete(session, settings):
     """Test ldapmodify on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
-    dn = "cn=user0,ou=users,dc=multidurectory,dc=test"
+    dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
         User.groups).selectinload(
@@ -138,14 +134,12 @@ async def test_ldap_membersip_user_delete(session, settings):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_add(session, settings):
     """Test ldapmodify on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
-    dn = "cn=user0,ou=users,dc=multidurectory,dc=test"
+    dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
         User.groups).selectinload(
@@ -169,7 +163,7 @@ async def test_ldap_membersip_user_add(session, settings):
             f"dn: {dn}\n"
             "changetype: modify\n"
             "add: memberOf\n"
-            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
             "-\n"
         ))
         file.seek(0)
@@ -189,14 +183,12 @@ async def test_ldap_membersip_user_add(session, settings):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_replace(session, settings):
     """Test ldapmodify on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
-    dn = "cn=user0,ou=users,dc=multidurectory,dc=test"
+    dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
         User.groups).selectinload(
@@ -212,7 +204,7 @@ async def test_ldap_membersip_user_replace(session, settings):
 
     assert directory.user.groups
 
-    new_group_dn = "cn=twisted,cn=groups,dc=multidurectory,dc=test\n"
+    new_group_dn = "cn=twisted,cn=groups,dc=md,dc=test\n"
 
     # add new group
     with tempfile.NamedTemporaryFile("w") as file:
@@ -222,7 +214,7 @@ async def test_ldap_membersip_user_replace(session, settings):
             "cn: twisted\n"
             "objectClass: group\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -242,7 +234,7 @@ async def test_ldap_membersip_user_replace(session, settings):
             f"dn: {dn}\n"
             "changetype: modify\n"
             "replace: memberOf\n"
-            "memberOf: cn=twisted,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
             "-\n"
         ))
         file.seek(0)
@@ -262,14 +254,12 @@ async def test_ldap_membersip_user_replace(session, settings):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_grp_replace(session, settings):
     """Test ldapmodify on server."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
-    await session.commit()
-
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
-    dn = "cn=domain admins,cn=groups,dc=multidurectory,dc=test"
+    dn = "cn=domain admins,cn=groups,dc=md,dc=test"
 
     membership = selectinload(Directory.group).selectinload(
         Group.parent_groups).selectinload(
@@ -289,7 +279,7 @@ async def test_ldap_membersip_grp_replace(session, settings):
     # add new group
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
-            "dn: cn=twisted1,cn=groups,dc=multidurectory,dc=test\n"
+            "dn: cn=twisted1,cn=groups,dc=md,dc=test\n"
             "name: twisted\n"
             "cn: twisted\n"
             "objectClass: group\n"
@@ -313,7 +303,7 @@ async def test_ldap_membersip_grp_replace(session, settings):
             f"dn: {dn}\n"
             "changetype: modify\n"
             "replace: memberOf\n"
-            "memberOf: cn=twisted1,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=twisted1,cn=groups,dc=md,dc=test\n"
             "-\n"
         ))
         file.seek(0)
@@ -330,3 +320,37 @@ async def test_ldap_membersip_grp_replace(session, settings):
 
     await session.refresh(directory)
     assert directory.group.parent_groups[0].directory.name == "twisted1"
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+async def test_ldap_modify_dn(session, settings):
+    """Test ldapmodify on server."""
+    user = TEST_DATA[1]['children'][0]['organizationalPerson']
+
+    dn = "cn=user0,ou=users,dc=md,dc=test"
+
+    with tempfile.NamedTemporaryFile("w") as file:
+        file.write((
+            f"dn: {dn}\n"
+            "changetype: modrdn\n"
+            "newrdn: uid=user1\n"
+            "deleteoldrdn: 1\n"
+            "newsuperior: ou=users,dc=md,dc=test\n"
+        ))
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            'ldapmodify',
+            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
+            '-f', file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+
+        res = await proc.wait()
+        assert res == 0
+
+    query = select(Directory)\
+        .join(Directory.path).filter(Path.path == ["ou=users", "uid=user1"])
+
+    assert await session.scalar(query)
