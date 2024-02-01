@@ -386,6 +386,9 @@ class SearchRequest(BaseRequest):
             distinguished_name = self._get_full_dn(directory.path, dn)
 
             attrs['distinguishedName'].append(distinguished_name)
+            attrs['whenCreated'].append(
+                directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
+            )
 
             if self.member_of:
                 if 'group' in attrs['objectClass'] and (
