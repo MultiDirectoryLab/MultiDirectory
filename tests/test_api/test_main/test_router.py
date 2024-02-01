@@ -63,7 +63,7 @@ async def test_api_search(http_client, login_headers):
     response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "dc=multidurectory,dc=test",
+            "base_object": "dc=md,dc=test",
             "scope": 1,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -81,8 +81,8 @@ async def test_api_search(http_client, login_headers):
     assert response['resultCode'] == LDAPCodes.SUCCESS
 
     sub_dirs = [
-        "cn=groups,dc=multidurectory,dc=test",
-        "ou=users,dc=multidurectory,dc=test",
+        "cn=groups,dc=md,dc=test",
+        "ou=users,dc=md,dc=test",
     ]
     assert all(
         obj['object_name'] in sub_dirs
@@ -98,7 +98,7 @@ async def test_api_correct_add(http_client, login_headers):
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
             "password": "password_test",
             "attributes": [
                 {
@@ -116,7 +116,7 @@ async def test_api_correct_add(http_client, login_headers):
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=multidurectory,dc=test",
+                        "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
             ],
@@ -140,7 +140,7 @@ async def test_api_add_non_auth_user(http_client):
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
             "password": "password_test",
             "attributes": [],
         },
@@ -162,7 +162,7 @@ async def test_api_add_with_incorrect_dn(http_client, login_headers):
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn!=test,dc=multidurectory,dc=test",
+            "entry": "cn!=test,dc=md,dc=test",
             "password": "password_test",
             "attributes": [],
         },
@@ -183,7 +183,7 @@ async def test_api_add_with_non_exist_parent(http_client, login_headers):
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn=test,ou=testing,dc=multidurectory,dc=test",
+            "entry": "cn=test,ou=testing,dc=md,dc=test",
             "password": "password_test",
             "attributes": [],
         },
@@ -205,7 +205,7 @@ async def test_api_double_add(http_client, login_headers):
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
             "password": "password_test",
             "attributes": [
                 {
@@ -223,7 +223,7 @@ async def test_api_double_add(http_client, login_headers):
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=multidurectory,dc=test",
+                        "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
             ],
@@ -246,7 +246,7 @@ async def test_api_correct_modify(http_client, login_headers):
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=test,dc=multidurectory,dc=test",
+            "object": "cn=test,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -275,7 +275,7 @@ async def test_api_modify_with_incorrect_dn(http_client, login_headers):
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn!=test,dc=multidurectory,dc=test",
+            "object": "cn!=test,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -303,7 +303,7 @@ async def test_api_modify_non_exist_object(http_client, login_headers):
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=test,dc=multidurectory,dc=test",
+            "object": "cn=test,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -333,7 +333,7 @@ async def test_api_correct_delete(http_client, login_headers):
         "delete",
         "/entry/delete",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
         },
         headers=login_headers,
     )
@@ -354,7 +354,7 @@ async def test_api_delete_with_incorrect_dn(http_client, login_headers):
         "delete",
         "/entry/delete",
         json={
-            "entry": "cn!=test,dc=multidurectory,dc=test",
+            "entry": "cn!=test,dc=md,dc=test",
         },
         headers=login_headers,
     )
@@ -375,7 +375,7 @@ async def test_api_delete_non_exist_object(http_client, login_headers):
         "delete",
         "/entry/delete",
         json={
-            "entry": "cn=non-exist-object,dc=multidurectory,dc=test",
+            "entry": "cn=non-exist-object,dc=md,dc=test",
         },
         headers=login_headers,
     )
@@ -395,10 +395,10 @@ async def test_api_correct_update_dn(http_client, login_headers):
     response = await http_client.put(
         "/entry/update/dn",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
             "newrdn": "cn=new_test",
             "deleteoldrdn": True,
-            "new_superior": "dc=multidurectory,dc=test",
+            "new_superior": "dc=md,dc=test",
         },
         headers=login_headers,
     )
@@ -417,10 +417,10 @@ async def test_api_update_dn_non_auth_user(http_client):
     response = await http_client.put(
         "/entry/update/dn",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
             "newrdn": "cn=new_test",
             "deleteoldrdn": True,
-            "new_superior": "dc=multidurectory,dc=test",
+            "new_superior": "dc=md,dc=test",
         },
         headers={'Authorization': "Bearer 09e67421-2f92-8ddc-494108a6e04f"},
     )
@@ -441,7 +441,7 @@ async def test_api_update_dn_non_exist_superior(http_client, login_headers):
     response = await http_client.put(
         "/entry/update/dn",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
             "newrdn": "cn=new_test",
             "deleteoldrdn": True,
             "new_superior": "dc=non-exist,dc=test",
@@ -464,10 +464,10 @@ async def test_api_update_dn_non_exist_entry(http_client, login_headers):
     response = await http_client.put(
         "/entry/update/dn",
         json={
-            "entry": "cn=non-exist,dc=multidurectory,dc=test",
+            "entry": "cn=non-exist,dc=md,dc=test",
             "newrdn": "cn=new_test",
             "deleteoldrdn": True,
-            "new_superior": "dc=multidurectory,dc=test",
+            "new_superior": "dc=md,dc=test",
         },
         headers=login_headers,
     )

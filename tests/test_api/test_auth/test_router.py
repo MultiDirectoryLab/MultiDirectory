@@ -12,7 +12,7 @@ async def test_first_setup_and_oauth(http_client):
     assert response.json() is False
 
     response = await http_client.post("/auth/setup", json={
-        "domain": "multidirectory.test",
+        "domain": "md.test",
         "username": "test",
         "user_principal_name": "test",
         "display_name": "test",

@@ -7,7 +7,7 @@ async def adding_test_user(http_client, login_headers):
     await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn=test,dc=multidurectory,dc=test",
+            "entry": "cn=test,dc=md,dc=test",
             "password": "password_test",
             "attributes": [
                 {
@@ -29,7 +29,7 @@ async def adding_test_user(http_client, login_headers):
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=multidurectory,dc=test",
+                        "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
             ],

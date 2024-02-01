@@ -16,7 +16,7 @@ async def test_ldap_delete(session, settings):
     """Test ldapdelete on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
-    dn = "cn=test,dc=multidurectory,dc=test"
+    dn = "cn=test,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
@@ -25,7 +25,7 @@ async def test_ldap_delete(session, settings):
             "cn: test\n"
             "objectClass: organization\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=multidurectory,dc=test\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(

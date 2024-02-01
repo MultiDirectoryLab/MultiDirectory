@@ -120,7 +120,7 @@ async def session(
 @pytest_asyncio.fixture(scope="function")
 async def setup_session(session) -> None:
     """Get session and aquire after completion."""
-    await setup_enviroment(session, dn="multidurectory.test", data=TEST_DATA)
+    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
     await session.commit()
 
 

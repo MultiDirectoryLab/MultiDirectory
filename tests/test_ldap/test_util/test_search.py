@@ -22,7 +22,7 @@ async def test_ldap_search(settings):
         TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name'],
         '-x', '-w',
         TEST_DATA[1]['children'][0]['organizationalPerson']['password'],
-        '-b', 'dc=multidurectory,dc=test', 'objectclass=*',
+        '-b', 'dc=md,dc=test', 'objectclass=*',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
@@ -31,9 +31,9 @@ async def test_ldap_search(settings):
     result = await proc.wait()
 
     assert result == 0
-    assert "dn: cn=groups,dc=multidurectory,dc=test" in data
-    assert "dn: ou=users,dc=multidurectory,dc=test" in data
-    assert "dn: cn=user0,ou=users,dc=multidurectory,dc=test" in data
+    assert "dn: cn=groups,dc=md,dc=test" in data
+    assert "dn: ou=users,dc=md,dc=test" in data
+    assert "dn: cn=user0,ou=users,dc=md,dc=test" in data
 
 
 @pytest.mark.asyncio()
@@ -45,7 +45,7 @@ async def test_bind_policy(handler, session, settings):
 
     policy = await handler.get_policy(IPv4Address('127.0.0.1'))
     group_dir = await get_group(
-        'cn=domain admins,cn=groups,dc=multidurectory,dc=test', session)
+        'cn=domain admins,cn=groups,dc=md,dc=test', session)
     policy.groups.append(group_dir.group)
     await session.commit()
 
@@ -72,7 +72,7 @@ async def test_bind_policy_missing_group(handler, session, settings):
         .options(selectinload(User.groups)))
 
     policy.groups = await get_groups(
-        ['cn=domain admins,cn=groups,dc=multidurectory,dc=test'],
+        ['cn=domain admins,cn=groups,dc=md,dc=test'],
         session,
     )
     user.groups.clear()

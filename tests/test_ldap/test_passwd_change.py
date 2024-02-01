@@ -20,7 +20,7 @@ async def test_anonymous_pwd_change(
     """Test anonymous pwd change."""
     settings.USE_CORE_TLS = True
 
-    user = "cn=user0,ou=users,dc=multidurectory,dc=test"
+    user = "cn=user0,ou=users,dc=md,dc=test"
     password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
     new_test_password = 'password123'  # noqa
     await event_loop.run_in_executor(None, ldap_client.bind)
@@ -56,7 +56,7 @@ async def test_bind_pwd_change(
     """Test anonymous pwd change."""
     settings.USE_CORE_TLS = True
 
-    user = "cn=user0,ou=users,dc=multidurectory,dc=test"
+    user = "cn=user0,ou=users,dc=md,dc=test"
     password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
     new_test_password = 'password123'  # noqa
     await event_loop.run_in_executor(
