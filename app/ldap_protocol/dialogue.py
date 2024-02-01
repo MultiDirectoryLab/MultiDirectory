@@ -2,7 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager, suppress
-from enum import Enum
+from enum import IntEnum
 from ipaddress import IPv4Address, ip_address
 from typing import TYPE_CHECKING
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .messages import LDAPRequestMessage
 
 
-class Operation(int, Enum):
+class Operation(IntEnum):
     """Changes enum for modify request."""
 
     ADD = 0
@@ -26,7 +26,7 @@ class Operation(int, Enum):
     REPLACE = 2
 
 
-class LDAPCodes(int, Enum):
+class LDAPCodes(IntEnum):
     """LDAP protocol codes mapping.
 
     SUCCESS = 0
