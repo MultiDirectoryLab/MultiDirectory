@@ -18,6 +18,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import (
     Mapped,
+    backref,
     declarative_mixin,
     declared_attr,
     relationship,
@@ -108,7 +109,7 @@ class Directory(Base):
 
     parent: list['Directory'] = relationship(
         lambda: Directory, remote_side=id,
-        backref='directories', uselist=False)
+        backref=backref('directories', cascade="all,delete"), uselist=False)
 
     object_class: str = Column('objectClass', String, nullable=False)
     objectclass: str = synonym('object_class')
