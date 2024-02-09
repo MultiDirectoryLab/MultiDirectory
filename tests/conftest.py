@@ -150,7 +150,7 @@ def _server(event_loop: asyncio.BaseEventLoop, handler):
 def ldap_client(settings: Settings):
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
-        ldap3.Server(str(settings.HOST), settings.PORT, get_info=None),
+        ldap3.Server(str(settings.HOST), settings.PORT),
     )
 
 
