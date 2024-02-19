@@ -118,6 +118,9 @@ class ModifyRequest(BaseRequest):
                     await session.flush()
                     await self._add(change, directory, session)
 
+            await session.execute(
+                update(Directory).where(Directory.id == directory.id),
+            )
             try:
                 await session.commit()
             except IntegrityError:
