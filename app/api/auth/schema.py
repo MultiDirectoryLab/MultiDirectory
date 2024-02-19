@@ -48,6 +48,7 @@ class User(BaseModel):
     user_principal_name: str
     mail: str
     display_name: str
+    directory_id: int
 
     access_type: Literal['access', 'refresh', 'multifactor']
     exp: int
@@ -63,6 +64,7 @@ class User(BaseModel):
             display_name=user.display_name,
             access_type=access,
             exp=exp,
+            directory_id=user.directory_id,
         )
 
 
