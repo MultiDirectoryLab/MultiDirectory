@@ -125,6 +125,11 @@ class Directory(Base):
         'whenChanged',
         DateTime(timezone=True),
         onupdate=func.now(), nullable=True)
+    last_logon = Column(
+        'lastLogon',
+        DateTime(timezone=True),
+        nullable=True,
+    )
     depth = Column(Integer)
 
     path: 'Path' = relationship(
