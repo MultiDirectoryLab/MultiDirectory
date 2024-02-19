@@ -103,6 +103,9 @@ class ModifyRequest(BaseRequest):
             return
 
         for change in self.changes:
+            if change.modification.type in Directory.ro_fields:
+                continue
+
             if change.operation == Operation.ADD:
                 await self._add(change, directory, session)
 
@@ -189,9 +192,6 @@ class ModifyRequest(BaseRequest):
             return
 
         for value in change.modification.vals:
-            if name in Directory.ro_fields:
-                continue
-
             if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
