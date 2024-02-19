@@ -5,7 +5,7 @@ from datetime import datetime
 
 import pytz
 from asyncstdlib.functools import cache
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -230,3 +230,26 @@ def create_integer_hash(text: str, size: int = 9) -> int:
     :return int: hash
     """
     return int(hashlib.sha256(text.encode('utf-8')).hexdigest(), 16) % 10**size
+
+
+async def set_last_logon_user(user: User, session: AsyncSession) -> None:
+    """Update lastLogon attr."""
+    await session.execute(
+        update(Directory).values(
+            {"last_logon": func.now()},
+        ).where(
+            Directory.id == user.directory_id,
+        ),
+    )
+    await session.commit()
+
+
+def get_windows_timestamp(value: float | int | datetime) -> int:
+    """Get the Windows timestamp from the value."""
+    if isinstance(value, datetime):
+        value = value.timestamp()
+
+    if isinstance(value, float):
+        value = int(value)
+
+    return (value + 116444736000) * 10000000
