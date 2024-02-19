@@ -160,7 +160,8 @@ class Directory(Base):
 
     ro_fields = {
         "uid",
-        "created_at",
+        "whenCreated",
+        "lastLogon",
     }
 
     def get_dn_prefix(self) -> str:
