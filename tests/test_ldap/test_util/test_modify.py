@@ -6,15 +6,18 @@ from collections import defaultdict
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
+from app.config import Settings
 from app.extra import TEST_DATA
 from app.models.ldap3 import Directory, Group, Path, User
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_base_modify(session, settings):
+async def test_ldap_base_modify(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapmodify on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
@@ -90,7 +93,8 @@ async def test_ldap_base_modify(session, settings):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_membersip_user_delete(session, settings):
+async def test_ldap_membersip_user_delete(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapmodify on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
@@ -135,7 +139,8 @@ async def test_ldap_membersip_user_delete(session, settings):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_membersip_user_add(session, settings):
+async def test_ldap_membersip_user_add(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapmodify on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
@@ -184,7 +189,8 @@ async def test_ldap_membersip_user_add(session, settings):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_membersip_user_replace(session, settings):
+async def test_ldap_membersip_user_replace(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapmodify on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
@@ -255,7 +261,8 @@ async def test_ldap_membersip_user_replace(session, settings):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_membersip_grp_replace(session, settings):
+async def test_ldap_membersip_grp_replace(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapmodify on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
@@ -324,7 +331,8 @@ async def test_ldap_membersip_grp_replace(session, settings):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_modify_dn(session, settings):
+async def test_ldap_modify_dn(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapmodify on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 

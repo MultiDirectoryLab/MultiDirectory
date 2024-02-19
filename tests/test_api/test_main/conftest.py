@@ -1,8 +1,13 @@
+"""Create test user."""
 import pytest_asyncio
+from httpx import AsyncClient
 
 
 @pytest_asyncio.fixture(scope='function')
-async def adding_test_user(http_client, login_headers):
+async def adding_test_user(
+    http_client: AsyncClient,
+    login_headers: dict[str, str],
+) -> None:
     """Test api first setup."""
     await http_client.post(
         "/entry/add",

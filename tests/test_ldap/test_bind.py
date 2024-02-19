@@ -1,7 +1,11 @@
+"""Test bind ldap3 + white case."""
+
+from asyncio import BaseEventLoop
 from functools import partial
 from unittest.mock import AsyncMock
 
 import pytest
+from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.extra import TEST_DATA
@@ -19,11 +23,11 @@ from app.security import get_password_hash
 
 @pytest.mark.asyncio()
 async def test_bind_ok_and_unbind(
-        session: AsyncSession, ldap_session: Session):
+        session: AsyncSession, ldap_session: Session) -> None:
     """Test ok bind."""
     class MutePolicyBindRequest(BindRequest):
         @staticmethod
-        async def is_user_group_valid(*args, **kwargs):
+        async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
             return True
 
     directory = Directory(name='user0', object_class='')
@@ -55,7 +59,7 @@ async def test_bind_ok_and_unbind(
 
 @pytest.mark.asyncio()
 async def test_bind_invalid_password_or_user(
-        session: AsyncSession, ldap_session: Session):
+        session: AsyncSession, ldap_session: Session) -> None:
     """Test invalid password bind."""
     directory = Directory(name='user0', object_class='')
     user = User(
@@ -100,7 +104,8 @@ async def test_bind_invalid_password_or_user(
 
 
 @pytest.mark.asyncio()
-async def test_anonymous_bind(session: AsyncSession, ldap_session: Session):
+async def test_anonymous_bind(
+        session: AsyncSession, ldap_session: Session) -> None:
     """Test anonymous."""
     bind = BindRequest(
         version=0,
@@ -114,7 +119,8 @@ async def test_anonymous_bind(session: AsyncSession, ldap_session: Session):
 
 
 @pytest.mark.asyncio()
-async def test_anonymous_unbind(session: AsyncSession, ldap_session: Session):
+async def test_anonymous_unbind(
+        session: AsyncSession, ldap_session: Session) -> None:
     """Test anonymous call."""
     ldap_session.delete_user = AsyncMock()  # type: ignore
     with pytest.raises(StopAsyncIteration):
@@ -125,7 +131,9 @@ async def test_anonymous_unbind(session: AsyncSession, ldap_session: Session):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap3_bind(session, ldap_client, event_loop):
+@pytest.mark.usefixtures('session')
+async def test_ldap3_bind(
+        ldap_client: Connection, event_loop: BaseEventLoop) -> None:
     """Test ldap3 bind."""
     user = TEST_DATA[1]['children'][0][
         'organizationalPerson']['sam_accout_name']
