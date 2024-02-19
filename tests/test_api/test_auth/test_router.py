@@ -1,11 +1,12 @@
 """Test api calls."""
 import pytest
+from httpx import AsyncClient
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
-async def test_first_setup_and_oauth(http_client):
+async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
     """Test api first setup."""
     response = await http_client.get("/auth/setup")
     assert response.status_code == 200
@@ -50,7 +51,8 @@ async def test_first_setup_and_oauth(http_client):
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_update_password(http_client, login_headers):
+async def test_update_password(
+        http_client: AsyncClient, login_headers: dict) -> None:
     """Update policy."""
     response = await http_client.patch(
         "auth/user/password",

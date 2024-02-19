@@ -6,15 +6,18 @@ from collections import defaultdict
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
 
+from app.config import Settings
 from app.extra import TEST_DATA
 from app.models.ldap3 import Directory, Group, Path, User
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_root_add(session, settings):
+async def test_ldap_root_add(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapadd on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
@@ -57,7 +60,8 @@ async def test_ldap_root_add(session, settings):
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_user_add_with_group(session, settings):
+async def test_ldap_user_add_with_group(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapadd on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
@@ -109,7 +113,8 @@ async def test_ldap_user_add_with_group(session, settings):
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
-async def test_ldap_user_add_group_with_group(session, settings):
+async def test_ldap_user_add_group_with_group(
+        session: AsyncSession, settings: Settings) -> None:
     """Test ldapadd on server."""
     user = TEST_DATA[1]['children'][0]['organizationalPerson']
 
