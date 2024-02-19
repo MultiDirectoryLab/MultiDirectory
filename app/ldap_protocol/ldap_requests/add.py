@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -50,11 +51,11 @@ class AddRequest(BaseRequest):
     password: SecretStr | None = Field(None, example='password')
 
     @property
-    def attr_names(self):  # noqa
+    def attr_names(self) -> dict[str, list[str]]:  # noqa
         return {attr.type: attr.vals for attr in self.attributes}
 
     @classmethod
-    def from_data(cls, data):  # noqa: D102
+    def from_data(cls, data: ASN1Row) -> 'AddRequest':  # noqa: D102
         entry, attributes = data
         attributes = [
             PartialAttribute(

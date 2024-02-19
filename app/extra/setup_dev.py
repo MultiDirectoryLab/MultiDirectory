@@ -15,11 +15,12 @@ import asyncio
 from itertools import chain
 
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
-from models.database import AsyncSession, create_session_factory
+from models.database import create_session_factory
 from models.ldap3 import (
     Attribute,
     CatalogueSetting,
@@ -35,7 +36,7 @@ from security import get_password_hash
 from .dev_data import DATA
 
 
-async def _get_group(name, session):
+async def _get_group(name: str, session: AsyncSession) -> list[Group]:
     return await session.scalar(
         select(Group).join(Group.directory).filter(
             Directory.name == name,
@@ -44,7 +45,10 @@ async def _get_group(name, session):
 
 
 async def _create_dir(
-        data, session: AsyncSession, parent: Directory | None = None):
+    data: dict,
+    session: AsyncSession,
+    parent: Directory | None = None,
+) -> None:
     """Create data recursively."""
     if not parent:
         dir_ = Directory(
@@ -52,7 +56,7 @@ async def _create_dir(
         path = dir_.create_path(dn=dir_.get_dn_prefix())
 
         async with session.begin_nested():
-            # logger.debug(f"creating {dir_.object_class}:{dir_.name}")
+            logger.debug(f"creating {dir_.object_class}:{dir_.name}")
             session.add_all([dir_, path])
             dir_.paths.append(path)
             dir_.depth = len(path.path)
@@ -65,8 +69,8 @@ async def _create_dir(
         path = dir_.create_path(parent, dir_.get_dn_prefix())
 
         async with session.begin_nested():
-            # logger.debug(
-            #     f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
+            logger.debug(
+                f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
             session.add_all([dir_, path])
             path.directories.extend(
                 [p.endpoint for p in parent.paths + [path]])
@@ -76,7 +80,7 @@ async def _create_dir(
         group = Group(directory=dir_)
         session.add(group)
         for group_name in data.get('groups', []):
-            parent_group = await _get_group(group_name, session)
+            parent_group: Group = await _get_group(group_name, session)
             session.add(GroupMembership(
                 group_id=parent_group.id, group_child_id=group.id))
 
@@ -120,7 +124,8 @@ async def _create_dir(
 
 
 async def setup_enviroment(
-        session: AsyncSession, *, data, dn="multifactor.dev") -> None:
+        session: AsyncSession, *,
+        data: list, dn: str = "multifactor.dev") -> None:
     """Create directories and users for enviroment."""
     cat_result = await session.execute(
         select(CatalogueSetting)
@@ -154,7 +159,7 @@ async def setup_enviroment(
 if __name__ == '__main__':
     AsyncSessionFactory = create_session_factory(Settings())
 
-    async def execute():  # noqa
+    async def execute() -> None:  # noqa
         async with AsyncSessionFactory() as session:
             await setup_enviroment(session, data=DATA)
             await session.commit()

@@ -16,10 +16,10 @@ class ASN1id:
     string: str
     value: Any
 
-    def __str__(self):  # noqa: D105
+    def __str__(self) -> str:  # noqa: D105
         return self.string
 
-    def __repr__(self):  # noqa: D105
+    def __repr__(self) -> str:  # noqa: D105
         return f'[{self.string}: {repr(self.value)}]'
 
 
@@ -65,7 +65,7 @@ class_id_to_string_map = {
 }
 
 
-def value_to_string(tag: Tag, value: Any):
+def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
     """Convert value to string."""
     if tag.nr == Numbers.Integer:
         with suppress(ValueError):
@@ -82,12 +82,12 @@ def value_to_string(tag: Tag, value: Any):
     return repr(value)
 
 
-def tag_id_to_string(identifier: int):
+def tag_id_to_string(identifier: int) -> Numbers:
     """Return a string representation of a ASN.1 id."""
     return tag_id_to_string_map.get(identifier, '{:#02x}'.format(identifier))
 
 
-def class_id_to_string(identifier: int):
+def class_id_to_string(identifier: int) -> Classes:
     """Return a string representation of an ASN.1 class."""
     if identifier in class_id_to_string_map:
         return class_id_to_string_map[identifier]
@@ -116,7 +116,7 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
     return out
 
 
-def _validate_oid(oid: str):
+def _validate_oid(oid: str) -> str:
     """Validate ldap oid with regex."""
     if not Encoder._re_oid.match(oid):
         raise ValueError('Invalid LDAPOID')

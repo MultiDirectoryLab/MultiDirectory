@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import Session
+from ldap_protocol.dialogue import Session, User
 from ldap_protocol.ldap_responses import BaseResponse
 
 api_logger = logger.bind(event=True)
@@ -34,7 +34,7 @@ class BaseRequest(ABC, BaseModel):
         yield BaseResponse()  # type: ignore
 
     async def handle_api(
-        self, user,
+        self, user: User,
         session: AsyncSession,
         single: bool = True,
     ) -> list[BaseResponse] | BaseResponse:

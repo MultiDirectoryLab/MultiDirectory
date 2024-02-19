@@ -4,7 +4,8 @@ import asyncio
 from contextlib import asynccontextmanager, suppress
 from enum import IntEnum
 from ipaddress import IPv4Address, ip_address
-from typing import TYPE_CHECKING
+from types import TracebackType
+from typing import TYPE_CHECKING, AsyncIterator
 
 import httpx
 from loguru import logger
@@ -167,27 +168,27 @@ class Session:
         return self._user
 
     @user.setter
-    def user(self, user: User):
+    def user(self, user: User) -> None:
         raise NotImplementedError(
             'Cannot manually set user, use `set_user()` instead')
 
-    async def set_user(self, user: User):
+    async def set_user(self, user: User) -> None:
         """Bind user to session concurrently save."""
         async with self._lock:
             self._user = user
 
-    async def delete_user(self):
+    async def delete_user(self) -> None:
         """Unbind user from session concurrently save."""
         async with self._lock:
             self._user = None
 
-    async def get_user(self):
+    async def get_user(self) -> User:
         """Get user from session concurrently save."""
         async with self._lock:
             return self._user
 
     @asynccontextmanager
-    async def lock(self):
+    async def lock(self) -> AsyncIterator[User]:
         """Lock session, user cannot be deleted or get while lock is set."""
         async with self._lock:
             yield self._user
@@ -196,7 +197,12 @@ class Session:
         self.client = await httpx.AsyncClient().__aenter__()
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         """Close writer and queue."""
         with suppress(RuntimeError):
             await self.queue.join()

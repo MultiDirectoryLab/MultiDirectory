@@ -205,7 +205,7 @@ async def two_factor_protocol(
 
     await websocket.send_json({'status': 'pending', 'message': redirect_url})
 
-    queue = asyncio.Queue(maxsize=1)
+    queue: asyncio.Queue[str] = asyncio.Queue(maxsize=1)
     pool[user.user_principal_name] = queue
 
     try:
