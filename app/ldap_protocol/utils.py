@@ -252,4 +252,4 @@ def get_windows_timestamp(value: float | int | datetime) -> int:
     if isinstance(value, float):
         value = int(value)
 
-    return (value + 116444736000) * 10000000
+    return (value + 11644473600) * 10000000
