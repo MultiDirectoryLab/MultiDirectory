@@ -33,11 +33,11 @@ class LDAPResult(BaseModel):
         populate_by_name = True
 
 
-class BaseEncoder:
+class BaseEncoder(BaseModel):
     """Class with encoder methods."""
 
     def _get_asn1_fields(self) -> dict:  # noqa
-        fields = self.dict()
+        fields = self.model_dump()
         fields.pop('PROTOCOL_OP', None)
         return fields
 
@@ -47,7 +47,7 @@ class BaseEncoder:
             enc.write(value, type_map[type(value)])
 
 
-class BaseResponse(ABC, BaseModel, BaseEncoder):
+class BaseResponse(ABC, BaseEncoder):
     """Base class for Response."""
 
     @property
@@ -70,12 +70,12 @@ class PartialAttribute(BaseModel):
 
     @field_validator('type', mode="before")
     @classmethod
-    def validate_type(cls, v) -> str:  # noqa
+    def validate_type(cls, v: str | bytes | int) -> str:  # noqa
         return str(v)
 
     @field_validator('vals', mode="before")
     @classmethod
-    def validate_vals(cls, vals: list[str]) -> str:  # noqa
+    def validate_vals(cls, vals: list[str]) -> list[str]:  # noqa
         return [str(v) for v in vals]
 
 
@@ -175,7 +175,7 @@ class ModifyDNResponse(LDAPResult, BaseResponse):
     PROTOCOL_OP: ClassVar[int] = 13
 
 
-class BaseExtendedResponseValue(ABC, BaseModel, BaseEncoder):
+class BaseExtendedResponseValue(ABC, BaseEncoder):
     """Base extended response proxy class."""
 
 

@@ -29,7 +29,7 @@ class BaseExtendedValue(ABC, BaseModel):
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'BaseExtendedValue':
+    def from_data(cls, data: ASN1Row) -> 'BaseExtendedValue':
         """Create model from data, decoded from responseValue bytes."""
 
     @abstractmethod
@@ -103,7 +103,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         raise PermissionError('No user provided')
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> \
+    def from_data(cls, data: ASN1Row) -> \
             'PasswdModifyRequestValue':
         """Create model from data, decoded from responseValue bytes."""
         if len(data) == 3:
@@ -154,10 +154,10 @@ class ExtendedRequest(BaseRequest):
             )
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'ExtendedRequest':
+    def from_data(cls, data: ASN1Row) -> 'ExtendedRequest':
         """Create extended request from asn.1 decoded string.
 
-        :param dict[str, list[ASN1Row]] data: any data
+        :param ASN1Row data: any data
         :return ExtendedRequest: universal request
         """
         dec = Decoder()

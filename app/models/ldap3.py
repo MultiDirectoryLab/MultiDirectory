@@ -1,7 +1,7 @@
 """MultiDirectory LDAP models."""
 
 import enum
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -24,7 +24,9 @@ from sqlalchemy.orm import (
     relationship,
     synonym,
 )
+from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
+from sqlalchemy.sql.compiler import DDLCompiler
 
 from .database import Base
 
@@ -34,10 +36,11 @@ UniqueConstraint.argument_for("postgresql", 'nulls_not_distinct', None)
 
 
 @compiles(UniqueConstraint, "postgresql")
-def compile_create_uc(create, compiler, **kw):
+def compile_create_uc(
+        create: DDLElement, compiler: DDLCompiler, **kw: Any) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
-    postgresql_opts = create.dialect_options["postgresql"]
+    postgresql_opts = create.dialect_options["postgresql"]  # type: ignore
 
     if postgresql_opts.get("nulls_not_distinct"):
         return stmt.rstrip().replace("UNIQUE (", "UNIQUE NULLS NOT DISTINCT (")
@@ -169,7 +172,7 @@ class Directory(Base):
         "lastLogon",
     }
 
-    def get_dn_prefix(self) -> str:
+    def get_dn_prefix(self) -> DistinguishedNamePrefix:
         """Get distinguished name prefix."""
         return {
             'organizationalUnit': 'ou',
@@ -208,7 +211,7 @@ class DirectoryReferenceMixin:
     def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
         return relationship(
             'Directory',
-            back_populates=str(cls.__name__).lower(),
+            back_populates=str(cls.__name__).lower(),  # type: ignore
             uselist=False,
             lazy='joined',
         )
@@ -254,7 +257,7 @@ class Group(DirectoryReferenceMixin, Base):
     __tablename__ = "Groups"
 
     id = Column(Integer, primary_key=True)  # noqa: A003
-    search_fields = {}
+    search_fields: dict[str, str] = {}
 
     child_groups: list['Group'] = relationship(
         "Group",

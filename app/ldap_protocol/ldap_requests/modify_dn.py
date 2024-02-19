@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -58,7 +59,7 @@ class ModifyDNRequest(BaseRequest):
     new_superior: str
 
     @classmethod
-    def from_data(cls, data):
+    def from_data(cls, data: ASN1Row) -> 'ModifyDNResponse':
         """Create structure from ASN1Row dataclass list."""
         return cls(
             entry=data[0].value,

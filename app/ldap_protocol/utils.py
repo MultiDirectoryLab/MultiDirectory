@@ -58,13 +58,13 @@ def get_object_classes() -> list[str]:
         return list(file)
 
 
-def get_generalized_now():
+def get_generalized_now() -> str:
     """Get generalized time (formated) with tz."""
     return datetime.now(  # NOTE: possible setting
         pytz.timezone('Europe/Moscow')).strftime('%Y%m%d%H%M%S.%f%z')
 
 
-def _get_path(name):
+def _get_path(name: str) -> list[str]:
     """Get path from name."""
     return [
         item.lower() for item in reversed(name.split(','))
@@ -72,7 +72,7 @@ def _get_path(name):
     ]
 
 
-def _get_domain(name):
+def _get_domain(name: str) -> str:
     """Get domain from name."""
     return '.'.join([
         item[3:].lower() for item in name.split(',')
@@ -127,7 +127,7 @@ def validate_entry(entry: str) -> bool:
 
 async def get_groups(
     dn_list: list[str],
-    session,
+    session: AsyncSession,
 ) -> list[Group]:
     """Get dirs with groups by dn list."""
     base_dn = await get_base_dn(session)
@@ -161,7 +161,7 @@ async def get_groups(
         if directory.group is not None]
 
 
-async def get_group(dn: str, session) -> Directory:
+async def get_group(dn: str, session: AsyncSession) -> Directory:
     """Get dir with group by dn.
 
     :param str dn: Distinguished Name

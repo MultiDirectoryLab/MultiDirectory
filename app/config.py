@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     SSL_KEY: str = '/certs/privkey.pem'
 
     @validator('POSTGRES_URI', pre=True, always=True)
-    def create_postgres(cls, v, values):  # noqa: N805
+    def create_postgres(cls, v: str, values: dict) -> str:  # noqa: N805
         """Build postgres DSN."""
         return (
             f"{values['POSTGRES_SCHEMA']}://"  # type: ignore
@@ -58,8 +58,8 @@ class Settings(BaseSettings):
     MFA_TOKEN_LEEWAY: int = 15
     MFA_API_SOURCE: Literal['dev', 'ru'] = 'ru'
 
-    @computed_field
     @cached_property
+    @computed_field
     def MFA_API_URI(self) -> str:  # noqa: N802
         """Multifactor API url.
 
@@ -70,9 +70,9 @@ class Settings(BaseSettings):
         return 'https://api.multifactor.ru'
 
 
-def get_settings():  # noqa: D103
+def get_settings() -> Settings:  # noqa: D103
     raise NotImplementedError()
 
 
-def get_queue_pool():  # noqa
+def get_queue_pool() -> None:  # noqa
     raise NotImplementedError()

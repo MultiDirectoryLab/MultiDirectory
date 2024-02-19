@@ -8,10 +8,14 @@ from operator import eq, ge, le, ne
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_
 from sqlalchemy.orm import aliased
+from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.expression import Select
 
 from models.ldap3 import Attribute, Directory, User
 
 from .asn1parser import ASN1Row
+
+BoundQ = tuple[UnaryExpression, Select]
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
@@ -21,7 +25,9 @@ def _get_substring(right: ASN1Row) -> str:  # RFC 4511
     return [f"{value}%", f"%{value}%", f"%{value}"][index]
 
 
-def _from_filter(model: type, item, attr, right):
+def _from_filter(
+    model: type, item: ASN1Row, attr: str, right: ASN1Row,
+) -> UnaryExpression:
     is_substring = item.tag_id.value == 4
     col = getattr(model, attr)
 
@@ -31,7 +37,7 @@ def _from_filter(model: type, item, attr, right):
     return op_method(func.lower(col), right.value.lower())
 
 
-def _cast_item(item, query):
+def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
         attr = item.value.lower().replace('objectcategory', 'objectclass')
@@ -49,7 +55,7 @@ def _cast_item(item, query):
 
     is_substring = item.tag_id.value == 4
 
-    if attr in User.search_fields:
+    if attr in User.search_fields:  # noqa: R505
         return _from_filter(User, item, attr, right), query
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right), query
@@ -71,7 +77,7 @@ def _cast_item(item, query):
         return cond, query
 
 
-def cast_filter2sql(expr: ASN1Row, query):
+def cast_filter2sql(expr: ASN1Row, query: Select) -> BoundQ:
     """Recursively cast Filter to SQLAlchemy conditions."""
     if expr.tag_id.value in range(3):
         conditions = []
@@ -89,7 +95,8 @@ def cast_filter2sql(expr: ASN1Row, query):
     return _cast_item(expr, query)
 
 
-def _from_str_filter(model: type, is_substring: bool, item: Filter):
+def _from_str_filter(
+        model: type, is_substring: bool, item: Filter) -> UnaryExpression:
     col = getattr(model, item.attr)
 
     if is_substring:
@@ -98,7 +105,7 @@ def _from_str_filter(model: type, is_substring: bool, item: Filter):
     return op_method(func.lower(col), item.val)
 
 
-def _cast_filt_item(item: Filter, query):
+def _cast_filt_item(item: Filter, query: Select) -> BoundQ:
     if item.val == '*':
         if item.attr in User.search_fields:
             return not_(eq(getattr(User, item.attr), None)), query
@@ -110,7 +117,7 @@ def _cast_filt_item(item: Filter, query):
 
     is_substring = item.val.startswith('*') or item.val.endswith('*')
 
-    if item.attr in User.search_fields:
+    if item.attr in User.search_fields:  # noqa: R505
         return _from_str_filter(User, is_substring, item), query
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item), query
@@ -132,7 +139,7 @@ def _cast_filt_item(item: Filter, query):
         return cond, query
 
 
-def cast_str_filter2sql(expr: Filter, query):
+def cast_str_filter2sql(expr: Filter, query: Select) -> BoundQ:
     """Cast ldap filter to sa query."""
     if expr.type == "group":
         conditions = []

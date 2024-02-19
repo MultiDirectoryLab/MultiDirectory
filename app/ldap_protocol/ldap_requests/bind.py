@@ -45,11 +45,11 @@ class AbstractLDAPAuth(ABC, BaseModel):
         """Abstract method id."""
 
     @abstractmethod
-    def is_valid(self, user: User):
+    def is_valid(self, user: User) -> bool:
         """Validate state."""
 
     @abstractmethod
-    def is_anonymous(self):
+    def is_anonymous(self) -> bool:
         """Return true if anonymous."""
 
 
@@ -86,6 +86,7 @@ class SaslAuthentication(AbstractLDAPAuth):
 
     mechanism: SASLMethod
     credentials: bytes
+    otpassword: str | None = Field(None, max_length=6, min_length=6)
 
 
 class BindRequest(BaseRequest):
@@ -99,9 +100,11 @@ class BindRequest(BaseRequest):
         Field(..., alias='AuthenticationChoice')
 
     @classmethod
-    def from_data(cls, data) -> 'BindRequest':
+    def from_data(cls, data: ASN1Row) -> 'BindRequest':
         """Get bind from data dict."""
         auth = data[2].tag_id.value
+
+        otpassword: str | None
 
         if auth == SimpleAuthentication.METHOD_ID:
             payload: str = data[2].value
@@ -138,7 +141,8 @@ class BindRequest(BaseRequest):
     )
 
     @staticmethod
-    async def is_user_group_valid(user, ldap_session, session) -> bool:
+    async def is_user_group_valid(
+            user: User, ldap_session: Session, session: AsyncSession) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
 
@@ -163,7 +167,7 @@ class BindRequest(BaseRequest):
             Attribute.directory_id == user.directory_id,
             Attribute.name == 'pwdLastSet',
             Attribute.value == '0',
-        )))
+        )))  # type: ignore
 
         if required_pwd_change:
             yield BindResponse(
@@ -184,7 +188,7 @@ class BindRequest(BaseRequest):
                     check_group = await session.scalar(select(exists().where(
                         Group.mfa_policies.contains(policy),
                         Group.users.contains(user),
-                    )))
+                    )))  # type: ignore
 
                 if check_group:
                     mfa_status = await ldap_session.check_mfa(

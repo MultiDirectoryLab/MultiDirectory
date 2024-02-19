@@ -4,8 +4,8 @@ from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 
+from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -28,7 +28,7 @@ class DeleteRequest(BaseRequest):
     entry: str
 
     @classmethod
-    def from_data(cls, data):  # noqa: D102
+    def from_data(cls, data: ASN1Row) -> 'DeleteRequest':  # noqa: D102
         return cls(entry=data)
 
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \

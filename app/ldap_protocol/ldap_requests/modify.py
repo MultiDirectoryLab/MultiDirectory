@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Operation, Session
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -51,7 +52,7 @@ class ModifyRequest(BaseRequest):
     changes: list[Changes]
 
     @classmethod
-    def from_data(cls, data):  # noqa: D102
+    def from_data(cls, data: ASN1Row) -> 'ModifyRequest':  # noqa: D102
         entry, proto_changes = data
 
         changes = []
@@ -136,7 +137,7 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         session: AsyncSession,
         name_only: bool = False,
-    ):
+    ) -> None:
         attrs = []
         name = change.modification.type.lower()
 
@@ -179,7 +180,7 @@ class ModifyRequest(BaseRequest):
         self, change: Changes,
         directory: Directory,
         session: AsyncSession,
-    ):
+    ) -> None:
         attrs = []
         name = change.modification.type.lower()
 
