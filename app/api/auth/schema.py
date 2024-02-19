@@ -77,7 +77,7 @@ class SetupRequest(BaseModel):
     password: str
 
     @validator('domain')
-    def validate_domain(cls, v):  # noqa
+    def validate_domain(cls, v: str) -> str:  # noqa
         if re.match(domain_re, v) is None:
             raise ValueError('Invalid domain value')
         return v.lower().replace('http://', '').replace('https://', '')

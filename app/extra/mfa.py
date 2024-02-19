@@ -6,7 +6,7 @@ from loguru import logger
 from websockets.sync.client import connect
 
 
-def main():  # noqa
+def main() -> None:  # noqa
 
     with connect('ws://api.localhost/api/multifactor/connect') as conn:
         logger.info(json.loads(conn.recv()))

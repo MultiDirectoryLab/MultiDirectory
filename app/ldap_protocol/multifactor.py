@@ -3,7 +3,7 @@ import asyncio
 import uuid
 from collections import namedtuple
 from json import JSONDecodeError
-from typing import Annotated
+from typing import Annotated, AsyncIterator, Optional
 
 import httpx
 from fastapi import Depends
@@ -63,7 +63,7 @@ async def get_auth_ldap(
     return await _get_creds(session, 'mfa_key_ldap', 'mfa_secret_ldap')
 
 
-async def get_client():
+async def get_client() -> AsyncIterator[httpx.AsyncClient]:
     """Get async client for DI."""
     async with httpx.AsyncClient(timeout=4) as client:
         yield client
@@ -93,7 +93,7 @@ class MultifactorAPI:
         """
         self.client = client
         self.settings = settings
-        self.auth: tuple[str] = (key, secret)
+        self.auth: tuple[str, str] = (key, secret)
 
     @staticmethod
     def _generate_trace_id_header() -> dict[str, str]:
@@ -206,7 +206,7 @@ class MultifactorAPI:
         credentials: Annotated[Creds | None, Depends(get_auth)],
         client: Annotated[httpx.AsyncClient, Depends(get_client)],
         settings: Annotated[Settings, Depends(get_settings)],
-    ) -> 'MultifactorAPI':
+    ) -> Optional['MultifactorAPI']:
         """Get api from DI.
 
         :param httpx.AsyncClient client: httpx client
