@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
-from ldap_protocol.utils import get_user, is_user_group_valid
+from ldap_protocol.utils import (
+    get_user, is_user_group_valid, set_last_logon_user,
+)
 from models.ldap3 import Attribute, Group, MFAFlags, User
 from security import verify_password
 
@@ -195,6 +197,7 @@ class BindRequest(BaseRequest):
                         return
 
         await ldap_session.set_user(user)
+        await set_last_logon_user(user, session)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
 

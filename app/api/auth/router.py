@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings, get_settings
 from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.utils import get_base_dn
+from ldap_protocol.utils import get_base_dn, set_last_logon_user
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
 from models.ldap3 import User as DBUser
@@ -80,6 +80,8 @@ async def login_for_access_token(
         expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
         grant_type='refresh',
     )
+
+    await set_last_logon_user(user, session)
 
     return Token(
         access_token=access_token,
