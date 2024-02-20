@@ -123,6 +123,9 @@ class ModifyRequest(BaseRequest):
                         await self._add(
                             change, directory, session, ldap_session)
 
+            await session.execute(
+                update(Directory).where(Directory.id == directory.id),
+            )
                 await session.commit()
             except IntegrityError:
                 await session.rollback()
