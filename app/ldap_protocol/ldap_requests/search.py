@@ -31,6 +31,7 @@ from ldap_protocol.utils import (
     get_base_dn,
     get_generalized_now,
     get_object_classes,
+    get_windows_timestamp,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
 
@@ -394,6 +395,13 @@ class SearchRequest(BaseRequest):
             attrs['whenCreated'].append(
                 directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
             )
+
+            if directory.last_logon is None:
+                attrs['lastLogon'].append(0)
+            else:
+                attrs['lastLogon'].append(
+                    get_windows_timestamp(directory.last_logon),
+                )
 
             if self.member_of:
                 if 'group' in attrs['objectClass'] and (
