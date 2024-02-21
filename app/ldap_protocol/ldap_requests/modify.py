@@ -17,6 +17,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
 from models.ldap3 import Attribute, Directory, Group, Path, User
+from security import get_password_hash
 
 from .base import BaseRequest
 
@@ -210,6 +211,17 @@ class ModifyRequest(BaseRequest):
                     update(Group)
                     .filter(Group.directory == directory)
                     .values({name: value}))
+
+            elif name == "userpassword" and directory.user:
+                directory.user.password = get_password_hash(value)
+                await session.execute(  # update bind reject attribute
+                    update(Attribute)
+                    .values({'value': '1'})
+                    .where(
+                        Attribute.directory_id == directory.user.directory_id,
+                        Attribute.name == 'pwdLastSet',
+                        Attribute.value == '0',
+                    ))
 
             else:
                 attrs.append(Attribute(
