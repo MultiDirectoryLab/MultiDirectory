@@ -2,7 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager, suppress
-from typing import Any, AsyncGenerator, AsyncIterator, Generator, Annotated
+from typing import Annotated, Any, AsyncGenerator, AsyncIterator, Generator
 
 import httpx
 import ldap3
