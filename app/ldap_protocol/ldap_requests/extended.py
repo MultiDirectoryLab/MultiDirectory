@@ -16,7 +16,7 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.utils import get_user
-from models import Attribute, User, Directory
+from models import Attribute, Directory, User
 from security import get_password_hash, verify_password
 
 from .base import BaseRequest

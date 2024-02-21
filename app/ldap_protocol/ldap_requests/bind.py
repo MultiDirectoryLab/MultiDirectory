@@ -11,7 +11,9 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.utils import (
-    get_user, is_user_group_valid, set_last_logon_user,
+    get_user,
+    is_user_group_valid,
+    set_last_logon_user,
 )
 from models.ldap3 import Attribute, Group, MFAFlags, User
 from security import verify_password
