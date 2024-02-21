@@ -71,7 +71,7 @@ DATA = [  # noqa
                     "mail": "username2@multifactor.dev",
                     "display_name": "User 2",
                     "password": "password",
-                    "groups": ['administrators', 'operators']
+                    "groups": ['administrators', 'operators'],
                 },
                 "attributes": {"objectClass": [
                     "top", "person",
@@ -188,6 +188,17 @@ TEST_DATA = [  # noqa
                     'sAMAccountType': ['268435456'],
                 },
             },
+            {
+                "name": "developers",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top"],
+                    'groupType': ['-2147483646'],
+                    'instanceType': ['4'],
+                    'sAMAccountName': ['developers'],
+                    'sAMAccountType': ['268435456'],
+                },
+            },
         ],
     },
     {
@@ -212,6 +223,47 @@ TEST_DATA = [  # noqa
                         "organizationalPerson", "posixAccount"],
                     "posixEmail": ["abctest@mail.com"],
                 },
+            },
+            {
+                "name": "russia",
+                "object_class": "organizationalUnit",
+                "attributes": {
+                    "objectClass": ["top"],
+                    'sAMAccountName': ['groups'],
+                },
+                "children": [
+                    {
+                        "name": "moscow",
+                        "object_class": "organizationalUnit",
+                        "attributes": {
+                            "objectClass": ["top"],
+                            'sAMAccountName': ['groups'],
+                        },
+                        "children": [
+                            {
+                                "name": "user1",
+                                "object_class": "user",
+                                "organizationalPerson": {
+                                    "sam_accout_name": "user1",
+                                    "user_principal_name": "user1",
+                                    "mail": "user1@mail.com",
+                                    "display_name": "user1",
+                                    "password": "password",
+                                    "groups": ['developers'],
+                                },
+                                "attributes": {
+                                    "objectClass": [
+                                        "top",
+                                        "person",
+                                        "organizationalPerson",
+                                        "posixAccount",
+                                    ],
+                                    "posixEmail": ["user1@mail.com"],
+                                },
+                            },
+                        ],
+                    },
+                ],
             },
         ],
     },
