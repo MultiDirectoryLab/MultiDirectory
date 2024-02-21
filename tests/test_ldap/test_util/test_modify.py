@@ -10,17 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from app.config import Settings
-from app.extra import TEST_DATA
 from app.models.ldap3 import Directory, Group, Path, User
+from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_base_modify(
-        session: AsyncSession, settings: Settings) -> None:
+        session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
-    user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     query = select(Directory)\
@@ -94,10 +92,8 @@ async def test_ldap_base_modify(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_delete(
-        session: AsyncSession, settings: Settings) -> None:
+        session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
-    user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
@@ -140,10 +136,8 @@ async def test_ldap_membersip_user_delete(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_add(
-        session: AsyncSession, settings: Settings) -> None:
+        session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
-    user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
@@ -190,10 +184,8 @@ async def test_ldap_membersip_user_add(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_replace(
-        session: AsyncSession, settings: Settings) -> None:
+        session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
-    user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
@@ -262,10 +254,8 @@ async def test_ldap_membersip_user_replace(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_grp_replace(
-        session: AsyncSession, settings: Settings) -> None:
+        session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
-    user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
     dn = "cn=domain admins,cn=groups,dc=md,dc=test"
 
     membership = selectinload(Directory.group).selectinload(
@@ -332,10 +322,8 @@ async def test_ldap_membersip_grp_replace(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_modify_dn(
-        session: AsyncSession, settings: Settings) -> None:
+        session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
-    user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
@@ -362,3 +350,42 @@ async def test_ldap_modify_dn(
         .join(Directory.path).filter(Path.path == ["ou=users", "uid=user1"])
 
     assert await session.scalar(query)
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('_force_override_tls')
+async def test_ldap_modify_password_change(
+        settings: Settings, creds: TestCreds) -> None:
+    """Test ldapmodify on server."""
+    dn = "cn=user0,ou=users,dc=md,dc=test"
+    new_password = "password12345"  # noqa
+
+    with tempfile.NamedTemporaryFile("w") as file:
+        file.write((
+            f"dn: {dn}\n"
+            "changetype: modify\n"
+            "replace: userPassword\n"
+            f"userPassword: {new_password}\n"
+            "-\n"
+        ))
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            'ldapmodify',
+            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-D', creds.un, '-x', '-w', creds.pw,
+            '-f', file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+
+        result = await proc.wait()
+
+    assert result == 0
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-D', creds.un, '-x', '-w', new_password)
+
+    result = await proc.wait()
+    assert result == 0
