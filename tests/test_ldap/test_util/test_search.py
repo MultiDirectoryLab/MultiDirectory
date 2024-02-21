@@ -1,3 +1,5 @@
+"""Test search with ldaputil."""
+
 import asyncio
 from ipaddress import IPv4Address
 
@@ -8,24 +10,21 @@ from sqlalchemy.orm import selectinload
 
 from app.__main__ import PoolClientHandler
 from app.config import Settings
-from app.extra import TEST_DATA
 from app.ldap_protocol.utils import get_group, get_groups, is_user_group_valid
 from app.models.ldap3 import User
+from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_ldap_search(settings: Settings) -> None:
+async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
-    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
-    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
         '-vvv', '-x', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
-        '-D', un,
-        '-w', pw,
+        '-D', creds.un,
+        '-w', creds.pw,
         '-b', 'dc=md,dc=test', 'objectclass=*',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
@@ -45,11 +44,9 @@ async def test_ldap_search(settings: Settings) -> None:
 async def test_bind_policy(
         handler: PoolClientHandler,
         session: AsyncSession,
-        settings: Settings) -> None:
+        settings: Settings,
+        creds: TestCreds) -> None:
     """Bind with policy."""
-    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
-    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
     policy = await handler.get_policy(IPv4Address('127.0.0.1'))
     assert policy
 
@@ -61,7 +58,7 @@ async def test_bind_policy(
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
         '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
-        '-D', un, '-x', '-w', pw)
+        '-D', creds.un, '-x', '-w', creds.pw)
 
     result = await proc.wait()
     assert result == 0
@@ -72,11 +69,9 @@ async def test_bind_policy(
 async def test_bind_policy_missing_group(
         handler: PoolClientHandler,
         session: AsyncSession,
-        settings: Settings) -> None:
+        settings: Settings,
+        creds: TestCreds) -> None:
     """Bind policy fail."""
-    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
-    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
     policy = await handler.get_policy(IPv4Address('127.0.0.1'))
 
     assert policy
@@ -97,7 +92,7 @@ async def test_bind_policy_missing_group(
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
         '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
-        '-D', un, '-x', '-w', pw)
+        '-D', creds.un, '-x', '-w', creds.pw)
 
     result = await proc.wait()
     assert result == 49
@@ -106,16 +101,13 @@ async def test_bind_policy_missing_group(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_ldap_bind(settings: Settings) -> None:
+async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
-    un = TEST_DATA[1]['children'][0]['organizationalPerson']['sam_accout_name']
-    pw = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
         '-vvv', '-x', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
-        '-D', un,
-        '-w', pw,
+        '-D', creds.un,
+        '-w', creds.pw,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 

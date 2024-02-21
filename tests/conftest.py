@@ -2,7 +2,15 @@
 
 import asyncio
 from contextlib import asynccontextmanager, suppress
-from typing import Annotated, Any, AsyncGenerator, AsyncIterator, Generator
+from dataclasses import dataclass
+from typing import (
+    Annotated,
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Generator,
+    Iterator,
+)
 
 import httpx
 import ldap3
@@ -20,6 +28,16 @@ from app.extra import TEST_DATA, setup_enviroment
 from app.ldap_protocol.dialogue import Session
 from app.models.database import Base, get_engine
 from app.web_app import create_app, get_session
+
+
+@dataclass
+class TestCreds:
+    """Test credentials class."""
+
+    __test__ = False
+
+    un: str
+    pw: str
 
 
 class TestHandler(PoolClientHandler):  # noqa
@@ -180,13 +198,31 @@ async def http_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
 
 
 @pytest_asyncio.fixture(scope='function')
-async def login_headers(http_client: httpx.AsyncClient) -> dict:
+async def login_headers(
+        http_client: httpx.AsyncClient, creds: TestCreds) -> dict:
     """Get ldap clinet without a creds."""
-    user = TEST_DATA[1]['children'][0][
-        'organizationalPerson']['sam_accout_name']
-    password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
     auth = await http_client.post("auth/token/get", data={
-        "username": user, "password": password})
+        "username": creds.un, "password": creds.pw})
 
     return {'Authorization': f"Bearer {auth.json()['access_token']}"}
+
+
+@pytest.fixture()
+def creds(user: dict) -> TestCreds:
+    """Get creds from test data."""
+    return TestCreds(user['sam_accout_name'], user['password'])
+
+
+@pytest.fixture()
+def user() -> dict:
+    """Get user data."""
+    return TEST_DATA[1]['children'][0]['organizationalPerson']  # type: ignore
+
+
+@pytest.fixture()
+def _force_override_tls(settings: Settings) -> Iterator:
+    """Override tls status for tests."""
+    current_status = settings.USE_CORE_TLS
+    settings.USE_CORE_TLS = True
+    yield
+    settings.USE_CORE_TLS = current_status
