@@ -1,31 +1,29 @@
 """Test password change."""
 
-from asyncio import BaseEventLoop
+import asyncio
 from functools import partial
 
 import pytest
 from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import Settings
-from app.extra import TEST_DATA
 from app.ldap_protocol.utils import get_user
 from app.security import verify_password
+from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('_force_override_tls')
 async def test_anonymous_pwd_change(
     session: AsyncSession,
-    event_loop: BaseEventLoop,
+    event_loop: asyncio.BaseEventLoop,
     ldap_client: Connection,
-    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test anonymous pwd change."""
-    settings.USE_CORE_TLS = True
-
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
-    password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+    password = creds.pw
     new_test_password = 'password123'  # noqa
     await event_loop.run_in_executor(None, ldap_client.bind)
 
@@ -47,22 +45,19 @@ async def test_anonymous_pwd_change(
 
     await event_loop.run_in_executor(None, ldap_client.unbind)
 
-    settings.USE_CORE_TLS = False
-
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('_force_override_tls')
 async def test_bind_pwd_change(
     session: AsyncSession,
-    event_loop: BaseEventLoop,
+    event_loop: asyncio.BaseEventLoop,
     ldap_client: Connection,
-    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test anonymous pwd change."""
-    settings.USE_CORE_TLS = True
-
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
-    password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
+    password = creds.pw
     new_test_password = 'password123'  # noqa
     await event_loop.run_in_executor(
         None, partial(ldap_client.rebind, user=user_dn, password=password))
@@ -84,5 +79,3 @@ async def test_bind_pwd_change(
     assert verify_password(new_test_password, user.password)
 
     await event_loop.run_in_executor(None, ldap_client.unbind)
-
-    settings.USE_CORE_TLS = False

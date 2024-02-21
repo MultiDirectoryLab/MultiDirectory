@@ -8,7 +8,6 @@ import pytest
 from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.extra import TEST_DATA
 from app.ldap_protocol.dialogue import Session
 from app.ldap_protocol.ldap_requests.bind import (
     BindRequest,
@@ -19,6 +18,7 @@ from app.ldap_protocol.ldap_requests.bind import (
 )
 from app.models.ldap3 import Directory, User
 from app.security import get_password_hash
+from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio()
@@ -133,12 +133,10 @@ async def test_anonymous_unbind(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap3_bind(
-        ldap_client: Connection, event_loop: BaseEventLoop) -> None:
+        ldap_client: Connection,
+        event_loop: BaseEventLoop,
+        creds: TestCreds) -> None:
     """Test ldap3 bind."""
-    user = TEST_DATA[1]['children'][0][
-        'organizationalPerson']['sam_accout_name']
-    password = TEST_DATA[1]['children'][0]['organizationalPerson']['password']
-
     assert not ldap_client.bound
 
     result = await event_loop.run_in_executor(None, ldap_client.bind)
@@ -146,7 +144,7 @@ async def test_ldap3_bind(
     assert ldap_client.bound
 
     result = await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=user, password=password))
+        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw))
     assert result
     assert ldap_client.bound
 
