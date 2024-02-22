@@ -244,12 +244,6 @@ async def set_last_logon_user(user: User, session: AsyncSession) -> None:
     await session.commit()
 
 
-def get_windows_timestamp(value: float | int | datetime) -> int:
+def get_windows_timestamp(value: datetime) -> int:
     """Get the Windows timestamp from the value."""
-    if isinstance(value, datetime):
-        value = value.timestamp()
-
-    if isinstance(value, float):
-        value = int(value)
-
-    return (value + 11644473600) * 10000000
+    return (int(value.timestamp()) + 11644473600) * 10000000
