@@ -235,10 +235,10 @@ def create_integer_hash(text: str, size: int = 9) -> int:
 async def set_last_logon_user(user: User, session: AsyncSession) -> None:
     """Update lastLogon attr."""
     await session.execute(
-        update(Directory).values(
+        update(User).values(
             {"last_logon": func.now()},
         ).where(
-            Directory.id == user.directory_id,
+            User.id == user.id,
         ),
     )
     await session.commit()
