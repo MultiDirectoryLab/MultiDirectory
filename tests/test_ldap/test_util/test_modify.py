@@ -330,7 +330,7 @@ async def test_ldap_modify_dn(
         file.write((
             f"dn: {dn}\n"
             "changetype: modrdn\n"
-            "newrdn: uid=user1\n"
+            "newrdn: cn=user2\n"
             "deleteoldrdn: 1\n"
             "newsuperior: ou=users,dc=md,dc=test\n"
         ))
@@ -347,7 +347,7 @@ async def test_ldap_modify_dn(
         assert res == 0
 
     query = select(Directory)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "uid=user1"])
+        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user2"])
 
     assert await session.scalar(query)
 

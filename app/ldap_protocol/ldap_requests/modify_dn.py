@@ -2,7 +2,6 @@
 
 from typing import AsyncGenerator, ClassVar
 
-from loguru import logger
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -15,7 +14,7 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.utils import get_base_dn
-from models.ldap3 import Attribute, Directory, Path
+from models.ldap3 import Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
 
@@ -115,6 +114,7 @@ class ModifyDNRequest(BaseRequest):
                 object_class='',
                 name=self.newrdn.split('=')[1],
                 parent=new_base_directory,
+                depth=len(new_base_directory.path.path)+1,
             )
             new_path = new_directory.create_path(new_base_directory)
 
@@ -132,24 +132,20 @@ class ModifyDNRequest(BaseRequest):
                 .values({Path.path[directory.depth]: self.newrdn})\
                 .where(Path.directories.any(id=directory.id))
 
-            from sqlalchemy.dialects import postgresql
-
-            logger.debug(q.compile(
-                dialect=postgresql.dialect(),  # type: ignore
-                compile_kwargs={"literal_binds": True}))  # noqa
-
             await session.execute(
                 q, execution_options={"synchronize_session": 'fetch'})
 
             await session.commit()
 
         async with session.begin_nested():
-            await session.execute(
-                update(Attribute)
-                .where(Attribute.directory == directory)
-                .values(directory_id=new_directory.id))
-            await session.commit()
+            for model in DirectoryReferenceMixin.__subclasses__():
+                await session.execute(
+                    update(model)
+                    .where(model.directory_id == directory.id)
+                    .values(directory_id=new_directory.id))
 
+        await session.refresh(directory)
         await session.delete(directory)
+        await session.commit()
 
         yield ModifyDNResponse(result_code=LDAPCodes.SUCCESS)

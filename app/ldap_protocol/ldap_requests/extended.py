@@ -16,7 +16,7 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.utils import get_user
-from models import Attribute, User
+from models import Attribute, Directory, User
 from security import get_password_hash, verify_password
 
 from .base import BaseRequest
@@ -95,6 +95,9 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                     Attribute.name == 'pwdLastSet',
                     Attribute.value == '0',
                 ))
+            await session.execute(
+                update(Directory).where(Directory.id == user.directory_id),
+            )
             await session.commit()
             return PasswdModifyResponse()
         raise PermissionError('No user provided')

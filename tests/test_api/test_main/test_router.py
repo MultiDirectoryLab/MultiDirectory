@@ -405,13 +405,21 @@ async def test_api_delete_non_exist_object(
 async def test_api_correct_update_dn(
         http_client: AsyncClient, login_headers: dict) -> None:
     """Test API for update DN."""
+    old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    new_user_dn = "cn=new_test2,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    newrdn_user, new_superior_user = new_user_dn.split(',', maxsplit=1)
+
+    old_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
+    new_group_dn = "cn=new_developers,cn=groups,dc=md,dc=test"
+    newrdn_group, new_superior_group = new_group_dn.split(',', maxsplit=1)
+
     response = await http_client.put(
         "/entry/update/dn",
         json={
-            "entry": "cn=test,dc=md,dc=test",
-            "newrdn": "cn=new_test",
+            "entry": old_user_dn,
+            "newrdn": newrdn_user,
             "deleteoldrdn": True,
-            "new_superior": "dc=md,dc=test",
+            "new_superior": new_superior_user,
         },
         headers=login_headers,
     )
@@ -420,6 +428,63 @@ async def test_api_correct_update_dn(
 
     assert isinstance(data, dict)
     assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.put(
+        "/entry/update/dn",
+        json={
+            "entry": old_group_dn,
+            "newrdn": newrdn_group,
+            "deleteoldrdn": True,
+            "new_superior": new_superior_group,
+        },
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 3,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": False,
+            "filter": "(objectClass=*)",
+            "attributes": ['memberOf'],
+        },
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    for entry in data['search_result']:
+        assert entry['object_name'] != old_user_dn
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": new_user_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 0,
+            "time_limit": 0,
+            "types_only": False,
+            "filter": "(objectClass=*)",
+            "attributes": ['memberOf'],
+        },
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'memberOf':
+            assert attr['vals'][0] == new_group_dn
 
 
 @pytest.mark.asyncio()

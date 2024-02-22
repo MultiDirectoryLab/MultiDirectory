@@ -163,7 +163,9 @@ class Directory(Base):
 
     ro_fields = {
         "uid",
-        "created_at",
+        "whenCreated",
+        "lastLogon",
+        "authTimestamp",
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
@@ -229,6 +231,11 @@ class User(DirectoryReferenceMixin, Base):
     userprincipalname: str = synonym('user_principal_name')
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
+    last_logon = Column(
+        'lastLogon',
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     search_fields = {
         'mail': 'mail',
