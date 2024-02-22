@@ -178,6 +178,10 @@ class ModifyDNResponse(LDAPResult, BaseResponse):
 class BaseExtendedResponseValue(ABC, BaseEncoder):
     """Base extended response proxy class."""
 
+    @abstractmethod
+    def get_value(self) -> str | None:
+        """Get response value."""
+
 
 class ExtendedResponse(LDAPResult, BaseResponse):
     """Described in RFC 4511 section 4.12.
@@ -197,8 +201,9 @@ class ExtendedResponse(LDAPResult, BaseResponse):
         enc.write(self.result_code, type_map[type(self.result_code)])
         enc.write(self.matched_dn, type_map[type(self.matched_dn)])
         enc.write(self.error_message, type_map[type(self.error_message)])
-        # NOTE: docs requires name and value but clients ignores it
 
+        if self.response_value and (value := self.response_value.get_value()):
+            enc.write(value, type_map[type(value)])
 
 # 15: 'compare Response'
 # 19: 'Search Result Reference'
