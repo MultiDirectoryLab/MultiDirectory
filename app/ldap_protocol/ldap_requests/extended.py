@@ -40,6 +40,13 @@ class BaseExtendedValue(ABC, BaseModel):
             BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
+    @staticmethod
+    def _decode_value(data: ASN1Row) -> ASN1Row:
+        dec = Decoder()
+        dec.start(data[1].value)
+        output = asn1todict(dec)
+        return output[0].value
+
 
 class WhoAmIResponse(BaseExtendedResponseValue):
     """WhoAmI response.
@@ -159,6 +166,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     def from_data(cls, data: ASN1Row) -> \
             'PasswdModifyRequestValue':
         """Create model from data, decoded from responseValue bytes."""
+        data = cls._decode_value(data)
         if len(data) == 3:
             return cls(
                 user_identity=data[0].value,
@@ -220,16 +228,7 @@ class ExtendedRequest(BaseRequest):
         """
         oid = data[0].value
         ext_request = EXTENDED_REQUEST_OID_MAP[oid]
-
-        value = None
-
-        if len(data) > 1:
-            dec = Decoder()
-            dec.start(data[1].value)
-            output = asn1todict(dec)
-            value = output[0].value
-
         return cls(
             request_name=oid,
-            request_value=ext_request.from_data(value),
+            request_value=ext_request.from_data(data),
         )
