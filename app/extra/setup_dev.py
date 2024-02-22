@@ -56,7 +56,6 @@ async def _create_dir(
         path = dir_.create_path(dn=dir_.get_dn_prefix())
 
         async with session.begin_nested():
-            logger.debug(f"creating {dir_.object_class}:{dir_.name}")
             session.add_all([dir_, path])
             dir_.paths.append(path)
             dir_.depth = len(path.path)
@@ -69,8 +68,6 @@ async def _create_dir(
         path = dir_.create_path(parent, dir_.get_dn_prefix())
 
         async with session.begin_nested():
-            logger.debug(
-                f"creating {dir_.object_class}:{dir_.name}:{dir_.parent.id}")
             session.add_all([dir_, path])
             path.directories.extend(
                 [p.endpoint for p in parent.paths + [path]])
