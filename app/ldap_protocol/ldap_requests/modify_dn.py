@@ -114,6 +114,7 @@ class ModifyDNRequest(BaseRequest):
                 object_class='',
                 name=self.newrdn.split('=')[1],
                 parent=new_base_directory,
+                depth=len(new_base_directory.path.path)+1,
             )
             new_path = new_directory.create_path(new_base_directory)
 
@@ -136,8 +137,8 @@ class ModifyDNRequest(BaseRequest):
 
             await session.commit()
 
-        for model in DirectoryReferenceMixin.__subclasses__():
-            async with session.begin_nested():
+        async with session.begin_nested():
+            for model in DirectoryReferenceMixin.__subclasses__():
                 await session.execute(
                     update(model)
                     .where(model.directory_id == directory.id)
