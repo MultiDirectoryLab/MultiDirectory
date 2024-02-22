@@ -13,12 +13,13 @@ from io import BytesIO
 from ipaddress import IPv4Address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
-from typing import cast
+from typing import AsyncIterator, cast
 
 import uvloop
 from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from config import Settings
@@ -90,7 +91,7 @@ class PoolClientHandler:
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
-    ):
+    ) -> None:
         """Create session, queue and start message handlers concurrently."""
         async with Session(
                 reader, writer, settings=self.settings) as ldap_session:
@@ -199,7 +200,7 @@ class PoolClientHandler:
                 return value_length + 2 + bytes_length
         return infinity
 
-    async def _handle_request(self, ldap_session: Session):
+    async def _handle_request(self, ldap_session: Session) -> None:
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
@@ -230,12 +231,12 @@ class PoolClientHandler:
                 await ldap_session.queue.put(request)
 
     @asynccontextmanager
-    async def create_session(self):
+    async def create_session(self) -> AsyncIterator[AsyncSession]:
         """Create session for request."""
         async with self.AsyncSessionFactory() as session:
             yield session
 
-    async def _handle_single_response(self, ldap_session: Session):
+    async def _handle_single_response(self, ldap_session: Session) -> None:
         """Get message from queue and handle it."""
         while True:
             try:
@@ -256,7 +257,7 @@ class PoolClientHandler:
             except Exception as err:
                 raise RuntimeError(err) from err
 
-    async def _handle_responses(self, ldap_session: Session):
+    async def _handle_responses(self, ldap_session: Session) -> None:
         """Create pool of workers and apply handler to it.
 
         Spawns (default 5) workers,
@@ -276,17 +277,17 @@ class PoolClientHandler:
         )
 
     @staticmethod
-    async def _run_server(server: asyncio.base_events.Server):
+    async def _run_server(server: asyncio.base_events.Server) -> None:
         """Run server."""
         async with server:
             await server.serve_forever()
 
     @staticmethod
-    def log_addrs(server: asyncio.base_events.Server):  # noqa
+    def log_addrs(server: asyncio.base_events.Server) -> None:  # noqa
         addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
         logger.info(f'Server on {addrs}')
 
-    async def start(self):
+    async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
         self.log_addrs(server)

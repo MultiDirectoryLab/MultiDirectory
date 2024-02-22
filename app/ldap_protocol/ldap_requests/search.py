@@ -17,7 +17,7 @@ from sqlalchemy.sql.expression import Select
 from config import VENDOR_NAME, VENDOR_VERSION
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
-from ldap_protocol.filter_interpreter import cast_filter2sql
+from ldap_protocol.filter_interpreter import BoundQ, cast_filter2sql
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     PartialAttribute,
@@ -31,6 +31,7 @@ from ldap_protocol.utils import (
     get_base_dn,
     get_generalized_now,
     get_object_classes,
+    get_windows_timestamp,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
 
@@ -87,7 +88,8 @@ class SearchRequest(BaseRequest):
         ignored_types = (cached_property,)
 
     @classmethod
-    def from_data(cls, data):  # noqa: D102
+    def from_data(   # noqa: D102
+            cls, data: dict[str, list[ASN1Row]]) -> 'SearchRequest':
         (
             base_object,
             scope,
@@ -97,7 +99,7 @@ class SearchRequest(BaseRequest):
             types_only,
             filter_,
             attributes,
-        ) = data[:8]
+        ) = data[:8]  # type: ignore
 
         return cls(
             base_object=base_object.value,
@@ -111,7 +113,7 @@ class SearchRequest(BaseRequest):
         )
 
     @cached_property
-    def requested_attrs(self):  # noqa
+    def requested_attrs(self) -> list[str]:  # noqa
         return [attr.lower() for attr in self.attributes]
 
     async def get_root_dse(
@@ -171,7 +173,7 @@ class SearchRequest(BaseRequest):
         ]
         return data
 
-    def _get_subschema(self, dn):
+    def _get_subschema(self, dn: str) -> SearchResultEntry:
         attrs = defaultdict(list)
         attrs['name'].append('Schema')
         attrs['objectClass'].append('subSchema')
@@ -187,10 +189,10 @@ class SearchRequest(BaseRequest):
                 for key, value in attrs.items()])
 
     @staticmethod
-    def _get_full_dn(path: Path, dn) -> str:
+    def _get_full_dn(path: Path, dn: str) -> str:
         return ','.join(reversed(path.path)) + ',' + dn
 
-    def cast_filter(self, filter_, query):
+    def cast_filter(self, filter_: ASN1Row, query: Select) -> BoundQ:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
         :param ASN1Row filter_: requested filter_
@@ -213,7 +215,9 @@ class SearchRequest(BaseRequest):
             async for response in self.get_result(bool(user), session):
                 yield response
 
-    async def get_result(self, user_logged: bool, session: AsyncSession):
+    async def get_result(
+            self, user_logged: bool,
+            session: AsyncSession) -> AsyncGenerator[SearchResultDone, None]:
         """Create response.
 
         :param bool user_logged: is user in session
@@ -292,14 +296,14 @@ class SearchRequest(BaseRequest):
         return None
 
     @cached_property
-    def member_of(self):  # noqa
+    def member_of(self) -> bool:  # noqa
         return 'memberof' in self.requested_attrs or self.all_attrs
 
     @cached_property
-    def all_attrs(self):  # noqa
+    def all_attrs(self) -> bool:  # noqa
         return '*' in self.requested_attrs or not self.requested_attrs
 
-    def build_query(self, dn) -> Select:
+    def build_query(self, dn: str) -> Select:
         """Build tree query."""
         query = select(  # noqa: ECE001
             Directory)\
@@ -370,7 +374,9 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
-    async def tree_view(self, query, session: AsyncSession):
+    async def tree_view(
+            self, query: Select,
+            session: AsyncSession) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
         dn = await get_base_dn(session)
@@ -386,6 +392,18 @@ class SearchRequest(BaseRequest):
             distinguished_name = self._get_full_dn(directory.path, dn)
 
             attrs['distinguishedName'].append(distinguished_name)
+            attrs['whenCreated'].append(
+                directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
+            )
+
+            if directory.user:
+                if directory.user.last_logon is None:
+                    attrs['lastLogon'].append(0)
+                else:
+                    attrs['lastLogon'].append(
+                        get_windows_timestamp(directory.user.last_logon),
+                    )
+                    attrs['authTimestamp'].append(directory.user.last_logon)
 
             if self.member_of:
                 if 'group' in attrs['objectClass'] and (

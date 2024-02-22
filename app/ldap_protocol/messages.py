@@ -66,7 +66,7 @@ class LDAPRequestMessage(LDAPMessage):
     context: SerializeAsAny[BaseRequest]
 
     @classmethod
-    def from_bytes(cls, source: bytes):
+    def from_bytes(cls, source: bytes) -> 'LDAPRequestMessage':
         """Create message from bytes."""
         dec = Decoder()
         dec.start(source)

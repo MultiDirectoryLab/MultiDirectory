@@ -5,17 +5,17 @@ import tempfile
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.extra import TEST_DATA
+from app.config import Settings
 from app.models.ldap3 import Directory
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_ldap_delete(session, settings):
+async def test_ldap_delete(
+        session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapdelete on server."""
-    user = TEST_DATA[1]['children'][0]['organizationalPerson']
-
     dn = "cn=test,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:

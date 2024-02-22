@@ -1,11 +1,15 @@
 """MFA methods."""
 
 import asyncio
+from asyncio import Queue
+from typing import Any, Iterable
 
 import httpx
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.datastructures import URL
 
 from app.api.auth.oauth2 import authenticate_user, create_token
 from app.api.auth.router_mfa import get_queue_pool, two_factor_protocol
@@ -14,50 +18,57 @@ from app.ldap_protocol.multifactor import MultifactorAPI, get_auth
 from app.models import CatalogueSetting
 
 
-class StubWebSocket:
+class StubWebSocket(WebSocket):
     """Stub interface for WebSocket."""
 
     def __init__(self) -> None:
         """Set 3 channels."""
-        self.q = asyncio.Queue(maxsize=1)
-        self.q1 = asyncio.Queue(maxsize=1)
-        self.q2 = asyncio.Queue(maxsize=1)
+        self.q: Queue[dict] = Queue(maxsize=1)
+        self.q1: Queue[dict] = Queue(maxsize=1)
+        self.q2: Queue[tuple[int, str | None]] = Queue(maxsize=1)
 
-    async def accept(self):
+    async def accept(
+        self,
+        subprotocol: str | None = ...,
+        headers: Iterable[tuple[bytes, bytes]] | None = ...,
+    ) -> None:
         """Stub signal method."""
 
-    async def close(self, code=1000, data=None):
+    async def close(self, code: int = 1000, reason: str | None = None) -> None:
         """Server side interface."""
-        await self.q2.put((code, data))
+        await self.q2.put((code, reason))
 
-    async def send_json(self, data):
+    async def send_json(self, data: Any, mode: str = "text") -> None:
         """Server side interface."""
         await self.q1.put(data)
 
-    async def receive_json(self):
+    async def receive_json(self, mode: str = "text") -> dict:
         """Server side interface."""
         return await self.q.get()
 
-    async def catch_close(self):
+    async def catch_close(self) -> tuple[int, str | None]:
         """Client side interface."""
         return await self.q2.get()
 
-    async def client_send_json(self, data):
+    async def client_send_json(self, data: dict) -> None:
         """Client side interface."""
         await self.q.put(data)
 
-    async def client_receive_json(self):
+    async def client_receive_json(self) -> dict:
         """Client side interface."""
         return await self.q1.get()
 
-    def url_for(self, url):
+    def url_for(self, __name: str, **path_params: Any) -> URL:
         """Get url."""
-        return url
+        return __name  # type: ignore
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-async def test_set_mfa(http_client: httpx.AsyncClient, session, login_headers):
+async def test_set_mfa(
+        http_client: httpx.AsyncClient,
+        session: AsyncSession,
+        login_headers: dict) -> None:
     """Set mfa."""
     response = await http_client.post(
         "/multifactor/setup",
@@ -82,9 +93,9 @@ async def test_set_mfa(http_client: httpx.AsyncClient, session, login_headers):
 @pytest.mark.usefixtures('setup_session')
 async def test_connect_mfa(
         app: FastAPI,
-        session,
+        session: AsyncSession,
         http_client: httpx.AsyncClient,
-        settings: Settings):
+        settings: Settings) -> None:
     """Test websocket mfa."""
     session.add(
         CatalogueSetting(name='mfa_secret', value=settings.SECRET_KEY),
@@ -95,7 +106,11 @@ async def test_connect_mfa(
     redirect_url = "example.com"
 
     class TestMultifactorAPI(MultifactorAPI):
-        async def get_create_mfa(*args, **kwargs):
+        async def get_create_mfa(
+                self,
+                username: str,
+                callback_url: str,
+                uid: int) -> str:
             nonlocal redirect_url
             return redirect_url
 
@@ -104,17 +119,19 @@ async def test_connect_mfa(
     mfa = await TestMultifactorAPI.from_di(
         await get_auth(session), http_client, settings)
 
-    pool = {}
+    pool: dict[str, Queue] = {}
 
     app.dependency_overrides[get_queue_pool] = lambda: pool
 
     user = await authenticate_user(session, 'user0', 'password')
 
+    assert user
+
     token = create_token(
         user.id,
         settings.SECRET_KEY,
         settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        grant_type='multifactor',
+        grant_type='multifactor',  # type: ignore
         extra_data={'aud': '123'})
 
     async with asyncio.TaskGroup() as tg:

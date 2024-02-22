@@ -16,7 +16,7 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.utils import get_user
-from models import Attribute, User
+from models import Attribute, Directory, User
 from security import get_password_hash, verify_password
 
 from .base import BaseRequest
@@ -25,17 +25,73 @@ from .base import BaseRequest
 class BaseExtendedValue(ABC, BaseModel):
     """Base extended request body."""
 
-    REQUEST_ID: ClassVar[LDAPOID]
+    @property
+    @abstractmethod
+    def REQUEST_ID(self) -> LDAPOID:  # noqa: N802, D102
+        """Protocol id code."""
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'BaseExtendedValue':
+    def from_data(cls, data: ASN1Row) -> 'BaseExtendedValue':
         """Create model from data, decoded from responseValue bytes."""
 
     @abstractmethod
     async def handle(self, ldap_session: Session, session: AsyncSession) -> \
             BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
+
+    @staticmethod
+    def _decode_value(data: ASN1Row) -> ASN1Row:
+        dec = Decoder()
+        dec.start(data[1].value)
+        output = asn1todict(dec)
+        return output[0].value
+
+
+class WhoAmIResponse(BaseExtendedResponseValue):
+    """WhoAmI response.
+
+    RFC 4513;
+
+    authzId = dnAuthzId / uAuthzId
+
+    ; distinguished-name-based authz id
+    dnAuthzId =  "dn:" distinguishedName
+
+    ; unspecified authorization id, UTF-8 encoded
+    uAuthzId = "u:" userid
+    userid = *UTF8 ; syntax unspecified
+    """
+
+    authz_id: str
+
+    def get_value(self) -> str | None:
+        """Get authz id."""
+        return self.authz_id
+
+
+class WhoAmIRequestValue(BaseExtendedValue):
+    """LDAP who am i request.
+
+    RFC 4532;
+    """
+
+    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.3"
+    base: int = 123
+
+    @classmethod
+    def from_data(cls, data: ASN1Row) -> 'WhoAmIRequestValue':
+        """Create model from data, WhoAmIRequestValue data is empty."""
+        return cls()
+
+    async def handle(
+            self, ldap_session: Session, _: AsyncSession) -> "WhoAmIResponse":
+        """Return user from session."""
+        un = (
+            f"u:{ldap_session.user.user_principal_name}"
+            if ldap_session.user else '')
+
+        return WhoAmIResponse(authz_id=un)
 
 
 class PasswdModifyResponse(BaseExtendedResponseValue):
@@ -46,6 +102,10 @@ class PasswdModifyResponse(BaseExtendedResponseValue):
     """
 
     gen_passwd: str = ''
+
+    def get_value(self) -> str | None:
+        """Return gen password."""
+        return self.gen_passwd
 
 
 class PasswdModifyRequestValue(BaseExtendedValue):
@@ -95,14 +155,18 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                     Attribute.name == 'pwdLastSet',
                     Attribute.value == '0',
                 ))
+            await session.execute(
+                update(Directory).where(Directory.id == user.directory_id),
+            )
             await session.commit()
             return PasswdModifyResponse()
         raise PermissionError('No user provided')
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> \
+    def from_data(cls, data: ASN1Row) -> \
             'PasswdModifyRequestValue':
         """Create model from data, decoded from responseValue bytes."""
+        data = cls._decode_value(data)
         if len(data) == 3:
             return cls(
                 user_identity=data[0].value,
@@ -113,9 +177,14 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         return cls(old_password=data[0].value, new_password=data[1].value)
 
 
-EXTENDED_REQUEST_OID_MAP = {
-    req.REQUEST_ID: req for req in
-    [PasswdModifyRequestValue]
+_REQUEST_LIST: list[type[BaseExtendedValue]] = [
+    PasswdModifyRequestValue,
+    WhoAmIRequestValue,
+]
+
+
+EXTENDED_REQUEST_OID_MAP: dict[LDAPOID, type[BaseExtendedValue]] = {
+    req.REQUEST_ID: req for req in _REQUEST_LIST
 }
 
 
@@ -151,20 +220,15 @@ class ExtendedRequest(BaseRequest):
             )
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'ExtendedRequest':
+    def from_data(cls, data: ASN1Row) -> 'ExtendedRequest':
         """Create extended request from asn.1 decoded string.
 
-        :param dict[str, list[ASN1Row]] data: any data
+        :param ASN1Row data: any data
         :return ExtendedRequest: universal request
         """
-        dec = Decoder()
-        dec.start(data[1].value)
-        output = asn1todict(dec)
-
         oid = data[0].value
         ext_request = EXTENDED_REQUEST_OID_MAP[oid]
-
         return cls(
             request_name=oid,
-            request_value=ext_request.from_data(output[0].value),
+            request_value=ext_request.from_data(data),
         )

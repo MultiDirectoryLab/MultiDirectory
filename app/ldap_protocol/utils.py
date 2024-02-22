@@ -5,7 +5,7 @@ from datetime import datetime
 
 import pytz
 from asyncstdlib.functools import cache
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -58,13 +58,13 @@ def get_object_classes() -> list[str]:
         return list(file)
 
 
-def get_generalized_now():
+def get_generalized_now() -> str:
     """Get generalized time (formated) with tz."""
     return datetime.now(  # NOTE: possible setting
         pytz.timezone('Europe/Moscow')).strftime('%Y%m%d%H%M%S.%f%z')
 
 
-def _get_path(name):
+def _get_path(name: str) -> list[str]:
     """Get path from name."""
     return [
         item.lower() for item in reversed(name.split(','))
@@ -72,7 +72,7 @@ def _get_path(name):
     ]
 
 
-def _get_domain(name):
+def _get_domain(name: str) -> str:
     """Get domain from name."""
     return '.'.join([
         item[3:].lower() for item in name.split(',')
@@ -127,7 +127,7 @@ def validate_entry(entry: str) -> bool:
 
 async def get_groups(
     dn_list: list[str],
-    session,
+    session: AsyncSession,
 ) -> list[Group]:
     """Get dirs with groups by dn list."""
     base_dn = await get_base_dn(session)
@@ -161,7 +161,7 @@ async def get_groups(
         if directory.group is not None]
 
 
-async def get_group(dn: str, session) -> Directory:
+async def get_group(dn: str, session: AsyncSession) -> Directory:
     """Get dir with group by dn.
 
     :param str dn: Distinguished Name
@@ -230,3 +230,20 @@ def create_integer_hash(text: str, size: int = 9) -> int:
     :return int: hash
     """
     return int(hashlib.sha256(text.encode('utf-8')).hexdigest(), 16) % 10**size
+
+
+async def set_last_logon_user(user: User, session: AsyncSession) -> None:
+    """Update lastLogon attr."""
+    await session.execute(
+        update(User).values(
+            {"last_logon": func.now()},
+        ).where(
+            User.id == user.id,
+        ),
+    )
+    await session.commit()
+
+
+def get_windows_timestamp(value: datetime) -> int:
+    """Get the Windows timestamp from the value."""
+    return (int(value.timestamp()) + 11644473600) * 10000000

@@ -30,7 +30,9 @@ IPv4IntefaceListType = list[IPv4Address | IPv4Network | IPRange]
 class NetmasksMixin:
     """Netmasks comuted value container."""
 
-    @computed_field
+    netmasks: IPv4IntefaceListType
+
+    @computed_field  # type: ignore
     @property
     def complete_netmasks(self) -> IPv4IntefaceListType:
         """Validate range or return networks range."""
@@ -41,11 +43,11 @@ class NetmasksMixin:
                     list(summarize_address_range(item.start, item.end)))
             else:
                 values.append(IPv4Network(item))
-        return values
+        return values  # type: ignore
 
     @field_validator('groups')
     @classmethod
-    def validate_group(cls, groups):  # noqa
+    def validate_group(cls, groups: list[str]) -> list[str]:  # noqa
         if not groups:
             return groups
         if all(validate_entry(group) for group in groups):
@@ -55,7 +57,7 @@ class NetmasksMixin:
 
     @field_validator('mfa_groups')
     @classmethod
-    def validate_group(cls, mfa_groups):  # noqa
+    def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:  # noqa
         if not mfa_groups:
             return mfa_groups
         if all(validate_entry(group) for group in mfa_groups):
@@ -72,7 +74,7 @@ class NetmasksMixin:
         :param IPv4IntefaceListType netmasks: ip masks
         :return list[str | dict]: ready to json serialized
         """
-        values = []
+        values: list[str | dict] = []
 
         for netmask in netmasks:
             if isinstance(netmask, IPRange):
@@ -116,7 +118,7 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
 
     id: int  # noqa
     name: str | None = None
-    netmasks: IPv4IntefaceListType | None = None
+    netmasks: IPv4IntefaceListType | None = None  # type: ignore
     groups: list[str] | None = None
     mfa_status: MFAFlags | None = None
     mfa_groups: list[str] | None = None
@@ -124,7 +126,7 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     @model_validator(mode='after')
     def check_passwords_match(self) -> 'PolicyUpdate':
         """Validate if all fields are empty."""
-        if not self.name and not self.netmasks and not self.group:
+        if not self.name and not self.netmasks and not self.groups:
             raise ValueError("Name, netmasks and group cannot be empty")
 
         return self

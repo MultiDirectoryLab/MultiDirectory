@@ -1,7 +1,7 @@
 """MultiDirectory LDAP models."""
 
 import enum
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -18,12 +18,15 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import (
     Mapped,
+    backref,
     declarative_mixin,
     declared_attr,
     relationship,
     synonym,
 )
+from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
+from sqlalchemy.sql.compiler import DDLCompiler
 
 from .database import Base
 
@@ -33,10 +36,11 @@ UniqueConstraint.argument_for("postgresql", 'nulls_not_distinct', None)
 
 
 @compiles(UniqueConstraint, "postgresql")
-def compile_create_uc(create, compiler, **kw):
+def compile_create_uc(
+        create: DDLElement, compiler: DDLCompiler, **kw: Any) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
-    postgresql_opts = create.dialect_options["postgresql"]
+    postgresql_opts = create.dialect_options["postgresql"]  # type: ignore
 
     if postgresql_opts.get("nulls_not_distinct"):
         return stmt.rstrip().replace("UNIQUE (", "UNIQUE NULLS NOT DISTINCT (")
@@ -108,7 +112,7 @@ class Directory(Base):
 
     parent: list['Directory'] = relationship(
         lambda: Directory, remote_side=id,
-        backref='directories', uselist=False)
+        backref=backref('directories', cascade="all,delete"), uselist=False)
 
     object_class: str = Column('objectClass', String, nullable=False)
     objectclass: str = synonym('object_class')
@@ -159,9 +163,12 @@ class Directory(Base):
 
     ro_fields = {
         "uid",
+        "whenCreated",
+        "lastLogon",
+        "authTimestamp",
     }
 
-    def get_dn_prefix(self) -> str:
+    def get_dn_prefix(self) -> DistinguishedNamePrefix:
         """Get distinguished name prefix."""
         return {
             'organizationalUnit': 'ou',
@@ -200,7 +207,7 @@ class DirectoryReferenceMixin:
     def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
         return relationship(
             'Directory',
-            back_populates=str(cls.__name__).lower(),
+            back_populates=str(cls.__name__).lower(),  # type: ignore
             uselist=False,
             lazy='joined',
         )
@@ -224,6 +231,11 @@ class User(DirectoryReferenceMixin, Base):
     userprincipalname: str = synonym('user_principal_name')
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
+    last_logon = Column(
+        'lastLogon',
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     search_fields = {
         'mail': 'mail',
@@ -246,7 +258,7 @@ class Group(DirectoryReferenceMixin, Base):
     __tablename__ = "Groups"
 
     id = Column(Integer, primary_key=True)  # noqa: A003
-    search_fields = {}
+    search_fields: dict[str, str] = {}
 
     child_groups: list['Group'] = relationship(
         "Group",

@@ -167,7 +167,7 @@ async def delete_network_policy(
         request.url_for('policy'),
         status_code=status.HTTP_303_SEE_OTHER,
         headers=request.headers,
-    )
+    )  # type: ignore
 
 
 @network_router.patch('/{policy_id}')

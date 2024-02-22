@@ -48,6 +48,7 @@ class User(BaseModel):
     user_principal_name: str
     mail: str
     display_name: str
+    directory_id: int
 
     access_type: Literal['access', 'refresh', 'multifactor']
     exp: int
@@ -63,6 +64,7 @@ class User(BaseModel):
             display_name=user.display_name,
             access_type=access,
             exp=exp,
+            directory_id=user.directory_id,
         )
 
 
@@ -77,7 +79,7 @@ class SetupRequest(BaseModel):
     password: str
 
     @validator('domain')
-    def validate_domain(cls, v):  # noqa
+    def validate_domain(cls, v: str) -> str:  # noqa
         if re.match(domain_re, v) is None:
             raise ValueError('Invalid domain value')
         return v.lower().replace('http://', '').replace('https://', '')

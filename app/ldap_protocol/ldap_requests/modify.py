@@ -8,14 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Operation, Session
-from ldap_protocol.ldap_responses import (
-    INVALID_ACCESS_RESPONSE,
-    ModifyResponse,
-    PartialAttribute,
-)
+from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
 from models.ldap3 import Attribute, Directory, Group, Path, User
+from security import get_password_hash
 
 from .base import BaseRequest
 
@@ -25,6 +23,10 @@ class Changes(BaseModel):
 
     operation: Operation
     modification: PartialAttribute
+
+    def get_name(self) -> str:
+        """Get mod name."""
+        return self.modification.type.lower()
 
 
 class ModifyRequest(BaseRequest):
@@ -51,7 +53,7 @@ class ModifyRequest(BaseRequest):
     changes: list[Changes]
 
     @classmethod
-    def from_data(cls, data):  # noqa: D102
+    def from_data(cls, data: ASN1Row) -> 'ModifyRequest':  # noqa: D102
         entry, proto_changes = data
 
         changes = []
@@ -70,7 +72,8 @@ class ModifyRequest(BaseRequest):
             AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
-            yield ModifyResponse(**INVALID_ACCESS_RESPONSE)
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         base_dn = await get_base_dn(session)
@@ -103,23 +106,35 @@ class ModifyRequest(BaseRequest):
             return
 
         for change in self.changes:
-            if change.operation == Operation.ADD:
-                await self._add(change, directory, session)
-
-            elif change.operation == Operation.DELETE:
-                await self._delete(change, directory, session)
-
-            elif change.operation == Operation.REPLACE:
-                async with session.begin_nested():
-                    await self._delete(change, directory, session, True)
-                    await session.flush()
-                    await self._add(change, directory, session)
+            if change.modification.type in Directory.ro_fields:
+                continue
 
             try:
+                if change.operation == Operation.ADD:
+                    await self._add(change, directory, session, ldap_session)
+
+                elif change.operation == Operation.DELETE:
+                    await self._delete(change, directory, session)
+
+                elif change.operation == Operation.REPLACE:
+                    async with session.begin_nested():
+                        await self._delete(change, directory, session, True)
+                        await session.flush()
+                        await self._add(
+                            change, directory, session, ldap_session)
+
+                await session.execute(
+                    update(Directory).where(Directory.id == directory.id),
+                )
                 await session.commit()
             except IntegrityError:
+                await session.rollback()
                 yield ModifyResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+                return
+            except PermissionError:
+                yield ModifyResponse(
+                    result_code=LDAPCodes.STRONGER_AUTH_REQUIRED)
                 return
 
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
@@ -130,7 +145,7 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         session: AsyncSession,
         name_only: bool = False,
-    ):
+    ) -> None:
         attrs = []
         name = change.modification.type.lower()
 
@@ -173,9 +188,10 @@ class ModifyRequest(BaseRequest):
         self, change: Changes,
         directory: Directory,
         session: AsyncSession,
-    ):
+        ldap_session: Session,
+    ) -> None:
         attrs = []
-        name = change.modification.type.lower()
+        name = change.get_name()
 
         if name == 'memberof':
             groups = await get_groups(change.modification.vals, session)
@@ -189,9 +205,6 @@ class ModifyRequest(BaseRequest):
             return
 
         for value in change.modification.vals:
-            if name in Directory.ro_fields:
-                continue
-
             if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
@@ -209,6 +222,20 @@ class ModifyRequest(BaseRequest):
                     update(Group)
                     .filter(Group.directory == directory)
                     .values({name: value}))
+
+            elif name == "userpassword" and directory.user:
+                if not ldap_session.settings.USE_CORE_TLS:
+                    raise PermissionError('TLS required')
+
+                directory.user.password = get_password_hash(value)
+                await session.execute(  # update bind reject attribute
+                    update(Attribute)
+                    .values({'value': '1'})
+                    .where(
+                        Attribute.directory_id == directory.user.directory_id,
+                        Attribute.name == 'pwdLastSet',
+                        Attribute.value == '0',
+                    ))
 
             else:
                 attrs.append(Attribute(
