@@ -48,7 +48,7 @@ class AddRequest(BaseRequest):
     entry: str
     attributes: list[PartialAttribute]
 
-    password: SecretStr | None = Field(None, example='password')
+    password: SecretStr | None = Field(None, examples=['password'])
 
     @property
     def attr_names(self) -> dict[str, list[str]]:  # noqa

@@ -13,7 +13,7 @@ from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 
 
 class SearchRequest(LDAPSearchRequest):  # noqa: D101
-    filter: str = Field(..., example="(objectClass=*)")  # noqa: A003
+    filter: str = Field(..., examples=["(objectClass=*)"])  # noqa: A003
 
     def cast_filter(self, filter_: str, query: Select) -> BoundQ:
         """Cast str filter to sa sql."""
