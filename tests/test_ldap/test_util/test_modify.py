@@ -183,6 +183,7 @@ async def test_ldap_membersip_user_add(
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
+@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_ldap_membersip_user_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""

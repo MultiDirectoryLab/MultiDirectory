@@ -218,9 +218,9 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
+    async def handle(self, ldap_session: Session, _: AsyncSession) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ldap_session.delete_user()
         return  # declare empty async generator and exit
-        yield
+        yield  # type: ignore

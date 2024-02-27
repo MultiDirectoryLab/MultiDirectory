@@ -5,7 +5,6 @@ from functools import partial
 
 import pytest
 from ldap3 import Connection
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest import TestCreds
 
@@ -13,10 +12,8 @@ from tests.conftest import TestCreds
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_anonymous_whoami(
-    session: AsyncSession,
     event_loop: asyncio.BaseEventLoop,
     ldap_client: Connection,
-    creds: TestCreds,
 ) -> None:
     """Test anonymous pwd change."""
     await event_loop.run_in_executor(
