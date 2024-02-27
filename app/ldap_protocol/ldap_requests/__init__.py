@@ -4,7 +4,6 @@ from .abandon import AbandonRequest
 from .add import AddRequest
 from .base import BaseRequest
 from .bind import BindRequest, UnbindRequest
-from .compare import CompareRequest
 from .delete import DeleteRequest
 from .extended import ExtendedRequest
 from .modify import ModifyRequest
@@ -16,7 +15,6 @@ requests: list[type[BaseRequest]] = [
     AddRequest,
     BindRequest,
     UnbindRequest,
-    CompareRequest,
     DeleteRequest,
     ExtendedRequest,
     ModifyRequest,
