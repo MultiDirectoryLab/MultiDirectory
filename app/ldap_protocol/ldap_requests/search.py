@@ -161,7 +161,13 @@ class SearchRequest(BaseRequest):
         # data['configurationNamingContext'].append(schema)  # noqa
         data['supportedSASLMechanisms'] = ['ANONYMOUS']
         data['highestCommittedUSN'].append('126991')
-        data['supportedControl'] = []
+        data['supportedExtension'] = [
+            "1.3.6.1.4.1.4203.1.11.3",  # whoami
+            "1.3.6.1.4.1.4203.1.11.1",  # password modify
+        ]
+        data['supportedControl'] = [
+            "2.16.840.1.113730.3.4.4",  # password expire policy
+        ]
         data['domainFunctionality'].append('0')
         data['supportedLDAPPolicies'] = [
             'MaxConnIdleTime',
@@ -169,7 +175,7 @@ class SearchRequest(BaseRequest):
             'MaxValRange',
         ]
         data['supportedCapabilities'] = [
-            '1.2.840.113556.1.4.1791',
+            "1.2.840.113556.1.4.1791",  # LDAP_INTEG_OID
         ]
         return data
 
