@@ -228,7 +228,7 @@ class ModifyRequest(BaseRequest):
                     raise PermissionError('TLS required')
 
                 try:
-                    value = value.encode().decode("UTF-16LE").strip('"')
+                    value = value.encode().decode("UTF-16LE")[1:-1]
                 except UnicodeDecodeError:
                     pass
 
