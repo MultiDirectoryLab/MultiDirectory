@@ -223,9 +223,14 @@ class ModifyRequest(BaseRequest):
                     .filter(Group.directory == directory)
                     .values({name: value}))
 
-            elif name == "userpassword" and directory.user:
+            elif name in ("userpassword", 'unicodepwd') and directory.user:
                 if not ldap_session.settings.USE_CORE_TLS:
                     raise PermissionError('TLS required')
+
+                try:
+                    value = value.encode().decode("UTF-16LE")[1:-1]
+                except UnicodeDecodeError:
+                    pass
 
                 directory.user.password = get_password_hash(value)
                 await session.execute(  # update bind reject attribute

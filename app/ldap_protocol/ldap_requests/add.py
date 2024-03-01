@@ -119,8 +119,10 @@ class AddRequest(BaseRequest):
         user_fields = User.search_fields.values()
 
         for attr in self.attributes:
+            lname = attr.type.lower()
             for value in attr.vals:
-                if attr.type.lower() in Directory.ro_fields:
+                if lname in Directory.ro_fields or lname in (
+                        "userpassword", 'unicodepwd'):
                     continue
 
                 if attr.type in user_fields:
@@ -128,6 +130,7 @@ class AddRequest(BaseRequest):
 
                 elif attr.type == 'memberOf':
                     group_attributes.append(value)
+
                 else:
                     attributes.append(Attribute(
                         name=attr.type, value=value, directory=new_dir))
