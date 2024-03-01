@@ -25,9 +25,9 @@ class AbandonRequest(BaseRequest):
         return cls(message_id=1)
 
     async def handle(
-            self, ldap_session: Session,
-            session: AsyncSession) -> AsyncGenerator:
+            self, _: Session,
+            __: AsyncSession) -> AsyncGenerator:
         """Handle message with current user."""
         await asyncio.sleep(0)
         return
-        yield
+        yield  # type: ignore

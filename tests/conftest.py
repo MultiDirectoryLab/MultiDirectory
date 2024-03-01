@@ -177,8 +177,7 @@ def _server(
 def ldap_client(settings: Settings) -> ldap3.Connection:
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
-        ldap3.Server(str(settings.HOST), settings.PORT),
-    )
+        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"))
 
 
 @pytest.fixture(scope='session')

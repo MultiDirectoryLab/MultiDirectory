@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "MultiDirectory"
-version = "1.9.3"
+version = "1.9.4"
 description = ""
 authors = ["Mastermind-U <rex49513@gmail.com>"]
 readme = "README.md"
@@ -61,6 +61,11 @@ ignore_missing_imports = true
 platform = "linux"
 disallow_untyped_defs = true
 exclude = "app/alembic"
+show_column_numbers = true
+pretty = true
+warn_unreachable = true
+color_output = true
+warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 pythonpath = ["/app"]

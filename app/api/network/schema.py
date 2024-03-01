@@ -89,9 +89,9 @@ class NetmasksMixin:
 class Policy(BaseModel, NetmasksMixin):
     """Network Policy model."""
 
-    name: str = Field(example='local network', max_length=100)
-    netmasks: IPv4IntefaceListType = Field(example=["172.0.0.0/8"])
-    priority: int = Field(ge=1, le=sys.maxsize, example=2)
+    name: str = Field(examples=['local network'], max_length=100)
+    netmasks: IPv4IntefaceListType = Field(examples=[["172.0.0.0/8"]])
+    priority: int = Field(ge=1, le=sys.maxsize, examples=[2])
     groups: list[str] = []
     mfa_status: MFAFlags = MFAFlags.DISABLED
     mfa_groups: list[str] = []
@@ -106,7 +106,7 @@ class PolicyResponse(BaseModel):
     name: str
     netmasks: list[IPv4Network]
     raw: list[str | dict]
-    priority: int = Field(ge=1, le=sys.maxsize, example=2)
+    priority: int = Field(ge=1, le=sys.maxsize, examples=[2])
     enabled: bool
     groups: list[str] = []
     mfa_status: MFAFlags
@@ -143,6 +143,6 @@ class SwapResponse(BaseModel):
     """Swap priority values."""
 
     first_policy_id: int
-    first_policy_priority: int = Field(ge=1, le=sys.maxsize, example=2)
+    first_policy_priority: int = Field(ge=1, le=sys.maxsize, examples=[2])
     second_policy_id: int
-    second_policy_priority: int = Field(ge=1, le=sys.maxsize, example=2)
+    second_policy_priority: int = Field(ge=1, le=sys.maxsize, examples=[2])
