@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from models.ldap3 import (
-    CatalogueSetting,
     Directory,
     Group,
     NetworkPolicy,
@@ -23,21 +22,30 @@ email_re = re.compile(
 
 
 @cache
-async def get_base_dn(session: AsyncSession, normal: bool = False) -> str:
-    """Get base dn for e.g. DC=multifactor,DC=dev.
+async def get_base_dn(session: AsyncSession) -> list[Directory]:
+    """Get base dn for e.g. [dc=multifactor,dc=dev].
 
     :return str: name for the base distinguished name.
     """
-    cat_result = await session.execute(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+    result = await session.execute(
+        select(Directory)
+        .filter(Directory.parent_id.is_(None)),
     )
-    if normal:
-        return cat_result.scalar_one().value
+    domains = []
 
-    return ','.join((
-        f'dc={value}' for value in
-        cat_result.scalar_one().value.split('.')))
+    for model in result.scalars():
+        model.is_domain = True
+        domains.append(model)
+
+    return domains
+
+
+async def is_base_dn(session: AsyncSession, entry: str) -> bool:
+    """Check if an entry is a base dn."""
+    return any(
+        entry.lower() == base_dn.get_dn()
+        for base_dn in await get_base_dn(session)
+    )
 
 
 def get_attribute_types() -> list[str]:
@@ -68,7 +76,6 @@ def _get_path(name: str) -> list[str]:
     """Get path from name."""
     return [
         item.lower() for item in reversed(name.split(','))
-        if not item[:2] in ('DC', 'dc')
     ]
 
 
@@ -99,11 +106,8 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         select(Path).where(Path.path == _get_path(name)))
 
     domain = await session.scalar(
-        select(CatalogueSetting)
-        .where(
-            CatalogueSetting.name == 'defaultNamingContext',
-            CatalogueSetting.value == _get_domain(name),
-        ))
+        select(Directory)
+        .filter(Directory.parent_id.is_(None)))
 
     if not domain or not path:
         return None
@@ -130,18 +134,18 @@ async def get_groups(
     session: AsyncSession,
 ) -> list[Group]:
     """Get dirs with groups by dn list."""
-    base_dn = await get_base_dn(session)
+    base_dn_list = await get_base_dn(session)
 
     paths = []
 
     for dn in dn_list:
-        if dn.lower() == base_dn.lower():  # dn_is_base
-            continue
+        for base_dn in base_dn_list:
+            if dn.lower() == base_dn.get_dn().lower():  # dn_is_base
+                continue
 
-        base_obj = dn.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+            base_obj = dn.lower().split(',')
 
-        paths.append([path for path in reversed(base_obj) if path])
+            paths.append([path for path in reversed(base_obj) if path])
 
     query = select(   # noqa: ECE001
         Directory)\
@@ -169,29 +173,30 @@ async def get_group(dn: str, session: AsyncSession) -> Directory:
     :raises AttributeError: on invalid dn
     :return Directory: dir with group
     """
-    base_dn = await get_base_dn(session)
-    dn_is_base = dn.lower() == base_dn.lower()
+    base_dn_list = await get_base_dn(session)
 
-    if dn_is_base:
-        raise ValueError('Cannot set memberOf with base dn')
+    for base_dn in base_dn_list:
+        if dn.lower() == base_dn.get_dn().lower():
+            raise ValueError('Cannot set memberOf with base dn')
 
-    path = list(reversed(
-        dn.lower().removesuffix(',' + base_dn.lower()).split(',')))
+    path = list(reversed(dn.lower().split(',')))
 
     directory = await session.scalar(
         select(Directory)
-        .join(Directory.path).filter(Path.path == path)
-        .options(selectinload(Directory.group), selectinload(Directory.path)))
+        .join(Directory.path)
+        .filter(Path.path == path)
+        .options(
+            selectinload(Directory.group), selectinload(Directory.path)))
 
-    if not directory:
-        raise ValueError("Group not found")
+    if directory is None:
+        raise ValueError(f"Group not found path - {path}")
 
     return directory
 
 
-def get_path_dn(path: Path, base_dn: str) -> str:
+def get_path_dn(path: Path) -> str:
     """Get DN from path."""
-    return ','.join(reversed(path.path)) + ',' + base_dn
+    return ','.join(reversed(path.path))
 
 
 async def is_user_group_valid(

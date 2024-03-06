@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from api.auth import User, get_current_user
-from ldap_protocol.utils import get_base_dn, get_groups, get_path_dn
+from ldap_protocol.utils import get_groups, get_path_dn
 from models.database import AsyncSession, get_session
 from models.ldap3 import Directory, Group, NetworkPolicy
 
@@ -51,19 +51,21 @@ async def add_network_policy(
     group_dns = []
     mfa_group_dns = []
 
-    base_dn = await get_base_dn(session)
-
     if policy.groups:
         groups = await get_groups(policy.groups, session)
         new_policy.groups = groups
         group_dns = [
-            get_path_dn(group.directory.path, base_dn) for group in groups]
+            get_path_dn(group.directory.path)
+            for group in groups
+        ]
 
     if policy.mfa_groups:
         mfa_groups = await get_groups(policy.mfa_groups, session)
         new_policy.mfa_groups = mfa_groups
         mfa_group_dns = [
-            get_path_dn(group.directory.path, base_dn) for group in mfa_groups]
+            get_path_dn(group.directory.path)
+            for group in mfa_groups
+        ]
 
     try:
         session.add(new_policy)
@@ -97,7 +99,6 @@ async def get_network_policies(
     :param User user: requires login, defaults to Depends(get_current_user)
     :return list[PolicyResponse]: all policies
     """
-    base_dn = await get_base_dn(session)
     groups = selectinload(NetworkPolicy.groups)\
         .selectinload(Group.directory)\
         .selectinload(Directory.path)
@@ -114,11 +115,11 @@ async def get_network_policies(
             enabled=policy.enabled,
             priority=policy.priority,
             groups=(
-                get_path_dn(group.directory.path, base_dn)
+                get_path_dn(group.directory.path)
                 for group in policy.groups),
             mfa_status=policy.mfa_status,
             mfa_groups=(
-                get_path_dn(group.directory.path, base_dn)
+                get_path_dn(group.directory.path)
                 for group in policy.mfa_groups),
         )
         for policy in await session.scalars(
@@ -235,14 +236,12 @@ async def update_network_policy(
     if request.mfa_status is not None:
         selected_policy.mfa_status = request.mfa_status
 
-    base_dn = await get_base_dn(session)
-
     if request.groups is not None and len(request.groups) > 0:
         groups = await get_groups(request.groups, session)
         selected_policy.groups = groups
 
         request.groups = [
-            get_path_dn(group.directory.path, base_dn) for group in groups]
+            get_path_dn(group.directory.path) for group in groups]
 
     elif request.groups is not None and len(request.groups) == 0:
         selected_policy.groups.clear()
@@ -252,7 +251,7 @@ async def update_network_policy(
         selected_policy.mfa_groups = mfa_groups
 
         request.mfa_groups = [
-            get_path_dn(group.directory.path, base_dn) for group in mfa_groups]
+            get_path_dn(group.directory.path) for group in mfa_groups]
 
     elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
         selected_policy.mfa_groups.clear()

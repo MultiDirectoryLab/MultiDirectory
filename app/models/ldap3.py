@@ -168,6 +168,8 @@ class Directory(Base):
         "authTimestamp",
     }
 
+    is_domain: bool = False
+
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
         """Get distinguished name prefix."""
         return {
@@ -177,6 +179,10 @@ class Directory(Base):
 
     def get_dn(self, dn: DistinguishedNamePrefix = 'cn') -> str:
         """Get distinguished name."""
+        if self.is_domain:
+            assert isinstance(self.name, str)
+            return 'dc=' + ',dc='.join(self.name.split('.'))
+
         return f"{dn}={self.name}".lower()
 
     def create_path(
@@ -185,6 +191,12 @@ class Directory(Base):
         dn: DistinguishedNamePrefix = 'cn',
     ) -> 'Path':
         """Create Path from a new directory."""
+        if self.is_domain:
+            return Path(
+                path=list(reversed(self.get_dn().split(','))),
+                endpoint=self,
+            )
+
         pre_path: list[str] =\
             parent.path.path if parent else []  # type: ignore
         return Path(

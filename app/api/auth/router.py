@@ -166,8 +166,8 @@ async def check_setup(
     True if setup already complete, False if setup is needed.
     """
     return bool(await session.scalar(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+        select(Directory)
+        .filter(Directory.parent_id.is_(None)),
     ))
 
 
@@ -178,8 +178,8 @@ async def first_setup(
 ) -> LDAPResult:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+        select(Directory)
+        .filter(Directory.parent_id.is_(None)),
     )
 
     if setup_already_performed:

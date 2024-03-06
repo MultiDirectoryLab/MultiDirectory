@@ -23,7 +23,6 @@ from config import Settings
 from models.database import create_session_factory
 from models.ldap3 import (
     Attribute,
-    CatalogueSetting,
     Directory,
     Group,
     GroupMembership,
@@ -125,18 +124,29 @@ async def setup_enviroment(
         data: list, dn: str = "multifactor.dev") -> None:
     """Create directories and users for enviroment."""
     cat_result = await session.execute(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+        select(Directory)
+        .filter(Directory.parent_id.is_(None)),
     )
     if cat_result.scalar():
         logger.warning('dev data already set up')
         return
 
-    catalogue = CatalogueSetting(
-        name='defaultNamingContext', value=dn)
+    domain = Directory(
+        name=dn,
+        object_class='domain',
+        depth=0,
+        is_domain=True,
+    )
+    path = domain.create_path(dn=domain.get_dn_prefix())
+    domain.paths.append(path)
+    attr = Attribute(
+        name='objectClass',
+        value='domain',
+        directory=domain,
+    )
 
     async with session.begin_nested():
-        session.add(catalogue)
+        session.add_all([domain, path, attr])
         session.add(NetworkPolicy(
             name='Default open policy',
             netmasks=['0.0.0.0/0'],
@@ -146,7 +156,7 @@ async def setup_enviroment(
 
     try:
         for unit in data:
-            await _create_dir(unit, session)
+            await _create_dir(unit, session, domain)
     except Exception:
         import traceback
         logger.error(traceback.format_exc())  # noqa
