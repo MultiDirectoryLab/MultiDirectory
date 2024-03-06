@@ -150,10 +150,10 @@ class ModifyDNRequest(BaseRequest):
             await session.execute(
                 update(Path)
                 .where(Path.path[new_directory.depth] == directory.get_dn(
-                                                dn=directory.get_dn_prefix()))
+                    dn=directory.get_dn_prefix()))
                 .values(
                     {Path.path[directory.depth]: new_directory.get_dn(
-                                dn=new_directory.get_dn_prefix())},
+                        dn=new_directory.get_dn_prefix())},
                 ),
                 execution_options={"synchronize_session": 'fetch'},
             )
