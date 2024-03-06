@@ -2,11 +2,11 @@
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import update
+from sqlalchemy import cast, func, update, ARRAY, Integer, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-
+from loguru import logger
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import (
@@ -100,10 +100,12 @@ class ModifyDNRequest(BaseRequest):
         dn_is_base = self.new_superior.lower() == base_dn.lower()
         if dn_is_base:
             new_directory = Directory(
-                object_class='',
+                object_class=directory.object_class,
                 name=self.newrdn.split('=')[1],
+                depth=1,
             )
-            new_path = new_directory.create_path()
+            new_path = new_directory.create_path(
+                dn=new_directory.get_dn_prefix())
         else:
             new_base_directory = await session.scalar(new_sup_query)
             if not new_base_directory:
@@ -143,6 +145,29 @@ class ModifyDNRequest(BaseRequest):
                     update(model)
                     .where(model.directory_id == directory.id)
                     .values(directory_id=new_directory.id))
+
+        async with session.begin_nested():
+            await session.execute(
+                update(Path)
+                .where(
+                    Path.path[new_directory.depth] == directory.get_dn(
+                        dn=directory.get_dn_prefix(),
+                    ),
+                )
+                .values(
+                    {
+                        Path.path: func.array_replace(
+                            Path.path,
+                            directory.get_dn(dn=directory.get_dn_prefix()),
+                            new_directory.get_dn(
+                                dn=new_directory.get_dn_prefix(),
+                            ),
+                        ),
+                    },
+                ),
+                execution_options={"synchronize_session": 'fetch'},
+            )
+            await session.commit()
 
         await session.refresh(directory)
         await session.delete(directory)
