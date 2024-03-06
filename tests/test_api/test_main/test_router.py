@@ -131,7 +131,7 @@ async def test_api_correct_add(
 
     assert isinstance(data, dict)
     assert response.status_code == 200
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get('resultCode') == LDAPCodes.SUCCESS, data
     assert data.get('errorMessage') == ''
 
 

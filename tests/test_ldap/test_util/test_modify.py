@@ -21,13 +21,14 @@ async def test_ldap_base_modify(
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
-    query = select(Directory)\
+    directory = await session.scalar(
+        select(Directory)
         .options(
             subqueryload(Directory.attributes),
-            joinedload(Directory.user))\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
-
-    directory = await session.scalar(query)
+            joinedload(Directory.user))
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "ou=users", "cn=user0"]),
+    )
     assert directory.user.mail == "user0@mail.com"
 
     attributes = defaultdict(list)
@@ -100,13 +101,14 @@ async def test_ldap_membersip_user_delete(
         User.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
-    query = select(Directory)\
+    directory = await session.scalar(
+        select(Directory)
         .options(
             subqueryload(Directory.attributes),
-            joinedload(Directory.user), membership)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
-
-    directory = await session.scalar(query)
+            joinedload(Directory.user), membership)
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "ou=users", "cn=user0"]),
+    )
 
     assert directory.user.groups
 
@@ -144,13 +146,14 @@ async def test_ldap_membersip_user_add(
         User.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
-    query = select(Directory)\
+    directory = await session.scalar(
+        select(Directory)
         .options(
             subqueryload(Directory.attributes),
-            joinedload(Directory.user), membership)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
-
-    directory = await session.scalar(query)
+            joinedload(Directory.user), membership)
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "ou=users", "cn=user0"]),
+    )
 
     directory.user.groups.clear()
     await session.commit()
@@ -193,13 +196,14 @@ async def test_ldap_membersip_user_replace(
         User.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
-    query = select(Directory)\
+    directory = await session.scalar(
+        select(Directory)
         .options(
             subqueryload(Directory.attributes),
-            joinedload(Directory.user), membership)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
-
-    directory = await session.scalar(query)
+            joinedload(Directory.user), membership)
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "ou=users", "cn=user0"]),
+    )
 
     assert directory.user.groups
 
@@ -263,14 +267,16 @@ async def test_ldap_membersip_grp_replace(
         Group.parent_groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
-    query = select(Directory)\
+    directory = await session.scalar(
+        select(Directory)
         .options(
             subqueryload(Directory.attributes),
-            joinedload(Directory.user), membership)\
-        .join(Directory.path)\
-        .filter(Path.path == ["cn=groups", "cn=domain admins"])
-
-    directory = await session.scalar(query)
+            joinedload(Directory.user), membership)
+        .join(Directory.path)
+        .filter(
+            Path.path == ["dc=test", "dc=md", "cn=groups", "cn=domain admins"],
+        ),
+    )
 
     assert not directory.group.parent_groups
 
@@ -347,10 +353,11 @@ async def test_ldap_modify_dn(
         res = await proc.wait()
         assert res == 0
 
-    query = select(Directory)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user2"])
-
-    assert await session.scalar(query)
+    assert await session.scalar(
+        select(Directory)
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "ou=users", "cn=user2"]),
+    )
 
 
 @pytest.mark.asyncio()
@@ -385,6 +392,7 @@ async def test_ldap_modify_password_change(
 
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
+        '-b', '"dc=md,dc=test"',
         '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
         '-D', creds.un, '-x', '-w', new_password)
 

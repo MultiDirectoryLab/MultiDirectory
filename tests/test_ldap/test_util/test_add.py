@@ -40,10 +40,12 @@ async def test_ldap_root_add(
 
     assert result == 0
 
-    query = select(Directory)\
-        .options(subqueryload(Directory.attributes))\
-        .join(Directory.path).filter(Path.path == ["cn=test"])
-    new_dir = await session.scalar(query)
+    new_dir = await session.scalar(
+        select(Directory)
+        .options(subqueryload(Directory.attributes))
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "cn=test"]),
+    )
 
     assert new_dir.name == "test"
 
@@ -91,18 +93,19 @@ async def test_ldap_user_add_with_group(
         User.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
-    query = select(Directory)\
-        .options(subqueryload(Directory.attributes), membership)\
-        .join(Directory.path).filter(Path.path == ["cn=test"])
-
-    new_dir = await session.scalar(query)
+    new_dir = await session.scalar(
+        select(Directory)
+        .options(subqueryload(Directory.attributes), membership)
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "cn=test"]),
+    )
 
     assert new_dir.name == "test"
 
     group = new_dir.user.groups[0]
 
     assert sorted(group.directory.path.path) == sorted(
-        ['cn=domain admins', 'cn=groups'])
+        ['cn=domain admins', 'cn=groups', 'dc=md', 'dc=test'])
 
 
 @pytest.mark.asyncio()
@@ -137,15 +140,16 @@ async def test_ldap_user_add_group_with_group(
         Group.parent_groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
-    query = select(Directory)\
-        .options(membership)\
-        .join(Directory.path).filter(Path.path == ["cn=groups", "cn=twisted"])
-
-    new_dir = await session.scalar(query)
+    new_dir = await session.scalar(
+        select(Directory)
+        .options(membership)
+        .join(Directory.path)
+        .filter(Path.path == ["dc=test", "dc=md", "cn=groups", "cn=twisted"]),
+    )
 
     assert new_dir.name == "twisted"
 
     group = new_dir.group.parent_groups[0]
 
     assert sorted(group.directory.path.path) == sorted(
-        ['cn=domain admins', 'cn=groups'])
+        ['cn=domain admins', 'cn=groups', 'dc=md', 'dc=test'])

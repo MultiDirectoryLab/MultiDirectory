@@ -57,6 +57,7 @@ async def test_bind_policy(
 
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
+        '-b', '"dc=md,dc=test"',
         '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
         '-D', creds.un, '-x', '-w', creds.pw)
 
@@ -105,6 +106,7 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
+        '-b', '"dc=md,dc=test"',
         '-vvv', '-x', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
         '-D', creds.un,
         '-w', creds.pw,
