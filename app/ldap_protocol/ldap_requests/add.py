@@ -76,9 +76,16 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+        base_dn_list = await get_base_dn(session)
+
+        for base_dn in base_dn_list:
+            if base_dn.get_dn().lower() in self.entry.lower():
+                break
+        else:
+            yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT, errorMessage='I')
+            return
+
+        obj = self.entry.lower().split(',')
         has_no_parent = len(obj) == 1
 
         new_dn, name = obj.pop(0).split('=')
@@ -99,7 +106,7 @@ class AddRequest(BaseRequest):
             parent = await session.scalar(query)
 
             if not parent:
-                yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+                yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT, errorMessage=','.join(list(search_path)))
                 return
 
             new_dir = Directory(

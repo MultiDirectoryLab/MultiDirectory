@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Operation, Session
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
-from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
+from ldap_protocol.utils import get_groups, validate_entry
 from models.ldap3 import Attribute, Directory, Group, Path, User
 from security import get_password_hash
 
@@ -76,13 +76,11 @@ class ModifyRequest(BaseRequest):
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
-        base_dn = await get_base_dn(session)
         if not validate_entry(self.object.lower()):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        obj = self.object.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+        obj = self.object.lower().split(',')
         search_path = reversed(obj)
 
         membership1 = selectinload(Directory.user).selectinload(User.groups)

@@ -11,7 +11,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
-from ldap_protocol.utils import get_base_dn, validate_entry
+from ldap_protocol.utils import is_base_dn, validate_entry
 from models.ldap3 import Directory, Path
 
 from .base import BaseRequest
@@ -42,10 +42,11 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-        search_path = reversed(obj)
+        if await is_base_dn(session, self.entry):
+            yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
+            return
+
+        search_path = reversed(self.entry.lower().split(','))
 
         query = select(Directory)\
             .join(Directory.path)\

@@ -32,6 +32,7 @@ from ldap_protocol.utils import (
     get_generalized_now,
     get_object_classes,
     get_windows_timestamp,
+    is_base_dn,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
 
@@ -134,27 +135,18 @@ class SearchRequest(BaseRequest):
 
         data.pop('defaultNamingContext', None)
 
-        base_dn = await get_base_dn(session)
-        domain = await get_base_dn(session, True)
+        base_dn_list = await get_base_dn(session)
         schema = 'CN=Schema'
 
         if attributes == ['subschemasubentry']:
             data['subschemaSubentry'].append(schema)
             return data
 
-        data['dnsHostName'].append(domain)
         data['objectClass'].append('top')
-        data['serverName'].append(domain)
-        data['serviceName'].append(domain)
-        data['dsServiceName'].append(domain)
-        data['LDAPServiceName'].append(domain)
         data['vendorName'].append(VENDOR_NAME)
         data['vendorVersion'].append(VENDOR_VERSION)
-        data['namingContexts'].append(base_dn)
         data['namingContexts'].append(schema)
-        data['rootDomainNamingContext'].append(base_dn)
         data['supportedLDAPVersion'].append(3)
-        data['defaultNamingContext'].append(base_dn)
         data['currentTime'].append(get_generalized_now())
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
@@ -177,9 +169,21 @@ class SearchRequest(BaseRequest):
         data['supportedCapabilities'] = [
             "1.2.840.113556.1.4.1791",  # LDAP_INTEG_OID
         ]
+
+        for domain in base_dn_list:
+            dn = domain.get_dn()
+            data['dnsHostName'].append(domain.name)
+            data['serverName'].append(domain.name)
+            data['serviceName'].append(domain.name)
+            data['dsServiceName'].append(domain.name)
+            data['LDAPServiceName'].append(domain.name)
+            data['namingContexts'].append(dn)
+            data['rootDomainNamingContext'].append(dn)
+            data['defaultNamingContext'].append(dn)
+
         return data
 
-    def _get_subschema(self, dn: str) -> SearchResultEntry:
+    def _get_subschema(self) -> SearchResultEntry:
         attrs = defaultdict(list)
         attrs['name'].append('Schema')
         attrs['objectClass'].append('subSchema')
@@ -195,8 +199,8 @@ class SearchRequest(BaseRequest):
                 for key, value in attrs.items()])
 
     @staticmethod
-    def _get_full_dn(path: Path, dn: str) -> str:
-        return ','.join(reversed(path.path)) + ',' + dn
+    def _get_full_dn(path: Path) -> str:
+        return ','.join(reversed(path.path))
 
     def cast_filter(self, filter_: ASN1Row, query: Select) -> BoundQ:
         """Convert asn1 row filter_ to sqlalchemy obj.
@@ -233,6 +237,10 @@ class SearchRequest(BaseRequest):
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == 'cn=schema'
 
+        logger.error('\n')
+        logger.error(f'base_object - {self.base_object}')
+        logger.error('\n')
+
         if not (is_root_dse or is_schema) and not user_logged:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
@@ -243,7 +251,20 @@ class SearchRequest(BaseRequest):
                 yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
                 return
 
-        query = self.build_query(await get_base_dn(session))
+        base_dn_list = await get_base_dn(session)
+
+        if is_root_dse:
+            dn = ''
+        else:
+            for base_dn in base_dn_list:
+                if base_dn.get_dn().lower() in self.base_object.lower():
+                    dn = base_dn.get_dn().lower()
+                    break
+            else:
+                yield SearchResultDone(result_code=LDAPCodes.NO_SUCH_OBJECT)
+                return
+
+        query = self.build_query(dn)
 
         try:
             cond, query = self.cast_filter(self.filter, query)
@@ -253,6 +274,7 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.PROTOCOL_ERROR)
             return
 
+        # logger.error(f'{query.compile(compile_kwargs={"literal_binds": True})}')
         query, pages_total, count = await self.paginate_query(query, session)
 
         async for response in self.tree_view(query, session):
@@ -271,10 +293,8 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sqlalchemy session
         :return SearchResultEntry | None: optional result
         """
-        dn = await get_base_dn(session)
-
         if self.base_object:
-            if self.base_object.lower() == dn.lower():  # noqa  # domain info
+            if await is_base_dn(session, self.base_object.lower()):  # noqa  # domain info
                 attrs = defaultdict(list)
                 attrs['serverState'].append('1')
                 attrs['objectClass'].append('domain')
@@ -282,13 +302,13 @@ class SearchRequest(BaseRequest):
                 attrs['objectClass'].append('top')
 
                 return SearchResultEntry(
-                    object_name=dn,
+                    object_name=self.base_object.lower(),
                     partial_attributes=[
                         PartialAttribute(type=key, vals=value)
                         for key, value in attrs.items()])
 
             elif self.base_object.lower() == 'cn=schema':  # subschema subentry
-                return self._get_subschema(dn)
+                return self._get_subschema()
 
         else:
             attrs = await self.get_root_dse(session)  # RootDSE
@@ -324,21 +344,17 @@ class SearchRequest(BaseRequest):
             .distinct(Directory.id)
 
         root_is_base = self.base_object.lower() == dn.lower()
-        base_obj = self.base_object.lower().removesuffix(
-            ',' + dn.lower()).split(',')
+        base_obj = self.base_object.lower().split(',')
         search_path = [path for path in reversed(base_obj) if path]
 
         if self.scope == Scope.BASE_OBJECT and self.base_object:
             query = query.filter(Path.path == search_path)
 
         elif self.scope == Scope.SINGLEL_EVEL:
-            if root_is_base:
-                query = query.filter(func.cardinality(Path.path) == 1)
-            else:
-                query = query.filter(
-                    func.cardinality(Path.path) == len(search_path) + 1,
-                    Path.path[0:len(search_path)] == search_path,
-                )
+            query = query.filter(
+                func.cardinality(Path.path) == len(search_path) + 1,
+                Path.path[0:len(search_path)] == search_path,
+            )
 
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
             query = query.filter(Path.path[1:len(search_path)] == search_path)
@@ -385,7 +401,6 @@ class SearchRequest(BaseRequest):
             session: AsyncSession) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
-        dn = await get_base_dn(session)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 
         async for directory in directories:
@@ -395,7 +410,7 @@ class SearchRequest(BaseRequest):
             for attr in directory.attributes:
                 attrs[attr.name].append(attr.value)
 
-            distinguished_name = self._get_full_dn(directory.path, dn)
+            distinguished_name = self._get_full_dn(directory.path)
 
             attrs['distinguishedName'].append(distinguished_name)
             attrs['whenCreated'].append(
@@ -418,7 +433,7 @@ class SearchRequest(BaseRequest):
 
                     for user in directory.group.users:
                         attrs['member'].append(
-                            self._get_full_dn(user.directory.path, dn))
+                            self._get_full_dn(user.directory.path))
 
                 if 'user' in attrs['objectClass'] and (
                         directory.user):
@@ -426,7 +441,7 @@ class SearchRequest(BaseRequest):
 
             for group in groups:
                 attrs['memberOf'].append(
-                    self._get_full_dn(group.directory.path, dn))
+                    self._get_full_dn(group.directory.path))
 
             if directory.user:
                 if self.all_attrs:

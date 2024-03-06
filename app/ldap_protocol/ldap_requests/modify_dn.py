@@ -74,17 +74,23 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
 
-        base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+        base_dn_list = await get_base_dn(session)
+
+        for base_dn in base_dn_list:
+            if self.new_superior.lower() == base_dn.get_dn().lower():
+                dn_is_base = True
+                break
+        else:
+            dn_is_base = False
+
+        obj = self.entry.lower().split(',')
 
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
             .filter(Path.path == reversed(obj))
 
-        new_sup = self.new_superior.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+        new_sup = self.new_superior.lower().split(',')
 
         new_sup_query = select(Directory)\
             .join(Directory.path)\
@@ -97,13 +103,14 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        dn_is_base = self.new_superior.lower() == base_dn.lower()
         if dn_is_base:
             new_directory = Directory(
-                object_class='',
+                object_class=directory.object_class,
                 name=self.newrdn.split('=')[1],
+                depth=3,
+                parent=directory.parent,
             )
-            new_path = new_directory.create_path()
+            new_path = new_directory.create_path(parent=directory.parent)
         else:
             new_base_directory = await session.scalar(new_sup_query)
             if not new_base_directory:
@@ -111,7 +118,7 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             new_directory = Directory(
-                object_class='',
+                object_class=directory.object_class,
                 name=self.newrdn.split('=')[1],
                 parent=new_base_directory,
                 depth=len(new_base_directory.path.path)+1,
