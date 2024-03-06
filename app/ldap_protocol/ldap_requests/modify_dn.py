@@ -113,7 +113,7 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             new_directory = Directory(
-                object_class='',
+                object_class=directory.object_class,
                 name=self.newrdn.split('=')[1],
                 parent=new_base_directory,
                 depth=len(new_base_directory.path.path)+1,
