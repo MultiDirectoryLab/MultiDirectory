@@ -2,11 +2,11 @@
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import cast, func, update, ARRAY, Integer, text
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from loguru import logger
+
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.ldap_responses import (
@@ -149,21 +149,11 @@ class ModifyDNRequest(BaseRequest):
         async with session.begin_nested():
             await session.execute(
                 update(Path)
-                .where(
-                    Path.path[new_directory.depth] == directory.get_dn(
-                        dn=directory.get_dn_prefix(),
-                    ),
-                )
+                .where(Path.path[new_directory.depth] == directory.get_dn(
+                    dn=directory.get_dn_prefix()))
                 .values(
-                    {
-                        Path.path: func.array_replace(
-                            Path.path,
-                            directory.get_dn(dn=directory.get_dn_prefix()),
-                            new_directory.get_dn(
-                                dn=new_directory.get_dn_prefix(),
-                            ),
-                        ),
-                    },
+                    {Path.path[directory.depth]: new_directory.get_dn(
+                        dn=new_directory.get_dn_prefix())},
                 ),
                 execution_options={"synchronize_session": 'fetch'},
             )
