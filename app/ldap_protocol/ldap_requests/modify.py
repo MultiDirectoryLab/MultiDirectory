@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Operation, Session
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
+from ldap_protocol.password_policy import post_save_password_actions
 from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
 from models.ldap3 import Attribute, Directory, Group, Path, User
 from security import get_password_hash
@@ -233,14 +234,7 @@ class ModifyRequest(BaseRequest):
                     pass
 
                 directory.user.password = get_password_hash(value)
-                await session.execute(  # update bind reject attribute
-                    update(Attribute)
-                    .values({'value': '1'})
-                    .where(
-                        Attribute.directory_id == directory.user.directory_id,
-                        Attribute.name == 'pwdLastSet',
-                        Attribute.value == '0',
-                    ))
+                await post_save_password_actions(directory.user, session)
 
             else:
                 attrs.append(Attribute(

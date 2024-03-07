@@ -15,8 +15,9 @@ from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
 )
+from ldap_protocol.password_policy import post_save_password_actions
 from ldap_protocol.utils import get_user
-from models import Attribute, Directory, User
+from models import Directory, User
 from security import get_password_hash, verify_password
 
 from .base import BaseRequest
@@ -147,14 +148,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
         if verify_password(self.old_password, user.password):
             user.password = get_password_hash(self.new_password)
-            await session.execute(  # update bind reject attribute
-                update(Attribute)
-                .values({'value': '1'})
-                .where(
-                    Attribute.directory_id == user.directory_id,
-                    Attribute.name == 'pwdLastSet',
-                    Attribute.value == '0',
-                ))
+            await post_save_password_actions(user, session)
             await session.execute(
                 update(Directory).where(Directory.id == user.directory_id),
             )
