@@ -1,3 +1,5 @@
+"""Password policies tools and CRUD."""
+
 import re
 from datetime import datetime
 from itertools import islice
@@ -6,10 +8,14 @@ from pydantic import BaseModel, Field, model_validator
 from pytz import timezone
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from winfiletime import from_datetime, to_datetime
 
-from app.models import Attribute, CatalogueSetting, User
-from app.security import get_password_hash
+from models import Attribute, CatalogueSetting, Directory, User
+from security import get_password_hash
+
+from .utils import dt_to_ft, ft_to_dt
+
+with open('extra/common_pwds.txt') as f:
+    _COMMON_PASSWORDS = set(f.read().split('\n'))
 
 
 async def post_save_password_actions(
@@ -19,7 +25,7 @@ async def post_save_password_actions(
     :param User user: user from db
     :param AsyncSession session: db
     """
-    new_dt = from_datetime(datetime.now(tz=timezone('Europe/Moscow')))
+    new_dt = dt_to_ft(datetime.now(tz=timezone('Europe/Moscow')))
     await session.execute(  # update bind reject attribute
         update(Attribute)
         .values({'value': new_dt})
@@ -29,10 +35,6 @@ async def post_save_password_actions(
             Attribute.value == '0'))
     user.password_history.append(user.password)  # type: ignore  # noqa
     await session.flush()
-
-
-with open('extra/common_pwds.txt') as f:
-    COMMON_PASSWORDS = f.read().split('\n')
 
 
 class PasswordPolicySchema(BaseModel):
@@ -54,7 +56,7 @@ class PasswordPolicySchema(BaseModel):
                 'lower than maximum password age days')
         return self
 
-    async def create_new_policy_settings(
+    async def create_policy_settings(
             self, session: AsyncSession) -> 'PasswordPolicySchema':
         """Create policies settings.
 
@@ -70,11 +72,14 @@ class PasswordPolicySchema(BaseModel):
         return self
 
     @classmethod
-    async def get_current_policy_settings(
-            cls, session: AsyncSession) -> 'PasswordPolicySchema':
+    async def get_policy_settings(
+            cls, session: AsyncSession,
+            directory: Directory) -> 'PasswordPolicySchema':
         """Get policy settings.
 
         :param AsyncSession session: db
+        :param Directory directory:
+            dir for policy allocation NOTE: [NOT IMPLEMENTED]
         :return PasswordPolicySchema: policy
         """
         q = select(CatalogueSetting).where(
@@ -96,6 +101,26 @@ class PasswordPolicySchema(BaseModel):
                 ))
             await session.commit()
 
+    @classmethod
+    async def delete_policy_settings(
+            cls, session: AsyncSession) -> 'PasswordPolicySchema':
+        """Reset (delete) default policy.
+
+        :param AsyncSession session: db
+        :return PasswordPolicySchema: schema policy
+        """
+        new_policy = cls()
+        async with session.begin_nested():
+            for field, value in new_policy.model_dump().items():
+                await session.execute((
+                    update(CatalogueSetting)
+                    .filter_by(name=field)
+                    .values({'value': value})
+                ))
+            await session.commit()
+
+        return new_policy
+
     async def validate_password_with_policy(
             self, password: str, user: User, session: AsyncSession) -> bool:
         """Validate password with chosen policy.
@@ -116,7 +141,7 @@ class PasswordPolicySchema(BaseModel):
             Attribute.name == 'pwdLastSet',
         ))  # type: ignore
 
-        last_pwd_set = to_datetime(int(last_pwd_set.value))
+        last_pwd_set = ft_to_dt(int(last_pwd_set.value))
         password_exists = (datetime.now(
             tz=timezone('Europe/Moscow')) - last_pwd_set).days
 
@@ -133,7 +158,7 @@ class PasswordPolicySchema(BaseModel):
             re.search('[A-Z]', password) is not None,
             re.search('[a-z]', password) is not None,
             re.search('[0-9]', password) is not None,
-            password.lower() not in COMMON_PASSWORDS,
+            password.lower() not in _COMMON_PASSWORDS,
         )):
             return False
 
