@@ -6,10 +6,10 @@ from itertools import islice
 
 from pydantic import BaseModel, Field, model_validator
 from pytz import timezone
-from sqlalchemy import select, update
+from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Attribute, CatalogueSetting, Directory, User
+from models import Attribute, PasswordPolicy, User
 from security import get_password_hash
 
 from .utils import dt_to_ft, ft_to_dt
@@ -50,10 +50,10 @@ class PasswordPolicySchema(BaseModel):
 
     @model_validator(mode='after')
     def _validate_minimum_pwd_age(self) -> 'PasswordPolicySchema':
-        if self.minimum_password_age_days >= self.maximum_password_age_days:
+        if self.minimum_password_age_days > self.maximum_password_age_days:
             raise ValueError(
                 'Minimum password age days must be '
-                'lower than maximum password age days')
+                'lower or equal than maximum password age days')
         return self
 
     async def create_policy_settings(
@@ -61,45 +61,36 @@ class PasswordPolicySchema(BaseModel):
         """Create policies settings.
 
         :param AsyncSession session: db session
-        :return list[CatalogueSetting]: list of catalogue settings.
+        :return PasswordPolicySchema: password policy.
         """
-        session.add([
-            CatalogueSetting(name=field, value=value)
-            for field, value in self.model_dump(mode='json').items()])
-
+        existing_policy = await session.scalar(select(exists(PasswordPolicy)))
+        if existing_policy:
+            raise PermissionError('Policy already exists')
+        session.add(PasswordPolicy(**self.model_dump(mode='json')))
         await session.commit()
-
         return self
 
     @classmethod
     async def get_policy_settings(
-            cls, session: AsyncSession,
-            directory: Directory) -> 'PasswordPolicySchema':
+            cls, session: AsyncSession) -> 'PasswordPolicySchema':
         """Get policy settings.
 
         :param AsyncSession session: db
-        :param Directory directory:
-            dir for policy allocation NOTE: [NOT IMPLEMENTED]
         :return PasswordPolicySchema: policy
         """
-        q = select(CatalogueSetting).where(
-            CatalogueSetting.name.in_(cls.model_fields))
-        settings = await session.scalars(q)
-        return cls(**{setting.name: setting.value for setting in settings})
+        policy = await session.scalar(select(PasswordPolicy))
+        return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(self, session: AsyncSession) -> None:
         """Update policy.
 
         :param AsyncSession session: db
         """
-        async with session.begin_nested():
-            for field, value in self.model_dump().items():
-                await session.execute((
-                    update(CatalogueSetting)
-                    .filter_by(name=field)
-                    .values({'value': value})
-                ))
-            await session.commit()
+        await session.execute((
+            update(PasswordPolicy)
+            .values(self.model_dump(mode='json'))
+        ))
+        await session.commit()
 
     @classmethod
     async def delete_policy_settings(
@@ -109,17 +100,9 @@ class PasswordPolicySchema(BaseModel):
         :param AsyncSession session: db
         :return PasswordPolicySchema: schema policy
         """
-        new_policy = cls()
-        async with session.begin_nested():
-            for field, value in new_policy.model_dump().items():
-                await session.execute((
-                    update(CatalogueSetting)
-                    .filter_by(name=field)
-                    .values({'value': value})
-                ))
-            await session.commit()
-
-        return new_policy
+        default_policy = cls()
+        await default_policy.update_policy_settings(session)
+        return default_policy
 
     async def validate_password_with_policy(
             self, password: str, user: User, session: AsyncSession) -> bool:
@@ -132,10 +115,6 @@ class PasswordPolicySchema(BaseModel):
         """
         new_password_hash = get_password_hash(password)
 
-        if new_password_hash in islice(
-                reversed(user.password_history), self.password_history_length):
-            return False
-
         last_pwd_set = await session.scalar(select(Attribute).where(
             Attribute.directory_id == user.directory_id,
             Attribute.name == 'pwdLastSet',
@@ -144,6 +123,10 @@ class PasswordPolicySchema(BaseModel):
         last_pwd_set = ft_to_dt(int(last_pwd_set.value))
         password_exists = (datetime.now(
             tz=timezone('Europe/Moscow')) - last_pwd_set).days
+
+        if new_password_hash in islice(
+                reversed(user.password_history), self.password_history_length):
+            return False
 
         if password_exists > self.maximum_password_age_days:
             return False
