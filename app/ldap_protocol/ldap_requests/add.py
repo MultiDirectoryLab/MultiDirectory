@@ -15,6 +15,7 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
+from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import (
     create_integer_hash,
     get_base_dn,
@@ -149,11 +150,23 @@ class AddRequest(BaseRequest):
                 mail=user_attributes.get('mail'),
                 display_name=user_attributes.get('displayName'),
                 directory=new_dir,
+                password_history=[],
             )
 
             if self.password is not None:
-                user.password = get_password_hash(
-                    self.password.get_secret_value())
+                validator = await PasswordPolicySchema\
+                    .get_policy_settings(session)
+                raw_password = self.password.get_secret_value()
+                errors = await validator.validate_password_with_policy(
+                    raw_password, user, session)
+
+                if errors:
+                    yield AddResponse(
+                        result_code=LDAPCodes.OPERATIONS_ERROR,
+                        errorMessage='; '.join(errors),
+                    )
+                    return
+                user.password = get_password_hash(raw_password)
 
             items_to_add.append(user)
             user.groups.extend(parent_groups)
