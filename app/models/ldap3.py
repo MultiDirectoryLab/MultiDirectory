@@ -16,6 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import (
     Mapped,
     backref,
@@ -129,6 +130,9 @@ class Directory(Base):
         DateTime(timezone=True),
         onupdate=func.now(), nullable=True)
     depth = Column(Integer)
+
+    password_policy_id = Column(
+        Integer, ForeignKey('PasswordPolicies.id'), nullable=True)
 
     path: 'Path' = relationship(
         "Path", back_populates="endpoint",
@@ -250,6 +254,11 @@ class User(DirectoryReferenceMixin, Base):
         secondary=UserMembership.__table__,
         back_populates='users',
     )
+
+    password_history: list[str] = Column(
+        MutableList.as_mutable(postgresql.ARRAY(String)),
+        server_default="{}",
+        nullable=False)
 
 
 class Group(DirectoryReferenceMixin, Base):
@@ -374,3 +383,25 @@ class NetworkPolicy(Base):
         "Group", secondary=PolicyMFAMembership.__table__,
         back_populates='mfa_policies',
     )
+
+
+class PasswordPolicy(Base):
+    """Password policy."""
+
+    __tablename__ = "PasswordPolicies"
+
+    id = Column(Integer, primary_key=True)  # noqa: A003
+    name = Column(
+        String(255), nullable=False,
+        unique=True, server_default='Default Policy')
+
+    password_history_length = Column(
+        Integer, nullable=False, server_default='4')
+    maximum_password_age_days = Column(
+        Integer, nullable=False, server_default='0')
+    minimum_password_age_days = Column(
+        Integer, nullable=False, server_default='0')
+    minimum_password_length = Column(
+        Integer, nullable=False, server_default='7')
+    password_must_meet_complexity_requirements = Column(
+        Boolean, server_default=expression.true(), nullable=False)

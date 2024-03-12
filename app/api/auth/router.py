@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings, get_settings
 from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import get_base_dn, set_last_logon_user
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
@@ -27,7 +28,7 @@ from .oauth2 import (
 )
 from .schema import OAuth2Form, SetupRequest, Token, User
 
-auth_router = APIRouter(prefix='/auth')
+auth_router = APIRouter(prefix='/auth', tags=['Auth'])
 
 
 @auth_router.post("/token/get")
@@ -38,10 +39,11 @@ async def login_for_access_token(
 ) -> Token:
     """Get refresh and access token on login.
 
+    \f
     :param OAuth2PasswordRequestForm: password form
     :raises HTTPException: in invalid user
     :return Token: refresh and access token
-    """
+    """  # noqa: D205, D301
     user = await authenticate_user(session, form.username, form.password)
 
     if not user:
@@ -91,19 +93,20 @@ async def login_for_access_token(
 
 
 @auth_router.post("/token/refresh")
-async def get_refresh_token(
+async def renew_tokens(
     user: Annotated[User, Depends(get_current_user_refresh)],
     settings: Annotated[Settings, Depends(get_settings)],
     token: Annotated[str, Depends(oauth2)],
     mfa: Annotated[MultifactorAPI | None, Depends(MultifactorAPI.from_di)],
 ) -> Token:
-    """Grant access token with refresh.
+    """Grant new access token with refresh token.
 
+    \f
     :param User user: current user from refresh token
     :param Settings settings: app settings
     :param str token: refresh token
     :return Token: refresh and access token
-    """
+    """  # noqa: D205, D301
     if user.access_type == 'multifactor':
         if not mfa:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
@@ -132,11 +135,10 @@ async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
     return user
 
 
-@auth_router.patch('/user/password')
+@auth_router.patch('/user/password', dependencies=[Depends(get_current_user)])
 async def password_update(
     identity: Annotated[str, Body(example='admin')],
     new_password: Annotated[str, Body(example='password')],
-    _: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> bool:
     """Update user's password.
@@ -146,7 +148,7 @@ async def password_update(
     \f
     :raises HTTPException: 404 if user not found
     :return bool: status
-    """  # noqa
+    """  # noqa: D205, D301
     user = await get_user(session, identity)
 
     if not user:
@@ -242,8 +244,18 @@ async def first_setup(
     async with session.begin_nested():
         try:
             await setup_enviroment(session, dn=request.domain, data=data)
+
+            default_pwd_policy = PasswordPolicySchema()
+            errors = await default_pwd_policy.validate_password_with_policy(
+                request.password, None, session)
+
+            if errors:
+                raise PermissionError()
+
+            await default_pwd_policy.create_policy_settings(session)
             await session.commit()
-        except IntegrityError:
+
+        except (IntegrityError, PermissionError):
             await session.rollback()
             return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:

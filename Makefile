@@ -12,7 +12,7 @@ cert:  ## create self-signed cert
 up:  ## run tty container with related services, use with run command
 	make down; docker compose up
 
-test:
+test:  ## run tests
 	make down; docker compose -f docker-compose.test.yml up --attach test
 
 run:  ## runs server 386/636 port
@@ -32,7 +32,7 @@ deploy:  ## deploy ready-to-use
 	make recreate
 	make up
 
-down:
+down:  ## shutdown services
 	docker compose -f docker-compose.test.yml down --remove-orphans
 	docker compose down --remove-orphans
 

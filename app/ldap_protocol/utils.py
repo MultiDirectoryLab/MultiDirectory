@@ -1,6 +1,11 @@
-"""Utils module for different functions."""
+"""Utils module for different functions.
+
+Windows filetime reference:
+https://github.com/jleclanche/winfiletime/blob/master/winfiletime/filetime.py
+"""
 import hashlib
 import re
+from calendar import timegm
 from datetime import datetime
 
 import pytz
@@ -247,3 +252,30 @@ async def set_last_logon_user(user: User, session: AsyncSession) -> None:
 def get_windows_timestamp(value: datetime) -> int:
     """Get the Windows timestamp from the value."""
     return (int(value.timestamp()) + 11644473600) * 10000000
+
+
+_EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+_HUNDREDS_OF_NS = 10000000
+
+
+def dt_to_ft(dt: datetime) -> int:
+    """Convert a datetime to a Windows filetime.
+
+    If the object is time zone-naive, it is forced to UTC before conversion.
+    """
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+        dt = dt.replace(tzinfo=pytz.utc)
+
+    filetime = _EPOCH_AS_FILETIME + (timegm(dt.timetuple()) * _HUNDREDS_OF_NS)
+    return filetime + (dt.microsecond * 10)
+
+
+def ft_to_dt(filetime: int) -> datetime:
+    """Convert a Windows filetime number to a Python datetime.
+
+    The new datetime object is timezone-naive but is equivalent to tzinfo=utc.
+    1) Get seconds and remainder in terms of Unix epoch
+    2) Convert to datetime object, with remainder as microseconds.
+    """
+    s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
+    return datetime.utcfromtimestamp(s).replace(microsecond=(ns100 // 10))

@@ -100,10 +100,12 @@ class ModifyDNRequest(BaseRequest):
         dn_is_base = self.new_superior.lower() == base_dn.lower()
         if dn_is_base:
             new_directory = Directory(
-                object_class='',
+                object_class=directory.object_class,
                 name=self.newrdn.split('=')[1],
+                depth=1,
             )
-            new_path = new_directory.create_path()
+            new_path = new_directory.create_path(
+                dn=new_directory.get_dn_prefix())
         else:
             new_base_directory = await session.scalar(new_sup_query)
             if not new_base_directory:
@@ -111,7 +113,7 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             new_directory = Directory(
-                object_class='',
+                object_class=directory.object_class,
                 name=self.newrdn.split('=')[1],
                 parent=new_base_directory,
                 depth=len(new_base_directory.path.path)+1,
@@ -143,6 +145,19 @@ class ModifyDNRequest(BaseRequest):
                     update(model)
                     .where(model.directory_id == directory.id)
                     .values(directory_id=new_directory.id))
+
+        async with session.begin_nested():
+            await session.execute(
+                update(Path)
+                .where(Path.path[new_directory.depth] == directory.get_dn(
+                    dn=directory.get_dn_prefix()))
+                .values(
+                    {Path.path[directory.depth]: new_directory.get_dn(
+                        dn=new_directory.get_dn_prefix())},
+                ),
+                execution_options={"synchronize_session": 'fetch'},
+            )
+            await session.commit()
 
         await session.refresh(directory)
         await session.delete(directory)

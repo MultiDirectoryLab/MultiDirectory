@@ -17,7 +17,7 @@ from models.database import AsyncSession, get_session
 
 from .schema import SearchRequest, SearchResponse, SearchResultDone
 
-entry_router = APIRouter(prefix='/entry')
+entry_router = APIRouter(prefix='/entry', tags=['LDAP API'])
 
 
 @entry_router.post('/search')
@@ -26,7 +26,7 @@ async def search(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User | None, Depends(get_current_user_or_none)],
 ) -> SearchResponse:
-    """Search request."""
+    """LDAP SEARCH entry request."""
     responses = await request.handle_api(user, session, False)
     metadata: SearchResultDone = responses.pop(-1)
 
@@ -46,7 +46,7 @@ async def add(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User | None, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
-    """Add view."""
+    """LDAP ADD entry request."""
     return await request.handle_api(user, session)
 
 
@@ -56,7 +56,7 @@ async def update(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
-    """Update view."""
+    """LDAP UPDATE entry request."""
     return await request.handle_api(user, session)
 
 
@@ -66,7 +66,7 @@ async def update_dn(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
-    """Update DN view."""
+    """LDAP UPDATE entry DN request."""
     return await request.handle_api(user, session)
 
 
@@ -76,5 +76,5 @@ async def delete(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
-    """Delete DN view."""
+    """LDAP DELETE entry request."""
     return await request.handle_api(user, session)
