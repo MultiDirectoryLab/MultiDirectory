@@ -8,12 +8,14 @@ from api.auth import get_current_user
 from ldap_protocol.password_policy import PasswordPolicySchema
 from models.database import AsyncSession, get_session
 
-pwd_router = APIRouter(prefix='/password-policy')
+pwd_router = APIRouter(
+    prefix='/password-policy',
+    dependencies=[Depends(get_current_user)],
+    tags=['Password policy'],
+)
 
 
-@pwd_router.post(
-    '', dependencies=[Depends(get_current_user)],
-    status_code=status.HTTP_201_CREATED)
+@pwd_router.post('', status_code=status.HTTP_201_CREATED)
 async def create_policy(
     policy: PasswordPolicySchema,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -22,7 +24,7 @@ async def create_policy(
     return await policy.create_policy_settings(session)
 
 
-@pwd_router.get('', dependencies=[Depends(get_current_user)])
+@pwd_router.get('')
 async def get_policy(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PasswordPolicySchema:
@@ -30,7 +32,7 @@ async def get_policy(
     return await PasswordPolicySchema.get_policy_settings(session)
 
 
-@pwd_router.put('', dependencies=[Depends(get_current_user)])
+@pwd_router.put('')
 async def update_policy(
     policy: PasswordPolicySchema,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -40,7 +42,7 @@ async def update_policy(
     return policy
 
 
-@pwd_router.delete('', dependencies=[Depends(get_current_user)])
+@pwd_router.delete('')
 async def reset_policy(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PasswordPolicySchema:
