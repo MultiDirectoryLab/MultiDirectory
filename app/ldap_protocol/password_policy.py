@@ -11,7 +11,7 @@ from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Attribute, PasswordPolicy, User
-from security import get_password_hash
+from security import verify_password
 
 from .utils import dt_to_ft, ft_to_dt
 
@@ -120,7 +120,6 @@ class PasswordPolicySchema(BaseModel):
         :return bool: status
         """
         errors = []
-        new_password_hash = get_password_hash(password)
 
         last_pwd_set = None
         history: Iterable = []
@@ -142,8 +141,10 @@ class PasswordPolicySchema(BaseModel):
             if last_pwd_set else now)
         password_exists = (now - last_pwd_set).days
 
-        if new_password_hash in history:
-            errors.append('password history violation')
+        for pwd_hash in history:
+            if verify_password(password, pwd_hash):
+                errors.append('password history violation')
+                break
 
         if password_exists > self.maximum_password_age_days:
             errors.append('password maximum age violation')
