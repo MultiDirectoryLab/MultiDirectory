@@ -10,7 +10,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from api.auth import User, get_current_user
+from api.auth import get_current_user
 from ldap_protocol.utils import get_base_dn, get_groups, get_path_dn
 from models.database import AsyncSession, get_session
 from models.ldap3 import Directory, Group, NetworkPolicy
@@ -24,23 +24,24 @@ from .schema import (
 )
 from .utils import check_policy_count
 
-network_router = APIRouter(prefix='/policy')
+network_router = APIRouter(prefix='/policy', tags=['Network policy'])
 
 
-@network_router.post('', status_code=status.HTTP_201_CREATED)
+@network_router.post(
+    '', status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)])
 async def add_network_policy(
     policy: Policy,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
 ) -> PolicyResponse:
     """Add policy.
 
+    \f
     :param Policy policy: policy to add
-    :param User user: requires login, defaults to Depends(get_current_user)
     :raises HTTPException: 422 invalid group DN
     :raises HTTPException: 422 Entry already exists
     :return PolicyResponse: Ready policy
-    """
+    """  # noqa: D205, D301
     new_policy = NetworkPolicy(
         name=policy.name,
         netmasks=policy.complete_netmasks,
@@ -87,16 +88,17 @@ async def add_network_policy(
     )
 
 
-@network_router.get('', name='policy')
+@network_router.get(
+    '', name='policy',
+    dependencies=[Depends(get_current_user)])
 async def get_network_policies(
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
 ) -> list[PolicyResponse]:
     """Get network.
 
-    :param User user: requires login, defaults to Depends(get_current_user)
+    \f
     :return list[PolicyResponse]: all policies
-    """
+    """  # noqa: D205, D301
     base_dn = await get_base_dn(session)
     groups = selectinload(NetworkPolicy.groups)\
         .selectinload(Group.directory)\
@@ -129,22 +131,24 @@ async def get_network_policies(
 @network_router.delete(
     '/{policy_id}',
     response_class=RedirectResponse,
-    status_code=status.HTTP_303_SEE_OTHER)
+    status_code=status.HTTP_303_SEE_OTHER,
+    dependencies=[Depends(get_current_user)],
+)
 async def delete_network_policy(
     policy_id: int,
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
 ) -> list[PolicyResponse]:
     """Delete policy.
 
+    \f
     :param int policy_id: id
     :param User user: requires login
     :raises HTTPException: 404
     :raises HTTPException: 422 On last active policy,
         at least 1 should be in database.
     :return bool: status of delete
-    """
+    """  # noqa: D205, D301
     policy = await session.get(
         NetworkPolicy, policy_id, with_for_update=True)
 
@@ -170,21 +174,22 @@ async def delete_network_policy(
     )  # type: ignore
 
 
-@network_router.patch('/{policy_id}')
+@network_router.patch('/{policy_id}', dependencies=[Depends(get_current_user)])
 async def switch_network_policy(
     policy_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
 ) -> bool:
     """Switch state of policy.
 
+    - **policy_id**: int, policy to switch
+    \f
     :param int policy_id: id
     :param User user: requires login
     :raises HTTPException: 404
     :raises HTTPException: 422 On last active policy,
         at least 1 should be active
     :return bool: status of update
-    """
+    """  # noqa: D205, D301
     policy = await session.get(
         NetworkPolicy, policy_id, with_for_update=True)
 
@@ -199,21 +204,20 @@ async def switch_network_policy(
     return True
 
 
-@network_router.put('')
+@network_router.put('', dependencies=[Depends(get_current_user)])
 async def update_network_policy(
     request: PolicyUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
 ) -> PolicyResponse:
-    """Update policy.
+    """Update network policy.
 
+    \f
     :param PolicyUpdate policy: update request
-    :param User user: requires login, defaults to Depends(get_current_user)
     :raises HTTPException: 404 policy not found
     :raises HTTPException: 422 Invalid group DN
     :raises HTTPException: 422 Entry already exists
     :return PolicyResponse: Policy from database
-    """
+    """  # noqa: D205, D301
     selected_policy = await session.get(
         NetworkPolicy, request.id, with_for_update=True,
         options=[
@@ -276,20 +280,21 @@ async def update_network_policy(
     )
 
 
-@network_router.post('/swap')
+@network_router.post('/swap', dependencies=[Depends(get_current_user)])
 async def swap_network_policy(
     swap: SwapRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
 ) -> SwapResponse:
-    """Swap priorities.
+    """Swap priorities for policy.
 
+    - **first_policy_id**: policy to swap
+    - **second_policy_id**: policy to swap
+    \f
     :param int first_policy_id: policy to swap
     :param int second_policy_id: policy to swap
-    :param User user: needs login, defaults to Depends(get_current_user)
     :raises HTTPException: 404
     :return SwapResponse: policy new priorities
-    """
+    """  # noqa: D205, D301
     policy1 = await session.get(
         NetworkPolicy, swap.first_policy_id,
         with_for_update=True)

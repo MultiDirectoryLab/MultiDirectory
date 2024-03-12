@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "MultiDirectory"
-version = "1.9.4"
+version = "1.10.4"
 description = ""
 authors = ["Mastermind-U <rex49513@gmail.com>"]
 readme = "README.md"
@@ -50,7 +50,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
-known_first_party = ["ldap_protocol", "client", "config", "models", "api", "security"]
+known_first_party = ["ldap_protocol", "client", "config", "models", "api", "security", "tests"]
 include_trailing_comma = true
 line_length = 79
 multi_line_output = 3

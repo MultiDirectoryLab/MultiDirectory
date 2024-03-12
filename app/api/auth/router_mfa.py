@@ -22,7 +22,7 @@ from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy import delete
 
-from api.auth import User, get_current_user
+from api.auth import get_current_user
 from config import Settings, get_queue_pool, get_settings
 from ldap_protocol.multifactor import (
     Creds,
@@ -37,22 +37,24 @@ from models.ldap3 import User as DBUser
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import Login, MFACreateRequest, MFAGetResponse
 
-mfa_router = APIRouter(prefix='/multifactor')
+mfa_router = APIRouter(prefix='/multifactor', tags=['Multifactor'])
 
 
-@mfa_router.post('/setup', status_code=status.HTTP_201_CREATED)
+@mfa_router.post(
+    '/setup', status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)])
 async def setup_mfa(
     mfa: MFACreateRequest,
-    user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
 
+    \f
     :param str mfa_key: multifactor key
     :param Annotated[bool, Body is_ldap_scope: _description_, defaults to True
     :param str mfa_secret: multifactor api secret
     :return bool: status
-    """
+    """  # noqa: D205, D301
     async with session.begin_nested():
         await session.execute((
             delete(CatalogueSetting)
@@ -70,16 +72,16 @@ async def setup_mfa(
     return True
 
 
-@mfa_router.post('/get')
+@mfa_router.post('/get', dependencies=[Depends(get_current_user)])
 async def get_mfa(
-    user: Annotated[User, Depends(get_current_user)],
     mfa_creds: Annotated[Creds | None, Depends(get_auth)],
     mfa_creds_ldap: Annotated[Creds | None, Depends(get_auth_ldap)],
 ) -> MFAGetResponse:
     """Get MFA creds.
 
+    \f
     :return MFAGetResponse: response
-    """
+    """  # noqa: D205, D301
     if not mfa_creds:
         mfa_creds = Creds(None, None)
     if not mfa_creds_ldap:
@@ -104,11 +106,12 @@ async def callback_mfa(
 
     Callback endpoint for MFA.
 
+    \f
     :param Annotated[str, Form access_token: access token from multifactor
     :param str | None mfa_secret: multifactor secret from settings
     :raises HTTPException: 404
     :return dict: status
-    """
+    """  # noqa: D205, D301
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
@@ -163,10 +166,11 @@ async def two_factor_protocol(
     5. Sends `{'status': 'success', 'message': token}` where token is
         a mfa access and refresh token;
 
+    \f
     :param WebSocket websocket: websocket
     :param MultifactorAPI api: MF API, depends
     :param dict[str, Queue[str]] pool: queue pool for async comms, depends
-    """
+    """  # noqa: D205, D301
     await websocket.accept()
     if not api:
         await websocket.close(
