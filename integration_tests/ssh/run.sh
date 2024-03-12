@@ -10,10 +10,10 @@ curl -X 'POST' \
   "user_principal_name": "admin",
   "display_name": "admin",
   "mail": "admin@example.com",
-  "password": "password"
+  "password": "Password123"
 }' -m 30;
 echo -e "performing ssh conn";
-sshpass -p password \
+sshpass -p Password123 \
   ssh \
   -o UserKnownHostsFile=/dev/null \
   -o StrictHostKeyChecking=no \
