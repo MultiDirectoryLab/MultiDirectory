@@ -24,7 +24,7 @@ async def test_anonymous_pwd_change(
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
-    new_test_password = 'password123'  # noqa
+    new_test_password = 'Password123'  # noqa
     await event_loop.run_in_executor(None, ldap_client.bind)
 
     result = await event_loop.run_in_executor(
@@ -58,7 +58,7 @@ async def test_bind_pwd_change(
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
-    new_test_password = 'password123'  # noqa
+    new_test_password = 'Password123'  # noqa
     await event_loop.run_in_executor(
         None, partial(ldap_client.rebind, user=user_dn, password=password))
 

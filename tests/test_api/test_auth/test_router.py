@@ -18,7 +18,7 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
         "user_principal_name": "test",
         "display_name": "test",
         "mail": "test@example.com",
-        "password": "password",
+        "password": "Password123",
     })
     assert response.status_code == 200
     assert response.json() == {
@@ -32,7 +32,7 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
     assert response.json() is True
 
     auth = await http_client.post("auth/token/get", data={
-        "username": "test", "password": "password"})
+        "username": "test", "password": "Password123"})
     assert auth.status_code == 200
 
     login_header = {'Authorization': f"Bearer {auth.json()['access_token']}"}
