@@ -3,6 +3,7 @@
 import re
 from datetime import datetime
 from itertools import islice
+from typing import Iterable
 
 from pydantic import BaseModel, Field, model_validator
 from pytz import timezone
@@ -25,7 +26,7 @@ async def post_save_password_actions(
     :param User user: user from db
     :param AsyncSession session: db
     """
-    new_dt = dt_to_ft(datetime.now(tz=timezone('Europe/Moscow')))
+    new_dt = str(dt_to_ft(datetime.now(tz=timezone('Europe/Moscow'))))
     await session.execute(  # update bind reject attribute
         update(Attribute)
         .values({'value': new_dt})
@@ -67,7 +68,7 @@ class PasswordPolicySchema(BaseModel):
         if existing_policy:
             raise PermissionError('Policy already exists')
         session.add(PasswordPolicy(**self.model_dump(mode='json')))
-        await session.commit()
+        await session.flush()
         return self
 
     @classmethod
@@ -79,6 +80,8 @@ class PasswordPolicySchema(BaseModel):
         :return PasswordPolicySchema: policy
         """
         policy = await session.scalar(select(PasswordPolicy))
+        if not policy:
+            return cls()
         return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(self, session: AsyncSession) -> None:
@@ -106,7 +109,7 @@ class PasswordPolicySchema(BaseModel):
 
     async def validate_password_with_policy(
         self, password: str,
-        user: User,
+        user: User | None,
         session: AsyncSession,
     ) -> list[str]:
         """Validate password with chosen policy.
@@ -119,10 +122,17 @@ class PasswordPolicySchema(BaseModel):
         errors = []
         new_password_hash = get_password_hash(password)
 
-        last_pwd_set = await session.scalar(select(Attribute).where(
-            Attribute.directory_id == user.directory_id,
-            Attribute.name == 'pwdLastSet',
-        ))  # type: ignore
+        last_pwd_set = None
+        history: Iterable = []
+
+        if user is not None:
+            last_pwd_set = await session.scalar(select(Attribute).where(
+                Attribute.directory_id == user.directory_id,
+                Attribute.name == 'pwdLastSet',
+            ))  # type: ignore
+            history = islice(
+                reversed(user.password_history),
+                self.password_history_length)
 
         tz = timezone('Europe/Moscow')
         now = datetime.now(tz=tz)
@@ -132,8 +142,7 @@ class PasswordPolicySchema(BaseModel):
             if last_pwd_set else now)
         password_exists = (now - last_pwd_set).days
 
-        if new_password_hash in islice(
-                reversed(user.password_history), self.password_history_length):
+        if new_password_hash in history:
             errors.append('password history violation')
 
         if password_exists > self.maximum_password_age_days:
