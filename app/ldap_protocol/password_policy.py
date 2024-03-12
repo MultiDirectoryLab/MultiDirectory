@@ -105,7 +105,10 @@ class PasswordPolicySchema(BaseModel):
         return default_policy
 
     async def validate_password_with_policy(
-            self, password: str, user: User, session: AsyncSession) -> bool:
+        self, password: str,
+        user: User,
+        session: AsyncSession,
+    ) -> list[str]:
         """Validate password with chosen policy.
 
         :param str password: new raw password
@@ -113,6 +116,7 @@ class PasswordPolicySchema(BaseModel):
         :param AsyncSession session: db
         :return bool: status
         """
+        errors = []
         new_password_hash = get_password_hash(password)
 
         last_pwd_set = await session.scalar(select(Attribute).where(
@@ -120,22 +124,26 @@ class PasswordPolicySchema(BaseModel):
             Attribute.name == 'pwdLastSet',
         ))  # type: ignore
 
-        last_pwd_set = ft_to_dt(int(last_pwd_set.value))
-        password_exists = (datetime.now(
-            tz=timezone('Europe/Moscow')) - last_pwd_set).days
+        tz = timezone('Europe/Moscow')
+        now = datetime.now(tz=tz)
+
+        last_pwd_set = (
+            tz.localize(ft_to_dt(int(last_pwd_set.value)))
+            if last_pwd_set else now)
+        password_exists = (now - last_pwd_set).days
 
         if new_password_hash in islice(
                 reversed(user.password_history), self.password_history_length):
-            return False
+            errors.append('password history violation')
 
         if password_exists > self.maximum_password_age_days:
-            return False
+            errors.append('password maximum age violation')
 
         if password_exists < self.minimum_password_age_days:
-            return False
+            errors.append('password minimum age violation')
 
         if len(password) <= self.minimum_password_length:
-            return False
+            errors.append('password minimum length violation')
 
         if self.password_must_meet_complexity_requirements and not all((
             re.search('[A-Z]', password) is not None,
@@ -143,6 +151,6 @@ class PasswordPolicySchema(BaseModel):
             re.search('[0-9]', password) is not None,
             password.lower() not in _COMMON_PASSWORDS,
         )):
-            return False
+            errors.append('password complexity violation')
 
-        return True
+        return errors
