@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings, get_settings
 from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import get_base_dn, set_last_logon_user
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
@@ -242,8 +243,18 @@ async def first_setup(
     async with session.begin_nested():
         try:
             await setup_enviroment(session, dn=request.domain, data=data)
+
+            default_pwd_policy = PasswordPolicySchema()
+            errors = await default_pwd_policy.validate_password_with_policy(
+                request.password, None, session)
+
+            if errors:
+                raise PermissionError()
+
+            await default_pwd_policy.create_policy_settings(session)
             await session.commit()
-        except IntegrityError:
+
+        except (IntegrityError, PermissionError):
             await session.rollback()
             return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:
