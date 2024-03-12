@@ -82,7 +82,7 @@ services:
       SERVER: "ldap://multidirectory_ldap"
       BASE: "dc=md,dc=multifactor,dc=dev"
       BIND_DN: "admin"
-      BASE_PASSWORD: "password"
+      BASE_PASSWORD: "Password123"
     ports:
       - "222:22"
     healthcheck:
