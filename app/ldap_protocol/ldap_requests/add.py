@@ -46,7 +46,7 @@ class AddRequest(BaseRequest):
 
     PROTOCOL_OP: ClassVar[int] = 8
 
-    entry: str
+    entry: str = Field(..., description='Any `DistinguishedName`')
     attributes: list[PartialAttribute]
 
     password: SecretStr | None = Field(None, examples=['password'])

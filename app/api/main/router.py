@@ -56,7 +56,7 @@ async def update(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
-    """LDAP UPDATE entry request."""
+    """LDAP MODIFY entry request."""
     return await request.handle_api(user, session)
 
 
@@ -66,7 +66,7 @@ async def update_dn(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user_or_none)],
 ) -> LDAPResult:
-    """LDAP UPDATE entry DN request."""
+    """LDAP MODIFY entry DN request."""
     return await request.handle_api(user, session)
 
 
