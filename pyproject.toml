@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "MultiDirectory"
-version = "1.10.2"
+version = "1.10.4"
 description = ""
 authors = ["Mastermind-U <rex49513@gmail.com>"]
 readme = "README.md"
@@ -27,6 +27,7 @@ uvloop = "^0.17.0"
 websockets = "^11.0.3"
 alembic = "^1.12.1"
 ldap3 = "^2.9.1"
+bcrypt = "4.0.1"
 
 [tool.poetry.group.linters.dependencies]
 flake8-pytest = "^1.4"
