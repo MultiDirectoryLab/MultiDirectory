@@ -70,7 +70,7 @@ class SearchRequest(BaseRequest):
 
     PROTOCOL_OP: ClassVar[int] = 3
 
-    base_object: str = ''
+    base_object: str = Field('', description='Any `DistinguishedName`')
     scope: Scope
     deref_aliases: DerefAliases
     size_limit: int = Field(ge=0, le=sys.maxsize, examples=[1000])
@@ -79,7 +79,7 @@ class SearchRequest(BaseRequest):
     filter: ASN1Row = Field(...)  # noqa: A003
     attributes: list[str]
 
-    page_number: int | None = Field(None, ge=1)  # only API method
+    page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
 
     class Config:
         """Allow class to use property."""
