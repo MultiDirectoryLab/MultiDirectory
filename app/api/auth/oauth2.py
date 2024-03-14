@@ -121,6 +121,9 @@ async def get_current_user(  # noqa: D103
 ) -> User:
     user = await _get_user_from_token(settings, session, token, mfa_creds)
 
+    if user.access_type not in ('access', 'multifactor'):
+        raise _CREDENTIALS_EXCEPTION
+
     if user.access_type == 'multifactor' and\
             user.exp - settings.MFA_TOKEN_LEEWAY < (
                 datetime.utcnow().timestamp()):
