@@ -11,7 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings, get_settings
 from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.password_policy import PasswordPolicySchema
+from ldap_protocol.password_policy import (
+    PasswordPolicySchema,
+    post_save_password_actions,
+)
 from ldap_protocol.utils import get_base_dn, set_last_logon_user
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
@@ -162,6 +165,14 @@ async def password_reset(
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
+    policy = await PasswordPolicySchema.get_policy_settings(session)
+    errors = await policy.validate_password_with_policy(
+        new_password, user, session)
+
+    if errors:
+        raise HTTPException(status.HTTP_304_NOT_MODIFIED, '; '.join(errors))
+
+    await post_save_password_actions(user, session)
     user.password = get_password_hash(new_password)
     await session.commit()
 
