@@ -4,7 +4,7 @@ from typing import Annotated
 
 from extra.setup_dev import setup_enviroment
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,6 +38,9 @@ async def login_for_access_token(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Token:
     """Get refresh and access token on login.
+
+    - **username**: username formats:
+    `DN`, `userPrincipalName`, `saMAccountName`
 
     \f
     :param OAuth2PasswordRequestForm: password form
@@ -101,6 +104,10 @@ async def renew_tokens(
 ) -> Token:
     """Grant new access token with refresh token.
 
+    - **Authorization**: requires refresh bearer token in headers:
+
+    `Authorization: Bearer refresh_token`
+
     \f
     :param User user: current user from refresh token
     :param Settings settings: app settings
@@ -131,19 +138,20 @@ async def renew_tokens(
 
 @auth_router.get("/me")
 async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
-    """Get current user."""
+    """Get current logged in user data."""
     return user
 
 
 @auth_router.patch('/user/password', dependencies=[Depends(get_current_user)])
-async def password_update(
+async def password_reset(
     identity: Annotated[str, Body(example='admin')],
     new_password: Annotated[str, Body(example='password')],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> bool:
-    """Update user's password.
+    """Reset user's (entry) password.
 
-    - **identity**: user identity, any username or DN
+    - **identity**: user identity, any
+    `userPrincipalName`, `saMAccountName` or `DN`
     - **new_password**: password to set
     \f
     :raises HTTPException: 404 if user not found
@@ -167,10 +175,9 @@ async def check_setup(
 
     True if setup already complete, False if setup is needed.
     """
-    return bool(await session.scalar(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'defaultNamingContext'),
-    ))
+    return await session.scalar(select(
+        exists(CatalogueSetting)
+        .where(CatalogueSetting.name == 'defaultNamingContext')))
 
 
 @auth_router.post('/setup')
