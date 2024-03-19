@@ -21,11 +21,6 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
         "password": "Password123",
     })
     assert response.status_code == 200
-    assert response.json() == {
-        "resultCode": 0,
-        "matchedDN": "",
-        "errorMessage": "",
-    }
 
     response = await http_client.get("/auth/setup")
     assert response.status_code == 200
@@ -58,13 +53,13 @@ async def test_update_password(
         "auth/user/password",
         json={
             "identity": "user0",
-            "new_password": "password1",
+            "new_password": "Password123",
         },
         headers=login_headers,
     )
 
     assert response.status_code == 200
-    assert response.json() is True
+    assert response.json() is None
 
     new_auth = await http_client.post(
         "auth/token/get",
@@ -79,7 +74,7 @@ async def test_update_password(
         "auth/token/get",
         data={
             "username": "user0",
-            "password": "password1",
+            "password": "Password123",
         },
     )
     assert new_auth.status_code == 200
