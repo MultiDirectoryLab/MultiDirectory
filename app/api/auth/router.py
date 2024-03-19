@@ -9,7 +9,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings, get_settings
-from ldap_protocol.ldap_responses import LDAPCodes, LDAPResult
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
@@ -145,12 +144,15 @@ async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
     return user
 
 
-@auth_router.patch('/user/password', dependencies=[Depends(get_current_user)])
+@auth_router.patch(
+    '/user/password',
+    status_code=200,
+    dependencies=[Depends(get_current_user)])
 async def password_reset(
     identity: Annotated[str, Body(example='admin')],
     new_password: Annotated[str, Body(example='password')],
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> bool:
+) -> None:
     """Reset user's (entry) password.
 
     - **identity**: user identity, any
@@ -170,13 +172,11 @@ async def password_reset(
         new_password, user, session)
 
     if errors:
-        raise HTTPException(status.HTTP_304_NOT_MODIFIED, '; '.join(errors))
+        raise HTTPException(status.HTTP_304_NOT_MODIFIED, detail=errors)
 
     await post_save_password_actions(user, session)
     user.password = get_password_hash(new_password)
     await session.commit()
-
-    return True
 
 
 @auth_router.get('/setup')
@@ -191,11 +191,13 @@ async def check_setup(
         .where(CatalogueSetting.name == 'defaultNamingContext')))
 
 
-@auth_router.post('/setup')
+@auth_router.post(
+    '/setup', status_code=status.HTTP_200_OK,
+    responses={423: {"detail": 'Locked'}})
 async def first_setup(
     request: SetupRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> LDAPResult:
+) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
         select(CatalogueSetting)
@@ -203,7 +205,7 @@ async def first_setup(
     )
 
     if setup_already_performed:
-        return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+        raise HTTPException(status.HTTP_423_LOCKED)
 
     data = [  # noqa
         {
@@ -268,14 +270,16 @@ async def first_setup(
                 request.password, None, session)
 
             if errors:
-                raise PermissionError()
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=errors,
+                )
 
             await default_pwd_policy.create_policy_settings(session)
             await session.commit()
 
-        except (IntegrityError, PermissionError):
+        except IntegrityError:
             await session.rollback()
-            return LDAPResult(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+            raise HTTPException(status.HTTP_423_LOCKED)
         else:
             get_base_dn.cache_clear()
-    return LDAPResult(result_code=LDAPCodes.SUCCESS)
