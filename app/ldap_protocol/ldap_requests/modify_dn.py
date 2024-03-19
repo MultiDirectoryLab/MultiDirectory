@@ -33,13 +33,14 @@ class ModifyDNRequest(BaseRequest):
 
     **entry** — The current DN for the target entry.
 
-    **newrdn** — The new RDN to use assign to the entry. It may be the same as the
+    **newrdn** — The new RDN to use assign to the entry.
+        It may be the same as the
         current RDN if you only intend to move the entry beneath a new parent.
         If the new RDN includes any attribute values that arent
         already in the entry, the entry will be updated to include them.
 
-    **deleteoldrdn** — Indicates whether to delete any attribute values from the
-        entry that were in the original RDN but not in the new RDN.
+    **deleteoldrdn** — Indicates whether to delete any attribute values from
+        the entry that were in the original RDN but not in the new RDN.
 
     **newSuperior** — The DN of the entry that should become the new
         parent for the entry (and any of its subordinates).
