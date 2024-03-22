@@ -329,7 +329,8 @@ class SearchRequest(BaseRequest):
         search_path = [path for path in reversed(base_obj) if path]
 
         if self.scope == Scope.BASE_OBJECT and self.base_object:
-            query = query.filter(Path.path == search_path)
+            query = query.filter(
+                func.array_lowercase(Path.path) == search_path)
 
         elif self.scope == Scope.SINGLEL_EVEL:
             if root_is_base:
@@ -337,11 +338,13 @@ class SearchRequest(BaseRequest):
             else:
                 query = query.filter(
                     func.cardinality(Path.path) == len(search_path) + 1,
-                    Path.path[0:len(search_path)] == search_path,
+                    func.array_lowercase(
+                        Path.path[0:len(search_path)]) == search_path,
                 )
 
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
-            query = query.filter(Path.path[1:len(search_path)] == search_path)
+            query = query.filter(func.array_lowercase(
+                Path.path[1:len(search_path)]) == search_path)
 
         if self.member_of:
             s1 = selectinload(Directory.group).selectinload(
