@@ -17,9 +17,11 @@ import ldap3
 import pytest
 import pytest_asyncio
 import uvloop
+from alembic import command
+from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from app.__main__ import PoolClientHandler
@@ -68,13 +70,30 @@ def engine(settings: Settings) -> AsyncEngine:
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def _migrations() -> AsyncGenerator:
+async def _migrations(
+    engine: AsyncEngine,
+    settings: Settings,
+) -> AsyncGenerator:
     """Run simple migrations."""
-    proc = await asyncio.create_subprocess_exec('alembic', 'upgrade', 'head')
-    await proc.wait()
+    config = AlembicConfig("alembic.ini")
+    config.attributes["app_settings"] = settings
+
+    def upgrade(conn: AsyncConnection) -> None:
+        config.attributes["connection"] = conn
+        command.upgrade(config, "head")
+
+    def downgrade(conn: AsyncConnection) -> None:
+        config.attributes["connection"] = conn
+        command.downgrade(config, "base")
+
+    async with engine.begin() as conn:
+        config.attributes["connection"] = conn
+        await conn.run_sync(upgrade)
+
     yield
-    proc = await asyncio.create_subprocess_exec('alembic', 'downgrade', '0')
-    await proc.wait()
+
+    async with engine.begin() as conn:
+        await conn.run_sync(downgrade)
 
 
 @pytest.fixture(scope='session')
