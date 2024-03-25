@@ -31,16 +31,27 @@ def do_run_migrations(connection):
         context.run_migrations()
 
 
-async def run_migrations_online(settings: Settings | None = None):
+async def run_async_migrations(settings):
+    """Run async migrations."""
+    engine = get_engine(settings)
+
+    async with engine.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+
+def run_migrations_online():
     """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
-    settings = settings or Settings()
-    engine = get_engine(settings)
-    async with engine.connect() as connection:
-        await connection.run_sync(do_run_migrations)
+    conn = context.config.attributes.get("connection", None)
+    settings = context.config.attributes.get("app_settings", Settings())
+
+    if conn is None:
+        asyncio.run(run_async_migrations(settings))
+    else:
+        do_run_migrations(conn)
 
 
-asyncio.run(run_migrations_online())
+run_migrations_online()
