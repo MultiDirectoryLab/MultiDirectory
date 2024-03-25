@@ -1,4 +1,4 @@
-"""array lw index
+"""Array lw index.
 
 Revision ID: 9fc1aad1b5d0
 Revises: c06b41714e1a
