@@ -13,6 +13,7 @@ up:  ## run tty container with related services, use with run command
 	make down; docker compose up
 
 test:  ## run tests
+	docker compose -f docker-compose.test.yml down --remove-orphans
 	make down; docker compose -f docker-compose.test.yml up --attach test
 
 run:  ## runs server 386/636 port

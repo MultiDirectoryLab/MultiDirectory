@@ -3,6 +3,7 @@
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -78,11 +79,12 @@ class AddRequest(BaseRequest):
             return
 
         base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-        has_no_parent = len(obj) == 1
+        parent_dn = self.entry.lower().removesuffix(  # noqa: ECE001
+            ',' + base_dn.lower()).split(',')[1:]
 
-        new_dn, name = obj.pop(0).split('=')
+        has_no_parent = len(parent_dn) == 0
+
+        new_dn, name = self.entry.split(',')[0].split('=')
 
         if has_no_parent:
             new_dir = Directory(
@@ -92,11 +94,11 @@ class AddRequest(BaseRequest):
             path = new_dir.create_path(dn=new_dn)
 
         else:
-            search_path = reversed(obj)
+            search_path = list(reversed(parent_dn))
             query = select(Directory)\
                 .join(Directory.path)\
                 .options(selectinload(Directory.paths))\
-                .filter(Path.path == search_path)
+                .filter(func.array_lowercase(Path.path) == search_path)
             parent = await session.scalar(query)
 
             if not parent:

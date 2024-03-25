@@ -181,7 +181,7 @@ class Directory(Base):
 
     def get_dn(self, dn: DistinguishedNamePrefix = 'cn') -> str:
         """Get distinguished name."""
-        return f"{dn}={self.name}".lower()
+        return f"{dn}={self.name}"
 
     def create_path(
         self,

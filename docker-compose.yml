@@ -71,6 +71,8 @@ services:
     image: multidirectory
     container_name: multidirectory_migrations
     restart: "no"
+    volumes:
+      - ./app:/app
     env_file:
       local.env
     command: alembic upgrade head
