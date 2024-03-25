@@ -26,7 +26,7 @@ from app.__main__ import PoolClientHandler
 from app.config import Settings
 from app.extra import TEST_DATA, setup_enviroment
 from app.ldap_protocol.dialogue import Session
-from app.models.database import Base, get_engine
+from app.models.database import get_engine
 from app.web_app import create_app, get_session
 
 
@@ -68,16 +68,13 @@ def engine(settings: Settings) -> AsyncEngine:
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def _migrations(engine: AsyncEngine) -> AsyncGenerator:
+async def _migrations() -> AsyncGenerator:
     """Run simple migrations."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+    proc = await asyncio.create_subprocess_exec('alembic', 'upgrade', 'head')
+    await proc.wait()
     yield
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
+    proc = await asyncio.create_subprocess_exec('alembic', 'downgrade', '0')
+    await proc.wait()
 
 
 @pytest.fixture(scope='session')
