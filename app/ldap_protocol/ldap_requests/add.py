@@ -21,6 +21,7 @@ from ldap_protocol.utils import (
     create_integer_hash,
     get_base_dn,
     get_groups,
+    get_search_path,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, Path, User
@@ -78,11 +79,8 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        base_dn = await get_base_dn(session)
-        parent_dn = self.entry.lower().removesuffix(  # noqa: ECE001
-            ',' + base_dn.lower()).split(',')[1:]
-        parent_dn.reverse()
-
+        parent_dn = get_search_path(
+            self.entry, await get_base_dn(session))[:-1]
         has_no_parent = len(parent_dn) == 0
 
         new_dn, name = self.entry.split(',')[0].split('=')

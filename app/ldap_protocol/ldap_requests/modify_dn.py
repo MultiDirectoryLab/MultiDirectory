@@ -13,7 +13,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
-from ldap_protocol.utils import get_base_dn
+from ldap_protocol.utils import get_base_dn, get_search_path
 from models.ldap3 import Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
@@ -82,19 +82,14 @@ class ModifyDNRequest(BaseRequest):
             return
 
         base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-        obj.reverse()
+        obj = get_search_path(self.entry, base_dn)
 
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
             .filter(func.array_lowercase(Path.path) == obj)
 
-        new_sup = self.new_superior.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-        new_sup.reverse()
-
+        new_sup = get_search_path(self.new_superior, base_dn)
         new_sup_query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.path))\
