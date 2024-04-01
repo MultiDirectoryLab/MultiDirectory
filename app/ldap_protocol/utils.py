@@ -10,9 +10,10 @@ from datetime import datetime
 
 import pytz
 from asyncstdlib.functools import cache
-from sqlalchemy import func, select, update
+from sqlalchemy import Column, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.expression import ColumnElement
 
 from models.ldap3 import (
     CatalogueSetting,
@@ -101,7 +102,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         return await session.scalar(select(User).where(cond))
 
     path = await session.scalar(
-        select(Path).where(func.array_lowercase(Path.path) == _get_path(name)))
+        select(Path).where(get_path_filter(_get_path(name))))
 
     domain = await session.scalar(
         select(CatalogueSetting)
@@ -290,3 +291,14 @@ def get_search_path(dn: str, base_dn: str) -> list[str]:
         ',' + base_dn.lower()).split(',')
     search_path.reverse()
     return search_path
+
+
+def get_path_filter(
+        path: list[str], *, column: Column = Path.path) -> ColumnElement:
+    """Get filter condition for path equality.
+
+    :param list[str] path: dn
+    :param Column field: path column, defaults to Path.path
+    :return ColumnElement: filter (where) element
+    """
+    return func.array_lowercase(column) == path
