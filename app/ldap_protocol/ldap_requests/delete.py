@@ -2,6 +2,7 @@
 
 from typing import AsyncGenerator, ClassVar
 
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -43,13 +44,13 @@ class DeleteRequest(BaseRequest):
             return
 
         base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
+        search_path = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
-        search_path = reversed(obj)
+        search_path.reverse()
 
         query = select(Directory)\
             .join(Directory.path)\
-            .filter(Path.path == search_path)
+            .filter(func.array_lowercase(Path.path) == search_path)
 
         obj = await session.scalar(query)
         if not obj:

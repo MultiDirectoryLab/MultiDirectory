@@ -2,7 +2,7 @@
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel
-from sqlalchemy import and_, delete, or_, update
+from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -85,9 +85,9 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        obj = self.object.lower().removesuffix(
+        search_path = self.object.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
-        search_path = reversed(obj)
+        search_path.reverse()
 
         membership1 = selectinload(Directory.user).selectinload(User.groups)
         membership2 = selectinload(Directory.group)\
@@ -101,11 +101,11 @@ class ModifyRequest(BaseRequest):
             .options(
                 selectinload(Directory.paths),
                 membership1, membership2)\
-            .filter(Path.path == search_path)
+            .filter(func.array_lowercase(Path.path) == search_path)
 
         directory = await session.scalar(query)
 
-        if len(obj) == 0 or not directory:
+        if len(search_path) == 0 or not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
