@@ -143,10 +143,9 @@ async def get_groups(
         if dn.lower() == base_dn.lower():  # dn_is_base
             continue
 
-        base_obj = dn.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+        base_obj = get_search_path(dn, base_dn)
 
-        paths.append([path for path in reversed(base_obj) if path])
+        paths.append([path for path in base_obj if path])
 
     query = select(   # noqa: ECE001
         Directory)\
@@ -180,8 +179,7 @@ async def get_group(dn: str, session: AsyncSession) -> Directory:
     if dn_is_base:
         raise ValueError('Cannot set memberOf with base dn')
 
-    path = list(reversed(
-        dn.lower().removesuffix(',' + base_dn.lower()).split(',')))
+    path = get_search_path(dn, base_dn)
 
     directory = await session.scalar(
         select(Directory)
@@ -279,3 +277,16 @@ def ft_to_dt(filetime: int) -> datetime:
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
     return datetime.utcfromtimestamp(s).replace(microsecond=(ns100 // 10))
+
+
+def get_search_path(dn: str, base_dn: str) -> list[str]:
+    """Get search path for dn.
+
+    :param str dn: any DN, dn syntax
+    :param str base_dn: domain dn
+    :return list[str]: reversed list of dn values
+    """
+    search_path = dn.lower().removesuffix(
+        ',' + base_dn.lower()).split(',')
+    search_path.reverse()
+    return search_path
