@@ -2,7 +2,6 @@
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -12,8 +11,13 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
-from ldap_protocol.utils import get_base_dn, get_search_path, validate_entry
-from models.ldap3 import Directory, Path
+from ldap_protocol.utils import (
+    get_base_dn,
+    get_path_filter,
+    get_search_path,
+    validate_entry,
+)
+from models.ldap3 import Directory
 
 from .base import BaseRequest
 
@@ -47,7 +51,7 @@ class DeleteRequest(BaseRequest):
 
         query = select(Directory)\
             .join(Directory.path)\
-            .filter(func.array_lowercase(Path.path) == search_path)
+            .filter(get_path_filter(search_path))
 
         obj = await session.scalar(query)
         if not obj:
