@@ -101,7 +101,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         return await session.scalar(select(User).where(cond))
 
     path = await session.scalar(
-        select(Path).where(Path.path == _get_path(name)))
+        select(Path).where(func.array_lowercase(Path.path) == _get_path(name)))
 
     domain = await session.scalar(
         select(CatalogueSetting)
