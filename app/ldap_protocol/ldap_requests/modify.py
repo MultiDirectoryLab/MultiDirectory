@@ -15,7 +15,12 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
+from ldap_protocol.utils import (
+    get_base_dn,
+    get_groups,
+    get_search_path,
+    validate_entry,
+)
 from models.ldap3 import Attribute, Directory, Group, Path, User
 from security import get_password_hash
 
@@ -80,14 +85,11 @@ class ModifyRequest(BaseRequest):
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
-        base_dn = await get_base_dn(session)
         if not validate_entry(self.object.lower()):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        search_path = self.object.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-        search_path.reverse()
+        search_path = get_search_path(self.object, await get_base_dn(session))
 
         membership1 = selectinload(Directory.user).selectinload(User.groups)
         membership2 = selectinload(Directory.group)\
