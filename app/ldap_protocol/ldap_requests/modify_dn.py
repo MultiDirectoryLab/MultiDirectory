@@ -2,7 +2,7 @@
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import func, update
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -13,7 +13,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
-from ldap_protocol.utils import get_base_dn, get_search_path
+from ldap_protocol.utils import get_base_dn, get_path_filter, get_search_path
 from models.ldap3 import Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
@@ -87,13 +87,13 @@ class ModifyDNRequest(BaseRequest):
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
-            .filter(func.array_lowercase(Path.path) == obj)
+            .filter(get_path_filter(obj))
 
         new_sup = get_search_path(self.new_superior, base_dn)
         new_sup_query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.path))\
-            .filter(func.array_lowercase(Path.path) == new_sup)
+            .filter(get_path_filter(new_sup))
 
         directory = await session.scalar(query)
 

@@ -3,7 +3,6 @@
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
-from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -21,10 +20,11 @@ from ldap_protocol.utils import (
     create_integer_hash,
     get_base_dn,
     get_groups,
+    get_path_filter,
     get_search_path,
     validate_entry,
 )
-from models.ldap3 import Attribute, Directory, Group, Path, User
+from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -96,7 +96,7 @@ class AddRequest(BaseRequest):
             query = select(Directory)\
                 .join(Directory.path)\
                 .options(selectinload(Directory.paths))\
-                .filter(func.array_lowercase(Path.path) == parent_dn)
+                .filter(get_path_filter(parent_dn))
             parent = await session.scalar(query)
 
             if not parent:

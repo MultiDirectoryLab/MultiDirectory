@@ -2,7 +2,7 @@
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel
-from sqlalchemy import and_, delete, func, or_, update
+from sqlalchemy import and_, delete, or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -18,10 +18,11 @@ from ldap_protocol.password_policy import (
 from ldap_protocol.utils import (
     get_base_dn,
     get_groups,
+    get_path_filter,
     get_search_path,
     validate_entry,
 )
-from models.ldap3 import Attribute, Directory, Group, Path, User
+from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -103,7 +104,7 @@ class ModifyRequest(BaseRequest):
             .options(
                 selectinload(Directory.paths),
                 membership1, membership2)\
-            .filter(func.array_lowercase(Path.path) == search_path)
+            .filter(get_path_filter(search_path))
 
         directory = await session.scalar(query)
 
