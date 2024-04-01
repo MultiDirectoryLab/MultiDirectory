@@ -81,6 +81,7 @@ class AddRequest(BaseRequest):
         base_dn = await get_base_dn(session)
         parent_dn = self.entry.lower().removesuffix(  # noqa: ECE001
             ',' + base_dn.lower()).split(',')[1:]
+        parent_dn.reverse()
 
         has_no_parent = len(parent_dn) == 0
 
@@ -94,11 +95,10 @@ class AddRequest(BaseRequest):
             path = new_dir.create_path(dn=new_dn)
 
         else:
-            search_path = list(reversed(parent_dn))
             query = select(Directory)\
                 .join(Directory.path)\
                 .options(selectinload(Directory.paths))\
-                .filter(func.array_lowercase(Path.path) == search_path)
+                .filter(func.array_lowercase(Path.path) == parent_dn)
             parent = await session.scalar(query)
 
             if not parent:

@@ -84,19 +84,21 @@ class ModifyDNRequest(BaseRequest):
         base_dn = await get_base_dn(session)
         obj = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
+        obj.reverse()
 
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
-            .filter(func.array_lowercase(Path.path) == reversed(obj))
+            .filter(func.array_lowercase(Path.path) == obj)
 
         new_sup = self.new_superior.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
+        new_sup.reverse()
 
         new_sup_query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.path))\
-            .filter(func.array_lowercase(Path.path) == reversed(new_sup))
+            .filter(func.array_lowercase(Path.path) == new_sup)
 
         directory = await session.scalar(query)
 

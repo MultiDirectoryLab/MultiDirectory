@@ -44,9 +44,9 @@ class DeleteRequest(BaseRequest):
             return
 
         base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
+        search_path = self.entry.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
-        search_path = reversed(obj)
+        search_path.reverse()
 
         query = select(Directory)\
             .join(Directory.path)\
