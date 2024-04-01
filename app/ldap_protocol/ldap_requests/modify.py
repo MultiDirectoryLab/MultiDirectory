@@ -2,7 +2,7 @@
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel
-from sqlalchemy import and_, delete, or_, update
+from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -101,7 +101,7 @@ class ModifyRequest(BaseRequest):
             .options(
                 selectinload(Directory.paths),
                 membership1, membership2)\
-            .filter(Path.path == search_path)
+            .filter(func.array_lowercase(Path.path) == search_path)
 
         directory = await session.scalar(query)
 

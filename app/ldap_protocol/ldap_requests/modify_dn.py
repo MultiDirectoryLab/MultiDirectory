@@ -2,7 +2,7 @@
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import update
+from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -88,7 +88,7 @@ class ModifyDNRequest(BaseRequest):
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
-            .filter(Path.path == reversed(obj))
+            .filter(func.array_lowercase(Path.path) == reversed(obj))
 
         new_sup = self.new_superior.lower().removesuffix(
             ',' + base_dn.lower()).split(',')
@@ -96,7 +96,7 @@ class ModifyDNRequest(BaseRequest):
         new_sup_query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.path))\
-            .filter(Path.path == reversed(new_sup))
+            .filter(func.array_lowercase(Path.path) == reversed(new_sup))
 
         directory = await session.scalar(query)
 
