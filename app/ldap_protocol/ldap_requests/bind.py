@@ -88,7 +88,29 @@ class SaslAuthentication(AbstractLDAPAuth):
 
     mechanism: SASLMethod
     credentials: bytes
+    username: str | None = None
+    password: SecretStr | None = None
     otpassword: str | None = Field(None, max_length=6, min_length=6)
+
+    def is_valid(self, user: User | None) -> bool:
+        """Check if pwd is valid for user.
+
+        :param User | None user: indb user
+        :return bool: status
+        """
+        if not self.mechanism == SASLMethod.PLAIN:
+            raise NotImplementedError
+
+        password = getattr(user, "password", None)
+        return bool(password) and verify_password(
+            self.password.get_secret_value(), password)
+
+    def is_anonymous(self) -> bool:
+        """Check if auth is anonymous.
+
+        :return bool: status
+        """
+        return False
 
 
 class BindRequest(BaseRequest):
@@ -123,7 +145,18 @@ class BindRequest(BaseRequest):
                 otpassword=otpassword,
             )
         elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
-            raise NotImplementedError
+            sasl_method = SASLMethod(data[2].value[0].value)
+
+            if sasl_method == SASLMethod.PLAIN:
+                _, username, password = data[2].value[1].value.split('\x00')
+                auth_choice = SaslAuthentication(
+                    mechanism=sasl_method,
+                    credentials=data[2].value[1].value,
+                    username=username,
+                    password=password,
+                )
+            else:
+                raise NotImplementedError
         else:
             raise ValueError('Auth version not supported')
 
@@ -155,7 +188,16 @@ class BindRequest(BaseRequest):
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        user = await get_user(session, self.name)
+        if isinstance(self.authentication_choice, SimpleAuthentication):
+            user = await get_user(session, self.name)
+        elif isinstance(self.authentication_choice, SaslAuthentication):
+            if self.authentication_choice.mechanism == SASLMethod.PLAIN:
+                user = await get_user(session,
+                                      self.authentication_choice.username)
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
 
         if not user or not self.authentication_choice.is_valid(user):
             yield self.BAD_RESPONSE
