@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import Session, User
 from ldap_protocol.ldap_responses import BaseResponse
+from ldap_protocol.utils import get_class_name
 
 api_logger = logger.bind(event=True)
 
@@ -44,14 +45,15 @@ class BaseRequest(ABC, BaseModel):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        api_logger.info(self.model_dump_json())
+        un = user.user_principal_name
+        api_logger.info(f"{get_class_name(self)}[{un}]")
 
         responses = [
             response async for response in self.handle(
                 Session(user=user), session)]
 
         for response in responses:
-            api_logger.info(response.model_dump_json(indent=4))
+            api_logger.info(f"{get_class_name(response)}[{un}]")
 
         if single:
             return responses[0]
