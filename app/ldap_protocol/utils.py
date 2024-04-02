@@ -7,6 +7,7 @@ import hashlib
 import re
 from calendar import timegm
 from datetime import datetime
+from operator import attrgetter
 
 import pytz
 from asyncstdlib.functools import cache
@@ -302,3 +303,6 @@ def get_path_filter(
     :return ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
+
+
+get_class_name = attrgetter('__class__.__name__')
