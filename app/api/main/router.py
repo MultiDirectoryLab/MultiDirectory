@@ -27,7 +27,7 @@ async def search(
     user: Annotated[User | None, Depends(get_current_user_or_none)],
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
-    responses = await request.handle_api(user, session, False)
+    responses = await request.handle_api(user, session)
     metadata: SearchResultDone = responses.pop(-1)
 
     return SearchResponse(
