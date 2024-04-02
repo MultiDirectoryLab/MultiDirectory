@@ -5,7 +5,7 @@ from functools import partial
 from unittest.mock import AsyncMock
 
 import pytest
-from ldap3 import Connection
+from ldap3 import PLAIN, SASL, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ldap_protocol.dialogue import Session
@@ -150,3 +150,22 @@ async def test_ldap3_bind(
 
     result = await event_loop.run_in_executor(None, ldap_client.unbind)
     assert not ldap_client.bound
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap3_bind_sasl_plain(
+        ldap_client: Connection,
+        event_loop: BaseEventLoop,
+        creds: TestCreds) -> None:
+    """Test ldap3 bind."""
+    assert not ldap_client.bound
+
+    ldap_client.authentication = SASL
+    ldap_client.sasl_mechanism = PLAIN
+    ldap_client.sasl_credentials = (None, creds.un, creds.pw)
+
+    result = await event_loop.run_in_executor(None, ldap_client.bind)
+    assert result
+    assert ldap_client.bound
