@@ -154,7 +154,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         errors = await validator.validate_password_with_policy(
             self.new_password, user, session)
 
-        if verify_password(self.old_password, user.password) and not errors:
+        if not errors and (verify_password(self.old_password, user.password) or
+                           user.password is None):
             user.password = get_password_hash(self.new_password)
             await post_save_password_actions(user, session)
             await session.execute(
