@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "MultiDirectory"
-version = "1.10.8"
+version = "1.10.9"
 description = ""
 authors = ["Mastermind-U <rex49513@gmail.com>"]
 readme = "README.md"

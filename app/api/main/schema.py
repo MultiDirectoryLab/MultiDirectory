@@ -9,10 +9,11 @@ from ldap_protocol.filter_interpreter import (
     cast_str_filter2sql,
 )
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
+from ldap_protocol.ldap_requests.base import APIMultipleResponseMixin
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 
 
-class SearchRequest(LDAPSearchRequest):  # noqa: D101
+class SearchRequest(APIMultipleResponseMixin, LDAPSearchRequest):  # noqa: D101
     filter: str = Field(..., examples=["(objectClass=*)"])  # noqa: A003
 
     def cast_filter(self, filter_: str, query: Select) -> BoundQ:

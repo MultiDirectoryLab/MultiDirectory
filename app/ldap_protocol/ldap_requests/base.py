@@ -1,6 +1,6 @@
 """LDAP message abstract structure."""
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator
+from typing import TYPE_CHECKING, AsyncGenerator, Protocol
 
 from loguru import logger
 from pydantic import BaseModel
@@ -9,11 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import Session, User
 from ldap_protocol.ldap_responses import BaseResponse
+from ldap_protocol.utils import get_class_name
 
 api_logger = logger.bind(event=True)
 
 
-class BaseRequest(ABC, BaseModel):
+if TYPE_CHECKING:
+    class _APIProtocol(Protocol):
+        """Protocol for API handling."""
+
+        async def _handle_api(
+            self, user: User,
+            session: AsyncSession,
+        ) -> list[BaseResponse] | BaseResponse: ...
+else:
+    class _APIProtocol: ...  # noqa
+
+
+class BaseRequest(ABC, BaseModel, _APIProtocol):
     """Base request builder."""
 
     @property
@@ -33,26 +46,42 @@ class BaseRequest(ABC, BaseModel):
         """Handle message with current user."""
         yield BaseResponse()  # type: ignore
 
-    async def handle_api(
+    async def _handle_api(
         self, user: User,
         session: AsyncSession,
-        single: bool = True,
-    ) -> list[BaseResponse] | BaseResponse:
+    ) -> list[BaseResponse]:
         """Hanlde response with api user.
 
         :param DBUser user: user from db
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        api_logger.info(self.model_dump_json())
+        un = getattr(user, 'user_principal_name', 'ANONYMOUS')
+        api_logger.info(f"{get_class_name(self)}[{un}]")
 
         responses = [
             response async for response in self.handle(
                 Session(user=user), session)]
 
         for response in responses:
-            api_logger.info(response.model_dump_json(indent=4))
+            api_logger.info(f"{get_class_name(response)}[{un}]")
 
-        if single:
-            return responses[0]
         return responses
+
+    async def handle_api(
+        self, user: User,
+        session: AsyncSession,
+    ) -> BaseResponse:
+        """Get single response."""
+        return (await self._handle_api(user, session))[0]
+
+
+class APIMultipleResponseMixin(_APIProtocol):
+    """Get multiple responses."""
+
+    async def handle_api(
+        self, user: User,
+        session: AsyncSession,
+    ) -> list[BaseResponse]:
+        """Get all responses."""
+        return await self._handle_api(user, session)
