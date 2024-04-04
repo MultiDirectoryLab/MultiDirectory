@@ -148,7 +148,7 @@ class BindRequest(BaseRequest):
             sasl_method = SASLMethod(data[2].value[0].value)
 
             if sasl_method == SASLMethod.PLAIN:
-                _, username, password = data[2].value[1].value.split('\x00')
+                _, username, password = data[2].value[1].value.split('\\x00')
                 auth_choice = SaslAuthentication(
                     mechanism=sasl_method,
                     credentials=data[2].value[1].value,
