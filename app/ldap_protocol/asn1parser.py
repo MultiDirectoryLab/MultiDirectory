@@ -73,9 +73,7 @@ def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
         return value
     if isinstance(value, bytes):
         with suppress(UnicodeDecodeError):
-            return value.decode()
-        if tag.nr == Numbers.OctetString:
-            return '0x' + str(binascii.hexlify(value).upper())
+            return value.decode().replace('\x00', '\\x00')
         return value
     if isinstance(value, str):
         return value
