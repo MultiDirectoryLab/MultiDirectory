@@ -11,6 +11,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    LargeBinary,
     UniqueConstraint,
     func,
 )
@@ -317,7 +318,8 @@ class Attribute(DirectoryReferenceMixin, Base):
     __tablename__ = "Attributes"
 
     name = Column(String, nullable=False, index=True)
-    value = Column(String, nullable=False)
+    value = Column(String, nullable=True)
+    bvalue = Column(LargeBinary, nullable=True)
 
     directory: Directory = relationship(
         'Directory', back_populates='attributes', uselist=False)

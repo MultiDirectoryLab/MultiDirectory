@@ -398,7 +398,12 @@ class SearchRequest(BaseRequest):
             groups = []
 
             for attr in directory.attributes:
-                attrs[attr.name].append(attr.value)
+                if isinstance(attr.value, str):
+                    value = attr.value.replace('\\x00', '\x00')
+                else:
+                    value = attr.bvalue
+
+                attrs[attr.name].append(value)
 
             distinguished_name = self._get_full_dn(directory.path, dn)
 
