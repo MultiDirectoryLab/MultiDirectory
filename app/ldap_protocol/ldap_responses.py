@@ -95,6 +95,14 @@ class PartialAttribute(BaseModel):
 
         return result
 
+    class Config:
+        """Allow class to use property."""
+
+        arbitrary_types_allowed = True
+        json_encoders = {
+            bytes: lambda value: value.hex(),
+        }
+
 
 class SearchResultEntry(BaseResponse):
     """Search Response.
