@@ -1,6 +1,5 @@
 """ASN1 parser and decoder wrapper with dataclasses."""
 
-import binascii
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Annotated, Any
