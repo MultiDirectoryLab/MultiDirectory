@@ -162,10 +162,9 @@ async def test_ldap3_bind_sasl_plain(
     """Test ldap3 bind."""
     assert not ldap_client.bound
 
-    ldap_client.authentication = SASL
-    ldap_client.sasl_mechanism = PLAIN
-    ldap_client.sasl_credentials = (None, creds.un, creds.pw)
-
-    result = await event_loop.run_in_executor(None, ldap_client.bind)
+    result = await event_loop.run_in_executor(
+        None, ldap_client.rebind, None, None, SASL, PLAIN, (None, creds.un,
+                                                            creds.pw),
+    )
     assert result
     assert ldap_client.bound
