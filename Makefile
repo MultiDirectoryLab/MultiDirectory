@@ -52,7 +52,7 @@ stage_up:  ## run app and detach
 	docker compose -f docker-compose.dev.yml up -d
 
 stage_down:  ## stop all services
-	docker compose -f docker-compose.dev.yml down --remove-orphans || true
+	docker compose -f docker-compose.dev.yml down --remove-orphans
 
 stage_update:  ## update service
 	make stage_down;
