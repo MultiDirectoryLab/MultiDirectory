@@ -70,10 +70,7 @@ class PartialAttribute(BaseModel):
     """Partial attribite structure. Description in rfc2251 4.1.6."""
 
     type: Annotated[str, annotated_types.Len(max_length=8100)]  # noqa: A003
-    vals: list[
-        Annotated[str, annotated_types.Len(max_length=100000)] |
-        Annotated[bytes, annotated_types.Len(max_length=100000)]
-    ]
+    vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
     @field_validator('type', mode="before")
     @classmethod
@@ -83,17 +80,7 @@ class PartialAttribute(BaseModel):
     @field_validator('vals', mode="before")
     @classmethod
     def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:  # noqa
-        result = []
-
-        for value in vals:
-            if isinstance(value, bytes):
-                result.append(value)
-            elif not isinstance(value, str):
-                result.append(str(value))
-            else:
-                result.append(value)
-
-        return result
+        return [v if isinstance(v, bytes) else str(v) for v in vals]
 
     class Config:
         """Allow class to use property."""
