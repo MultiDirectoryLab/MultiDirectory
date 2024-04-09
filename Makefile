@@ -7,9 +7,10 @@ build:  ## build app and manually generate self-signed cert
 	docker compose build
 
 cert:  ## create self-signed cert
-	docker compose run md bash -c "cd /certs; openssl req -nodes -new -x509 -keyout privkey.pem -out cert.pem"
+	docker compose run md bash -c "cd /certs; openssl req -nodes -new -x509 -keyout privkey.pem -out cert.pem -subj '/C=RU/ST=Moscow/L=Moscow/O=Global Security/OU=Multifactor/CN=md.multifactor.dev'"
 
 up:  ## run tty container with related services, use with run command
+	make cert;
 	make down; docker compose up
 
 test:  ## run tests
@@ -51,7 +52,7 @@ stage_up:  ## run app and detach
 	docker compose -f docker-compose.dev.yml up -d
 
 stage_down:  ## stop all services
-	docker compose -f docker-compose.dev.yml down --remove-orphans || true
+	docker compose -f docker-compose.dev.yml down --remove-orphans
 
 stage_update:  ## update service
 	make stage_down;

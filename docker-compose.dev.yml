@@ -21,6 +21,10 @@ services:
 
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
+
+      - "--entrypoints.ldap.address=:389"
+      - "--entrypoints.ldaps.address=:636"
+
       - --entryPoints.websecure.http.tls=true
       - --entryPoints.websecure.http.tls.certResolver=md-resolver
 
@@ -31,6 +35,8 @@ services:
       - "80:80"
       - "8080:8080"
       - "443:443"
+      - "389:389"
+      - "636:636"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
@@ -73,10 +79,14 @@ services:
         condition: service_healthy
 
   ldap_server:
-    image: ghcr.io/multifactorlab/multidirectory:latest
-    container_name: multidirectory-ldap
+    build:
+      context: .
+      dockerfile: ./.docker/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
     restart: unless-stopped
-    hostname: multidirectory-ldap
+    hostname: multidirectory
     volumes:
       - ./certs:/certs
       - ./logs:/app/logs
@@ -88,41 +98,32 @@ services:
       POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
       MFA_API_SOURCE: dev
-    ports:
-      - 389:389
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    deploy:
+      mode: replicated
+      replicas: 4
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+        reservations:
+          cpus: '0.25'
+          memory: 20M
     labels:
       - traefik.enable=true
-      - traefik.tcp.routers.ldap_server.rule=HostSNI(`*`)
-      - traefik.tcp.routers.ldap_server.service=ldap_server-svc
-      - traefik.tcp.routers.ldap_server.entrypoints=ldap
-    depends_on:
-      migrations:
-        condition: service_completed_successfully
 
-  ldaps_server:
-    image: ghcr.io/multifactorlab/multidirectory:latest
-    container_name: multidirectory-ldaps
-    restart: unless-stopped
-    hostname: multidirectory-ldaps
-    environment:
-      PORT: 636
-      USE_CORE_TLS: 1
-      DEBUG: 1
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-      MFA_API_SOURCE: dev
-    depends_on:
-      migrations:
-        condition: service_completed_successfully
-    volumes:
-      - ./app:/app
-      - ./certs:/certs
-      - ./logs:/app/logs
-    command: python . --loop uvloop
-    tty: true
-    ports:
-      - 636:636
+      - traefik.tcp.routers.ldap.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldap.entrypoints=ldap
+      - traefik.tcp.routers.ldap.service=ldap
+      - traefik.tcp.services.ldap.loadbalancer.server.port=389
+
+      - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldaps.entrypoints=ldaps
+      - traefik.tcp.routers.ldaps.service=ldaps
+      - traefik.tcp.services.ldaps.loadbalancer.server.port=636
 
   api_server:
     image: ghcr.io/multifactorlab/multidirectory:latest
@@ -152,7 +153,6 @@ services:
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"
 
-
     command: uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop --reload
     depends_on:
       migrations:
@@ -176,37 +176,6 @@ services:
       timeout: 15s
       retries: 10
       start_period: 3s
-
-  # ssh-server:
-  #   container_name: md-ssh
-  #   image: ssh-ldap
-  #   build:
-  #     context: ./ssh
-  #   environment:
-  #     SERVER: "ldap://multidirectory"
-  #     BASE: "dc=multifactor,dc=dev"
-  #     BIND_DN: "cn=user,dc=multifactor,dc=dev"
-  #     BASE_PASSWORD: "password"
-  #   ports:
-  #     - "222:22"
-
-  # wireshark:
-  #   image: lscr.io/linuxserver/wireshark:latest
-  #   container_name: wireshark
-  #   cap_add:
-  #     - NET_ADMIN
-  #   security_opt:
-  #     - seccomp:unconfined
-  #   network_mode: host
-  #   environment:
-  #     - PUID=1001
-  #     - PGID=1001
-  #     - TZ=Etc/UTC
-  #   volumes:
-  #     - wireshark:/config
-  #   ports:
-  #     - 3000:3000
-  #   restart: "no"
 
 volumes:
   traefik:

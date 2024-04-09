@@ -331,14 +331,18 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     settings = Settings()
-    server = PoolClientHandler(settings)
-
     logger.info(f'Started LDAP server with {args.loop}')
+
+    async def _servers() -> None:
+        await asyncio.gather(
+            PoolClientHandler(settings).start(),
+            PoolClientHandler(settings.get_copy_4_tls()).start(),
+        )
 
     if args.loop == 'uvloop':
         with asyncio.Runner(
                 loop_factory=uvloop.new_event_loop,
                 debug=settings.DEBUG) as runner:
-            runner.run(server.start())
+            runner.run(_servers())
     elif args.loop == 'asyncio':
-        asyncio.run(server.start(), debug=settings.DEBUG)
+        asyncio.run(_servers(), debug=settings.DEBUG)

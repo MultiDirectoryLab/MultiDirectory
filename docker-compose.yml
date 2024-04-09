@@ -12,9 +12,13 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.ldap.address=:389"
+      - "--entrypoints.ldaps.address=:636"
     ports:
       - "80:80"
       - "8080:8080"
+      - "389:389"
+      - "636:636"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
@@ -27,7 +31,7 @@ services:
       target: runtime
     image: multidirectory
     restart: "no" #unless-stopped
-    container_name: multidirectory
+    # container_name: multidirectory
     volumes:
       - ./app:/app
       - ./certs:/certs
@@ -35,15 +39,32 @@ services:
       local.env
     command: python -OO . --loop uvloop
     tty: true
-    expose:
-      - 389
-      - 636
-    ports:
-      - "389:389"
-      - "636:636"
     depends_on:
       migrations:
         condition: service_completed_successfully
+    deploy:
+      mode: replicated
+      replicas: 4
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+        reservations:
+          cpus: '0.25'
+          memory: 20M
+    labels:
+      - traefik.enable=true
+
+      - traefik.tcp.routers.ldap.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldap.entrypoints=ldap
+      - traefik.tcp.routers.ldap.service=ldap
+      - traefik.tcp.services.ldap.loadbalancer.server.port=389
+
+      - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldaps.entrypoints=ldaps
+      - traefik.tcp.routers.ldaps.service=ldaps
+      - traefik.tcp.services.ldaps.loadbalancer.server.port=636
 
   api:
     image: multidirectory
@@ -66,6 +87,13 @@ services:
     depends_on:
       migrations:
         condition: service_completed_successfully
+
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 150M
 
   migrations:
     image: multidirectory
@@ -90,8 +118,8 @@ services:
       PGDATA: /data/postgres
     volumes:
        - postgres:/data/postgres
-    ports:
-      - "5432:5432"
+    expose:
+      - 5432
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
