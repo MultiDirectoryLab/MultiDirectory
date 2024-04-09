@@ -1,6 +1,6 @@
 """LDAP requests bind."""
 from abc import ABC, abstractmethod
-from enum import Enum
+from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel, Field, SecretStr
@@ -21,7 +21,7 @@ from security import verify_password
 from .base import BaseRequest
 
 
-class SASLMethod(str, Enum):
+class SASLMethod(StrEnum):
     """SASL choices."""
 
     PLAIN = "PLAIN"
@@ -54,6 +54,10 @@ class AbstractLDAPAuth(ABC, BaseModel):
     def is_anonymous(self) -> bool:
         """Return true if anonymous."""
 
+    @abstractmethod
+    async def get_user(self, session: Session, username: str) -> User:
+        """Get user."""
+
 
 class SimpleAuthentication(AbstractLDAPAuth):
     """Simple auth form."""
@@ -80,13 +84,22 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         return not self.password
 
+    async def get_user(self, session: Session, username: str) -> User:
+        """Get user."""
+        return await get_user(session, username)
+
 
 class SaslAuthentication(AbstractLDAPAuth):
     """Sasl auth form."""
 
     METHOD_ID: ClassVar[int] = 3
-
     mechanism: SASLMethod
+
+
+class SaslPLAINAuthentication(SaslAuthentication):
+    """Sasl plain auth form."""
+
+    mechanism: ClassVar[SASLMethod] = SASLMethod.PLAIN
     credentials: bytes
     username: str | None = None
     password: SecretStr | None = None
@@ -98,9 +111,6 @@ class SaslAuthentication(AbstractLDAPAuth):
         :param User | None user: indb user
         :return bool: status
         """
-        if not self.mechanism == SASLMethod.PLAIN:
-            raise NotImplementedError
-
         password = getattr(user, "password", None)
         return bool(password) and verify_password(
             self.password.get_secret_value(), password)
@@ -112,6 +122,29 @@ class SaslAuthentication(AbstractLDAPAuth):
         """
         return False
 
+    @classmethod
+    def from_data(cls, data: list[ASN1Row]) -> 'SaslPLAINAuthentication':
+        """Get auth from data."""
+        _, username, password = data[1].value.split('\\x00')
+        return cls(
+            credentials=data[1].value,
+            username=username,
+            password=password,
+        )
+
+    async def get_user(self, session: Session, _) -> User:
+        """Get user."""
+        return await get_user(session, self.username)
+
+
+sasl_mechanism: list[type[SaslAuthentication]] = [
+    SaslPLAINAuthentication,
+]
+
+sasl_mechanism_map: dict[SASLMethod, type[SaslAuthentication]] = {
+    request.mechanism: request for request in sasl_mechanism
+}
+
 
 class BindRequest(BaseRequest):
     """Bind request fields mapping."""
@@ -120,7 +153,7 @@ class BindRequest(BaseRequest):
 
     version: int
     name: str
-    authentication_choice: SimpleAuthentication | SaslAuthentication =\
+    authentication_choice: SimpleAuthentication | SaslPLAINAuthentication =\
         Field(..., alias='AuthenticationChoice')
 
     @classmethod
@@ -145,18 +178,9 @@ class BindRequest(BaseRequest):
                 otpassword=otpassword,
             )
         elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
-            sasl_method = SASLMethod(data[2].value[0].value)
-
-            if sasl_method == SASLMethod.PLAIN:
-                _, username, password = data[2].value[1].value.split('\\x00')
-                auth_choice = SaslAuthentication(
-                    mechanism=sasl_method,
-                    credentials=data[2].value[1].value,
-                    username=username,
-                    password=password,
-                )
-            else:
-                raise NotImplementedError
+            sasl_method = data[2].value[0].value
+            auth_choice = sasl_mechanism_map[
+                sasl_method].from_data(data[2].value)
         else:
             raise ValueError('Auth version not supported')
 
@@ -188,16 +212,7 @@ class BindRequest(BaseRequest):
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        if isinstance(self.authentication_choice, SimpleAuthentication):
-            user = await get_user(session, self.name)
-        elif isinstance(self.authentication_choice, SaslAuthentication):
-            if self.authentication_choice.mechanism == SASLMethod.PLAIN:
-                user = await get_user(session,
-                                      self.authentication_choice.username)
-            else:
-                raise NotImplementedError
-        else:
-            raise NotImplementedError
+        user = await self.authentication_choice.get_user(session, self.name)
 
         if not user or not self.authentication_choice.is_valid(user):
             yield self.BAD_RESPONSE
