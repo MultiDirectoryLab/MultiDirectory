@@ -5,13 +5,14 @@ from typing import Any, Literal, Optional
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Integer,
-    String,
     LargeBinary,
+    String,
     UniqueConstraint,
     func,
 )
@@ -316,6 +317,10 @@ class Attribute(DirectoryReferenceMixin, Base):
     """Attributes data."""
 
     __tablename__ = "Attributes"
+    __table_args__ = (
+        CheckConstraint(
+            '(value IS NULL) <> (bvalue IS NULL)',
+            name='constraint_value_xor_bvalue'),)
 
     name = Column(String, nullable=False, index=True)
     value = Column(String, nullable=True)
