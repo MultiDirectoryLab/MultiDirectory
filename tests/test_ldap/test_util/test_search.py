@@ -10,6 +10,8 @@ from sqlalchemy.orm import selectinload
 
 from app.__main__ import PoolClientHandler
 from app.config import Settings
+from app.ldap_protocol.dialogue import Session
+from app.ldap_protocol.ldap_requests import SearchRequest
 from app.ldap_protocol.utils import get_group, get_groups, is_user_group_valid
 from app.models.ldap3 import User
 from tests.conftest import TestCreds
@@ -113,3 +115,33 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
 
     result = await proc.wait()
     assert result == 0
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_bvalue_in_search_request(session: AsyncSession,
+                                        ldap_session: Session) -> None:
+    """Test SearchRequest with bytes data."""
+    ldap_session._user = True
+
+    request = SearchRequest(
+        base_object="cn=user0,ou=users,dc=md,dc=test",
+        scope=0,
+        deref_aliases=0,
+        size_limit=0,
+        time_limit=0,
+        types_only=False,
+        filter={"class_id": {"string": "CONTEXT", "value": 128},
+                "tag_id": {"string": "0x7", "value": 7},
+                "value": "objectClass"},
+        attributes=["*"],
+    )
+
+    result = await anext(request.handle(ldap_session, session))
+
+    assert result
+
+    for attr in result.partial_attributes:
+        if attr.type == 'attr_with_bvalue':
+            assert isinstance(attr.vals[0], bytes)
