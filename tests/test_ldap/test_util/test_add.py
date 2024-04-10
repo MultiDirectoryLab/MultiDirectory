@@ -156,7 +156,8 @@ async def test_ldap_user_add_group_with_group(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_add_bvalue_attr(session: AsyncSession, ldap_session: Session):
+async def test_add_bvalue_attr(session: AsyncSession, ldap_session: Session) \
+        -> None:
     """Test AddRequest with bytes data."""
     ldap_session._user = True
 

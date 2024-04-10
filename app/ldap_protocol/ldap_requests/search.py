@@ -414,7 +414,7 @@ class SearchRequest(BaseRequest):
 
             if directory.user:
                 if directory.user.last_logon is None:
-                    attrs['lastLogon'].append(0)
+                    attrs['lastLogon'].append('0')
                 else:
                     attrs['lastLogon'].append(
                         get_windows_timestamp(directory.user.last_logon),

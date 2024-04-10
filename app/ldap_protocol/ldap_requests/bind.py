@@ -93,7 +93,12 @@ class SaslAuthentication(AbstractLDAPAuth):
     """Sasl auth form."""
 
     METHOD_ID: ClassVar[int] = 3
-    mechanism: SASLMethod
+    mechanism: ClassVar[SASLMethod]
+
+    @abstractmethod
+    @classmethod
+    def from_data(cls, data: list[ASN1Row]) -> 'SaslPLAINAuthentication':
+        """Get auth from data."""
 
 
 class SaslPLAINAuthentication(SaslAuthentication):
@@ -102,7 +107,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
     mechanism: ClassVar[SASLMethod] = SASLMethod.PLAIN
     credentials: bytes
     username: str | None = None
-    password: SecretStr | None = None
+    password: SecretStr
     otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
@@ -132,7 +137,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
             password=password,
         )
 
-    async def get_user(self, session: Session, _) -> User:
+    async def get_user(self, session: Session, _: str) -> User:
         """Get user."""
         return await get_user(session, self.username)
 
@@ -180,7 +185,7 @@ class BindRequest(BaseRequest):
         elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
             sasl_method = data[2].value[0].value
             auth_choice = sasl_mechanism_map[
-                sasl_method].from_data(data[2].value)
+                sasl_method].from_data(data[2].value)  # type: ignore
         else:
             raise ValueError('Auth version not supported')
 
