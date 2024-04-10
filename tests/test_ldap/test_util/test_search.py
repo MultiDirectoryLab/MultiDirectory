@@ -120,8 +120,9 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_bvalue_in_search_request(session: AsyncSession,
-                                        ldap_session: Session) -> None:
+async def test_bvalue_in_search_request(
+        session: AsyncSession,
+        ldap_session: Session) -> None:
     """Test SearchRequest with bytes data."""
     ldap_session._user = True
 
