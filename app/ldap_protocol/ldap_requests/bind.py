@@ -95,8 +95,8 @@ class SaslAuthentication(AbstractLDAPAuth):
     METHOD_ID: ClassVar[int] = 3
     mechanism: ClassVar[SASLMethod]
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_data(cls, data: list[ASN1Row]) -> 'SaslPLAINAuthentication':
         """Get auth from data."""
 
