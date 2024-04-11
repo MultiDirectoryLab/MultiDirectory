@@ -122,10 +122,8 @@ async def callback_mfa(
             audience=mfa_creds.key,
             algorithms=ALGORITHM)
     except (JWTError, AttributeError, JWKError) as err:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f"Invalid token {err}",
-        )
+        logger.error(f"Invalid MFA token: {err}")
+        return RedirectResponse('/mfa_token_error', status.HTTP_302_FOUND)
 
     user_id: int = int(payload.get("uid"))
     if user_id is None or not await session.get(DBUser, user_id):
