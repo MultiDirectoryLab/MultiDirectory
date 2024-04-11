@@ -1,26 +1,16 @@
 """Network policies."""
 
-import asyncio
 import operator
 import traceback
-from json import JSONDecodeError
 from typing import Annotated
 from urllib.parse import urlsplit, urlunsplit
 
-from fastapi import (
-    Depends,
-    Form,
-    HTTPException,
-    Request,
-    WebSocketDisconnect,
-    status,
-)
+from fastapi import Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from jose.exceptions import JWKError
 from loguru import logger
-from pydantic import ValidationError
 from sqlalchemy import delete
 
 from api.auth import get_current_user
@@ -36,7 +26,12 @@ from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
-from .schema import MFACreateRequest, MFAGetResponse, OAuth2Form
+from .schema import (
+    MFAChallengeResponse,
+    MFACreateRequest,
+    MFAGetResponse,
+    OAuth2Form,
+)
 
 mfa_router = APIRouter(prefix='/multifactor', tags=['Multifactor'])
 
@@ -136,41 +131,33 @@ async def callback_mfa(
             " SameSite=Lax; Path=/; Secure;")})
 
 
-@mfa_router.post('/connect')
+@mfa_router.post('/connect', response_model=MFAChallengeResponse)
 async def two_factor_protocol(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
     api: Annotated[MultifactorAPI, Depends(MultifactorAPI.from_di)],
     settings: Annotated[Settings, Depends(get_settings)],
-) -> dict:
+) -> MFAChallengeResponse:
     """Authenticate with two factor app.
 
-    Protocol description:
-    1. Sends `{'status': 'connected', 'message': ''}`;
-    2. Recieves json `{'username': 'un', 'password': 'pwd'}`;
-    3. Sends `{'status': 'pending', 'message': 'https://example.com'}`
-        where message is an any redirect url;
-    4. Websocket goes to pending state and waits for MFA api callback send;
-    5. Sends `{'status': 'success', 'message': token}` where token is
-        a mfa access and refresh token;
-
     \f
-    :param WebSocket websocket: websocket
-    :param MultifactorAPI api: MF API, depends
-    :param dict[str, Queue[str]] pool: queue pool for async comms, depends
+    :param Annotated[OAuth2Form, Depends form: login form
+    :param Request request: request
+    :param Annotated[AsyncSession, Depends session: db session
+    :param Annotated[MultifactorAPI, Depends api: mfa api
+    :param Annotated[Settings, Depends settings: app settings
+    :raises HTTPException: Missing API credentials
+    :raises HTTPException: Invalid credentials
+    :raises HTTPException: Multifactor error
+    :return MFAChallengeResponse:
+        {'status': 'pending', 'message': https://example.com}
     """  # noqa: D205, D301
     if not api:
         raise HTTPException(
             status.HTTP_428_PRECONDITION_REQUIRED, 'Missing API credentials')
 
-    try:
-        user = await authenticate_user(session, form.username, form.password)
-    except (ValidationError, UnicodeDecodeError, JSONDecodeError) as err:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f'Invalid data: {err}',
-        )
+    user = await authenticate_user(session, form.username, form.password)
 
     if not user:
         raise HTTPException(
@@ -188,4 +175,4 @@ async def two_factor_protocol(
         raise HTTPException(
             status.HTTP_406_NOT_ACCEPTABLE, 'Multifactor error')
 
-    return {'status': 'pending', 'message': redirect_url}
+    return MFAChallengeResponse(status='pending', message=redirect_url)
