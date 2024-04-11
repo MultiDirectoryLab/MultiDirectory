@@ -164,12 +164,11 @@ async def two_factor_protocol(
             status.HTTP_422_UNPROCESSABLE_ENTITY, 'Invalid credentials')
 
     try:
-        url = list(urlsplit(str(request.url_for('callback_mfa'))))
-        url[0] = "https" if settings.USE_CORE_TLS else "http"
-
         redirect_url = await api.get_create_mfa(
-            user.user_principal_name, urlunsplit(url), user.id)
-
+            user.user_principal_name,
+            str(request.url_for('callback_mfa')),
+            user.id,
+        )
     except MultifactorAPI.MultifactorError:
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
