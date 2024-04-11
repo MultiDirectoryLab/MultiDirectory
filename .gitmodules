@@ -1,0 +1,3 @@
+[submodule "interface"]
+	path = interface
+	url = https://github.com/MultifactorLab/MultiDirectory-Web-Admin.git
