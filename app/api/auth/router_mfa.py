@@ -137,7 +137,6 @@ async def two_factor_protocol(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
     api: Annotated[MultifactorAPI, Depends(MultifactorAPI.from_di)],
-    settings: Annotated[Settings, Depends(get_settings)],
 ) -> MFAChallengeResponse:
     """Authenticate with two factor app.
 
@@ -146,7 +145,6 @@ async def two_factor_protocol(
     :param Request request: request
     :param Annotated[AsyncSession, Depends session: db session
     :param Annotated[MultifactorAPI, Depends api: mfa api
-    :param Annotated[Settings, Depends settings: app settings
     :raises HTTPException: Missing API credentials
     :raises HTTPException: Invalid credentials
     :raises HTTPException: Multifactor error
