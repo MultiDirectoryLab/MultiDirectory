@@ -129,7 +129,7 @@ async def callback_mfa(
 
     user_id: int = int(payload.get("uid"))
     if user_id is None or not await session.get(DBUser, user_id):
-        return RedirectResponse('/token_error', status.HTTP_302_FOUND)
+        return RedirectResponse('/mfa_token_error', status.HTTP_302_FOUND)
 
     return RedirectResponse(
         '/', status.HTTP_302_FOUND,
