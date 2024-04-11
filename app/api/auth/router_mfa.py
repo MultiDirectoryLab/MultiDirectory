@@ -15,6 +15,7 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
+from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from jose.exceptions import JWKError
@@ -101,7 +102,7 @@ async def callback_mfa(
     pool: Annotated[dict[str, asyncio.Queue[str]], Depends(get_queue_pool)],
     session: Annotated[AsyncSession, Depends(get_session)],
     mfa_creds: Annotated[Creds | None, Depends(get_auth)],
-) -> dict:
+) -> RedirectResponse:
     """Disassemble mfa token and send it to websocket.
 
     Callback endpoint for MFA.
@@ -115,7 +116,6 @@ async def callback_mfa(
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    logger.debug((access_token, mfa_creds.secret, mfa_creds.key))
     try:
         payload = jwt.decode(
             access_token,
@@ -142,9 +142,9 @@ async def callback_mfa(
         raise HTTPException(status.HTTP_408_REQUEST_TIMEOUT)
 
     await queue.put(access_token)
-    logger.debug(access_token)
 
-    return {'success': True}
+    return RedirectResponse(
+        '/', headers={'Set-Cookie': f"new_token={access_token}"})
 
 
 @mfa_router.websocket('/connect')
