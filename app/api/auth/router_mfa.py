@@ -24,7 +24,7 @@ from pydantic import ValidationError
 from sqlalchemy import delete
 
 from api.auth import get_current_user
-from config import Settings, get_queue_pool, get_settings
+from config import Settings, get_settings
 from ldap_protocol.multifactor import (
     Creds,
     MultifactorAPI,
@@ -36,7 +36,7 @@ from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
-from .schema import Login, MFACreateRequest, MFAGetResponse, OAuth2Form
+from .schema import MFACreateRequest, MFAGetResponse, OAuth2Form
 
 mfa_router = APIRouter(prefix='/multifactor', tags=['Multifactor'])
 

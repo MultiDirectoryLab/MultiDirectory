@@ -81,7 +81,3 @@ class Settings(BaseSettings):
 
 def get_settings() -> Settings:  # noqa: D103
     raise NotImplementedError()
-
-
-def get_queue_pool() -> None:  # noqa
-    raise NotImplementedError()
