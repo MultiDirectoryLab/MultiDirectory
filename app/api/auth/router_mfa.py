@@ -11,7 +11,7 @@ from fastapi import (
     Depends,
     Form,
     HTTPException,
-    WebSocket,
+    Request,
     WebSocketDisconnect,
     status,
 )
@@ -36,7 +36,7 @@ from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
-from .schema import Login, MFACreateRequest, MFAGetResponse
+from .schema import Login, MFACreateRequest, MFAGetResponse, OAuth2Form
 
 mfa_router = APIRouter(prefix='/multifactor', tags=['Multifactor'])
 
@@ -99,7 +99,6 @@ async def get_mfa(
 @mfa_router.post('/create', name='callback_mfa', include_in_schema=False)
 async def callback_mfa(
     access_token: Annotated[str, Form(alias='accessToken')],
-    pool: Annotated[dict[str, asyncio.Queue[str]], Depends(get_queue_pool)],
     session: Annotated[AsyncSession, Depends(get_session)],
     mfa_creds: Annotated[Creds | None, Depends(get_auth)],
 ) -> RedirectResponse:
@@ -132,29 +131,21 @@ async def callback_mfa(
     if user_id is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    user = await session.get(DBUser, user_id)
-
-    if not user:
+    if not await session.get(DBUser, user_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-
-    queue = pool.get(user.user_principal_name)
-    if not queue:
-        raise HTTPException(status.HTTP_408_REQUEST_TIMEOUT)
-
-    await queue.put(access_token)
 
     return RedirectResponse(
         '/', headers={'Set-Cookie': f"new_token={access_token}"})
 
 
-@mfa_router.websocket('/connect')
+@mfa_router.post('/connect')
 async def two_factor_protocol(
-    websocket: WebSocket,
+    form: Annotated[OAuth2Form, Depends()],
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
     api: Annotated[MultifactorAPI, Depends(MultifactorAPI.from_di)],
-    pool: Annotated[dict[str, asyncio.Queue[str]], Depends(get_queue_pool)],
     settings: Annotated[Settings, Depends(get_settings)],
-) -> None:
+) -> dict:
     """Authenticate with two factor app.
 
     Protocol description:
@@ -171,31 +162,24 @@ async def two_factor_protocol(
     :param MultifactorAPI api: MF API, depends
     :param dict[str, Queue[str]] pool: queue pool for async comms, depends
     """  # noqa: D205, D301
-    await websocket.accept()
     if not api:
-        await websocket.close(
-            status.WS_1002_PROTOCOL_ERROR, 'Missing API credentials')
-        return
-
-    await websocket.send_json({'status': 'connected', 'message': ''})
+        raise HTTPException(
+            status.HTTP_428_PRECONDITION_REQUIRED, 'Missing API credentials')
 
     try:
-        creds = Login.model_validate(await websocket.receive_json())
-        user = await authenticate_user(session, creds.username, creds.password)
+        user = await authenticate_user(session, form.username, form.password)
     except (ValidationError, UnicodeDecodeError, JSONDecodeError) as err:
-        await websocket.close(
-            status.WS_1007_INVALID_FRAME_PAYLOAD_DATA,
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
             f'Invalid data: {err}',
         )
-        return
 
     if not user:
-        await websocket.close(
-            status.WS_1002_PROTOCOL_ERROR, 'Invalid credentials')
-        return
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, 'Invalid credentials')
 
     try:
-        url = list(urlsplit(str(websocket.url_for('callback_mfa'))))
+        url = list(urlsplit(str(request.url_for('callback_mfa'))))
         url[0] = "https" if settings.USE_CORE_TLS else "http"
 
         redirect_url = await api.get_create_mfa(
@@ -203,30 +187,7 @@ async def two_factor_protocol(
 
     except MultifactorAPI.MultifactorError:
         logger.critical(f"API error {traceback.format_exc()}")
-        await websocket.close(
-            status.WS_1013_TRY_AGAIN_LATER, 'Multifactor error')
-        return
+        raise HTTPException(
+            status.HTTP_406_NOT_ACCEPTABLE, 'Multifactor error')
 
-    await websocket.send_json({'status': 'pending', 'message': redirect_url})
-
-    queue: asyncio.Queue[str] = asyncio.Queue(maxsize=1)
-    pool[user.user_principal_name] = queue
-
-    try:
-        token = await asyncio.wait_for(
-            queue.get(),
-            timeout=settings.MFA_TIMEOUT_SECONDS,
-        )
-    except TimeoutError:
-        await websocket.close(
-            status.WS_1013_TRY_AGAIN_LATER, 'To factor timeout')
-        return
-    except WebSocketDisconnect:
-        logger.warning(f'Two factor interrupt for {user.user_principal_name}')
-        return
-    finally:
-        del pool[user.user_principal_name]
-
-    await websocket.send_json({'status': 'success', 'message': token})
-
-    await websocket.close()
+    return {'status': 'pending', 'message': redirect_url}
