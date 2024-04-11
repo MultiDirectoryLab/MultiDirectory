@@ -128,15 +128,14 @@ async def callback_mfa(
         )
 
     user_id: int = int(payload.get("uid"))
-    if user_id is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
-
-    if not await session.get(DBUser, user_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if user_id is None or not await session.get(DBUser, user_id):
+        return RedirectResponse('/token_error', status.HTTP_302_FOUND)
 
     return RedirectResponse(
-        '/', status_code=status.HTTP_302_FOUND,
-        headers={'Set-Cookie': f"new_token={access_token}"})
+        '/', status.HTTP_302_FOUND,
+        headers={'Set-Cookie': (
+            f"access_token={access_token};"
+            " SameSite=Lax; Path=/; Secure;")})
 
 
 @mfa_router.post('/connect')
