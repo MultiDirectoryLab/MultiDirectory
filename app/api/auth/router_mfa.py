@@ -135,7 +135,8 @@ async def callback_mfa(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     return RedirectResponse(
-        '/', headers={'Set-Cookie': f"new_token={access_token}"})
+        '/', status_code=status.HTTP_302_FOUND,
+        headers={'Set-Cookie': f"new_token={access_token}"})
 
 
 @mfa_router.post('/connect')
