@@ -147,7 +147,10 @@ services:
       - "traefik.http.services.pg.loadbalancer.server.port=80"
 
   interface:
-    image: ghcr.io/multifactorlab/multidirectory-web-admin:latest
+    build:
+      context: ./interface
+      args:
+        DOCKER_BUILDKIT: 1
     container_name: multidirectory_interface
     restart: "no"
     hostname: interface
