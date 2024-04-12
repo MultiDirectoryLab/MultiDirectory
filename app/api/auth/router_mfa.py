@@ -3,7 +3,6 @@
 import operator
 import traceback
 from typing import Annotated
-from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -14,7 +13,6 @@ from loguru import logger
 from sqlalchemy import delete
 
 from api.auth import get_current_user
-from config import Settings, get_settings
 from ldap_protocol.multifactor import (
     Creds,
     MultifactorAPI,
