@@ -1,4 +1,4 @@
-"""empty message
+"""Add last logon.
 
 Revision ID: 0c7bd30b5a24
 Revises: f4a7fde509d4

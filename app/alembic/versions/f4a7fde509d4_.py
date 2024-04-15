@@ -1,4 +1,4 @@
-"""empty message
+"""Init.
 
 Revision ID: f4a7fde509d4
 Revises:
@@ -150,6 +150,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_Policies_netmasks'), table_name='Policies')
     op.drop_table('Policies')
     op.drop_index(op.f('ix_Directory_parentId'), table_name='Directory')
+    op.drop_constraint('name_parent_uc', 'Directory')
     op.drop_table('Directory')
     op.execute(sa.text('DROP TYPE mfaflags'))
     # ### end Alembic commands ###

@@ -12,6 +12,7 @@ from .asn1parser import asn1todict
 from .dialogue import LDAPCodes, Session
 from .ldap_requests import BaseRequest, protocol_id_map
 from .ldap_responses import BaseResponse, LDAPResult
+from .utils import get_class_name
 
 
 class Control(BaseModel):
@@ -29,6 +30,11 @@ class LDAPMessage(ABC, BaseModel):
     protocol_op: int = Field(..., alias='protocolOP')
     context: BaseRequest | BaseResponse
     controls: list[Control] = []
+
+    @property
+    def name(self) -> str:
+        """Message name."""
+        return get_class_name(self.context)
 
 
 class LDAPResponseMessage(LDAPMessage):

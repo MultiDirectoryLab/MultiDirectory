@@ -1,7 +1,5 @@
 """Multidirectory api module."""
 
-from asyncio import Queue
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -13,7 +11,7 @@ from api import (
     network_router,
     pwd_router,
 )
-from config import VENDOR_VERSION, Settings, get_queue_pool, get_settings
+from config import VENDOR_VERSION, Settings, get_settings
 from models.database import create_get_async_session, get_session
 
 logger.add(
@@ -28,7 +26,6 @@ logger.add(
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create FastAPI app with dependencies overrides."""
     settings = settings or Settings()
-    pool: dict[str, Queue[str]] = {}
 
     app = FastAPI(
         name="MultiDirectory",
@@ -41,7 +38,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.dependency_overrides = {
         get_settings: lambda: settings,
         get_session: create_get_async_session(settings),
-        get_queue_pool: lambda: pool,
     }
     app.include_router(auth_router)
     app.include_router(entry_router)

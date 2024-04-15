@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     HOST: IPvAnyAddress = "0.0.0.0"  # type: ignore  # noqa
     PORT: int = 389
+    TLS_PORT: int = 636
     USE_CORE_TLS: bool = False
 
     POSTGRES_SCHEMA: str = 'postgresql+asyncpg'
@@ -58,7 +59,7 @@ class Settings(BaseSettings):
     MFA_TOKEN_LEEWAY: int = 15
     MFA_API_SOURCE: Literal['dev', 'ru'] = 'ru'
 
-    @computed_field
+    @computed_field  # type: ignore
     @cached_property
     def MFA_API_URI(self) -> str:  # noqa: N802
         """Multifactor API url.
@@ -69,10 +70,14 @@ class Settings(BaseSettings):
             return 'https://api.multifactor.dev'
         return 'https://api.multifactor.ru'
 
+    def get_copy_4_tls(self) -> 'Settings':
+        """Create a copy for TLS bind."""
+        from copy import copy
+        tls_settings = copy(self)
+        tls_settings.USE_CORE_TLS = True
+        tls_settings.PORT = tls_settings.TLS_PORT
+        return tls_settings
+
 
 def get_settings() -> Settings:  # noqa: D103
-    raise NotImplementedError()
-
-
-def get_queue_pool() -> None:  # noqa
     raise NotImplementedError()

@@ -34,7 +34,7 @@ async def post_save_password_actions(
             Attribute.directory_id == user.directory_id,
             Attribute.name == 'pwdLastSet',
             Attribute.value == '0'))
-    user.password_history.append(user.password)  # type: ignore  # noqa
+    user.password_history.append(user.password)
     await session.flush()
 
 
@@ -156,8 +156,8 @@ class PasswordPolicySchema(BaseModel):
             errors.append('password minimum length violation')
 
         if self.password_must_meet_complexity_requirements and not all((
-            re.search('[A-Z]', password) is not None,
-            re.search('[a-z]', password) is not None,
+            re.search('[A-ZА-Я]', password) is not None,
+            re.search('[a-zа-я]', password) is not None,
             re.search('[0-9]', password) is not None,
             password.lower() not in _COMMON_PASSWORDS,
         )):

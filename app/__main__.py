@@ -24,6 +24,7 @@ from sqlalchemy.orm import selectinload
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
+from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 from models.database import create_session_factory
 from models.ldap3 import NetworkPolicy
 
@@ -59,6 +60,12 @@ class PoolClientHandler:
         self.settings = settings
         self.AsyncSessionFactory = create_session_factory(self.settings)
         self._size = rcv_size
+
+        if settings.DEBUG:
+            self.req_log = self._req_log_full
+            self.rsp_log = self._resp_log_full
+        else:
+            self.req_log = self.rsp_log = self._log_short
 
         self.ssl_context = None
 
@@ -236,23 +243,36 @@ class PoolClientHandler:
         async with self.AsyncSessionFactory() as session:
             yield session
 
+    @staticmethod
+    def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
+        logger.debug(
+            f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
+            f"{msg.model_dump_json()}\n")
+
+    @staticmethod
+    def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
+        logger.debug(
+            f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
+            f"{msg.model_dump_json()}"[:3000])
+
+    @staticmethod
+    def _log_short(addr: str, msg: LDAPMessage) -> None:
+        logger.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
+
     async def _handle_single_response(self, ldap_session: Session) -> None:
         """Get message from queue and handle it."""
         while True:
             try:
                 message = await ldap_session.queue.get()
-                logger.info(
-                    f"\nFrom: {ldap_session.addr!r}\n"
-                    f"Request: {message.model_dump_json()}\n")
+                self.req_log(ldap_session.addr, message)
 
                 async with self.create_session() as session:
                     async for response in message.create_response(
                             ldap_session, session):
-                        logger.info(
-                            f"\nTo: {ldap_session.addr!r}\n"
-                            f"Response: {response.model_dump_json()}"[:3000])
+                        self.rsp_log(ldap_session.addr, response)
                         ldap_session.writer.write(response.encode())
                         await ldap_session.writer.drain()
+
                 ldap_session.queue.task_done()
             except Exception as err:
                 raise RuntimeError(err) from err
@@ -311,14 +331,18 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     settings = Settings()
-    server = PoolClientHandler(settings)
-
     logger.info(f'Started LDAP server with {args.loop}')
+
+    async def _servers() -> None:
+        await asyncio.gather(
+            PoolClientHandler(settings).start(),
+            PoolClientHandler(settings.get_copy_4_tls()).start(),
+        )
 
     if args.loop == 'uvloop':
         with asyncio.Runner(
                 loop_factory=uvloop.new_event_loop,
                 debug=settings.DEBUG) as runner:
-            runner.run(server.start())
+            runner.run(_servers())
     elif args.loop == 'asyncio':
-        asyncio.run(server.start(), debug=settings.DEBUG)
+        asyncio.run(_servers(), debug=settings.DEBUG)

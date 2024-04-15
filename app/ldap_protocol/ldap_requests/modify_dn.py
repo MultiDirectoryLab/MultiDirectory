@@ -13,7 +13,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
-from ldap_protocol.utils import get_base_dn
+from ldap_protocol.utils import get_base_dn, get_path_filter, get_search_path
 from models.ldap3 import Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
@@ -33,13 +33,14 @@ class ModifyDNRequest(BaseRequest):
 
     **entry** — The current DN for the target entry.
 
-    **newrdn** — The new RDN to use assign to the entry. It may be the same as the
+    **newrdn** — The new RDN to use assign to the entry.
+        It may be the same as the
         current RDN if you only intend to move the entry beneath a new parent.
         If the new RDN includes any attribute values that arent
         already in the entry, the entry will be updated to include them.
 
-    **deleteoldrdn** — Indicates whether to delete any attribute values from the
-        entry that were in the original RDN but not in the new RDN.
+    **deleteoldrdn** — Indicates whether to delete any attribute values from
+        the entry that were in the original RDN but not in the new RDN.
 
     **newSuperior** — The DN of the entry that should become the new
         parent for the entry (and any of its subordinates).
@@ -81,21 +82,18 @@ class ModifyDNRequest(BaseRequest):
             return
 
         base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+        obj = get_search_path(self.entry, base_dn)
 
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
-            .filter(Path.path == reversed(obj))
+            .filter(get_path_filter(obj))
 
-        new_sup = self.new_superior.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-
+        new_sup = get_search_path(self.new_superior, base_dn)
         new_sup_query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.path))\
-            .filter(Path.path == reversed(new_sup))
+            .filter(get_path_filter(new_sup))
 
         directory = await session.scalar(query)
 

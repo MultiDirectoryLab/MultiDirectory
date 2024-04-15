@@ -114,3 +114,10 @@ class MFAGetResponse(BaseModel):
     mfa_secret: SecretStr | None
     mfa_key_ldap: str | None
     mfa_secret_ldap: SecretStr | None
+
+
+class MFAChallengeResponse(BaseModel):
+    """MFA Challenge state."""
+
+    status: str
+    message: str

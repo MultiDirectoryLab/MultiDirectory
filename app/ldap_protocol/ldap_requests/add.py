@@ -20,9 +20,11 @@ from ldap_protocol.utils import (
     create_integer_hash,
     get_base_dn,
     get_groups,
+    get_path_filter,
+    get_search_path,
     validate_entry,
 )
-from models.ldap3 import Attribute, Directory, Group, Path, User
+from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -77,12 +79,11 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        base_dn = await get_base_dn(session)
-        obj = self.entry.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-        has_no_parent = len(obj) == 1
+        parent_dn = get_search_path(
+            self.entry, await get_base_dn(session))[:-1]
+        has_no_parent = len(parent_dn) == 0
 
-        new_dn, name = obj.pop(0).split('=')
+        new_dn, name = self.entry.split(',')[0].split('=')
 
         if has_no_parent:
             new_dir = Directory(
@@ -92,11 +93,10 @@ class AddRequest(BaseRequest):
             path = new_dir.create_path(dn=new_dn)
 
         else:
-            search_path = reversed(obj)
             query = select(Directory)\
                 .join(Directory.path)\
                 .options(selectinload(Directory.paths))\
-                .filter(Path.path == search_path)
+                .filter(get_path_filter(parent_dn))
             parent = await session.scalar(query)
 
             if not parent:

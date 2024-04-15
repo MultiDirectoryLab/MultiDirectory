@@ -7,12 +7,14 @@ import hashlib
 import re
 from calendar import timegm
 from datetime import datetime
+from operator import attrgetter
 
 import pytz
 from asyncstdlib.functools import cache
-from sqlalchemy import func, select, update
+from sqlalchemy import Column, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.expression import ColumnElement
 
 from models.ldap3 import (
     CatalogueSetting,
@@ -101,7 +103,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         return await session.scalar(select(User).where(cond))
 
     path = await session.scalar(
-        select(Path).where(Path.path == _get_path(name)))
+        select(Path).where(get_path_filter(_get_path(name))))
 
     domain = await session.scalar(
         select(CatalogueSetting)
@@ -143,10 +145,9 @@ async def get_groups(
         if dn.lower() == base_dn.lower():  # dn_is_base
             continue
 
-        base_obj = dn.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
+        base_obj = get_search_path(dn, base_dn)
 
-        paths.append([path for path in reversed(base_obj) if path])
+        paths.append([path for path in base_obj if path])
 
     query = select(   # noqa: ECE001
         Directory)\
@@ -180,8 +181,7 @@ async def get_group(dn: str, session: AsyncSession) -> Directory:
     if dn_is_base:
         raise ValueError('Cannot set memberOf with base dn')
 
-    path = list(reversed(
-        dn.lower().removesuffix(',' + base_dn.lower()).split(',')))
+    path = get_search_path(dn, base_dn)
 
     directory = await session.scalar(
         select(Directory)
@@ -279,3 +279,30 @@ def ft_to_dt(filetime: int) -> datetime:
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
     return datetime.utcfromtimestamp(s).replace(microsecond=(ns100 // 10))
+
+
+def get_search_path(dn: str, base_dn: str) -> list[str]:
+    """Get search path for dn.
+
+    :param str dn: any DN, dn syntax
+    :param str base_dn: domain dn
+    :return list[str]: reversed list of dn values
+    """
+    search_path = dn.lower().removesuffix(
+        ',' + base_dn.lower()).split(',')
+    search_path.reverse()
+    return search_path
+
+
+def get_path_filter(
+        path: list[str], *, column: Column = Path.path) -> ColumnElement:
+    """Get filter condition for path equality.
+
+    :param list[str] path: dn
+    :param Column field: path column, defaults to Path.path
+    :return ColumnElement: filter (where) element
+    """
+    return func.array_lowercase(column) == path
+
+
+get_class_name = attrgetter('__class__.__name__')

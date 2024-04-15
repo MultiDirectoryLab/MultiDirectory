@@ -31,6 +31,8 @@ from ldap_protocol.utils import (
     get_base_dn,
     get_generalized_now,
     get_object_classes,
+    get_path_filter,
+    get_search_path,
     get_windows_timestamp,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
@@ -309,7 +311,7 @@ class SearchRequest(BaseRequest):
     def all_attrs(self) -> bool:  # noqa
         return '*' in self.requested_attrs or not self.requested_attrs
 
-    def build_query(self, dn: str) -> Select:
+    def build_query(self, base_dn: str) -> Select:
         """Build tree query."""
         query = select(  # noqa: ECE001
             Directory)\
@@ -323,13 +325,13 @@ class SearchRequest(BaseRequest):
                 joinedload(Directory.group))\
             .distinct(Directory.id)
 
-        root_is_base = self.base_object.lower() == dn.lower()
-        base_obj = self.base_object.lower().removesuffix(
-            ',' + dn.lower()).split(',')
-        search_path = [path for path in reversed(base_obj) if path]
+        root_is_base = self.base_object.lower() == base_dn.lower()
+        base_obj = get_search_path(self.base_object, base_dn)
+
+        search_path = [path for path in base_obj if path]
 
         if self.scope == Scope.BASE_OBJECT and self.base_object:
-            query = query.filter(Path.path == search_path)
+            query = query.filter(get_path_filter(search_path))
 
         elif self.scope == Scope.SINGLEL_EVEL:
             if root_is_base:
@@ -337,11 +339,14 @@ class SearchRequest(BaseRequest):
             else:
                 query = query.filter(
                     func.cardinality(Path.path) == len(search_path) + 1,
-                    Path.path[0:len(search_path)] == search_path,
-                )
+                    get_path_filter(
+                        column=Path.path[0:len(search_path)],
+                        path=search_path))
 
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
-            query = query.filter(Path.path[1:len(search_path)] == search_path)
+            query = query.filter(get_path_filter(
+                column=Path.path[1:len(search_path)],
+                path=search_path))
 
         if self.member_of:
             s1 = selectinload(Directory.group).selectinload(

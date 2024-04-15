@@ -15,8 +15,14 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.utils import get_base_dn, get_groups, validate_entry
-from models.ldap3 import Attribute, Directory, Group, Path, User
+from ldap_protocol.utils import (
+    get_base_dn,
+    get_groups,
+    get_path_filter,
+    get_search_path,
+    validate_entry,
+)
+from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -80,14 +86,11 @@ class ModifyRequest(BaseRequest):
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
-        base_dn = await get_base_dn(session)
         if not validate_entry(self.object.lower()):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        obj = self.object.lower().removesuffix(
-            ',' + base_dn.lower()).split(',')
-        search_path = reversed(obj)
+        search_path = get_search_path(self.object, await get_base_dn(session))
 
         membership1 = selectinload(Directory.user).selectinload(User.groups)
         membership2 = selectinload(Directory.group)\
@@ -101,11 +104,11 @@ class ModifyRequest(BaseRequest):
             .options(
                 selectinload(Directory.paths),
                 membership1, membership2)\
-            .filter(Path.path == search_path)
+            .filter(get_path_filter(search_path))
 
         directory = await session.scalar(query)
 
-        if len(obj) == 0 or not directory:
+        if len(search_path) == 0 or not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
