@@ -45,8 +45,11 @@ services:
     container_name: multidirectory_ldap
     restart: unless-stopped
     hostname: multidirectory_ldap
-    command: python . --loop uvloop
+    entrypoint: ./entrypoint.sh
+    volumes:
+      - ./entrypoint.sh:/app/entrypoint.sh
     environment:
+      DOCKER_DEFAULT_PLATFORM: linux/arm64
       DEBUG: 1
       POSTGRES_USER: user
       POSTGRES_PASSWORD: test_pwd
