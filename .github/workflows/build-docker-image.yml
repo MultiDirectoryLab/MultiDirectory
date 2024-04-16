@@ -3,6 +3,8 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  release:
+    types: [published]
 
 env:
   REPO: ${{ github.repository }}
@@ -123,6 +125,7 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
+          echo $TAG2
           docker build --push --target=runtime -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
 
   create-linux-artifact:
