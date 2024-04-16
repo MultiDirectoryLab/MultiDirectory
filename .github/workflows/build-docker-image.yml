@@ -1,7 +1,7 @@
 name: build
 on:
   release:
-    types: [created, prereleased, published, edited]
+    types: [published]
 
 env:
   REPO: ${{ github.repository }}
@@ -118,10 +118,11 @@ jobs:
       - name: Build docker image
         env:
           TAG: ghcr.io/${{ env.REPO }}:latest
-          TAG2: ghcr.io/${{ env.REPO }}:${{  github.ref_name }}"
+          TAG2: ghcr.io/${{ env.REPO }}:${{ github.ref_name }}
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
+          echo $TAG2
           docker build --push --target=runtime -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
 
   create-linux-artifact:
@@ -129,7 +130,7 @@ jobs:
     needs: [build-tests, run-ssh-test, run-tests]
     steps:
       - name: Zip artifact for deployment
-        run: zip md-linux.zip .package/docker-compose.yml .package/setup.sh
+        run: zip md-linux.zip ./.package/docker-compose.yml ./.package/setup.sh
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
@@ -142,7 +143,7 @@ jobs:
     needs: [build-tests, run-ssh-test, run-tests]
     steps:
       - name: Zip artifact for deployment
-        run: zip md-windows.zip .package/docker-compose.yml .package/setup.bat
+        run: zip md-windows.zip ./.package/docker-compose.yml ./.package/setup.bat
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
