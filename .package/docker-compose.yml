@@ -62,7 +62,7 @@ services:
       - "traefik.http.services.interface.loadbalancer.server.port=80"
 
   migrations:
-    image: ghcr.io/multifactorlab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:latest
     container_name: multidirectory_migrations
     restart: "no"
     env_file:
@@ -73,7 +73,7 @@ services:
         condition: service_healthy
 
   ldap_server:
-    image: ghcr.io/multifactorlab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:latest
     restart: unless-stopped
     hostname: multidirectory-ldap
     env_file:
@@ -110,7 +110,7 @@ services:
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
 
   api_server:
-    image: ghcr.io/multifactorlab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:latest
     container_name: multidirectory_api
     restart: unless-stopped
     env_file:
