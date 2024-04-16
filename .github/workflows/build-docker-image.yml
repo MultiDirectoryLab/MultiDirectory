@@ -130,7 +130,7 @@ jobs:
     needs: [build-tests, run-ssh-test, run-tests]
     steps:
       - name: Zip artifact for deployment
-        run: zip md-linux.zip .package/docker-compose.yml .package/setup.sh
+        run: zip md-linux.zip ./.package/docker-compose.yml ./.package/setup.sh
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
@@ -143,7 +143,7 @@ jobs:
     needs: [build-tests, run-ssh-test, run-tests]
     steps:
       - name: Zip artifact for deployment
-        run: zip md-windows.zip .package/docker-compose.yml .package/setup.bat
+        run: zip md-windows.zip ./.package/docker-compose.yml ./.package/setup.bat
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
