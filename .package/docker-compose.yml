@@ -1,0 +1,160 @@
+services:
+  traefik:
+    image: "traefik:v2.6"
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      # - --metrics
+      # - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+      - --log.level=ERROR
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      # - --accesslog=true
+      # - --accesslog.filepath=/var/log/traefik/access.log
+      - --accesslog.format=json
+
+      - --certificatesresolvers.md-resolver.acme.tlschallenge=true
+      - --certificatesresolvers.md-resolver.acme.email=support@multifactor.com
+      - --certificatesresolvers.md-resolver.acme.storage=/letsencrypt/acme.json
+
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+
+      - "--entrypoints.ldap.address=:389"
+      - "--entrypoints.ldaps.address=:636"
+
+      - --entryPoints.websecure.http.tls=true
+      - --entryPoints.websecure.http.tls.certResolver=md-resolver
+
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "443:443"
+      - "389:389"
+      - "636:636"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - ./certs:/letsencrypt
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 96M
+        reservations:
+          cpus: '0.25'
+          memory: 32M
+
+  interface:
+    image: ghcr.io/multifactorlab/multidirectory-web-admin:latest
+    container_name: multidirectory_interface
+    restart: unless-stopped
+    hostname: interface
+    environment:
+      API_URL: https://${DOMAIN}/api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.interface.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.interface.entrypoints=websecure"
+      - "traefik.http.routers.interface.tls.certresolver=md-resolver"
+      - "traefik.http.services.interface.loadbalancer.server.port=80"
+
+  migrations:
+    image: ghcr.io/multifactorlab/multidirectory:latest
+    container_name: multidirectory_migrations
+    restart: "no"
+    env_file:
+      .env
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ldap_server:
+    image: ghcr.io/multifactorlab/multidirectory:latest
+    restart: unless-stopped
+    hostname: multidirectory-ldap
+    env_file:
+      .env
+    volumes:
+      - ./certs:/certs
+      - ./logs:/app/logs
+    command: python -OO . --loop uvloop
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    deploy:
+      mode: replicated
+      replicas: 4
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 150M
+        reservations:
+          cpus: '0.25'
+          memory: 20M
+    labels:
+      - traefik.enable=true
+
+      - traefik.tcp.routers.ldap.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldap.entrypoints=ldap
+      - traefik.tcp.routers.ldap.service=ldap
+      - traefik.tcp.services.ldap.loadbalancer.server.port=389
+
+      - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldaps.entrypoints=ldaps
+      - traefik.tcp.routers.ldaps.service=ldaps
+      - traefik.tcp.services.ldaps.loadbalancer.server.port=636
+
+  api_server:
+    image: ghcr.io/multifactorlab/multidirectory:latest
+    container_name: multidirectory_api
+    restart: unless-stopped
+    env_file:
+      .env
+    hostname: api_server
+    environment:
+      USE_CORE_TLS: 1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.tls.certresolver=md-resolver"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.api.service=api"
+      - "traefik.http.routers.api.middlewares=api_strip"
+      - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
+      - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
+
+    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  postgres:
+    container_name: MD-postgres
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      .env
+    environment:
+      PGDATA: /data/postgres
+    volumes:
+       - postgres:/data/postgres
+    expose:
+      - 5432
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U ${POSTGRES_USER}"]
+      interval: 6s
+      timeout: 60s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  traefik:
+  postgres:
+  pgadmin:
