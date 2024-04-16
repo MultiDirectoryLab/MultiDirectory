@@ -129,6 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-tests, run-ssh-test, run-tests]
     steps:
+      - uses: actions/checkout@v2
       - name: Zip artifact for deployment
         run: zip md-linux.zip ./.package/docker-compose.yml ./.package/setup.sh
 
@@ -142,6 +143,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-tests, run-ssh-test, run-tests]
     steps:
+      - uses: actions/checkout@v2
       - name: Zip artifact for deployment
         run: zip md-windows.zip ./.package/docker-compose.yml ./.package/setup.bat
 
