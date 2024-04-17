@@ -57,7 +57,7 @@ Compose v2:
 docker compose down; docker compose pull; docker compose up -d
 ```
 
-To update config files (docker-compose.yml and setup.*), please, redownload repository, using step 3.
+To update config files (docker-compose.yml and setup.*), please, redownload repository, using step 4.
 
 
 ## Development
