@@ -14,24 +14,30 @@ All services are running through [traefik](https://doc.traefik.io/traefik/provid
 
 2. Register and assosiate domain with your server IP, for e.g. `multidirectory.example.com` -> `255.255.255.255`
 
-3. Download and unzip latest repository:
+3. Create multidirectory folder:
 ```sh
-curl -L https://github.com/MultiDirectoryLab/MultiDirectory-CI/archive/refs/heads/main.zip -o md.zip
-mkdir MultiDirectory
-unzip md.zip -d MultiDirectory
-cd MultiDirectory
-```
-
-or using `git`:
-
-```sh
-git clone https://github.com/MultiDirectoryLab/MultiDirectory-CI.git
-cd MultiDirecory-CI
+mkdir MultiDirectory; cd MultiDirectory;
 ```
 
 4. Generate config `.env` file with:
 
-    Run `./setup.sh` for Unix systems or `./setup.bat` for Windows, then follow instructions.
+### For Linux:
+```sh
+bash <(curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/setup.sh);
+curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/docker-compose.yml;
+curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/LICENSE
+```
+    Then follow .env file fill instructions.
+    After generating `.env` file, services are ready to deploy
+
+### For Windows:
+```sh
+curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/setup.bat;
+curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/docker-compose.yml;
+curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/LICENSE
+```
+
+    Run `./setup.bat`, then follow instructions.
     After generating `.env` file, services are ready to deploy
 
 5. Start services with command:
@@ -66,6 +72,6 @@ To deploy MultiDirectory with custom postgres database, you can setup following 
     POSTGRES_PASSWORD
     POSTGRES_DB
 
-Please, note, other DBMS, rather than PostgreSQL, are incompatiple with MultiDirectory app.
-
 In that case you may need to remove `postgres` service from `docker-compose.yml` file.
+
+Please note that only PostgreSQL DBMS is compatible with the MultiDirectory app.
