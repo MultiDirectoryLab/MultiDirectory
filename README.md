@@ -27,8 +27,9 @@ bash <(curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/m
 curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/docker-compose.yml;
 curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/LICENSE
 ```
-    Then follow .env file fill instructions.
-    After generating `.env` file, services are ready to deploy
+
+Then follow .env file fill instructions.
+After generating `.env` file, services are ready to deploy
 
 ### For Windows:
 ```sh
@@ -37,8 +38,8 @@ curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/
 curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/LICENSE
 ```
 
-    Run `./setup.bat`, then follow instructions.
-    After generating `.env` file, services are ready to deploy
+Run `./setup.bat`, then follow instructions.
+After generating `.env` file, services are ready to deploy
 
 5. Start services with command:
 
