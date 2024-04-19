@@ -161,7 +161,7 @@ class SearchRequest(BaseRequest):
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
         # data['configurationNamingContext'].append(schema)  # noqa
-        data['supportedSASLMechanisms'] = ['ANONYMOUS']
+        data['supportedSASLMechanisms'] = ['ANONYMOUS', 'PLAIN']
         data['highestCommittedUSN'].append('126991')
         data['supportedExtension'] = [
             "1.3.6.1.4.1.4203.1.11.3",  # whoami
