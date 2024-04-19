@@ -6,7 +6,7 @@ Configuration repository for
 
 2. [MultiDirectory-Web-Admin](https://github.com/MultiDirectoryLab/MultiDirectory-Web-Admin) - web interface for API
 
-All services are running through [traefik](https://doc.traefik.io/traefik/providers/docker/), using [postgres](https://www.postgresql.org/) as database, other DBMS are incompatible.
+All services are running through [traefik](https://doc.traefik.io/traefik/providers/docker/), using [postgres](https://www.postgresql.org/) v15+ as database, other DBMS are incompatible.
 
 ## Installation
 
@@ -75,4 +75,4 @@ To deploy MultiDirectory with custom postgres database, you can setup following 
 
 In that case you may need to remove `postgres` service from `docker-compose.yml` file.
 
-Please note that only PostgreSQL DBMS is compatible with the MultiDirectory app.
+Please note that only PostgreSQL DBMS version 15 or later is compatible with the MultiDirectory app.
