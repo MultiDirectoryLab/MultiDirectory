@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
 
-from api.auth import User, get_current_user_or_none
+from api.auth import User, get_current_user
 from ldap_protocol.ldap_requests import (
     AddRequest,
     DeleteRequest,
@@ -24,7 +24,7 @@ entry_router = APIRouter(prefix='/entry', tags=['LDAP API'])
 async def search(
     request: SearchRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User | None, Depends(get_current_user_or_none)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
     responses = await request.handle_api(user, session)
@@ -44,27 +44,27 @@ async def search(
 async def add(
     request: AddRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User | None, Depends(get_current_user_or_none)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> LDAPResult:
     """LDAP ADD entry request."""
     return await request.handle_api(user, session)
 
 
 @entry_router.patch('/update')
-async def update(
+async def modify(
     request: ModifyRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user_or_none)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> LDAPResult:
     """LDAP MODIFY entry request."""
     return await request.handle_api(user, session)
 
 
 @entry_router.put('/update/dn')
-async def update_dn(
+async def modify_dn(
     request: ModifyDNRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user_or_none)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
     return await request.handle_api(user, session)
@@ -74,7 +74,7 @@ async def update_dn(
 async def delete(
     request: DeleteRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user_or_none)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(user, session)

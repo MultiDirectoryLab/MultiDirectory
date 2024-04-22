@@ -132,18 +132,6 @@ async def get_current_user(  # noqa: D103
     return user
 
 
-async def get_current_user_or_none(  # noqa: D103
-    settings: Annotated[Settings, Depends(get_settings)],
-    session: Annotated[AsyncSession, Depends(get_session)],
-    token: Annotated[str, Depends(oauth2)],
-    mfa_creds: Annotated[str | None, Depends(get_auth)],
-) -> User | None:
-    try:
-        return await get_current_user(settings, session, token, mfa_creds)
-    except Exception:
-        return None
-
-
 async def get_current_user_refresh(  # noqa: D103
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
