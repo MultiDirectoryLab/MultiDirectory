@@ -3,16 +3,17 @@ import pytest
 from httpx import AsyncClient
 
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
-from app.ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_root_dse(http_client: AsyncClient) -> None:
+async def test_api_root_dse(
+        http_client: AsyncClient, login_headers: dict) -> None:
     """Test api root dse."""
     response = await http_client.post(
         "entry/search",
+        headers=login_headers,
         json={
             "base_object": "",
             "scope": 0,
@@ -152,9 +153,8 @@ async def test_api_add_non_auth_user(http_client: AsyncClient) -> None:
 
     data = response.json()
 
-    assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.OPERATIONS_ERROR
-    assert data.get('errorMessage') == INVALID_ACCESS_RESPONSE['errorMessage']
+    assert response.status_code == 401
+    assert data.get('detail') == 'Could not validate credentials'
 
 
 @pytest.mark.asyncio()
@@ -174,7 +174,6 @@ async def test_api_add_with_incorrect_dn(
     )
 
     data = response.json()
-
     assert isinstance(data, dict)
     assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
 
@@ -504,10 +503,8 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
     )
 
     data = response.json()
-
-    assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.OPERATIONS_ERROR
-    assert data.get('errorMessage') == INVALID_ACCESS_RESPONSE['errorMessage']
+    assert response.status_code == 401
+    assert data.get('detail') == 'Could not validate credentials'
 
 
 @pytest.mark.asyncio()
