@@ -98,6 +98,33 @@ class WhoAmIRequestValue(BaseExtendedValue):
         return WhoAmIResponse(authz_id=un)
 
 
+class StartTLSResponse(BaseExtendedResponseValue):
+    """Start tls response."""
+
+    def get_value(self) -> str | None:
+        """Get response value."""
+        return ''
+
+
+class StartTLSRequestValue(BaseExtendedValue):
+    """Start tls request."""
+
+    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.1466.20037"
+
+    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
+            StartTLSResponse:
+        """Update password of current or selected user."""
+        if ldap_session.settings.USE_CORE_TLS:
+            return StartTLSResponse()
+
+        raise PermissionError('No TLS')
+
+    @classmethod
+    def from_data(cls, data: ASN1Row) -> 'StartTLSRequestValue':
+        """Create model from data, decoded from responseValue bytes."""
+        return cls()
+
+
 class PasswdModifyResponse(BaseExtendedResponseValue):
     """Password modify response.
 
@@ -154,7 +181,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         errors = await validator.validate_password_with_policy(
             self.new_password, user, session)
 
-        if verify_password(self.old_password, user.password) and not errors:
+        if not errors and (user.password is None or
+                           verify_password(self.old_password, user.password)):
             user.password = get_password_hash(self.new_password)
             await post_save_password_actions(user, session)
             await session.execute(
@@ -182,6 +210,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 _REQUEST_LIST: list[type[BaseExtendedValue]] = [
     PasswdModifyRequestValue,
     WhoAmIRequestValue,
+    StartTLSRequestValue,
 ]
 
 

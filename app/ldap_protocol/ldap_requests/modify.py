@@ -181,9 +181,16 @@ class ModifyRequest(BaseRequest):
         else:
             for value in change.modification.vals:
                 if name not in (Directory.search_fields | User.search_fields):
+                    if isinstance(value, str):
+                        condition = Attribute.value == value
+                    elif isinstance(value, bytes):
+                        condition = Attribute.bvalue == value
+                    else:
+                        continue
+
                     attrs.append(and_(
                         Attribute.name == change.modification.type,
-                        Attribute.value == value))
+                        condition))
 
         if attrs:
             del_query = delete(Attribute).filter(
@@ -253,7 +260,8 @@ class ModifyRequest(BaseRequest):
             else:
                 attrs.append(Attribute(
                     name=change.modification.type,
-                    value=value,
+                    value=value if isinstance(value, str) else None,
+                    bvalue=value if isinstance(value, bytes) else None,
                     directory=directory,
                 ))
 

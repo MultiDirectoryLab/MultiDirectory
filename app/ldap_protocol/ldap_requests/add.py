@@ -133,8 +133,14 @@ class AddRequest(BaseRequest):
                     group_attributes.append(value)
 
                 else:
-                    attributes.append(Attribute(
-                        name=attr.type, value=value, directory=new_dir))
+                    attributes.append(
+                        Attribute(
+                            name=attr.type,
+                            value=value if isinstance(value, str) else None,
+                            bvalue=value if isinstance(value, bytes) else None,
+                            directory=new_dir,
+                        ),
+                    )
 
         parent_groups = await get_groups(group_attributes, session)
 

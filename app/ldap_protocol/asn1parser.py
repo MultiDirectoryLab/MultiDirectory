@@ -1,6 +1,5 @@
 """ASN1 parser and decoder wrapper with dataclasses."""
 
-import binascii
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Annotated, Any
@@ -73,9 +72,7 @@ def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
         return value
     if isinstance(value, bytes):
         with suppress(UnicodeDecodeError):
-            return value.decode()
-        if tag.nr == Numbers.OctetString:
-            return '0x' + str(binascii.hexlify(value).upper())
+            return value.decode().replace('\x00', '\\x00')
         return value
     if isinstance(value, str):
         return value

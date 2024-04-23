@@ -222,6 +222,7 @@ TEST_DATA = [  # noqa
                         "top", "person",
                         "organizationalPerson", "posixAccount"],
                     "posixEmail": ["abctest@mail.com"],
+                    "attr_with_bvalue": [b"any"],
                 },
             },
             {
