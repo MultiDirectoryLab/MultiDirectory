@@ -31,6 +31,10 @@ class LDAPResult(BaseModel):
 
     class Config:  # noqa
         populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {
+            bytes: lambda value: value.hex(),
+        }
 
 
 class BaseEncoder(BaseModel):
@@ -66,7 +70,7 @@ class PartialAttribute(BaseModel):
     """Partial attribite structure. Description in rfc2251 4.1.6."""
 
     type: Annotated[str, annotated_types.Len(max_length=8100)]  # noqa: A003
-    vals: list[Annotated[str, annotated_types.Len(max_length=100000)]]
+    vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
     @field_validator('type', mode="before")
     @classmethod
@@ -75,8 +79,16 @@ class PartialAttribute(BaseModel):
 
     @field_validator('vals', mode="before")
     @classmethod
-    def validate_vals(cls, vals: list[str]) -> list[str]:  # noqa
-        return [str(v) for v in vals]
+    def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:  # noqa
+        return [v if isinstance(v, bytes) else str(v) for v in vals]
+
+    class Config:
+        """Allow class to use property."""
+
+        arbitrary_types_allowed = True
+        json_encoders = {
+            bytes: lambda value: value.hex(),
+        }
 
 
 class SearchResultEntry(BaseResponse):

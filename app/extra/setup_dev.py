@@ -88,7 +88,12 @@ async def _create_dir(
 
         for name, values in attrs:
             for value in values:
-                session.add(Attribute(directory=dir_, name=name, value=value))
+                session.add(Attribute(
+                    directory=dir_,
+                    name=name,
+                    value=value if isinstance(value, str) else None,
+                    bvalue=value if isinstance(value, bytes) else None,
+                ))
 
     if 'organizationalPerson' in data:
         user_data = data['organizationalPerson']

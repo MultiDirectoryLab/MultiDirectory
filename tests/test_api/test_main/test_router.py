@@ -556,3 +556,34 @@ async def test_api_update_dn_non_exist_entry(
 
     assert isinstance(data, dict)
     assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_bytes_to_hex(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test api search."""
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "cn=user0,ou=users,dc=md,dc=test",
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+        headers=login_headers,
+    )
+
+    response = raw_response.json()
+
+    assert response['resultCode'] == LDAPCodes.SUCCESS
+
+    for attr in response['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'attr_with_bvalue':
+            assert attr['vals'][0] == b"any".hex()

@@ -161,7 +161,7 @@ class SearchRequest(BaseRequest):
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
         # data['configurationNamingContext'].append(schema)  # noqa
-        data['supportedSASLMechanisms'] = ['ANONYMOUS']
+        data['supportedSASLMechanisms'] = ['ANONYMOUS', 'PLAIN']
         data['highestCommittedUSN'].append('126991')
         data['supportedExtension'] = [
             "1.3.6.1.4.1.4203.1.11.3",  # whoami
@@ -398,7 +398,12 @@ class SearchRequest(BaseRequest):
             groups = []
 
             for attr in directory.attributes:
-                attrs[attr.name].append(attr.value)
+                if isinstance(attr.value, str):
+                    value = attr.value.replace('\\x00', '\x00')
+                else:
+                    value = attr.bvalue
+
+                attrs[attr.name].append(value)
 
             distinguished_name = self._get_full_dn(directory.path, dn)
 
@@ -409,7 +414,7 @@ class SearchRequest(BaseRequest):
 
             if directory.user:
                 if directory.user.last_logon is None:
-                    attrs['lastLogon'].append(0)
+                    attrs['lastLogon'].append('0')
                 else:
                     attrs['lastLogon'].append(
                         get_windows_timestamp(directory.user.last_logon),

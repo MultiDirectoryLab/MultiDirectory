@@ -72,7 +72,10 @@ def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
         if is_substring:
             cond = attribute_q.value.ilike(_get_substring(right))
         else:
-            cond = func.lower(attribute_q.value) == right.value.lower()
+            if isinstance(right.value, str):
+                cond = func.lower(attribute_q.value) == right.value.lower()
+            else:
+                cond = func.lower(attribute_q.bvalue) == right.value
 
         return cond, query
 
