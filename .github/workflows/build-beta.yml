@@ -117,7 +117,7 @@ jobs:
 
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}:${{ github.ref_name }}b
+          TAG: ghcr.io/${{ env.REPO }}:beta
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
