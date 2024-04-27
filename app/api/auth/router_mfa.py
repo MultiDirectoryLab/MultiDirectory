@@ -13,6 +13,7 @@ from loguru import logger
 from sqlalchemy import delete
 
 from api.auth import get_current_user
+from config import Settings, get_settings
 from ldap_protocol.multifactor import (
     Creds,
     MultifactorAPI,
@@ -135,6 +136,7 @@ async def two_factor_protocol(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
     api: Annotated[MultifactorAPI, Depends(MultifactorAPI.from_di)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> MFAChallengeResponse:
     """Authenticate with two factor app.
 
@@ -160,9 +162,13 @@ async def two_factor_protocol(
             status.HTTP_422_UNPROCESSABLE_ENTITY, 'Invalid credentials')
 
     try:
+        url = request.url_for('callback_mfa')
+        if settings.USE_CORE_TLS:
+            url = url.replace(scheme='https')
+
         redirect_url = await api.get_create_mfa(
             user.user_principal_name,
-            str(request.url_for('callback_mfa')),
+            url.components.geturl(),
             user.id,
         )
     except MultifactorAPI.MultifactorError:
