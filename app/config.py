@@ -3,8 +3,16 @@
 import tomllib
 from functools import cached_property
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import IPvAnyAddress, PostgresDsn, computed_field, validator
+from pydantic import (
+    Field,
+    IPvAnyAddress,
+    PostgresDsn,
+    computed_field,
+    field_validator,
+    validator,
+)
 from pydantic_settings import BaseSettings
 
 with open("/pyproject.toml", "rb") as f:
@@ -58,6 +66,21 @@ class Settings(BaseSettings):
     MFA_TIMEOUT_SECONDS: int = 60
     MFA_TOKEN_LEEWAY: int = 15
     MFA_API_SOURCE: Literal['dev', 'ru'] = 'ru'
+
+    TIMEZONE: ZoneInfo = Field(
+        ZoneInfo('UTC'), alias='TZ')
+
+    @field_validator('TIMEZONE', mode='before')
+    def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
+        """Get timezone from a string."""
+        try:
+            value = ZoneInfo(tz)
+        except ZoneInfoNotFoundError as err:
+            raise ValueError(str(err)) from err
+        except TypeError:
+            return tz  # type: ignore
+        else:
+            return value
 
     @computed_field  # type: ignore
     @cached_property
