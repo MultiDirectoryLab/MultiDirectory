@@ -165,9 +165,9 @@ async def setup_session(session: AsyncSession) -> None:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def ldap_session() -> AsyncGenerator[Session, None]:
+async def ldap_session(settings: Settings) -> AsyncGenerator[Session, None]:
     """Yield empty session."""
-    yield Session()
+    yield Session(settings=settings)
 
 
 @pytest.fixture(scope="session")

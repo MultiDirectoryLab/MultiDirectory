@@ -14,7 +14,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 from sqlalchemy.sql.expression import Select
 
-from config import VENDOR_NAME, VENDOR_VERSION
+from config import VENDOR_NAME, VENDOR_VERSION, Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
 from ldap_protocol.filter_interpreter import BoundQ, cast_filter2sql
@@ -119,7 +119,8 @@ class SearchRequest(BaseRequest):
         return [attr.lower() for attr in self.attributes]
 
     async def get_root_dse(
-            self, session: AsyncSession) -> defaultdict[str, list[str]]:
+            self, session: AsyncSession,
+            settings: Settings) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
         :param list[str] attributes: list of requested attrs
@@ -157,7 +158,7 @@ class SearchRequest(BaseRequest):
         data['rootDomainNamingContext'].append(base_dn)
         data['supportedLDAPVersion'].append(3)
         data['defaultNamingContext'].append(base_dn)
-        data['currentTime'].append(get_generalized_now())
+        data['currentTime'].append(get_generalized_now(settings.TIMEZONE))
         data['subschemaSubentry'].append(schema)
         data['schemaNamingContext'].append(schema)
         # data['configurationNamingContext'].append(schema)  # noqa
@@ -220,12 +221,14 @@ class SearchRequest(BaseRequest):
         Entry -> Reference (optional) -> Done
         """
         async with ldap_session.lock() as user:
-            async for response in self.get_result(bool(user), session):
+            async for response in self.get_result(
+                    bool(user), session, ldap_session):
                 yield response
 
     async def get_result(
             self, user_logged: bool,
-            session: AsyncSession) -> AsyncGenerator[SearchResultDone, None]:
+            session: AsyncSession,
+            ldap_session: Session) -> AsyncGenerator[SearchResultDone, None]:
         """Create response.
 
         :param bool user_logged: is user in session
@@ -240,7 +243,7 @@ class SearchRequest(BaseRequest):
             return
 
         if self.scope == Scope.BASE_OBJECT:
-            if (metadata := await self.get_base_data(session)):
+            if (metadata := await self.get_base_data(session, ldap_session)):
                 yield metadata
                 yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
                 return
@@ -267,7 +270,8 @@ class SearchRequest(BaseRequest):
         )
 
     async def get_base_data(
-            self, session: AsyncSession) -> SearchResultEntry | None:
+            self, session: AsyncSession,
+            ldap_session: Session) -> SearchResultEntry | None:
         """Get base server data.
 
         :param AsyncSession session: sqlalchemy session
@@ -292,8 +296,8 @@ class SearchRequest(BaseRequest):
             elif self.base_object.lower() == 'cn=schema':  # subschema subentry
                 return self._get_subschema(dn)
 
-        else:
-            attrs = await self.get_root_dse(session)  # RootDSE
+        else:  # RootDSE
+            attrs = await self.get_root_dse(session, ldap_session.settings)
             return SearchResultEntry(
                 object_name='',
                 partial_attributes=[

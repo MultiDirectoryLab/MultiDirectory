@@ -265,7 +265,8 @@ class BindRequest(BaseRequest):
                         return
 
         await ldap_session.set_user(user)
-        await set_last_logon_user(user, session)
+        await set_last_logon_user(
+            user, session, ldap_session.settings.TIMEZONE)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
 

@@ -6,6 +6,8 @@ from fastapi.params import Depends
 from fastapi.routing import APIRouter
 
 from api.auth import User, get_current_user
+from config import Settings, get_settings
+from ldap_protocol.dialogue import Session as LDAPSession
 from ldap_protocol.ldap_requests import (
     AddRequest,
     DeleteRequest,
@@ -20,14 +22,21 @@ from .schema import SearchRequest, SearchResponse, SearchResultDone
 entry_router = APIRouter(prefix='/entry', tags=['LDAP API'])
 
 
+def ldap_session(
+        user: Annotated[User, Depends(get_current_user)],
+        settings: Annotated[Settings, Depends(get_settings)]) -> LDAPSession:
+    """Create LDAP session."""
+    return LDAPSession(user=user, settings=settings)
+
+
 @entry_router.post('/search')
 async def search(
     request: SearchRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
+    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
-    responses = await request.handle_api(user, session)
+    responses = await request.handle_api(ldap_session, session)
     metadata: SearchResultDone = responses.pop(-1)
 
     return SearchResponse(
@@ -44,37 +53,37 @@ async def search(
 async def add(
     request: AddRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
+    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
 ) -> LDAPResult:
     """LDAP ADD entry request."""
-    return await request.handle_api(user, session)
+    return await request.handle_api(ldap_session, session)
 
 
 @entry_router.patch('/update')
 async def modify(
     request: ModifyRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
+    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
 ) -> LDAPResult:
     """LDAP MODIFY entry request."""
-    return await request.handle_api(user, session)
+    return await request.handle_api(ldap_session, session)
 
 
 @entry_router.put('/update/dn')
 async def modify_dn(
     request: ModifyDNRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
+    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
 ) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
-    return await request.handle_api(user, session)
+    return await request.handle_api(ldap_session, session)
 
 
 @entry_router.delete('/delete')
 async def delete(
     request: DeleteRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[User, Depends(get_current_user)],
+    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
 ) -> LDAPResult:
     """LDAP DELETE entry request."""
-    return await request.handle_api(user, session)
+    return await request.handle_api(ldap_session, session)
