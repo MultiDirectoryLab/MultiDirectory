@@ -47,7 +47,7 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         yield BaseResponse()  # type: ignore
 
     async def _handle_api(
-        self, user: User,
+        self, ldap_session: Session,
         session: AsyncSession,
     ) -> list[BaseResponse]:
         """Hanlde response with api user.
@@ -56,12 +56,11 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        un = getattr(user, 'user_principal_name', 'ANONYMOUS')
+        un = getattr(ldap_session.user, 'user_principal_name', 'ANONYMOUS')
         api_logger.info(f"{get_class_name(self)}[{un}]")
 
         responses = [
-            response async for response in self.handle(
-                Session(user=user), session)]
+            response async for response in self.handle(ldap_session, session)]
 
         for response in responses:
             api_logger.info(f"{get_class_name(response)}[{un}]")
@@ -69,11 +68,11 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         return responses
 
     async def handle_api(
-        self, user: User,
+        self, ldap_session: Session,
         session: AsyncSession,
     ) -> BaseResponse:
         """Get single response."""
-        return (await self._handle_api(user, session))[0]
+        return (await self._handle_api(ldap_session, session))[0]
 
 
 class APIMultipleResponseMixin(_APIProtocol):
