@@ -8,8 +8,8 @@ import re
 from calendar import timegm
 from datetime import datetime
 from operator import attrgetter
+from zoneinfo import ZoneInfo
 
-import pytz
 from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,10 +65,9 @@ def get_object_classes() -> list[str]:
         return list(file)
 
 
-def get_generalized_now() -> str:
+def get_generalized_now(tz: ZoneInfo) -> str:
     """Get generalized time (formated) with tz."""
-    return datetime.now(  # NOTE: possible setting
-        pytz.timezone('Europe/Moscow')).strftime('%Y%m%d%H%M%S.%f%z')
+    return datetime.now(tz).strftime('%Y%m%d%H%M%S.%f%z')
 
 
 def _get_path(name: str) -> list[str]:
@@ -238,11 +237,12 @@ def create_integer_hash(text: str, size: int = 9) -> int:
     return int(hashlib.sha256(text.encode('utf-8')).hexdigest(), 16) % 10**size
 
 
-async def set_last_logon_user(user: User, session: AsyncSession) -> None:
+async def set_last_logon_user(
+        user: User, session: AsyncSession, tz: ZoneInfo) -> None:
     """Update lastLogon attr."""
     await session.execute(
         update(User).values(
-            {"last_logon": func.now()},
+            {"last_logon": datetime.now(tz=tz)},
         ).where(
             User.id == user.id,
         ),
@@ -264,8 +264,8 @@ def dt_to_ft(dt: datetime) -> int:
 
     If the object is time zone-naive, it is forced to UTC before conversion.
     """
-    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
-        dt = dt.replace(tzinfo=pytz.utc)
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) != 0:
+        dt = dt.astimezone(ZoneInfo('UTC'))
 
     filetime = _EPOCH_AS_FILETIME + (timegm(dt.timetuple()) * _HUNDREDS_OF_NS)
     return filetime + (dt.microsecond * 10)
@@ -279,7 +279,8 @@ def ft_to_dt(filetime: int) -> datetime:
     2) Convert to datetime object, with remainder as microseconds.
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
-    return datetime.utcfromtimestamp(s).replace(microsecond=(ns100 // 10))
+    return datetime.fromtimestamp(
+        s, tz=ZoneInfo('UTC')).replace(microsecond=(ns100 // 10))
 
 
 def get_search_path(dn: str, base_dn: str) -> list[str]:
