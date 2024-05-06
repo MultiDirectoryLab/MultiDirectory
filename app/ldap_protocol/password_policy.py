@@ -4,9 +4,9 @@ import re
 from datetime import datetime
 from itertools import islice
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, model_validator
-from pytz import timezone
 from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +26,7 @@ async def post_save_password_actions(
     :param User user: user from db
     :param AsyncSession session: db
     """
-    new_dt = str(dt_to_ft(datetime.now(tz=timezone('Europe/Moscow'))))
+    new_dt = str(dt_to_ft(datetime.now(tz=ZoneInfo('UTC'))))
     await session.execute(  # update bind reject attribute
         update(Attribute)
         .values({'value': new_dt})
@@ -133,11 +133,11 @@ class PasswordPolicySchema(BaseModel):
                 reversed(user.password_history),
                 self.password_history_length)
 
-        tz = timezone('Europe/Moscow')
+        tz = ZoneInfo('UTC')
         now = datetime.now(tz=tz)
 
         last_pwd_set = (
-            tz.localize(ft_to_dt(int(last_pwd_set.value)))
+            ft_to_dt(int(last_pwd_set.value)).astimezone(tz)
             if last_pwd_set else now)
         password_exists = (now - last_pwd_set).days
 
