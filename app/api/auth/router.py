@@ -88,7 +88,7 @@ async def login_for_access_token(
         grant_type='refresh',
     )
 
-    await set_last_logon_user(user, session)
+    await set_last_logon_user(user, session, settings.TIMEZONE)
 
     return Token(
         access_token=access_token,
