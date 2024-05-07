@@ -1,4 +1,8 @@
-"""Test whoami with ldaputil."""
+"""Test whoami with ldaputil.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import asyncio
 

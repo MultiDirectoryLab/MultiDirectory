@@ -1,4 +1,8 @@
-"""Test API."""
+"""Test API.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 import pytest
 from httpx import AsyncClient
 

@@ -1,4 +1,8 @@
-"""Password policies tools and CRUD."""
+"""Password policies tools and CRUD.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import re
 from datetime import datetime

@@ -1,3 +1,6 @@
+# Copyright (c) 2024 MultiFactor
+# License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+
 services:
   traefik:
     image: "traefik:v2.6"

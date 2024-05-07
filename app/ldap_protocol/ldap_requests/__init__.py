@@ -1,4 +1,8 @@
-"""LDAP protocol map."""
+"""LDAP protocol map.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from .abandon import AbandonRequest
 from .add import AddRequest

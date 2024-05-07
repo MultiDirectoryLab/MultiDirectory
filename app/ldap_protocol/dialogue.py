@@ -1,4 +1,8 @@
-"""Codes mapping."""
+"""Codes mapping.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import asyncio
 from contextlib import asynccontextmanager, suppress

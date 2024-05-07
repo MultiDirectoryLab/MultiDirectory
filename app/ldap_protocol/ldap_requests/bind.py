@@ -1,4 +1,9 @@
-"""LDAP requests bind."""
+"""LDAP requests bind.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
 from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import AsyncGenerator, ClassVar

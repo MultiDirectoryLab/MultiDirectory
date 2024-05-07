@@ -1,4 +1,8 @@
-"""Test search with ldaputil."""
+"""Test search with ldaputil.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import asyncio
 from ipaddress import IPv4Address

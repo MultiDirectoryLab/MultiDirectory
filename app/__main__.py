@@ -1,4 +1,8 @@
-"""Main MiltiDirecory module."""
+"""Main MiltiDirecory module.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import argparse
 import asyncio

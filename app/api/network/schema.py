@@ -1,4 +1,8 @@
-"""Network models."""
+"""Network models.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import sys
 from ipaddress import IPv4Address, IPv4Network, summarize_address_range

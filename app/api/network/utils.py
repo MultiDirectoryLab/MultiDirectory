@@ -1,4 +1,8 @@
-"""Network utils."""
+"""Network utils.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select

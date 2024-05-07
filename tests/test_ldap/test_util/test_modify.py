@@ -1,4 +1,8 @@
-"""Test modify protocol."""
+"""Test modify protocol.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import asyncio
 import tempfile

@@ -1,4 +1,8 @@
-"""MFA methods."""
+"""MFA methods.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from typing import TYPE_CHECKING
 

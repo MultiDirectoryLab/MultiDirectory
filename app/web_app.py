@@ -1,4 +1,8 @@
-"""Multidirectory api module."""
+"""Multidirectory api module.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -10,7 +10,11 @@ DC=multifactor
   OU="2FA"
     CN=Service Accounts
       CN=User 5
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import asyncio
 from itertools import chain
 
