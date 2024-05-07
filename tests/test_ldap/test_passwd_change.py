@@ -1,4 +1,8 @@
-"""Test password change."""
+"""Test password change.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import asyncio
 from functools import partial

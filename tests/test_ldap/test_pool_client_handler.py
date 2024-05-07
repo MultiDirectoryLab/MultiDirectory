@@ -1,4 +1,8 @@
-"""Test policy api."""
+"""Test policy api.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 from ipaddress import IPv4Address, IPv4Network
 
 import pytest

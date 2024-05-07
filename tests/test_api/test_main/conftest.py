@@ -1,4 +1,8 @@
-"""Create test user."""
+"""Create test user.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 import pytest_asyncio
 from httpx import AsyncClient
 

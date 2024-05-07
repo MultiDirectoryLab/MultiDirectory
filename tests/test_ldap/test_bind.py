@@ -1,4 +1,8 @@
-"""Test bind ldap3 + white case."""
+"""Test bind ldap3 + white case.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from asyncio import BaseEventLoop
 from functools import partial

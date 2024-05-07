@@ -1,4 +1,8 @@
-"""Modify protocol."""
+"""Modify protocol.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import BaseModel

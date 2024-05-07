@@ -1,4 +1,8 @@
-"""Module with settings."""
+"""Module with settings.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import tomllib
 from functools import cached_property

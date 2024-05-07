@@ -1,6 +1,9 @@
 """LDAP filter asn1 syntax to sqlalchemy conditions interpreter.
 
 RFC 4511 reference.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from operator import eq, ge, le, ne

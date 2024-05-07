@@ -1,4 +1,8 @@
-"""OAuth modules."""
+"""OAuth modules.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from datetime import datetime, timedelta
 from typing import Annotated, Literal

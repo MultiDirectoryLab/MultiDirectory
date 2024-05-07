@@ -1,4 +1,8 @@
-"""Subcontainers for requests/responses."""
+"""Subcontainers for requests/responses.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from enum import Enum
 

@@ -4,6 +4,8 @@ Revision ID: c06b41714e1a
 Revises: 0c7bd30b5a24
 Create Date: 2024-03-11 14:30:15.370483
 
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import sqlalchemy as sa
 from alembic import op

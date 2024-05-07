@@ -1,4 +1,8 @@
-"""ASN1 parser and decoder wrapper with dataclasses."""
+"""ASN1 parser and decoder wrapper with dataclasses.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from contextlib import suppress
 from dataclasses import dataclass

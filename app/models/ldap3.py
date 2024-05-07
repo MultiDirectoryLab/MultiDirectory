@@ -1,4 +1,8 @@
-"""MultiDirectory LDAP models."""
+"""MultiDirectory LDAP models.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import enum
 from typing import Any, Literal, Optional

@@ -1,4 +1,8 @@
-"""Base LDAP message builder."""
+"""Base LDAP message builder.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from abc import ABC
 from typing import AsyncGenerator
