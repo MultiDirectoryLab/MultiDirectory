@@ -118,6 +118,8 @@ services:
     restart: unless-stopped
     env_file:
       .env
+    volumes:
+      - ./logs:/app/logs
     hostname: api_server
     environment:
       USE_CORE_TLS: 1

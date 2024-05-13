@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from loguru import logger
 
 from api import (
     auth_router,
@@ -17,14 +16,6 @@ from api import (
 )
 from config import VENDOR_VERSION, Settings, get_settings
 from models.database import create_get_async_session, get_session
-
-logger.add(
-    "logs/json_ldap_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: "event" in rec["extra"],
-    retention="10 days",
-    rotation="1d",
-    colorize=False,
-)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

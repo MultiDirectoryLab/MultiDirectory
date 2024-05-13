@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 from typing import AsyncGenerator, ClassVar
 
-from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
@@ -25,7 +24,6 @@ class AbandonRequest(BaseRequest):
     @classmethod
     def from_data(cls, data: ASN1Row) -> 'AbandonRequest':
         """Create structure from ASN1Row dataclass list."""
-        logger.debug(data)
         return cls(message_id=1)
 
     async def handle(
