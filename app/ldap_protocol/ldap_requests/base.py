@@ -16,7 +16,14 @@ from ldap_protocol.dialogue import Session, User
 from ldap_protocol.ldap_responses import BaseResponse
 from ldap_protocol.utils import get_class_name
 
-api_logger = logger.bind(event=True)
+log_api = logger.bind(name='admin')
+
+log_api.add(
+    "logs/admin_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == 'admin',
+    retention="10 days",
+    rotation="1d",
+    colorize=False)
 
 
 if TYPE_CHECKING:
@@ -62,13 +69,21 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         :return list[BaseResponse]: list of handled responses
         """
         un = getattr(ldap_session.user, 'user_principal_name', 'ANONYMOUS')
-        api_logger.info(f"{get_class_name(self)}[{un}]")
+
+        if ldap_session.settings.DEBUG:
+            log_api.info(self.model_dump_json(indent=4))
+        else:
+            log_api.info(f"{get_class_name(self)}[{un}]")
 
         responses = [
             response async for response in self.handle(ldap_session, session)]
 
-        for response in responses:
-            api_logger.info(f"{get_class_name(response)}[{un}]")
+        if ldap_session.settings.DEBUG:
+            for response in responses:
+                log_api.info(response.model_dump_json(indent=4))
+        else:
+            for response in responses:
+                log_api.info(f"{get_class_name(response)}[{un}]")
 
         return responses
 
