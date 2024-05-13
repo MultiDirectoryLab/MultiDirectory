@@ -21,6 +21,14 @@ from models.ldap3 import CatalogueSetting
 
 Creds = namedtuple('Creds', ['key', 'secret'])
 
+log_mfa = logger.bind(name='mfa')
+
+log_mfa.add(
+    "logs/mfa_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == 'mfa',
+    rotation="500 MB",
+    colorize=False)
+
 
 class _MultifactorError(Exception):
     """MFA exc."""
@@ -104,7 +112,7 @@ class MultifactorAPI:
     def _generate_trace_id_header() -> dict[str, str]:
         return {"mf-trace-id": f"md:{uuid.uuid4()}"}
 
-    @logger.catch(reraise=True)
+    @log_mfa.catch(reraise=True)
     async def ldap_validate_mfa(self, username: str, password: str) -> bool:
         """Validate multifactor.
 
@@ -116,7 +124,7 @@ class MultifactorAPI:
         :return bool: status
         """
         passcode = password or 'm'
-        logger.debug(f'LDAP MFA request: {username}, {password}')
+        log_mfa.debug(f'LDAP MFA request: {username}, {password}')
         try:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.AUTH_URL_USERS,
@@ -129,7 +137,7 @@ class MultifactorAPI:
                 }, timeout=60)
 
             data = response.json()
-            logger.info({
+            log_mfa.info({
                 "response": data,
                 "req_content": response.request.content.decode(),
                 "req_headers": response.request.headers,
@@ -146,7 +154,7 @@ class MultifactorAPI:
             return False
         return True
 
-    @logger.catch(reraise=True)
+    @log_mfa.catch(reraise=True)
     async def get_create_mfa(
             self, username: str, callback_url: str, uid: int) -> str:
         """Create mfa link.
@@ -169,7 +177,7 @@ class MultifactorAPI:
             },
         }
         try:
-            logger.debug(data)
+            log_mfa.debug(data)
 
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
@@ -178,7 +186,7 @@ class MultifactorAPI:
                 json=data)
 
             response_data = response.json()
-            logger.info(response_data)
+            log_mfa.info(response_data)
             return response_data['model']['url']
 
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
@@ -199,7 +207,7 @@ class MultifactorAPI:
                 json={"AccessToken": token})
 
             response_data = response.json()
-            logger.info(response_data)
+            log_mfa.info(response_data)
             return response_data['model']
 
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
