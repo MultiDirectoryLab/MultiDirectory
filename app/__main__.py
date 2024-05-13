@@ -32,8 +32,11 @@ from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 from models.database import create_session_factory
 from models.ldap3 import NetworkPolicy
 
-logger.add(
-    "logs/file_{time:DD-MM-YYYY}.log",
+log = logger.bind(name='ldap')
+
+log.add(
+    "logs/ldap_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == 'ldap',
     retention="10 days",
     rotation="1d",
     colorize=False)
@@ -82,7 +85,7 @@ class PoolClientHandler:
                         '/certs/privkey.pem'):
                     cert_name = self.settings.SSL_CERT
                     key_name = self.settings.SSL_KEY
-                    logger.success('Found existing cert and key, loading...')
+                    log.success('Found existing cert and key, loading...')
 
                 else:
                     cert, key = self._read_acme_cert()
@@ -109,7 +112,7 @@ class PoolClientHandler:
             if (policy := await self.get_policy(ldap_session.ip)) is not None:
                 ldap_session.policy = policy
             else:
-                logger.warning(f"Whitelist violation from {ldap_session.addr}")
+                log.warning(f"Whitelist violation from {ldap_session.addr}")
                 return
 
             try:
@@ -118,9 +121,9 @@ class PoolClientHandler:
                     self._handle_responses(ldap_session),
                 )
             except RuntimeError:
-                logger.exception(f"The connection {ldap_session.addr} raised")
+                log.exception(f"The connection {ldap_session.addr} raised")
             except ConnectionAbortedError:
-                logger.info(
+                log.info(
                     'Connection termination initialized '
                     f'by a client {ldap_session.addr}')
 
@@ -154,7 +157,7 @@ class PoolClientHandler:
     @staticmethod
     def _read_acme_cert() -> tuple[str, str]:
         if not os.path.exists('/certs/acme.json'):
-            logger.critical('Cannot load SSL cert for MultiDirectory')
+            log.critical('Cannot load SSL cert for MultiDirectory')
             raise
 
         with open('/certs/acme.json') as certfile:
@@ -164,10 +167,10 @@ class PoolClientHandler:
             domain = data['md-resolver'][
                 'Certificates'][0]['domain']['main']
         except (KeyError, IndexError):
-            logger.critical('Cannot load SSL cert for MultiDirectory')
+            log.critical('Cannot load SSL cert for MultiDirectory')
             raise
 
-        logger.info(f'loaded cert for {domain}')
+        log.info(f'loaded cert for {domain}')
 
         cert = data['md-resolver']['Certificates'][0]['certificate']
         key = data['md-resolver']['Certificates'][0]['key']
@@ -229,7 +232,7 @@ class PoolClientHandler:
                 request = LDAPRequestMessage.from_bytes(data)
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
-                logger.warning(f'Invalid schema {format_exc()}')
+                log.warning(f'Invalid schema {format_exc()}')
 
                 ldap_session.writer.write(
                     LDAPRequestMessage.from_err(data, err).encode())
@@ -249,19 +252,19 @@ class PoolClientHandler:
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
-        logger.debug(
+        log.debug(
             f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}\n")
 
     @staticmethod
     def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
-        logger.debug(
+        log.debug(
             f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}"[:3000])
 
     @staticmethod
     def _log_short(addr: str, msg: LDAPMessage) -> None:
-        logger.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
+        log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(self, ldap_session: Session) -> None:
         """Get message from queue and handle it."""
@@ -309,7 +312,7 @@ class PoolClientHandler:
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:  # noqa
         addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
-        logger.info(f'Server on {addrs}')
+        log.info(f'Server on {addrs}')
 
     async def start(self) -> None:
         """Run and log tcp server."""
@@ -335,7 +338,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     settings = Settings()
-    logger.info(f'Started LDAP server with {args.loop}')
+    log.info(f'Started LDAP server with {args.loop}')
 
     async def _servers() -> None:
         await asyncio.gather(
