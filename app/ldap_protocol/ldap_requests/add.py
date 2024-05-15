@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
-from sqlalchemy import exists, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -86,8 +86,8 @@ class AddRequest(BaseRequest):
         root_dn = get_search_path(
             self.entry, await get_base_dn(session))
 
-        exists_q = select(exists(Directory).join(Directory.path).filter(
-            get_path_filter(root_dn)))
+        exists_q = select(select(Directory).join(Directory.path).filter(
+            get_path_filter(root_dn)).exists())
 
         if await session.scalar(exists_q) is True:
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
