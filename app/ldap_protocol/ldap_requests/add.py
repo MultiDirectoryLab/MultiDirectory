@@ -7,9 +7,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from ldap_protocol.asn1parser import ASN1Row
@@ -83,8 +83,17 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        parent_dn = get_search_path(
-            self.entry, await get_base_dn(session))[:-1]
+        root_dn = get_search_path(
+            self.entry, await get_base_dn(session))
+
+        exists_q = select(select(Directory).join(Directory.path).filter(
+            get_path_filter(root_dn)).exists())
+
+        if await session.scalar(exists_q) is True:
+            yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+            return
+
+        parent_dn = root_dn[:-1]
         has_no_parent = len(parent_dn) == 0
 
         new_dn, name = self.entry.split(',')[0].split('=')

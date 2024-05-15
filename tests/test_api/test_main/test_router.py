@@ -588,3 +588,70 @@ async def test_api_bytes_to_hex(
     for attr in response['search_result'][0]['partial_attributes']:
         if attr['type'] == 'attr_with_bvalue':
             assert attr['vals'][0] == b"any".hex()
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_add_double_case_insensetive(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test api double add."""
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=test,dc=md,dc=test",
+            "attributes": [
+                {
+                    "type": "name",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "cn",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top"],
+                },
+                {
+                    "type": "memberOf",
+                    "vals": [
+                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                    ],
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+
+    assert response.json().get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=Test,dc=md,dc=test",
+            "attributes": [
+                {
+                    "type": "name",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "cn",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top"],
+                },
+                {
+                    "type": "memberOf",
+                    "vals": [
+                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                    ],
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+
+    assert response.json().get('resultCode') == LDAPCodes.ENTRY_ALREADY_EXISTS
