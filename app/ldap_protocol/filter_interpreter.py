@@ -9,12 +9,19 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from operator import eq, ge, le, ne
 
 from ldap_filter import Filter
-from sqlalchemy import and_, func, not_, or_
+from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from models.ldap3 import Attribute, Directory, User
+from models.ldap3 import (
+    Attribute,
+    Directory,
+    Group,
+    GroupMembership,
+    User,
+    UserMembership,
+)
 
 from .asn1parser import ASN1Row
 
@@ -62,7 +69,46 @@ def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
         return _from_filter(User, item, attr, right), query
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right), query
+    elif attr == 'memberof':
+        if item.tag_id.value == 3:
+            method = Directory.id.in_
+        else:
+            method = Directory.id.not_in
 
+        group_name = right.value.split('=')[1].rsplit(',', maxsplit=1)[0]
+        directory_alias = aliased(Directory)
+        users_alias = aliased(User)
+        user_memberships_alias = aliased(UserMembership)
+        groups_alias = aliased(Group)
+        group_memberships_alias = aliased(GroupMembership)
+
+        subquery_user = select(users_alias.directory_id).join(
+            user_memberships_alias,
+            users_alias.id == user_memberships_alias.user_id,
+        ).where(
+            user_memberships_alias.group_id == select(groups_alias.id).join(
+                directory_alias,
+                groups_alias.directory_id == directory_alias.id,
+            ).where(directory_alias.name == group_name).scalar_subquery(),
+        )
+
+        subquery_group = select(groups_alias.directory_id).where(
+            groups_alias.id.in_(
+                select(group_memberships_alias.group_child_id).where(
+                    group_memberships_alias.group_id == select(
+                        groups_alias.id).join(
+                            directory_alias,
+                            groups_alias.directory_id == directory_alias.id,
+                    ).where(
+                        directory_alias.name == group_name,
+                    ).scalar_subquery(),
+                ),
+            ),
+        )
+
+        cond = method(subquery_user) | method(subquery_group)
+
+        return cond, query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(
