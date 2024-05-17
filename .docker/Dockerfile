@@ -22,9 +22,11 @@ RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --without test,li
 FROM python:3.11-slim-buster as runtime
 
 WORKDIR /app
+ARG VERSION
 
 ENV VIRTUAL_ENV=/venvs/.venv \
-    PATH="/venvs/.venv/bin:$PATH"
+    PATH="/venvs/.venv/bin:$PATH" \
+    VERSION=${VERSION:-beta}
 
 COPY app /app
 COPY pyproject.toml /
