@@ -123,4 +123,4 @@ jobs:
         run: |
           echo $TAG
           echo $TAG2
-          docker build --push --target=runtime -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          docker build --push --target=runtime -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VERSION=${{ github.ref_name }}
