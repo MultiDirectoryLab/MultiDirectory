@@ -59,8 +59,7 @@ def _filter_memberof(item: ASN1Row, right: ASN1Row) -> UnaryExpression:
     group_name = right.value.split('=')[1].rsplit(',', maxsplit=1)[0]
 
     group_id_subquery = select(Group.id).join(
-        Directory, Directory.id == Group.directory_id).where(
-        Directory.name == group_name).scalar_subquery()
+        Directory.group).where(Directory.name == group_name).scalar_subquery()
 
     users_with_group = select(User.directory_id).where(
         User.id.in_(select(UserMembership.user_id).where(
