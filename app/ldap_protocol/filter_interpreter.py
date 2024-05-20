@@ -47,6 +47,34 @@ def _from_filter(
     return op_method(func.lower(col), right.value.lower())
 
 
+def _filter_memberof(item: ASN1Row, right: ASN1Row) -> UnaryExpression:
+    """Retrieve query conditions with the memberOF attribute."""
+    if item.tag_id.value == 3:
+        method = Directory.id.in_
+    elif item.tag_id.value == 8:
+        method = Directory.id.not_in
+    else:
+        raise ValueError('Incorrect operation method')
+
+    group_name = right.value.split('=')[1].rsplit(',', maxsplit=1)[0]
+
+    directory_id_subquery = select(Directory.id).where(
+        Directory.name == group_name).scalar_subquery()
+
+    group_id_subquery = select(Group.id).where(
+        Group.directory_id == directory_id_subquery).scalar_subquery()
+
+    users_with_group = select(User.directory_id).where(
+        User.id.in_(select(UserMembership.user_id).where(
+            UserMembership.group_id == group_id_subquery).scalar_subquery()))
+
+    child_groups = select(Group.directory_id).where(
+        Group.id.in_(select(GroupMembership.group_child_id).where(
+            GroupMembership.group_id == group_id_subquery).scalar_subquery()))
+
+    return method(users_with_group) | method(child_groups)
+
+
 def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
@@ -70,45 +98,7 @@ def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right), query
     elif attr == 'memberof':
-        if item.tag_id.value == 3:
-            method = Directory.id.in_
-        else:
-            method = Directory.id.not_in
-
-        group_name = right.value.split('=')[1].rsplit(',', maxsplit=1)[0]
-        directory_alias = aliased(Directory)
-        users_alias = aliased(User)
-        user_memberships_alias = aliased(UserMembership)
-        groups_alias = aliased(Group)
-        group_memberships_alias = aliased(GroupMembership)
-
-        subquery_user = select(users_alias.directory_id).join(
-            user_memberships_alias,
-            users_alias.id == user_memberships_alias.user_id,
-        ).where(
-            user_memberships_alias.group_id == select(groups_alias.id).join(
-                directory_alias,
-                groups_alias.directory_id == directory_alias.id,
-            ).where(directory_alias.name == group_name).scalar_subquery(),
-        )
-
-        subquery_group = select(groups_alias.directory_id).where(
-            groups_alias.id.in_(
-                select(group_memberships_alias.group_child_id).where(
-                    group_memberships_alias.group_id == select(
-                        groups_alias.id).join(
-                            directory_alias,
-                            groups_alias.directory_id == directory_alias.id,
-                    ).where(
-                        directory_alias.name == group_name,
-                    ).scalar_subquery(),
-                ),
-            ),
-        )
-
-        cond = method(subquery_user) | method(subquery_group)
-
-        return cond, query
+        return _filter_memberof(item, right), query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(
