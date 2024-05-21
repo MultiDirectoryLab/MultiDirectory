@@ -63,11 +63,9 @@ async def _filter_memberof(
     group_path = get_search_path(right.value, await get_base_dn(session))
     path_filter = get_path_filter(group_path)
 
-    directory_id_subquery = select(Directory.id).join(Directory.path).where(
-        path_filter).scalar_subquery()
-
-    group_id_subquery = select(Group.id).join(Directory.group).where(
-        Directory.id == directory_id_subquery).scalar_subquery()
+    group_id_subquery = select(Group.id).join(  # noqa: ECE001
+        Directory.group).join(Directory.path).where(
+            path_filter).scalar_subquery()
 
     users_with_group = select(User.directory_id).where(
         User.id.in_(select(UserMembership.user_id).where(
