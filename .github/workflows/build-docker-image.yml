@@ -113,7 +113,7 @@ jobs:
           echo $TAG
           curl -X POST https://api.github.com/repos/MultiDirectoryLab/MultiDirectory-Web-Admin/dispatches \
           -H 'Accept: application/vnd.github.everest-preview+json' \
-          -u ${{ secrets.ACCESS_TOKEN_MD }} \
+          -H 'Authorization: Bearer ${{ secrets.ACCESS_TOKEN_MD }}' \
           --data '{"event_type": "Start Workflow", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "tag": "'"$TAG"'" }}'
       - name: run admin build - responce event
         if: github.event.action == 'Workflow Response'
