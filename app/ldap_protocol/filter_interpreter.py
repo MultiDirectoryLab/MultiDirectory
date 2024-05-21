@@ -10,6 +10,7 @@ from operator import eq, ge, le, ne
 
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
@@ -24,6 +25,7 @@ from models.ldap3 import (
 )
 
 from .asn1parser import ASN1Row
+from .utils import get_base_dn, get_path_filter, get_search_path
 
 BoundQ = tuple[UnaryExpression, Select]
 
@@ -47,7 +49,9 @@ def _from_filter(
     return op_method(func.lower(col), right.value.lower())
 
 
-def _filter_memberof(item: ASN1Row, right: ASN1Row) -> UnaryExpression:
+async def _filter_memberof(
+    item: ASN1Row, right: ASN1Row, session: AsyncSession,
+) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute."""
     if item.tag_id.value == 3:
         method = Directory.id.in_
@@ -56,10 +60,14 @@ def _filter_memberof(item: ASN1Row, right: ASN1Row) -> UnaryExpression:
     else:
         raise ValueError('Incorrect operation method')
 
-    group_name = right.value.split('=')[1].rsplit(',', maxsplit=1)[0]
+    group_path = get_search_path(right.value, await get_base_dn(session))
+    path_filter = get_path_filter(group_path)
 
-    group_id_subquery = select(Group.id).join(
-        Directory.group).where(Directory.name == group_name).scalar_subquery()
+    directory_id_subquery = select(Directory.id).join(Directory.path).where(
+        path_filter).scalar_subquery()
+
+    group_id_subquery = select(Group.id).join(Directory.group).where(
+        Directory.id == directory_id_subquery).scalar_subquery()
 
     users_with_group = select(User.directory_id).where(
         User.id.in_(select(UserMembership.user_id).where(
@@ -72,7 +80,9 @@ def _filter_memberof(item: ASN1Row, right: ASN1Row) -> UnaryExpression:
     return method(users_with_group) | method(child_groups)
 
 
-def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
+async def _cast_item(
+    item: ASN1Row, query: Select, session: AsyncSession,
+) -> BoundQ:
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
         attr = item.value.lower().replace('objectcategory', 'objectclass')
@@ -95,7 +105,7 @@ def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right), query
     elif attr == 'memberof':
-        return _filter_memberof(item, right), query
+        return await _filter_memberof(item, right, session), query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(
@@ -116,22 +126,24 @@ def _cast_item(item: ASN1Row, query: Select) -> BoundQ:
         return cond, query
 
 
-def cast_filter2sql(expr: ASN1Row, query: Select) -> BoundQ:
+async def cast_filter2sql(
+    expr: ASN1Row, query: Select, session: AsyncSession,
+) -> BoundQ:
     """Recursively cast Filter to SQLAlchemy conditions."""
     if expr.tag_id.value in range(3):
         conditions = []
         for item in expr.value:
             if item.tag_id.value in range(3):  # &|!
-                cond, query = cast_filter2sql(item, query)
+                cond, query = await cast_filter2sql(item, query, session)
                 conditions.append(cond)
                 continue
 
-            cond, query = _cast_item(item, query)
+            cond, query = await _cast_item(item, query, session)
             conditions.append(cond)
 
         return [and_, or_, not_][expr.tag_id.value](*conditions), query
 
-    return _cast_item(expr, query)
+    return await _cast_item(expr, query, session)
 
 
 def _from_str_filter(
