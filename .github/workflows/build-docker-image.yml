@@ -100,6 +100,29 @@ jobs:
           TAG: ghcr.io/${{ env.REPO }}_test:latest
         run: docker-compose -f docker-compose.remote.test.yml down
 
+  build-admin:
+    runs-on: ubuntu-latest
+    needs: [build-tests, run-ssh-test, run-tests]
+    steps:
+      - name: run admin build - init event
+        env:
+          TAG: ${{ github.ref_name }}
+        if: github.event.action != 'Workflow Response'
+        run: |
+          echo $TAG
+          curl -X POST https://api.github.com/repos/MultiDirectoryLab/MultiDirectory-Web-Admin/dispatches \
+          -H 'Accept: application/vnd.github.everest-preview+json' \
+          -u ${{ secrets.ACCESS_TOKEN_MD }} \
+          --data '{"event_type": "Start Workflow", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "tag": "'"$TAG"'" }}'
+      - name: run admin build - responce event
+        if: github.event.action == 'Workflow Response'
+        run: |
+          echo "RESPONSE received from '${{ github.event.client_payload.repository }}'"
+          curl -X POST https://api.github.com/repos/MultiDirectoryLab/MultiDirectory-Web-Admin/dispatches \
+          -H 'Accept: application/vnd.github.everest-preview+json' \
+          -u ${{ secrets.ACCESS_TOKEN_MD }} \
+          --data '{"event_type": "Unexpected Event Demo", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
+          
   build-app:
     runs-on: ubuntu-latest
     needs: [build-tests, run-ssh-test, run-tests]
