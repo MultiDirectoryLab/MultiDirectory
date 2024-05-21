@@ -1,7 +1,8 @@
 name: build
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main-anton
 
 env:
   REPO: ${{ github.repository }}
