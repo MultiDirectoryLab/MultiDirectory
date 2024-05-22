@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from pydantic import Field
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import Select
 
 from ldap_protocol.filter_interpreter import (
@@ -21,8 +20,8 @@ from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 class SearchRequest(APIMultipleResponseMixin, LDAPSearchRequest):  # noqa: D101
     filter: str = Field(..., examples=["(objectClass=*)"])  # noqa: A003
 
-    async def cast_filter(
-        self, filter_: str, query: Select, _: AsyncSession,
+    def cast_filter(
+        self, filter_: str, query: Select, _: str,
     ) -> BoundQ:
         """Cast str filter to sa sql."""
         filter_ = filter_.lower().replace('objectcategory', 'objectclass')

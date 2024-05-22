@@ -10,22 +10,14 @@ from operator import eq, ge, le, ne
 
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from models.ldap3 import (
-    Attribute,
-    Directory,
-    Group,
-    GroupMembership,
-    User,
-    UserMembership,
-)
+from models.ldap3 import Attribute, Directory, Group, GroupMembership, User
 
 from .asn1parser import ASN1Row
-from .utils import get_base_dn, get_path_filter, get_search_path
+from .utils import get_path_filter, get_search_path
 
 BoundQ = tuple[UnaryExpression, Select]
 
@@ -49,8 +41,8 @@ def _from_filter(
     return op_method(func.lower(col), right.value.lower())
 
 
-async def _filter_memberof(
-    item: ASN1Row, right: ASN1Row, session: AsyncSession,
+def _filter_memberof(
+    item: ASN1Row, right: ASN1Row, base_dn: str,
 ) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute."""
     if item.tag_id.value == 3:
@@ -60,26 +52,32 @@ async def _filter_memberof(
     else:
         raise ValueError('Incorrect operation method')
 
-    group_path = get_search_path(right.value, await get_base_dn(session))
+    group_path = get_search_path(right.value, base_dn)
     path_filter = get_path_filter(group_path)
+    parent_group = aliased(Group)
 
     group_id_subquery = select(Group.id).join(  # noqa: ECE001
         Directory.group).join(Directory.path).where(
             path_filter).scalar_subquery()
 
-    users_with_group = select(User.directory_id).where(
-        User.id.in_(select(UserMembership.user_id).where(
-            UserMembership.group_id == group_id_subquery).scalar_subquery()))
+    users_with_group = (
+        select(User.directory_id)
+        .join(User.groups)
+        .where(Group.id == group_id_subquery)
+    )
 
-    child_groups = select(Group.directory_id).where(
-        Group.id.in_(select(GroupMembership.group_child_id).where(
-            GroupMembership.group_id == group_id_subquery).scalar_subquery()))
+    child_groups = (
+        select(Group.directory_id)
+        .join(GroupMembership, Group.id == GroupMembership.group_child_id)
+        .join(parent_group, GroupMembership.group_id == parent_group.id)
+        .where(parent_group.id == group_id_subquery)
+    )
 
     return method(users_with_group) | method(child_groups)
 
 
-async def _cast_item(
-    item: ASN1Row, query: Select, session: AsyncSession,
+def _cast_item(
+    item: ASN1Row, query: Select, base_dn: str,
 ) -> BoundQ:
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
@@ -103,7 +101,7 @@ async def _cast_item(
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right), query
     elif attr == 'memberof':
-        return await _filter_memberof(item, right, session), query
+        return _filter_memberof(item, right, base_dn), query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(
@@ -124,24 +122,24 @@ async def _cast_item(
         return cond, query
 
 
-async def cast_filter2sql(
-    expr: ASN1Row, query: Select, session: AsyncSession,
+def cast_filter2sql(
+    expr: ASN1Row, query: Select, base_dn: str,
 ) -> BoundQ:
     """Recursively cast Filter to SQLAlchemy conditions."""
     if expr.tag_id.value in range(3):
         conditions = []
         for item in expr.value:
             if item.tag_id.value in range(3):  # &|!
-                cond, query = await cast_filter2sql(item, query, session)
+                cond, query = cast_filter2sql(item, query, base_dn)
                 conditions.append(cond)
                 continue
 
-            cond, query = await _cast_item(item, query, session)
+            cond, query = _cast_item(item, query, base_dn)
             conditions.append(cond)
 
         return [and_, or_, not_][expr.tag_id.value](*conditions), query
 
-    return await _cast_item(expr, query, session)
+    return _cast_item(expr, query, base_dn)
 
 
 def _from_str_filter(

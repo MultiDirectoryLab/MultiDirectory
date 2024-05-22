@@ -205,8 +205,8 @@ class SearchRequest(BaseRequest):
     def _get_full_dn(path: Path, dn: str) -> str:
         return ','.join(reversed(path.path)) + ',' + dn
 
-    async def cast_filter(
-        self, filter_: ASN1Row, query: Select, session: AsyncSession,
+    def cast_filter(
+        self, filter_: ASN1Row, query: Select, base_dn: str,
     ) -> BoundQ:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
@@ -215,7 +215,7 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sa session
         :return tuple: condition and query objects
         """
-        return await cast_filter2sql(filter_, query, session)
+        return cast_filter2sql(filter_, query, base_dn)
 
     async def handle(
         self, ldap_session: Session, session: AsyncSession,
@@ -255,10 +255,11 @@ class SearchRequest(BaseRequest):
                 yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
                 return
 
-        query = self.build_query(await get_base_dn(session))
+        base_dn = await get_base_dn(session)
+        query = self.build_query(base_dn)
 
         try:
-            cond, query = await self.cast_filter(self.filter, query, session)
+            cond, query = self.cast_filter(self.filter, query, base_dn)
             query = query.filter(cond)
         except Exception as err:
             logger.error(f'Filter syntax error {err}')
