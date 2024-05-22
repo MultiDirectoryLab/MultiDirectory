@@ -112,7 +112,7 @@ jobs:
           token: ${{ secrets.ACCESS_TOKEN_MD }}
           repository: MultiDirectoryLab/MultiDirectory-Web-Admin
           event-type: "Start Workflow"
-          client-payload: '{"repository": $GITHUB_REPOSITORY, "tag": ${{ github.ref_name }} }'
+          client-payload: '{"repository": "$GITHUB_REPOSITORY", "tag": "${{ github.ref_name }}" }'
         #env:
         #  TAG: ${{ github.ref_name }}
         #  GH_TOKEN: ${{ secrets.ACCESS_TOKEN_MD }}
