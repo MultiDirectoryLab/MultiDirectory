@@ -20,10 +20,13 @@ from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 class SearchRequest(APIMultipleResponseMixin, LDAPSearchRequest):  # noqa: D101
     filter: str = Field(..., examples=["(objectClass=*)"])  # noqa: A003
 
-    def cast_filter(self, filter_: str, query: Select) -> BoundQ:
+    def cast_filter(
+        self, filter_: str, query: Select, base_dn: str,
+    ) -> BoundQ:
         """Cast str filter to sa sql."""
         filter_ = filter_.lower().replace('objectcategory', 'objectclass')
-        return cast_str_filter2sql(Filter.parse(filter_).simplify(), query)
+        return cast_str_filter2sql(
+            Filter.parse(filter_).simplify(), query, base_dn)
 
 
 class SearchResponse(SearchResultDone):  # noqa: D101
