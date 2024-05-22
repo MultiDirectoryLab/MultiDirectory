@@ -29,7 +29,6 @@ jobs:
           echo $TAG
           docker build integration_tests/ssh --tag $TAG --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
           docker push $TAG
-
   build-tests:
     runs-on: ubuntu-latest
     steps:
@@ -51,8 +50,6 @@ jobs:
         run: |
           echo $TAG
           docker build --push --target=runtime -f .docker/test.Dockerfile . -t $TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-
-
   run-ssh-test:
     runs-on: ubuntu-latest
     needs: [build-tests, build-ssh]
@@ -100,6 +97,27 @@ jobs:
           TAG: ghcr.io/${{ env.REPO }}_test:latest
         run: docker-compose -f docker-compose.remote.test.yml down
 
+  build-admin:
+    runs-on: ubuntu-latest
+    needs: [build-tests, run-ssh-test, run-tests]
+    steps:
+      - name: run admin build - init event
+        if: github.event.action != 'Workflow Response'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.ACCESS_TOKEN_MD }}
+          repository: MultiDirectoryLab/MultiDirectory-Web-Admin
+          event-type: "Start Workflow"
+          client-payload: '{"repository": "$GITHUB_REPOSITORY", "tag": "${{ github.ref_name }}" }'
+      - name: run admin build - responce event
+        if: github.event.action == 'Workflow Response'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.ACCESS_TOKEN_MD }}
+          repository: MultiDirectoryLab/MultiDirectory-Web-Admin
+          event-type: "Unexpected Event Demo"
+          client-payload: '{"repository": "$GITHUB_REPOSITORY", "tag": "${{ github.ref_name }}" }'
+          
   build-app:
     runs-on: ubuntu-latest
     needs: [build-tests, run-ssh-test, run-tests]
