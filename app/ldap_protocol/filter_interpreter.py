@@ -13,6 +13,7 @@ from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
+from sqlalchemy.sql.operators import ColumnOperators
 
 from models.ldap3 import Attribute, Directory, Group, GroupMembership, User
 
@@ -42,19 +43,12 @@ def _from_filter(
 
 
 def _filter_memberof(
-    item: ASN1Row, right: ASN1Row, base_dn: str,
+    method: ColumnOperators, dn: str, base_dn: str,
 ) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute."""
-    if item.tag_id.value == 3:
-        method = Directory.id.in_
-    elif item.tag_id.value == 8:
-        method = Directory.id.not_in
-    else:
-        raise ValueError('Incorrect operation method')
-
-    group_path = get_search_path(right.value, base_dn)
-    path_filter = get_path_filter(group_path)
     parent_group = aliased(Group)
+    group_path = get_search_path(dn, base_dn)
+    path_filter = get_path_filter(group_path)
 
     group_id_subquery = select(Group.id).join(  # noqa: ECE001
         Directory.group).join(Directory.path).where(
@@ -73,7 +67,21 @@ def _filter_memberof(
         .where(parent_group.id == group_id_subquery)
     )
 
-    return method(users_with_group) | method(child_groups)
+    return method(users_with_group) | method(child_groups)  # type: ignore
+
+
+def _ldap_filter_memberof(
+    item: ASN1Row, right: ASN1Row, base_dn: str,
+) -> UnaryExpression:
+    """Retrieve query conditions with the memberOF attribute."""
+    if item.tag_id.value == 3:
+        method = Directory.id.in_
+    elif item.tag_id.value == 8:
+        method = Directory.id.not_in
+    else:
+        raise ValueError('Incorrect operation method')
+
+    return _filter_memberof(method, right.value, base_dn)
 
 
 def _cast_item(
@@ -101,7 +109,7 @@ def _cast_item(
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right), query
     elif attr == 'memberof':
-        return _filter_memberof(item, right, base_dn), query
+        return _ldap_filter_memberof(item, right, base_dn), query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(
@@ -152,7 +160,21 @@ def _from_str_filter(
     return op_method(func.lower(col), item.val)
 
 
-def _cast_filt_item(item: Filter, query: Select) -> BoundQ:
+def _api_filter_memberof(
+    item: Filter, base_dn: str,
+) -> UnaryExpression:
+    """Retrieve query conditions with the memberOF attribute."""
+    if item.comp == '=':
+        method = Directory.id.in_
+    elif item.comp == '~=':
+        method = Directory.id.not_in
+    else:
+        raise ValueError('Incorrect operation method')
+
+    return _filter_memberof(method, item.val, base_dn)
+
+
+def _cast_filt_item(item: Filter, query: Select, base_dn: str) -> BoundQ:
     if item.val == '*':
         if item.attr in User.search_fields:
             return not_(eq(getattr(User, item.attr), None)), query
@@ -168,7 +190,8 @@ def _cast_filt_item(item: Filter, query: Select) -> BoundQ:
         return _from_str_filter(User, is_substring, item), query
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item), query
-
+    elif item.attr == 'memberof':
+        return _api_filter_memberof(item, base_dn), query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(
@@ -186,17 +209,17 @@ def _cast_filt_item(item: Filter, query: Select) -> BoundQ:
         return cond, query
 
 
-def cast_str_filter2sql(expr: Filter, query: Select) -> BoundQ:
+def cast_str_filter2sql(expr: Filter, query: Select, base_dn: str) -> BoundQ:
     """Cast ldap filter to sa query."""
     if expr.type == "group":
         conditions = []
         for item in expr.filters:
             if expr.type == "group":
-                cond, query = cast_str_filter2sql(item, query)
+                cond, query = cast_str_filter2sql(item, query, base_dn)
                 conditions.append(cond)
                 continue
 
-            cond, query = _cast_filt_item(item, query)
+            cond, query = _cast_filt_item(item, query, base_dn)
             conditions.append(cond)
 
         return {  # type: ignore
@@ -205,4 +228,4 @@ def cast_str_filter2sql(expr: Filter, query: Select) -> BoundQ:
             '!': not_,
         }[expr.comp](*conditions), query
 
-    return _cast_filt_item(expr, query)
+    return _cast_filt_item(expr, query, base_dn)
