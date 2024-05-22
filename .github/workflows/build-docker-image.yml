@@ -106,16 +106,22 @@ jobs:
     needs: [build-tests, run-ssh-test, run-tests]
     steps:
       - name: run admin build - init event
-        env:
-          TAG: ${{ github.ref_name }}
-          GH_TOKEN: ${{ secrets.ACCESS_TOKEN_MD }}
         if: github.event.action != 'Workflow Response'
-        run: |
-          echo $TAG
-          curl -X POST https://api.github.com/repos/MultiDirectoryLab/MultiDirectory-Web-Admin/dispatches \
-          -H 'Accept: application/vnd.github.everest-preview+json' \
-          --header "Authorization: Bearer $GH_TOKEN" \
-          --data '{"event_type": "Start Workflow", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "tag": "'"$TAG"'" }}'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.ACCESS_TOKEN_MD }}
+          repository: MultiDirectoryLab/MultiDirectory-Web-Admin
+          event-type: "Start Workflow"
+          client-payload: '{"repository": $GITHUB_REPOSITORY, "tag": ${{ github.ref_name }} }'
+        #env:
+        #  TAG: ${{ github.ref_name }}
+        #  GH_TOKEN: ${{ secrets.ACCESS_TOKEN_MD }}
+        #run: |
+        #  echo $TAG
+        #  curl -X POST https://api.github.com/repos/MultiDirectoryLab/MultiDirectory-Web-Admin/dispatches \
+        #  -H 'Accept: application/vnd.github.everest-preview+json' \
+        #  --header "Authorization: Bearer $GH_TOKEN" \
+        #  --data '{"event_type": "Start Workflow", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "tag": "'"$TAG"'" }}'
       - name: run admin build - responce event
         if: github.event.action == 'Workflow Response'
         run: |
