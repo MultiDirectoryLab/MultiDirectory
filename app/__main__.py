@@ -145,8 +145,9 @@ class PoolClientHandler:
         buffer = BytesIO()
 
         while True:
-            packet = await reader.read(self._size)
-            actual_size = buffer.write(packet)
+            buffer.write(await reader.read(self._size))
+
+            actual_size = buffer.getbuffer().nbytes
             computed_size = self._compute_ldap_message_size(buffer.getvalue())
 
             if reader.at_eof() or actual_size >= computed_size:
