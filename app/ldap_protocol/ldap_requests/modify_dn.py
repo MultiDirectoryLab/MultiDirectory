@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import update
+from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -106,14 +106,14 @@ class ModifyDNRequest(BaseRequest):
             return
 
         dn_is_base = self.new_superior.lower() == base_dn.lower()
+        dn, name = self.newrdn.split('=')
         if dn_is_base:
             new_directory = Directory(
                 object_class=directory.object_class,
-                name=self.newrdn.split('=')[1],
+                name=name,
                 depth=1,
             )
-            new_path = new_directory.create_path(
-                dn=new_directory.get_dn_prefix())
+            new_path = new_directory.create_path(dn=dn)
         else:
             new_base_directory = await session.scalar(new_sup_query)
             if not new_base_directory:
@@ -122,11 +122,11 @@ class ModifyDNRequest(BaseRequest):
 
             new_directory = Directory(
                 object_class=directory.object_class,
-                name=self.newrdn.split('=')[1],
+                name=name,
                 parent=new_base_directory,
                 depth=len(new_base_directory.path.path)+1,
             )
-            new_path = new_directory.create_path(new_base_directory)
+            new_path = new_directory.create_path(new_base_directory, dn=dn)
 
         async with session.begin_nested():
             session.add_all([new_directory, new_path])
@@ -138,13 +138,6 @@ class ModifyDNRequest(BaseRequest):
                 .where(Directory.parent == directory)
                 .values(parent_id=new_directory.id))
 
-            q = update(Path)\
-                .values({Path.path[directory.depth]: self.newrdn})\
-                .where(Path.directories.any(id=directory.id))
-
-            await session.execute(
-                q, execution_options={"synchronize_session": 'fetch'})
-
             await session.commit()
 
         async with session.begin_nested():
@@ -154,14 +147,25 @@ class ModifyDNRequest(BaseRequest):
                     .where(model.directory_id == directory.id)
                     .values(directory_id=new_directory.id))
 
+        old_path_str = ','.join(directory.path.path)
+        new_path_str = ','.join(new_directory.path.path)
+
         async with session.begin_nested():
             await session.execute(
                 update(Path)
-                .where(Path.path[new_directory.depth] == directory.get_dn(
-                    dn=directory.get_dn_prefix()))
+                .where(
+                    func.array_to_string(Path.path, ',').like(
+                        f"{old_path_str},%"),
+                )
                 .values(
-                    {Path.path[directory.depth]: new_directory.get_dn(
-                        dn=new_directory.get_dn_prefix())},
+                    path=func.string_to_array(
+                        func.replace(
+                            func.array_to_string(Path.path, ','),
+                            old_path_str,
+                            new_path_str,
+                        ),
+                        ',',
+                    ),
                 ),
                 execution_options={"synchronize_session": 'fetch'},
             )
