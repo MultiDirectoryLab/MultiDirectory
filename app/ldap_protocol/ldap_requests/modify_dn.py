@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import text, update
+from sqlalchemy import func, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -148,6 +148,7 @@ class ModifyDNRequest(BaseRequest):
                     .values(directory_id=new_directory.id))
 
         async with session.begin_nested():
+            #  TODO: replace text with slice
             await session.execute(
                 update(Path)
                 .where(
@@ -157,11 +158,12 @@ class ModifyDNRequest(BaseRequest):
                     ),
                 )
                 .values(
-                    path=text(
-                        "array_cat(:new_path, path[:depth :])").bindparams(
-                            depth=directory.depth+1,
-                            new_path=new_directory.path.path,
-                        )),
+                    path=func.array_cat(
+                        new_directory.path.path,
+                        text("path[:depth :]").bindparams(
+                            depth=directory.depth+1),
+                    ),
+                ),
                 execution_options={"synchronize_session": 'fetch'},
             )
             await session.commit()
