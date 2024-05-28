@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import func, update
+from sqlalchemy import text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -147,26 +147,21 @@ class ModifyDNRequest(BaseRequest):
                     .where(model.directory_id == directory.id)
                     .values(directory_id=new_directory.id))
 
-        old_path_str = ','.join(directory.path.path)
-        new_path_str = ','.join(new_directory.path.path)
-
         async with session.begin_nested():
             await session.execute(
                 update(Path)
                 .where(
-                    func.array_to_string(Path.path, ',').like(
-                        f"{old_path_str},%"),
+                    get_path_filter(
+                        directory.path.path,
+                        column=Path.path[1:directory.depth],
+                    ),
                 )
                 .values(
-                    path=func.string_to_array(
-                        func.replace(
-                            func.array_to_string(Path.path, ','),
-                            old_path_str,
-                            new_path_str,
-                        ),
-                        ',',
-                    ),
-                ),
+                    path=text(
+                        "array_cat(:new_path, path[:depth :])").bindparams(
+                            depth=directory.depth+1,
+                            new_path=new_directory.path.path,
+                        )),
                 execution_options={"synchronize_session": 'fetch'},
             )
             await session.commit()
