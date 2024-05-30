@@ -3,7 +3,7 @@
 
 services:
   traefik:
-    image: "traefik:v2.6"
+    image: "mirror.gcr.io/traefik:v2.6"
     container_name: traefik
     restart: unless-stopped
     command:
@@ -141,7 +141,7 @@ services:
 
   postgres:
     container_name: MD-postgres
-    image: postgres:16
+    image: mirror.gcr.io/postgres:16
     restart: unless-stopped
     env_file:
       .env
