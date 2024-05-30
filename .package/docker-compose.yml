@@ -51,7 +51,7 @@ services:
           memory: 32M
 
   interface:
-    image: ghcr.io/multifactorlab/multidirectory-web-admin:latest
+    image: ghcr.io/multidirectorylab/multidirectory-web-admin:latest
     container_name: multidirectory_interface
     restart: unless-stopped
     hostname: interface
