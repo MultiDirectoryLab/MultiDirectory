@@ -216,24 +216,23 @@ class AddRequest(BaseRequest):
                 value=str(create_integer_hash(new_dir.name[::-1])),
                 directory=new_dir))
 
-        async with session.begin_nested():
-            try:
-                new_dir.depth = len(path.path)
-                items_to_add.extend([new_dir, path] + attributes)
+        try:
+            new_dir.depth = len(path.path)
+            items_to_add.extend([new_dir, path] + attributes)
 
-                session.add_all(items_to_add)
+            session.add_all(items_to_add)
 
-                if has_no_parent:
-                    new_dir.paths.append(path)
-                else:
-                    path.directories.extend(
-                        [p.endpoint for p in parent.paths + [path]])
-                await session.commit()
-            except IntegrityError:
-                await session.rollback()
-                yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+            if has_no_parent:
+                new_dir.paths.append(path)
             else:
-                yield AddResponse(result_code=LDAPCodes.SUCCESS)
+                path.directories.extend(
+                    [p.endpoint for p in parent.paths + [path]])
+            await session.flush()
+        except IntegrityError:
+            await session.rollback()
+            yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+        else:
+            yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
     @classmethod
     def from_dict(
@@ -249,8 +248,8 @@ class AddRequest(BaseRequest):
         """
         return AddRequest(
             entry=entry,
+            password=password,
             attributes=[
                 PartialAttribute(type=name, vals=vals)
                 for name, vals in attributes.items()],
-            password=password,
         )
