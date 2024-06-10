@@ -39,6 +39,8 @@ def _from_filter(
     if is_substring:
         return col.ilike(_get_substring(right))
     op_method = {3: eq, 5: ge, 6: le, 8: ne}[item.tag_id.value]
+    if attr == 'objectguid':
+        return op_method(col, right.value.lower())
     return op_method(func.lower(col), right.value.lower())
 
 
@@ -157,6 +159,8 @@ def _from_str_filter(
     if is_substring:
         return col.ilike(item.val.replace('*', '%'))
     op_method = {'=': eq, '>=': ge, '<=': le, '~=': ne}[item.comp]
+    if item.attr == 'objectguid':
+        return op_method(col, item.val)
     return op_method(func.lower(col), item.val)
 
 
