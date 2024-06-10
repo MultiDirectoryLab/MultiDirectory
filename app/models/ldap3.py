@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import enum
+import uuid
 from typing import Any, Literal, Optional
 
 from sqlalchemy import (
@@ -140,6 +141,12 @@ class Directory(Base):
     password_policy_id = Column(
         Integer, ForeignKey('PasswordPolicies.id'), nullable=True)
 
+    objectguid = Column(
+        "objectGUID",
+        postgresql.UUID(as_uuid=True),
+        default=uuid.uuid4,
+        nullable=False)
+
     path: 'Path' = relationship(
         "Path", back_populates="endpoint",
         lazy="joined", uselist=False,
@@ -169,6 +176,7 @@ class Directory(Base):
     search_fields = {
         'cn': 'cn',
         'name': 'name',
+        'objectguid': 'objectGUID',
     }
 
     ro_fields = {
@@ -176,6 +184,7 @@ class Directory(Base):
         "whenCreated",
         "lastLogon",
         "authTimestamp",
+        "objectGUID",
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
