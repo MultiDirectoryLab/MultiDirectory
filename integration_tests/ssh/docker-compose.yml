@@ -4,7 +4,7 @@ version: "3.7"
 
 services:
   migrations:
-    image: ghcr.io/multifactorlab/multidirectory_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_test:latest
     container_name: multidirectory_migrations
     restart: "no"
     environment:
@@ -18,7 +18,7 @@ services:
         condition: service_healthy
 
   api_server:
-    image: ghcr.io/multifactorlab/multidirectory_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_test:latest
     container_name: multidirectory_api
     restart: unless-stopped
     command: uvicorn --factory web_app:create_app --host 0.0.0.0 --loop uvloop
@@ -43,7 +43,7 @@ services:
       start_period: 3s
 
   multidirectory_ldap:
-    image: ghcr.io/multifactorlab/multidirectory_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_test:latest
     container_name: multidirectory_ldap
     restart: unless-stopped
     hostname: multidirectory_ldap
@@ -82,7 +82,7 @@ services:
 
   ssh:
     container_name: md-ssh
-    image: ghcr.io/multifactorlab/multidirectory_ssh_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_ssh_test:latest
     environment:
       SERVER: "ldap://multidirectory_ldap"
       BASE: "dc=md,dc=multifactor,dc=dev"
@@ -98,7 +98,7 @@ services:
       start_period: 3s
 
   connect:
-    image: ghcr.io/multifactorlab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:latest
     depends_on:
       ssh:
         condition: service_healthy
