@@ -425,6 +425,12 @@ class SearchRequest(BaseRequest):
             )
 
             if directory.user:
+                if directory.user.account_exp is None:
+                    attrs['accountExpires'].append('0')
+                else:
+                    attrs['accountExpires'].append(
+                        get_windows_timestamp(directory.user.account_exp),
+                    )
                 if directory.user.last_logon is None:
                     attrs['lastLogon'].append('0')
                 else:
