@@ -251,10 +251,9 @@ class User(DirectoryReferenceMixin, Base):
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
     last_logon = Column(
-        'lastLogon',
-        DateTime(timezone=True),
-        nullable=True,
-    )
+        'lastLogon', DateTime(timezone=True), nullable=True)
+    account_exp = Column(
+        'accountExpires', DateTime(timezone=True), nullable=True)
 
     search_fields = {
         'mail': 'mail',
