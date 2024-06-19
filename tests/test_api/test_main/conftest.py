@@ -41,6 +41,10 @@ async def adding_test_user(
                         "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
+                {
+                    "type": "accountExpires",
+                    "vals": ["133632699930000000"],
+                },
             ],
         },
         headers=login_headers,

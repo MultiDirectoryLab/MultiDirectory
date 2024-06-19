@@ -336,16 +336,18 @@ async def test_api_double_add(
 async def test_api_correct_modify(
         http_client: AsyncClient, login_headers: dict) -> None:
     """Test API for modify object attribute."""
+    entry_dn = 'cn=test,dc=md,dc=test'
+    new_value = "133632677730000000"
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=test,dc=md,dc=test",
+            "object": entry_dn,
             "changes": [
                 {
                     "operation": Operation.REPLACE,
                     "modification": {
-                        "type": "name",
-                        "vals": ["new_test"],
+                        "type": "accountExpires",
+                        "vals": [new_value],
                     },
                 },
             ],
@@ -357,6 +359,31 @@ async def test_api_correct_modify(
 
     assert isinstance(data, dict)
     assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.SUCCESS
+    assert data['search_result'][0]['object_name'] == entry_dn
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'accountExpires':
+            assert attr['vals'][0] == new_value
 
 
 @pytest.mark.asyncio()
