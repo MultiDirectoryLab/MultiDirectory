@@ -20,6 +20,7 @@ from ldap_protocol.password_policy import (
     post_save_password_actions,
 )
 from ldap_protocol.utils import (
+    ft_to_dt,
     get_base_dn,
     get_groups,
     get_path_filter,
@@ -230,6 +231,9 @@ class ModifyRequest(BaseRequest):
                     .values({name: value}))
 
             elif name in User.search_fields and directory.user:
+                if name == 'accountexpires':
+                    value = ft_to_dt(int(value))
+
                 await session.execute(
                     update(User)
                     .filter(User.directory == directory)
