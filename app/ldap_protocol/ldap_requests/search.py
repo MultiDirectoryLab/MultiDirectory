@@ -31,6 +31,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.utils import (
+    dt_to_ft,
     get_attribute_types,
     get_base_dn,
     get_generalized_now,
@@ -429,7 +430,7 @@ class SearchRequest(BaseRequest):
                     attrs['accountExpires'].append('0')
                 else:
                     attrs['accountExpires'].append(
-                        get_windows_timestamp(directory.user.account_exp),
+                        dt_to_ft(directory.user.account_exp),
                     )
                 if directory.user.last_logon is None:
                     attrs['lastLogon'].append('0')
