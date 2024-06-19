@@ -250,6 +250,7 @@ class User(DirectoryReferenceMixin, Base):
     userprincipalname: str = synonym('user_principal_name')
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
+    accountexpires: str = synonym('account_exp')
     last_logon = Column(
         'lastLogon', DateTime(timezone=True), nullable=True)
     account_exp = Column(
@@ -261,6 +262,7 @@ class User(DirectoryReferenceMixin, Base):
         'userprincipalname': 'userPrincipalName',
         'displayname': 'displayName',
         'uid': 'uid',
+        'accountexpires': 'accountExpires',
     }
 
     groups: list['Group'] = relationship(

@@ -483,6 +483,8 @@ class SearchRequest(BaseRequest):
                 attrs[directory.group.search_fields[attr]].append(attribute)
 
             for attr in user_fields:
+                if attr == 'accountexpires':
+                    continue
                 attribute = getattr(directory.user, attr)
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
