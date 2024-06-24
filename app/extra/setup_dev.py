@@ -16,6 +16,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import random
+import uuid
 from itertools import chain
 
 from loguru import logger
@@ -24,6 +26,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
+from ldap_protocol.utils import get_domain_sid
 from models.database import create_session_factory
 from models.ldap3 import (
     Attribute,
@@ -54,6 +57,8 @@ async def _create_dir(
     parent: Directory | None = None,
 ) -> None:
     """Create data recursively."""
+    domain_sid = await get_domain_sid(session)
+
     if not parent:
         dir_ = Directory(
             object_class=data['object_class'], name=data['name'])
@@ -63,6 +68,11 @@ async def _create_dir(
             session.add_all([dir_, path])
             dir_.paths.append(path)
             dir_.depth = len(path.path)
+            await session.flush()
+            if data.get('objectSid'):
+                dir_.object_sid = domain_sid + '-' + data.get('objectSid')
+            else:
+                dir_.object_sid = domain_sid + f'-{1000+dir_.id}'
 
     else:
         dir_ = Directory(
@@ -76,6 +86,11 @@ async def _create_dir(
             path.directories.extend(
                 [p.endpoint for p in parent.paths + [path]])
             dir_.depth = len(path.path)
+            await session.flush()
+            if data.get('objectSid'):
+                dir_.object_sid = domain_sid + '-' + data.get('objectSid')
+            else:
+                dir_.object_sid = domain_sid + f'-{1000+dir_.id}'
 
     if dir_.object_class == 'group':
         group = Group(directory=dir_)
@@ -141,17 +156,28 @@ async def setup_enviroment(
         logger.warning('dev data already set up')
         return
 
+    object_sid = f'S-1-5-21-{random.randint(1000000000, 4294967295)}' +\
+        f'-{random.randint(1000000000, 4294967295)}' +\
+        f'-{random.randint(100000000, 999999999)}'  # noqa
+
     catalogue = CatalogueSetting(
         name='defaultNamingContext', value=dn)
+    domain_sid = CatalogueSetting(
+        name='objectSid', value=object_sid)
+    domain_guid = CatalogueSetting(
+        name='objectGUID', value=str(uuid.uuid4()))
 
     async with session.begin_nested():
         session.add(catalogue)
+        session.add(domain_sid)
+        session.add(domain_guid)
         session.add(NetworkPolicy(
             name='Default open policy',
             netmasks=['0.0.0.0/0'],
             raw=['0.0.0.0/0'],
             priority=1,
         ))
+        await session.flush()
 
     try:
         for unit in data:
