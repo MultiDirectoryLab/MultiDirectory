@@ -123,7 +123,7 @@ async def test_api_search_filter_memberof(
     response = raw_response.json()
 
     assert response['resultCode'] == LDAPCodes.SUCCESS
-    assert response['search_result'][0]['object_name'] == member
+    assert response['search_result'][1]['object_name'] == member
 
 
 @pytest.mark.asyncio()
@@ -176,7 +176,7 @@ async def test_api_search_filter_objectguid(
     )
     data = raw_response.json()
 
-    assert data['search_result'][0]['object_name'] == entry_dn, \
+    assert data['search_result'][1]['object_name'] == entry_dn, \
         "User with required objectGUID not found"
 
 

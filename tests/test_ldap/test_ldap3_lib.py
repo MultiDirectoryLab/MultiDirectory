@@ -55,4 +55,4 @@ async def test_ldap3_search_memberof(
 
     assert result
     assert ldap_client.entries
-    assert ldap_client.entries[0].entry_dn == member
+    assert ldap_client.entries[1].entry_dn == member
