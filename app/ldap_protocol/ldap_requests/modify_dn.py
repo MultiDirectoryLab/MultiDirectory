@@ -131,6 +131,7 @@ class ModifyDNRequest(BaseRequest):
                 object_class=directory.object_class,
                 name=name,
                 depth=1,
+                object_sid=directory.object_sid,
             )
             new_path = new_directory.create_path(dn=dn)
 
@@ -152,6 +153,7 @@ class ModifyDNRequest(BaseRequest):
                 name=name,
                 parent=new_base_directory,
                 depth=len(new_base_directory.path.path)+1,
+                object_sid=directory.object_sid,
             )
             new_path = new_directory.create_path(new_base_directory, dn=dn)
 
