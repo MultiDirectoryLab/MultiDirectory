@@ -1,0 +1,31 @@
+[req]
+default_bits       = 2048
+default_keyfile    = localhost.key
+distinguished_name = req_distinguished_name
+req_extensions     = req_ext
+x509_extensions    = v3_ca
+
+[req_distinguished_name]
+countryName                 = RU
+countryName_default         = RU
+stateOrProvinceName         = MSK
+stateOrProvinceName_default = Moscow
+localityName                = Moscow
+localityName_default        = Moscow
+organizationName            = Mulidirectory
+organizationName_default    = Multifactor
+organizationalUnitName      = IT
+organizationalUnitName_default = Development
+commonName                  = md.multifactor.dev
+commonName_default          = md.multifactor.dev
+commonName_max              = 64
+
+[req_ext]
+subjectAltName = @alt_names
+
+[v3_ca]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1   = md.multifactor.dev
+DNS.2   = md.multidirectory.dev
