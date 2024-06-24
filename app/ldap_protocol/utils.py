@@ -131,6 +131,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import hashlib
 import re
+import struct
 from calendar import timegm
 from datetime import datetime
 from operator import attrgetter
@@ -431,6 +432,49 @@ def get_path_filter(
     :return ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
+
+
+@cache
+async def get_domain_sid(session: AsyncSession) -> str:
+    """Get domain sid."""
+    result = await session.execute(
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name == 'objectSid'),
+    )
+
+    return result.scalar_one().value
+
+
+@cache
+async def get_domain_guid(session: AsyncSession) -> str:
+    """Get domain objectGUID."""
+    result = await session.execute(
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name == 'objectSid'),
+    )
+
+    return result.scalar_one().value
+
+
+def string_to_sid(sid_string: str) -> bytes:
+    """Convert string sid to bytes."""
+    parts = sid_string.split('-')
+
+    revision = int(parts[1])
+    identifier_authority = int(parts[2])
+
+    sub_authorities = [int(part) for part in parts[3:]]
+    sub_auth_count = len(sub_authorities)
+
+    sid = struct.pack('<B', revision)
+    sid += struct.pack('B', sub_auth_count)
+
+    sid += struct.pack('>Q', identifier_authority)[2:]
+
+    for sub_auth in sub_authorities:
+        sid += struct.pack('<I', sub_auth)
+
+    return sid
 
 
 get_class_name = attrgetter('__class__.__name__')
