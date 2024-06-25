@@ -17,7 +17,12 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
-from ldap_protocol.utils import get_base_dn, get_path_filter, get_search_path
+from ldap_protocol.utils import (
+    get_base_dn,
+    get_path_filter,
+    get_search_path,
+    validate_entry,
+)
 from models.ldap3 import Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
@@ -83,6 +88,10 @@ class ModifyDNRequest(BaseRequest):
         """Handle message with current user."""
         if not ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
+            return
+
+        if not validate_entry(self.entry):
+            yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
         base_dn = await get_base_dn(session)
