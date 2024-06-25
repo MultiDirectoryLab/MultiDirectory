@@ -719,6 +719,30 @@ async def test_api_update_dn_non_exist_entry(
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_update_dn_invalid_entry(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test API update dn with invalid entry."""
+    response = await http_client.put(
+        "/entry/update/dn",
+        json={
+            "entry": "cn=,",
+            "newrdn": "cn=new_test",
+            "deleteoldrdn": True,
+            "new_superior": "dc=md,dc=test",
+        },
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
+
+
+@pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_bytes_to_hex(
