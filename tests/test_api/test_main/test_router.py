@@ -520,7 +520,7 @@ async def test_api_correct_update_dn(
     """Test API for update DN."""
     old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     new_user_dn = "cn=new_test2,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-    newrdn_user, new_superior_user = new_user_dn.split(',', maxsplit=1)
+    newrdn_user = new_user_dn.split(',', maxsplit=1)[0]
 
     old_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
     new_group_dn = "cn=new_developers,cn=groups,dc=md,dc=test"
@@ -532,7 +532,7 @@ async def test_api_correct_update_dn(
             "entry": old_user_dn,
             "newrdn": newrdn_user,
             "deleteoldrdn": True,
-            "new_superior": new_superior_user,
+            "new_superior": None,
         },
         headers=login_headers,
     )
@@ -594,6 +594,8 @@ async def test_api_correct_update_dn(
     )
 
     data = response.json()
+
+    assert new_user_dn == data['search_result'][0]['object_name']
 
     for attr in data['search_result'][0]['partial_attributes']:
         if attr['type'] == 'memberOf':
