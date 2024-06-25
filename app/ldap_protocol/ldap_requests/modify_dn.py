@@ -94,6 +94,10 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        if self.new_superior and not validate_entry(self.new_superior):
+            yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+            return
+
         base_dn = await get_base_dn(session)
         obj = get_search_path(self.entry, base_dn)
 
