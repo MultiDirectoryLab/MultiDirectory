@@ -90,11 +90,11 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
 
-        if not validate_entry(self.entry):
-            yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
-            return
-
-        if self.new_superior and not validate_entry(self.new_superior):
+        if any([
+            not validate_entry(self.entry),
+            self.new_superior and not validate_entry(self.new_superior),
+            not validate_entry(self.newrdn),
+        ]):
             yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
