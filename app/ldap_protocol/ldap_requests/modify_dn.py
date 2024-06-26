@@ -17,7 +17,12 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
-from ldap_protocol.utils import get_base_dn, get_path_filter, get_search_path
+from ldap_protocol.utils import (
+    get_base_dn,
+    get_path_filter,
+    get_search_path,
+    validate_entry,
+)
 from models.ldap3 import Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
@@ -66,7 +71,7 @@ class ModifyDNRequest(BaseRequest):
     entry: str
     newrdn: str
     deleteoldrdn: bool
-    new_superior: str
+    new_superior: str | None
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> 'ModifyDNResponse':
@@ -75,7 +80,7 @@ class ModifyDNRequest(BaseRequest):
             entry=data[0].value,
             newrdn=data[1].value,
             deleteoldrdn=data[2].value,
-            new_superior=data[3].value,
+            new_superior=None if len(data) < 4 else data[3].value,
         )
 
     async def handle(self, ldap_session: Session, session: AsyncSession) ->\
@@ -85,37 +90,59 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
 
+        if any([
+            not validate_entry(self.entry),
+            self.new_superior and not validate_entry(self.new_superior),
+            not validate_entry(self.newrdn),
+        ]):
+            yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+            return
+
         base_dn = await get_base_dn(session)
         obj = get_search_path(self.entry, base_dn)
 
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
-            .filter(get_path_filter(obj))
+            .options(selectinload(Directory.parent))\
+            .filter(get_path_filter(obj))  # noqa
 
-        new_sup = get_search_path(self.new_superior, base_dn)
-        new_sup_query = select(Directory)\
-            .join(Directory.path)\
-            .options(selectinload(Directory.path))\
-            .filter(get_path_filter(new_sup))
-
-        directory = await session.scalar(query)
+        directory: Directory | None = await session.scalar(query)
 
         if not directory:
             yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        dn_is_base = self.new_superior.lower() == base_dn.lower()
         dn, name = self.newrdn.split('=')
-        if dn_is_base:
+
+        if self.new_superior is None:
+            new_directory = Directory(
+                name=name,
+                object_class=directory.object_class,
+                depth=directory.depth,
+                parent_id=directory.parent_id,
+                created_at=directory.created_at,
+                objectguid=directory.objectguid,
+            )
+            new_path = new_directory.create_path(directory.parent, dn)
+
+        elif self.new_superior.lower() == base_dn.lower():
             new_directory = Directory(
                 object_class=directory.object_class,
                 name=name,
                 depth=1,
             )
             new_path = new_directory.create_path(dn=dn)
+
         else:
+            new_sup = get_search_path(self.new_superior, base_dn)
+            new_sup_query = select(Directory)\
+                .join(Directory.path)\
+                .options(selectinload(Directory.path))\
+                .filter(get_path_filter(new_sup))
+
             new_base_directory = await session.scalar(new_sup_query)
+
             if not new_base_directory:
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
