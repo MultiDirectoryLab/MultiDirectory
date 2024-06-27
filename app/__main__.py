@@ -250,6 +250,7 @@ class PoolClientHandler:
         """Create session for request."""
         async with self.AsyncSessionFactory() as session:
             yield session
+            await session.commit()
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
@@ -318,7 +319,6 @@ class PoolClientHandler:
     async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
-        self.log_addrs(server)
         try:
             await self._run_server(server)
         finally:
