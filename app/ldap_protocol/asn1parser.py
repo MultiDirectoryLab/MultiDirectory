@@ -43,6 +43,14 @@ class ASN1Row:
             value,
         )
 
+    def __repr__(self) -> str:  # noqa: D105
+        return "{" + f'"class_id": "{str(self.class_id)}", ' + \
+            f'"tag_id": "{str(self.tag_id)}", "value": "{str(self.value)}"' + \
+            '}'
+
+    def __str__(self) -> str:  # noqa: D105
+        return self.__repr__()
+
 
 tag_id_to_string_map = {
     Numbers.Boolean: "BOOLEAN",

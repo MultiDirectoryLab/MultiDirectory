@@ -96,6 +96,9 @@ class SearchRequest(BaseRequest):
 
         arbitrary_types_allowed = True
         ignored_types = (cached_property,)
+        json_encoder = {
+            ASN1Row: lambda value: str(value),
+        }
 
     @classmethod
     def from_data(   # noqa: D102
