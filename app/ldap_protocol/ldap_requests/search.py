@@ -41,6 +41,7 @@ from ldap_protocol.utils import (
     get_path_filter,
     get_search_path,
     get_windows_timestamp,
+    guid_to_bytes,
     string_to_sid,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
@@ -305,7 +306,7 @@ class SearchRequest(BaseRequest):
                 attrs['objectClass'].append('top')
                 attrs['nisDomain'].append(domain)
                 attrs['objectSid'].append(string_to_sid(domain_sid))
-                attrs['objectGUID'].append(domain_guid)
+                attrs['objectGUID'].append(guid_to_bytes(domain_guid))
 
                 return SearchResultEntry(
                     object_name=dn,
@@ -511,6 +512,8 @@ class SearchRequest(BaseRequest):
                 attribute = getattr(directory, attr)
                 if attr == 'objectsid':
                     attribute = string_to_sid(attribute)
+                elif attr == 'objectguid':
+                    attribute = guid_to_bytes(str(attribute))
                 attrs[directory.search_fields[attr]].append(attribute)
 
             yield SearchResultEntry(
