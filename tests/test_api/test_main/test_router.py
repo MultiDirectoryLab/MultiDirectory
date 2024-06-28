@@ -7,6 +7,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
+from app.ldap_protocol.utils import bytes_to_guid
 
 
 @pytest.mark.asyncio()
@@ -149,15 +150,17 @@ async def test_api_search_filter_objectguid(
     )
     data = raw_response.json()
 
-    object_guid = None
+    hex_guid = None
     entry_dn = data['search_result'][3]['object_name']
 
     for attr in data['search_result'][3]['partial_attributes']:
         if attr['type'] == 'objectGUID':
-            object_guid = attr['vals'][0]
+            hex_guid = attr['vals'][0]
             break
 
-    assert object_guid is not None, 'objectGUID attribute is missing'
+    assert hex_guid is not None, 'objectGUID attribute is missing'
+
+    object_guid = bytes_to_guid(bytearray.fromhex(hex_guid))
 
     raw_response = await http_client.post(
         "entry/search",
