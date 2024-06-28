@@ -34,8 +34,8 @@ def upgrade() -> None:
             f'-{random.randint(1000000000, 4294967295)}' +\
             f'-{random.randint(100000000, 999999999)}'
 
-        session.add(CatalogueSetting(name='objectSid', value=domain_sid))
-        session.add(CatalogueSetting(name='objectGUID', value=str(uuid.uuid4())))
+        session.add(CatalogueSetting(name='domain_object_sid', value=domain_sid))
+        session.add(CatalogueSetting(name='domain_object_guid', value=str(uuid.uuid4())))
 
         for directory in session.query(Directory):
             if directory.name == 'domain admins':
@@ -58,6 +58,6 @@ def downgrade() -> None:
         .where(CatalogueSetting.name == 'defaultNamingContext')))
 
     if bool(result):
-        op.execute('delete from "Settings" where "name" = \'objectSid\'')
-        op.execute('delete from "Settings" where "name" = \'objectGUID\'')
+        op.execute('delete from "Settings" where "name" = \'domain_object_sid\'')
+        op.execute('delete from "Settings" where "name" = \'domain_object_guid\'')
     # ### end Alembic commands ###

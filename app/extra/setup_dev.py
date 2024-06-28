@@ -163,9 +163,9 @@ async def setup_enviroment(
     catalogue = CatalogueSetting(
         name='defaultNamingContext', value=dn)
     domain_sid = CatalogueSetting(
-        name='objectSid', value=object_sid)
+        name='domain_object_sid', value=object_sid)
     domain_guid = CatalogueSetting(
-        name='objectGUID', value=str(uuid.uuid4()))
+        name='domain_object_guid', value=str(uuid.uuid4()))
 
     async with session.begin_nested():
         session.add(catalogue)

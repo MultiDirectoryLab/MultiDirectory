@@ -439,7 +439,7 @@ async def get_domain_sid(session: AsyncSession) -> str:
     """Get domain sid."""
     result = await session.execute(
         select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'objectSid'),
+        .filter(CatalogueSetting.name == 'domain_object_sid'),
     )
 
     return result.scalar_one().value
@@ -450,7 +450,7 @@ async def get_domain_guid(session: AsyncSession) -> str:
     """Get domain objectGUID."""
     result = await session.execute(
         select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'objectSid'),
+        .filter(CatalogueSetting.name == 'domain_object_guid'),
     )
 
     return result.scalar_one().value
