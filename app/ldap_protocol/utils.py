@@ -477,4 +477,23 @@ def string_to_sid(sid_string: str) -> bytes:
     return sid
 
 
+def guid_to_bytes(guid: str) -> bytes:
+    """Convert string objectGUID to bytes."""
+    guid = guid.replace('-', '')
+    byte_pairs = [guid[i:i+2] for i in range(0, len(guid), 2)]
+    ordered_bytes = byte_pairs[3::-1] + byte_pairs[5:3:-1] + \
+        byte_pairs[7:5:-1] + byte_pairs[8:]
+
+    return bytes(int(byte, 16) for byte in ordered_bytes)
+
+
+def bytes_to_guid(guid: bytes) -> str:
+    """Convert bytes objectGUID to string."""
+    hex_string = ''.join(f'{byte:02x}' for byte in guid)
+    return hex_string[6:8] + hex_string[4:6] + hex_string[2:4] + \
+        hex_string[0:2] + '-' + hex_string[10:12] + hex_string[8:10] + '-' + \
+        hex_string[14:16] + hex_string[12:14] + '-' + hex_string[16:20] + \
+        '-' + hex_string[20:32]  # noqa
+
+
 get_class_name = attrgetter('__class__.__name__')
