@@ -3,11 +3,12 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+import uuid
+
 import pytest
 from httpx import AsyncClient
 
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
-from app.ldap_protocol.utils import bytes_to_guid
 
 
 @pytest.mark.asyncio()
@@ -160,7 +161,7 @@ async def test_api_search_filter_objectguid(
 
     assert hex_guid is not None, 'objectGUID attribute is missing'
 
-    object_guid = bytes_to_guid(bytes(bytearray.fromhex(hex_guid)))
+    object_guid = str(uuid.UUID(bytes_le=bytes(bytearray.fromhex(hex_guid))))
 
     raw_response = await http_client.post(
         "entry/search",
