@@ -5,7 +5,7 @@ RFC 4511 reference.
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
+import uuid
 from operator import eq, ge, le, ne
 
 from ldap_filter import Filter
@@ -18,7 +18,7 @@ from sqlalchemy.sql.operators import ColumnOperators
 from models.ldap3 import Attribute, Directory, Group, GroupMembership, User
 
 from .asn1parser import ASN1Row
-from .utils import bytes_to_guid, get_path_filter, get_search_path
+from .utils import get_path_filter, get_search_path
 
 BoundQ = tuple[UnaryExpression, Select]
 
@@ -41,7 +41,7 @@ def _from_filter(
     op_method = {3: eq, 5: ge, 6: le, 8: ne}[item.tag_id.value]
     if attr == 'objectguid':
         col = col
-        value = bytes_to_guid(right.value)
+        value = str(uuid.UUID(bytes_le=right.value))
     else:
         col = func.lower(col)
         value = right.value.lower()

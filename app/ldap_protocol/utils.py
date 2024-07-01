@@ -475,31 +475,4 @@ def string_to_sid(sid_string: str) -> bytes:
     return sid
 
 
-def guid_to_bytes(guid: str) -> bytes:
-    """Convert string objectGUID to bytes."""
-    ordered_guid = []
-    guid_parts = guid.split('-')
-
-    for part in guid_parts[:-2]:
-        for pair in reversed([
-            pair[0]+pair[1]
-            for pair in zip(itertools.islice(part, 0, None, 2),
-                            itertools.islice(part, 1, None, 2))]):
-            ordered_guid.append(pair)
-
-    for part in guid_parts[-2:]:
-        for pair in [
-            pair[0]+pair[1]
-            for pair in zip(itertools.islice(part, 0, None, 2),
-                            itertools.islice(part, 1, None, 2))]:
-            ordered_guid.append(pair)
-
-    return bytes(int(byte, 16) for byte in ordered_guid)
-
-
-def bytes_to_guid(guid: bytes) -> str:
-    """Convert bytes objectGUID to string."""
-    return str(uuid.UUID(bytes_le=guid))
-
-
 get_class_name = attrgetter('__class__.__name__')

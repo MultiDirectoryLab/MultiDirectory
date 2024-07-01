@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import sys
+import uuid
 from collections import defaultdict
 from functools import cached_property
 from math import ceil
@@ -41,7 +42,6 @@ from ldap_protocol.utils import (
     get_path_filter,
     get_search_path,
     get_windows_timestamp,
-    guid_to_bytes,
     string_to_sid,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
@@ -306,7 +306,8 @@ class SearchRequest(BaseRequest):
                 attrs['objectClass'].append('top')
                 attrs['nisDomain'].append(domain)
                 attrs['objectSid'].append(string_to_sid(domain_sid))
-                attrs['objectGUID'].append(guid_to_bytes(domain_guid))
+                attrs['objectGUID'].append(
+                    uuid.UUID(domain_guid).bytes_le)  # type: ignore
 
                 return SearchResultEntry(
                     object_name=dn,
@@ -513,7 +514,7 @@ class SearchRequest(BaseRequest):
                 if attr == 'objectsid':
                     attribute = string_to_sid(attribute)
                 elif attr == 'objectguid':
-                    attribute = guid_to_bytes(str(attribute))
+                    attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
 
             yield SearchResultEntry(
