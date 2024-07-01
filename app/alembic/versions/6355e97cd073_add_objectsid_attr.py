@@ -9,7 +9,7 @@ import random
 import uuid
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import orm, select, exists
+from sqlalchemy import delete, exists, orm, select
 
 from models.ldap3 import CatalogueSetting, Directory
 
@@ -58,6 +58,9 @@ def downgrade() -> None:
         .where(CatalogueSetting.name == 'defaultNamingContext')))
 
     if bool(result):
-        op.execute('delete from "Settings" where "name" = \'domain_object_sid\'')
-        op.execute('delete from "Settings" where "name" = \'domain_object_guid\'')
+        session.execute(delete(CatalogueSetting).where(
+            CatalogueSetting.name == 'domain_object_sid' | \
+            CatalogueSetting.name == 'domain_object_guid',
+        ))
+        session.commit()
     # ### end Alembic commands ###
