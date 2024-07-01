@@ -5,7 +5,7 @@ RFC 4511 reference.
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
+import uuid
 from operator import eq, ge, le, ne
 
 from ldap_filter import Filter
@@ -39,8 +39,13 @@ def _from_filter(
     if is_substring:
         return col.ilike(_get_substring(right))
     op_method = {3: eq, 5: ge, 6: le, 8: ne}[item.tag_id.value]
-    col = col if attr == 'objectguid' else func.lower(col)
-    return op_method(col, right.value.lower())
+    if attr == 'objectguid':
+        col = col
+        value = str(uuid.UUID(bytes_le=right.value))
+    else:
+        col = func.lower(col)
+        value = right.value.lower()
+    return op_method(col, value)
 
 
 def _filter_memberof(

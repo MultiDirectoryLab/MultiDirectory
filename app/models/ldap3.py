@@ -138,6 +138,9 @@ class Directory(Base):
         onupdate=func.now(), nullable=True)
     depth = Column(Integer)
 
+    object_sid = Column('objectSid', String)
+    objectsid: str = synonym('object_sid')
+
     password_policy_id = Column(
         Integer, ForeignKey('PasswordPolicies.id'), nullable=True)
 
@@ -177,6 +180,7 @@ class Directory(Base):
         'cn': 'cn',
         'name': 'name',
         'objectguid': 'objectGUID',
+        'objectsid': 'objectSid',
     }
 
     ro_fields = {
@@ -185,6 +189,7 @@ class Directory(Base):
         "lastLogon",
         "authTimestamp",
         "objectGUID",
+        "objectSid",
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:

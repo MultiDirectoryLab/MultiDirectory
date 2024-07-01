@@ -3,6 +3,8 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+import uuid
+
 import pytest
 from httpx import AsyncClient
 
@@ -123,7 +125,7 @@ async def test_api_search_filter_memberof(
     response = raw_response.json()
 
     assert response['resultCode'] == LDAPCodes.SUCCESS
-    assert response['search_result'][0]['object_name'] == member
+    assert response['search_result'][1]['object_name'] == member
 
 
 @pytest.mark.asyncio()
@@ -149,15 +151,17 @@ async def test_api_search_filter_objectguid(
     )
     data = raw_response.json()
 
-    object_guid = None
+    hex_guid = None
     entry_dn = data['search_result'][3]['object_name']
 
     for attr in data['search_result'][3]['partial_attributes']:
         if attr['type'] == 'objectGUID':
-            object_guid = attr['vals'][0]
+            hex_guid = attr['vals'][0]
             break
 
-    assert object_guid is not None, 'objectGUID attribute is missing'
+    assert hex_guid is not None, 'objectGUID attribute is missing'
+
+    object_guid = str(uuid.UUID(bytes_le=bytes(bytearray.fromhex(hex_guid))))
 
     raw_response = await http_client.post(
         "entry/search",
@@ -176,7 +180,7 @@ async def test_api_search_filter_objectguid(
     )
     data = raw_response.json()
 
-    assert data['search_result'][0]['object_name'] == entry_dn, \
+    assert data['search_result'][1]['object_name'] == entry_dn, \
         "User with required objectGUID not found"
 
 
