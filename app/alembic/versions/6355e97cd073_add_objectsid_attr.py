@@ -30,8 +30,8 @@ def upgrade() -> None:
         .where(CatalogueSetting.name == 'defaultNamingContext')))
 
     if bool(result):
-        domain_sid = f'S-1-5-21-{random.randint(1000000000, 4294967295)}' +\
-            f'-{random.randint(1000000000, 4294967295)}' +\
+        domain_sid = f'S-1-5-21-{random.randint(1000000000, (1 << 32) - 1)}' +\
+            f'-{random.randint(1000000000, (1 << 32) - 1)}' +\
             f'-{random.randint(100000000, 999999999)}'
 
         session.add(CatalogueSetting(name='domain_object_sid', value=domain_sid))
