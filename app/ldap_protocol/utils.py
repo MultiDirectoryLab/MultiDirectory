@@ -130,8 +130,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import hashlib
+import itertools
 import re
 import struct
+import uuid
 from calendar import timegm
 from datetime import datetime
 from operator import attrgetter
@@ -475,21 +477,29 @@ def string_to_sid(sid_string: str) -> bytes:
 
 def guid_to_bytes(guid: str) -> bytes:
     """Convert string objectGUID to bytes."""
-    guid = guid.replace('-', '')
-    byte_pairs = [guid[i:i+2] for i in range(0, len(guid), 2)]
-    ordered_bytes = byte_pairs[3::-1] + byte_pairs[5:3:-1] + \
-        byte_pairs[7:5:-1] + byte_pairs[8:]
+    ordered_guid = []
+    guid_parts = guid.split('-')
 
-    return bytes(int(byte, 16) for byte in ordered_bytes)
+    for part in guid_parts[:-2]:
+        for pair in reversed([
+            pair[0]+pair[1]
+            for pair in zip(itertools.islice(part, 0, None, 2),
+                            itertools.islice(part, 1, None, 2))]):
+            ordered_guid.append(pair)
+
+    for part in guid_parts[-2:]:
+        for pair in [
+            pair[0]+pair[1]
+            for pair in zip(itertools.islice(part, 0, None, 2),
+                            itertools.islice(part, 1, None, 2))]:
+            ordered_guid.append(pair)
+
+    return bytes(int(byte, 16) for byte in ordered_guid)
 
 
 def bytes_to_guid(guid: bytes) -> str:
     """Convert bytes objectGUID to string."""
-    hex_string = ''.join(f'{byte:02x}' for byte in guid)
-    return hex_string[6:8] + hex_string[4:6] + hex_string[2:4] + \
-        hex_string[0:2] + '-' + hex_string[10:12] + hex_string[8:10] + '-' + \
-        hex_string[14:16] + hex_string[12:14] + '-' + hex_string[16:20] + \
-        '-' + hex_string[20:32]  # noqa
+    return str(uuid.UUID(bytes_le=guid))
 
 
 get_class_name = attrgetter('__class__.__name__')

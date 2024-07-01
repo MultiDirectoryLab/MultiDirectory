@@ -160,7 +160,7 @@ async def test_api_search_filter_objectguid(
 
     assert hex_guid is not None, 'objectGUID attribute is missing'
 
-    object_guid = bytes_to_guid(bytearray.fromhex(hex_guid))
+    object_guid = bytes_to_guid(bytes(bytearray.fromhex(hex_guid)))
 
     raw_response = await http_client.post(
         "entry/search",
