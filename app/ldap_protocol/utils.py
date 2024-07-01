@@ -437,23 +437,19 @@ def get_path_filter(
 @cache
 async def get_domain_sid(session: AsyncSession) -> str:
     """Get domain sid."""
-    result = await session.execute(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'domain_object_sid'),
-    )
+    sid = await session.scalar(select(CatalogueSetting).filter(
+        CatalogueSetting.name == 'domain_object_sid'))
 
-    return result.scalar_one().value
+    return sid.value
 
 
 @cache
 async def get_domain_guid(session: AsyncSession) -> str:
     """Get domain objectGUID."""
-    result = await session.execute(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'domain_object_guid'),
-    )
+    guid = await session.scalar(select(CatalogueSetting).filter(
+        CatalogueSetting.name == 'domain_object_guid'))
 
-    return result.scalar_one().value
+    return guid.value
 
 
 def string_to_sid(sid_string: str) -> bytes:
