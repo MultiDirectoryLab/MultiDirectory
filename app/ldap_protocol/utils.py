@@ -504,9 +504,12 @@ async def create_object_sid(
 
 def generate_domain_sid() -> str:
     """Generate domain objectSid attr."""
-    return f'S-1-5-21-{random.randint(1000000000, (1 << 32) - 1)}' +\
-            f'-{random.randint(1000000000, (1 << 32) - 1)}' +\
-            f'-{random.randint(100000000, 999999999)}'  # noqa
+    sub_authorities = [
+        random.randint(1000000000, (1 << 32) - 1),
+        random.randint(1000000000, (1 << 32) - 1),
+        random.randint(100000000, 999999999),
+    ]
+    return 'S-1-5-21' + '-'.join(str(part) for part in sub_authorities)
 
 
 get_class_name = attrgetter('__class__.__name__')
