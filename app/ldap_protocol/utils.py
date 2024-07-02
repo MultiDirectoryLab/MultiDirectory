@@ -454,7 +454,7 @@ async def get_domain_guid(session: AsyncSession) -> str:
 
 
 def string_to_sid(sid_string: str) -> bytes:
-    r"""Convert a string representation of a SID to its binary form.
+    """Convert a string representation of a SID to its binary form.
 
     The conversion process includes:
     1. Parsing the string to extract the SID components (revision,
