@@ -509,7 +509,7 @@ def generate_domain_sid() -> str:
         random.randint(1000000000, (1 << 32) - 1),
         random.randint(100000000, 999999999),
     ]
-    return 'S-1-5-21' + '-'.join(str(part) for part in sub_authorities)
+    return 'S-1-5-21-' + '-'.join(str(part) for part in sub_authorities)
 
 
 get_class_name = attrgetter('__class__.__name__')
