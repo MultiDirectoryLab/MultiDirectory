@@ -230,8 +230,8 @@ class AddRequest(BaseRequest):
                     path.directories.extend(
                         [p.endpoint for p in parent.paths + [path]])
                 await session.flush()
-                new_dir.object_sid = await create_object_sid(session,
-                                                             new_dir.id)
+                new_dir.object_sid = await create_object_sid(
+                    session, new_dir.id)
                 await session.commit()
             except IntegrityError:
                 await session.rollback()
