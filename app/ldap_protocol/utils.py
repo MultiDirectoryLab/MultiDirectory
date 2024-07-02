@@ -489,10 +489,17 @@ def string_to_sid(sid_string: str) -> bytes:
 
 async def create_object_sid(
         session: AsyncSession, rid: int, reserved: bool = False) -> str:
-    """Create objectSid attr."""
-    domain_sid = await get_domain_sid(session)
-    rid = rid if reserved else 1000 + rid
-    return domain_sid + f"-{rid}"
+    """Generate the objectSid attribute for an object.
+
+    :param session: db
+    :param int rid: relative identifier
+    :param bool reserved: A flag indicating whether the RID is reserved.
+                          If `True`, the given RID is used directly. If 
+                          `False`, 1000 is added to the given RID to generate 
+                          the final RID
+    :return str: the complete objectSid as a string
+    """
+    return await get_domain_sid(session) + f"-{rid if reserved else 1000+rid}"
 
 
 def generate_domain_sid() -> str:
