@@ -56,36 +56,24 @@ async def _create_dir(
     parent: Directory | None = None,
 ) -> None:
     """Create data recursively."""
-    if not parent:
-        dir_ = Directory(
-            object_class=data['object_class'], name=data['name'])
-        path = dir_.create_path(dn=dir_.get_dn_prefix())
+    dir_ = Directory(
+        object_class=data['object_class'],
+        name=data['name'],
+        parent=parent)
+    path = dir_.create_path(parent, dir_.get_dn_prefix())
 
-        async with session.begin_nested():
-            session.add_all([dir_, path])
-            dir_.paths.append(path)
-            dir_.depth = len(path.path)
-            await session.flush()
-            reserved = True if data.get('objectSid') else False
-            rid = data.get('objectSid', dir_.id)
-            dir_.object_sid = await create_object_sid(session, rid, reserved)
-
-    else:
-        dir_ = Directory(
-            object_class=data['object_class'],
-            name=data['name'],
-            parent=parent)
-        path = dir_.create_path(parent, dir_.get_dn_prefix())
-
-        async with session.begin_nested():
-            session.add_all([dir_, path])
+    async with session.begin_nested():
+        session.add_all([dir_, path])
+        if parent:
             path.directories.extend(
                 [p.endpoint for p in parent.paths + [path]])
-            dir_.depth = len(path.path)
-            await session.flush()
-            reserved = True if data.get('objectSid') else False
-            rid = data.get('objectSid', dir_.id)
-            dir_.object_sid = await create_object_sid(session, rid, reserved)
+        else:
+            dir_.paths.append(path)
+        dir_.depth = len(path.path)
+        await session.flush()
+        reserved = True if data.get('objectSid') else False
+        rid = data.get('objectSid', dir_.id)
+        dir_.object_sid = await create_object_sid(session, rid, reserved)
 
     if dir_.object_class == 'group':
         group = Group(directory=dir_)
