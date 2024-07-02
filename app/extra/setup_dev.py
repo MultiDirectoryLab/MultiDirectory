@@ -73,7 +73,7 @@ async def _create_dir(
         dir_.depth = len(path.path)
         await session.flush()
 
-        reserved = True if data.get('objectSid') else False
+        reserved = 'objectSid' in data
         rid = data.get('objectSid', dir_.id)
         dir_.object_sid = await create_object_sid(session, rid, reserved)
 
