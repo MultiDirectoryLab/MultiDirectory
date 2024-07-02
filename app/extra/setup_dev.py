@@ -16,7 +16,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import random
 import uuid
 from itertools import chain
 
@@ -26,7 +25,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
-from ldap_protocol.utils import get_domain_sid
+from ldap_protocol.utils import create_object_sid, generate_domain_sid
 from models.database import create_session_factory
 from models.ldap3 import (
     Attribute,
@@ -57,8 +56,6 @@ async def _create_dir(
     parent: Directory | None = None,
 ) -> None:
     """Create data recursively."""
-    domain_sid = await get_domain_sid(session)
-
     if not parent:
         dir_ = Directory(
             object_class=data['object_class'], name=data['name'])
@@ -69,10 +66,9 @@ async def _create_dir(
             dir_.paths.append(path)
             dir_.depth = len(path.path)
             await session.flush()
-            if data.get('objectSid'):
-                dir_.object_sid = domain_sid + '-' + data.get('objectSid')
-            else:
-                dir_.object_sid = domain_sid + f'-{1000+dir_.id}'
+            reserved = True if data.get('objectSid') else False
+            rid = data.get('objectSid', dir_.id)
+            dir_.object_sid = await create_object_sid(session, rid, reserved)
 
     else:
         dir_ = Directory(
@@ -87,10 +83,9 @@ async def _create_dir(
                 [p.endpoint for p in parent.paths + [path]])
             dir_.depth = len(path.path)
             await session.flush()
-            if data.get('objectSid'):
-                dir_.object_sid = domain_sid + '-' + data.get('objectSid')
-            else:
-                dir_.object_sid = domain_sid + f'-{1000+dir_.id}'
+            reserved = True if data.get('objectSid') else False
+            rid = data.get('objectSid', dir_.id)
+            dir_.object_sid = await create_object_sid(session, rid, reserved)
 
     if dir_.object_class == 'group':
         group = Group(directory=dir_)
@@ -156,9 +151,7 @@ async def setup_enviroment(
         logger.warning('dev data already set up')
         return
 
-    object_sid = f'S-1-5-21-{random.randint(1000000000, (1 << 32) - 1)}' +\
-        f'-{random.randint(1000000000, (1 << 32) - 1)}' +\
-        f'-{random.randint(100000000, 999999999)}'  # noqa
+    object_sid = generate_domain_sid()
 
     catalogue = CatalogueSetting(
         name='defaultNamingContext', value=dn)

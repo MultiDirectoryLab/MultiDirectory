@@ -130,10 +130,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import hashlib
-import itertools
+import random
 import re
 import struct
-import uuid
 from calendar import timegm
 from datetime import datetime
 from operator import attrgetter
@@ -455,7 +454,20 @@ async def get_domain_guid(session: AsyncSession) -> str:
 
 
 def string_to_sid(sid_string: str) -> bytes:
-    """Convert string sid to bytes."""
+    r"""Convert a string representation of a SID to its binary form.
+
+    The conversion process includes:
+    1. Parsing the string to extract the SID components (revision,
+    identifier authority, and sub-authorities).
+    2. Packing these components into a byte sequence:
+        - The revision is packed as a single byte.
+        - The number of sub-authorities is packed as a single byte.
+        - The identifier authority is packed as a 6-byte sequence.
+        - Each sub-authority is packed as a 4-byte sequence.
+
+    :param sid_string: The string representation of the SID
+    :return bytes: The binary representation of the SID
+    """
     parts = sid_string.split('-')
 
     revision = int(parts[1])
@@ -473,6 +485,21 @@ def string_to_sid(sid_string: str) -> bytes:
         sid += struct.pack('<I', sub_auth)
 
     return sid
+
+
+async def create_object_sid(
+        session: AsyncSession, rid: int, reserved: bool = False) -> str:
+    """Create objectSid attr."""
+    domain_sid = await get_domain_sid(session)
+    rid = rid if reserved else 1000 + rid
+    return domain_sid + f"-{rid}"
+
+
+def generate_domain_sid() -> str:
+    """Generate domain objectSid attr."""
+    return f'S-1-5-21-{random.randint(1000000000, (1 << 32) - 1)}' +\
+            f'-{random.randint(1000000000, (1 << 32) - 1)}' +\
+            f'-{random.randint(100000000, 999999999)}'  # noqa
 
 
 get_class_name = attrgetter('__class__.__name__')

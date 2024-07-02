@@ -5,13 +5,13 @@ Revises: aab3b0e949d9
 Create Date: 2024-06-23 14:54:29.941486
 
 """
-import random
 import uuid
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import delete, exists, orm, select
 
 from models.ldap3 import CatalogueSetting, Directory
+from ldap_protocol.utils import generate_domain_sid
 
 # revision identifiers, used by Alembic.
 revision = '6355e97cd073'
@@ -30,9 +30,7 @@ def upgrade() -> None:
         .where(CatalogueSetting.name == 'defaultNamingContext')))
 
     if bool(result):
-        domain_sid = f'S-1-5-21-{random.randint(1000000000, (1 << 32) - 1)}' +\
-            f'-{random.randint(1000000000, (1 << 32) - 1)}' +\
-            f'-{random.randint(100000000, 999999999)}'
+        domain_sid = generate_domain_sid()
 
         session.add(CatalogueSetting(name='domain_object_sid', value=domain_sid))
         session.add(CatalogueSetting(name='domain_object_guid', value=str(uuid.uuid4())))

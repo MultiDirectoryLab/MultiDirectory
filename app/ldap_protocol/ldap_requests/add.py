@@ -22,8 +22,8 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import (
     create_integer_hash,
+    create_object_sid,
     get_base_dn,
-    get_domain_sid,
     get_groups,
     get_path_filter,
     get_search_path,
@@ -93,7 +93,7 @@ class AddRequest(BaseRequest):
         if await session.scalar(exists_q) is True:
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
-        domain_sid = await get_domain_sid(session)
+
         parent_dn = root_dn[:-1]
         has_no_parent = len(parent_dn) == 0
 
@@ -230,7 +230,8 @@ class AddRequest(BaseRequest):
                     path.directories.extend(
                         [p.endpoint for p in parent.paths + [path]])
                 await session.flush()
-                new_dir.object_sid = domain_sid + f"-{1000+new_dir.id}"
+                new_dir.object_sid = await create_object_sid(session,
+                                                             new_dir.id)
                 await session.commit()
             except IntegrityError:
                 await session.rollback()
