@@ -295,19 +295,16 @@ class SearchRequest(BaseRequest):
 
         if self.base_object:
             if self.base_object.lower() == dn.lower():  # noqa  # domain info
-                domain = await get_base_dn(session, True)
-                domain_sid = await get_domain_sid(session)
-                domain_guid = await get_domain_guid(session)
-
                 attrs = defaultdict(list)
                 attrs['serverState'].append('1')
                 attrs['objectClass'].append('domain')
                 attrs['objectClass'].append('domainDNS')
                 attrs['objectClass'].append('top')
-                attrs['nisDomain'].append(domain)
-                attrs['objectSid'].append(string_to_sid(domain_sid))
-                attrs['objectGUID'].append(
-                    uuid.UUID(domain_guid).bytes_le)  # type: ignore
+                attrs['nisDomain'].append(await get_base_dn(session, True))
+                attrs['objectSid'].append(string_to_sid(
+                    await get_domain_sid(session)))
+                attrs['objectGUID'].append(uuid.UUID(
+                    await get_domain_guid(session)).bytes_le)  # type: ignore
 
                 return SearchResultEntry(
                     object_name=dn,
