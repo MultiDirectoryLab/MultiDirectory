@@ -130,7 +130,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import hashlib
+import random
 import re
+import struct
 from calendar import timegm
 from datetime import datetime
 from operator import attrgetter
@@ -431,6 +433,83 @@ def get_path_filter(
     :return ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
+
+
+@cache
+async def get_domain_sid(session: AsyncSession) -> str:
+    """Get domain sid."""
+    sid = await session.scalar(select(CatalogueSetting).filter(
+        CatalogueSetting.name == 'domain_object_sid'))
+
+    return sid.value
+
+
+@cache
+async def get_domain_guid(session: AsyncSession) -> str:
+    """Get domain objectGUID."""
+    guid = await session.scalar(select(CatalogueSetting).filter(
+        CatalogueSetting.name == 'domain_object_guid'))
+
+    return guid.value
+
+
+def string_to_sid(sid_string: str) -> bytes:
+    """Convert a string representation of a SID to its binary form.
+
+    The conversion process includes:
+    1. Parsing the string to extract the SID components (revision,
+    identifier authority, and sub-authorities).
+    2. Packing these components into a byte sequence:
+        - The revision is packed as a single byte.
+        - The number of sub-authorities is packed as a single byte.
+        - The identifier authority is packed as a 6-byte sequence.
+        - Each sub-authority is packed as a 4-byte sequence.
+
+    :param sid_string: The string representation of the SID
+    :return bytes: The binary representation of the SID
+    """
+    parts = sid_string.split('-')
+
+    revision = int(parts[1])
+    identifier_authority = int(parts[2])
+
+    sub_authorities = [int(part) for part in parts[3:]]
+    sub_auth_count = len(sub_authorities)
+
+    sid = struct.pack('<B', revision)
+    sid += struct.pack('B', sub_auth_count)
+
+    sid += struct.pack('>Q', identifier_authority)[2:]
+
+    for sub_auth in sub_authorities:
+        sid += struct.pack('<I', sub_auth)
+
+    return sid
+
+
+async def create_object_sid(
+        session: AsyncSession, rid: int, reserved: bool = False) -> str:
+    """Generate the objectSid attribute for an object.
+
+    :param session: db
+    :param int rid: relative identifier
+    :param bool reserved: A flag indicating whether the RID is reserved.
+                          If `True`, the given RID is used directly. If
+                          `False`, 1000 is added to the given RID to generate
+                          the final RID
+    :return str: the complete objectSid as a string
+    """
+    return await get_domain_sid(session) + f"-{rid if reserved else 1000+rid}"
+
+
+def generate_domain_sid() -> str:
+    """Generate domain objectSid attr."""
+    sub_authorities = [
+        random.randint(1000000000, (1 << 32) - 1),
+        random.randint(1000000000, (1 << 32) - 1),
+        random.randint(100000000, 999999999),
+    ]
+    return 'S-1-5-21-' + '-'.join(str(part) for part in sub_authorities)
 
 
 get_class_name = attrgetter('__class__.__name__')

@@ -16,6 +16,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import uuid
 from itertools import chain
 
 from loguru import logger
@@ -24,6 +25,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
+from ldap_protocol.utils import create_object_sid, generate_domain_sid
 from models.database import create_session_factory
 from models.ldap3 import (
     Attribute,
@@ -54,28 +56,28 @@ async def _create_dir(
     parent: Directory | None = None,
 ) -> None:
     """Create data recursively."""
-    if not parent:
-        dir_ = Directory(
-            object_class=data['object_class'], name=data['name'])
-        path = dir_.create_path(dn=dir_.get_dn_prefix())
+    dir_ = Directory(
+        object_class=data['object_class'],
+        name=data['name'],
+        parent=parent)
+    path = dir_.create_path(parent, dir_.get_dn_prefix())
 
-        async with session.begin_nested():
-            session.add_all([dir_, path])
-            dir_.paths.append(path)
-            dir_.depth = len(path.path)
-
-    else:
-        dir_ = Directory(
-            object_class=data['object_class'],
-            name=data['name'],
-            parent=parent)
-        path = dir_.create_path(parent, dir_.get_dn_prefix())
-
-        async with session.begin_nested():
-            session.add_all([dir_, path])
+    async with session.begin_nested():
+        session.add_all([dir_, path])
+        if parent:
             path.directories.extend(
                 [p.endpoint for p in parent.paths + [path]])
-            dir_.depth = len(path.path)
+        else:
+            dir_.paths.append(path)
+
+        dir_.depth = len(path.path)
+        await session.flush()
+
+        dir_.object_sid = await create_object_sid(
+            session,
+            rid=data.get('objectSid', dir_.id),
+            reserved='objectSid' in data,
+        )
 
     if dir_.object_class == 'group':
         group = Group(directory=dir_)
@@ -141,17 +143,26 @@ async def setup_enviroment(
         logger.warning('dev data already set up')
         return
 
+    object_sid = generate_domain_sid()
+
     catalogue = CatalogueSetting(
         name='defaultNamingContext', value=dn)
+    domain_sid = CatalogueSetting(
+        name='domain_object_sid', value=object_sid)
+    domain_guid = CatalogueSetting(
+        name='domain_object_guid', value=str(uuid.uuid4()))
 
     async with session.begin_nested():
         session.add(catalogue)
+        session.add(domain_sid)
+        session.add(domain_guid)
         session.add(NetworkPolicy(
             name='Default open policy',
             netmasks=['0.0.0.0/0'],
             raw=['0.0.0.0/0'],
             priority=1,
         ))
+        await session.flush()
 
     try:
         for unit in data:

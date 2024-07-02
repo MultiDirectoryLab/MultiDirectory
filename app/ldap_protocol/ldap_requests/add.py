@@ -22,6 +22,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import (
     create_integer_hash,
+    create_object_sid,
     get_base_dn,
     get_groups,
     get_path_filter,
@@ -228,6 +229,9 @@ class AddRequest(BaseRequest):
                 else:
                     path.directories.extend(
                         [p.endpoint for p in parent.paths + [path]])
+                await session.flush()
+                new_dir.object_sid = await create_object_sid(
+                    session, new_dir.id)
                 await session.commit()
             except IntegrityError:
                 await session.rollback()

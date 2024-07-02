@@ -18,7 +18,12 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.utils import get_base_dn, set_last_logon_user
+from ldap_protocol.utils import (
+    get_base_dn,
+    get_domain_guid,
+    get_domain_sid,
+    set_last_logon_user,
+)
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
 from models.ldap3 import User as DBUser
@@ -230,6 +235,7 @@ async def first_setup(
                         'sAMAccountName': ['domain admins'],
                         'sAMAccountType': ['268435456'],
                     },
+                    "objectSid": 512,
                 },
             ],
         },
@@ -260,6 +266,7 @@ async def first_setup(
                         "uidNumber": ["1000"],
                         "gidNumber": ["10000"],
                     },
+                    "objectSid": 500,
                 },
             ],
         },
@@ -287,3 +294,5 @@ async def first_setup(
             raise HTTPException(status.HTTP_423_LOCKED)
         else:
             get_base_dn.cache_clear()
+            get_domain_sid.cache_clear()
+            get_domain_guid.cache_clear()

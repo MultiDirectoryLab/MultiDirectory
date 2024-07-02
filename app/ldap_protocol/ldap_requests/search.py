@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import sys
+import uuid
 from collections import defaultdict
 from functools import cached_property
 from math import ceil
@@ -34,11 +35,14 @@ from ldap_protocol.utils import (
     dt_to_ft,
     get_attribute_types,
     get_base_dn,
+    get_domain_guid,
+    get_domain_sid,
     get_generalized_now,
     get_object_classes,
     get_path_filter,
     get_search_path,
     get_windows_timestamp,
+    string_to_sid,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group, Path, User
 
@@ -93,6 +97,9 @@ class SearchRequest(BaseRequest):
 
         arbitrary_types_allowed = True
         ignored_types = (cached_property,)
+        json_encoder = {
+            ASN1Row: lambda value: str(value),
+        }
 
     @classmethod
     def from_data(   # noqa: D102
@@ -250,11 +257,9 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
 
-        if self.scope == Scope.BASE_OBJECT:
+        if self.scope in {Scope.BASE_OBJECT, Scope.WHOLE_SUBTREE}:
             if (metadata := await self.get_base_data(session, ldap_session)):
                 yield metadata
-                yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
-                return
 
         base_dn = await get_base_dn(session)
         query = self.build_query(base_dn)
@@ -295,6 +300,11 @@ class SearchRequest(BaseRequest):
                 attrs['objectClass'].append('domain')
                 attrs['objectClass'].append('domainDNS')
                 attrs['objectClass'].append('top')
+                attrs['nisDomain'].append(await get_base_dn(session, True))
+                attrs['objectSid'].append(string_to_sid(
+                    await get_domain_sid(session)))
+                attrs['objectGUID'].append(uuid.UUID(
+                    await get_domain_guid(session)).bytes_le)  # type: ignore
 
                 return SearchResultEntry(
                     object_name=dn,
@@ -498,6 +508,10 @@ class SearchRequest(BaseRequest):
 
             for attr in directory_fields:
                 attribute = getattr(directory, attr)
+                if attr == 'objectsid':
+                    attribute = string_to_sid(attribute)
+                elif attr == 'objectguid':
+                    attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
 
             yield SearchResultEntry(
