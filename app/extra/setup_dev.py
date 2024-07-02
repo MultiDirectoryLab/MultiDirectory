@@ -73,9 +73,11 @@ async def _create_dir(
         dir_.depth = len(path.path)
         await session.flush()
 
-        reserved = 'objectSid' in data
-        rid = data.get('objectSid', dir_.id)
-        dir_.object_sid = await create_object_sid(session, rid, reserved)
+        dir_.object_sid = await create_object_sid(
+            session,
+            rid=data.get('objectSid', dir_.id),
+            reserved='objectSid' in data,
+        )
 
     if dir_.object_class == 'group':
         group = Group(directory=dir_)
