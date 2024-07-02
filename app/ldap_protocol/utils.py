@@ -494,8 +494,8 @@ async def create_object_sid(
     :param session: db
     :param int rid: relative identifier
     :param bool reserved: A flag indicating whether the RID is reserved.
-                          If `True`, the given RID is used directly. If 
-                          `False`, 1000 is added to the given RID to generate 
+                          If `True`, the given RID is used directly. If
+                          `False`, 1000 is added to the given RID to generate
                           the final RID
     :return str: the complete objectSid as a string
     """
