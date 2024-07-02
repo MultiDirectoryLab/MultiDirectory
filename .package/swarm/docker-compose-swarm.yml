@@ -62,7 +62,6 @@ services:
 
   interface:
     image: ${MD_WEB_ADMIN_IMAGE}
-    restart: unless-stopped
     logging:
       driver: "json-file"
       options:
@@ -84,7 +83,6 @@ services:
 
   ldap_server:
     image: ${MD_IMAGE}
-    restart: unless-stopped
     logging:
       driver: "json-file"
       options:
@@ -97,8 +95,10 @@ services:
     volumes:
       - logs:/app/logs
     secrets:
-      - source: acme.json
-        target: /certs/acme.json
+      - source: privkey.pem
+        target: /certs/privkey.pem
+      - source: cert.pem
+        target: /certs/cert.pem
     command: python -OO . --loop uvloop
     networks:
       - md
@@ -235,8 +235,6 @@ secrets:
      file: certs/cert-md.pem
    privkey.pem:
      file: certs/privkey-md.pem
-   acme.json:
-     file: certs/acme.json
 
 volumes:
   traefik:
