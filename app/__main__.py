@@ -28,6 +28,7 @@ from sqlalchemy.orm import selectinload
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, Session
+from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 from models.database import create_session_factory
 from models.ldap3 import NetworkPolicy
@@ -55,6 +56,8 @@ class PoolClientHandler:
     No __init__ method, as `start_server`
     uses callable object for a single connection.
     """
+
+    kadmin: AbstractKadmin
 
     def __init__(
         self,
@@ -108,7 +111,11 @@ class PoolClientHandler:
     ) -> None:
         """Create session, queue and start message handlers concurrently."""
         async with Session(
-                reader, writer, settings=self.settings) as ldap_session:
+            reader=reader,
+            writer=writer,
+            settings=self.settings,
+            kadmin=self.kadmin,
+        ) as ldap_session:
             if (policy := await self.get_policy(ldap_session.ip)) is not None:
                 ldap_session.policy = policy
             else:
@@ -314,14 +321,26 @@ class PoolClientHandler:
         addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
         log.info(f'Server on {addrs}')
 
+    @asynccontextmanager
+    async def _get_kadmin(self) -> AsyncIterator[AbstractKadmin]:
+        async with self.create_session() as session:
+            kadmin_class = await get_kerberos_class(session)
+
+        async with kadmin_class.get_krb_ldap_client(self.settings) as kadmin:
+            yield kadmin
+
     async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
+
         try:
-            await self._run_server(server)
+            async with self._get_kadmin() as kadmin:
+                self.kadmin = kadmin
+                await self._run_server(server)
         finally:
             server.close()
             await server.wait_closed()
+            del self.kadmin
 
 
 if __name__ == '__main__':
