@@ -152,17 +152,15 @@ services:
       - "traefik.http.routers.pg.entrypoints=web"
       - "traefik.http.services.pg.loadbalancer.server.port=80"
 
-  krb5:
+  kdc:
     build:
       context: .kerberos
-    container_name: krb5_kdc
+    container_name: kdc
     restart: unless-stopped
     volumes:
-      - ./certs:/certs
       - .kerberos/kdc.conf:/var/kerberos/krb5kdc/kdc.conf
       - keyfile:/etc/krb5.d/
       - kdc:/etc/krb5kdc/
-      - .kerberos/config_server.py:/server/config_server.py
       - type: bind
         source: ./certs/krb5.conf
         target: /etc/krb5.conf
@@ -176,7 +174,7 @@ services:
 
   kadmin:
     image: krb5md
-    container_name: krb5_kadmin
+    container_name: kadmin
     restart: unless-stopped
     volumes:
       - ./certs:/certs
