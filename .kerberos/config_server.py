@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
@@ -24,6 +25,8 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+logging.basicConfig(level=logging.INFO)
 
 
 class KAdminProtocol(Protocol):
@@ -129,6 +132,7 @@ class KAdminLocalManager(AbstractKRBManager):
         """Create threadpool for kadmin client."""
         self.pool = ThreadPoolExecutor(max_workers=500).__enter__()
         self.client = await self._init_client()
+        logging.info('Successfully connected to kadmin local')
         return self
 
     async def __aexit__(
@@ -213,10 +217,13 @@ class KAdminLocalManager(AbstractKRBManager):
 
 
 @asynccontextmanager
-async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[KAdminLocalManager]:
+async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create kadmin instance."""
-    async with KAdminLocalManager() as kadmind:
-        app.state.kadmind = kadmind
+    try:
+        async with KAdminLocalManager() as kadmind:
+            app.state.kadmind = kadmind
+            yield
+    except Exception:
         yield
 
 
@@ -275,7 +282,7 @@ def handle_not_found(request: Request, exc: BaseException):
         status.HTTP_404_NOT_FOUND, detail='Principal does not exist')
 
 
-@app.post('/setup', response_class=Response, status_code=201)
+@app.post('/setup', status_code=201)
 async def run_setup(schema: ConfigSchema) -> None:
     """Set up server."""
     with open('/etc/krb5.conf', 'wb') as f:
