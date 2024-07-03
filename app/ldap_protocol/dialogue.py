@@ -16,7 +16,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.kerberos import KerberosMDAPIClient
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI, get_auth_ldap
 from models.ldap3 import NetworkPolicy, User
 
@@ -143,10 +143,10 @@ class Session:
     settings: Settings
 
     _mfa_api_class: type[MultifactorAPI] = MultifactorAPI
-    _kerberos_api_class: type[KerberosMDAPIClient] = KerberosMDAPIClient
 
     def __init__(
-        self,
+        self, *,
+        kadmin: AbstractKadmin,
         reader: asyncio.StreamReader | None = None,
         writer: asyncio.StreamWriter | None = None,
         user: User | None = None,
@@ -156,6 +156,7 @@ class Session:
         self._lock = asyncio.Lock()
         self._user: User | None = user
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
+        self.kadmin = kadmin
 
         if settings:
             self.settings = settings
@@ -202,8 +203,6 @@ class Session:
     async def __aenter__(self) -> 'Session':  # noqa
         self.stack = await AsyncExitStack().__aenter__()
         self.client = await self.stack.enter_async_context(httpx.AsyncClient())
-        self.kadmin = await self.stack.enter_async_context(
-            self._kerberos_api_class.get_krb_ldap_client(self.settings))
         return self
 
     async def __aexit__(
