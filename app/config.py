@@ -76,7 +76,9 @@ class Settings(BaseSettings):
         ZoneInfo('UTC'), alias='TZ')
 
     KRB5_LDAP_URI: str = 'ldap://md'
-    KRB5_CONFIG_SERVER: HttpUrl = 'https://krb5:8000'  # type: ignore
+    KRB5_CONFIG_SERVER: HttpUrl = 'https://kadmin:8000'  # type: ignore
+    KRB5_SERVER_MAX_CONN: int = 500
+    KRB5_SERVER_MAX_KEEPALIVE: int = 100
 
     @field_validator('TIMEZONE', mode='before')
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
