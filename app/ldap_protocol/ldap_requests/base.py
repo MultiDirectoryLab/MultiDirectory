@@ -78,6 +78,8 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         responses = [
             response async for response in self.handle(ldap_session, session)]
 
+        await session.commit()
+
         if ldap_session.settings.DEBUG:
             for response in responses:
                 log_api.info(response.model_dump_json(indent=4))
