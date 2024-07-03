@@ -237,6 +237,13 @@ class AddRequest(BaseRequest):
             await session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:
+            if user:
+                pw = (
+                    self.password.get_secret_value()
+                    if self.password else None)
+
+                await ldap_session.kadmin.add_principal(
+                    user.sam_accout_name, pw)
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
     @classmethod
