@@ -4,16 +4,16 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from enum import StrEnum
-from typing import Annotated, AsyncIterator
+from typing import AsyncIterator
 
 import httpx
-from fastapi import Depends
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings, get_settings
+from config import Settings
 from models import CatalogueSetting
 
 KERBEROS_STATE_NAME = 'KerberosState'
@@ -28,8 +28,8 @@ class KerberosState(StrEnum):
     DENIED = '3'
 
 
-class KerberosMDAPIClient:
-    """KRB server integration."""
+class AbstractKadmin(ABC):
+    """Stub client for non set up dirs."""
 
     client: httpx.AsyncClient
 
@@ -65,8 +65,47 @@ class KerberosMDAPIClient:
             "stash_password": stash_password,
             'krb5_config': krb5_config.encode().hex(),
         })
-        if response != 201:
+
+        if response.status_code != 201:
             raise self.KRBAPIError(response.text)
+
+    @abstractmethod
+    async def add_principal(self, name: str, password: str) -> None: ...  # noqa
+
+    @abstractmethod
+    async def get_principal(self, name: str) -> dict: ...  # type: ignore  # noqa
+
+    @abstractmethod
+    async def change_principal_password(  # noqa
+        self, name: str, password: str) -> None: ...  # noqa
+
+    @abstractmethod
+    async def create_or_update_principal_pw(  # noqa
+        self, name: str, password: str) -> None: ...  # noqa
+
+    @abstractmethod
+    async def rename_princ(self, name: str, new_name: str) -> None: ... # noqa
+
+    @classmethod
+    @asynccontextmanager
+    async def get_krb_ldap_client(
+            cls, settings: Settings) -> AsyncIterator['AbstractKadmin']:
+        """Get krb client."""
+        limits = httpx.Limits(
+            max_connections=settings.KRB5_SERVER_MAX_CONN,
+            max_keepalive_connections=settings.KRB5_SERVER_MAX_KEEPALIVE,
+        )
+        async with httpx.AsyncClient(
+            timeout=30,
+            verify="/certs/krbcert.pem",
+            base_url=str(settings.KRB5_CONFIG_SERVER),
+            limits=limits,
+        ) as client:
+            yield cls(client)
+
+
+class KerberosMDAPIClient(AbstractKadmin):
+    """KRB server integration."""
 
     async def add_principal(self, name: str, password: str) -> None:
         """Add request."""
@@ -107,28 +146,8 @@ class KerberosMDAPIClient:
         if response != 200:
             raise self.KRBAPIError(response.json())
 
-    @classmethod
-    async def get_krb_http_client(
-        cls, settings: Annotated[Settings, Depends(get_settings)],
-    ) -> AsyncIterator['KerberosMDAPIClient']:
-        """Get async client for DI."""
-        async with cls.get_krb_ldap_client(settings) as client:
-            yield client
 
-    @classmethod
-    @asynccontextmanager
-    async def get_krb_ldap_client(
-            cls, settings: Settings) -> AsyncIterator['KerberosMDAPIClient']:
-        """Get krb client."""
-        async with httpx.AsyncClient(
-            timeout=30,
-            verify="/certs/krbcert.pem",
-            base_url=str(settings.KRB5_CONFIG_SERVER),
-        ) as client:
-            yield cls(client)
-
-
-class StubKadminMDADPIClient(KerberosMDAPIClient):
+class StubKadminMDADPIClient(AbstractKadmin):
     """Stub client for non set up dirs."""
 
     async def add_principal(self, name: str, password: str) -> None: ...  # noqa
@@ -173,7 +192,7 @@ async def set_state(session: AsyncSession, state: 'KerberosState') -> None:
 
 async def get_kerberos_class(
     session: AsyncSession,
-) -> type[KerberosMDAPIClient] | type[StubKadminMDADPIClient]:
+) -> type[AbstractKadmin]:
     """Get kerberos server state.
 
     :param AsyncSession session: db
