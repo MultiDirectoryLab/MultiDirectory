@@ -14,7 +14,7 @@ from fastapi.routing import APIRouter
 from api.auth import User, get_current_user
 from config import Settings, get_settings
 from ldap_protocol.dialogue import Session as LDAPSession
-from ldap_protocol.kerberos import KerberosMDAPIClient
+from ldap_protocol.kerberos import KerberosState, set_state
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.utils import get_base_dn, get_dn_by_id
 from models.database import AsyncSession, get_session
@@ -36,8 +36,6 @@ async def setup_kdc(
     session: Annotated[AsyncSession, Depends(get_session)],
     ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
     settings: Annotated[Settings, Depends(get_settings)],
-    kadmin: Annotated[
-        KerberosMDAPIClient, Depends(KerberosMDAPIClient.get_krb_http_client)],
 ) -> None:
     """Set up KDC server.
 
@@ -90,7 +88,7 @@ async def setup_kdc(
             "sn": ["krbadmin"],
             "uid": ["krbadmin"],
             "homeDirectory": ["/home/krbadmin"],
-            "memberOf": [group],
+            "memberOf": [krbgroup],
             "sAMAccountName": ['krbadmin'],
             "userPrincipalName": ['krbadmin'],
             "displayName": ["Kerberos Administrator"],
@@ -103,10 +101,11 @@ async def setup_kdc(
             await anext(group.handle(ldap_session, session)),
             await anext(rkb_user.handle(ldap_session, session)),
         )
-        await session.commit()
+        await session.flush()
         if not all(result.result_code == 0 for result in results):
             await session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT)
+        await session.commit()
 
     template = TEMPLATES.get_template('krb5.conf')
 
@@ -118,7 +117,7 @@ async def setup_kdc(
     )
 
     try:
-        await kadmin.setup(
+        await ldap_session.kadmin.setup(
             domain=domain,
             admin_dn=await get_dn_by_id(user.directory_id, session),
             services_dn=services_container,
@@ -126,7 +125,9 @@ async def setup_kdc(
             krbadmin_password=data.krbadmin_password.get_secret_value(),
             admin_password=data.admin_password.get_secret_value(),
             stash_password=data.stash_password.get_secret_value(),
-            krb5_config=config.encode().hex(),
+            krb5_config=config,
         )
-    except KerberosMDAPIClient.KRBAPIError:
-        raise HTTPException(status.HTTP_304_NOT_MODIFIED)
+    except ldap_session.kadmin.KRBAPIError as err:
+        raise HTTPException(status.HTTP_304_NOT_MODIFIED, err)
+
+    await set_state(session, KerberosState.READY)
