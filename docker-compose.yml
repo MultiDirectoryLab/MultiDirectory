@@ -163,7 +163,6 @@ services:
       - keyfile:/etc/krb5.d/
       - kdc:/etc/krb5kdc/
       - .kerberos/config_server.py:/server/config_server.py
-      - .kerberos/supervisord.conf:/etc/supervisord.conf
       - type: bind
         source: ./certs/krb5.conf
         target: /etc/krb5.conf
@@ -185,7 +184,6 @@ services:
       - keyfile:/etc/krb5.d/
       - kdc:/etc/krb5kdc/
       - .kerberos/config_server.py:/server/config_server.py
-      - .kerberos/supervisord.conf:/etc/supervisord.conf
       - type: bind
         source: ./certs/krb5.conf
         target: /etc/krb5.conf
