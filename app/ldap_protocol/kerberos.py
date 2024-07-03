@@ -24,8 +24,6 @@ class KerberosState(StrEnum):
 
     NOT_CONFIGURED = '0'
     READY = '1'
-    WAITING_FOR_RELOAD = '2'
-    DENIED = '3'
 
 
 class AbstractKadmin(ABC):
@@ -112,13 +110,13 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.post('principal', json={
             'name': name, 'password': password})
 
-        if response != 201:
+        if response.status_code != 201:
             raise self.KRBAPIError(response.json())
 
     async def get_principal(self, name: str) -> dict:
         """Get request."""
         response = await self.client.post('principal', data={'name': name})
-        if response != 200:
+        if response.status_code != 200:
             raise self.KRBAPIError(response.json())
         return response.json()
 
@@ -127,7 +125,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         """Change password request."""
         response = await self.client.patch('principal', json={
             'name': name, 'password': password})
-        if response != 201:
+        if response.status_code != 201:
             raise self.KRBAPIError(response.json())
 
     async def create_or_update_principal_pw(
@@ -136,14 +134,14 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.post(
             '/principal/create_or_update', json={
                 'name': name, 'password': password})
-        if response != 201:
+        if response.status_code != 201:
             raise self.KRBAPIError(response.json())
 
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename request."""
         response = await self.client.patch('principal', json={
             'name': name, 'new_name': new_name})
-        if response != 200:
+        if response.status_code != 200:
             raise self.KRBAPIError(response.json())
 
 
@@ -177,6 +175,7 @@ async def get_krb_server_state(session: AsyncSession) -> 'KerberosState':
                 value=KerberosState.NOT_CONFIGURED,
             ),
         )
+        await session.commit()
         return KerberosState.NOT_CONFIGURED
     return state.value
 
