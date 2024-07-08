@@ -7,9 +7,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from enum import StrEnum
-from typing import AsyncIterator
+from functools import wraps
+from typing import Any, AsyncIterator, Callable
 
 import httpx
+from loguru import logger
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +19,40 @@ from config import Settings
 from models import CatalogueSetting
 
 KERBEROS_STATE_NAME = 'KerberosState'
+
+
+log = logger.bind(name='kadmin')
+
+log.add(
+    "logs/kadmin_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == 'kadmin',
+    retention="10 days",
+    rotation="1d",
+    colorize=False)
+
+
+class KRBAPIError(Exception):
+    """API Error."""
+
+
+def logger_wraps() -> Callable:
+    def wrapper(func: Callable) -> Callable:
+        name = func.__name__
+
+        @wraps(func)
+        async def wrapped(*args: tuple[Any], **kwargs: dict[str, Any]) -> Any:
+            logger_ = log.opt(depth=1)
+            logger_.info("Entering '{}'", name)
+            try:
+                result = await func(*args, **kwargs)
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                logger_.critical("Can not access kadmin server!")
+                raise KRBAPIError
+            return result
+
+        return wrapped
+
+    return wrapper
 
 
 class KerberosState(StrEnum):
@@ -30,9 +66,6 @@ class AbstractKadmin(ABC):
     """Stub client for non set up dirs."""
 
     client: httpx.AsyncClient
-
-    class KRBAPIError(Exception):
-        """API Error."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         """Set client.
@@ -65,7 +98,7 @@ class AbstractKadmin(ABC):
         })
 
         if response.status_code != 201:
-            raise self.KRBAPIError(response.text)
+            raise KRBAPIError(response.text)
 
     @abstractmethod
     async def add_principal(self, name: str, password: str) -> None: ...  # noqa
@@ -108,35 +141,43 @@ class AbstractKadmin(ABC):
 class KerberosMDAPIClient(AbstractKadmin):
     """KRB server integration."""
 
+    @logger_wraps()
     async def add_principal(self, name: str, password: str) -> None:
         """Add request."""
+        log.critical('HERE')
         response = await self.client.post('principal', json={
             'name': name, 'password': password})
 
         if response.status_code != 201:
-            raise self.KRBAPIError(response.json())
+            raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def get_principal(self, name: str) -> dict:
         """Get request."""
         response = await self.client.post('principal', data={'name': name})
         if response.status_code != 200:
-            raise self.KRBAPIError(response.json())
+            raise KRBAPIError(response.text)
+
         return response.json()
 
+    @logger_wraps()
     async def del_principal(self, name: str) -> None:
         """Delete principal."""
         response = await self.client.delete('principal', params={'name': name})
+        log.critical(response.url)
         if response.status_code != 200:
-            raise self.KRBAPIError(response.json())
+            raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def change_principal_password(
             self, name: str, password: str) -> None:
         """Change password request."""
         response = await self.client.patch('principal', json={
             'name': name, 'password': password})
         if response.status_code != 201:
-            raise self.KRBAPIError(response.json())
+            raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def create_or_update_principal_pw(
             self, name: str, password: str) -> None:
         """Change password request."""
@@ -144,14 +185,15 @@ class KerberosMDAPIClient(AbstractKadmin):
             '/principal/create_or_update', json={
                 'name': name, 'password': password})
         if response.status_code != 201:
-            raise self.KRBAPIError(response.json())
+            raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename request."""
         response = await self.client.patch('principal', json={
             'name': name, 'new_name': new_name})
         if response.status_code != 200:
-            raise self.KRBAPIError(response.json())
+            raise KRBAPIError(response.text)
 
 
 class StubKadminMDADPIClient(AbstractKadmin):
