@@ -247,7 +247,7 @@ class User(DirectoryReferenceMixin, Base):
 
     sam_accout_name = Column(
         'sAMAccountName', String, nullable=False, unique=True)
-    user_principal_name = Column(
+    user_principal_name: str = Column(
         'userPrincipalName', String, nullable=False, unique=True)
 
     mail = Column(String(255))
@@ -286,6 +286,10 @@ class User(DirectoryReferenceMixin, Base):
         back_populates='users',
         overlaps="group,groups,directory",
     )
+
+    def get_upn_prefix(self) -> str:
+        """Get userPrincipalName prefix."""
+        return self.user_principal_name.split('@')[0]
 
 
 class Group(DirectoryReferenceMixin, Base):
