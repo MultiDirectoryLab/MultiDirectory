@@ -243,7 +243,7 @@ class AddRequest(BaseRequest):
                     if self.password else None)
 
                 await ldap_session.kadmin.add_principal(
-                    user.sam_accout_name, pw)
+                    user.get_upn_prefix(), pw)
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
     @classmethod
