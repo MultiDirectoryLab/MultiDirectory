@@ -302,10 +302,10 @@ async def run_setup(schema: ConfigSchema) -> None:
         schema.krbadmin_password.encode(),
     ]) + b'\n'
 
-    await proc.communicate(input=data)
+    logging.info(await proc.communicate(input=data))
 
     if await proc.wait() != 0:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, 'failed stash')
+        raise HTTPException(status.HTTP_409_CONFLICT, 'failed stash')
 
     create_proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util", "-D", schema.admin_dn,
@@ -320,8 +320,10 @@ async def run_setup(schema: ConfigSchema) -> None:
         schema.stash_password.encode(),
         schema.stash_password.encode(), b'',
     ])
-    _, stderr = await create_proc.communicate(input=data)
+    stdin, stderr = await create_proc.communicate(input=data)
 
+    logging.info(stdin)
+    logging.info(stderr)
     if await create_proc.wait() != 0:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, stderr.decode())
 
@@ -353,6 +355,20 @@ async def get_princ(
     :param Annotated[str, Body password: principal password
     """
     return await kadmin.get_princ(name)
+
+
+@app.delete('/principal')
+async def del_princ(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    name: str,
+) -> Principal:
+    """Add principal.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    :param Annotated[str, Body password: principal password
+    """
+    return await kadmin.del_princ(name)
 
 
 @app.patch('/principal', status_code=201, response_class=Response)
