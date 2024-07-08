@@ -193,6 +193,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 update(Directory).where(Directory.id == user.directory_id),
             )
             await session.commit()
+            await ldap_session.kadmin.create_or_update_principal_pw(
+                user.get_upn_prefix(), self.new_password)
             return PasswdModifyResponse()
         raise PermissionError('No user provided')
 

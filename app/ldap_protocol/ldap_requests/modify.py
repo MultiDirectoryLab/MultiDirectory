@@ -264,6 +264,8 @@ class ModifyRequest(BaseRequest):
                         f'Password policy violation: {errors}')
                 directory.user.password = get_password_hash(value)
                 await post_save_password_actions(directory.user, session)
+                await ldap_session.kadmin.create_or_update_principal_pw(
+                    directory.user.get_upn_prefix(), value)
 
             else:
                 attrs.append(Attribute(
