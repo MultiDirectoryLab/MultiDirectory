@@ -361,14 +361,14 @@ async def get_princ(
 async def del_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
-) -> Principal:
+) -> None:
     """Add principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
     :param Annotated[str, Body name: principal name
     :param Annotated[str, Body password: principal password
     """
-    return await kadmin.del_princ(name)
+    await kadmin.del_princ(name)
 
 
 @app.patch('/principal', status_code=201, response_class=Response)
