@@ -74,6 +74,9 @@ class AbstractKadmin(ABC):
     async def get_principal(self, name: str) -> dict: ...  # type: ignore  # noqa
 
     @abstractmethod
+    async def del_principal(self, name: str) -> None: ...  # type: ignore  # noqa
+
+    @abstractmethod
     async def change_principal_password(  # noqa
         self, name: str, password: str) -> None: ...  # noqa
 
@@ -120,6 +123,12 @@ class KerberosMDAPIClient(AbstractKadmin):
             raise self.KRBAPIError(response.json())
         return response.json()
 
+    async def del_principal(self, name: str) -> None:
+        """Delete principal."""
+        response = await self.client.delete('principal', params={'name': name})
+        if response.status_code != 200:
+            raise self.KRBAPIError(response.json())
+
     async def change_principal_password(
             self, name: str, password: str) -> None:
         """Change password request."""
@@ -151,6 +160,8 @@ class StubKadminMDADPIClient(AbstractKadmin):
     async def add_principal(self, name: str, password: str) -> None: ...  # noqa
 
     async def get_principal(self, name: str) -> None: ...  # type: ignore  # noqa
+
+    async def del_principal(self, name: str) -> None: ...  # type: ignore  # noqa
 
     async def change_principal_password(  # noqa
         self, name: str, password: str) -> None: ...  # noqa
