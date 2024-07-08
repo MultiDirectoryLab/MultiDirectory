@@ -14,7 +14,7 @@ from fastapi.routing import APIRouter
 from api.auth import User, get_current_user
 from config import Settings, get_settings
 from ldap_protocol.dialogue import Session as LDAPSession
-from ldap_protocol.kerberos import KerberosState, set_state
+from ldap_protocol.kerberos import KerberosState, KRBAPIError, set_state
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.utils import get_base_dn, get_dn_by_id
 from models.database import AsyncSession, get_session
@@ -127,7 +127,8 @@ async def setup_kdc(
             stash_password=data.stash_password.get_secret_value(),
             krb5_config=config,
         )
-    except ldap_session.kadmin.KRBAPIError as err:
+    except KRBAPIError as err:
         raise HTTPException(status.HTTP_304_NOT_MODIFIED, err)
 
     await set_state(session, KerberosState.READY)
+    await session.commit()
