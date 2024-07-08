@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
+from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.utils import (
     get_user,
@@ -268,6 +269,13 @@ class BindRequest(BaseRequest):
                     if mfa_status is False:
                         yield self.BAD_RESPONSE
                         return
+
+        try:
+            await ldap_session.kadmin.add_principal(
+                user.get_upn_prefix(),
+                self.authentication_choice.password.get_secret_value())
+        except KRBAPIError:
+            pass
 
         await ldap_session.set_user(user)
         await set_last_logon_user(
