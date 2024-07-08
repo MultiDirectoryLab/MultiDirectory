@@ -8,6 +8,7 @@ from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, Session
@@ -55,6 +56,7 @@ class DeleteRequest(BaseRequest):
 
         query = select(Directory)\
             .join(Directory.path)\
+            .options(joinedload(Directory.user))\
             .filter(get_path_filter(search_path))
 
         obj = await session.scalar(query)
@@ -64,5 +66,9 @@ class DeleteRequest(BaseRequest):
 
         await session.delete(obj)
         await session.commit()
+
+        if obj.user:
+            await ldap_session.kadmin.del_principal(
+                obj.user.get_upn_prefix())
 
         yield DeleteResponse(result_code=LDAPCodes.SUCCESS)
