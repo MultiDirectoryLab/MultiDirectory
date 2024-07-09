@@ -144,7 +144,6 @@ class KerberosMDAPIClient(AbstractKadmin):
     @logger_wraps()
     async def add_principal(self, name: str, password: str) -> None:
         """Add request."""
-        log.critical('HERE')
         response = await self.client.post('principal', json={
             'name': name, 'password': password})
 
