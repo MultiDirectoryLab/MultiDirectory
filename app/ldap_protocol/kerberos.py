@@ -84,6 +84,7 @@ class AbstractKadmin(ABC):
         admin_password: str,
         stash_password: str,
         krb5_config: str,
+        kdc_config: str,
     ) -> None:
         """Request Setup."""
         response = await self.client.post('setup', json={
@@ -95,6 +96,7 @@ class AbstractKadmin(ABC):
             "admin_password": admin_password,
             "stash_password": stash_password,
             'krb5_config': krb5_config.encode().hex(),
+            'kdc_config': kdc_config.encode().hex(),
         })
 
         if response.status_code != 201:
