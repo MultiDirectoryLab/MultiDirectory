@@ -48,6 +48,7 @@ class ConfigSchema(BaseModel):
     admin_password: str
     stash_password: str
     krb5_config: str
+    kdc_config: str
 
 
 class Principal(BaseModel):
@@ -287,6 +288,9 @@ async def run_setup(schema: ConfigSchema) -> None:
     """Set up server."""
     with open('/etc/krb5.conf', 'wb') as f:
         f.write(bytes.fromhex(schema.krb5_config))
+
+    with open('/etc/kdc.conf', 'wb') as f:
+        f.write(bytes.fromhex(schema.kdc_config))
 
     proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util",

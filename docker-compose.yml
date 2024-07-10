@@ -158,12 +158,14 @@ services:
     container_name: kdc
     restart: unless-stopped
     volumes:
-      - .kerberos/kdc.conf:/var/kerberos/krb5kdc/kdc.conf
       - keyfile:/etc/krb5.d/
       - kdc:/etc/krb5kdc/
       - type: bind
         source: ./certs/krb5.conf
         target: /etc/krb5.conf
+      - type: bind
+        source: ./certs/kdc.conf
+        target: /etc/kdc.conf
     image: krb5md
     tty: true
     depends_on:
@@ -185,6 +187,9 @@ services:
       - type: bind
         source: ./certs/krb5.conf
         target: /etc/krb5.conf
+      - type: bind
+        source: ./certs/kdc.conf
+        target: /etc/kdc.conf
     tty: true
     depends_on:
       - md
