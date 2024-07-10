@@ -7,9 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 import jinja2
-from fastapi import HTTPException, Response, status
+from fastapi import Body, HTTPException, Response, status
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
+from pydantic import EmailStr, SecretStr
 
 from api.auth import User, get_current_user
 from config import Settings, get_settings
@@ -29,34 +30,24 @@ TEMPLATES = jinja2.Environment(
     enable_async=True, autoescape=True)
 
 
-@krb5_router.post('/setup', response_class=Response)
-async def setup_kdc(
-    data: KerberosSetupRequest,
-    user: Annotated[User, Depends(get_current_user)],
+@krb5_router.post('/setup/tree')
+async def setup_krb_catalogue(
     session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    mail: Annotated[EmailStr, Body()],
+    krbadmin_password: Annotated[SecretStr, Body()],
 ) -> None:
-    """Set up KDC server.
+    """Generate tree for kdc/kadmin.
 
-    Create data structure in catalogue, generate config files, trigger commands
-
-    - **mail**: krbadmin mail
-    - **password**: krbadmin password
-
-    \f
-    :param Annotated[EmailStr, Body mail: json, defaults to 'admin')]
-    :param Annotated[str, Body password: json, defaults to 'password')]
-    :param Annotated[AsyncSession, Depends session: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: _description_
-    """  # noqa: D301
+    :param Annotated[AsyncSession, Depends session: db
+    :param Annotated[EmailStr, Body mail: krbadmin email
+    :param Annotated[SecretStr, Body krbadmin_password: pw
+    :raises HTTPException: on conflict
+    """
     base_dn = await get_base_dn(session)
-    domain = await get_base_dn(session, normal=True)
 
     krbadmin = 'cn=krbadmin,ou=users,' + base_dn
     services_container = 'ou=services,' + base_dn
     krbgroup = 'cn=krbadmin,cn=groups,' + base_dn
-
     group = AddRequest.from_dict(krbgroup, {
         "objectClass": ["group", "top", 'posixGroup'],
         'groupType': ['-2147483646'],
@@ -71,9 +62,9 @@ async def setup_kdc(
     )
 
     rkb_user = AddRequest.from_dict(
-        krbadmin, password=data.krbadmin_password.get_secret_value(),
+        krbadmin, password=krbadmin_password.get_secret_value(),
         attributes={
-            "mail": [data.mail],
+            "mail": [mail],
             "objectClass": [
                 "user", "top", "person",
                 "organizationalPerson",
@@ -107,9 +98,40 @@ async def setup_kdc(
             raise HTTPException(status.HTTP_409_CONFLICT)
         await session.commit()
 
-    template = TEMPLATES.get_template('krb5.conf')
 
-    config = await template.render_async(
+@krb5_router.post('/setup', response_class=Response)
+async def setup_kdc(
+    data: KerberosSetupRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    """Set up KDC server.
+
+    Create data structure in catalogue, generate config files, trigger commands
+
+    - **mail**: krbadmin mail
+    - **password**: krbadmin password
+
+    \f
+    :param Annotated[EmailStr, Body mail: json, defaults to 'admin')]
+    :param Annotated[str, Body password: json, defaults to 'password')]
+    :param Annotated[AsyncSession, Depends session: _description_
+    :param Annotated[LDAPSession, Depends ldap_session: _description_
+    """  # noqa: D301
+    base_dn = await get_base_dn(session)
+    domain = await get_base_dn(session, normal=True)
+
+    krbadmin = 'cn=krbadmin,ou=users,' + base_dn
+    services_container = 'ou=services,' + base_dn
+
+    krb5_template = TEMPLATES.get_template('krb5.conf')
+    kdc_template = TEMPLATES.get_template('kdc.conf')
+
+    kdc_config = await kdc_template.render_async(domain=domain)
+
+    krb5_config = await krb5_template.render_async(
         domain=domain,
         krbadmin=krbadmin,
         services_container=services_container,
@@ -125,7 +147,8 @@ async def setup_kdc(
             krbadmin_password=data.krbadmin_password.get_secret_value(),
             admin_password=data.admin_password.get_secret_value(),
             stash_password=data.stash_password.get_secret_value(),
-            krb5_config=config,
+            krb5_config=krb5_config,
+            kdc_config=kdc_config,
         )
     except KRBAPIError as err:
         raise HTTPException(status.HTTP_304_NOT_MODIFIED, err)
