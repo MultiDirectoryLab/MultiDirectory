@@ -6,10 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import logging
+import os
+import uuid
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime, timedelta
+from tempfile import gettempdir
 from types import TracebackType
 from typing import Annotated, AsyncIterator, Protocol
 
@@ -24,7 +27,9 @@ from fastapi import (
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from starlette.background import BackgroundTask
 
 logging.basicConfig(level=logging.INFO)
 
@@ -117,6 +122,14 @@ class AbstractKRBManager(AbstractAsyncContextManager, ABC):
 
         :param str name: original name
         :param str new_name: new name
+        """
+
+    @abstractmethod
+    async def ktadd(self, names: list[str], fn: str) -> None:
+        """Create or write to keytab.
+
+        :param str name: principal
+        :param str fn: filename
         """
 
 
@@ -216,6 +229,21 @@ class KAdminLocalManager(AbstractKRBManager):
         await self.loop.run_in_executor(
             self.pool, self.client.rename_principal, name, new_name)
 
+    async def ktadd(self, names: list[str], fn: str) -> None:
+        """Create or write to keytab.
+
+        :param str name: principal
+        :param str fn: filename
+        :raises self.PrincipalNotFoundError: on not found princ
+        """
+        principals = [await self._get_raw_principal(name) for name in names]
+        if not all(principals):
+            raise self.PrincipalNotFoundError
+
+        for princ in principals:
+            await self.loop.run_in_executor(
+                self.pool, princ.ktadd, fn)
+
 
 @asynccontextmanager
 async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -236,8 +264,8 @@ def get_kadmin() -> KAdminLocalManager:
 def get_app() -> FastAPI:
     """Create FastAPI app."""
     app = FastAPI(
-        name="MultiDirectory",
-        title="MultiDirectory",
+        name="KadminMultiDirectory",
+        title="KadminMultiDirectory",
         lifespan=kadmin_lifespan,
     )
 
@@ -423,3 +451,23 @@ async def rename_princ(
     """
     """"""
     await kadmin.rename_princ(name, new_name)
+
+
+@app.post('/principal/ktadd')
+async def ktadd(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    names: Annotated[list[str], Body()],
+) -> FileResponse:
+    """Ktadd principal.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    :param Annotated[str, Body password: principal password
+    """
+    filename = os.path.join(gettempdir(), str(uuid.uuid1()))
+    await kadmin.ktadd(names, filename)
+
+    return FileResponse(
+        filename,
+        background=BackgroundTask(os.unlink, filename),
+    )
