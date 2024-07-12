@@ -29,7 +29,7 @@ from tests.conftest import TestCreds
 async def test_bind_ok_and_unbind(
         session: AsyncSession, ldap_session: Session) -> None:
     """Test ok bind."""
-    class MutePolicyBindRequest(BindRequest):
+    class _MutePolicyBindRequest(BindRequest):
         @staticmethod
         async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
             return True
@@ -46,7 +46,7 @@ async def test_bind_ok_and_unbind(
     session.add_all([directory, user])
     await session.commit()
 
-    bind = MutePolicyBindRequest(
+    bind = _MutePolicyBindRequest(
         version=0,
         name=user.sam_accout_name,
         AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
