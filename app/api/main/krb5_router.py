@@ -21,7 +21,7 @@ from ldap_protocol.utils import get_base_dn, get_dn_by_id
 from models.database import AsyncSession, get_session
 
 from .schema import KerberosSetupRequest
-from .utils import ldap_session
+from .utils import get_ldap_session
 
 krb5_router = APIRouter(prefix='/kerberos', tags=['KRB5 API'])
 
@@ -30,11 +30,15 @@ TEMPLATES = jinja2.Environment(
     enable_async=True, autoescape=True)
 
 
-@krb5_router.post('/setup/tree')
+@krb5_router.post(
+    '/setup/tree',
+    response_class=Response,
+    dependencies=[Depends(get_current_user)])
 async def setup_krb_catalogue(
     session: Annotated[AsyncSession, Depends(get_session)],
     mail: Annotated[EmailStr, Body()],
     krbadmin_password: Annotated[SecretStr, Body()],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
 ) -> None:
     """Generate tree for kdc/kadmin.
 
@@ -48,6 +52,7 @@ async def setup_krb_catalogue(
     krbadmin = 'cn=krbadmin,ou=users,' + base_dn
     services_container = 'ou=services,' + base_dn
     krbgroup = 'cn=krbadmin,cn=groups,' + base_dn
+
     group = AddRequest.from_dict(krbgroup, {
         "objectClass": ["group", "top", 'posixGroup'],
         'groupType': ['-2147483646'],
@@ -104,7 +109,7 @@ async def setup_kdc(
     data: KerberosSetupRequest,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
     """Set up KDC server.
@@ -117,8 +122,8 @@ async def setup_kdc(
     \f
     :param Annotated[EmailStr, Body mail: json, defaults to 'admin')]
     :param Annotated[str, Body password: json, defaults to 'password')]
-    :param Annotated[AsyncSession, Depends session: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: _description_
+    :param Annotated[AsyncSession, Depends session: db
+    :param Annotated[LDAPSession, Depends ldap_session: ldap session
     """  # noqa: D301
     base_dn = await get_base_dn(session)
     domain = await get_base_dn(session, normal=True)

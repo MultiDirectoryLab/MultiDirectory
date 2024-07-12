@@ -12,7 +12,7 @@ from ldap_protocol.kerberos import get_kerberos_class
 from models.database import get_session
 
 
-async def ldap_session(
+async def get_ldap_session(
     user: Annotated[User, Depends(get_current_user)],
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],

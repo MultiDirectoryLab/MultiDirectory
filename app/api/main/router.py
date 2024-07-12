@@ -20,7 +20,7 @@ from ldap_protocol.ldap_responses import LDAPResult
 from models.database import AsyncSession, get_session
 
 from .schema import SearchRequest, SearchResponse, SearchResultDone
-from .utils import ldap_session
+from .utils import get_ldap_session
 
 entry_router = APIRouter(prefix='/entry', tags=['LDAP API'])
 
@@ -29,7 +29,7 @@ entry_router = APIRouter(prefix='/entry', tags=['LDAP API'])
 async def search(
     request: SearchRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
     responses = await request.handle_api(ldap_session, session)
@@ -49,7 +49,7 @@ async def search(
 async def add(
     request: AddRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
 ) -> LDAPResult:
     """LDAP ADD entry request."""
     return await request.handle_api(ldap_session, session)
@@ -59,7 +59,7 @@ async def add(
 async def modify(
     request: ModifyRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
 ) -> LDAPResult:
     """LDAP MODIFY entry request."""
     return await request.handle_api(ldap_session, session)
@@ -69,7 +69,7 @@ async def modify(
 async def modify_dn(
     request: ModifyDNRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
 ) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
     return await request.handle_api(ldap_session, session)
@@ -79,7 +79,7 @@ async def modify_dn(
 async def delete(
     request: DeleteRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(ldap_session)],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
 ) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(ldap_session, session)
