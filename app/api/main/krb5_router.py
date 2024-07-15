@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 import jinja2
+from annotated_types import Len
 from fastapi import Body, HTTPException, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
@@ -164,12 +165,16 @@ async def setup_kdc(
     await session.commit()
 
 
+MAX_STR_NAME = Annotated[str, Len(min_length=1, max_length=8100)]
+MAX_LIST = Annotated[list[MAX_STR_NAME], Len(min_length=1, max_length=10000)]
+
+
 @krb5_router.post(
     '/ktadd',
     dependencies=[Depends(get_current_user)])
 async def ktadd(
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
-    names: Annotated[list[str], Body()],
+    names: Annotated[MAX_LIST, Body()],
 ) -> bytes:
     """Create keytab from kadmin server.
 
