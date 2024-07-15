@@ -9,8 +9,10 @@ from typing import Annotated
 import jinja2
 from fastapi import Body, HTTPException, Response, status
 from fastapi.params import Depends
+from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import EmailStr, SecretStr
+from starlette.background import BackgroundTask
 
 from api.auth import User, get_current_user
 from config import Settings, get_settings
@@ -160,3 +162,31 @@ async def setup_kdc(
 
     await set_state(session, KerberosState.READY)
     await session.commit()
+
+
+@krb5_router.post(
+    '/ktadd',
+    dependencies=[Depends(get_current_user)])
+async def ktadd(
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    names: Annotated[list[str], Body()],
+) -> bytes:
+    """Create keytab from kadmin server.
+
+    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    :return bytes: file
+    """
+    request = ldap_session.kadmin.client.build_request(
+        'POST', '/principal/ktadd', json=names)
+
+    response = await ldap_session.kadmin.client.send(request, stream=True)
+
+    if response.status_code == status.HTTP_404_NOT_FOUND:
+        raise HTTPException(response.status_code, "Principal not found")
+
+    return StreamingResponse(
+        response.aiter_bytes(),
+        media_type="application/txt",
+        headers={'Content-Disposition': 'attachment; filename="md.keytab"'},
+        background=BackgroundTask(response.aclose),
+    )  # type: ignore
