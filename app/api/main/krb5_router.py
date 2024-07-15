@@ -165,8 +165,9 @@ async def setup_kdc(
     await session.commit()
 
 
-MAX_STR_NAME = Annotated[str, Len(min_length=1, max_length=8100)]
-MAX_LIST = Annotated[list[MAX_STR_NAME], Len(min_length=1, max_length=10000)]
+LIMITED_STR = Annotated[str, Len(min_length=1, max_length=8100)]
+LIMITED_LIST = Annotated[
+    list[LIMITED_STR], Len(min_length=1, max_length=10000)]
 
 
 @krb5_router.post(
@@ -174,7 +175,7 @@ MAX_LIST = Annotated[list[MAX_STR_NAME], Len(min_length=1, max_length=10000)]
     dependencies=[Depends(get_current_user)])
 async def ktadd(
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
-    names: Annotated[MAX_LIST, Body()],
+    names: Annotated[LIMITED_LIST, Body()],
 ) -> bytes:
     """Create keytab from kadmin server.
 
