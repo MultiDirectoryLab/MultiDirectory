@@ -18,7 +18,12 @@ from starlette.background import BackgroundTask
 from api.auth import User, get_current_user
 from config import Settings, get_settings
 from ldap_protocol.dialogue import Session as LDAPSession
-from ldap_protocol.kerberos import KerberosState, KRBAPIError, set_state
+from ldap_protocol.kerberos import (
+    KerberosState,
+    KRBAPIError,
+    get_krb_server_state,
+    set_state,
+)
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.utils import get_base_dn, get_dn_by_id
 from models.database import AsyncSession, get_session
@@ -196,3 +201,26 @@ async def ktadd(
         headers={'Content-Disposition': 'attachment; filename="md.keytab"'},
         background=BackgroundTask(response.aclose),
     )  # type: ignore
+
+
+@krb5_router.get('/status', dependencies=[Depends(get_current_user)])
+async def get_krb_status(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+) -> KerberosState:
+    """Get server status.
+
+    :param Annotated[AsyncSession, Depends session: db
+    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    :return KerberosState: state
+    """
+    state = await get_krb_server_state(session)
+    try:
+        server_state = await ldap_session.kadmin.get_status()
+    except KRBAPIError:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    if server_state is False and state == KerberosState.READY:
+        return KerberosState.WAITING_FOR_RELOAD
+
+    return state

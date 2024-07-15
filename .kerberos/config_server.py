@@ -471,3 +471,17 @@ async def ktadd(
         filename,
         background=BackgroundTask(os.unlink, filename),
     )
+
+
+@app.get('/status')
+def get_status(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+) -> bool:
+    """Get kadmin status.
+
+    true - is ready
+    false - not set
+    """
+    if isinstance(kadmin, KAdminLocalManager):
+        return True
+    return False

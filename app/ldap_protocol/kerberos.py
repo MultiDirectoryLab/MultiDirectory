@@ -60,6 +60,7 @@ class KerberosState(StrEnum):
 
     NOT_CONFIGURED = '0'
     READY = '1'
+    WAITING_FOR_RELOAD = '2'
 
 
 class AbstractKadmin(ABC):
@@ -121,6 +122,9 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def rename_princ(self, name: str, new_name: str) -> None: ... # noqa
+
+    async def get_status(self) -> bool: # noqa
+        return False
 
     @classmethod
     @asynccontextmanager
@@ -195,6 +199,10 @@ class KerberosMDAPIClient(AbstractKadmin):
             'name': name, 'new_name': new_name})
         if response.status_code != 200:
             raise KRBAPIError(response.text)
+
+    async def get_status(self) -> bool: # noqa
+        response = await self.client.get('status')
+        return response.json()
 
 
 class StubKadminMDADPIClient(AbstractKadmin):
