@@ -140,7 +140,7 @@ async def test_status_change(
     assert response.status_code == 200
     assert response.json() == KerberosState.NOT_CONFIGURED
 
-    response = await http_client.post('/kerberos/setup', json={
+    await http_client.post('/kerberos/setup', json={
         "krbadmin_password": 'Password123',
         "admin_password": 'Password123',
         "stash_password": 'Password123',
