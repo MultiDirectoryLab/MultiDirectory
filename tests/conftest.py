@@ -28,12 +28,14 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
+from api.main.utils import get_krb_class
 from app.__main__ import PoolClientHandler
-from app.config import Settings
 from app.extra import TEST_DATA, setup_enviroment
-from app.ldap_protocol.dialogue import Session
-from app.models.database import get_engine
-from app.web_app import create_app, get_session
+from config import Settings
+from ldap_protocol.dialogue import Session
+from ldap_protocol.kerberos import StubKadminMDADPIClient
+from models.database import get_engine
+from web_app import create_app, get_session
 
 
 @dataclass
@@ -46,10 +48,38 @@ class TestCreds:
     pw: str
 
 
+class TestKadminClient(StubKadminMDADPIClient):
+    """Test kadmin."""
+
+    __test__ = False
+
+    def __init__(self, client: httpx.AsyncClient | None) -> None:
+        """Stub init."""
+
+    async def setup(self, *args, **kwargs) -> None:  # type: ignore
+        """Stub setup."""
+
+    @classmethod
+    @asynccontextmanager
+    async def get_krb_ldap_client(
+            cls, settings: Settings) -> AsyncIterator['TestKadminClient']:
+        """Stub yield."""
+        yield cls(None)
+
+
 class TestHandler(PoolClientHandler):  # noqa
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:  # noqa
         pass
+
+    @asynccontextmanager
+    async def _get_kadmin(self) -> AsyncIterator[TestKadminClient]:
+        yield TestKadminClient(None)
+
+
+@pytest.fixture()
+def kadmin() -> TestKadminClient:  # noqa: indirect usage
+    return TestKadminClient(None)
 
 
 @pytest.fixture(scope="session")
@@ -169,9 +199,11 @@ async def setup_session(session: AsyncSession) -> None:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def ldap_session(settings: Settings) -> AsyncGenerator[Session, None]:
+async def ldap_session(
+        settings: Settings,
+        kadmin: TestKadminClient) -> AsyncGenerator[Session, None]:
     """Yield empty session."""
-    yield Session(settings=settings)
+    yield Session(settings=settings, kadmin=kadmin)
 
 
 @pytest.fixture(scope="session")
@@ -203,6 +235,11 @@ def ldap_client(settings: Settings) -> ldap3.Connection:
 @pytest.fixture(scope='session')
 def app(settings: Settings) -> FastAPI:  # noqa
     return create_app(settings)
+
+
+@pytest.fixture(autouse=True)
+def _override_ldap_session(app: FastAPI, kadmin: TestKadminClient) -> None:
+    app.dependency_overrides[get_krb_class] = lambda: kadmin
 
 
 @pytest_asyncio.fixture(scope='session')
