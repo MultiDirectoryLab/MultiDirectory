@@ -18,6 +18,7 @@ from typing import Annotated, AsyncIterator, Protocol
 
 import kadmin_local as kadmin
 from fastapi import (
+    APIRouter,
     Body,
     Depends,
     FastAPI,
@@ -52,8 +53,6 @@ class ConfigSchema(BaseModel):
     krbadmin_password: str
     admin_password: str
     stash_password: str
-    krb5_config: str
-    kdc_config: str
 
 
 class Principal(BaseModel):
@@ -261,65 +260,48 @@ def get_kadmin() -> KAdminLocalManager:
     raise NotImplementedError
 
 
-def get_app() -> FastAPI:
-    """Create FastAPI app."""
-    app = FastAPI(
-        name="KadminMultiDirectory",
-        title="KadminMultiDirectory",
-        lifespan=kadmin_lifespan,
-    )
-
-    app.dependency_overrides = {
-        get_kadmin: lambda: app.state.kadmind,
-    }
-    app.add_middleware(
-        CORSMiddleware,
-        allow_credentials=True,
-        allow_methods=["*"],
-    )
-    return app
-
-
-app = get_app()
-
-
-@app.exception_handler(kadmin.KDBAccessError)
 def handle_db_error(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_424_FAILED_DEPENDENCY, detail='Database Error')
 
 
-@app.exception_handler(kadmin.DuplicateError)
 def handle_duplicate(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_409_CONFLICT, detail='Principal already exists')
 
 
-@app.exception_handler(kadmin.KDBNoEntryError)
-def handle_not_found_kadmin(request: Request, exc: BaseException):
-    """Handle duplicate."""
-    raise HTTPException(
-        status.HTTP_404_NOT_FOUND, detail='Principal does not exist')
-
-
-@app.exception_handler(AbstractKRBManager.PrincipalNotFoundError)
 def handle_not_found(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_404_NOT_FOUND, detail='Principal does not exist')
 
 
-@app.post('/setup', status_code=201)
-async def run_setup(schema: ConfigSchema) -> None:
-    """Set up server."""
+setup_router = APIRouter(prefix='/setup')
+principal_router = APIRouter(prefix='/principal')
+
+
+@setup_router.post('/configs', status_code=status.HTTP_201_CREATED)
+def write_configs(
+    krb5_config: Annotated[str, Body()],
+    kdc_config: Annotated[str, Body()],
+) -> None:
+    """Write two config files, strings are: hex bytes.
+
+    :param Annotated[str, Body krb5_config: krb5 hex bytes format config
+    :param Annotated[str, Body kdc_config: kdc hex bytes format config
+    """
     with open('/etc/krb5.conf', 'wb') as f:
-        f.write(bytes.fromhex(schema.krb5_config))
+        f.write(bytes.fromhex(krb5_config))
 
     with open('/etc/kdc.conf', 'wb') as f:
-        f.write(bytes.fromhex(schema.kdc_config))
+        f.write(bytes.fromhex(kdc_config))
 
+
+@setup_router.post('/stash', status_code=201)
+async def run_setup_stash(schema: ConfigSchema) -> None:
+    """Set up stash file."""
     proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util",
         "-D", schema.admin_dn,
@@ -339,6 +321,14 @@ async def run_setup(schema: ConfigSchema) -> None:
     if await proc.wait() != 0:
         raise HTTPException(status.HTTP_409_CONFLICT, 'failed stash')
 
+
+@setup_router.post('/subtree', status_code=201)
+async def run_setup_subtree(schema: ConfigSchema) -> None:
+    """Set up subtree in ldap.
+
+    :param ConfigSchema schema: _description_
+    :raises HTTPException: _description_
+    """
     create_proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util", "-D", schema.admin_dn,
         "create", "-subtrees", schema.services_dn,
@@ -360,7 +350,7 @@ async def run_setup(schema: ConfigSchema) -> None:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, stderr.decode())
 
 
-@app.post('/principal', response_class=Response, status_code=201)
+@principal_router.post('', response_class=Response, status_code=201)
 async def add_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
@@ -375,7 +365,7 @@ async def add_princ(
     await kadmin.add_princ(name, password)
 
 
-@app.get('/principal')
+@principal_router.get('')
 async def get_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
@@ -389,7 +379,7 @@ async def get_princ(
     return await kadmin.get_princ(name)
 
 
-@app.delete('/principal')
+@principal_router.delete('')
 async def del_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
@@ -403,7 +393,7 @@ async def del_princ(
     await kadmin.del_princ(name)
 
 
-@app.patch('/principal', status_code=201, response_class=Response)
+@principal_router.patch('', status_code=201, response_class=Response)
 async def change_princ_password(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
@@ -418,8 +408,8 @@ async def change_princ_password(
     await kadmin.change_password(name, password)
 
 
-@app.post(
-    '/principal/create_or_update', status_code=201, response_class=Response)
+@principal_router.post(
+    '/create_or_update', status_code=201, response_class=Response)
 async def create_or_update_princ_password(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
@@ -434,9 +424,8 @@ async def create_or_update_princ_password(
     await kadmin.create_or_update_princ_pw(name, password)
 
 
-@app.put(
-    '/principal',
-    status_code=status.HTTP_202_ACCEPTED,
+@principal_router.put(
+    '', status_code=status.HTTP_202_ACCEPTED,
     response_class=Response)
 async def rename_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
@@ -453,7 +442,7 @@ async def rename_princ(
     await kadmin.rename_princ(name, new_name)
 
 
-@app.post('/principal/ktadd')
+@principal_router.post('/ktadd')
 async def ktadd(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     names: Annotated[list[str], Body()],
@@ -473,15 +462,41 @@ async def ktadd(
     )
 
 
-@app.get('/status')
-def get_status(
-    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
-) -> bool:
+@setup_router.get('/status')
+def get_status(request: Request) -> bool:
     """Get kadmin status.
 
     true - is ready
     false - not set
     """
-    if isinstance(kadmin, KAdminLocalManager):
+    kadmind = getattr(request.app.state, 'kadmind', None)
+
+    if kadmind is not None:
         return True
     return False
+
+
+def create_app() -> FastAPI:
+    """Create FastAPI app."""
+    app = FastAPI(
+        name="KadminMultiDirectory",
+        title="KadminMultiDirectory",
+        lifespan=kadmin_lifespan,
+    )
+
+    app.dependency_overrides = {
+        get_kadmin: lambda: app.state.kadmind,
+    }
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_methods=["*"],
+    )
+    app.include_router(setup_router)
+    app.include_router(principal_router)
+    app.add_exception_handler(kadmin.KDBAccessError, handle_db_error)
+    app.add_exception_handler(kadmin.DuplicateError, handle_duplicate)
+    app.add_exception_handler(kadmin.KDBNoEntryError, handle_not_found)
+    app.add_exception_handler(
+        AbstractKRBManager.PrincipalNotFoundError, handle_not_found)
+    return app
