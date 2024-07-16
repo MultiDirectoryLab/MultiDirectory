@@ -128,7 +128,6 @@ async def test_setup_call(
 async def test_status_change(
     http_client: AsyncClient,
     login_headers: dict,
-    ldap_session: Session,
 ) -> None:
     """Test setup args.
 
