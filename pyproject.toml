@@ -52,7 +52,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
-known_first_party = ["ldap_protocol", "client", "config", "models", "api", "security", "tests"]
+known_first_party = ["ldap_protocol", "client", "config", "models", "api", "security", "tests", "web_app"]
 include_trailing_comma = true
 line_length = 79
 multi_line_output = 3
@@ -70,7 +70,7 @@ color_output = true
 warn_unused_ignores = true
 
 [tool.pytest.ini_options]
-pythonpath = ["/app"]
+pythonpath = ["app"]
 addopts = [
     "--cov",
     "--cov-report=xml:coverage.xml",
