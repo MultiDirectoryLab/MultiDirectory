@@ -214,13 +214,13 @@ async def get_krb_status(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :return KerberosState: state
     """
-    state = await get_krb_server_state(session)
+    db_state = await get_krb_server_state(session)
     try:
         server_state = await ldap_session.kadmin.get_status()
     except KRBAPIError:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    if server_state is False and state == KerberosState.READY:
+    if server_state is False and db_state == KerberosState.READY:
         return KerberosState.WAITING_FOR_RELOAD
 
-    return state
+    return db_state
