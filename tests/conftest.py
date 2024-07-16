@@ -28,7 +28,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from api.main.utils import get_krb_class
+from api.main.utils import get_kadmin
 from app.__main__ import PoolClientHandler
 from app.extra import TEST_DATA, setup_enviroment
 from config import Settings
@@ -53,12 +53,16 @@ class TestKadminClient(StubKadminMDADPIClient):
     """Test kadmin."""
 
     __test__ = False
+    args: tuple
+    kwargs: dict
 
     def __init__(self, client: httpx.AsyncClient | None) -> None:
         """Stub init."""
 
     async def setup(self, *args, **kwargs) -> None:  # type: ignore
         """Stub setup."""
+        self.args = args
+        self.kwargs = kwargs
 
     @classmethod
     @asynccontextmanager
@@ -251,7 +255,7 @@ def app(settings: Settings) -> FastAPI:  # noqa
 
 @pytest.fixture(autouse=True)
 def _override_ldap_session(app: FastAPI, kadmin: TestKadminClient) -> None:
-    app.dependency_overrides[get_krb_class] = lambda: kadmin
+    app.dependency_overrides[get_kadmin] = lambda: kadmin
 
 
 @pytest_asyncio.fixture(scope='session')
