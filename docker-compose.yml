@@ -180,7 +180,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
-      - .kerberos/kdc.conf:/var/kerberos/krb5kdc/kdc.conf
       - keyfile:/etc/krb5.d/
       - kdc:/etc/krb5kdc/
       - .kerberos/config_server.py:/server/config_server.py
@@ -196,7 +195,7 @@ services:
     ports:
       - 8000:8000
     working_dir: /server
-    command: uvicorn config_server:app
+    command: uvicorn --factory config_server:create_app
              --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
              --ssl-certfile=/certs/krbcert.pem
              --reload
