@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.dialogue import Session
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from tests.conftest import MutePolicyBindRequest
+from ldap_protocol.kerberos import KerberosState
 
 
 @pytest.mark.asyncio()
@@ -119,3 +120,33 @@ async def test_setup_call(
         'admin_password': 'Password123',
         'stash_password': 'Password123',
     }
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_status_change(
+    http_client: AsyncClient,
+    login_headers: dict,
+    ldap_session: Session,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param Session ldap_session: ldap
+    """
+    response = await http_client.get(
+        '/kerberos/status', headers=login_headers)
+    assert response.status_code == 200
+    assert response.json() == KerberosState.NOT_CONFIGURED
+
+    response = await http_client.post('/kerberos/setup', json={
+        "krbadmin_password": 'Password123',
+        "admin_password": 'Password123',
+        "stash_password": 'Password123',
+    }, headers=login_headers)
+
+    response = await http_client.get(
+        '/kerberos/status', headers=login_headers)
+    assert response.json() == KerberosState.WAITING_FOR_RELOAD
