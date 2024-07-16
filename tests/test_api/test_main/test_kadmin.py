@@ -8,9 +8,9 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.dialogue import Session
+from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from tests.conftest import MutePolicyBindRequest
-from ldap_protocol.kerberos import KerberosState
 
 
 @pytest.mark.asyncio()
