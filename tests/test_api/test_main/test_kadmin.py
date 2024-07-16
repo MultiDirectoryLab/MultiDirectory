@@ -82,6 +82,7 @@ async def test_setup_call(
     krb_doc = ldap_session.kadmin.kwargs.pop('krb5_config').encode()
     kdc_doc = ldap_session.kadmin.kwargs.pop('kdc_config').encode()
 
+    # NOTE: Asserting documents integrity, tests template rendering
     assert blake2b(krb_doc, digest_size=8).hexdigest() == '6d7f2acd6790183a'
     assert blake2b(kdc_doc, digest_size=8).hexdigest() == '54574991e75bba8c'
 
