@@ -3,6 +3,7 @@
 from hashlib import blake2b
 
 import pytest
+from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,6 +56,29 @@ async def test_tree_creation(
 
     result = await anext(bind.handle(ldap_session, session))
     assert result.result_code == LDAPCodes.SUCCESS
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_tree_collision(
+    http_client: AsyncClient,
+    login_headers: dict,
+) -> None:
+    """Test tree collision double creation."""
+    response = await http_client.post('/kerberos/setup/tree', json={
+        "mail": '777@example.com',
+        "krbadmin_password": 'Password123',
+    }, headers=login_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await http_client.post('/kerberos/setup/tree', json={
+        "mail": '777@example.com',
+        "krbadmin_password": 'Password123',
+    }, headers=login_headers)
+
+    assert response.status_code == status.HTTP_409_CONFLICT
 
 
 @pytest.mark.asyncio()
