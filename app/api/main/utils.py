@@ -12,22 +12,24 @@ from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from models.database import get_session
 
 
-async def get_krb_class(
+async def get_kadmin(
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> AbstractKadmin:
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> AsyncIterator[AbstractKadmin]:
     """Get kerberos class.
 
     :param Annotated[AsyncSession, Depends session: db
     :return AbstractKadmin: wrapper
     """
-    return await get_kerberos_class(session)
+    cls = await get_kerberos_class(session)
+    async with cls.get_krb_ldap_client(settings) as kadmin:
+        yield kadmin
 
 
 async def get_ldap_session(
     user: Annotated[User, Depends(get_current_user)],
+    kadmin: Annotated[AbstractKadmin, Depends(get_kadmin)],
     settings: Annotated[Settings, Depends(get_settings)],
-    cls: Annotated[AbstractKadmin, Depends(get_krb_class)],
 ) -> AsyncIterator[LDAPSession]:
     """Create LDAP session."""
-    async with cls.get_krb_ldap_client(settings) as kadmin:
-        yield LDAPSession(user=user, settings=settings, kadmin=kadmin)
+    return LDAPSession(user=user, settings=settings, kadmin=kadmin)
