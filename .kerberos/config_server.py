@@ -484,8 +484,14 @@ def create_app() -> FastAPI:
         lifespan=kadmin_lifespan,
     )
 
+    def _get_kadmin() -> AbstractKRBManager:
+        try:
+            return app.state.kadmind
+        except AttributeError:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+
     app.dependency_overrides = {
-        get_kadmin: lambda: app.state.kadmind,
+        get_kadmin: _get_kadmin,
     }
     app.add_middleware(
         CORSMiddleware,
