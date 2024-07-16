@@ -34,6 +34,7 @@ from app.extra import TEST_DATA, setup_enviroment
 from config import Settings
 from ldap_protocol.dialogue import Session
 from ldap_protocol.kerberos import StubKadminMDADPIClient
+from ldap_protocol.ldap_requests.bind import BindRequest
 from models.database import get_engine
 from web_app import create_app, get_session
 
@@ -75,6 +76,17 @@ class TestHandler(PoolClientHandler):  # noqa
     @asynccontextmanager
     async def _get_kadmin(self) -> AsyncIterator[TestKadminClient]:
         yield TestKadminClient(None)
+
+
+class MutePolicyBindRequest(BindRequest):
+    """Mute group validaton."""
+
+    __test__ = False
+
+    @staticmethod
+    async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
+        """Stub."""
+        return True
 
 
 @pytest.fixture()
