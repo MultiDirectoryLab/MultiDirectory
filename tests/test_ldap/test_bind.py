@@ -13,27 +13,22 @@ from ldap3 import PLAIN, SASL, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ldap_protocol.dialogue import Session
-from app.ldap_protocol.ldap_requests.bind import (
+from ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
     LDAPCodes,
     SimpleAuthentication,
     UnbindRequest,
 )
-from app.models.ldap3 import Directory, User
-from app.security import get_password_hash
-from tests.conftest import TestCreds
+from models.ldap3 import Directory, User
+from security import get_password_hash
+from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
 @pytest.mark.asyncio()
 async def test_bind_ok_and_unbind(
         session: AsyncSession, ldap_session: Session) -> None:
     """Test ok bind."""
-    class _MutePolicyBindRequest(BindRequest):
-        @staticmethod
-        async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
-            return True
-
     directory = Directory(name='user0', object_class='')
     user = User(
         sam_accout_name='user0',
@@ -46,7 +41,7 @@ async def test_bind_ok_and_unbind(
     session.add_all([directory, user])
     await session.commit()
 
-    bind = _MutePolicyBindRequest(
+    bind = MutePolicyBindRequest(
         version=0,
         name=user.sam_accout_name,
         AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
