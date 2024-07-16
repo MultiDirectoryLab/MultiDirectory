@@ -11,7 +11,7 @@ from functools import wraps
 from typing import Any, AsyncIterator, Callable
 
 import httpx
-from loguru import logger
+from loguru import logger as loguru_logger
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ from models import CatalogueSetting
 KERBEROS_STATE_NAME = 'KerberosState'
 
 
-log = logger.bind(name='kadmin')
+log = loguru_logger.bind(name='kadmin')
 
 log.add(
     "logs/kadmin_{time:DD-MM-YYYY}.log",
@@ -35,19 +35,38 @@ class KRBAPIError(Exception):
     """API Error."""
 
 
-def logger_wraps() -> Callable:
+def logger_wraps(is_stub: bool = False) -> Callable:
+    """Log kadmin calls.
+
+    :param bool is_stub: flag to change logs, defaults to False
+    :return Callable: any method
+    """
     def wrapper(func: Callable) -> Callable:
         name = func.__name__
+        bus_type = " stub " if is_stub else " "
 
         @wraps(func)
-        async def wrapped(*args: tuple[Any], **kwargs: dict[str, Any]) -> Any:
-            logger_ = log.opt(depth=1)
-            logger_.info("Entering '{}'", name)
+        async def wrapped(*args: str, **kwargs: str) -> Any:
+            logger = log.opt(depth=1)
+            try:
+                principal = args[1]
+            except IndexError:
+                principal = kwargs.get('name', '')
+
+            logger.info(f"Calling{bus_type}'{name}' for {principal}")
             try:
                 result = await func(*args, **kwargs)
             except (httpx.ConnectError, httpx.ConnectTimeout):
-                logger_.critical("Can not access kadmin server!")
+                logger.critical("Can not access kadmin server!")
                 raise KRBAPIError
+
+            except KRBAPIError as err:
+                logger.error(f'{name} call raised: {err}')
+                raise
+
+            else:
+                if not is_stub:
+                    logger.success(f"Executed {name}")
             return result
 
         return wrapped
@@ -88,7 +107,17 @@ class AbstractKadmin(ABC):
         kdc_config: str,
     ) -> None:
         """Request Setup."""
-        response = await self.client.post('setup', json={
+        log.info("Setting up configs")
+        response = await self.client.post('/setup/configs', json={
+            'krb5_config': krb5_config.encode().hex(),
+            'kdc_config': kdc_config.encode().hex(),
+        })
+
+        if response.status_code != 201:
+            raise KRBAPIError(response.text)
+
+        log.info("Setting up stash")
+        response = await self.client.post('/setup/stash', json={
             "domain": domain,
             "admin_dn": admin_dn,
             "services_dn": services_dn,
@@ -96,8 +125,20 @@ class AbstractKadmin(ABC):
             "krbadmin_password": krbadmin_password,
             "admin_password": admin_password,
             "stash_password": stash_password,
-            'krb5_config': krb5_config.encode().hex(),
-            'kdc_config': kdc_config.encode().hex(),
+        })
+
+        if response.status_code != 201:
+            raise KRBAPIError(response.text)
+
+        log.info("Setting up subtree")
+        response = await self.client.post('/setup/subtree', json={
+            "domain": domain,
+            "admin_dn": admin_dn,
+            "services_dn": services_dn,
+            "krbadmin_dn": krbadmin_dn,
+            "krbadmin_password": krbadmin_password,
+            "admin_password": admin_password,
+            "stash_password": stash_password,
         })
 
         if response.status_code != 201:
@@ -146,6 +187,10 @@ class AbstractKadmin(ABC):
 
 class KerberosMDAPIClient(AbstractKadmin):
     """KRB server integration."""
+
+    @logger_wraps(is_stub=True)
+    async def setup(*_, **__) -> None:  # type: ignore
+        """Stub method, setup is not needed."""
 
     @logger_wraps()
     async def add_principal(self, name: str, password: str) -> None:
@@ -201,26 +246,45 @@ class KerberosMDAPIClient(AbstractKadmin):
             raise KRBAPIError(response.text)
 
     async def get_status(self) -> bool: # noqa
-        response = await self.client.get('status')
+        response = await self.client.get('/setup/status')
+        log.critical(response.text)
         return response.json()
 
 
 class StubKadminMDADPIClient(AbstractKadmin):
     """Stub client for non set up dirs."""
 
-    async def add_principal(self, name: str, password: str) -> None: ...  # noqa
+    @logger_wraps()
+    async def setup(self, *args, **kwargs) -> None:  # type: ignore
+        """Call setup."""
+        await super().setup(*args, **kwargs)
 
-    async def get_principal(self, name: str) -> None: ...  # type: ignore  # noqa
+    @logger_wraps(is_stub=True)
+    async def add_principal(self, name: str, password: str) -> None:  # noqa D102
+        ...
 
-    async def del_principal(self, name: str) -> None: ...  # type: ignore  # noqa
+    @logger_wraps(is_stub=True)
+    async def get_principal(self, name: str) -> None:  # type: ignore  # noqa D102
+        ...
 
-    async def change_principal_password(  # noqa
-        self, name: str, password: str) -> None: ...  # noqa
+    @logger_wraps(is_stub=True)
+    async def del_principal(self, name: str) -> None:  # type: ignore  # noqa D102
+        ...
 
-    async def create_or_update_principal_pw(  # noqa
-        self, name: str, password: str) -> None: ...  # noqa
+    @logger_wraps(is_stub=True)
+    async def change_principal_password(  # noqa D102
+        self, name: str, password: str,
+    ) -> None:  # noqa
+        ...
 
-    async def rename_princ(self, name: str, new_name: str) -> None: ... # noqa
+    @logger_wraps(is_stub=True)
+    async def create_or_update_principal_pw(  # noqa D102
+            self, name: str, password: str) -> None:  # noqa
+        ...
+
+    @logger_wraps(is_stub=True)
+    async def rename_princ(self, name: str, new_name: str) -> None:  # noqa D102
+        ...
 
 
 async def get_krb_server_state(session: AsyncSession) -> 'KerberosState':
