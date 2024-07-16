@@ -47,6 +47,9 @@ class SASLMethod(StrEnum):
 class AbstractLDAPAuth(ABC, BaseModel):
     """Auth base class."""
 
+    otpassword: str | None = Field(None, max_length=6, min_length=6)
+    password: SecretStr
+
     @property
     @abstractmethod
     def METHOD_ID(self) -> int:  # noqa: N802, D102
@@ -69,9 +72,6 @@ class SimpleAuthentication(AbstractLDAPAuth):
     """Simple auth form."""
 
     METHOD_ID: ClassVar[int] = 0
-
-    password: SecretStr
-    otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
@@ -113,8 +113,6 @@ class SaslPLAINAuthentication(SaslAuthentication):
     mechanism: ClassVar[SASLMethod] = SASLMethod.PLAIN
     credentials: bytes
     username: str | None = None
-    password: SecretStr
-    otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
@@ -164,7 +162,7 @@ class BindRequest(BaseRequest):
 
     version: int
     name: str
-    authentication_choice: SimpleAuthentication | SaslPLAINAuthentication =\
+    authentication_choice: AbstractLDAPAuth =\
         Field(..., alias='AuthenticationChoice')
 
     @classmethod
