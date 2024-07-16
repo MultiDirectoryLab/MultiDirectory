@@ -1,5 +1,7 @@
 """Test kadmin."""
 
+from hashlib import blake2b
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.dialogue import Session
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from tests.conftest import MutePolicyBindRequest
-from hashlib import blake2b
 
 
 @pytest.mark.asyncio()
