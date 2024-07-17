@@ -54,15 +54,10 @@ class TestKadminClient(StubKadminMDADPIClient):
 
     __test__ = False
     args: tuple
-    kwargs: dict
+    kwargs: dict[str, str | bytes]
 
     def __init__(self, client: httpx.AsyncClient | None) -> None:
         """Stub init."""
-
-    async def setup(self, *args, **kwargs) -> None:  # type: ignore
-        """Stub setup."""
-        self.args = args
-        self.kwargs = kwargs
 
     @classmethod
     @asynccontextmanager
