@@ -1,16 +1,55 @@
 """Test kadmin."""
 
 from hashlib import blake2b
+from typing import AsyncIterator
 
+import httpx
 import pytest
 from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.dialogue import Session
-from ldap_protocol.kerberos import KerberosState
+from ldap_protocol.kerberos import KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
-from tests.conftest import MutePolicyBindRequest
+from tests.conftest import MutePolicyBindRequest, TestKadminClient
+
+KTADD_CONTENT = b'test_string'
+
+
+class MuteOkResponse(httpx.Response):
+    """Stub response class."""
+
+    status_code: int = 200
+
+    def __init__(self, *args, **kwrgs) -> None:  # type: ignore # noqa
+        pass
+
+    async def aiter_bytes(
+            self, chunk_size: int | None = None) -> AsyncIterator[bytes]:
+        """Stub method, returns KTADD_CONTENT."""
+        yield KTADD_CONTENT
+
+    async def aclose(self) -> None:
+        """Stub."""
+
+
+class TestArgsKadminClient(TestKadminClient):
+    """Class for setting test args."""
+
+    async def setup(self, *args, **kwargs) -> None:  # type: ignore
+        """Stub setup."""
+        self.args = args
+        self.kwargs = kwargs
+
+    async def ktadd(self, names: list[str]) -> MuteOkResponse:  # noqa
+        self.args = (names,)
+        return MuteOkResponse()
+
+
+@pytest.fixture()
+def kadmin() -> TestArgsKadminClient:  # noqa: indirect usage
+    return TestArgsKadminClient(None)
 
 
 @pytest.mark.asyncio()
@@ -149,3 +188,56 @@ async def test_status_change(
     response = await http_client.get(
         '/kerberos/status', headers=login_headers)
     assert response.json() == KerberosState.WAITING_FOR_RELOAD
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ktadd(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: TestArgsKadminClient,
+) -> None:
+    """Test ktadd.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param Session ldap_session: ldap
+    """
+    names = ['test1', 'test2']
+    response = await http_client.post(
+        '/kerberos/ktadd', headers=login_headers, json=names)
+
+    assert kadmin.args[0] == names
+    assert response.status_code == status.HTTP_200_OK
+    assert response.content == KTADD_CONTENT
+    assert response.headers == {
+        'Content-Disposition': 'attachment; filename="md.keytab"',
+        'content-type': 'application/txt',
+    }
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ktadd_404(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: TestArgsKadminClient,
+) -> None:
+    """Test ktadd failure.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param Session ldap_session: ldap
+    """
+    async def ktadd(names: list[str]) -> MuteOkResponse:
+        raise KRBAPIError()
+
+    kadmin.ktadd = ktadd  # type: ignore
+
+    names = ['test1', 'test2']
+    response = await http_client.post(
+        '/kerberos/ktadd', headers=login_headers, json=names)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
