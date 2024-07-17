@@ -181,26 +181,23 @@ LIMITED_LIST = Annotated[
 async def ktadd(
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     names: Annotated[LIMITED_LIST, Body()],
-) -> bytes:
+) -> StreamingResponse:
     """Create keytab from kadmin server.
 
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :return bytes: file
     """
-    request = ldap_session.kadmin.client.build_request(
-        'POST', '/principal/ktadd', json=names)
-
-    response = await ldap_session.kadmin.client.send(request, stream=True)
-
-    if response.status_code == status.HTTP_404_NOT_FOUND:
-        raise HTTPException(response.status_code, "Principal not found")
+    try:
+        response = await ldap_session.kadmin.ktadd(names)
+    except KRBAPIError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Principal not found")
 
     return StreamingResponse(
         response.aiter_bytes(),
         media_type="application/txt",
         headers={'Content-Disposition': 'attachment; filename="md.keytab"'},
         background=BackgroundTask(response.aclose),
-    )  # type: ignore
+    )
 
 
 @krb5_router.get('/status', dependencies=[Depends(get_current_user)])

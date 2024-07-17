@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from enum import StrEnum
 from functools import wraps
-from typing import Any, AsyncIterator, Callable
+from typing import Any, AsyncIterator, Callable, NoReturn
 
 import httpx
 from loguru import logger as loguru_logger
@@ -19,7 +19,6 @@ from config import Settings
 from models import CatalogueSetting
 
 KERBEROS_STATE_NAME = 'KerberosState'
-
 
 log = loguru_logger.bind(name='kadmin')
 
@@ -167,6 +166,9 @@ class AbstractKadmin(ABC):
     async def get_status(self) -> bool: # noqa
         return False
 
+    @abstractmethod
+    async def ktadd(self, names: list[str]) -> httpx.Response: ...  # noqa
+
     @classmethod
     @asynccontextmanager
     async def get_krb_ldap_client(
@@ -250,6 +252,21 @@ class KerberosMDAPIClient(AbstractKadmin):
         log.critical(response.text)
         return response.json()
 
+    async def ktadd(self, names: list[str]) -> httpx.Response:
+        """Ktadd build request for stream and return response.
+
+        :param list[str] names: principals
+        :return httpx.Response: stream
+        """
+        request = self.client.build_request(
+            'POST', '/principal/ktadd', json=names)
+
+        response = await self.client.send(request, stream=True)
+        if response.status_code == 404:
+            raise KRBAPIError('Principal not found')
+
+        return response
+
 
 class StubKadminMDADPIClient(AbstractKadmin):
     """Stub client for non set up dirs."""
@@ -285,6 +302,10 @@ class StubKadminMDADPIClient(AbstractKadmin):
     @logger_wraps(is_stub=True)
     async def rename_princ(self, name: str, new_name: str) -> None:  # noqa D102
         ...
+
+    @logger_wraps(is_stub=True)
+    async def ktadd(self, names: list[str]) -> NoReturn:  # noqa
+        raise KRBAPIError
 
 
 async def get_krb_server_state(session: AsyncSession) -> 'KerberosState':
