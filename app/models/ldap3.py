@@ -19,10 +19,13 @@ from sqlalchemy import (
     LargeBinary,
     String,
     UniqueConstraint,
+    exists,
     func,
+    select,
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import (
     Mapped,
@@ -35,6 +38,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
+from sqlalchemy.sql.selectable import ScalarSelect
 
 from .database import Base
 
@@ -65,20 +69,18 @@ class CatalogueSetting(Base):
     value = Column(String, nullable=False)
 
 
-class GroupMembership(Base):
-    """Group membership - path m2m relationship."""
-
-    __tablename__ = "GroupMemberships"
-    group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
-    group_child_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
-
-
-class UserMembership(Base):
+class DirectoryMembership(Base):
     """User membership - path m2m relationship."""
 
-    __tablename__ = "UserMemberships"
+    __tablename__ = "DirectoryMemberships"
     group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
-    user_id = Column(Integer, ForeignKey("Users.id"), primary_key=True)
+    directory_id = Column(
+        Integer, ForeignKey("Directory.id"), primary_key=True)
+
+    group: 'Group' = relationship(
+        "Group", uselist=False, cascade="all,delete", overlaps="group")
+    directory: 'Directory' = relationship(
+        "Directory", uselist=False, cascade="all,delete", overlaps="directory")
 
 
 class DirectoryPath(Base):
@@ -166,8 +168,13 @@ class Directory(Base):
         'Attribute', cascade="all,delete")
     group: 'Group' = relationship('Group', uselist=False, cascade="all,delete")
     user: 'User' = relationship('User', uselist=False, cascade="all,delete")
-    computer: 'Computer' = relationship(
-        'Computer', uselist=False, cascade="all,delete")
+    groups: list['Group'] = relationship(
+        "Group",
+        secondary=DirectoryMembership.__table__,
+        back_populates="members",
+        lazy="selectin",
+        overlaps="group",
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -270,12 +277,6 @@ class User(DirectoryReferenceMixin, Base):
         'accountexpires': 'accountExpires',
     }
 
-    groups: list['Group'] = relationship(
-        "Group",
-        secondary=UserMembership.__table__,
-        back_populates='users',
-    )
-
     password_history: list[str] = Column(
         MutableList.as_mutable(postgresql.ARRAY(String)),
         server_default="{}",
@@ -290,25 +291,19 @@ class Group(DirectoryReferenceMixin, Base):
     id = Column(Integer, primary_key=True)  # noqa: A003
     search_fields: dict[str, str] = {}
 
-    child_groups: list['Group'] = relationship(
-        "Group",
-        secondary=GroupMembership.__table__,
-        primaryjoin=id == GroupMembership.__table__.c.group_id,
-        secondaryjoin=id == GroupMembership.__table__.c.group_child_id,
-        back_populates='parent_groups')
+    members: list['Directory'] = relationship(
+        "Directory",
+        secondary=DirectoryMembership.__table__,
+        back_populates="groups",
+        overlaps="directory",
+    )
 
     parent_groups: list['Group'] = relationship(
-        "Group",
-        secondary=GroupMembership.__table__,
-        primaryjoin=id == GroupMembership.__table__.c.group_child_id,
-        secondaryjoin=id == GroupMembership.__table__.c.group_id,
-        back_populates='child_groups')
-
-    users: list['User'] = relationship(
-        "User",
-        secondary=UserMembership.__table__,
-        primaryjoin=id == UserMembership.__table__.c.group_id,
-        back_populates='groups',
+        'Group',
+        secondary=DirectoryMembership.__table__,
+        primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
+        secondaryjoin=DirectoryMembership.group_id == id,
+        overlaps="group,groups,members",
     )
 
     policies: list['NetworkPolicy'] = relationship(
@@ -325,11 +320,36 @@ class Group(DirectoryReferenceMixin, Base):
         back_populates='mfa_groups',
     )
 
+    @hybrid_property
+    def users(self) -> list['User']:
+        """Return a list of users associated with this group."""
+        return [member.user
+                for member in self.members if isinstance(member.user, User)]
 
-class Computer(DirectoryReferenceMixin, Base):
-    """Computers data."""
+    @users.expression
+    def users_expression(cls) -> expression.exists:  # noqa: N805
+        """Expression to select users associated with this group."""
+        return select(User).where(User.directory_id == Directory.id).correlate(
+            cls).exists()
 
-    __tablename__ = "Computers"
+    @hybrid_method
+    def has_user(self, user_id: int) -> bool:
+        """Check if the group has a user with the given user_id."""
+        return any(member.id == user_id for member in self.users)
+
+    @has_user.expression
+    def has_user_expression(
+        cls,  # noqa: N805
+        user_id: int,
+    ) -> ScalarSelect:
+        """Expr to check if the group has a user with the given user_id."""
+        return (
+            select(exists(User))
+            .select_from(User)
+            .join(Directory)
+            .filter(
+                User.id == user_id, DirectoryMembership.group_id == cls.id)
+            .scalar_subquery())
 
 
 class Attribute(DirectoryReferenceMixin, Base):
