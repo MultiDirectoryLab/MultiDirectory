@@ -1,5 +1,7 @@
 """Test kadmin."""
 
+import asyncio
+from functools import partial
 from hashlib import blake2b
 from typing import AsyncIterator
 
@@ -7,12 +9,14 @@ import httpx
 import pytest
 from fastapi import status
 from httpx import AsyncClient
+from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.dialogue import Session
 from ldap_protocol.kerberos import KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
-from tests.conftest import MutePolicyBindRequest, TestKadminClient
+from tests.conftest import MutePolicyBindRequest, TestCreds, TestKadminClient
 
 KTADD_CONTENT = b'test_string'
 
@@ -34,6 +38,33 @@ class MuteOkResponse(httpx.Response):
         """Stub."""
 
 
+def _create_test_user_data(
+        name: str, pw: str) -> dict[
+            str, str | list[dict[str, str | list[str]]]]:
+    return {
+        "entry": "cn=ktest,dc=md,dc=test",
+        "password": pw,
+        "attributes": [
+            {"type": "mail", "vals": ['123@mil.com']},
+            {"type": "objectClass", "vals": [
+                "user", "top", "person",
+                "organizationalPerson",
+                "posixAccount",
+                "shadowAccount",
+                "inetOrgPerson",
+            ]},
+            {"type": "loginShell", "vals": ["/bin/false"]},
+            {"type": "uidNumber", "vals": ["800"]},
+            {"type": "gidNumber", "vals": ["800"]},
+            {"type": "sn", "vals": ["ktest"]},
+            {"type": "uid", "vals": ["ktest"]},
+            {"type": "homeDirectory", "vals": ["/home/ktest"]},
+            {"type": "sAMAccountName", "vals": [name]},
+            {"type": "userPrincipalName", "vals": ['ktest']},
+            {"type": "displayName", "vals": ["Kerberos Administrator"]},
+        ]}
+
+
 class TestArgsKadminClient(TestKadminClient):
     """Class for setting test args."""
 
@@ -45,6 +76,16 @@ class TestArgsKadminClient(TestKadminClient):
     async def ktadd(self, names: list[str]) -> MuteOkResponse:  # noqa
         self.args = (names,)
         return MuteOkResponse()
+
+    async def add_principal(self, name: str, password: str) -> None:
+        self.args = (name, password)
+
+    async def del_principal(self, name: str) -> None:
+        self.args = (name,)
+
+    async def create_or_update_principal_pw(
+            self, name: str, password: str) -> None:
+        self.args = (name, password)
 
 
 @pytest.fixture()
@@ -241,3 +282,85 @@ async def test_ktadd_404(
         '/kerberos/ktadd', headers=login_headers, json=names)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap_add(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: TestArgsKadminClient,
+) -> None:
+    """Test add calls add_principal on user creation.
+
+    :param AsyncClient http_client: http
+    :param dict login_headers: headers
+    :param TestArgsKadminClient kadmin: kadmin
+    """
+    san = 'ktest'
+    pw = 'Password123'
+
+    response = await http_client.post(
+        "/entry/add",
+        headers=login_headers,
+        json=_create_test_user_data(san, pw))
+
+    assert response.status_code == 200, response.json()
+    assert kadmin.args == (san, pw)
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap_kadmin_delete(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: TestArgsKadminClient,
+) -> None:
+    """Test API for delete object."""
+    await http_client.post(
+        "/entry/add",
+        headers=login_headers,
+        json=_create_test_user_data('ktest', 'Password123'))
+
+    response = await http_client.request(
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn=ktest,dc=md,dc=test"},
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    assert kadmin.args == ("ktest",)
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+async def test_bind_create_user(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: TestArgsKadminClient,
+    settings: Settings,
+) -> None:
+    """Test bind create user."""
+    san = 'ktest'
+    pw = 'Password123'
+
+    await http_client.post(
+        "/entry/add",
+        headers=login_headers,
+        json=_create_test_user_data(san, pw))
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapwhoami', '-x',
+        '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-D', san,
+        '-w', pw,
+    )
+
+    assert await proc.wait() == 0
+    assert kadmin.args == (san, pw)
