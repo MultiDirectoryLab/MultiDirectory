@@ -189,7 +189,7 @@ class AddRequest(BaseRequest):
                 user.password = get_password_hash(raw_password)
 
             items_to_add.append(user)
-            user.groups.extend(parent_groups)
+            user.directory.groups.extend(parent_groups)
 
             attributes.append(Attribute(
                 name='uidNumber',

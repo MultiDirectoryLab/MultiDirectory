@@ -97,7 +97,8 @@ class ModifyRequest(BaseRequest):
 
         search_path = get_search_path(self.object, await get_base_dn(session))
 
-        membership1 = selectinload(Directory.user).selectinload(User.groups)
+        membership1 = selectinload(Directory.user).selectinload(
+            User.directory).selectinload(Directory.groups)
         membership2 = selectinload(Directory.group)\
             .selectinload(Group.parent_groups)
 
@@ -167,7 +168,7 @@ class ModifyRequest(BaseRequest):
                     directory.group.parent_groups.clear()
 
                 elif directory.user:
-                    directory.user.groups.clear()
+                    directory.user.directory.groups.clear()
 
             else:
                 groups = await get_groups(
@@ -177,7 +178,7 @@ class ModifyRequest(BaseRequest):
                         directory.group.parent_groups.remove(group)
 
                     elif directory.user:
-                        directory.user.groups.remove(group)
+                        directory.user.directory.groups.remove(group)
 
             return
 
@@ -218,7 +219,7 @@ class ModifyRequest(BaseRequest):
                 directory.group.parent_groups.extend(groups)
 
             elif directory.user:
-                directory.user.groups.extend(groups)
+                directory.user.directory.groups.extend(groups)
 
             await session.commit()
             return

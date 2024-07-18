@@ -376,12 +376,12 @@ class SearchRequest(BaseRequest):
                 Group.parent_groups).selectinload(
                     Group.directory).selectinload(Directory.path)
 
-            s2 = selectinload(Directory.user).selectinload(
-                User.groups).selectinload(
+            s2 = selectinload(Directory.user).selectinload(  # noqa: ECE001
+                User.directory).selectinload(Directory.groups).selectinload(
                     Group.directory).selectinload(Directory.path)
 
-            s3 = selectinload(Directory.group).selectinload(
-                Group.users).selectinload(
+            s3 = selectinload(Directory.group).selectinload(  # noqa: ECE001
+                Group.members).selectinload(Directory.user).selectinload(
                     User.directory).selectinload(Directory.path)
 
             query = query.options(s1, s2, s3)
@@ -461,7 +461,7 @@ class SearchRequest(BaseRequest):
 
                 if 'user' in attrs['objectClass'] and (
                         directory.user):
-                    groups += directory.user.groups
+                    groups += directory.user.directory.groups
 
             for group in groups:
                 attrs['memberOf'].append(

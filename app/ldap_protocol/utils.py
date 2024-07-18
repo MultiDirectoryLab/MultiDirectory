@@ -347,9 +347,8 @@ async def is_user_group_valid(
 
     group = await session.scalar((  # noqa: ECE001
         select(Group)
-        .join(Group.users)
         .join(Group.policies, isouter=True)
-        .filter(Group.users.contains(user) & Group.policies.contains(policy))
+        .filter(Group.has_user(user.id), Group.policies.contains(policy))
         .limit(1)
     ))
     return bool(group)

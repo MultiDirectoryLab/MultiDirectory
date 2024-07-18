@@ -26,7 +26,6 @@ from ldap_protocol.utils import (
 )
 from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
-from models.ldap3 import User as DBUser
 from security import get_password_hash
 
 from .oauth2 import (
@@ -69,8 +68,8 @@ async def login_for_access_token(
 
     admin_group = await session.scalar(
         select(Group)
-        .join(Group.users)
-        .filter(DBUser.id == user.id, Directory.name == "domain admins"))
+        .join(Group.directory)
+        .filter(Group.has_user(user.id), Directory.name == "domain admins"))
 
     if not admin_group:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
