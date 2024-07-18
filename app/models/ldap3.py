@@ -70,7 +70,7 @@ class CatalogueSetting(Base):
 
 
 class DirectoryMembership(Base):
-    """User membership - path m2m relationship."""
+    """Directory membership - path m2m relationship."""
 
     __tablename__ = "DirectoryMemberships"
     group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
