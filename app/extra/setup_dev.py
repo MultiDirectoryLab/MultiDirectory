@@ -22,7 +22,6 @@ from itertools import chain
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 
 from config import Settings
 from ldap_protocol.utils import create_object_sid, generate_domain_sid
@@ -31,11 +30,10 @@ from models.ldap3 import (
     Attribute,
     CatalogueSetting,
     Directory,
+    DirectoryMembership,
     Group,
-    GroupMembership,
     NetworkPolicy,
     User,
-    UserMembership,
 )
 from security import get_password_hash
 
@@ -47,7 +45,7 @@ async def _get_group(name: str, session: AsyncSession) -> list[Group]:
         select(Group).join(Group.directory).filter(
             Directory.name == name,
             Directory.object_class == 'group',
-        ).options(selectinload(Group.child_groups)))
+        ))
 
 
 async def _create_dir(
@@ -84,8 +82,8 @@ async def _create_dir(
         session.add(group)
         for group_name in data.get('groups', []):
             parent_group: Group = await _get_group(group_name, session)
-            session.add(GroupMembership(
-                group_id=parent_group.id, group_child_id=group.id))
+            session.add(DirectoryMembership(
+                group_id=parent_group.id, group_child_id=dir_.id))
 
     if "attributes" in data:
         attrs = chain(
@@ -121,8 +119,8 @@ async def _create_dir(
         for group_name in user_data.get('groups', []):
             parent_group = await _get_group(group_name, session)
             await session.flush()
-            session.add(UserMembership(
-                group_id=parent_group.id, user_id=user.id))
+            session.add(DirectoryMembership(
+                group_id=parent_group.id, directory_id=dir_.id))
 
     await session.flush()
 

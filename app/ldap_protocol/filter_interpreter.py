@@ -15,7 +15,7 @@ from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.operators import ColumnOperators
 
-from models.ldap3 import Attribute, Directory, Group, GroupMembership, User
+from models.ldap3 import Attribute, Directory, Group, User
 
 from .asn1parser import ASN1Row
 from .utils import get_path_filter, get_search_path
@@ -52,7 +52,6 @@ def _filter_memberof(
     method: ColumnOperators, dn: str, base_dn: str,
 ) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute."""
-    parent_group = aliased(Group)
     group_path = get_search_path(dn, base_dn)
     path_filter = get_path_filter(group_path)
 
@@ -60,20 +59,11 @@ def _filter_memberof(
         Directory.group).join(Directory.path).where(
             path_filter).scalar_subquery()
 
-    users_with_group = (
-        select(User.directory_id)
-        .join(User.groups)
+    return method((
+        select(Directory.id)
+        .join(Directory.groups)
         .where(Group.id == group_id_subquery)
-    )
-
-    child_groups = (
-        select(Group.directory_id)
-        .join(GroupMembership, Group.id == GroupMembership.group_child_id)
-        .join(parent_group, GroupMembership.group_id == parent_group.id)
-        .where(parent_group.id == group_id_subquery)
-    )
-
-    return method(users_with_group) | method(child_groups)  # type: ignore
+    ))  # type: ignore
 
 
 def _ldap_filter_memberof(
