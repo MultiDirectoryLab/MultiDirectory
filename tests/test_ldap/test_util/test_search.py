@@ -17,7 +17,7 @@ from app.config import Settings
 from app.ldap_protocol.dialogue import Session
 from app.ldap_protocol.ldap_requests import SearchRequest
 from app.ldap_protocol.utils import get_group, get_groups, is_user_group_valid
-from app.models.ldap3 import User
+from app.models.ldap3 import Directory, User
 from tests.conftest import TestCreds
 
 
@@ -82,18 +82,21 @@ async def test_bind_policy_missing_group(
 
     assert policy
 
-    user = await session.scalar(
-        select(User).filter_by(display_name="user0")
-        .options(selectinload(User.groups)))
+    directory = await session.scalar(
+        select(Directory)
+        .join(User, isouter=True)
+        .filter(User.display_name == "user0")
+        .options(selectinload(Directory.groups), selectinload(Directory.user)))
 
     policy.groups = await get_groups(
         ['cn=domain admins,cn=groups,dc=md,dc=test'],
         session,
     )
-    user.groups.clear()
+    directory.groups.clear()
     await session.commit()
+    await session.refresh(directory)
 
-    assert not await is_user_group_valid(user, policy, session)
+    assert not await is_user_group_valid(directory.user, policy, session)
 
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',

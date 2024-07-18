@@ -101,7 +101,7 @@ async def test_ldap_membersip_user_delete(
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
-        User.groups).selectinload(
+        User.directory).selectinload(Directory.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
     query = select(Directory)\
@@ -112,7 +112,7 @@ async def test_ldap_membersip_user_delete(
 
     directory = await session.scalar(query)
 
-    assert directory.user.groups
+    assert directory.user.directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
@@ -134,7 +134,7 @@ async def test_ldap_membersip_user_delete(
 
     assert result == 0
     await session.refresh(directory)
-    assert not directory.user.groups
+    assert not directory.user.directory.groups
 
 
 @pytest.mark.asyncio()
@@ -145,7 +145,7 @@ async def test_ldap_membersip_user_add(
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
-        User.groups).selectinload(
+        User.directory).selectinload(Directory.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
     query = select(Directory)\
@@ -156,10 +156,10 @@ async def test_ldap_membersip_user_add(
 
     directory = await session.scalar(query)
 
-    directory.user.groups.clear()
+    directory.user.directory.groups.clear()
     await session.commit()
 
-    assert not directory.user.groups
+    assert not directory.user.directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
@@ -182,7 +182,7 @@ async def test_ldap_membersip_user_add(
 
     assert result == 0
     await session.refresh(directory)
-    assert directory.user.groups
+    assert directory.user.directory.groups
 
 
 @pytest.mark.asyncio()
@@ -194,7 +194,7 @@ async def test_ldap_membersip_user_replace(
     dn = "cn=user0,ou=users,dc=md,dc=test"
 
     membership = selectinload(Directory.user).selectinload(
-        User.groups).selectinload(
+        User.directory).selectinload(Directory.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
     query = select(Directory)\
@@ -205,7 +205,7 @@ async def test_ldap_membersip_user_replace(
 
     directory = await session.scalar(query)
 
-    assert directory.user.groups
+    assert directory.user.directory.groups
 
     new_group_dn = "cn=twisted,cn=groups,dc=md,dc=test\n"
 
@@ -253,7 +253,7 @@ async def test_ldap_membersip_user_replace(
 
     assert result == 0
     await session.refresh(directory)
-    assert directory.user.groups
+    assert directory.user.directory.groups
 
 
 @pytest.mark.asyncio()

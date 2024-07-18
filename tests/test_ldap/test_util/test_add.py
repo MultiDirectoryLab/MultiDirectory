@@ -94,7 +94,7 @@ async def test_ldap_user_add_with_group(
     assert result == 0
 
     membership = selectinload(Directory.user).selectinload(
-        User.groups).selectinload(
+        User.directory).selectinload(Directory.groups).selectinload(
             Group.directory).selectinload(Directory.path)
 
     query = select(Directory)\
@@ -105,7 +105,7 @@ async def test_ldap_user_add_with_group(
 
     assert new_dir.name == "test"
 
-    group = new_dir.user.groups[0]
+    group = new_dir.user.directory.groups[0]
 
     assert sorted(group.directory.path.path) == sorted(
         ['cn=domain admins', 'cn=groups'])
