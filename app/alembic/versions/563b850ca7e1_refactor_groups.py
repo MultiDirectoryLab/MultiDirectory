@@ -106,7 +106,6 @@ def downgrade() -> None:
         sa.ForeignKeyConstraint(['directoryId'], ['Directory.id'], name='Computers_directoryId_fkey'),
         sa.PrimaryKeyConstraint('id', name='Computers_pkey')
     )
-    #  {4: 1, 5: 2, 7: 2, 6: 4}
 
     bind = op.get_bind()
     session = Session(bind=bind)
