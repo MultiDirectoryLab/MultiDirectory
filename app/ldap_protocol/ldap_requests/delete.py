@@ -64,11 +64,11 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        await session.delete(obj)
-        await session.commit()
-
         if obj.user:
             await ldap_session.kadmin.del_principal(
                 obj.user.get_upn_prefix())
+
+        await session.delete(obj)
+        await session.commit()
 
         yield DeleteResponse(result_code=LDAPCodes.SUCCESS)
