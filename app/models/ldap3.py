@@ -65,20 +65,18 @@ class CatalogueSetting(Base):
     value = Column(String, nullable=False)
 
 
-class GroupMembership(Base):
-    """Group membership - path m2m relationship."""
+class DirectoryMembership(Base):
+    """Directory membership - path m2m relationship."""
 
-    __tablename__ = "GroupMemberships"
+    __tablename__ = "DirectoryMemberships"
     group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
-    group_child_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
+    directory_id = Column(
+        Integer, ForeignKey("Directory.id"), primary_key=True)
 
-
-class UserMembership(Base):
-    """User membership - path m2m relationship."""
-
-    __tablename__ = "UserMemberships"
-    group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
-    user_id = Column(Integer, ForeignKey("Users.id"), primary_key=True)
+    group: 'Group' = relationship(
+        "Group", uselist=False, cascade="all,delete", overlaps="group")
+    directory: 'Directory' = relationship(
+        "Directory", uselist=False, cascade="all,delete", overlaps="directory")
 
 
 class DirectoryPath(Base):
@@ -166,8 +164,13 @@ class Directory(Base):
         'Attribute', cascade="all,delete")
     group: 'Group' = relationship('Group', uselist=False, cascade="all,delete")
     user: 'User' = relationship('User', uselist=False, cascade="all,delete")
-    computer: 'Computer' = relationship(
-        'Computer', uselist=False, cascade="all,delete")
+    groups: list['Group'] = relationship(
+        "Group",
+        secondary=DirectoryMembership.__table__,
+        back_populates="members",
+        lazy="selectin",
+        overlaps="group",
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -270,16 +273,19 @@ class User(DirectoryReferenceMixin, Base):
         'accountexpires': 'accountExpires',
     }
 
-    groups: list['Group'] = relationship(
-        "Group",
-        secondary=UserMembership.__table__,
-        back_populates='users',
-    )
-
     password_history: list[str] = Column(
         MutableList.as_mutable(postgresql.ARRAY(String)),
         server_default="{}",
         nullable=False)
+
+    groups: list['Group'] = relationship(
+        'Group',
+        secondary=DirectoryMembership.__table__,
+        primaryjoin="User.directory_id == DirectoryMembership.directory_id",
+        secondaryjoin="DirectoryMembership.group_id == Group.id",
+        back_populates='users',
+        overlaps="group,groups",
+    )
 
 
 class Group(DirectoryReferenceMixin, Base):
@@ -290,25 +296,19 @@ class Group(DirectoryReferenceMixin, Base):
     id = Column(Integer, primary_key=True)  # noqa: A003
     search_fields: dict[str, str] = {}
 
-    child_groups: list['Group'] = relationship(
-        "Group",
-        secondary=GroupMembership.__table__,
-        primaryjoin=id == GroupMembership.__table__.c.group_id,
-        secondaryjoin=id == GroupMembership.__table__.c.group_child_id,
-        back_populates='parent_groups')
+    members: list['Directory'] = relationship(
+        "Directory",
+        secondary=DirectoryMembership.__table__,
+        back_populates="groups",
+        overlaps="group,groups",
+    )
 
     parent_groups: list['Group'] = relationship(
-        "Group",
-        secondary=GroupMembership.__table__,
-        primaryjoin=id == GroupMembership.__table__.c.group_child_id,
-        secondaryjoin=id == GroupMembership.__table__.c.group_id,
-        back_populates='child_groups')
-
-    users: list['User'] = relationship(
-        "User",
-        secondary=UserMembership.__table__,
-        primaryjoin=id == UserMembership.__table__.c.group_id,
-        back_populates='groups',
+        'Group',
+        secondary=DirectoryMembership.__table__,
+        primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
+        secondaryjoin=DirectoryMembership.group_id == id,
+        overlaps="group,groups,members",
     )
 
     policies: list['NetworkPolicy'] = relationship(
@@ -325,11 +325,14 @@ class Group(DirectoryReferenceMixin, Base):
         back_populates='mfa_groups',
     )
 
-
-class Computer(DirectoryReferenceMixin, Base):
-    """Computers data."""
-
-    __tablename__ = "Computers"
+    users: list['User'] = relationship(
+        "User",
+        secondary=DirectoryMembership.__table__,
+        primaryjoin=id == DirectoryMembership.__table__.c.group_id,
+        secondaryjoin=DirectoryMembership.directory_id == User.directory_id,
+        back_populates='groups',
+        overlaps="directory,groups,members,parent_groups",
+    )
 
 
 class Attribute(DirectoryReferenceMixin, Base):
