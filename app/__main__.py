@@ -104,13 +104,29 @@ class PoolClientHandler:
                 self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
                 self.ssl_context.load_cert_chain(cert_name, key_name)
 
+    @asynccontextmanager
+    async def _create_ldap_session(
+        self,
+        kadmin: AbstractKadmin,
+        reader: asyncio.StreamReader | None = None,
+        writer: asyncio.StreamWriter | None = None,
+        settings: Settings | None = None,
+    ) -> AsyncIterator[Session]:
+        async with Session(
+            reader=reader,
+            writer=writer,
+            settings=settings,
+            kadmin=kadmin,
+        ) as ldap_session:
+            yield ldap_session
+
     async def __call__(
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
     ) -> None:
         """Create session, queue and start message handlers concurrently."""
-        async with Session(
+        async with self._create_ldap_session(
             reader=reader,
             writer=writer,
             settings=self.settings,
