@@ -144,7 +144,7 @@ class KAdminLocalManager(AbstractKRBManager):
     async def __aenter__(self) -> "KAdminLocalManager":
         """Create threadpool for kadmin client."""
         self.pool = ThreadPoolExecutor(max_workers=500).__enter__()
-        self.client = await self._init_client()
+        self.client = await asyncio.wait_for(self._init_client(), 40)
         logging.info('Successfully connected to kadmin local')
         return self
 
