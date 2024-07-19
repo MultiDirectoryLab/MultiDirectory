@@ -221,3 +221,20 @@ async def get_krb_status(
         return KerberosState.WAITING_FOR_RELOAD
 
     return db_state
+
+
+@krb5_router.post('/add', dependencies=[Depends(get_current_user)])
+async def add_principal(
+    principal_name: Annotated[LIMITED_STR, Body()],
+    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+) -> None:
+    """Create principal in kerberos with given name.
+    \f
+    :param Annotated[str, Body principal_name: upn
+    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    :raises HTTPException: on failed kamin request
+    """  # noqa: D301
+    try:
+        await ldap_session.kadmin.add_principal(principal_name, None)
+    except KRBAPIError as err:
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(err))
