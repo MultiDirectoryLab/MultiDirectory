@@ -202,6 +202,14 @@ test = ["certifi", "pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-co
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
+name = "dishka"
+version = "1.2.0"
+description = "Minimal DI framework"
+category = "main"
+optional = false
+python-versions = ">=3.10"
+
+[[package]]
 name = "dnspython"
 version = "2.6.1"
 description = "DNS toolkit"
@@ -1281,7 +1289,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "d65403f5466dbb8b4c864947b49ba0bb82c88dfb9c85ae781c6a9d92ac7fcf1a"
+content-hash = "6717d9bac541b2246c36011ce8bbaae7ae52788215b9c3d231aaa2f4aba7a0d7"
 
 [metadata.files]
 alembic = [
@@ -1530,6 +1538,10 @@ cryptography = [
     {file = "cryptography-42.0.3-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:9541c69c62d7446539f2c1c06d7046aef822940d248fa4b8962ff0302862cc1f"},
     {file = "cryptography-42.0.3-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:1b797099d221df7cce5ff2a1d272761d1554ddf9a987d3e11f6459b38cd300fd"},
     {file = "cryptography-42.0.3.tar.gz", hash = "sha256:069d2ce9be5526a44093a0991c450fe9906cdf069e0e7cd67d9dee49a62b9ebe"},
+]
+dishka = [
+    {file = "dishka-1.2.0-py3-none-any.whl", hash = "sha256:d543497b611a448d14a4a138976435937b3b58e5657549f73e7df8c3fc04ccad"},
+    {file = "dishka-1.2.0.tar.gz", hash = "sha256:aae988a49f9f5e591cb103c45287a709378b2f3924a95192fceede168f8605dd"},
 ]
 dnspython = [
     {file = "dnspython-2.6.1-py3-none-any.whl", hash = "sha256:5ef3b9680161f6fa89daf8ad451b5f1a33b18ae8a1c6778cdf4b43f08c0a6e50"},
