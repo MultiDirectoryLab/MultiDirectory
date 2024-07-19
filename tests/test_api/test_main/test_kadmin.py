@@ -3,9 +3,7 @@
 import asyncio
 from functools import partial
 from hashlib import blake2b
-from typing import AsyncIterator
 
-import httpx
 import pytest
 from fastapi import status
 from httpx import AsyncClient
@@ -17,25 +15,6 @@ from ldap_protocol.dialogue import Session
 from ldap_protocol.kerberos import KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from tests.conftest import MutePolicyBindRequest, TestCreds, TestKadminClient
-
-KTADD_CONTENT = b'test_string'
-
-
-class MuteOkResponse(httpx.Response):
-    """Stub response class."""
-
-    status_code: int = 200
-
-    def __init__(self, *args, **kwrgs) -> None:  # type: ignore # noqa
-        pass
-
-    async def aiter_bytes(
-            self, chunk_size: int | None = None) -> AsyncIterator[bytes]:
-        """Stub method, returns KTADD_CONTENT."""
-        yield KTADD_CONTENT
-
-    async def aclose(self) -> None:
-        """Stub."""
 
 
 def _create_test_user_data(
@@ -63,34 +42,6 @@ def _create_test_user_data(
             {"type": "userPrincipalName", "vals": ['ktest']},
             {"type": "displayName", "vals": ["Kerberos Administrator"]},
         ]}
-
-
-class TestArgsKadminClient(TestKadminClient):
-    """Class for setting test args."""
-
-    async def setup(self, *args, **kwargs) -> None:  # type: ignore
-        """Stub setup."""
-        self.args = args
-        self.kwargs = kwargs
-
-    async def ktadd(self, names: list[str]) -> MuteOkResponse:  # noqa
-        self.args = (names,)
-        return MuteOkResponse()
-
-    async def add_principal(self, name: str, password: str) -> None:
-        self.args = (name, password)
-
-    async def del_principal(self, name: str) -> None:
-        self.args = (name,)
-
-    async def create_or_update_principal_pw(
-            self, name: str, password: str) -> None:
-        self.args = (name, password)
-
-
-@pytest.fixture()
-def kadmin() -> TestArgsKadminClient:  # noqa: indirect usage
-    return TestArgsKadminClient(None)
 
 
 @pytest.mark.asyncio()
@@ -237,7 +188,7 @@ async def test_status_change(
 async def test_ktadd(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestArgsKadminClient,
+    kadmin: TestKadminClient,
 ) -> None:
     """Test ktadd.
 
@@ -251,7 +202,7 @@ async def test_ktadd(
 
     assert kadmin.args[0] == names
     assert response.status_code == status.HTTP_200_OK
-    assert response.content == KTADD_CONTENT
+    assert response.content == TestKadminClient.KTADD_CONTENT
     assert response.headers == {
         'Content-Disposition': 'attachment; filename="md.keytab"',
         'content-type': 'application/txt',
@@ -264,7 +215,7 @@ async def test_ktadd(
 async def test_ktadd_404(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestArgsKadminClient,
+    kadmin: TestKadminClient,
 ) -> None:
     """Test ktadd failure.
 
@@ -272,7 +223,7 @@ async def test_ktadd_404(
     :param dict login_headers: headers
     :param Session ldap_session: ldap
     """
-    async def ktadd(names: list[str]) -> MuteOkResponse:
+    async def ktadd(names: list[str]) -> TestKadminClient.MuteOkResponse:
         raise KRBAPIError()
 
     kadmin.ktadd = ktadd  # type: ignore
@@ -290,13 +241,13 @@ async def test_ktadd_404(
 async def test_ldap_add(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestArgsKadminClient,
+    kadmin: TestKadminClient,
 ) -> None:
     """Test add calls add_principal on user creation.
 
     :param AsyncClient http_client: http
     :param dict login_headers: headers
-    :param TestArgsKadminClient kadmin: kadmin
+    :param TestKadminClient kadmin: kadmin
     """
     san = 'ktest'
     pw = 'Password123'
@@ -316,7 +267,7 @@ async def test_ldap_add(
 async def test_ldap_kadmin_delete(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestArgsKadminClient,
+    kadmin: TestKadminClient,
 ) -> None:
     """Test API for delete object."""
     await http_client.post(
@@ -343,7 +294,7 @@ async def test_ldap_kadmin_delete(
 async def test_bind_create_user(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestArgsKadminClient,
+    kadmin: TestKadminClient,
     settings: Settings,
 ) -> None:
     """Test bind create user."""
@@ -364,3 +315,33 @@ async def test_bind_create_user(
 
     assert await proc.wait() == 0
     assert kadmin.args == (san, pw)
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('_force_override_tls')
+async def test_extended_pw_change_call(
+    event_loop: asyncio.BaseEventLoop,
+    ldap_client: Connection,
+    creds: TestCreds,
+    kadmin: TestKadminClient,
+    ldap_session: Session,
+) -> None:
+    """Test anonymous pwd change."""
+    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+    password = creds.pw
+    new_test_password = 'Password123'  # noqa
+
+    await event_loop.run_in_executor(
+        None, partial(ldap_client.rebind, user=user_dn, password=password))
+
+    result = await event_loop.run_in_executor(
+        None,
+        partial(  # noqa: S106
+            ldap_client.extend.standard.modify_password,
+            old_password=password,
+            new_password=new_test_password,
+        ))
+
+    assert result
+    assert ldap_session.kadmin.args == ('user0', new_test_password)
