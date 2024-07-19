@@ -53,6 +53,9 @@ class TestKadminClient(StubKadminMDADPIClient):
     """Test kadmin."""
 
     __test__ = False
+
+    KTADD_CONTENT = b'test_string'
+
     args: tuple
     kwargs: dict[str, str | bytes]
 
@@ -65,6 +68,44 @@ class TestKadminClient(StubKadminMDADPIClient):
             cls, settings: Settings) -> AsyncIterator['TestKadminClient']:
         """Stub yield."""
         yield cls(None)
+
+    async def setup(self, *args, **kwargs) -> None:  # type: ignore
+        """Stub setup."""
+        self.args = args
+        self.kwargs = kwargs
+
+    def __getattr__(self, name: str) -> Any:
+        return super().__getattribute__(name)
+
+    class MuteOkResponse(httpx.Response):
+        """Stub response class."""
+
+        status_code: int = 200
+
+        def __init__(self, *args, **kwrgs) -> None:  # type: ignore # noqa
+            pass
+
+        async def aiter_bytes(
+                self, chunk_size: int | None = None) -> AsyncIterator[bytes]:
+            """Stub method, returns KTADD_CONTENT."""
+            yield TestKadminClient.KTADD_CONTENT
+
+        async def aclose(self) -> None:
+            """Stub."""
+
+    async def ktadd(self, names: list[str]) -> MuteOkResponse:  # noqa
+        self.args = (names,)
+        return TestKadminClient.MuteOkResponse()
+
+    async def add_principal(self, name: str, password: str) -> None:
+        self.args = (name, password)
+
+    async def del_principal(self, name: str) -> None:
+        self.args = (name,)
+
+    async def create_or_update_principal_pw(
+            self, name: str, password: str) -> None:
+        self.args = (name, password)
 
 
 class TestHandler(PoolClientHandler):  # noqa
@@ -91,6 +132,14 @@ class MutePolicyBindRequest(BindRequest):
 @pytest.fixture()
 def kadmin() -> TestKadminClient:  # noqa: indirect usage
     return TestKadminClient(None)
+
+
+@pytest.fixture(autouse=True)
+def _set_kadmin(
+        kadmin: TestKadminClient, ldap_session: Session) -> Iterator[None]:
+    ldap_session.kadmin = kadmin
+    yield
+    del ldap_session.kadmin
 
 
 @pytest.fixture(scope="session")
@@ -184,6 +233,7 @@ async def session(
     session_factory: Annotated[sessionmaker, AsyncSession],
     engine: AsyncEngine,
     handler: PoolClientHandler,
+    ldap_session: Session,
     app: FastAPI,
 ) -> AsyncGenerator[AsyncSession, None]:
     """Get session and aquire after completion."""
