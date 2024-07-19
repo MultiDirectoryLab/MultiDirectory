@@ -144,7 +144,7 @@ class AbstractKadmin(ABC):
             raise KRBAPIError(response.text)
 
     @abstractmethod
-    async def add_principal(self, name: str, password: str) -> None: ...  # noqa
+    async def add_principal(self, name: str, password: str | None) -> None: ...  # noqa
 
     @abstractmethod
     async def get_principal(self, name: str) -> dict: ...  # type: ignore  # noqa
@@ -195,7 +195,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         """Stub method, setup is not needed."""
 
     @logger_wraps()
-    async def add_principal(self, name: str, password: str) -> None:
+    async def add_principal(self, name: str, password: str | None) -> None:
         """Add request."""
         response = await self.client.post('principal', json={
             'name': name, 'password': password})
@@ -277,7 +277,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
         await super().setup(*args, **kwargs)
 
     @logger_wraps(is_stub=True)
-    async def add_principal(self, name: str, password: str) -> None:  # noqa D102
+    async def add_principal(self, name: str, password: str | None) -> None:  # noqa D102
         ...
 
     @logger_wraps(is_stub=True)
