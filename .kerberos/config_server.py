@@ -354,7 +354,7 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
 async def add_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
-    password: Annotated[str, Body()],
+    password: Annotated[str | None, Body(embed=True)] = None,
 ) -> None:
     """Add principal.
 
