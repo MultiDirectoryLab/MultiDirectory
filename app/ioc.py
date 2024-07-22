@@ -110,6 +110,17 @@ class MainProvider(Provider):
         logger.debug('Closed kadmin {}', kadmin_class)
 
 
+class HTTPProvider(Provider):
+    """HTTP LDAP session."""
+
+    scope = Scope.REQUEST
+
+    @provide(provides=LDAPSession)
+    async def get_session(self) -> AsyncIterator[LDAPSession]:
+        """Create ldap session."""
+        return LDAPSession()
+
+
 class LDAPServerProvider(Provider):
     """Prvider with session scope."""
 
