@@ -5,15 +5,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Callable
 
 from asn1 import Classes, Decoder, Encoder, Numbers
 from loguru import logger
 from pydantic import BaseModel, Field, SerializeAsAny
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .asn1parser import asn1todict
-from .dialogue import LDAPCodes, Session
+from .dialogue import LDAPCodes
 from .ldap_requests import BaseRequest, protocol_id_map
 from .ldap_responses import BaseResponse, LDAPResult
 from .utils import get_class_name
@@ -145,15 +144,13 @@ class LDAPRequestMessage(LDAPMessage):
         )
 
     async def create_response(
-        self,
-        ldap_session: Session,
-        session: AsyncSession,
+        self, handler: Callable[..., AsyncGenerator[BaseResponse, None]],
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 
         :yield LDAPResponseMessage: create response for context.
         """
-        async for response in self.context.handle(ldap_session, session):
+        async for response in handler():
             yield LDAPResponseMessage(
                 messageID=self.message_id,
                 protocolOP=response.PROTOCOL_OP,
