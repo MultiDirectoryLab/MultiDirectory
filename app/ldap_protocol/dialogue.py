@@ -5,19 +5,19 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from enum import IntEnum
-from ipaddress import IPv4Address, ip_address
-from types import TracebackType
+from ipaddress import IPv4Address
 from typing import TYPE_CHECKING, AsyncIterator
 
 import httpx
 from loguru import logger
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from config import Settings
-from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.multifactor import MultifactorAPI, get_auth_ldap
+from ldap_protocol.multifactor import MultifactorAPI
 from models.ldap3 import NetworkPolicy, User
 
 if TYPE_CHECKING:
@@ -131,43 +131,22 @@ class LDAPCodes(IntEnum):
     OTHER = 80
 
 
-class Session:
-    """Session for one client handling."""
+class LDAPSession:
+    """LDAPSession for one client handling."""
 
     ip: IPv4Address
     addr: str
-    reader: asyncio.StreamReader
-    writer: asyncio.StreamWriter
     policy: NetworkPolicy | None
     client: httpx.AsyncClient
     settings: Settings
 
     _mfa_api_class: type[MultifactorAPI] = MultifactorAPI
 
-    def __init__(
-        self, *,
-        kadmin: AbstractKadmin,
-        reader: asyncio.StreamReader | None = None,
-        writer: asyncio.StreamWriter | None = None,
-        user: User | None = None,
-        settings: Settings | None = None,
-    ) -> None:
+    def __init__(self, *, user: User | None = None) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
         self._user: User | None = user
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
-        self.kadmin = kadmin
-
-        if settings:
-            self.settings = settings
-
-        if reader and writer:
-            self.reader = reader
-            self.writer = writer
-
-            self.addr = ':'.join(
-                map(str, self.writer.get_extra_info('peername')))
-            self.ip = ip_address(self.addr.split(':')[0])  # type: ignore
 
     @property
     def user(self) -> User | None:
@@ -200,26 +179,6 @@ class Session:
         async with self._lock:
             yield self._user
 
-    async def __aenter__(self) -> 'Session':  # noqa
-        self.stack = await AsyncExitStack().__aenter__()
-        self.client = await self.stack.enter_async_context(httpx.AsyncClient())
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        """Close writer and queue."""
-        with suppress(RuntimeError):
-            await self.queue.join()
-            self.writer.close()
-            await self.writer.wait_closed()
-
-        await self.stack.__aexit__(exc_type, exc, tb)
-        logger.success(f'Connection {self.addr} closed')
-
     async def check_mfa(
         self,
         identity: str,
@@ -229,7 +188,7 @@ class Session:
         """Check mfa api.
 
         :param User user: db user
-        :param Session ldap_session: ldap session
+        :param LDAPSession ldap_session: ldap session
         :param AsyncSession session: db session
         :return bool: response
         """
@@ -248,3 +207,21 @@ class Session:
         except MultifactorAPI.MultifactorError as err:
             logger.critical(f'MFA failed with {err}')
             return False
+
+    async def validate_conn(
+            self, ip: IPv4Address, session: AsyncSession) -> None:
+        """Validate network policies."""
+        policy = await session.scalar((  # noqa
+            select(NetworkPolicy)
+            .filter_by(enabled=True)
+            .options(selectinload(NetworkPolicy.groups))
+            .filter(
+                text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
+            .order_by(NetworkPolicy.priority.asc())
+            .limit(1)
+        ))
+        if policy is not None:
+            self.policy = policy
+            return
+
+        raise PermissionError
