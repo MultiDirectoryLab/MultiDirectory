@@ -32,7 +32,7 @@ from api.main.utils import get_kadmin
 from app.__main__ import PoolClientHandler
 from app.extra import TEST_DATA, setup_enviroment
 from config import Settings
-from ldap_protocol.dialogue import Session
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import StubKadminMDADPIClient
 from ldap_protocol.ldap_requests.bind import BindRequest
 from models.database import get_engine
@@ -136,7 +136,7 @@ def kadmin() -> TestKadminClient:  # noqa: indirect usage
 
 @pytest.fixture(autouse=True)
 def _set_kadmin(
-        kadmin: TestKadminClient, ldap_session: Session) -> Iterator[None]:
+        kadmin: TestKadminClient, ldap_session: LDAPSession) -> Iterator[None]:
     ldap_session.kadmin = kadmin
     yield
     del ldap_session.kadmin
@@ -233,7 +233,7 @@ async def session(
     session_factory: Annotated[sessionmaker, AsyncSession],
     engine: AsyncEngine,
     handler: PoolClientHandler,
-    ldap_session: Session,
+    ldap_session: LDAPSession,
     app: FastAPI,
 ) -> AsyncGenerator[AsyncSession, None]:
     """Get session and aquire after completion."""
@@ -262,9 +262,9 @@ async def setup_session(session: AsyncSession) -> None:
 @pytest_asyncio.fixture(scope="function")
 async def ldap_session(
         settings: Settings,
-        kadmin: TestKadminClient) -> AsyncGenerator[Session, None]:
+        kadmin: TestKadminClient) -> AsyncGenerator[LDAPSession, None]:
     """Yield empty session."""
-    yield Session(settings=settings, kadmin=kadmin)
+    yield LDAPSession(settings=settings, kadmin=kadmin)
 
 
 @pytest.fixture(scope="session")

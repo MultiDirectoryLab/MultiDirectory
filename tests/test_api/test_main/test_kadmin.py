@@ -11,7 +11,7 @@ from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.dialogue import Session
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from tests.conftest import MutePolicyBindRequest, TestCreds, TestKadminClient
@@ -50,7 +50,7 @@ def _create_test_user_data(
 async def test_tree_creation(
     http_client: AsyncClient,
     login_headers: dict,
-    ldap_session: Session,
+    ldap_session: LDAPSession,
     session: AsyncSession,
 ) -> None:
     """Test tree creation."""
@@ -119,13 +119,13 @@ async def test_tree_collision(
 async def test_setup_call(
     http_client: AsyncClient,
     login_headers: dict,
-    ldap_session: Session,
+    ldap_session: LDAPSession,
 ) -> None:
     """Test setup args.
 
     :param AsyncClient http_client: http cl
     :param dict login_headers: headers
-    :param Session ldap_session: ldap
+    :param LDAPSession ldap_session: ldap
     """
     response = await http_client.post('/kerberos/setup', json={
         "krbadmin_password": 'Password123',
@@ -164,7 +164,7 @@ async def test_status_change(
 
     :param AsyncClient http_client: http cl
     :param dict login_headers: headers
-    :param Session ldap_session: ldap
+    :param LDAPSession ldap_session: ldap
     """
     response = await http_client.get(
         '/kerberos/status', headers=login_headers)
@@ -194,7 +194,7 @@ async def test_ktadd(
 
     :param AsyncClient http_client: http cl
     :param dict login_headers: headers
-    :param Session ldap_session: ldap
+    :param LDAPSession ldap_session: ldap
     """
     names = ['test1', 'test2']
     response = await http_client.post(
@@ -221,7 +221,7 @@ async def test_ktadd_404(
 
     :param AsyncClient http_client: http cl
     :param dict login_headers: headers
-    :param Session ldap_session: ldap
+    :param LDAPSession ldap_session: ldap
     """
     async def ktadd(names: list[str]) -> TestKadminClient.MuteOkResponse:
         raise KRBAPIError()
@@ -325,7 +325,7 @@ async def test_extended_pw_change_call(
     ldap_client: Connection,
     creds: TestCreds,
     kadmin: TestKadminClient,
-    ldap_session: Session,
+    ldap_session: LDAPSession,
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"

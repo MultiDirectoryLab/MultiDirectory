@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from app.__main__ import PoolClientHandler
 from app.config import Settings
-from app.ldap_protocol.dialogue import Session
+from app.ldap_protocol.dialogue import LDAPSession
 from app.ldap_protocol.ldap_requests import SearchRequest
 from app.ldap_protocol.utils import get_group, get_groups, is_user_group_valid
 from app.models.ldap3 import User
@@ -126,7 +126,7 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.usefixtures('session')
 async def test_bvalue_in_search_request(
         session: AsyncSession,
-        ldap_session: Session) -> None:
+        ldap_session: LDAPSession) -> None:
     """Test SearchRequest with bytes data."""
     ldap_session._user = True
 

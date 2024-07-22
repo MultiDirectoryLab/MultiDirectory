@@ -12,7 +12,7 @@ import pytest
 from ldap3 import PLAIN, SASL, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ldap_protocol.dialogue import Session
+from app.ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
@@ -27,7 +27,7 @@ from tests.conftest import MutePolicyBindRequest, TestCreds
 
 @pytest.mark.asyncio()
 async def test_bind_ok_and_unbind(
-        session: AsyncSession, ldap_session: Session) -> None:
+        session: AsyncSession, ldap_session: LDAPSession) -> None:
     """Test ok bind."""
     directory = Directory(name='user0', object_class='')
     user = User(
@@ -58,7 +58,7 @@ async def test_bind_ok_and_unbind(
 
 @pytest.mark.asyncio()
 async def test_bind_invalid_password_or_user(
-        session: AsyncSession, ldap_session: Session) -> None:
+        session: AsyncSession, ldap_session: LDAPSession) -> None:
     """Test invalid password bind."""
     directory = Directory(name='user0', object_class='')
     user = User(
@@ -104,7 +104,7 @@ async def test_bind_invalid_password_or_user(
 
 @pytest.mark.asyncio()
 async def test_anonymous_bind(
-        session: AsyncSession, ldap_session: Session) -> None:
+        session: AsyncSession, ldap_session: LDAPSession) -> None:
     """Test anonymous."""
     bind = BindRequest(
         version=0,
@@ -119,7 +119,7 @@ async def test_anonymous_bind(
 
 @pytest.mark.asyncio()
 async def test_anonymous_unbind(
-        session: AsyncSession, ldap_session: Session) -> None:
+        session: AsyncSession, ldap_session: LDAPSession) -> None:
     """Test anonymous call."""
     ldap_session.delete_user = AsyncMock()  # type: ignore
     with pytest.raises(StopAsyncIteration):

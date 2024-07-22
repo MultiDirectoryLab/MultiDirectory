@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
 
 from app.config import Settings
-from app.ldap_protocol.dialogue import LDAPCodes, Session
+from app.ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from app.ldap_protocol.ldap_requests import AddRequest
 from app.models.ldap3 import Directory, Group, Path, User
 
@@ -160,7 +160,7 @@ async def test_ldap_user_add_group_with_group(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_add_bvalue_attr(session: AsyncSession, ldap_session: Session) \
+async def test_add_bvalue_attr(session: AsyncSession, ldap_session: LDAPSession) \
         -> None:
     """Test AddRequest with bytes data."""
     ldap_session._user = True
