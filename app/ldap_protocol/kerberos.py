@@ -5,17 +5,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
 from enum import StrEnum
 from functools import wraps
-from typing import Any, AsyncIterator, Callable, NoReturn
+from typing import Any, Callable, NoReturn
 
 import httpx
 from loguru import logger as loguru_logger
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from models import CatalogueSetting
 
 KERBEROS_STATE_NAME = 'KerberosState'
@@ -168,23 +166,6 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def ktadd(self, names: list[str]) -> httpx.Response: ...  # noqa
-
-    @classmethod
-    @asynccontextmanager
-    async def get_krb_ldap_client(
-            cls, settings: Settings) -> AsyncIterator['AbstractKadmin']:
-        """Get krb client."""
-        limits = httpx.Limits(
-            max_connections=settings.KRB5_SERVER_MAX_CONN,
-            max_keepalive_connections=settings.KRB5_SERVER_MAX_KEEPALIVE,
-        )
-        async with httpx.AsyncClient(
-            timeout=30,
-            verify="/certs/krbcert.pem",
-            base_url=str(settings.KRB5_CONFIG_SERVER),
-            limits=limits,
-        ) as client:
-            yield cls(client)
 
 
 class KerberosMDAPIClient(AbstractKadmin):
