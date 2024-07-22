@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import uuid
 from operator import eq, ge, le, ne
+from typing import Callable
 
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
@@ -66,10 +67,38 @@ def _filter_memberof(
     ))  # type: ignore
 
 
-def _ldap_filter_memberof(
-    item: ASN1Row, right: ASN1Row, base_dn: str,
+def _filter_member(
+    method: ColumnOperators, dn: str, base_dn: str,
 ) -> UnaryExpression:
-    """Retrieve query conditions with the memberOF attribute."""
+    """Retrieve query conditions with the member attribute."""
+    group_path = get_search_path(dn, base_dn)
+    path_filter = get_path_filter(group_path)
+
+    user_id_subquery = select(User.id).join(  # noqa: ECE001
+        Directory.user).join(Directory.path).where(
+            path_filter).scalar_subquery()
+
+    return method((
+        select(Group.directory_id)
+        .join(Group.users)
+        .where(User.id == user_id_subquery)
+    ))  # type: ignore
+
+
+def _get_filter_function(attribute: str) -> Callable[..., UnaryExpression]:
+    """Retrieve the appropriate filter function based on the attribute."""
+    if attribute == 'memberof':  # noqa: R505
+        return _filter_memberof
+    elif attribute == 'member':
+        return _filter_member
+    else:
+        raise ValueError('Incorrect attribute specified')
+
+
+def _ldap_filter_by_attribute(
+    item: ASN1Row, right: ASN1Row, base_dn: str, attribute: str,
+) -> UnaryExpression:
+    """Retrieve query conditions based on the specified LDAP attribute."""
     if item.tag_id.value == 3:
         method = Directory.id.in_
     elif item.tag_id.value == 8:
@@ -77,7 +106,8 @@ def _ldap_filter_memberof(
     else:
         raise ValueError('Incorrect operation method')
 
-    return _filter_memberof(method, right.value, base_dn)
+    filter_func = _get_filter_function(attribute)
+    return filter_func(method, right.value, base_dn)
 
 
 def _cast_item(
@@ -104,8 +134,8 @@ def _cast_item(
         return _from_filter(User, item, attr, right), query
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right), query
-    elif attr == 'memberof':
-        return _ldap_filter_memberof(item, right, base_dn), query
+    elif attr in {'memberof', 'member'}:
+        return _ldap_filter_by_attribute(item, right, base_dn, attr), query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(
@@ -157,10 +187,8 @@ def _from_str_filter(
     return op_method(col, item.val)
 
 
-def _api_filter_memberof(
-    item: Filter, base_dn: str,
-) -> UnaryExpression:
-    """Retrieve query conditions with the memberOF attribute."""
+def _api_filter(item: Filter, base_dn: str) -> UnaryExpression:
+    """Retrieve query conditions based on the specified LDAP attribute."""
     if item.comp == '=':
         method = Directory.id.in_
     elif item.comp == '~=':
@@ -168,7 +196,8 @@ def _api_filter_memberof(
     else:
         raise ValueError('Incorrect operation method')
 
-    return _filter_memberof(method, item.val, base_dn)
+    filter_func = _get_filter_function(item.attr)
+    return filter_func(method, item.val, base_dn)
 
 
 def _cast_filt_item(item: Filter, query: Select, base_dn: str) -> BoundQ:
@@ -187,8 +216,8 @@ def _cast_filt_item(item: Filter, query: Select, base_dn: str) -> BoundQ:
         return _from_str_filter(User, is_substring, item), query
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item), query
-    elif item.attr == 'memberof':
-        return _api_filter_memberof(item, base_dn), query
+    elif item.attr in {'memberof', 'member'}:
+        return _api_filter(item, base_dn), query
     else:
         attribute_q = aliased(Attribute)
         query = query.join(

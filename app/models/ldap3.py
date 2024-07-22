@@ -169,7 +169,7 @@ class Directory(Base):
         secondary=DirectoryMembership.__table__,
         back_populates="members",
         lazy="selectin",
-        overlaps="group",
+        overlaps="group,directory",
     )
 
     __table_args__ = (
@@ -284,7 +284,7 @@ class User(DirectoryReferenceMixin, Base):
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates='users',
-        overlaps="group,groups",
+        overlaps="group,groups,directory",
     )
 
 
@@ -300,7 +300,7 @@ class Group(DirectoryReferenceMixin, Base):
         "Directory",
         secondary=DirectoryMembership.__table__,
         back_populates="groups",
-        overlaps="group,groups",
+        overlaps="group,groups,directory",
     )
 
     parent_groups: list['Group'] = relationship(
@@ -308,7 +308,7 @@ class Group(DirectoryReferenceMixin, Base):
         secondary=DirectoryMembership.__table__,
         primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
         secondaryjoin=DirectoryMembership.group_id == id,
-        overlaps="group,groups,members",
+        overlaps="group,groups,members,directory",
     )
 
     policies: list['NetworkPolicy'] = relationship(
@@ -331,7 +331,7 @@ class Group(DirectoryReferenceMixin, Base):
         primaryjoin=id == DirectoryMembership.__table__.c.group_id,
         secondaryjoin=DirectoryMembership.directory_id == User.directory_id,
         back_populates='groups',
-        overlaps="directory,groups,members,parent_groups",
+        overlaps="directory,groups,members,parent_groups,group",
     )
 
 

@@ -131,6 +131,36 @@ async def test_api_search_filter_memberof(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
+async def test_api_search_filter_member(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test api search."""
+    member = 'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test'
+    group = 'cn=developers,cn=groups,dc=md,dc=test'
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": f"(member={member})",
+            "attributes": [],
+            "page_number": 1,
+        },
+        headers=login_headers,
+    )
+
+    response = raw_response.json()
+
+    assert response['resultCode'] == LDAPCodes.SUCCESS
+    assert response['search_result'][1]['object_name'] == group
+
+
+@pytest.mark.asyncio()
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
 async def test_api_search_filter_objectguid(
         http_client: AsyncClient, login_headers: dict) -> None:
     """Test api search."""
