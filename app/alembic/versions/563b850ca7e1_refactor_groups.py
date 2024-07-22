@@ -5,13 +5,12 @@ Revises: 6355e97cd073
 Create Date: 2024-07-05 06:38:42.573067
 
 """
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Column, ForeignKey, Integer
-from sqlalchemy.orm import declarative_base, Session, selectinload
+from alembic import op
+from sqlalchemy import Column, Integer
+from sqlalchemy.orm import Session, declarative_base, selectinload
 
 from models.ldap3 import Directory, DirectoryMembership, Group, User
-
 
 # revision identifiers, used by Alembic.
 revision = '563b850ca7e1'
