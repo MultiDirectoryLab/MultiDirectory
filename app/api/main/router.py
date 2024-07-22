@@ -4,12 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated
-
-from fastapi.params import Depends
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi.routing import APIRouter
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.dialogue import Session as LDAPSession
+from ldap_protocol.dialogue import LDAPSession as LDAPSession
 from ldap_protocol.ldap_requests import (
     AddRequest,
     DeleteRequest,
@@ -17,19 +17,18 @@ from ldap_protocol.ldap_requests import (
     ModifyRequest,
 )
 from ldap_protocol.ldap_responses import LDAPResult
-from models.database import AsyncSession, get_session
 
 from .schema import SearchRequest, SearchResponse, SearchResultDone
-from .utils import get_ldap_session
 
 entry_router = APIRouter(prefix='/entry', tags=['LDAP API'])
 
 
 @entry_router.post('/search')
+@inject
 async def search(
     request: SearchRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    session: FromDishka[AsyncSession],
+    ldap_session: FromDishka[LDAPSession],
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
     responses = await request.handle_api(ldap_session, session)
@@ -46,40 +45,44 @@ async def search(
 
 
 @entry_router.post('/add')
+@inject
 async def add(
     request: AddRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    session: FromDishka[AsyncSession],
+    ldap_session: FromDishka[LDAPSession],
 ) -> LDAPResult:
     """LDAP ADD entry request."""
     return await request.handle_api(ldap_session, session)
 
 
 @entry_router.patch('/update')
+@inject
 async def modify(
     request: ModifyRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    session: FromDishka[AsyncSession],
+    ldap_session: FromDishka[LDAPSession],
 ) -> LDAPResult:
     """LDAP MODIFY entry request."""
     return await request.handle_api(ldap_session, session)
 
 
 @entry_router.put('/update/dn')
+@inject
 async def modify_dn(
     request: ModifyDNRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    session: FromDishka[AsyncSession],
+    ldap_session: FromDishka[LDAPSession],
 ) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
     return await request.handle_api(ldap_session, session)
 
 
 @entry_router.delete('/delete')
+@inject
 async def delete(
     request: DeleteRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    session: FromDishka[AsyncSession],
+    ldap_session: FromDishka[LDAPSession],
 ) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(ldap_session, session)

@@ -8,6 +8,8 @@ import operator
 import traceback
 from typing import Annotated
 
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
@@ -15,16 +17,15 @@ from jose import JWTError, jwt
 from jose.exceptions import JWKError
 from loguru import logger
 from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from config import Settings, get_settings
+from config import Settings
 from ldap_protocol.multifactor import (
-    Creds,
+    MFA_HTTP_Creds,
+    MFA_LDAP_Creds,
     MultifactorAPI,
-    get_auth,
-    get_auth_ldap,
 )
-from models.database import AsyncSession, get_session
 from models.ldap3 import CatalogueSetting
 from models.ldap3 import User as DBUser
 
@@ -36,15 +37,18 @@ from .schema import (
     OAuth2Form,
 )
 
-mfa_router = APIRouter(prefix='/multifactor', tags=['Multifactor'])
+mfa_router = APIRouter(
+    prefix='/multifactor',
+    tags=['Multifactor'])
 
 
 @mfa_router.post(
     '/setup', status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(get_current_user)])
+@inject
 async def setup_mfa(
     mfa: MFACreateRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
 
@@ -73,8 +77,8 @@ async def setup_mfa(
 
 @mfa_router.post('/get', dependencies=[Depends(get_current_user)])
 async def get_mfa(
-    mfa_creds: Annotated[Creds | None, Depends(get_auth)],
-    mfa_creds_ldap: Annotated[Creds | None, Depends(get_auth_ldap)],
+    mfa_creds: FromDishka[MFA_HTTP_Creds],
+    mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
 ) -> MFAGetResponse:
     """Get MFA creds.
 
@@ -82,9 +86,9 @@ async def get_mfa(
     :return MFAGetResponse: response
     """  # noqa: D205, D301
     if not mfa_creds:
-        mfa_creds = Creds(None, None)
+        mfa_creds = MFA_HTTP_Creds(None, None)
     if not mfa_creds_ldap:
-        mfa_creds_ldap = Creds(None, None)
+        mfa_creds_ldap = MFA_LDAP_Creds(None, None)
 
     return MFAGetResponse(
         mfa_key=mfa_creds.key,
@@ -95,10 +99,11 @@ async def get_mfa(
 
 
 @mfa_router.post('/create', name='callback_mfa', include_in_schema=False)
+@inject
 async def callback_mfa(
     access_token: Annotated[str, Form(alias='accessToken')],
-    session: Annotated[AsyncSession, Depends(get_session)],
-    mfa_creds: Annotated[Creds | None, Depends(get_auth)],
+    session: FromDishka[AsyncSession],
+    mfa_creds: FromDishka[MFA_HTTP_Creds] | None,
 ) -> RedirectResponse:
     """Disassemble mfa token and send it to websocket.
 
@@ -135,15 +140,15 @@ async def callback_mfa(
 
 
 @mfa_router.post('/connect', response_model=MFAChallengeResponse)
+@inject
 async def two_factor_protocol(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    api: Annotated[MultifactorAPI, Depends(MultifactorAPI.from_di)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    session: FromDishka[AsyncSession],
+    api: FromDishka[MultifactorAPI],
+    settings: FromDishka[Settings],
 ) -> MFAChallengeResponse:
     """Authenticate with two factor app.
-
     \f
     :param Annotated[OAuth2Form, Depends form: login form
     :param Request request: request
@@ -154,7 +159,7 @@ async def two_factor_protocol(
     :raises HTTPException: Multifactor error
     :return MFAChallengeResponse:
         {'status': 'pending', 'message': https://example.com}
-    """  # noqa: D205, D301
+    """  # noqa: D301
     if not api:
         raise HTTPException(
             status.HTTP_428_PRECONDITION_REQUIRED, 'Missing API credentials')

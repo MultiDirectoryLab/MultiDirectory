@@ -8,17 +8,21 @@ from typing import Annotated
 
 import jinja2
 from annotated_types import Len
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import Body, HTTPException, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import EmailStr, SecretStr
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
 from api.auth import User, get_current_user
-from config import Settings, get_settings
-from ldap_protocol.dialogue import Session as LDAPSession
+from config import Settings
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
+    AbstractKadmin,
     KerberosState,
     KRBAPIError,
     get_krb_server_state,
@@ -26,7 +30,6 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.utils import get_base_dn, get_dn_by_id
-from models.database import AsyncSession, get_session
 
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
@@ -42,11 +45,13 @@ TEMPLATES = jinja2.Environment(
     '/setup/tree',
     response_class=Response,
     dependencies=[Depends(get_current_user)])
+@inject
 async def setup_krb_catalogue(
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
     mail: Annotated[EmailStr, Body()],
     krbadmin_password: Annotated[SecretStr, Body()],
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Generate tree for kdc/kadmin.
 
@@ -101,9 +106,9 @@ async def setup_krb_catalogue(
 
     async with session.begin_nested():
         results = (
-            await anext(services.handle(ldap_session, session)),
-            await anext(group.handle(ldap_session, session)),
-            await anext(rkb_user.handle(ldap_session, session)),
+            await anext(services.handle(session, ldap_session, kadmin)),
+            await anext(group.handle(session, ldap_session, kadmin)),
+            await anext(rkb_user.handle(session, ldap_session, kadmin)),
         )
         await session.flush()
         if not all(result.result_code == 0 for result in results):
@@ -113,12 +118,13 @@ async def setup_krb_catalogue(
 
 
 @krb5_router.post('/setup', response_class=Response)
+@inject
 async def setup_kdc(
     data: KerberosSetupRequest,
     user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    session: FromDishka[AsyncSession],
+    settings: FromDishka[Settings],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Set up KDC server.
 
@@ -152,7 +158,7 @@ async def setup_kdc(
     )
 
     try:
-        await ldap_session.kadmin.setup(
+        await kadmin.setup(
             domain=domain,
             admin_dn=await get_dn_by_id(user.directory_id, session),
             services_dn=services_container,
@@ -178,8 +184,9 @@ LIMITED_LIST = Annotated[
 @krb5_router.post(
     '/ktadd',
     dependencies=[Depends(get_current_user)])
+@inject
 async def ktadd(
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    kadmin: FromDishka[AbstractKadmin],
     names: Annotated[LIMITED_LIST, Body()],
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
@@ -188,7 +195,7 @@ async def ktadd(
     :return bytes: file
     """
     try:
-        response = await ldap_session.kadmin.ktadd(names)
+        response = await kadmin.ktadd(names)
     except KRBAPIError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Principal not found")
 
@@ -201,9 +208,10 @@ async def ktadd(
 
 
 @krb5_router.get('/status', dependencies=[Depends(get_current_user)])
+@inject
 async def get_krb_status(
-    session: Annotated[AsyncSession, Depends(get_session)],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> KerberosState:
     """Get server status.
 
@@ -213,7 +221,7 @@ async def get_krb_status(
     """
     db_state = await get_krb_server_state(session)
     try:
-        server_state = await ldap_session.kadmin.get_status()
+        server_state = await kadmin.get_status()
     except KRBAPIError:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -224,9 +232,10 @@ async def get_krb_status(
 
 
 @krb5_router.post('/add', dependencies=[Depends(get_current_user)])
+@inject
 async def add_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
-    ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Create principal in kerberos with given name.
     \f
@@ -235,6 +244,6 @@ async def add_principal(
     :raises HTTPException: on failed kamin request
     """  # noqa: D301
     try:
-        await ldap_session.kadmin.add_principal(principal_name, None)
+        await kadmin.add_principal(principal_name, None)
     except KRBAPIError as err:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(err))
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(err))
