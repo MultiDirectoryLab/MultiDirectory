@@ -14,7 +14,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
-from ldap_protocol.dialogue import LDAPCodes, Session
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
@@ -44,7 +44,7 @@ class BaseExtendedValue(ABC, BaseModel):
         """Create model from data, decoded from responseValue bytes."""
 
     @abstractmethod
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
+    async def handle(self, ldap_session: LDAPSession, session: AsyncSession) -> \
             BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
@@ -93,7 +93,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
         return cls()
 
     async def handle(
-            self, ldap_session: Session, _: AsyncSession) -> "WhoAmIResponse":
+            self, ldap_session: LDAPSession, _: AsyncSession) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
             f"u:{ldap_session.user.user_principal_name}"
@@ -115,7 +115,7 @@ class StartTLSRequestValue(BaseExtendedValue):
 
     REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.1466.20037"
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
+    async def handle(self, ldap_session: LDAPSession, session: AsyncSession) -> \
             StartTLSResponse:
         """Update password of current or selected user."""
         if ldap_session.settings.USE_CORE_TLS:
@@ -164,8 +164,9 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     old_password: str
     new_password: str
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            PasswdModifyResponse:
+    async def handle(
+            self, ldap_session: LDAPSession,
+            session: AsyncSession) -> PasswdModifyResponse:
         """Update password of current or selected user."""
         if not ldap_session.settings.USE_CORE_TLS:
             raise PermissionError('TLS required')
@@ -237,8 +238,9 @@ class ExtendedRequest(BaseRequest):
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[ExtendedResponse, None]:
+    async def handle(
+        self, ldap_session: LDAPSession, session: AsyncSession,
+    ) -> AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
         try:
             response = await self.request_value.handle(ldap_session, session)

@@ -12,9 +12,10 @@ from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, Session
-from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.utils import (
     get_user,
@@ -64,7 +65,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
         """Return true if anonymous."""
 
     @abstractmethod
-    async def get_user(self, session: Session, username: str) -> User:
+    async def get_user(self, session: LDAPSession, username: str) -> User:
         """Get user."""
 
 
@@ -90,7 +91,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         return not self.password
 
-    async def get_user(self, session: Session, username: str) -> User:
+    async def get_user(self, session: LDAPSession, username: str) -> User:
         """Get user."""
         return await get_user(session, username)
 
@@ -141,7 +142,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
             password=password,
         )
 
-    async def get_user(self, session: Session, _: str) -> User:
+    async def get_user(self, session: LDAPSession, _: str) -> User:
         """Get user."""
         return await get_user(session, self.username)
 
@@ -210,12 +211,18 @@ class BindRequest(BaseRequest):
 
     @staticmethod
     async def is_user_group_valid(
-            user: User, ldap_session: Session, session: AsyncSession) -> bool:
+            user: User,
+            ldap_session: LDAPSession,
+            session: AsyncSession) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[BindResponse, None]:
+    async def handle(
+        self, session: AsyncSession,
+        ldap_session: LDAPSession,
+        kadmin: AbstractKadmin,
+        settings: Settings,
+    ) -> AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
@@ -269,7 +276,7 @@ class BindRequest(BaseRequest):
                         return
 
         try:
-            await ldap_session.kadmin.add_principal(
+            await kadmin.add_principal(
                 user.get_upn_prefix(),
                 self.authentication_choice.password.get_secret_value())
         except KRBAPIError:
@@ -277,7 +284,7 @@ class BindRequest(BaseRequest):
 
         await ldap_session.set_user(user)
         await set_last_logon_user(
-            user, session, ldap_session.settings.TIMEZONE)
+            user, session, settings.TIMEZONE)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
 
@@ -292,7 +299,7 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, ldap_session: Session, _: AsyncSession) -> \
+    async def handle(self, ldap_session: LDAPSession) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ldap_session.delete_user()

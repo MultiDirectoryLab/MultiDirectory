@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, Session
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     AddResponse,
@@ -73,8 +74,12 @@ class AddRequest(BaseRequest):
         ]
         return cls(entry=entry.value, attributes=attributes)
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[AddResponse, None]:
+    async def handle(
+        self,
+        session: AsyncSession,
+        ldap_session: LDAPSession,
+        kadmin: AbstractKadmin,
+    ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
             yield AddResponse(**INVALID_ACCESS_RESPONSE)
@@ -242,7 +247,7 @@ class AddRequest(BaseRequest):
                     self.password.get_secret_value()
                     if self.password else None)
 
-                await ldap_session.kadmin.add_principal(
+                await kadmin.add_principal(
                     user.get_upn_prefix(), pw)
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
 

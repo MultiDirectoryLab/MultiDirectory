@@ -11,7 +11,8 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, Session
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
@@ -41,8 +42,11 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> 'DeleteRequest':  # noqa: D102
         return cls(entry=data)
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[DeleteResponse, None]:
+    async def handle(
+        self, session: AsyncSession,
+        ldap_session: LDAPSession,
+        kadmin: AbstractKadmin,
+    ) -> AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
         if not ldap_session.user:
             yield DeleteResponse(**INVALID_ACCESS_RESPONSE)
@@ -65,7 +69,7 @@ class DeleteRequest(BaseRequest):
             return
 
         if obj.user:
-            await ldap_session.kadmin.del_principal(
+            await kadmin.del_principal(
                 obj.user.get_upn_prefix())
 
         await session.delete(obj)

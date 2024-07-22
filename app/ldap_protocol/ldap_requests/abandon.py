@@ -7,10 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import Session
 
 from .base import BaseRequest
 
@@ -26,9 +23,7 @@ class AbandonRequest(BaseRequest):
         """Create structure from ASN1Row dataclass list."""
         return cls(message_id=1)
 
-    async def handle(
-            self, _: Session,
-            __: AsyncSession) -> AsyncGenerator:
+    async def handle(self) -> AsyncGenerator:
         """Handle message with current user."""
         await asyncio.sleep(0)
         return
