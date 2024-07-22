@@ -144,7 +144,14 @@ class KAdminLocalManager(AbstractKRBManager):
     async def __aenter__(self) -> "KAdminLocalManager":
         """Create threadpool for kadmin client."""
         self.pool = ThreadPoolExecutor(max_workers=500).__enter__()
-        self.client = await asyncio.wait_for(self._init_client(), 40)
+        logging.info('Initializing ldap connect...')
+
+        try:
+            self.client = await asyncio.wait_for(self._init_client(), 40)
+        except Exception as e:
+            logging.exception('Failed kadmin initialiation')
+            raise SystemError from e
+
         logging.info('Successfully connected to kadmin local')
         return self
 
