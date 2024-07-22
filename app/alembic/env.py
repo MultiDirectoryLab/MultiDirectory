@@ -4,9 +4,10 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Settings
-from models.database import Base, get_engine
+from models.database import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -33,7 +34,7 @@ def do_run_migrations(connection):
 
 async def run_async_migrations(settings):
     """Run async migrations."""
-    engine = get_engine(settings)
+    engine = create_async_engine(str(settings.POSTGRES_URI))
 
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)
