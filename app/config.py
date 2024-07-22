@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     TLS_PORT: int = 636
     USE_CORE_TLS: bool = False
 
+    TCP_PACKET_SIZE: int = 1024
+    COROUTINES_NUM_PER_CLIENT: int = 3
+
     POSTGRES_SCHEMA: str = 'postgresql+asyncpg'
     POSTGRES_DB: str = 'postgres'
 
@@ -110,7 +113,3 @@ class Settings(BaseSettings):
         tls_settings.USE_CORE_TLS = True
         tls_settings.PORT = tls_settings.TLS_PORT
         return tls_settings
-
-
-def get_settings() -> Settings:  # noqa: D103
-    raise NotImplementedError()
