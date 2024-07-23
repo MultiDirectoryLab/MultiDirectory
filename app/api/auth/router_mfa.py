@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth import get_current_user
 from config import Settings
 from ldap_protocol.multifactor import (
+    Creds,
     MFA_HTTP_Creds,
     MFA_LDAP_Creds,
     MultifactorAPI,
@@ -76,19 +77,19 @@ async def setup_mfa(
 
 
 @mfa_router.post('/get', dependencies=[Depends(get_current_user)])
+@inject
 async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
 ) -> MFAGetResponse:
     """Get MFA creds.
-
     \f
     :return MFAGetResponse: response
-    """  # noqa: D205, D301
+    """  # noqa: D301
     if not mfa_creds:
-        mfa_creds = MFA_HTTP_Creds(None, None)
+        mfa_creds = Creds(None, None)
     if not mfa_creds_ldap:
-        mfa_creds_ldap = MFA_LDAP_Creds(None, None)
+        mfa_creds_ldap = Creds(None, None)
 
     return MFAGetResponse(
         mfa_key=mfa_creds.key,
