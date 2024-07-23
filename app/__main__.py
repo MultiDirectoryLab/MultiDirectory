@@ -25,8 +25,9 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ioc import LDAPServerProvider, MainProvider, resolve_deps
+from ioc import LDAPServerProvider, MainProvider
 from ldap_protocol import LDAPRequestMessage, LDAPSession
+from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 
 log = logger.bind(name='ldap')

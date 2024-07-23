@@ -11,13 +11,11 @@ from ipaddress import IPv4Address
 from typing import TYPE_CHECKING, AsyncIterator
 
 import httpx
-from loguru import logger
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from config import Settings
-from ldap_protocol.multifactor import MultifactorAPI
 from models.ldap3 import NetworkPolicy, User
 
 if TYPE_CHECKING:
@@ -140,8 +138,6 @@ class LDAPSession:
     client: httpx.AsyncClient
     settings: Settings
 
-    _mfa_api_class: type[MultifactorAPI] = MultifactorAPI
-
     def __init__(self, *, user: User | None = None) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
@@ -178,35 +174,6 @@ class LDAPSession:
         """Lock session, user cannot be deleted or get while lock is set."""
         async with self._lock:
             yield self._user
-
-    async def check_mfa(
-        self,
-        identity: str,
-        otp: str,
-        session: AsyncSession,
-    ) -> bool:
-        """Check mfa api.
-
-        :param User user: db user
-        :param LDAPSession ldap_session: ldap session
-        :param AsyncSession session: db session
-        :return bool: response
-        """
-        creds = await get_auth_ldap(session)
-
-        if creds is None:
-            return False
-
-        api = self._mfa_api_class(
-            creds.key, creds.secret,
-            client=self.client,
-            settings=self.settings,
-        )
-        try:
-            return await api.ldap_validate_mfa(identity, otp)
-        except MultifactorAPI.MultifactorError as err:
-            logger.critical(f'MFA failed with {err}')
-            return False
 
     async def validate_conn(
             self, ip: IPv4Address, session: AsyncSession) -> None:

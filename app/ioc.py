@@ -5,12 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-from functools import partial, wraps
 from ipaddress import IPv4Address, ip_address
-from typing import AsyncIterator, Callable, NewType, TypeVar, get_type_hints
+from typing import AsyncIterator, NewType
 
 import httpx
-from dishka import AsyncContainer, Provider, Scope, from_context, provide
+from dishka import Provider, Scope, from_context, provide
 from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -20,9 +19,10 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import sessionmaker
 
 from config import Settings
-from ldap_protocol import LDAPSession
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
+    LDAPMultiFactorAPI,
     MFA_HTTP_Creds,
     MFA_LDAP_Creds,
     MultifactorAPI,
@@ -160,7 +160,7 @@ class MFAProvider(Provider):
             self, session: AsyncSession) -> MFA_LDAP_Creds | None:
         """Admin creds get.
 
-        :param Annotated[AsyncSession, Depends session: session
+        :param AsyncSession session: db
         :return MFA_LDAP_Creds: optional creds
         """
         return await get_creds(session, 'mfa_key_ldap', 'mfa_secret_ldap')
@@ -172,7 +172,7 @@ class MFAProvider(Provider):
             yield MFAHTTPClient(client)
 
     @provide(provides=MultifactorAPI)
-    async def get_creds(
+    async def get_hhtp_mfa(
         self,
         credentials: MFA_HTTP_Creds,
         client: MFAHTTPClient,
@@ -190,22 +190,21 @@ class MFAProvider(Provider):
             credentials.key,
             credentials.secret, client, settings)
 
+    @provide(provides=LDAPMultiFactorAPI)
+    async def get_ldap_mfa(
+        self,
+        credentials: MFA_LDAP_Creds,
+        client: MFAHTTPClient,
+        settings: Settings,
+    ) -> LDAPMultiFactorAPI | None:
+        """Get api from DI.
 
-T = TypeVar('T', bound=Callable)
-
-
-async def resolve_deps(*, func: T, container: AsyncContainer) -> T:
-    """Provide async dependencies.
-
-    :param T func: Awaitable
-    :param AsyncContainer container: IoC container
-    :return T: Awaitable
-    """
-    hints = get_type_hints(func)
-    del hints['return']
-    kwargs = {}
-
-    for arg_name, hint in hints.items():
-        kwargs[arg_name] = await container.get(hint)
-
-    return wraps(func)(partial(func, **kwargs))  # type: ignore
+        :param httpx.AsyncClient client: httpx client
+        :param Creds credentials: creds
+        :return MultifactorAPI: mfa integration
+        """
+        if credentials is None:
+            return None
+        return LDAPMultiFactorAPI(MultifactorAPI(
+            credentials.key,
+            credentials.secret, client, settings))

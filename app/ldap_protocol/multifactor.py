@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import uuid
-from collections import namedtuple
 from dataclasses import dataclass
 from json import JSONDecodeError
 from typing import NewType
@@ -22,6 +21,8 @@ from models.ldap3 import CatalogueSetting
 
 @dataclass(frozen=True)
 class Creds:
+    """Creds for mfa."""
+
     key: str
     secret: str
 
@@ -192,3 +193,6 @@ class MultifactorAPI:
 
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
             raise self.MultifactorError(f'MFA API error: {err}') from err
+
+
+LDAPMultiFactorAPI = NewType('LDAPMultiFactorAPI', MultifactorAPI)
