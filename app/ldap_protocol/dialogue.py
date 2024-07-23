@@ -10,12 +10,10 @@ from enum import IntEnum
 from ipaddress import IPv4Address
 from typing import TYPE_CHECKING, AsyncIterator
 
-import httpx
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from config import Settings
 from models.ldap3 import NetworkPolicy, User
 
 if TYPE_CHECKING:
@@ -133,10 +131,7 @@ class LDAPSession:
     """LDAPSession for one client handling."""
 
     ip: IPv4Address
-    addr: str
     policy: NetworkPolicy | None
-    client: httpx.AsyncClient
-    settings: Settings
 
     def __init__(self, *, user: User | None = None) -> None:
         """Set lock."""
