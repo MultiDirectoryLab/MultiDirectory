@@ -52,13 +52,12 @@ async def setup_mfa(
     session: FromDishka[AsyncSession],
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
-
     \f
     :param str mfa_key: multifactor key
     :param Annotated[bool, Body is_ldap_scope: _description_, defaults to True
     :param str mfa_secret: multifactor api secret
     :return bool: status
-    """  # noqa: D205, D301
+    """  # noqa: D301
     async with session.begin_nested():
         await session.execute((
             delete(CatalogueSetting)
