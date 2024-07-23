@@ -104,18 +104,17 @@ async def get_mfa(
 async def callback_mfa(
     access_token: Annotated[str, Form(alias='accessToken')],
     session: FromDishka[AsyncSession],
-    mfa_creds: FromDishka[MFA_HTTP_Creds] | None,
+    mfa_creds: FromDishka[MFA_HTTP_Creds],
 ) -> RedirectResponse:
     """Disassemble mfa token and send it to websocket.
 
     Callback endpoint for MFA.
-
     \f
     :param Annotated[str, Form access_token: access token from multifactor
     :param str | None mfa_secret: multifactor secret from settings
     :raises HTTPException: 404
     :return dict: status
-    """  # noqa: D205, D301
+    """  # noqa: D301
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
