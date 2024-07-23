@@ -25,7 +25,7 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ioc import LDAPServerProvider, MainProvider
+from ioc import LDAPServerProvider, MainProvider, MFAProvider
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
@@ -331,7 +331,10 @@ def main() -> None:
         nonlocal settings
 
         container = make_async_container(
-            LDAPServerProvider(), MainProvider(), context={Settings: settings})
+            LDAPServerProvider(),
+            MainProvider(),
+            MFAProvider(),
+            context={Settings: settings})
 
         settings = await container.get(Settings)
         try:
