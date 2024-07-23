@@ -17,6 +17,7 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
+from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.utils import (
     get_user,
     is_user_group_valid,
@@ -217,11 +218,33 @@ class BindRequest(BaseRequest):
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
 
+    @staticmethod
+    async def check_mfa(
+        api: MultifactorAPI | None,
+        identity: str,
+        otp: str | None,
+    ) -> bool:
+        """Check mfa api.
+
+        :param User user: db user
+        :param LDAPSession ldap_session: ldap session
+        :param AsyncSession session: db session
+        :return bool: response
+        """
+        if api is None:
+            return False
+
+        try:
+            return await api.ldap_validate_mfa(identity, otp)
+        except MultifactorAPI.MultifactorError:
+            return False
+
     async def handle(
         self, session: AsyncSession,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         settings: Settings,
+        mfa: LDAPMultiFactorAPI,
     ) -> AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
@@ -266,10 +289,10 @@ class BindRequest(BaseRequest):
                     )))  # type: ignore
 
                 if check_group:
-                    mfa_status = await ldap_session.check_mfa(
+                    mfa_status = await self.check_mfa(
+                        mfa,
                         user.user_principal_name,
-                        self.authentication_choice.otpassword,
-                        session)
+                        self.authentication_choice.otpassword)
 
                     if mfa_status is False:
                         yield self.BAD_RESPONSE
