@@ -11,8 +11,7 @@ from typing import Callable
 
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
-from sqlalchemy.orm import aliased
-from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.elements import BooleanClauseList, UnaryExpression
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.operators import ColumnOperators
 
@@ -21,7 +20,7 @@ from models.ldap3 import Attribute, Directory, Group, User
 from .asn1parser import ASN1Row
 from .utils import get_path_filter, get_search_path
 
-BoundQ = tuple[UnaryExpression, Select]
+BoundQ = tuple[BooleanClauseList | UnaryExpression, Select]
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
@@ -137,23 +136,15 @@ def _cast_item(
     elif attr in {'memberof', 'member'}:
         return _ldap_filter_by_attribute(item, right, base_dn, attr), query
     else:
-        attribute_q = aliased(Attribute)
-        query = query.join(
-            attribute_q, and_(
-                attribute_q.directory_id == Directory.id,
-                func.lower(attribute_q.name) == attr),
-            isouter=True,
-        )
-
         if is_substring:
-            cond = attribute_q.value.ilike(_get_substring(right))
+            cond = Attribute.value.ilike(_get_substring(right))
         else:
             if isinstance(right.value, str):
-                cond = func.lower(attribute_q.value) == right.value.lower()
+                cond = func.lower(Attribute.value) == right.value.lower()
             else:
-                cond = func.lower(attribute_q.bvalue) == right.value
+                cond = func.lower(Attribute.bvalue) == right.value
 
-        return cond, query
+        return and_(func.lower(Attribute.name) == attr, cond), query
 
 
 def cast_filter2sql(
@@ -219,20 +210,12 @@ def _cast_filt_item(item: Filter, query: Select, base_dn: str) -> BoundQ:
     elif item.attr in {'memberof', 'member'}:
         return _api_filter(item, base_dn), query
     else:
-        attribute_q = aliased(Attribute)
-        query = query.join(
-            attribute_q, and_(
-                attribute_q.directory_id == Directory.id,
-                func.lower(attribute_q.name) == item.attr),
-            isouter=True,
-        )
-
         if is_substring:
-            cond = attribute_q.value.ilike(item.val.replace('*', '%'))
+            cond = Attribute.value.ilike(item.val.replace('*', '%'))
         else:
-            cond = func.lower(attribute_q.value) == item.val
+            cond = func.lower(Attribute.value) == item.val
 
-        return cond, query
+        return and_(func.lower(Attribute.name) == item.attr, cond), query
 
 
 def cast_str_filter2sql(expr: Filter, query: Select, base_dn: str) -> BoundQ:
