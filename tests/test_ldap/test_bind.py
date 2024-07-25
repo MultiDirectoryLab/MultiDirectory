@@ -6,13 +6,17 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from asyncio import BaseEventLoop
 from functools import partial
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
+from dishka import AsyncContainer, Scope
 from ldap3 import PLAIN, SASL, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ldap_protocol.dialogue import LDAPSession
+from config import Settings
+from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
@@ -26,8 +30,13 @@ from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('session')
 async def test_bind_ok_and_unbind(
-        session: AsyncSession, ldap_session: LDAPSession) -> None:
+    session: AsyncSession,
+    ldap_session: LDAPSession,
+    settings: Settings,
+    kadmin: AbstractKadmin,
+) -> None:
     """Test ok bind."""
     directory = Directory(name='user0', object_class='')
     user = User(
@@ -47,18 +56,23 @@ async def test_bind_ok_and_unbind(
         AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
     )
 
-    result = await anext(bind.handle(ldap_session, session))
+    result = await anext(bind.handle(
+        session, ldap_session, kadmin, settings, None))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ldap_session.user.sam_accout_name == user.sam_accout_name  # type: ignore  # noqa
 
     with pytest.raises(StopAsyncIteration):
-        await anext(UnbindRequest().handle(ldap_session, session))
+        await anext(UnbindRequest().handle(ldap_session))
     assert ldap_session.user is None
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('session')
 async def test_bind_invalid_password_or_user(
-        session: AsyncSession, ldap_session: LDAPSession) -> None:
+    session: AsyncSession,
+    ldap_session: LDAPSession,
+    container: AsyncContainer,
+) -> None:
     """Test invalid password bind."""
     directory = Directory(name='user0', object_class='')
     user = User(
@@ -87,7 +101,10 @@ async def test_bind_invalid_password_or_user(
             'data 52e, v3839'),
     )
 
-    result = await anext(bind.handle(ldap_session, session))
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(bind.handle, container)
+        result = await anext(handler())
+
     assert result == bad_response
     assert ldap_session.user is None
 
@@ -97,33 +114,39 @@ async def test_bind_invalid_password_or_user(
         AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
     )
 
-    result = await anext(bind.handle(ldap_session, session))
+    # async with container(scope=Scope.REQUEST) as container:
+    handler = await resolve_deps(bind.handle, container)
+    result = await anext(handler())
+
     assert result == bad_response
     assert ldap_session.user is None
 
 
 @pytest.mark.asyncio()
+@pytest.mark.usefixtures('session')
 async def test_anonymous_bind(
-        session: AsyncSession, ldap_session: LDAPSession) -> None:
+    ldap_session: LDAPSession,
+    container: AsyncContainer,
+) -> None:
     """Test anonymous."""
     bind = BindRequest(
         version=0,
         name='',
         AuthenticationChoice=SimpleAuthentication(password=''),  # noqa
     )
-
-    result = await anext(bind.handle(ldap_session, session))
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(bind.handle, container)
+        result = await anext(handler())
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ldap_session.user is None
 
 
 @pytest.mark.asyncio()
-async def test_anonymous_unbind(
-        session: AsyncSession, ldap_session: LDAPSession) -> None:
+async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
     """Test anonymous call."""
     ldap_session.delete_user = AsyncMock()  # type: ignore
     with pytest.raises(StopAsyncIteration):
-        await anext(UnbindRequest().handle(ldap_session, session))
+        await anext(UnbindRequest().handle(ldap_session))
     assert ldap_session.user is None
     ldap_session.delete_user.assert_called()
 
