@@ -79,7 +79,7 @@ services:
       - ./certs:/certs
     env_file:
       local.env
-    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --reload --loop uvloop
+    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --reload --loop uvloop
     tty: true
     labels:
       - "traefik.enable=true"
