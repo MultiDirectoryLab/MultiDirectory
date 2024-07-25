@@ -5,9 +5,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import uuid
 from contextlib import asynccontextmanager
 from enum import IntEnum
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, ip_address
 from typing import TYPE_CHECKING, AsyncIterator
 
 from sqlalchemy import select, text
@@ -138,6 +139,10 @@ class LDAPSession:
         self._lock = asyncio.Lock()
         self._user: User | None = user
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
+        self.id = uuid.uuid4()
+
+    def __str__(self) -> str:
+        return f"LDAPSession({self.id})"
 
     @property
     def user(self) -> User | None:
@@ -170,10 +175,14 @@ class LDAPSession:
         async with self._lock:
             yield self._user
 
-    async def validate_conn(
-            self, ip: IPv4Address, session: AsyncSession) -> None:
-        """Validate network policies."""
-        policy = await session.scalar((  # noqa
+    async def get_ip(self, writer: asyncio.StreamWriter) -> IPv4Address:
+        addr = ':'.join(map(str, writer.get_extra_info('peername')))
+        return ip_address(addr.split(':')[0])  # type: ignore
+
+    @staticmethod
+    async def _get_policy(
+            ip: IPv4Address, session: AsyncSession) -> NetworkPolicy | None:
+        return await session.scalar((  # noqa
             select(NetworkPolicy)
             .filter_by(enabled=True)
             .options(selectinload(NetworkPolicy.groups))
@@ -182,6 +191,11 @@ class LDAPSession:
             .order_by(NetworkPolicy.priority.asc())
             .limit(1)
         ))
+
+    async def validate_conn(
+            self, ip: IPv4Address, session: AsyncSession) -> None:
+        """Validate network policies."""
+        policy = await self._get_policy(ip, session)
         if policy is not None:
             self.policy = policy
             return
