@@ -3,9 +3,6 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
-import asyncio
-from ipaddress import IPv4Address, ip_address
 from typing import AsyncIterator, NewType
 
 import httpx
@@ -126,23 +123,14 @@ class LDAPServerProvider(Provider):
 
     scope = Scope.SESSION
 
-    reader = from_context(provides=asyncio.StreamReader, scope=Scope.SESSION)
-    writer = from_context(provides=asyncio.StreamWriter, scope=Scope.SESSION)
-
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_session(self) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         return LDAPSession()
 
-    @provide(scope=Scope.SESSION)
-    def get_ip(self, writer: asyncio.StreamWriter) -> IPv4Address:
-        """Get ip form reader."""
-        addr = ':'.join(map(str, writer.get_extra_info('peername')))
-        return ip_address(addr.split(':')[0])  # type: ignore
 
-
-class MFAProvider(Provider):
-    """MFA creds and api provider."""
+class MFACredsProvider(Provider):
+    """Creds provider."""
 
     scope = Scope.REQUEST
 
@@ -165,6 +153,12 @@ class MFAProvider(Provider):
         """
         return await get_creds(session, 'mfa_key_ldap', 'mfa_secret_ldap')
 
+
+class MFAProvider(Provider):
+    """MFA creds and api provider."""
+
+    scope = Scope.REQUEST
+
     @provide(provides=MFAHTTPClient)
     async def get_client(self) -> AsyncIterator[MFAHTTPClient]:
         """Get async client for DI."""
@@ -172,7 +166,7 @@ class MFAProvider(Provider):
             yield MFAHTTPClient(client)
 
     @provide(provides=MultifactorAPI)
-    async def get_hhtp_mfa(
+    async def get_http_mfa(
         self,
         credentials: MFA_HTTP_Creds,
         client: MFAHTTPClient,
