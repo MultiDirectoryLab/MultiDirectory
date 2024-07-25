@@ -13,8 +13,10 @@ from pydantic import BaseModel, SerializeAsAny
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
@@ -44,8 +46,12 @@ class BaseExtendedValue(ABC, BaseModel):
         """Create model from data, decoded from responseValue bytes."""
 
     @abstractmethod
-    async def handle(self, ldap_session: LDAPSession, session: AsyncSession) -> \
-            BaseExtendedResponseValue:
+    async def handle(
+        self, ldap_session: LDAPSession,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
+        settings: Settings,
+    ) -> BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
     @staticmethod
@@ -93,7 +99,12 @@ class WhoAmIRequestValue(BaseExtendedValue):
         return cls()
 
     async def handle(
-            self, ldap_session: LDAPSession, _: AsyncSession) -> "WhoAmIResponse":
+        self,
+        ldap_session: LDAPSession,
+        _: AsyncSession,
+        kadmin: AbstractKadmin,
+        settings: Settings,
+    ) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
             f"u:{ldap_session.user.user_principal_name}"
@@ -115,10 +126,15 @@ class StartTLSRequestValue(BaseExtendedValue):
 
     REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.1466.20037"
 
-    async def handle(self, ldap_session: LDAPSession, session: AsyncSession) -> \
-            StartTLSResponse:
+    async def handle(
+        self,
+        ldap_session: LDAPSession,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
+        settings: Settings,
+    ) -> StartTLSResponse:
         """Update password of current or selected user."""
-        if ldap_session.settings.USE_CORE_TLS:
+        if settings.USE_CORE_TLS:
             return StartTLSResponse()
 
         raise PermissionError('No TLS')
@@ -165,10 +181,13 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     new_password: str
 
     async def handle(
-            self, ldap_session: LDAPSession,
-            session: AsyncSession) -> PasswdModifyResponse:
+        self, ldap_session: LDAPSession,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
+        settings: Settings,
+    ) -> PasswdModifyResponse:
         """Update password of current or selected user."""
-        if not ldap_session.settings.USE_CORE_TLS:
+        if not settings.USE_CORE_TLS:
             raise PermissionError('TLS required')
 
         if self.user_identity is not None:
@@ -194,7 +213,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 update(Directory).where(Directory.id == user.directory_id),
             )
             await session.commit()
-            await ldap_session.kadmin.create_or_update_principal_pw(
+            await kadmin.create_or_update_principal_pw(
                 user.get_upn_prefix(), self.new_password)
             return PasswdModifyResponse()
         raise PermissionError('No user provided')
@@ -239,11 +258,15 @@ class ExtendedRequest(BaseRequest):
     request_value: SerializeAsAny[BaseExtendedValue]
 
     async def handle(
-        self, ldap_session: LDAPSession, session: AsyncSession,
+        self, ldap_session: LDAPSession,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
+        settings: Settings,
     ) -> AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
         try:
-            response = await self.request_value.handle(ldap_session, session)
+            response = await self.request_value.handle(
+                ldap_session, session, kadmin, settings)
         except PermissionError as err:
             logger.critical(err)  # noqa
             yield ExtendedResponse(
