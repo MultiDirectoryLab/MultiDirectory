@@ -197,7 +197,6 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def del_principal(self, name: str) -> None:
         """Delete principal."""
         response = await self.client.delete('principal', params={'name': name})
-        log.critical(response.url)
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
