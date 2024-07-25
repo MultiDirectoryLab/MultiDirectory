@@ -12,7 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.__main__ import PoolClientHandler
 from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPSession
 from app.ldap_protocol.ldap_requests import SearchRequest
