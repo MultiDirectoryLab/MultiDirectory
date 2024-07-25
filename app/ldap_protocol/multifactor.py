@@ -6,20 +6,29 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import uuid
-from collections import namedtuple
+from dataclasses import dataclass
 from json import JSONDecodeError
-from typing import Annotated, AsyncIterator, Optional
+from typing import NewType
 
 import httpx
-from fastapi import Depends
 from loguru import logger
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings, get_settings
-from models.database import AsyncSession, get_session
+from config import Settings
 from models.ldap3 import CatalogueSetting
 
-Creds = namedtuple('Creds', ['key', 'secret'])
+
+@dataclass(frozen=True)
+class Creds:
+    """Creds for mfa."""
+
+    key: str
+    secret: str
+
+
+MFA_HTTP_Creds = NewType('MFA_HTTP_Creds', Creds)
+MFA_LDAP_Creds = NewType('MFA_LDAP_Creds', Creds)
 
 log_mfa = logger.bind(name='mfa')
 
@@ -34,7 +43,7 @@ class _MultifactorError(Exception):
     """MFA exc."""
 
 
-async def _get_creds(
+async def get_creds(
     session: AsyncSession,
     key_name: str,
     secret_name: str,
@@ -51,35 +60,7 @@ async def _get_creds(
     if not key or not secret:
         return None
 
-    return Creds(key.value, secret.value)
-
-
-async def get_auth(
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> Creds | None:
-    """Admin creds get.
-
-    :param Annotated[AsyncSession, Depends session: session
-    :return Creds | None: optional creds
-    """
-    return await _get_creds(session, 'mfa_key', 'mfa_secret')
-
-
-async def get_auth_ldap(
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> Creds | None:
-    """Admin creds get.
-
-    :param Annotated[AsyncSession, Depends session: session
-    :return Creds | None: optional creds
-    """
-    return await _get_creds(session, 'mfa_key_ldap', 'mfa_secret_ldap')
-
-
-async def get_client() -> AsyncIterator[httpx.AsyncClient]:
-    """Get async client for DI."""
-    async with httpx.AsyncClient(timeout=4) as client:
-        yield client
+    return Creds(key.value, secret.value)  # type: ignore
 
 
 class MultifactorAPI:
@@ -213,19 +194,5 @@ class MultifactorAPI:
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
             raise self.MultifactorError(f'MFA API error: {err}') from err
 
-    @classmethod
-    async def from_di(
-        cls,
-        credentials: Annotated[Creds | None, Depends(get_auth)],
-        client: Annotated[httpx.AsyncClient, Depends(get_client)],
-        settings: Annotated[Settings, Depends(get_settings)],
-    ) -> Optional['MultifactorAPI']:
-        """Get api from DI.
 
-        :param httpx.AsyncClient client: httpx client
-        :param Creds credentials: creds
-        :return MultifactorAPI: mfa integration
-        """
-        if credentials is None:
-            return None
-        return cls(credentials.key, credentials.secret, client, settings)
+LDAPMultiFactorAPI = NewType('LDAPMultiFactorAPI', MultifactorAPI)

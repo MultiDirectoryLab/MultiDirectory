@@ -12,9 +12,12 @@ from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, Session
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
+from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.utils import (
     get_user,
     is_user_group_valid,
@@ -46,6 +49,9 @@ class SASLMethod(StrEnum):
 class AbstractLDAPAuth(ABC, BaseModel):
     """Auth base class."""
 
+    otpassword: str | None = Field(None, max_length=6, min_length=6)
+    password: SecretStr
+
     @property
     @abstractmethod
     def METHOD_ID(self) -> int:  # noqa: N802, D102
@@ -60,7 +66,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
         """Return true if anonymous."""
 
     @abstractmethod
-    async def get_user(self, session: Session, username: str) -> User:
+    async def get_user(self, session: LDAPSession, username: str) -> User:
         """Get user."""
 
 
@@ -68,9 +74,6 @@ class SimpleAuthentication(AbstractLDAPAuth):
     """Simple auth form."""
 
     METHOD_ID: ClassVar[int] = 0
-
-    password: SecretStr
-    otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
@@ -89,7 +92,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         return not self.password
 
-    async def get_user(self, session: Session, username: str) -> User:
+    async def get_user(self, session: LDAPSession, username: str) -> User:
         """Get user."""
         return await get_user(session, username)
 
@@ -112,8 +115,6 @@ class SaslPLAINAuthentication(SaslAuthentication):
     mechanism: ClassVar[SASLMethod] = SASLMethod.PLAIN
     credentials: bytes
     username: str | None = None
-    password: SecretStr
-    otpassword: str | None = Field(None, max_length=6, min_length=6)
 
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
@@ -142,7 +143,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
             password=password,
         )
 
-    async def get_user(self, session: Session, _: str) -> User:
+    async def get_user(self, session: LDAPSession, _: str) -> User:
         """Get user."""
         return await get_user(session, self.username)
 
@@ -163,7 +164,7 @@ class BindRequest(BaseRequest):
 
     version: int
     name: str
-    authentication_choice: SimpleAuthentication | SaslPLAINAuthentication =\
+    authentication_choice: AbstractLDAPAuth =\
         Field(..., alias='AuthenticationChoice')
 
     @classmethod
@@ -211,12 +212,40 @@ class BindRequest(BaseRequest):
 
     @staticmethod
     async def is_user_group_valid(
-            user: User, ldap_session: Session, session: AsyncSession) -> bool:
+            user: User,
+            ldap_session: LDAPSession,
+            session: AsyncSession) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[BindResponse, None]:
+    @staticmethod
+    async def check_mfa(
+        api: MultifactorAPI | None,
+        identity: str,
+        otp: str | None,
+    ) -> bool:
+        """Check mfa api.
+
+        :param User user: db user
+        :param LDAPSession ldap_session: ldap session
+        :param AsyncSession session: db session
+        :return bool: response
+        """
+        if api is None:
+            return False
+
+        try:
+            return await api.ldap_validate_mfa(identity, otp)
+        except MultifactorAPI.MultifactorError:
+            return False
+
+    async def handle(
+        self, session: AsyncSession,
+        ldap_session: LDAPSession,
+        kadmin: AbstractKadmin,
+        settings: Settings,
+        mfa: LDAPMultiFactorAPI,
+    ) -> AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
@@ -260,18 +289,25 @@ class BindRequest(BaseRequest):
                     )))  # type: ignore
 
                 if check_group:
-                    mfa_status = await ldap_session.check_mfa(
+                    mfa_status = await self.check_mfa(
+                        mfa,
                         user.user_principal_name,
-                        self.authentication_choice.otpassword,
-                        session)
+                        self.authentication_choice.otpassword)
 
                     if mfa_status is False:
                         yield self.BAD_RESPONSE
                         return
 
+        try:
+            await kadmin.add_principal(
+                user.get_upn_prefix(),
+                self.authentication_choice.password.get_secret_value())
+        except KRBAPIError:
+            pass
+
         await ldap_session.set_user(user)
         await set_last_logon_user(
-            user, session, ldap_session.settings.TIMEZONE)
+            user, session, settings.TIMEZONE)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
 
@@ -286,7 +322,7 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, ldap_session: Session, _: AsyncSession) -> \
+    async def handle(self, ldap_session: LDAPSession) -> \
             AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ldap_session.delete_user()

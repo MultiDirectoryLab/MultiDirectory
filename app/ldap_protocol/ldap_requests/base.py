@@ -5,14 +5,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Protocol
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Protocol
 
+from dishka import AsyncContainer
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import Session, User
+from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_responses import BaseResponse
 from ldap_protocol.utils import get_class_name
 
@@ -31,8 +33,7 @@ if TYPE_CHECKING:
         """Protocol for API handling."""
 
         async def _handle_api(
-            self, user: User,
-            session: AsyncSession,
+            self, container: AsyncContainer,
         ) -> list[BaseResponse] | BaseResponse: ...
 else:
     class _APIProtocol: ...  # noqa
@@ -53,32 +54,34 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         raise NotImplementedError(f'Tried to access {cls.PROTOCOL_OP}')
 
     @abstractmethod
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[BaseResponse, None]:
+    async def handle(self, *args: Any, **kwargs: Any) -> AsyncGenerator[
+            BaseResponse, None]:
         """Handle message with current user."""
-        yield BaseResponse()  # type: ignore
+        yield BaseResponse()
 
     async def _handle_api(
-        self, ldap_session: Session,
-        session: AsyncSession,
-    ) -> list[BaseResponse]:
+            self, container: AsyncContainer) -> list[BaseResponse]:
         """Hanlde response with api user.
 
         :param DBUser user: user from db
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
+        handler = await resolve_deps(func=self.handle, container=container)
+        ldap_session = await container.get(LDAPSession)
+        settings = await container.get(Settings)
+
         un = getattr(ldap_session.user, 'user_principal_name', 'ANONYMOUS')
 
-        if ldap_session.settings.DEBUG:
+        if settings.DEBUG:
             log_api.info(self.model_dump_json(indent=4))
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
         responses = [
-            response async for response in self.handle(ldap_session, session)]
+            response async for response in handler()]
 
-        if ldap_session.settings.DEBUG:
+        if settings.DEBUG:
             for response in responses:
                 log_api.info(response.model_dump_json(indent=4))
         else:
@@ -87,20 +90,16 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
 
         return responses
 
-    async def handle_api(
-        self, ldap_session: Session,
-        session: AsyncSession,
-    ) -> BaseResponse:
+    async def handle_api(self, container: AsyncContainer) -> BaseResponse:
         """Get single response."""
-        return (await self._handle_api(ldap_session, session))[0]
+        return (await self._handle_api(container))[0]
 
 
 class APIMultipleResponseMixin(_APIProtocol):
     """Get multiple responses."""
 
     async def handle_api(
-        self, user: User,
-        session: AsyncSession,
+        self, container: AsyncContainer,
     ) -> list[BaseResponse]:
         """Get all responses."""
-        return await self._handle_api(user, session)
+        return await self._handle_api(container)

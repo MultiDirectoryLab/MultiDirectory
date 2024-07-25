@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import argparse
 import asyncio
 import base64
 import json
@@ -12,25 +11,23 @@ import math
 import os
 import socket
 import ssl
-from contextlib import asynccontextmanager
+from contextlib import suppress
 from io import BytesIO
-from ipaddress import IPv4Address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
-from typing import AsyncIterator, cast
+from typing import cast
 
 import uvloop
+from dishka import AsyncContainer, Scope, make_async_container
 from loguru import logger
 from pydantic import ValidationError
-from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from config import Settings
-from ldap_protocol import LDAPRequestMessage, Session
+from ioc import LDAPServerProvider, MainProvider, MFACredsProvider, MFAProvider
+from ldap_protocol import LDAPRequestMessage, LDAPSession
+from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
-from models.database import create_session_factory
-from models.ldap3 import NetworkPolicy
 
 log = logger.bind(name='ldap')
 
@@ -56,17 +53,13 @@ class PoolClientHandler:
     uses callable object for a single connection.
     """
 
-    def __init__(
-        self,
-        settings: Settings,
-        num_workers: int = 3,
-        rcv_size: int = 1024,
-    ):
+    def __init__(self, settings: Settings, container: AsyncContainer):
         """Set workers number for single client concurrent handling."""
-        self.num_workers = num_workers
+        self.container = container
         self.settings = settings
-        self.AsyncSessionFactory = create_session_factory(self.settings)
-        self._size = rcv_size
+
+        self.num_workers = self.settings.COROUTINES_NUM_PER_CLIENT
+        self._size = self.settings.TCP_PACKET_SIZE
 
         if settings.DEBUG:
             self.req_log = self._req_log_full
@@ -107,38 +100,36 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ) -> None:
         """Create session, queue and start message handlers concurrently."""
-        async with Session(
-                reader, writer, settings=self.settings) as ldap_session:
-            if (policy := await self.get_policy(ldap_session.ip)) is not None:
-                ldap_session.policy = policy
-            else:
-                log.warning(f"Whitelist violation from {ldap_session.addr}")
-                return
+        async with self.container(scope=Scope.SESSION) as session_scope:
+            ldap_session = await session_scope.get(LDAPSession)
+            addr = await ldap_session.get_ip(writer)
 
             try:
-                await asyncio.gather(
-                    self._handle_request(ldap_session),
-                    self._handle_responses(ldap_session),
-                )
-            except RuntimeError:
-                log.exception(f"The connection {ldap_session.addr} raised")
-            except ConnectionAbortedError:
-                log.info(
-                    'Connection termination initialized '
-                    f'by a client {ldap_session.addr}')
+                async with session_scope(scope=Scope.REQUEST) as r:
+                    try:
+                        session = await r.get(AsyncSession)
+                        await ldap_session.validate_conn(addr, session)
+                    except PermissionError:
+                        log.warning(f"Whitelist violation from {addr}")
+                        return
 
-    async def get_policy(self, ip: IPv4Address) -> NetworkPolicy | None:
-        """Get network policies."""
-        async with self.create_session() as session:
-            return await session.scalar((  # noqa
-                select(NetworkPolicy)
-                .filter_by(enabled=True)
-                .options(selectinload(NetworkPolicy.groups))
-                .filter(
-                    text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
-                .order_by(NetworkPolicy.priority.asc())
-                .limit(1)
-            ))
+                await asyncio.gather(
+                    self._handle_request(reader, writer, session_scope),
+                    self._handle_responses(writer, session_scope),
+                )
+
+            except RuntimeError:
+                log.exception(f"The connection {addr} raised")
+            except ConnectionAbortedError:
+                logger.success(f'Connection {addr} closed')
+
+            finally:
+                await session_scope.close()
+                with suppress(RuntimeError):
+                    await ldap_session.queue.join()
+                    writer.close()
+                    await writer.wait_closed()
+                    logger.critical("writer closed {}", id(writer))
 
     async def recieve(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""
@@ -215,15 +206,21 @@ class PoolClientHandler:
                 return value_length + 2 + bytes_length
         return infinity
 
-    async def _handle_request(self, ldap_session: Session) -> None:
+    async def _handle_request(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        container: AsyncContainer,
+    ) -> None:
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
+        ldap_session = await container.get(LDAPSession)
+
         while True:
-            data = await self.recieve(ldap_session.reader)
-            # data = await ldap_session.reader.read(1500)
+            data = await self.recieve(reader)
 
             if not data:
                 raise ConnectionAbortedError(
@@ -233,23 +230,16 @@ class PoolClientHandler:
                 request = LDAPRequestMessage.from_bytes(data)
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
-                log.warning(f'Invalid schema {format_exc()}')
+                log.error(f'Invalid schema {format_exc()}')
 
-                ldap_session.writer.write(
-                    LDAPRequestMessage.from_err(data, err).encode())
-                await ldap_session.writer.drain()
+                writer.write(LDAPRequestMessage.from_err(data, err).encode())
+                await writer.drain()
 
             except Exception as err:
                 raise RuntimeError(err) from err
 
             else:
                 await ldap_session.queue.put(request)
-
-    @asynccontextmanager
-    async def create_session(self) -> AsyncIterator[AsyncSession]:
-        """Create session for request."""
-        async with self.AsyncSessionFactory() as session:
-            yield session
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
@@ -267,34 +257,50 @@ class PoolClientHandler:
     def _log_short(addr: str, msg: LDAPMessage) -> None:
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
-    async def _handle_single_response(self, ldap_session: Session) -> None:
+    async def _handle_single_response(
+            self,
+            writer: asyncio.StreamWriter,
+            container: AsyncContainer) -> None:
         """Get message from queue and handle it."""
+        ldap_session = await container.get(LDAPSession)
+        addr = await ldap_session.get_ip(writer)
+
         while True:
             try:
                 message = await ldap_session.queue.get()
-                self.req_log(ldap_session.addr, message)
+                self.req_log(addr, message)
 
-                async with self.create_session() as session:
-                    async for response in message.create_response(
-                            ldap_session, session):
-                        self.rsp_log(ldap_session.addr, response)
-                        ldap_session.writer.write(response.encode())
-                        await ldap_session.writer.drain()
+                async with container(scope=Scope.REQUEST) as request_container:
+                    # NOTE: Automatically provides requested arguments
+                    handler = await resolve_deps(
+                        func=message.context.handle,
+                        container=request_container)
+
+                    async for response in message.create_response(handler):
+                        self.rsp_log(addr, response)
+                        writer.write(response.encode())
+                        await writer.drain()
 
                 ldap_session.queue.task_done()
             except Exception as err:
                 raise RuntimeError(err) from err
 
-    async def _handle_responses(self, ldap_session: Session) -> None:
+    async def _handle_responses(
+        self, writer: asyncio.StreamWriter,
+        container: AsyncContainer,
+    ) -> None:
         """Create pool of workers and apply handler to it.
 
         Spawns (default 5) workers,
         then every task awaits for queue object,
         cycle locks until pool completes at least 1 task.
         """
-        await asyncio.gather(
-            *[self._handle_single_response(ldap_session)
-                for _ in range(self.num_workers)])
+        tasks = [
+            self._handle_single_response(writer, container)
+            for _ in range(self.num_workers)
+        ]
+
+        await asyncio.gather(*tasks)
 
     async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
@@ -318,7 +324,7 @@ class PoolClientHandler:
     async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
-        self.log_addrs(server)
+
         try:
             await self._run_server(server)
         finally:
@@ -326,31 +332,35 @@ class PoolClientHandler:
             await server.wait_closed()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        prog='MultiDirectory',
-        description='Run ldap server')
-    parser.add_argument(
-        '--loop',
-        choices=['asyncio', 'uvloop'],
-        default='asyncio',
-        required=True,
-    )
-    args = parser.parse_args()
-
+def main() -> None:
+    """Run server."""
     settings = Settings()
-    log.info(f'Started LDAP server with {args.loop}')
 
     async def _servers() -> None:
-        await asyncio.gather(
-            PoolClientHandler(settings).start(),
-            PoolClientHandler(settings.get_copy_4_tls()).start(),
-        )
+        nonlocal settings
 
-    if args.loop == 'uvloop':
-        with asyncio.Runner(
-                loop_factory=uvloop.new_event_loop,
-                debug=settings.DEBUG) as runner:
-            runner.run(_servers())
-    elif args.loop == 'asyncio':
-        asyncio.run(_servers(), debug=settings.DEBUG)
+        container = make_async_container(
+            LDAPServerProvider(),
+            MainProvider(),
+            MFAProvider(),
+            MFACredsProvider(),
+            context={Settings: settings})
+
+        settings = await container.get(Settings)
+        try:
+            await asyncio.gather(
+                PoolClientHandler(settings, container).start(),
+                PoolClientHandler(
+                    settings.get_copy_4_tls(), container).start(),
+            )
+        finally:
+            await container.close()
+
+    with asyncio.Runner(
+            loop_factory=uvloop.new_event_loop,
+            debug=settings.DEBUG) as runner:
+        runner.run(_servers())
+
+
+if __name__ == '__main__':
+    main()

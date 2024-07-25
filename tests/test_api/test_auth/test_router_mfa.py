@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import TYPE_CHECKING
-
 import httpx
 import pytest
 from fastapi import FastAPI
@@ -14,13 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.oauth2 import authenticate_user, create_token
 from app.config import Settings
-
-if TYPE_CHECKING:
-    from app.ldap_protocol.multifactor import MultifactorAPI
-else:
-    from ldap_protocol.multifactor import MultifactorAPI  # sync object ids
-
 from app.models import CatalogueSetting
+from ldap_protocol.multifactor import MultifactorAPI  # sync object ids
 from tests.conftest import TestCreds
 
 
@@ -67,17 +60,6 @@ async def test_connect_mfa(
     await session.commit()
 
     redirect_url = "example.com"
-
-    class TestMultifactorAPI(MultifactorAPI):
-        async def get_create_mfa(
-                self,
-                username: str,
-                callback_url: str,
-                uid: int) -> str:
-            return "example.com"
-
-    app.dependency_overrides[
-        MultifactorAPI.from_di] = TestMultifactorAPI.from_di
 
     response = await http_client.post(
         '/multifactor/connect',

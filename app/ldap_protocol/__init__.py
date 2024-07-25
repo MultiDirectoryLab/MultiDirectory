@@ -4,9 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .messages import LDAPRequestMessage, Session
+from .dialogue import LDAPSession
+from .messages import LDAPRequestMessage
 
 __all__ = [
     "LDAPRequestMessage",
-    "Session",
+    "LDAPSession",
 ]

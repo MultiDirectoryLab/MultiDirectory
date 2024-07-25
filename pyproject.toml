@@ -16,7 +16,6 @@ loguru = "^0.6.0"
 pytz = "^2022.7.1"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-uvicorn = "^0.21.1"
 python-multipart = "^0.0.6"
 asyncstdlib = "^3.10.6"
 ldap-filter = "^0.2.2"
@@ -28,6 +27,9 @@ websockets = "^11.0.3"
 alembic = "^1.12.1"
 ldap3 = "^2.9.1"
 bcrypt = "4.0.1"
+jinja2 = "^3.1.4"
+uvicorn = "^0.30.0"
+dishka = "^1.2.0"
 
 [tool.poetry.group.linters.dependencies]
 flake8-pytest = "^1.4"
@@ -51,7 +53,17 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
-known_first_party = ["ldap_protocol", "client", "config", "models", "api", "security", "tests"]
+known_first_party = [
+    "ldap_protocol",
+    "client",
+    "config",
+    "models",
+    "api",
+    "security",
+    "tests",
+    "web_app",
+    "ioc"
+]
 include_trailing_comma = true
 line_length = 79
 multi_line_output = 3
@@ -69,7 +81,7 @@ color_output = true
 warn_unused_ignores = true
 
 [tool.pytest.ini_options]
-pythonpath = ["/app"]
+pythonpath = ["app"]
 addopts = [
     "--cov",
     "--cov-report=xml:coverage.xml",

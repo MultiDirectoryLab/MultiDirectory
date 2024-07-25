@@ -202,6 +202,14 @@ test = ["certifi", "pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-co
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
+name = "dishka"
+version = "1.2.0"
+description = "Minimal DI framework"
+category = "main"
+optional = false
+python-versions = ">=3.10"
+
+[[package]]
 name = "dnspython"
 version = "2.6.1"
 description = "DNS toolkit"
@@ -650,6 +658,20 @@ python-versions = ">=3.8.0"
 
 [package.extras]
 colors = ["colorama (>=0.4.6)"]
+
+[[package]]
+name = "jinja2"
+version = "3.1.4"
+description = "A very fast and expressive template engine."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+MarkupSafe = ">=2.0"
+
+[package.extras]
+i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "ldap-filter"
@@ -1188,11 +1210,11 @@ python-versions = ">=3.8"
 
 [[package]]
 name = "uvicorn"
-version = "0.21.1"
+version = "0.30.0"
 description = "The lightning-fast ASGI server."
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 
 [package.dependencies]
 click = ">=7.0"
@@ -1267,7 +1289,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "6c63b466f5e0bb6e938d3372024a8a1a0fe0dff7cf5df0e3d89de7aa70e39c18"
+content-hash = "6717d9bac541b2246c36011ce8bbaae7ae52788215b9c3d231aaa2f4aba7a0d7"
 
 [metadata.files]
 alembic = [
@@ -1517,6 +1539,10 @@ cryptography = [
     {file = "cryptography-42.0.3-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:1b797099d221df7cce5ff2a1d272761d1554ddf9a987d3e11f6459b38cd300fd"},
     {file = "cryptography-42.0.3.tar.gz", hash = "sha256:069d2ce9be5526a44093a0991c450fe9906cdf069e0e7cd67d9dee49a62b9ebe"},
 ]
+dishka = [
+    {file = "dishka-1.2.0-py3-none-any.whl", hash = "sha256:d543497b611a448d14a4a138976435937b3b58e5657549f73e7df8c3fc04ccad"},
+    {file = "dishka-1.2.0.tar.gz", hash = "sha256:aae988a49f9f5e591cb103c45287a709378b2f3924a95192fceede168f8605dd"},
+]
 dnspython = [
     {file = "dnspython-2.6.1-py3-none-any.whl", hash = "sha256:5ef3b9680161f6fa89daf8ad451b5f1a33b18ae8a1c6778cdf4b43f08c0a6e50"},
     {file = "dnspython-2.6.1.tar.gz", hash = "sha256:e8f0f9c23a7b7cb99ded64e6c3a6f3e701d78f50c55e002b839dea7225cff7cc"},
@@ -1748,6 +1774,10 @@ iniconfig = [
 isort = [
     {file = "isort-5.13.2-py3-none-any.whl", hash = "sha256:8ca5e72a8d85860d5a3fa69b8745237f2939afe12dbf656afbcb47fe72d947a6"},
     {file = "isort-5.13.2.tar.gz", hash = "sha256:48fdfcb9face5d58a4f6dde2e72a1fb8dcaf8ab26f95ab49fab84c2ddefb0109"},
+]
+jinja2 = [
+    {file = "jinja2-3.1.4-py3-none-any.whl", hash = "sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d"},
+    {file = "jinja2-3.1.4.tar.gz", hash = "sha256:4a3aee7acbbe7303aede8e9648d13b8bf88a429282aa6122a993f0ac800cb369"},
 ]
 ldap-filter = [
     {file = "ldap-filter-0.2.2.tar.gz", hash = "sha256:0df47a3d7439e897bf4b8ad3955c60cd6f321508b00190067403191c10d94382"},
@@ -2205,8 +2235,8 @@ typing-extensions = [
     {file = "typing_extensions-4.9.0.tar.gz", hash = "sha256:23478f88c37f27d76ac8aee6c905017a143b0b1b886c3c9f66bc2fd94f9f5783"},
 ]
 uvicorn = [
-    {file = "uvicorn-0.21.1-py3-none-any.whl", hash = "sha256:e47cac98a6da10cd41e6fd036d472c6f58ede6c5dbee3dbee3ef7a100ed97742"},
-    {file = "uvicorn-0.21.1.tar.gz", hash = "sha256:0fac9cb342ba099e0d582966005f3fdba5b0290579fed4a6266dc702ca7bb032"},
+    {file = "uvicorn-0.30.0-py3-none-any.whl", hash = "sha256:78fa0b5f56abb8562024a59041caeb555c86e48d0efdd23c3fe7de7a4075bdab"},
+    {file = "uvicorn-0.30.0.tar.gz", hash = "sha256:f678dec4fa3a39706bbf49b9ec5fc40049d42418716cea52b53f07828a60aa37"},
 ]
 uvloop = [
     {file = "uvloop-0.17.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ce9f61938d7155f79d3cb2ffa663147d4a76d16e08f65e2c66b77bd41b356718"},

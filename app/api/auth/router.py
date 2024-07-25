@@ -6,13 +6,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Annotated
 
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from extra.setup_dev import setup_enviroment
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings, get_settings
+from config import Settings
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
@@ -24,7 +26,6 @@ from ldap_protocol.utils import (
     get_domain_sid,
     set_last_logon_user,
 )
-from models.database import get_session
 from models.ldap3 import CatalogueSetting, Directory, Group
 from models.ldap3 import User as DBUser
 from security import get_password_hash
@@ -43,10 +44,11 @@ auth_router = APIRouter(prefix='/auth', tags=['Auth'])
 
 
 @auth_router.post("/token/get")
+@inject
 async def login_for_access_token(
     form: Annotated[OAuth2Form, Depends()],
-    session: Annotated[AsyncSession, Depends(get_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    session: FromDishka[AsyncSession],
+    settings: FromDishka[Settings],
 ) -> Token:
     """Get refresh and access token on login.
 
@@ -107,11 +109,13 @@ async def login_for_access_token(
 
 
 @auth_router.post("/token/refresh")
+@inject
 async def renew_tokens(
     user: Annotated[User, Depends(get_current_user_refresh)],
-    settings: Annotated[Settings, Depends(get_settings)],
     token: Annotated[str, Depends(oauth2)],
-    mfa: Annotated[MultifactorAPI | None, Depends(MultifactorAPI.from_di)],
+    *,
+    mfa: FromDishka[MultifactorAPI],
+    settings: FromDishka[Settings],
 ) -> Token:
     """Grant new access token with refresh token.
 
@@ -157,10 +161,11 @@ async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
     '/user/password',
     status_code=200,
     dependencies=[Depends(get_current_user)])
+@inject
 async def password_reset(
     identity: Annotated[str, Body(example='admin')],
     new_password: Annotated[str, Body(example='password')],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> None:
     """Reset user's (entry) password.
 
@@ -189,8 +194,9 @@ async def password_reset(
 
 
 @auth_router.get('/setup')
+@inject
 async def check_setup(
-        session: Annotated[AsyncSession, Depends(get_session)]) -> bool:
+        session: FromDishka[AsyncSession]) -> bool:
     """Check if initial setup needed.
 
     True if setup already complete, False if setup is needed.
@@ -203,9 +209,10 @@ async def check_setup(
 @auth_router.post(
     '/setup', status_code=status.HTTP_200_OK,
     responses={423: {"detail": 'Locked'}})
+@inject
 async def first_setup(
     request: SetupRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(

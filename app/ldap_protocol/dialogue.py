@@ -5,18 +5,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-from contextlib import asynccontextmanager, suppress
+import uuid
+from contextlib import asynccontextmanager
 from enum import IntEnum
 from ipaddress import IPv4Address, ip_address
-from types import TracebackType
 from typing import TYPE_CHECKING, AsyncIterator
 
-import httpx
-from loguru import logger
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from config import Settings
-from ldap_protocol.multifactor import MultifactorAPI, get_auth_ldap
 from models.ldap3 import NetworkPolicy, User
 
 if TYPE_CHECKING:
@@ -130,41 +128,22 @@ class LDAPCodes(IntEnum):
     OTHER = 80
 
 
-class Session:
-    """Session for one client handling."""
+class LDAPSession:
+    """LDAPSession for one client handling."""
 
     ip: IPv4Address
-    addr: str
-    reader: asyncio.StreamReader
-    writer: asyncio.StreamWriter
     policy: NetworkPolicy | None
-    client: httpx.AsyncClient
-    settings: Settings
 
-    _mfa_api_class: type[MultifactorAPI] = MultifactorAPI
-
-    def __init__(
-        self,
-        reader: asyncio.StreamReader | None = None,
-        writer: asyncio.StreamWriter | None = None,
-        user: User | None = None,
-        settings: Settings | None = None,
-    ) -> None:
+    def __init__(self, *, user: User | None = None) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
         self._user: User | None = user
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
+        self.id = uuid.uuid4()
 
-        if settings:
-            self.settings = settings
-
-        if reader and writer:
-            self.reader = reader
-            self.writer = writer
-
-            self.addr = ':'.join(
-                map(str, self.writer.get_extra_info('peername')))
-            self.ip = ip_address(self.addr.split(':')[0])  # type: ignore
+    def __str__(self) -> str:
+        """Session with id."""
+        return f"LDAPSession({self.id})"
 
     @property
     def user(self) -> User | None:
@@ -197,50 +176,30 @@ class Session:
         async with self._lock:
             yield self._user
 
-    async def __aenter__(self) -> 'Session':  # noqa
-        self.client = await httpx.AsyncClient().__aenter__()
-        return self
+    async def get_ip(self, writer: asyncio.StreamWriter) -> IPv4Address:
+        """Get ip addr from writer."""
+        addr = ':'.join(map(str, writer.get_extra_info('peername')))
+        return ip_address(addr.split(':')[0])  # type: ignore
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        """Close writer and queue."""
-        with suppress(RuntimeError):
-            await self.queue.join()
-            self.writer.close()
-            await self.writer.wait_closed()
+    @staticmethod
+    async def _get_policy(
+            ip: IPv4Address, session: AsyncSession) -> NetworkPolicy | None:
+        return await session.scalar((  # noqa
+            select(NetworkPolicy)
+            .filter_by(enabled=True)
+            .options(selectinload(NetworkPolicy.groups))
+            .filter(
+                text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
+            .order_by(NetworkPolicy.priority.asc())
+            .limit(1)
+        ))
 
-        await self.client.__aexit__(exc_type, exc, tb)
-        logger.success(f'Connection {self.addr} closed')
+    async def validate_conn(
+            self, ip: IPv4Address, session: AsyncSession) -> None:
+        """Validate network policies."""
+        policy = await self._get_policy(ip, session)
+        if policy is not None:
+            self.policy = policy
+            return
 
-    async def check_mfa(
-        self,
-        identity: str,
-        otp: str,
-        session: AsyncSession,
-    ) -> bool:
-        """Check mfa api.
-
-        :param User user: db user
-        :param Session ldap_session: ldap session
-        :param AsyncSession session: db session
-        :return bool: response
-        """
-        creds = await get_auth_ldap(session)
-
-        if creds is None:
-            return False
-
-        api = self._mfa_api_class(
-            creds.key, creds.secret,
-            client=self.client,
-            settings=self.settings,
-        )
-        try:
-            return await api.ldap_validate_mfa(identity, otp)
-        except MultifactorAPI.MultifactorError as err:
-            logger.critical(f'MFA failed with {err}')
-            return False
+        raise PermissionError

@@ -6,12 +6,13 @@ Create Date: 2024-06-23 14:54:29.941486
 
 """
 import uuid
-from alembic import op
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import delete, exists, orm, select
 
-from models.ldap3 import CatalogueSetting, Directory
 from ldap_protocol.utils import generate_domain_sid
+from models.ldap3 import CatalogueSetting, Directory
 
 # revision identifiers, used by Alembic.
 revision = '6355e97cd073'

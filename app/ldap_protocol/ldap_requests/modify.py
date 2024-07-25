@@ -12,8 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, Operation, Session
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
@@ -83,8 +85,11 @@ class ModifyRequest(BaseRequest):
             ))
         return cls(object=entry.value, changes=changes)
 
-    async def handle(self, ldap_session: Session, session: AsyncSession) -> \
-            AsyncGenerator[ModifyResponse, None]:
+    async def handle(
+        self, ldap_session: LDAPSession,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
+    ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
             yield ModifyResponse(
@@ -123,7 +128,8 @@ class ModifyRequest(BaseRequest):
 
             try:
                 if change.operation == Operation.ADD:
-                    await self._add(change, directory, session, ldap_session)
+                    await self._add(
+                        change, directory, session, kadmin, kadmin)
 
                 elif change.operation == Operation.DELETE:
                     await self._delete(change, directory, session)
@@ -133,7 +139,7 @@ class ModifyRequest(BaseRequest):
                         await self._delete(change, directory, session, True)
                         await session.flush()
                         await self._add(
-                            change, directory, session, ldap_session)
+                            change, directory, session, kadmin, kadmin)
 
                 await session.execute(
                     update(Directory).where(Directory.id == directory.id),
@@ -207,7 +213,8 @@ class ModifyRequest(BaseRequest):
         self, change: Changes,
         directory: Directory,
         session: AsyncSession,
-        ldap_session: Session,
+        kadmin: AbstractKadmin,
+        settings: Settings,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -246,7 +253,7 @@ class ModifyRequest(BaseRequest):
                     .values({name: value}))
 
             elif name in ("userpassword", 'unicodepwd') and directory.user:
-                if not ldap_session.settings.USE_CORE_TLS:
+                if not settings.USE_CORE_TLS:
                     raise PermissionError('TLS required')
 
                 try:
@@ -264,6 +271,8 @@ class ModifyRequest(BaseRequest):
                         f'Password policy violation: {errors}')
                 directory.user.password = get_password_hash(value)
                 await post_save_password_actions(directory.user, session)
+                await kadmin.create_or_update_principal_pw(
+                    directory.user.get_upn_prefix(), value)
 
             else:
                 attrs.append(Attribute(

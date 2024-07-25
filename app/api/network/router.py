@@ -3,20 +3,19 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
-from typing import Annotated
-
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import HTTPException, Request, status
 from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
 from ldap_protocol.utils import get_base_dn, get_groups, get_path_dn
-from models.database import AsyncSession, get_session
 from models.ldap3 import Directory, Group, NetworkPolicy
 
 from .schema import (
@@ -34,9 +33,10 @@ network_router = APIRouter(prefix='/policy', tags=['Network policy'])
 @network_router.post(
     '', status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(get_current_user)])
+@inject
 async def add_network_policy(
     policy: Policy,
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
     """Add policy.
 
@@ -95,8 +95,9 @@ async def add_network_policy(
 @network_router.get(
     '', name='policy',
     dependencies=[Depends(get_current_user)])
+@inject
 async def get_network_policies(
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
     """Get network.
 
@@ -138,10 +139,11 @@ async def get_network_policies(
     status_code=status.HTTP_303_SEE_OTHER,
     dependencies=[Depends(get_current_user)],
 )
+@inject
 async def delete_network_policy(
     policy_id: int,
     request: Request,
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
     """Delete policy.
 
@@ -179,9 +181,10 @@ async def delete_network_policy(
 
 
 @network_router.patch('/{policy_id}', dependencies=[Depends(get_current_user)])
+@inject
 async def switch_network_policy(
     policy_id: int,
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> bool:
     """Switch state of policy.
 
@@ -209,9 +212,10 @@ async def switch_network_policy(
 
 
 @network_router.put('', dependencies=[Depends(get_current_user)])
+@inject
 async def update_network_policy(
     request: PolicyUpdate,
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
     """Update network policy.
 
@@ -285,9 +289,10 @@ async def update_network_policy(
 
 
 @network_router.post('/swap', dependencies=[Depends(get_current_user)])
+@inject
 async def swap_network_policy(
     swap: SwapRequest,
-    session: Annotated[AsyncSession, Depends(get_session)],
+    session: FromDishka[AsyncSession],
 ) -> SwapResponse:
     """Swap priorities for policy.
 

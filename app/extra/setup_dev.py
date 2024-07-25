@@ -15,7 +15,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import asyncio
 import uuid
 from itertools import chain
 
@@ -23,9 +22,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from config import Settings
 from ldap_protocol.utils import create_object_sid, generate_domain_sid
-from models.database import create_session_factory
 from models.ldap3 import (
     Attribute,
     CatalogueSetting,
@@ -36,8 +33,6 @@ from models.ldap3 import (
     User,
 )
 from security import get_password_hash
-
-from .dev_data import DATA
 
 
 async def _get_group(name: str, session: AsyncSession) -> list[Group]:
@@ -169,14 +164,3 @@ async def setup_enviroment(
         import traceback
         logger.error(traceback.format_exc())  # noqa
         raise
-
-
-if __name__ == '__main__':
-    AsyncSessionFactory = create_session_factory(Settings())
-
-    async def execute() -> None:  # noqa
-        async with AsyncSessionFactory() as session:
-            await setup_enviroment(session, data=DATA)
-            await session.commit()
-
-    asyncio.run(execute())

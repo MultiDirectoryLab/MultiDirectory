@@ -21,7 +21,7 @@ from sqlalchemy.sql.expression import Select
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, Session
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.filter_interpreter import BoundQ, cast_filter2sql
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -226,7 +226,9 @@ class SearchRequest(BaseRequest):
         return cast_filter2sql(filter_, query, base_dn)
 
     async def handle(
-        self, ldap_session: Session, session: AsyncSession,
+        self, session: AsyncSession,
+        ldap_session: LDAPSession,
+        settings: Settings,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry, None,
     ]:
@@ -237,13 +239,14 @@ class SearchRequest(BaseRequest):
         """
         async with ldap_session.lock() as user:
             async for response in self.get_result(
-                    bool(user), session, ldap_session):
+                    bool(user), session, settings):
                 yield response
 
     async def get_result(
-            self, user_logged: bool,
-            session: AsyncSession,
-            ldap_session: Session) -> AsyncGenerator[SearchResultDone, None]:
+        self, user_logged: bool,
+        session: AsyncSession,
+        settings: Settings,
+    ) -> AsyncGenerator[SearchResultDone, None]:
         """Create response.
 
         :param bool user_logged: is user in session
@@ -258,7 +261,7 @@ class SearchRequest(BaseRequest):
             return
 
         if self.scope in {Scope.BASE_OBJECT, Scope.WHOLE_SUBTREE}:
-            if (metadata := await self.get_base_data(session, ldap_session)):
+            if (metadata := await self.get_base_data(session, settings)):
                 yield metadata
 
         base_dn = await get_base_dn(session)
@@ -285,7 +288,7 @@ class SearchRequest(BaseRequest):
 
     async def get_base_data(
             self, session: AsyncSession,
-            ldap_session: Session) -> SearchResultEntry | None:
+            settings: Settings) -> SearchResultEntry | None:
         """Get base server data.
 
         :param AsyncSession session: sqlalchemy session
@@ -316,7 +319,7 @@ class SearchRequest(BaseRequest):
                 return self._get_subschema(dn)
 
         else:  # RootDSE
-            attrs = await self.get_root_dse(session, ldap_session.settings)
+            attrs = await self.get_root_dse(session, settings)
             return SearchResultEntry(
                 object_name='',
                 partial_attributes=[
@@ -356,7 +359,7 @@ class SearchRequest(BaseRequest):
         if self.scope == Scope.BASE_OBJECT and self.base_object:
             query = query.filter(get_path_filter(search_path))
 
-        elif self.scope == Scope.SINGLEL_EVEL:
+        elif self.scope == Scope.SINGLE_LEVEL:
             if root_is_base:
                 query = query.filter(func.cardinality(Path.path) == 1)
             else:

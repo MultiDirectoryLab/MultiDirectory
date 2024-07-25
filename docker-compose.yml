@@ -1,8 +1,6 @@
 # For local development
 # Copyright (c) 2024 MultiFactor
 # License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
-version: "3.7"
-
 services:
   traefik:
     image: "traefik:v2.6"
@@ -31,7 +29,7 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
-    restart: "no" #unless-stopped
+    restart: unless-stopped
     # container_name: multidirectory
     volumes:
       - ./app:/app
@@ -66,15 +64,22 @@ services:
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
       - traefik.tcp.routers.ldaps.service=ldaps
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv 127.0.0.1 389 636"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
 
   api:
     image: multidirectory
     container_name: multidirectory_api
     volumes:
       - ./app:/app
+      - ./certs:/certs
     env_file:
       local.env
-    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --reload --loop uvloop
+    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --reload --loop uvloop
     tty: true
     labels:
       - "traefik.enable=true"
@@ -108,6 +113,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  cert_check:
+    image: multidirectory
+    container_name: multidirectory_certs_check
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
+    command: ./extra/generate_cert.sh
 
   postgres:
     container_name: MD-postgres
@@ -147,6 +161,58 @@ services:
       - "traefik.http.routers.pg.entrypoints=web"
       - "traefik.http.services.pg.loadbalancer.server.port=80"
 
+  kdc:
+    build:
+      context: .kerberos
+    container_name: kdc
+    restart: unless-stopped
+    volumes:
+      - keyfile:/etc/krb5.d/
+      - kdc:/etc/krb5kdc/
+      - type: bind
+        source: ./certs/krb5.conf
+        target: /etc/krb5.conf
+      - type: bind
+        source: ./certs/kdc.conf
+        target: /etc/kdc.conf
+    image: krb5md
+    tty: true
+    depends_on:
+      - md
+    ports:
+      - 88:88  # kdc
+    command: /usr/sbin/krb5kdc -n -w 4
+
+  kadmin:
+    image: krb5md
+    container_name: kadmin
+    restart: unless-stopped
+    volumes:
+      - ./certs:/certs
+      - keyfile:/etc/krb5.d/
+      - kdc:/etc/krb5kdc/
+      - .kerberos/config_server.py:/server/config_server.py
+      - type: bind
+        source: ./certs/krb5.conf
+        target: /etc/krb5.conf
+      - type: bind
+        source: ./certs/kdc.conf
+        target: /etc/kdc.conf
+    tty: true
+    depends_on:
+      md:
+        condition: service_healthy
+      cert_check:
+        condition: service_completed_successfully
+
+    ports:
+      - 8000:8000
+    working_dir: /server
+    command: uvicorn --factory config_server:create_app
+             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
+             --ssl-certfile=/certs/krbcert.pem
+             --reload
+
   interface:
     build:
       context: ./interface
@@ -169,3 +235,5 @@ volumes:
   postgres:
   pgadmin:
   wireshark:
+  keyfile:
+  kdc:

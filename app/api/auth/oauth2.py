@@ -7,14 +7,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from datetime import datetime, timedelta
 from typing import Annotated, Literal
 
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings, get_settings
-from ldap_protocol.multifactor import Creds, get_auth
+from config import Settings
+from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.utils import get_user
-from models.database import AsyncSession, get_session
 from models.ldap3 import User as DBUser
 from security import verify_password
 
@@ -81,13 +83,13 @@ async def _get_user_from_token(
     settings: Settings,
     session: AsyncSession,
     token: str,
-    mfa_creds: Creds | None,
+    mfa_creds: MFA_HTTP_Creds,
 ) -> User:
     """Get user from jwt.
 
-    :param Settings settings: app settings, defaults to Depends(get_settings)
-    :param AsyncSession session: sa session, defaults to Depends(get_session)
-    :param str token: oauth2 obj, defaults to Depends(oauth2)
+    :param Settings settings: app settings
+    :param AsyncSession session: sa session
+    :param str token: oauth2 obj
     :raises _CREDENTIALS_EXCEPTION: 401
     :return User: user for api response
     """
@@ -117,11 +119,12 @@ async def _get_user_from_token(
     return User.from_db(user, payload.get("grant_type"), payload.get("exp"))
 
 
+@inject
 async def get_current_user(  # noqa: D103
-    settings: Annotated[Settings, Depends(get_settings)],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: FromDishka[Settings],
+    session: FromDishka[AsyncSession],
     token: Annotated[str, Depends(oauth2)],
-    mfa_creds: Annotated[str | None, Depends(get_auth)],
+    mfa_creds: FromDishka[MFA_HTTP_Creds],
 ) -> User:
     user = await _get_user_from_token(settings, session, token, mfa_creds)
 
@@ -136,11 +139,12 @@ async def get_current_user(  # noqa: D103
     return user
 
 
+@inject
 async def get_current_user_refresh(  # noqa: D103
-    settings: Annotated[Settings, Depends(get_settings)],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: FromDishka[Settings],
+    session: FromDishka[AsyncSession],
+    mfa_creds: FromDishka[MFA_HTTP_Creds],
     token: Annotated[str, Depends(oauth2)],
-    mfa_creds: Annotated[str | None, Depends(get_auth)],
 ) -> User:
     user = await _get_user_from_token(settings, session, token, mfa_creds)
     if user.access_type not in ('refresh', 'multifactor'):

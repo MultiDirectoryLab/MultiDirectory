@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import (
     Field,
+    HttpUrl,
     IPvAnyAddress,
     PostgresDsn,
     computed_field,
@@ -35,6 +36,9 @@ class Settings(BaseSettings):
     TLS_PORT: int = 636
     USE_CORE_TLS: bool = False
 
+    TCP_PACKET_SIZE: int = 1024
+    COROUTINES_NUM_PER_CLIENT: int = 3
+
     POSTGRES_SCHEMA: str = 'postgresql+asyncpg'
     POSTGRES_DB: str = 'postgres'
 
@@ -53,7 +57,7 @@ class Settings(BaseSettings):
     def create_postgres(cls, v: str, values: dict) -> str:  # noqa: N805
         """Build postgres DSN."""
         return (
-            f"{values['POSTGRES_SCHEMA']}://"  # type: ignore
+            f"{values['POSTGRES_SCHEMA']}://"
             f"{values['POSTGRES_USER']}:"
             f"{values['POSTGRES_PASSWORD']}@"
             f"{values['POSTGRES_HOST']}/"
@@ -73,6 +77,11 @@ class Settings(BaseSettings):
 
     TIMEZONE: ZoneInfo = Field(
         ZoneInfo('UTC'), alias='TZ')
+
+    KRB5_LDAP_URI: str = 'ldap://md'
+    KRB5_CONFIG_SERVER: HttpUrl = 'https://kadmin:8000'  # type: ignore
+    KRB5_SERVER_MAX_CONN: int = 500
+    KRB5_SERVER_MAX_KEEPALIVE: int = 100
 
     @field_validator('TIMEZONE', mode='before')
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
@@ -104,7 +113,3 @@ class Settings(BaseSettings):
         tls_settings.USE_CORE_TLS = True
         tls_settings.PORT = tls_settings.TLS_PORT
         return tls_settings
-
-
-def get_settings() -> Settings:  # noqa: D103
-    raise NotImplementedError()
