@@ -114,6 +114,15 @@ services:
       postgres:
         condition: service_healthy
 
+  cert_check:
+    image: multidirectory
+    container_name: multidirectory_certs_check
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
+    command: ./extra/generate_cert.sh
+
   postgres:
     container_name: MD-postgres
     image: postgres:16
@@ -191,7 +200,11 @@ services:
         target: /etc/kdc.conf
     tty: true
     depends_on:
-      - md
+      md:
+        condition: service_healthy
+      # cert_check:
+      #   condition: service_completed_successfully
+
     ports:
       - 8000:8000
     working_dir: /server
