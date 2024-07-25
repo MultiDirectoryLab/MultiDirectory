@@ -295,7 +295,10 @@ class PoolClientHandler:
         then every task awaits for queue object,
         cycle locks until pool completes at least 1 task.
         """
-        tasks = [asyncio.Task(self._handle_single_response(writer, container)) for _ in range(self.num_workers)]
+        tasks = [
+            asyncio.Task(self._handle_single_response(writer, container))
+            for _ in range(self.num_workers)
+        ]
 
         try:
             await asyncio.gather(*tasks)
