@@ -48,12 +48,13 @@ async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_bind_policy(
-        handler: PoolClientHandler,
-        session: AsyncSession,
-        settings: Settings,
-        creds: TestCreds) -> None:
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
+    ldap_session: LDAPSession,
+) -> None:
     """Bind with policy."""
-    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+    policy = await ldap_session._get_policy(IPv4Address('127.0.0.1'), session)
     assert policy
 
     group_dir = await get_group(
@@ -73,12 +74,12 @@ async def test_bind_policy(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 async def test_bind_policy_missing_group(
-        handler: PoolClientHandler,
         session: AsyncSession,
+        ldap_session: LDAPSession,
         settings: Settings,
         creds: TestCreds) -> None:
     """Bind policy fail."""
-    policy = await handler.get_policy(IPv4Address('127.0.0.1'))
+    policy = await ldap_session._get_policy(IPv4Address('127.0.0.1'), session)
 
     assert policy
 
@@ -125,8 +126,10 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_bvalue_in_search_request(
-        session: AsyncSession,
-        ldap_session: LDAPSession) -> None:
+    session: AsyncSession,
+    ldap_session: LDAPSession,
+    settings: Settings,
+) -> None:
     """Test SearchRequest with bytes data."""
     ldap_session._user = True
 
@@ -143,7 +146,7 @@ async def test_bvalue_in_search_request(
         attributes=["*"],
     )
 
-    result = await anext(request.handle(ldap_session, session))
+    result = await anext(request.handle(session, ldap_session, settings))
 
     assert result
 
