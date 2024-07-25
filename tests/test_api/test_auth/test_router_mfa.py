@@ -61,17 +61,6 @@ async def test_connect_mfa(
 
     redirect_url = "example.com"
 
-    class TestMultifactorAPI(MultifactorAPI):
-        async def get_create_mfa(
-                self,
-                username: str,
-                callback_url: str,
-                uid: int) -> str:
-            return "example.com"
-
-    app.dependency_overrides[
-        MultifactorAPI.from_di] = TestMultifactorAPI.from_di
-
     response = await http_client.post(
         '/multifactor/connect',
         data={'username': creds.un, 'password': creds.pw})
