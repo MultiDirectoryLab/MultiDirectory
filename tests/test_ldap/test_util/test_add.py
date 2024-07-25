@@ -17,6 +17,7 @@ from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from app.ldap_protocol.ldap_requests import AddRequest
 from app.models.ldap3 import Directory, Group, Path, User
+from ldap_protocol.kerberos import AbstractKadmin
 
 
 @pytest.mark.asyncio()
@@ -160,8 +161,11 @@ async def test_ldap_user_add_group_with_group(
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_add_bvalue_attr(session: AsyncSession, ldap_session: LDAPSession) \
-        -> None:
+async def test_add_bvalue_attr(
+    session: AsyncSession,
+    ldap_session: LDAPSession,
+    kadmin: AbstractKadmin,
+) -> None:
     """Test AddRequest with bytes data."""
     ldap_session._user = True
 
@@ -170,5 +174,5 @@ async def test_add_bvalue_attr(session: AsyncSession, ldap_session: LDAPSession)
         attributes=[{"type": "objectclass", "vals": [b"test"]}],
         password=None,
     )
-    result = await anext(request.handle(ldap_session, session))
+    result = await anext(request.handle(session, ldap_session, kadmin))
     assert result.result_code == LDAPCodes.SUCCESS
