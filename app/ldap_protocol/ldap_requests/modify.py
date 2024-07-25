@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
 from ldap_protocol.kerberos import AbstractKadmin
@@ -128,7 +129,7 @@ class ModifyRequest(BaseRequest):
             try:
                 if change.operation == Operation.ADD:
                     await self._add(
-                        change, directory, session, ldap_session, kadmin)
+                        change, directory, session, kadmin, kadmin)
 
                 elif change.operation == Operation.DELETE:
                     await self._delete(change, directory, session)
@@ -138,7 +139,7 @@ class ModifyRequest(BaseRequest):
                         await self._delete(change, directory, session, True)
                         await session.flush()
                         await self._add(
-                            change, directory, session, ldap_session, kadmin)
+                            change, directory, session, kadmin, kadmin)
 
                 await session.execute(
                     update(Directory).where(Directory.id == directory.id),
@@ -212,8 +213,8 @@ class ModifyRequest(BaseRequest):
         self, change: Changes,
         directory: Directory,
         session: AsyncSession,
-        ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
+        settings: Settings,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -252,7 +253,7 @@ class ModifyRequest(BaseRequest):
                     .values({name: value}))
 
             elif name in ("userpassword", 'unicodepwd') and directory.user:
-                if not ldap_session.settings.USE_CORE_TLS:
+                if not settings.USE_CORE_TLS:
                     raise PermissionError('TLS required')
 
                 try:
