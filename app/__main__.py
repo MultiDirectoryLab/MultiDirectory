@@ -13,7 +13,6 @@ import socket
 import ssl
 from contextlib import suppress
 from io import BytesIO
-from ipaddress import IPv4Address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
 from typing import cast
@@ -25,7 +24,7 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ioc import LDAPServerProvider, MainProvider, MFAProvider
+from ioc import LDAPServerProvider, MainProvider, MFACredsProvider, MFAProvider
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
@@ -101,37 +100,36 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ) -> None:
         """Create session, queue and start message handlers concurrently."""
-        async with self.container(
-            {asyncio.StreamReader: reader, asyncio.StreamWriter: writer},
-            scope=Scope.SESSION,
-        ) as session_scope:
+        async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
-            addr = await session_scope.get(IPv4Address)
-
-            async with session_scope(scope=Scope.REQUEST) as r:
-                try:
-                    await ldap_session.validate_conn(
-                        addr, await r.get(AsyncSession))
-                except PermissionError:
-                    log.warning(f"Whitelist violation from {addr}")
-                    return
+            addr = await ldap_session.get_ip(writer)
 
             try:
+                async with session_scope(scope=Scope.REQUEST) as r:
+                    try:
+                        session = await r.get(AsyncSession)
+                        await ldap_session.validate_conn(addr, session)
+                    except PermissionError:
+                        log.warning(f"Whitelist violation from {addr}")
+                        return
+
                 await asyncio.gather(
-                    self._handle_request(session_scope),
-                    self._handle_responses(session_scope),
+                    self._handle_request(reader, writer, session_scope),
+                    self._handle_responses(writer, session_scope),
                 )
+
             except RuntimeError:
                 log.exception(f"The connection {addr} raised")
             except ConnectionAbortedError:
-
                 logger.success(f'Connection {addr} closed')
+
             finally:
                 await session_scope.close()
                 with suppress(RuntimeError):
                     await ldap_session.queue.join()
                     writer.close()
                     await writer.wait_closed()
+                    logger.critical("writer closed {}", id(writer))
 
     async def recieve(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""
@@ -208,14 +206,17 @@ class PoolClientHandler:
                 return value_length + 2 + bytes_length
         return infinity
 
-    async def _handle_request(self, container: AsyncContainer) -> None:
+    async def _handle_request(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        container: AsyncContainer,
+    ) -> None:
         """Create request object and send it to queue.
 
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
-        reader = await container.get(asyncio.StreamReader)
-        writer = await container.get(asyncio.StreamWriter)
         ldap_session = await container.get(LDAPSession)
 
         while True:
@@ -229,7 +230,7 @@ class PoolClientHandler:
                 request = LDAPRequestMessage.from_bytes(data)
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
-                log.warning(f'Invalid schema {format_exc()}')
+                log.error(f'Invalid schema {format_exc()}')
 
                 writer.write(LDAPRequestMessage.from_err(data, err).encode())
                 await writer.drain()
@@ -256,11 +257,13 @@ class PoolClientHandler:
     def _log_short(addr: str, msg: LDAPMessage) -> None:
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
-    async def _handle_single_response(self, container: AsyncContainer) -> None:
+    async def _handle_single_response(
+            self,
+            writer: asyncio.StreamWriter,
+            container: AsyncContainer) -> None:
         """Get message from queue and handle it."""
         ldap_session = await container.get(LDAPSession)
-        writer = await container.get(asyncio.StreamWriter)
-        addr = str(await container.get(IPv4Address))
+        addr = await ldap_session.get_ip(writer)
 
         while True:
             try:
@@ -282,16 +285,23 @@ class PoolClientHandler:
             except Exception as err:
                 raise RuntimeError(err) from err
 
-    async def _handle_responses(self, container: AsyncContainer) -> None:
+    async def _handle_responses(
+        self, writer: asyncio.StreamWriter,
+        container: AsyncContainer,
+    ) -> None:
         """Create pool of workers and apply handler to it.
 
         Spawns (default 5) workers,
         then every task awaits for queue object,
         cycle locks until pool completes at least 1 task.
         """
-        await asyncio.gather(
-            *[self._handle_single_response(container)
-                for _ in range(self.num_workers)])
+        tasks = [asyncio.Task(self._handle_single_response(writer, container)) for _ in range(self.num_workers)]
+
+        try:
+            await asyncio.gather(*tasks)
+        finally:
+            for task in tasks:
+                task.cancel()
 
     async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
@@ -334,6 +344,7 @@ def main() -> None:
             LDAPServerProvider(),
             MainProvider(),
             MFAProvider(),
+            MFACredsProvider(),
             context={Settings: settings})
 
         settings = await container.get(Settings)
