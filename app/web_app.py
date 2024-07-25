@@ -21,7 +21,7 @@ from api import (
     pwd_router,
 )
 from config import VENDOR_VERSION, Settings
-from ioc import HTTPProvider, MainProvider, MFAProvider
+from ioc import HTTPProvider, MainProvider, MFACredsProvider, MFAProvider
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -55,9 +55,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    return app
+
+
+def create_prod_app() -> FastAPI:
+    """Create production app with container."""
+    app = create_app()
     container = make_async_container(
-        MainProvider(), MFAProvider(), HTTPProvider(),
-        context={Settings: settings})
+        MainProvider(), MFAProvider(),
+        HTTPProvider(), MFACredsProvider(),
+        context={Settings: Settings()})
 
     setup_dishka(container, app)
     return app
