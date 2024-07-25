@@ -3,6 +3,7 @@
 import asyncio
 from functools import partial
 from hashlib import blake2b
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi import status
@@ -12,9 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import KerberosState, KRBAPIError
+from ldap_protocol.kerberos import AbstractKadmin, KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
-from tests.conftest import MutePolicyBindRequest, TestCreds, TestKadminClient
+from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
 def _create_test_user_data(
@@ -46,12 +47,13 @@ def _create_test_user_data(
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
 async def test_tree_creation(
     http_client: AsyncClient,
     login_headers: dict,
     ldap_session: LDAPSession,
     session: AsyncSession,
+    kadmin: AbstractKadmin,
+    settings: Settings,
 ) -> None:
     """Test tree creation."""
     krbadmin_pw = 'Password123'
@@ -86,7 +88,8 @@ async def test_tree_creation(
         AuthenticationChoice=SimpleAuthentication(password=krbadmin_pw),
     )
 
-    result = await anext(bind.handle(ldap_session, session))
+    result = await anext(bind.handle(
+        session, ldap_session, kadmin, settings, None))
     assert result.result_code == LDAPCodes.SUCCESS
 
 
@@ -119,7 +122,7 @@ async def test_tree_collision(
 async def test_setup_call(
     http_client: AsyncClient,
     login_headers: dict,
-    ldap_session: LDAPSession,
+    kadmin: Mock,
 ) -> None:
     """Test setup args.
 
@@ -135,14 +138,16 @@ async def test_setup_call(
 
     assert response.status_code == 200
 
-    krb_doc = ldap_session.kadmin.kwargs.pop('krb5_config').encode()
-    kdc_doc = ldap_session.kadmin.kwargs.pop('kdc_config').encode()
+    kadmin.setup.assert_called()
+
+    krb_doc = kadmin.setup.call_args.kwargs.pop('krb5_config').encode()
+    kdc_doc = kadmin.setup.call_args.kwargs.pop('kdc_config').encode()
 
     # NOTE: Asserting documents integrity, tests template rendering
     assert blake2b(krb_doc, digest_size=8).hexdigest() == '6d7f2acd6790183a'
     assert blake2b(kdc_doc, digest_size=8).hexdigest() == '54574991e75bba8c'
 
-    assert ldap_session.kadmin.kwargs == {
+    assert kadmin.setup.call_args.kwargs == {
         'domain': 'md.test',
         'admin_dn': 'cn=user0,ou=users,dc=md,dc=test',
         'services_dn': 'ou=services,dc=md,dc=test',
@@ -188,7 +193,7 @@ async def test_status_change(
 async def test_ktadd(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestKadminClient,
+    kadmin: AbstractKadmin,
 ) -> None:
     """Test ktadd.
 
@@ -200,9 +205,11 @@ async def test_ktadd(
     response = await http_client.post(
         '/kerberos/ktadd', headers=login_headers, json=names)
 
-    assert kadmin.args[0] == names
+    kadmin.ktadd.assert_called()
+    assert kadmin.ktadd.call_args.args[0] == names
+
     assert response.status_code == status.HTTP_200_OK
-    assert response.content == TestKadminClient.KTADD_CONTENT
+    assert response.content == b'test_string'
     assert response.headers == {
         'Content-Disposition': 'attachment; filename="md.keytab"',
         'content-type': 'application/txt',
@@ -215,7 +222,7 @@ async def test_ktadd(
 async def test_ktadd_404(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestKadminClient,
+    kadmin: AbstractKadmin,
 ) -> None:
     """Test ktadd failure.
 
@@ -223,10 +230,7 @@ async def test_ktadd_404(
     :param dict login_headers: headers
     :param LDAPSession ldap_session: ldap
     """
-    async def ktadd(names: list[str]) -> TestKadminClient.MuteOkResponse:
-        raise KRBAPIError()
-
-    kadmin.ktadd = ktadd  # type: ignore
+    kadmin.ktadd.side_effect = KRBAPIError()
 
     names = ['test1', 'test2']
     response = await http_client.post(
@@ -241,7 +245,7 @@ async def test_ktadd_404(
 async def test_ldap_add(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestKadminClient,
+    kadmin: AbstractKadmin,
 ) -> None:
     """Test add calls add_principal on user creation.
 
@@ -258,7 +262,7 @@ async def test_ldap_add(
         json=_create_test_user_data(san, pw))
 
     assert response.status_code == 200, response.json()
-    assert kadmin.args == (san, pw)
+    assert kadmin.add_principal.call_args.args == (san, pw)
 
 
 @pytest.mark.asyncio()
@@ -267,7 +271,7 @@ async def test_ldap_add(
 async def test_ldap_kadmin_delete(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestKadminClient,
+    kadmin: AbstractKadmin,
 ) -> None:
     """Test API for delete object."""
     await http_client.post(
@@ -286,7 +290,7 @@ async def test_ldap_kadmin_delete(
 
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
-    assert kadmin.args == ("ktest",)
+    assert kadmin.del_principal.call_args.args[0] == "ktest"
 
 
 @pytest.mark.asyncio()
@@ -294,7 +298,7 @@ async def test_ldap_kadmin_delete(
 async def test_bind_create_user(
     http_client: AsyncClient,
     login_headers: dict,
-    kadmin: TestKadminClient,
+    kadmin: AbstractKadmin,
     settings: Settings,
 ) -> None:
     """Test bind create user."""
@@ -314,18 +318,18 @@ async def test_bind_create_user(
     )
 
     assert await proc.wait() == 0
-    assert kadmin.args == (san, pw)
+    assert kadmin.add_principal.call_args.args == (san, pw)
 
 
 @pytest.mark.asyncio()
 @pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
 @pytest.mark.usefixtures('_force_override_tls')
 async def test_extended_pw_change_call(
     event_loop: asyncio.BaseEventLoop,
     ldap_client: Connection,
     creds: TestCreds,
-    kadmin: TestKadminClient,
-    ldap_session: LDAPSession,
+    kadmin: AbstractKadmin,
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -344,4 +348,5 @@ async def test_extended_pw_change_call(
         ))
 
     assert result
-    assert ldap_session.kadmin.args == ('user0', new_test_password)
+    assert kadmin.create_or_update_principal_pw.call_args.args == (
+        'user0', new_test_password)
