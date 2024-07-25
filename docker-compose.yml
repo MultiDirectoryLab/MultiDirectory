@@ -202,8 +202,8 @@ services:
     depends_on:
       md:
         condition: service_healthy
-      # cert_check:
-      #   condition: service_completed_successfully
+      cert_check:
+        condition: service_completed_successfully
 
     ports:
       - 8000:8000
