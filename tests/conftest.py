@@ -5,16 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-from contextlib import asynccontextmanager, suppress
+import uuid
+from contextlib import suppress
 from dataclasses import dataclass
-from typing import (
-    Annotated,
-    Any,
-    AsyncGenerator,
-    AsyncIterator,
-    Generator,
-    Iterator,
-)
+from typing import Any, AsyncGenerator, AsyncIterator, Generator, Iterator
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import ldap3
@@ -23,20 +18,144 @@ import pytest_asyncio
 import uvloop
 from alembic import command
 from alembic.config import Config as AlembicConfig
+from dishka import (
+    AsyncContainer,
+    Provider,
+    Scope,
+    from_context,
+    make_async_container,
+    provide,
+)
+from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
+from loguru import logger
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+)
 from sqlalchemy.orm import sessionmaker
 
-from api.main.utils import get_kadmin
 from app.__main__ import PoolClientHandler
 from app.extra import TEST_DATA, setup_enviroment
 from config import Settings
+from ioc import MFACredsProvider
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import StubKadminMDADPIClient
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
-from models.database import get_engine
-from web_app import create_app, get_session
+from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from web_app import create_app
+
+
+class TestProvider(Provider):
+    """Test provider."""
+
+    __test__ = False
+
+    scope = Scope.RUNTIME
+    settings = from_context(provides=Settings, scope=Scope.RUNTIME)
+    _cached_session: AsyncSession | None = None
+    _cached_kadmin: Mock | None = None
+    _session_id: uuid.UUID | None = None
+
+    @provide(scope=Scope.APP, provides=AbstractKadmin)
+    async def get_kadmin(self) -> AsyncIterator[AsyncMock]:
+        """Get mock kadmin."""
+        kadmin = Mock()
+
+        ok_response = Mock()
+        ok_response.status_code = 200
+        ok_response.aiter_bytes.return_value = map(bytes, zip(b'test_string'))
+
+        kadmin.setup = AsyncMock()
+        kadmin.ktadd = AsyncMock(return_value=ok_response)
+        kadmin.get_status = AsyncMock(return_value=False)
+        kadmin.add_principal = AsyncMock()
+        kadmin.del_principal = AsyncMock()
+        kadmin.create_or_update_principal_pw = AsyncMock()
+
+        if not self._cached_kadmin:
+            self._cached_kadmin = kadmin
+
+        yield self._cached_kadmin
+
+        self._cached_kadmin = None
+
+    @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
+    def get_engine(self, settings: Settings) -> AsyncEngine:
+        """Get async engine."""
+        return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
+
+    @provide(scope=Scope.APP, provides=sessionmaker)
+    def get_session_factory(
+        self, engine: AsyncEngine,
+    ) -> sessionmaker:
+        """Create session factory."""
+        return sessionmaker(
+            engine,
+            expire_on_commit=False,
+            autoflush=False,
+            autocommit=False,
+            class_=AsyncSession,
+        )
+
+    @provide(scope=Scope.APP, provides=AsyncSession)
+    async def get_session(
+            self, engine: AsyncEngine,
+            session_factory: sessionmaker) -> AsyncIterator[AsyncSession]:
+        """Get test session with a savepoint."""
+        connection = await engine.connect()
+        trans = await connection.begin()
+        async_session = session_factory(bind=connection)
+        nested = await connection.begin_nested()
+
+        @event.listens_for(async_session.sync_session, "after_transaction_end")
+        def end_savepoint(session: AsyncSession, transaction: Any) -> None:
+            nonlocal nested
+
+            if not nested.is_active:
+                nested =\
+                    connection.sync_connection.begin_nested()  # type: ignore
+
+        if self._cached_session is not None:
+            logger.info('Got {}', self._cached_session)
+        else:
+            self._cached_session = async_session
+            logger.info('Created {}', self._cached_session)
+
+        yield self._cached_session
+
+        logger.info('Shutdown {}', self._cached_session)
+
+        self._cached_session = None
+        self._session_id = None
+
+        await trans.rollback()
+        await async_session.close()
+        await connection.close()
+
+    @provide(scope=Scope.SESSION, provides=LDAPSession)
+    async def get_ldap_session(self) -> AsyncIterator[LDAPSession]:
+        """Create ldap session."""
+        return LDAPSession()
+
+    @provide(scope=Scope.REQUEST, provides=MultifactorAPI)
+    async def get_mfa_api(self) -> Mock:
+        """Create mock mfa."""
+        mfa = Mock()
+        mfa.ldap_validate_mfa = AsyncMock()
+        mfa.get_create_mfa = AsyncMock(return_value="example.com")
+        return mfa
+
+    @provide(scope=Scope.REQUEST, provides=LDAPMultiFactorAPI)
+    async def get_mfa_ldap_api(self) -> Mock:
+        """Create mock mfa."""
+        mfa = Mock()
+        mfa.ldap_validate_mfa = AsyncMock()
+        mfa.get_create_mfa = AsyncMock(return_value="example.com")
+        return mfa
 
 
 @dataclass
@@ -49,73 +168,16 @@ class TestCreds:
     pw: str
 
 
-class TestKadminClient(StubKadminMDADPIClient):
-    """Test kadmin."""
-
-    __test__ = False
-
-    KTADD_CONTENT = b'test_string'
-
-    args: tuple
-    kwargs: dict[str, str | bytes]
-
-    def __init__(self, client: httpx.AsyncClient | None) -> None:
-        """Stub init."""
-
-    @classmethod
-    @asynccontextmanager
-    async def get_krb_ldap_client(
-            cls, settings: Settings) -> AsyncIterator['TestKadminClient']:
-        """Stub yield."""
-        yield cls(None)
-
-    async def setup(self, *args, **kwargs) -> None:  # type: ignore
-        """Stub setup."""
-        self.args = args
-        self.kwargs = kwargs
-
-    def __getattr__(self, name: str) -> Any:
-        return super().__getattribute__(name)
-
-    class MuteOkResponse(httpx.Response):
-        """Stub response class."""
-
-        status_code: int = 200
-
-        def __init__(self, *args, **kwrgs) -> None:  # type: ignore # noqa
-            pass
-
-        async def aiter_bytes(
-                self, chunk_size: int | None = None) -> AsyncIterator[bytes]:
-            """Stub method, returns KTADD_CONTENT."""
-            yield TestKadminClient.KTADD_CONTENT
-
-        async def aclose(self) -> None:
-            """Stub."""
-
-    async def ktadd(self, names: list[str]) -> MuteOkResponse:  # noqa
-        self.args = (names,)
-        return TestKadminClient.MuteOkResponse()
-
-    async def add_principal(self, name: str, password: str) -> None:
-        self.args = (name, password)
-
-    async def del_principal(self, name: str) -> None:
-        self.args = (name,)
-
-    async def create_or_update_principal_pw(
-            self, name: str, password: str) -> None:
-        self.args = (name, password)
-
-
-class TestHandler(PoolClientHandler):  # noqa
-    @staticmethod
-    def log_addrs(server: asyncio.base_events.Server) -> None:  # noqa
-        pass
-
-    @asynccontextmanager
-    async def _get_kadmin(self) -> AsyncIterator[TestKadminClient]:
-        yield TestKadminClient(None)
+@pytest.fixture(scope="session")
+async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
+    """Create test container."""
+    ctnr = make_async_container(
+        TestProvider(),
+        MFACredsProvider(),
+        context={Settings: settings},
+        start_scope=Scope.RUNTIME)
+    yield ctnr
+    await ctnr.close()
 
 
 class MutePolicyBindRequest(BindRequest):
@@ -130,16 +192,10 @@ class MutePolicyBindRequest(BindRequest):
 
 
 @pytest.fixture()
-def kadmin() -> TestKadminClient:  # noqa: indirect usage
-    return TestKadminClient(None)
-
-
-@pytest.fixture(autouse=True)
-def _set_kadmin(
-        kadmin: TestKadminClient, ldap_session: LDAPSession) -> Iterator[None]:
-    ldap_session.kadmin = kadmin
-    yield
-    del ldap_session.kadmin
+async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
+    """Get di kadmin."""
+    async with container(scope=Scope.APP) as container:
+        yield await container.get(AbstractKadmin)
 
 
 @pytest.fixture(scope="session")
@@ -157,18 +213,14 @@ def settings() -> Settings:
     return Settings(MFA_TIMEOUT_SECONDS=1)
 
 
-@pytest.fixture(scope="session")
-def engine(settings: Settings) -> AsyncEngine:
-    """Get settings."""
-    return get_engine(settings)
-
-
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _migrations(
-    engine: AsyncEngine,
+    container: AsyncContainer,
     settings: Settings,
 ) -> AsyncGenerator:
     """Run simple migrations."""
+    engine = await container.get(AsyncEngine)
+
     config = AlembicConfig("alembic.ini")
     config.attributes["app_settings"] = settings
 
@@ -190,65 +242,15 @@ async def _migrations(
         await conn.run_sync(downgrade)
 
 
-@pytest.fixture(scope='session')
-def session_factory(
-        engine: AsyncEngine) -> Annotated[sessionmaker, AsyncSession]:
-    """Create session factory with engine."""
-    return sessionmaker(
-        engine,
-        expire_on_commit=False,
-        autoflush=False,
-        autocommit=False,
-        class_=AsyncSession,
-    )
-
-
-@asynccontextmanager
-async def test_session(
-    session_factory: Annotated[sessionmaker, AsyncSession],
-    engine: AsyncEngine,
-) -> AsyncIterator[AsyncSession]:
-    """Create test session."""
-    connection = await engine.connect()
-    trans = await connection.begin()
-    async_session = session_factory(bind=connection)
-    nested = await connection.begin_nested()
-
-    @event.listens_for(async_session.sync_session, "after_transaction_end")
-    def end_savepoint(session: AsyncSession, transaction: Any) -> None:
-        nonlocal nested
-
-        if not nested.is_active:
-            nested = connection.sync_connection.begin_nested()  # type: ignore
-
-    yield async_session
-
-    await trans.rollback()
-    await async_session.close()
-    await connection.close()
-
-
 @pytest_asyncio.fixture(scope="function")
 async def session(
-    session_factory: Annotated[sessionmaker, AsyncSession],
-    engine: AsyncEngine,
+    container: AsyncContainer,
     handler: PoolClientHandler,
-    ldap_session: LDAPSession,
-    app: FastAPI,
-) -> AsyncGenerator[AsyncSession, None]:
+) -> AsyncIterator[AsyncSession]:
     """Get session and aquire after completion."""
-    async with test_session(session_factory, engine) as session:
-        @asynccontextmanager
-        async def create_session() -> AsyncIterator[AsyncSession]:
-            yield session
-
-        async def get_test_async_session() -> AsyncIterator[AsyncSession]:
-            yield session
-
-        # runtime session sync for server and client
-        app.dependency_overrides[get_session] = get_test_async_session
-        handler.create_session = create_session  # type: ignore
-
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        handler.container = container
         yield session
 
 
@@ -261,22 +263,26 @@ async def setup_session(session: AsyncSession) -> None:
 
 @pytest_asyncio.fixture(scope="function")
 async def ldap_session(
-        settings: Settings,
-        kadmin: TestKadminClient) -> AsyncGenerator[LDAPSession, None]:
+        container: AsyncContainer) -> AsyncIterator[LDAPSession]:
     """Yield empty session."""
-    yield LDAPSession(settings=settings, kadmin=kadmin)
+    async with container(scope=Scope.SESSION) as container:
+        yield await container.get(LDAPSession)
 
 
 @pytest.fixture(scope="session")
-def handler(settings: Settings) -> TestHandler:
+async def handler(
+    settings: Settings,
+    container: AsyncContainer,
+) -> AsyncIterator[PoolClientHandler]:
     """Create test handler."""
-    return TestHandler(settings)
+    async with container(scope=Scope.APP) as app_scope:
+        yield PoolClientHandler(settings, app_scope)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _server(
     event_loop: asyncio.BaseEventLoop,
-    handler: TestHandler,
+    handler: PoolClientHandler,
 ) -> Generator:
     """Run server in background."""
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
@@ -293,17 +299,19 @@ def ldap_client(settings: Settings) -> ldap3.Connection:
         ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"))
 
 
-@pytest.fixture(scope='session')
-def app(settings: Settings) -> FastAPI:  # noqa
-    return create_app(settings)
+@pytest_asyncio.fixture(scope="function")
+async def app(
+    settings: Settings,
+    container: AsyncContainer,
+) -> AsyncIterator[FastAPI]:
+    """App creator fixture."""
+    async with container(scope=Scope.APP) as container:
+        app = create_app(settings)
+        setup_dishka(container, app)
+        yield app
 
 
-@pytest.fixture(autouse=True)
-def _override_ldap_session(app: FastAPI, kadmin: TestKadminClient) -> None:
-    app.dependency_overrides[get_kadmin] = lambda: kadmin
-
-
-@pytest_asyncio.fixture(scope='session')
+@pytest_asyncio.fixture(scope="function")
 async def http_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     """Async client for fastapi tests."""
     async with httpx.AsyncClient(
