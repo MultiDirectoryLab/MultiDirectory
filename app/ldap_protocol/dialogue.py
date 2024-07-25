@@ -142,6 +142,7 @@ class LDAPSession:
         self.id = uuid.uuid4()
 
     def __str__(self) -> str:
+        """Session with id."""
         return f"LDAPSession({self.id})"
 
     @property
@@ -176,6 +177,7 @@ class LDAPSession:
             yield self._user
 
     async def get_ip(self, writer: asyncio.StreamWriter) -> IPv4Address:
+        """Get ip addr from writer."""
         addr = ':'.join(map(str, writer.get_extra_info('peername')))
         return ip_address(addr.split(':')[0])  # type: ignore
 
