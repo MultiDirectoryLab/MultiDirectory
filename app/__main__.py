@@ -296,15 +296,11 @@ class PoolClientHandler:
         cycle locks until pool completes at least 1 task.
         """
         tasks = [
-            asyncio.Task(self._handle_single_response(writer, container))
+            self._handle_single_response(writer, container)
             for _ in range(self.num_workers)
         ]
 
-        try:
-            await asyncio.gather(*tasks)
-        finally:
-            for task in tasks:
-                task.cancel()
+        await asyncio.gather(*tasks)
 
     async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
