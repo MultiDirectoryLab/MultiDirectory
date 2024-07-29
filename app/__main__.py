@@ -129,7 +129,6 @@ class PoolClientHandler:
                     await ldap_session.queue.join()
                     writer.close()
                     await writer.wait_closed()
-                    logger.critical("writer closed {}", id(writer))
 
     async def recieve(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""
