@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     AddResponse,
@@ -247,8 +247,19 @@ class AddRequest(BaseRequest):
                     self.password.get_secret_value()
                     if self.password else None)
 
-                await kadmin.add_principal(
-                    user.get_upn_prefix(), pw)
+                try:
+                    # in case server is not available: raise error and rollback
+                    # stub cannot raise error
+                    await kadmin.add_principal(
+                        user.get_upn_prefix(), pw)
+                except KRBAPIError:
+                    await session.rollback()
+                    yield AddResponse(
+                        result_code=LDAPCodes.UNAVAILABLE,
+                        errorMessage="KerberosError",
+                    )
+                    return
+
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
     @classmethod
