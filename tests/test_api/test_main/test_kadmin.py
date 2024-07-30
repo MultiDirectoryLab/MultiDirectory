@@ -350,3 +350,81 @@ async def test_extended_pw_change_call(
     assert result
     assert kadmin.create_or_update_principal_pw.call_args.args == (
         'user0', new_test_password)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_add_princ(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.post(
+        '/kerberos/principal/add',
+        headers=login_headers,
+        json={
+            "primary": "host",
+            "instance": "12345",
+        },
+    )
+    assert response.status_code == 200
+    assert kadmin.add_principal.call_args.args == ("host/12345", None)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_rename_princ(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.patch(
+        '/kerberos/principal/rename',
+        headers=login_headers,
+        json={
+            "principal_name": "name",
+            "principal_new_name": "nname",
+        },
+    )
+    assert response.status_code == 200
+    assert kadmin.rename_princ.call_args.args == ("name", "nname")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_change_princ(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.patch(
+        '/kerberos/principal/reset',
+        headers=login_headers,
+        json={
+            "principal_name": "name",
+            "new_password": "pw123",
+        },
+    )
+    assert response.status_code == 200
+    assert kadmin.change_principal_password.call_args.args == ("name", "pw123")
