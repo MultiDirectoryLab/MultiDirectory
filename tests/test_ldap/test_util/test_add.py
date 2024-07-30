@@ -20,7 +20,7 @@ from app.models.ldap3 import Directory, Group, Path, User
 from ldap_protocol.kerberos import AbstractKadmin
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_root_add(
         session: AsyncSession, settings: Settings, user: dict) -> None:
@@ -37,12 +37,13 @@ async def test_ldap_root_add(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapadd',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
+        # print(await proc.communicate())
         result = await proc.wait()
 
     assert result == 0
@@ -62,7 +63,7 @@ async def test_ldap_root_add(
     assert attributes['objectClass'] == ['organization', 'top']
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_user_add_with_group(
         session: AsyncSession, settings: Settings, user: dict) -> None:
@@ -84,7 +85,7 @@ async def test_ldap_user_add_with_group(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapadd',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -112,7 +113,7 @@ async def test_ldap_user_add_with_group(
         ['cn=domain admins', 'cn=groups'])
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_ldap_user_add_group_with_group(
@@ -130,7 +131,7 @@ async def test_ldap_user_add_group_with_group(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapadd',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -158,7 +159,7 @@ async def test_ldap_user_add_group_with_group(
         ['cn=domain admins', 'cn=groups'])
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_add_bvalue_attr(

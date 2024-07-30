@@ -20,14 +20,14 @@ from app.models.ldap3 import User
 from tests.conftest import TestCreds
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
-        '-vvv', '-x', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-vvv', '-x', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
         '-D', creds.un,
         '-w', creds.pw,
         '-b', 'dc=md,dc=test', 'objectclass=*',
@@ -44,7 +44,7 @@ async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
     assert "dn: cn=user0,ou=users,dc=md,dc=test" in data
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_bind_policy(
     session: AsyncSession,
@@ -63,14 +63,14 @@ async def test_bind_policy(
 
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
-        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
         '-D', creds.un, '-x', '-w', creds.pw)
 
     result = await proc.wait()
     assert result == 0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_bind_policy_missing_group(
         session: AsyncSession,
@@ -97,21 +97,21 @@ async def test_bind_policy_missing_group(
 
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
-        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
         '-D', creds.un, '-x', '-w', creds.pw)
 
     result = await proc.wait()
     assert result == 49
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
-        '-vvv', '-x', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-vvv', '-x', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
         '-D', creds.un,
         '-w', creds.pw,
         stdout=asyncio.subprocess.PIPE,
@@ -121,7 +121,7 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
     assert result == 0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_bvalue_in_search_request(
