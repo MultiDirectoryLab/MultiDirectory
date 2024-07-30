@@ -7,7 +7,7 @@ import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
@@ -47,7 +47,7 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
     assert result["display_name"] == "test"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_update_password(

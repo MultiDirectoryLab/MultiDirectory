@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import NetworkPolicy
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_add_policy(
@@ -82,7 +82,7 @@ async def test_add_policy(
     ]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_update_policy(
@@ -151,7 +151,7 @@ async def test_update_policy(
     ]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_delete_policy(
     http_client: httpx.AsyncClient,
@@ -204,7 +204,7 @@ async def test_delete_policy(
     assert response.json()['detail'] == "At least one policy should be active"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_switch_policy(
     http_client: AsyncClient,
@@ -255,7 +255,7 @@ async def test_switch_policy(
     assert response.json()['detail'] == "At least one policy should be active"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_404(
@@ -288,7 +288,7 @@ async def test_404(
     assert response.status_code == 404
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_swap(

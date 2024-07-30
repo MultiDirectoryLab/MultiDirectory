@@ -16,7 +16,7 @@ from app.security import verify_password
 from tests.conftest import TestCreds
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('_force_override_tls')
 async def test_anonymous_pwd_change(
@@ -50,7 +50,7 @@ async def test_anonymous_pwd_change(
     await event_loop.run_in_executor(None, ldap_client.unbind)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('_force_override_tls')
 async def test_bind_pwd_change(

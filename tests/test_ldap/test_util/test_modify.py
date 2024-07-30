@@ -18,7 +18,7 @@ from app.models.ldap3 import Directory, Group, Path, User
 from tests.conftest import TestCreds
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_base_modify(
         session: AsyncSession, settings: Settings, user: dict) -> None:
@@ -64,7 +64,7 @@ async def test_ldap_base_modify(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -93,7 +93,7 @@ async def test_ldap_base_modify(
     assert 'posixEmail' not in attributes
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_delete(
         session: AsyncSession, settings: Settings, user: dict) -> None:
@@ -124,7 +124,7 @@ async def test_ldap_membersip_user_delete(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -137,7 +137,7 @@ async def test_ldap_membersip_user_delete(
     assert not directory.user.groups
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_add(
         session: AsyncSession, settings: Settings, user: dict) -> None:
@@ -172,7 +172,7 @@ async def test_ldap_membersip_user_add(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -185,7 +185,7 @@ async def test_ldap_membersip_user_add(
     assert directory.user.groups
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_ldap_membersip_user_replace(
@@ -222,7 +222,7 @@ async def test_ldap_membersip_user_replace(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapadd',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -243,7 +243,7 @@ async def test_ldap_membersip_user_replace(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -256,7 +256,7 @@ async def test_ldap_membersip_user_replace(
     assert directory.user.groups
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_grp_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
@@ -290,7 +290,7 @@ async def test_ldap_membersip_grp_replace(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapadd',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -311,7 +311,7 @@ async def test_ldap_membersip_grp_replace(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -324,7 +324,7 @@ async def test_ldap_membersip_grp_replace(
     assert directory.group.parent_groups[0].directory.name == "twisted1"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_modify_dn(
         session: AsyncSession, settings: Settings, user: dict) -> None:
@@ -342,7 +342,7 @@ async def test_ldap_modify_dn(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', user['sam_accout_name'], '-x', '-w', user['password'],
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -357,7 +357,7 @@ async def test_ldap_modify_dn(
     assert await session.scalar(query)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('_force_override_tls')
 async def test_ldap_modify_password_change(
@@ -377,7 +377,7 @@ async def test_ldap_modify_password_change(
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
-            '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
             '-D', creds.un, '-x', '-w', creds.pw,
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
@@ -389,7 +389,7 @@ async def test_ldap_modify_password_change(
 
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
-        '-vvv', '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
         '-D', creds.un, '-x', '-w', new_password)
 
     result = await proc.wait()

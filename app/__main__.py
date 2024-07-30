@@ -121,7 +121,7 @@ class PoolClientHandler:
             except RuntimeError:
                 log.exception(f"The connection {addr} raised")
             except ConnectionAbortedError:
-                logger.success(f'Connection {addr} closed')
+                logger.info(f'Connection {addr} closed')
 
             finally:
                 await session_scope.close()
@@ -129,7 +129,6 @@ class PoolClientHandler:
                     await ldap_session.queue.join()
                     writer.close()
                     await writer.wait_closed()
-                    logger.critical("writer closed {}", id(writer))
 
     async def recieve(self, reader: asyncio.StreamReader) -> bytes:
         """Read N packets by 1kB."""

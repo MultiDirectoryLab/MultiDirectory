@@ -1,4 +1,4 @@
-FROM python:3.11-buster
+FROM python:3.12.4
 
 WORKDIR /app
 COPY pyproject.toml poetry.lock ./

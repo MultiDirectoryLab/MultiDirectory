@@ -17,7 +17,7 @@ from ldap_protocol.multifactor import MultifactorAPI  # sync object ids
 from tests.conftest import TestCreds
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_set_mfa(
         http_client: httpx.AsyncClient,
@@ -43,7 +43,7 @@ async def test_set_mfa(
         name="mfa_secret", value="123"))
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_connect_mfa(
     http_client: httpx.AsyncClient,

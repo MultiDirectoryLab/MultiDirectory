@@ -231,10 +231,11 @@ async def get_krb_status(
     return db_state
 
 
-@krb5_router.post('/add', dependencies=[Depends(get_current_user)])
+@krb5_router.post('/principal/add', dependencies=[Depends(get_current_user)])
 @inject
 async def add_principal(
-    principal_name: Annotated[LIMITED_STR, Body()],
+    primary: Annotated[LIMITED_STR, Body()],
+    instance: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Create principal in kerberos with given name.
@@ -242,8 +243,50 @@ async def add_principal(
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request
-    """  # noqa: D301
+    """
     try:
-        await kadmin.add_principal(principal_name, None)
+        await kadmin.add_principal(f"{primary}/{instance}", None)
+    except KRBAPIError as err:
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(err))
+
+
+@krb5_router.patch(
+    '/principal/rename', dependencies=[Depends(get_current_user)])
+@inject
+async def rename_principal(
+    principal_name: Annotated[LIMITED_STR, Body()],
+    principal_new_name: Annotated[LIMITED_STR, Body()],
+    kadmin: FromDishka[AbstractKadmin],
+) -> None:
+    """Rename principal in kerberos with given name.
+    \f
+    :param Annotated[str, Body principal_name: upn
+    :param Annotated[LIMITED_STR, Body principal_new_name: _description_
+    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    :raises HTTPException: on failed kamin request
+    """
+    try:
+        await kadmin.rename_princ(principal_name, principal_new_name)
+    except KRBAPIError as err:
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(err))
+
+
+@krb5_router.patch(
+    '/principal/reset', dependencies=[Depends(get_current_user)])
+@inject
+async def reset_principal_pw(
+    principal_name: Annotated[LIMITED_STR, Body()],
+    new_password: Annotated[LIMITED_STR, Body()],
+    kadmin: FromDishka[AbstractKadmin],
+) -> None:
+    """Reset principal password in kerberos with given name.
+    \f
+    :param Annotated[str, Body principal_name: upn
+    :param Annotated[LIMITED_STR, Body new_password: _description_
+    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    :raises HTTPException: on failed kamin request
+    """
+    try:
+        await kadmin.change_principal_password(principal_name, new_password)
     except KRBAPIError as err:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(err))

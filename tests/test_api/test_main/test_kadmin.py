@@ -3,7 +3,7 @@
 import asyncio
 from functools import partial
 from hashlib import blake2b
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import Mock
 
 import pytest
 from fastapi import status
@@ -45,7 +45,7 @@ def _create_test_user_data(
         ]}
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_tree_creation(
     http_client: AsyncClient,
@@ -93,7 +93,7 @@ async def test_tree_creation(
     assert result.result_code == LDAPCodes.SUCCESS
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_tree_collision(
@@ -116,7 +116,7 @@ async def test_tree_collision(
     assert response.status_code == status.HTTP_409_CONFLICT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_setup_call(
@@ -158,7 +158,7 @@ async def test_setup_call(
     }
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_status_change(
@@ -187,7 +187,7 @@ async def test_status_change(
     assert response.json() == KerberosState.WAITING_FOR_RELOAD
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ktadd(
@@ -216,7 +216,7 @@ async def test_ktadd(
     }
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ktadd_404(
@@ -239,7 +239,7 @@ async def test_ktadd_404(
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap_add(
@@ -265,7 +265,7 @@ async def test_ldap_add(
     assert kadmin.add_principal.call_args.args == (san, pw)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap_kadmin_delete(
@@ -293,7 +293,7 @@ async def test_ldap_kadmin_delete(
     assert kadmin.del_principal.call_args.args[0] == "ktest"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_bind_create_user(
     http_client: AsyncClient,
@@ -312,7 +312,7 @@ async def test_bind_create_user(
 
     proc = await asyncio.create_subprocess_exec(
         'ldapwhoami', '-x',
-        '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-H', f'ldap://{settings.HOST}:{settings.PORT}',
         '-D', san,
         '-w', pw,
     )
@@ -321,7 +321,7 @@ async def test_bind_create_user(
     assert kadmin.add_principal.call_args.args == (san, pw)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 @pytest.mark.usefixtures('_force_override_tls')
@@ -350,3 +350,81 @@ async def test_extended_pw_change_call(
     assert result
     assert kadmin.create_or_update_principal_pw.call_args.args == (
         'user0', new_test_password)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_add_princ(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.post(
+        '/kerberos/principal/add',
+        headers=login_headers,
+        json={
+            "primary": "host",
+            "instance": "12345",
+        },
+    )
+    assert response.status_code == 200
+    assert kadmin.add_principal.call_args.args == ("host/12345", None)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_rename_princ(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.patch(
+        '/kerberos/principal/rename',
+        headers=login_headers,
+        json={
+            "principal_name": "name",
+            "principal_new_name": "nname",
+        },
+    )
+    assert response.status_code == 200
+    assert kadmin.rename_princ.call_args.args == ("name", "nname")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_change_princ(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.patch(
+        '/kerberos/principal/reset',
+        headers=login_headers,
+        json={
+            "principal_name": "name",
+            "new_password": "pw123",
+        },
+    )
+    assert response.status_code == 200
+    assert kadmin.change_principal_password.call_args.args == ("name", "pw123")

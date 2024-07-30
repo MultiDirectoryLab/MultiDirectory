@@ -13,7 +13,7 @@ from ldap_protocol.utils import get_group, get_user, is_user_group_valid
 from models import NetworkPolicy
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_check_policy(
@@ -24,7 +24,7 @@ async def test_check_policy(
     assert policy.netmasks == [IPv4Network("0.0.0.0/0")]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_specific_policy_ok(
         ldap_session: LDAPSession, session: AsyncSession) -> None:
     """Test specific ip."""
@@ -44,7 +44,7 @@ async def test_specific_policy_ok(
         IPv4Address("127.100.10.4"), session)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('settings')
 async def test_check_policy_group(

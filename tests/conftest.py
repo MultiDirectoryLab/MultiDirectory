@@ -74,7 +74,9 @@ class TestProvider(Provider):
         kadmin.get_status = AsyncMock(return_value=False)
         kadmin.add_principal = AsyncMock()
         kadmin.del_principal = AsyncMock()
+        kadmin.rename_princ = AsyncMock()
         kadmin.create_or_update_principal_pw = AsyncMock()
+        kadmin.change_principal_password = AsyncMock()
 
         if not self._cached_kadmin:
             self._cached_kadmin = kadmin
@@ -119,15 +121,10 @@ class TestProvider(Provider):
                 nested =\
                     connection.sync_connection.begin_nested()  # type: ignore
 
-        if self._cached_session is not None:
-            logger.info('Got {}', self._cached_session)
-        else:
+        if self._cached_session is None:
             self._cached_session = async_session
-            logger.info('Created {}', self._cached_session)
 
         yield self._cached_session
-
-        logger.info('Shutdown {}', self._cached_session)
 
         self._cached_session = None
         self._session_id = None
@@ -191,7 +188,7 @@ class MutePolicyBindRequest(BindRequest):
         return True
 
 
-@pytest.fixture()
+@pytest.fixture
 async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
     """Get di kadmin."""
     async with container(scope=Scope.APP) as container:
@@ -292,7 +289,7 @@ def _server(
         task.cancel()
 
 
-@pytest.fixture()
+@pytest.fixture
 def ldap_client(settings: Settings) -> ldap3.Connection:
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
@@ -332,19 +329,19 @@ async def login_headers(
     return {'Authorization': f"Bearer {auth.json()['access_token']}"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def creds(user: dict) -> TestCreds:
     """Get creds from test data."""
     return TestCreds(user['sam_accout_name'], user['password'])
 
 
-@pytest.fixture()
+@pytest.fixture
 def user() -> dict:
     """Get user data."""
     return TEST_DATA[1]['children'][0]['organizationalPerson']  # type: ignore
 
 
-@pytest.fixture()
+@pytest.fixture
 def _force_override_tls(settings: Settings) -> Iterator:
     """Override tls status for tests."""
     current_status = settings.USE_CORE_TLS
