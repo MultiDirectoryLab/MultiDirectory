@@ -120,14 +120,11 @@ class TestProvider(Provider):
                     connection.sync_connection.begin_nested()  # type: ignore
 
         if self._cached_session is not None:
-            logger.info('Got {}', self._cached_session)
+            pass
         else:
             self._cached_session = async_session
-            logger.info('Created {}', self._cached_session)
 
         yield self._cached_session
-
-        logger.info('Shutdown {}', self._cached_session)
 
         self._cached_session = None
         self._session_id = None
