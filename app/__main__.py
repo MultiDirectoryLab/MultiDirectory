@@ -121,7 +121,7 @@ class PoolClientHandler:
             except RuntimeError:
                 log.exception(f"The connection {addr} raised")
             except ConnectionAbortedError:
-                logger.success(f'Connection {addr} closed')
+                logger.info(f'Connection {addr} closed')
 
             finally:
                 await session_scope.close()
