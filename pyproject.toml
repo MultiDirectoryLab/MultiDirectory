@@ -7,9 +7,8 @@ readme = "README.md"
 packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "3.12.4"
 sqlalchemy = {extras = ["asyncio", "mypy"], version = "^1.4.44"}
-asyncpg = "^0.27.0"
 asn1 = "^2.6.0"
 pydantic = {version = "2.3", extras = ["email"]}
 loguru = "^0.6.0"
@@ -22,7 +21,6 @@ ldap-filter = "^0.2.2"
 httpx = "^0.25.0"
 fastapi = "^0.103.1"
 pydantic-settings = "^2.0.3"
-uvloop = "^0.17.0"
 websockets = "^11.0.3"
 alembic = "^1.12.1"
 ldap3 = "^2.9.1"
@@ -30,6 +28,8 @@ bcrypt = "4.0.1"
 jinja2 = "^3.1.4"
 uvicorn = "^0.30.0"
 dishka = "^1.2.0"
+asyncpg = "^0.29.0"
+uvloop = "^0.19.0"
 
 [tool.poetry.group.linters.dependencies]
 flake8-pytest = "^1.4"
