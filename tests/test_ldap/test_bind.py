@@ -29,7 +29,7 @@ from security import get_password_hash
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
 async def test_bind_ok_and_unbind(
     session: AsyncSession,
@@ -66,7 +66,7 @@ async def test_bind_ok_and_unbind(
     assert ldap_session.user is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
 async def test_bind_invalid_password_or_user(
     session: AsyncSession,
@@ -122,7 +122,7 @@ async def test_bind_invalid_password_or_user(
     assert ldap_session.user is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
 async def test_anonymous_bind(
     ldap_session: LDAPSession,
@@ -141,7 +141,7 @@ async def test_anonymous_bind(
     assert ldap_session.user is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
     """Test anonymous call."""
     ldap_session.delete_user = AsyncMock()  # type: ignore
@@ -151,7 +151,7 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
     ldap_session.delete_user.assert_called()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap3_bind(
@@ -174,7 +174,7 @@ async def test_ldap3_bind(
     assert not ldap_client.bound
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap3_bind_sasl_plain(

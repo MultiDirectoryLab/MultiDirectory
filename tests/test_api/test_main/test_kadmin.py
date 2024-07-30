@@ -45,7 +45,7 @@ def _create_test_user_data(
         ]}
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_tree_creation(
     http_client: AsyncClient,
@@ -93,7 +93,7 @@ async def test_tree_creation(
     assert result.result_code == LDAPCodes.SUCCESS
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_tree_collision(
@@ -116,7 +116,7 @@ async def test_tree_collision(
     assert response.status_code == status.HTTP_409_CONFLICT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_setup_call(
@@ -158,7 +158,7 @@ async def test_setup_call(
     }
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_status_change(
@@ -187,7 +187,7 @@ async def test_status_change(
     assert response.json() == KerberosState.WAITING_FOR_RELOAD
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ktadd(
@@ -216,7 +216,7 @@ async def test_ktadd(
     }
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ktadd_404(
@@ -239,7 +239,7 @@ async def test_ktadd_404(
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap_add(
@@ -265,7 +265,7 @@ async def test_ldap_add(
     assert kadmin.add_principal.call_args.args == (san, pw)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap_kadmin_delete(
@@ -293,7 +293,7 @@ async def test_ldap_kadmin_delete(
     assert kadmin.del_principal.call_args.args[0] == "ktest"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_bind_create_user(
     http_client: AsyncClient,
@@ -312,7 +312,7 @@ async def test_bind_create_user(
 
     proc = await asyncio.create_subprocess_exec(
         'ldapwhoami', '-x',
-        '-h', f'{settings.HOST}', '-p', f'{settings.PORT}',
+        '-H', f'ldap://{settings.HOST}:{settings.PORT}',
         '-D', san,
         '-w', pw,
     )
@@ -321,7 +321,7 @@ async def test_bind_create_user(
     assert kadmin.add_principal.call_args.args == (san, pw)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 @pytest.mark.usefixtures('_force_override_tls')

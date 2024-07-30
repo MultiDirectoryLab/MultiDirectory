@@ -13,7 +13,7 @@ from ldap3 import Connection
 from tests.conftest import TestCreds
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap3_search(
@@ -34,7 +34,7 @@ async def test_ldap3_search(
     assert ldap_client.entries
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_ldap3_search_memberof(

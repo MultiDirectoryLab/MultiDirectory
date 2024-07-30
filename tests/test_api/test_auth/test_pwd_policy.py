@@ -10,7 +10,7 @@ import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('login_headers')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')

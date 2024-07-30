@@ -11,7 +11,7 @@ from httpx import AsyncClient
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_root_dse(
@@ -63,7 +63,7 @@ async def test_api_root_dse(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_search(
@@ -99,7 +99,7 @@ async def test_api_search(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_search_filter_memberof(
@@ -128,7 +128,7 @@ async def test_api_search_filter_memberof(
     assert response['search_result'][1]['object_name'] == member
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_search_filter_member(
@@ -158,7 +158,7 @@ async def test_api_search_filter_member(
     assert response['search_result'][1]['object_name'] == group
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_search_filter_objectguid(
@@ -214,7 +214,7 @@ async def test_api_search_filter_objectguid(
         "User with required objectGUID not found"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_correct_add(
@@ -257,7 +257,7 @@ async def test_api_correct_add(
     assert data.get('errorMessage') == ''
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_add_non_auth_user(http_client: AsyncClient) -> None:
@@ -278,7 +278,7 @@ async def test_api_add_non_auth_user(http_client: AsyncClient) -> None:
     assert data.get('detail') == 'Could not validate credentials'
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_add_with_incorrect_dn(
@@ -299,7 +299,7 @@ async def test_api_add_with_incorrect_dn(
     assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_add_with_non_exist_parent(
@@ -321,7 +321,7 @@ async def test_api_add_with_non_exist_parent(
     assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -363,7 +363,7 @@ async def test_api_double_add(
     assert data.get('resultCode') == LDAPCodes.ENTRY_ALREADY_EXISTS
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -420,7 +420,7 @@ async def test_api_correct_modify(
             assert attr['vals'][0] == new_value
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -450,7 +450,7 @@ async def test_api_modify_with_incorrect_dn(
     assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_modify_non_exist_object(
@@ -479,7 +479,7 @@ async def test_api_modify_non_exist_object(
     assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -501,7 +501,7 @@ async def test_api_correct_delete(
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -523,7 +523,7 @@ async def test_api_delete_with_incorrect_dn(
     assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -545,7 +545,7 @@ async def test_api_delete_non_exist_object(
     assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -636,7 +636,7 @@ async def test_api_correct_update_dn(
             assert attr['vals'][0] == new_group_dn
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -683,7 +683,7 @@ async def test_api_update_dn_with_parent(
     assert new_user_dn == data['search_result'][0]['object_name']
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
@@ -704,7 +704,7 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
     assert data.get('detail') == 'Could not validate credentials'
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -728,7 +728,7 @@ async def test_api_update_dn_non_exist_superior(
     assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -752,7 +752,7 @@ async def test_api_update_dn_non_exist_entry(
     assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -776,7 +776,7 @@ async def test_api_update_dn_invalid_entry(
     assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
@@ -800,7 +800,7 @@ async def test_api_update_dn_invalid_new_superior(
     assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_bytes_to_hex(
@@ -831,7 +831,7 @@ async def test_api_bytes_to_hex(
             assert attr['vals'][0] == b"any".hex()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_add_double_case_insensetive(
