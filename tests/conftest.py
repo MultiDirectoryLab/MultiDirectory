@@ -188,7 +188,7 @@ class MutePolicyBindRequest(BindRequest):
         return True
 
 
-@pytest.fixture()
+@pytest.fixture
 async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
     """Get di kadmin."""
     async with container(scope=Scope.APP) as container:
@@ -289,7 +289,7 @@ def _server(
         task.cancel()
 
 
-@pytest.fixture()
+@pytest.fixture
 def ldap_client(settings: Settings) -> ldap3.Connection:
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
@@ -329,19 +329,19 @@ async def login_headers(
     return {'Authorization': f"Bearer {auth.json()['access_token']}"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def creds(user: dict) -> TestCreds:
     """Get creds from test data."""
     return TestCreds(user['sam_accout_name'], user['password'])
 
 
-@pytest.fixture()
+@pytest.fixture
 def user() -> dict:
     """Get user data."""
     return TEST_DATA[1]['children'][0]['organizationalPerson']  # type: ignore
 
 
-@pytest.fixture()
+@pytest.fixture
 def _force_override_tls(settings: Settings) -> Iterator:
     """Override tls status for tests."""
     current_status = settings.USE_CORE_TLS
