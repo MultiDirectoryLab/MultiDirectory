@@ -119,9 +119,7 @@ class TestProvider(Provider):
                 nested =\
                     connection.sync_connection.begin_nested()  # type: ignore
 
-        if self._cached_session is not None:
-            pass
-        else:
+        if self._cached_session is None:
             self._cached_session = async_session
 
         yield self._cached_session
