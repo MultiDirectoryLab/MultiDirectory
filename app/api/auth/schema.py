@@ -11,8 +11,8 @@ from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, SecretStr, computed_field, validator
 
-from models.ldap3 import User as DBUser
 from ldap_protocol.utils import get_path_dn
+from models.ldap3 import User as DBUser
 
 domain_regex = "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z]{2,6}"
 domain_re = re.compile(domain_regex)
@@ -54,7 +54,7 @@ class User(BaseModel):
     mail: str
     display_name: str
     directory_id: int
-    base_distinguished_name: str
+    dn: str
 
     access_type: Literal['access', 'refresh', 'multifactor']
     exp: int
@@ -64,9 +64,12 @@ class User(BaseModel):
             cls,
             user: DBUser,
             access: str,
-            base_distinguished_name: str,
-            exp: int = 0) -> 'User':
+            base_dn: str,
+            exp: int = 0,
+    ) -> 'User':
         """Create model from db model."""
+        dn = get_path_dn(user.directory.path, base_dn)
+
         return cls(
             id=user.id,
             sam_accout_name=user.sam_accout_name,
@@ -76,12 +79,8 @@ class User(BaseModel):
             access_type=access,
             exp=exp,
             directory_id=user.directory_id,
-            base_distinguished_name=base_distinguished_name
+            dn=dn,
         )
-
-    @computed_field
-    def distinguished_name(self) -> str:
-        return get_path_dn(self.directory.path, self.base_distinguished_name)
 
 
 class SetupRequest(BaseModel):

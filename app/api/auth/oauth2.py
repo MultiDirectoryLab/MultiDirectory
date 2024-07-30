@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.multifactor import MFA_HTTP_Creds
-from ldap_protocol.utils import get_user, get_base_dn
+from ldap_protocol.utils import get_base_dn, get_user
 from models.ldap3 import User as DBUser
 from security import verify_password
 
@@ -46,12 +46,12 @@ async def authenticate_user(
     :return User | None: User model (pydantic)
     """
     user = await get_user(session, username)
-    base_distinguished_name = await get_base_dn(session)
+    base_dn = await get_base_dn(session)
     if not user:
         return None
     if not verify_password(password, user.password):
         return None
-    return User.from_db(user, access='access', base_distinguished_name=base_distinguished_name)
+    return User.from_db(user, access='access', base_dn=base_dn)
 
 
 def create_token(
@@ -114,11 +114,16 @@ async def _get_user_from_token(
         raise _CREDENTIALS_EXCEPTION
 
     user = await session.get(DBUser, user_id)
-    base_distinguished_name = await get_base_dn(session)
+    base_dn = await get_base_dn(session)
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
-    return User.from_db(user, payload.get("grant_type"), base_distinguished_name, payload.get("exp"))
+    return User.from_db(
+        user,
+        payload.get("grant_type"),
+        base_dn,
+        payload.get("exp"),
+    )
 
 
 @inject
