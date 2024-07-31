@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
@@ -213,8 +213,14 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 update(Directory).where(Directory.id == user.directory_id),
             )
             await session.commit()
-            await kadmin.create_or_update_principal_pw(
-                user.get_upn_prefix(), self.new_password)
+
+            try:
+                await kadmin.create_or_update_principal_pw(
+                    user.get_upn_prefix(), self.new_password)
+            except KRBAPIError:
+                await session.rollback()
+                raise PermissionError("Kadmin Error")
+
             return PasswdModifyResponse()
         raise PermissionError('No user provided')
 

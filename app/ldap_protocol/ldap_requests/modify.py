@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
-from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
@@ -89,6 +89,7 @@ class ModifyRequest(BaseRequest):
         self, ldap_session: LDAPSession,
         session: AsyncSession,
         kadmin: AbstractKadmin,
+        settings: Settings,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
@@ -129,7 +130,7 @@ class ModifyRequest(BaseRequest):
             try:
                 if change.operation == Operation.ADD:
                     await self._add(
-                        change, directory, session, kadmin, kadmin)
+                        change, directory, session, kadmin, settings)
 
                 elif change.operation == Operation.DELETE:
                     await self._delete(change, directory, session)
@@ -139,7 +140,7 @@ class ModifyRequest(BaseRequest):
                         await self._delete(change, directory, session, True)
                         await session.flush()
                         await self._add(
-                            change, directory, session, kadmin, kadmin)
+                            change, directory, session, kadmin, settings)
 
                 await session.execute(
                     update(Directory).where(Directory.id == directory.id),
@@ -150,6 +151,14 @@ class ModifyRequest(BaseRequest):
                 yield ModifyResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
                 return
+
+            except KRBAPIError:
+                await session.rollback()
+                yield ModifyResponse(
+                    result_code=LDAPCodes.UNAVAILABLE,
+                    errorMessage="Kerberos error")
+                return
+
             except PermissionError:
                 yield ModifyResponse(
                     result_code=LDAPCodes.STRONGER_AUTH_REQUIRED)
