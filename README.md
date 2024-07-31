@@ -12,7 +12,7 @@ All services are running through [traefik](https://doc.traefik.io/traefik/provid
 
 1. Install [docker](https://docs.docker.com/engine/install/) and [docker compose](https://docs.docker.com/compose/install/)
 
-2. Register and assosiate domain with your server IP, for e.g. `multidirectory.example.com` -> `255.255.255.255`
+2. Register and associate domain with your server IP, for e.g. `multidirectory.example.com` -> `255.255.255.255`
 
 3. Create multidirectory folder:
 ```sh

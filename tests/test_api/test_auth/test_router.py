@@ -45,6 +45,7 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
     assert result["user_principal_name"] == "test"
     assert result["mail"] == "test@example.com"
     assert result["display_name"] == "test"
+    assert result["dn"] == "cn=test,ou=users,dc=md,dc=test"
 
 
 @pytest.mark.asyncio
