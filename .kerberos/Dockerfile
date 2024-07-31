@@ -30,7 +30,9 @@ RUN rm -r /var/lib/krb5kdc/;\
     touch /var/log/kerberos/kadmin.log;\
     touch /var/log/kerberos/krb5lib.log;\
     mkdir /server;\
-    mkdir /certs;
+    mkdir /certs;\
+    touch /etc/krb5.conf;\
+    touch /etc/kdc.conf;
 
 RUN pip install fastapi https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
 COPY config_server.py /server/
