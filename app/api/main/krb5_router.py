@@ -290,3 +290,22 @@ async def reset_principal_pw(
         await kadmin.change_principal_password(principal_name, new_password)
     except KRBAPIError as err:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(err))
+
+
+@krb5_router.delete(
+    '/principal/delete', dependencies=[Depends(get_current_user)])
+@inject
+async def delete_principal(
+    principal_name: Annotated[LIMITED_STR, Body(embed=True)],
+    kadmin: FromDishka[AbstractKadmin],
+) -> None:
+    """Delete principal in kerberos with given name.
+    \f
+    :param Annotated[str, Body principal_name: upn
+    :param FromDishka[AbstractKadmin] kadmin: _description_
+    :raises HTTPException: on failed kamin request
+    """
+    try:
+        await kadmin.del_principal(principal_name)
+    except KRBAPIError as err:
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(err))
