@@ -217,6 +217,47 @@ async def test_api_search_filter_objectguid(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
+async def test_api_search_complex_filter(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test api search."""
+    user = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "ou=users,dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": """
+                (
+                    &(
+                        |(objectClass=group)
+                        (objectClass=user)
+                        (objectClass=ou)
+                        (objectClass=catalog)
+                        (objectClass=organizationalUnit)
+                        (objectClass=container)
+                    )
+                    (
+                        |(displayName=*user1*)
+                        (displayName=*non-exists*)
+                    )
+                )
+                      """,
+            "attributes": [],
+            "page_number": 1,
+        },
+        headers=login_headers,
+    )
+    data = raw_response.json()
+    assert data['search_result'][0]['object_name'] == user
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
 async def test_api_correct_add(
         http_client: AsyncClient, login_headers: dict) -> None:
     """Test api correct add."""
