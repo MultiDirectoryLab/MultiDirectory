@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
 from api.auth import User, get_current_user
+from api.auth.oauth2 import authenticate_user
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
@@ -138,7 +139,17 @@ async def setup_kdc(
     :param Annotated[str, Body password: json, defaults to 'password')]
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[LDAPSession, Depends ldap_session: ldap session
-    """  # noqa: D301
+    """
+    if not await authenticate_user(
+            session,
+            user.user_principal_name,
+            data.admin_password.get_secret_value()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Incorrect password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     base_dn = await get_base_dn(session)
     domain = await get_base_dn(session, normal=True)
 

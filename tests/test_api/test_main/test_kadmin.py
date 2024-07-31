@@ -123,6 +123,7 @@ async def test_setup_call(
     http_client: AsyncClient,
     login_headers: dict,
     kadmin: Mock,
+    creds: TestCreds,
 ) -> None:
     """Test setup args.
 
@@ -132,7 +133,7 @@ async def test_setup_call(
     """
     response = await http_client.post('/kerberos/setup', json={
         "krbadmin_password": 'Password123',
-        "admin_password": 'Password123',
+        "admin_password": creds.pw,
         "stash_password": 'Password123',
     }, headers=login_headers)
 
@@ -153,7 +154,7 @@ async def test_setup_call(
         'services_dn': 'ou=services,dc=md,dc=test',
         'krbadmin_dn': 'cn=krbadmin,ou=users,dc=md,dc=test',
         'krbadmin_password': 'Password123',
-        'admin_password': 'Password123',
+        'admin_password': creds.pw,
         'stash_password': 'Password123',
     }
 
@@ -164,6 +165,7 @@ async def test_setup_call(
 async def test_status_change(
     http_client: AsyncClient,
     login_headers: dict,
+    creds: TestCreds,
 ) -> None:
     """Test setup args.
 
@@ -178,7 +180,7 @@ async def test_status_change(
 
     await http_client.post('/kerberos/setup', json={
         "krbadmin_password": 'Password123',
-        "admin_password": 'Password123',
+        "admin_password": creds.pw,
         "stash_password": 'Password123',
     }, headers=login_headers)
 
@@ -452,3 +454,29 @@ async def test_delete_princ(
     )
     assert response.status_code == 200
     assert kadmin.del_principal.call_args.args == ("name",)
+
+
+@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures('setup_session')
+async def test_admin_incorrect_pw_setup(
+    http_client: AsyncClient,
+    login_headers: dict,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.get(
+        '/kerberos/status', headers=login_headers)
+    assert response.status_code == 200
+    assert response.json() == KerberosState.NOT_CONFIGURED
+
+    response = await http_client.post('/kerberos/setup', json={
+        "krbadmin_password": 'Password123',
+        "admin_password": '----',
+        "stash_password": 'Password123',
+    }, headers=login_headers)
+
+    assert response.status_code == 403
