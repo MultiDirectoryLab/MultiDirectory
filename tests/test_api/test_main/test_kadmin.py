@@ -428,3 +428,27 @@ async def test_change_princ(
     )
     assert response.status_code == 200
     assert kadmin.change_principal_password.call_args.args == ("name", "pw123")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_delete_princ(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test setup args.
+
+    :param AsyncClient http_client: http cl
+    :param dict login_headers: headers
+    :param LDAPSession ldap_session: ldap
+    """
+    response = await http_client.request(
+        "delete",
+        '/kerberos/principal/delete',
+        json={"principal_name": "name"},
+        headers=login_headers,
+    )
+    assert response.status_code == 200
+    assert kadmin.del_principal.call_args.args == ("name",)
