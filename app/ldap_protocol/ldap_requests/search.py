@@ -18,11 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 from sqlalchemy.sql.expression import Select
+from sqlalchemy.sql.elements import UnaryExpression
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
-from ldap_protocol.filter_interpreter import BoundQ, cast_filter2sql
+from ldap_protocol.filter_interpreter import cast_filter2sql
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     PartialAttribute,
@@ -213,17 +214,14 @@ class SearchRequest(BaseRequest):
     def _get_full_dn(path: Path, dn: str) -> str:
         return ','.join(reversed(path.path)) + ',' + dn
 
-    def cast_filter(
-        self, filter_: ASN1Row, query: Select, base_dn: str,
-    ) -> BoundQ:
+    def cast_filter(self, filter_: ASN1Row, base_dn: str) -> UnaryExpression:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
         :param ASN1Row filter_: requested filter_
-        :param sqlalchemy query: sqlalchemy query obj
         :param AsyncSession session: sa session
-        :return tuple: condition and query objects
+        :return UnaryExpression: condition
         """
-        return cast_filter2sql(filter_, query, base_dn)
+        return cast_filter2sql(filter_, base_dn)
 
     async def handle(
         self, session: AsyncSession,
@@ -268,7 +266,7 @@ class SearchRequest(BaseRequest):
         query = self.build_query(base_dn)
 
         try:
-            cond, query = self.cast_filter(self.filter, query, base_dn)
+            cond = self.cast_filter(self.filter, base_dn)
             query = query.filter(cond)
         except Exception as err:
             logger.error(f'Filter syntax error {err}')

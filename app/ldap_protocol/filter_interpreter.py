@@ -12,15 +12,12 @@ from typing import Callable
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.sql.elements import UnaryExpression
-from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.operators import ColumnOperators
 
 from models.ldap3 import Attribute, Directory, Group, User
 
 from .asn1parser import ASN1Row
 from .utils import get_path_filter, get_search_path
-
-BoundQ = tuple[UnaryExpression, Select]
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
@@ -109,20 +106,18 @@ def _ldap_filter_by_attribute(
     return filter_func(method, right.value, base_dn)
 
 
-def _cast_item(
-    item: ASN1Row, query: Select, base_dn: str,
-) -> BoundQ:
+def _cast_item(item: ASN1Row, base_dn: str) -> UnaryExpression:
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
         attr = item.value.lower().replace('objectcategory', 'objectclass')
 
         if attr in User.search_fields:
-            return not_(eq(getattr(User, attr), None)), query
+            return not_(eq(getattr(User, attr), None))
 
         if attr in Directory.search_fields:
-            return not_(eq(getattr(Directory, attr), None)), query
+            return not_(eq(getattr(Directory, attr), None))
 
-        return func.lower(Attribute.name) == item.value.lower(), query
+        return func.lower(Attribute.name) == item.value.lower()
 
     left, right = item.value
     attr = left.value.lower().replace('objectcategory', 'objectclass')
@@ -130,11 +125,11 @@ def _cast_item(
     is_substring = item.tag_id.value == 4
 
     if attr in User.search_fields:  # noqa: R505
-        return _from_filter(User, item, attr, right), query
+        return _from_filter(User, item, attr, right)
     elif attr in Directory.search_fields:
-        return _from_filter(Directory, item, attr, right), query
+        return _from_filter(Directory, item, attr, right)
     elif attr in {'memberof', 'member'}:
-        return _ldap_filter_by_attribute(item, right, base_dn, attr), query
+        return _ldap_filter_by_attribute(item, right, base_dn, attr)
     else:
         if is_substring:
             cond = Attribute.value.ilike(_get_substring(right))
@@ -145,27 +140,25 @@ def _cast_item(
                 cond = func.lower(Attribute.bvalue) == right.value
 
         return Directory.attributes.any(
-            and_(func.lower(Attribute.name) == attr, cond)), query
+            and_(func.lower(Attribute.name) == attr, cond))
 
 
-def cast_filter2sql(
-    expr: ASN1Row, query: Select, base_dn: str,
-) -> BoundQ:
+def cast_filter2sql(expr: ASN1Row, base_dn: str) -> UnaryExpression:
     """Recursively cast Filter to SQLAlchemy conditions."""
     if expr.tag_id.value in range(3):
         conditions = []
         for item in expr.value:
             if item.tag_id.value in range(3):  # &|!
-                cond, query = cast_filter2sql(item, query, base_dn)
+                cond = cast_filter2sql(item, base_dn)
                 conditions.append(cond)
                 continue
 
-            cond, query = _cast_item(item, query, base_dn)
+            cond = _cast_item(item, base_dn)
             conditions.append(cond)
 
-        return [and_, or_, not_][expr.tag_id.value](*conditions), query
+        return [and_, or_, not_][expr.tag_id.value](*conditions)
 
-    return _cast_item(expr, query, base_dn)
+    return _cast_item(expr, base_dn)
 
 
 def _from_str_filter(
@@ -192,24 +185,24 @@ def _api_filter(item: Filter, base_dn: str) -> UnaryExpression:
     return filter_func(method, item.val, base_dn)
 
 
-def _cast_filt_item(item: Filter, query: Select, base_dn: str) -> BoundQ:
+def _cast_filt_item(item: Filter, base_dn: str) -> UnaryExpression:
     if item.val == '*':
         if item.attr in User.search_fields:
-            return not_(eq(getattr(User, item.attr), None)), query
+            return not_(eq(getattr(User, item.attr), None))
 
         if item.attr in Directory.search_fields:
-            return not_(eq(getattr(Directory, item.attr), None)), query
+            return not_(eq(getattr(Directory, item.attr), None))
 
-        return func.lower(Attribute.name) == item.attr, query
+        return func.lower(Attribute.name) == item.attr
 
     is_substring = item.val.startswith('*') or item.val.endswith('*')
 
     if item.attr in User.search_fields:  # noqa: R505
-        return _from_str_filter(User, is_substring, item), query
+        return _from_str_filter(User, is_substring, item)
     elif item.attr in Directory.search_fields:
-        return _from_str_filter(Directory, is_substring, item), query
+        return _from_str_filter(Directory, is_substring, item)
     elif item.attr in {'memberof', 'member'}:
-        return _api_filter(item, base_dn), query
+        return _api_filter(item, base_dn)
     else:
         if is_substring:
             cond = Attribute.value.ilike(item.val.replace('*', '%'))
@@ -217,26 +210,26 @@ def _cast_filt_item(item: Filter, query: Select, base_dn: str) -> BoundQ:
             cond = func.lower(Attribute.value) == item.val
 
         return Directory.attributes.any(
-            and_(func.lower(Attribute.name) == item.attr, cond)), query
+            and_(func.lower(Attribute.name) == item.attr, cond))
 
 
-def cast_str_filter2sql(expr: Filter, query: Select, base_dn: str) -> BoundQ:
+def cast_str_filter2sql(expr: Filter, base_dn: str) -> UnaryExpression:
     """Cast ldap filter to sa query."""
     if expr.type == "group":
         conditions = []
         for item in expr.filters:
             if expr.type == "group":
-                cond, query = cast_str_filter2sql(item, query, base_dn)
+                cond = cast_str_filter2sql(item, base_dn)
                 conditions.append(cond)
                 continue
 
-            cond, query = _cast_filt_item(item, query, base_dn)
+            cond = _cast_filt_item(item, base_dn)
             conditions.append(cond)
 
         return {  # type: ignore
             '&': and_,
             '|': or_,
             '!': not_,
-        }[expr.comp](*conditions), query
+        }[expr.comp](*conditions)
 
-    return _cast_filt_item(expr, query, base_dn)
+    return _cast_filt_item(expr, base_dn)
