@@ -12,12 +12,14 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.ldap.address=:389"
+      - "--entrypoints.kdc.address=:88"
       - "--entrypoints.ldaps.address=:636"
     ports:
       - "80:80"
       - "8080:8080"
       - "389:389"
       - "636:636"
+      - "88:88"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
@@ -168,20 +170,21 @@ services:
     restart: unless-stopped
     volumes:
       - keyfile:/etc/krb5.d/
-      - kdc:/etc/krb5kdc/
-      - type: bind
-        source: ./certs/krb5.conf
-        target: /etc/krb5.conf
-      - type: bind
-        source: ./certs/kdc.conf
-        target: /etc/kdc.conf
+      - kdc:/etc
     image: krb5md
     tty: true
     depends_on:
       - md
-    ports:
-      - 88:88  # kdc
+    # ports:
+    #   - 88:88
     command: /usr/sbin/krb5kdc -n -w 4
+
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kdc.entrypoints=kdc
+      - traefik.tcp.routers.kdc.service=kdc
+      - traefik.tcp.services.kdc.loadbalancer.server.port=88
 
   kadmin:
     image: krb5md
@@ -190,14 +193,8 @@ services:
     volumes:
       - ./certs:/certs
       - keyfile:/etc/krb5.d/
-      - kdc:/etc/krb5kdc/
       - .kerberos/config_server.py:/server/config_server.py
-      - type: bind
-        source: ./certs/krb5.conf
-        target: /etc/krb5.conf
-      - type: bind
-        source: ./certs/kdc.conf
-        target: /etc/kdc.conf
+      - kdc:/etc
     tty: true
     depends_on:
       md:
