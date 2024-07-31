@@ -47,6 +47,7 @@ async def authenticate_user(
     """
     user = await get_user(session, username)
     base_dn = await get_base_dn(session)
+
     if not user:
         return None
     if not verify_password(password, user.password):
@@ -110,11 +111,13 @@ async def _get_user_from_token(
             raise _CREDENTIALS_EXCEPTION
 
     user_id: int = int(payload.get("uid"))
+
     if user_id is None:
         raise _CREDENTIALS_EXCEPTION
 
     user = await session.get(DBUser, user_id)
     base_dn = await get_base_dn(session)
+
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 

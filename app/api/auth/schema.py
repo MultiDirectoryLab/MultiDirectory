@@ -61,11 +61,11 @@ class User(BaseModel):
 
     @classmethod
     def from_db(
-            cls,
-            user: DBUser,
-            access: str,
-            base_dn: str,
-            exp: int = 0,
+        cls,
+        user: DBUser,
+        access: str,
+        base_dn: str,
+        exp: int = 0,
     ) -> 'User':
         """Create model from db model."""
         dn = get_path_dn(user.directory.path, base_dn)
