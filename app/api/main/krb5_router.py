@@ -30,7 +30,7 @@ from ldap_protocol.kerberos import (
     set_state,
 )
 from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.utils import get_base_dn, get_dn_by_id
+from ldap_protocol.utils import get_base_directories, get_dn_by_id
 
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
@@ -61,7 +61,8 @@ async def setup_krb_catalogue(
     :param Annotated[SecretStr, Body krbadmin_password: pw
     :raises HTTPException: on conflict
     """
-    base_dn = await get_base_dn(session)
+    base_dn_list = await get_base_directories(session)
+    base_dn = base_dn_list[0].path_dn
 
     krbadmin = 'cn=krbadmin,ou=users,' + base_dn
     services_container = 'ou=services,' + base_dn
@@ -150,8 +151,9 @@ async def setup_kdc(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    base_dn = await get_base_dn(session)
-    domain = await get_base_dn(session, normal=True)
+    base_dn_list = await get_base_directories(session)
+    base_dn = base_dn_list[0].path_dn
+    domain = base_dn_list[0].name
 
     krbadmin = 'cn=krbadmin,ou=users,' + base_dn
     services_container = 'ou=services,' + base_dn
