@@ -17,8 +17,8 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
-from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.expression import Select
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
 from ldap_protocol.asn1parser import ASN1Row

@@ -23,7 +23,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
-  md:
+  ldap_server:
     build:
       context: .
       dockerfile: ./.docker/Dockerfile
@@ -125,6 +125,14 @@ services:
       - ./app:/app
     command: ./extra/generate_cert.sh
 
+  cert_local_check:
+    image: multidirectory
+    container_name: multidirectory_local_certs_check
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+    command: bash -c "test -f /certs/cert.pem && echo "CERT EXISTS, SKIPPING..." || openssl req -nodes -new -x509 -keyout /certs/privkey.pem -out /certs/cert.pem -subj '/C=RU/ST=Moscow/L=Moscow/O=Global Security/OU=Multifactor/CN=md.multifactor.dev'";
+
   postgres:
     container_name: MD-postgres
     image: postgres:16
@@ -175,7 +183,7 @@ services:
     image: krb5md
     tty: true
     depends_on:
-      - md
+      - ldap_server
     command: /usr/sbin/krb5kdc -n -w 4
 
     labels:
@@ -196,7 +204,7 @@ services:
       - kdc:/etc
     tty: true
     depends_on:
-      md:
+      ldap_server:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully

@@ -12,6 +12,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -46,7 +47,11 @@ async def authenticate_user(
     :return User | None: User model (pydantic)
     """
     user = await get_user(session, username)
-    base_dn = await get_base_dn(session)
+
+    try:
+        base_dn = await get_base_dn(session)
+    except NoResultFound:
+        return None
 
     if not user:
         return None
@@ -116,7 +121,11 @@ async def _get_user_from_token(
         raise _CREDENTIALS_EXCEPTION
 
     user = await session.get(DBUser, user_id)
-    base_dn = await get_base_dn(session)
+
+    try:
+        base_dn = await get_base_dn(session)
+    except NoResultFound:
+        raise _CREDENTIALS_EXCEPTION
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
