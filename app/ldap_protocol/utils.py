@@ -136,6 +136,7 @@ import struct
 from calendar import timegm
 from datetime import datetime
 from operator import attrgetter
+from typing import Any, Generator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
@@ -144,35 +145,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models.ldap3 import (
-    CatalogueSetting,
-    Directory,
-    Group,
-    NetworkPolicy,
-    Path,
-    User,
-)
+from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, Path, User
 
 email_re = re.compile(
     r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
 
 
 @cache
-async def get_base_dn(session: AsyncSession, normal: bool = False) -> str:
-    """Get base dn for e.g. DC=multifactor,DC=dev.
+async def get_base_directories(session: AsyncSession) -> list[Directory]:
+    """Get base domain directories."""
+    result = await session.execute(select(Directory).filter(
+        Directory.parent_id.is_(None)))
+    return result.scalars().all()
 
-    :return str: name for the base distinguished name.
-    """
-    cat_result = await session.execute(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'defaultNamingContext'),
-    )
-    if normal:
-        return cat_result.scalar_one().value
 
-    return ','.join((
-        f'dc={value}' for value in
-        cat_result.scalar_one().value.split('.')))
+def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
+    """Check if an entry in a base dn."""
+    return entry.lower().endswith(base_directory.path_dn.lower())
+
+
+def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
+    """Check if an entry is a base dn."""
+    return base_directory.path_dn.lower() == entry.lower()
 
 
 def get_attribute_types() -> list[str]:
@@ -196,14 +190,6 @@ def get_object_classes() -> list[str]:
 def get_generalized_now(tz: ZoneInfo) -> str:
     """Get generalized time (formated) with tz."""
     return datetime.now(tz).strftime('%Y%m%d%H%M%S.%f%z')
-
-
-def _get_path(name: str) -> list[str]:
-    """Get path from name."""
-    return [
-        item.lower() for item in reversed(name.split(','))
-        if not item[:2] in ('DC', 'dc')
-    ]
 
 
 def _get_domain(name: str) -> str:
@@ -230,14 +216,13 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         return await session.scalar(select(User).where(cond))
 
     path = await session.scalar(
-        select(Path).where(get_path_filter(_get_path(name))))
+        select(Path).where(get_path_filter(get_search_path(name))))
 
     domain = await session.scalar(
-        select(CatalogueSetting)
-        .where(
-            CatalogueSetting.name == 'defaultNamingContext',
-            CatalogueSetting.value == _get_domain(name),
-        ))
+        select(Directory)
+        .filter(
+            Directory.name == _get_domain(name),
+            Directory.object_class == 'domain'))
 
     if not domain or not path:
         return None
@@ -260,22 +245,16 @@ def validate_entry(entry: str) -> bool:
         for part in entry.split(','))
 
 
-async def get_groups(
-    dn_list: list[str],
-    session: AsyncSession,
-) -> list[Group]:
+async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     """Get dirs with groups by dn list."""
-    base_dn = await get_base_dn(session)
-
     paths = []
 
     for dn in dn_list:
-        if dn.lower() == base_dn.lower():  # dn_is_base
-            continue
+        for base_directory in await get_base_directories(session):
+            if dn_is_base_directory(base_directory, dn):
+                continue
 
-        base_obj = get_search_path(dn, base_dn)
-
-        paths.append([path for path in base_obj if path])
+            paths.append([path for path in get_search_path(dn) if path])
 
     query = select(   # noqa: ECE001
         Directory)\
@@ -303,28 +282,21 @@ async def get_group(dn: str, session: AsyncSession) -> Directory:
     :raises AttributeError: on invalid dn
     :return Directory: dir with group
     """
-    base_dn = await get_base_dn(session)
-    dn_is_base = dn.lower() == base_dn.lower()
-
-    if dn_is_base:
-        raise ValueError('Cannot set memberOf with base dn')
-
-    path = get_search_path(dn, base_dn)
+    for base_directory in await get_base_directories(session):
+        if dn_is_base_directory(base_directory, dn):
+            raise ValueError('Cannot set memberOf with base dn')
 
     directory = await session.scalar(
         select(Directory)
-        .join(Directory.path).filter(Path.path == path)
-        .options(selectinload(Directory.group), selectinload(Directory.path)))
+        .join(Directory.path)
+        .filter(Path.path == get_search_path(dn))
+        .options(
+            selectinload(Directory.group), selectinload(Directory.path)))
 
     if not directory:
         raise ValueError("Group not found")
 
     return directory
-
-
-def get_path_dn(path: Path, base_dn: str) -> str:
-    """Get DN from path."""
-    return ','.join(reversed(path.path)) + ',' + base_dn
 
 
 async def is_user_group_valid(
@@ -411,15 +383,13 @@ def ft_to_dt(filetime: int) -> datetime:
         s, tz=ZoneInfo('UTC')).replace(microsecond=(ns100 // 10))
 
 
-def get_search_path(dn: str, base_dn: str) -> list[str]:
+def get_search_path(dn: str) -> list[str]:
     """Get search path for dn.
 
     :param str dn: any DN, dn syntax
-    :param str base_dn: domain dn
     :return list[str]: reversed list of dn values
     """
-    search_path = dn.lower().removesuffix(
-        ',' + base_dn.lower()).split(',')
+    search_path = dn.lower().split(',')
     search_path.reverse()
     return search_path
 
@@ -433,24 +403,6 @@ def get_path_filter(
     :return ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
-
-
-@cache
-async def get_domain_sid(session: AsyncSession) -> str:
-    """Get domain sid."""
-    sid = await session.scalar(select(CatalogueSetting).filter(
-        CatalogueSetting.name == 'domain_object_sid'))
-
-    return sid.value
-
-
-@cache
-async def get_domain_guid(session: AsyncSession) -> str:
-    """Get domain objectGUID."""
-    guid = await session.scalar(select(CatalogueSetting).filter(
-        CatalogueSetting.name == 'domain_object_guid'))
-
-    return guid.value
 
 
 def string_to_sid(sid_string: str) -> bytes:
@@ -487,11 +439,11 @@ def string_to_sid(sid_string: str) -> bytes:
     return sid
 
 
-async def create_object_sid(
-        session: AsyncSession, rid: int, reserved: bool = False) -> str:
+def create_object_sid(
+        domain: Directory, rid: int, reserved: bool = False) -> str:
     """Generate the objectSid attribute for an object.
 
-    :param session: db
+    :param domain: domain directory
     :param int rid: relative identifier
     :param bool reserved: A flag indicating whether the RID is reserved.
                           If `True`, the given RID is used directly. If
@@ -499,7 +451,7 @@ async def create_object_sid(
                           the final RID
     :return str: the complete objectSid as a string
     """
-    return await get_domain_sid(session) + f"-{rid if reserved else 1000+rid}"
+    return domain.object_sid + f"-{rid if reserved else 1000+rid}"
 
 
 def generate_domain_sid() -> str:
@@ -528,4 +480,38 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
 
     result = await session.scalar(query)
 
-    return get_path_dn(result.path, await get_base_dn(session))
+    return result.path_dn
+
+
+def get_domain_attrs(domain: Directory) -> Generator[Attribute, Any, None]:
+    """Get default domain attrs."""
+    schema = 'CN=Schema'
+    attributes: dict[str, list[str]] = {
+        'dnsHostName': [domain.name],
+        'objectClass': ['domain', 'top', 'domainDNS'],
+        'serverName': [domain.name],
+        'nisDomain': [domain.name],
+        'serviceName': [domain.name],
+        'dsServiceName': [domain.name],
+        'LDAPServiceName': [domain.name],
+        'namingContexts': [domain.path_dn, schema],
+        'rootDomainNamingContext': [domain.path_dn],
+        'distinguishedName': [domain.path_dn],
+        'supportedLDAPVersion': ['3'],
+        'defaultNamingContext': [domain.path_dn],
+        'subschemaSubentry': [schema],
+        'schemaNamingContext': [schema],
+        'supportedSASLMechanisms': ['ANONYMOUS', 'PLAIN'],
+        'highestCommittedUSN': ['126991'],
+        'serverState': ['1'],
+        'supportedExtension': [
+            '1.3.6.1.4.1.4203.1.11.3', '1.3.6.1.4.1.4203.1.11.1'],
+        'supportedControl': ['2.16.840.1.113730.3.4.4'],
+        'domainFunctionality': ['0'],
+        'supportedLDAPPolicies': [
+            'MaxConnIdleTime', 'MaxPageSize', 'MaxValRange'],
+        'supportedCapabilities': ['1.2.840.113556.1.4.1791'],
+    }
+    for name, value_list in attributes.items():
+        for value in value_list:
+            yield Attribute(name=name, value=value, directory=domain)
