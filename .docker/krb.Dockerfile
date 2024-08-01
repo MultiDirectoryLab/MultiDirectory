@@ -1,12 +1,38 @@
-FROM python:3.11-buster
+# The builder image, used to build the virtual environment
+FROM python:3.12.4-bookworm as builder
 
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_VIRTUALENVS_OPTIONS_NO_PIP=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    POETRY_VIRTUALENVS_PATH=/venvs \
+    VIRTUAL_ENV=/venvs/.venv \
+    PATH="/venvs/.venv/bin:$PATH"
+
+WORKDIR /venvs
+
+RUN python -m venv .venv
+RUN pip install \
+    fastapi \
+    uvicorn \
+    https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
+
+
+FROM python:3.12.4-slim-bookworm as runtime
 # kerberos server configuration
 
 ENV LANG=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive \
     KRB5_CONFIG=/etc/krb5.conf \
     KRB5_KDC_PROFILE=/var/kerberos/krb5kdc/kdc.conf \
-    KRB5_TRACE=/dev/stdout
+    KRB5_TRACE=/dev/stdout \
+    VIRTUAL_ENV=/venvs/.venv \
+    PATH="/venvs/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 RUN set -eux; \
     apt-get update -y; \
@@ -34,6 +60,5 @@ RUN rm -r /var/lib/krb5kdc/;\
     touch /etc/krb5.conf;\
     touch /etc/kdc.conf;
 
-RUN pip install fastapi https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
-COPY config_server.py /server/
+COPY .kerberos/config_server.py /server/
 EXPOSE 8000
