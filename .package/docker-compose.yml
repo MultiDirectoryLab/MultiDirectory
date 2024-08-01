@@ -26,6 +26,8 @@ services:
       - "--entrypoints.ldap.address=:389"
       - "--entrypoints.ldaps.address=:636"
 
+      - "--entrypoints.kdc.address=:88"
+
       - --entryPoints.websecure.http.tls=true
       - --entryPoints.websecure.http.tls.certResolver=md-resolver
 
@@ -38,6 +40,7 @@ services:
       - "443:443"
       - "389:389"
       - "636:636"
+      - "88:88"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
@@ -99,6 +102,13 @@ services:
         reservations:
           cpus: '0.25'
           memory: 20M
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv 127.0.0.1 389 636"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+
     labels:
       - traefik.enable=true
 
@@ -120,9 +130,11 @@ services:
       .env
     volumes:
       - ./logs:/app/logs
+      - ./certs:/certs
     hostname: api_server
     environment:
       USE_CORE_TLS: 1
+      KRB5_LDAP_URI: ldap://ldap_server
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
@@ -134,7 +146,7 @@ services:
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
 
-    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop
+    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --port 8000 --loop uvloop
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -159,7 +171,51 @@ services:
       retries: 10
       start_period: 5s
 
+  cert_check:
+    image: ghcr.io/multidirectorylab/multidirectory:latest
+    container_name: multidirectory_certs_check
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+    command: ./extra/generate_cert.sh
+
+  kdc:
+    container_name: kdc
+    restart: unless-stopped
+    volumes:
+      - kdc:/etc
+    image: ghcr.io/multidirectorylab/multidirectory_kerberos:latest
+    tty: true
+    depends_on:
+      - ldap_server
+    command: /usr/sbin/krb5kdc -n -w 4
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kdc.entrypoints=kdc
+      - traefik.tcp.routers.kdc.service=kdc
+      - traefik.tcp.services.kdc.loadbalancer.server.port=88
+
+  kadmin:
+    image: ghcr.io/multidirectorylab/multidirectory_kerberos:latest
+    container_name: kadmin
+    restart: unless-stopped
+    volumes:
+      - ./certs:/certs
+      - kdc:/etc
+    tty: true
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+      cert_check:
+        condition: service_completed_successfully
+    working_dir: /server
+    command: uvicorn --factory config_server:create_app
+             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
+             --ssl-certfile=/certs/krbcert.pem
+
 volumes:
   traefik:
   postgres:
   pgadmin:
+  kdc:
