@@ -175,8 +175,6 @@ services:
     tty: true
     depends_on:
       - md
-    # ports:
-    #   - 88:88
     command: /usr/sbin/krb5kdc -n -w 4
 
     labels:
