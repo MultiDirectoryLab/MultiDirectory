@@ -117,7 +117,7 @@ jobs:
           repository: MultiDirectoryLab/MultiDirectory-Web-Admin
           event-type: "Unexpected Event Demo"
           client-payload: '{"repository": "$GITHUB_REPOSITORY", "tag": "${{ github.ref_name }}" }'
-          
+
   build-app:
     runs-on: ubuntu-latest
     needs: [build-tests, run-ssh-test, run-tests]
@@ -142,3 +142,27 @@ jobs:
           echo $TAG
           echo $TAG2
           docker build --push --target=runtime -f .docker/Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VERSION=${{ github.ref_name }}
+
+  build-kerberos:
+    runs-on: ubuntu-latest
+    needs: [build-tests, run-ssh-test, run-tests]
+    steps:
+      - name: downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker image
+        env:
+          TAG: ghcr.io/${{ env.REPO }}_kerberos:latest
+          TAG2: ghcr.io/${{ env.REPO }}_kerberos:${{ github.ref_name }}
+          DOCKER_BUILDKIT: '1'
+        run: |
+          echo $TAG
+          docker build --push --target=runtime -f .docker/krb.Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
