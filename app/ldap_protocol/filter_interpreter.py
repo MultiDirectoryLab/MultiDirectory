@@ -45,11 +45,9 @@ def _from_filter(
     return op_method(col, value)
 
 
-def _filter_memberof(
-    method: ColumnOperators, dn: str, base_dn: str,
-) -> UnaryExpression:
+def _filter_memberof(method: ColumnOperators, dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute."""
-    group_path = get_search_path(dn, base_dn)
+    group_path = get_search_path(dn)
     path_filter = get_path_filter(group_path)
 
     group_id_subquery = select(Group.id).join(  # noqa: ECE001
@@ -63,11 +61,9 @@ def _filter_memberof(
     ))  # type: ignore
 
 
-def _filter_member(
-    method: ColumnOperators, dn: str, base_dn: str,
-) -> UnaryExpression:
+def _filter_member(method: ColumnOperators, dn: str) -> UnaryExpression:
     """Retrieve query conditions with the member attribute."""
-    group_path = get_search_path(dn, base_dn)
+    group_path = get_search_path(dn)
     path_filter = get_path_filter(group_path)
 
     user_id_subquery = select(User.id).join(  # noqa: ECE001
@@ -92,7 +88,7 @@ def _get_filter_function(attribute: str) -> Callable[..., UnaryExpression]:
 
 
 def _ldap_filter_by_attribute(
-    item: ASN1Row, right: ASN1Row, base_dn: str, attribute: str,
+    item: ASN1Row, right: ASN1Row, attribute: str,
 ) -> UnaryExpression:
     """Retrieve query conditions based on the specified LDAP attribute."""
     if item.tag_id.value == 3:
@@ -103,10 +99,10 @@ def _ldap_filter_by_attribute(
         raise ValueError('Incorrect operation method')
 
     filter_func = _get_filter_function(attribute)
-    return filter_func(method, right.value, base_dn)
+    return filter_func(method, right.value)
 
 
-def _cast_item(item: ASN1Row, base_dn: str) -> UnaryExpression:
+def _cast_item(item: ASN1Row) -> UnaryExpression:
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id.value == 7:
         attr = item.value.lower().replace('objectcategory', 'objectclass')
@@ -129,7 +125,7 @@ def _cast_item(item: ASN1Row, base_dn: str) -> UnaryExpression:
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right)
     elif attr in {'memberof', 'member'}:
-        return _ldap_filter_by_attribute(item, right, base_dn, attr)
+        return _ldap_filter_by_attribute(item, right, attr)
     else:
         if is_substring:
             cond = Attribute.value.ilike(_get_substring(right))
@@ -143,22 +139,20 @@ def _cast_item(item: ASN1Row, base_dn: str) -> UnaryExpression:
             and_(func.lower(Attribute.name) == attr, cond))
 
 
-def cast_filter2sql(expr: ASN1Row, base_dn: str) -> UnaryExpression:
+def cast_filter2sql(expr: ASN1Row) -> UnaryExpression:
     """Recursively cast Filter to SQLAlchemy conditions."""
     if expr.tag_id.value in range(3):
         conditions = []
         for item in expr.value:
             if item.tag_id.value in range(3):  # &|!
-                cond = cast_filter2sql(item, base_dn)
-                conditions.append(cond)
+                conditions.append(cast_filter2sql(item))
                 continue
 
-            cond = _cast_item(item, base_dn)
-            conditions.append(cond)
+            conditions.append(_cast_item(item))
 
         return [and_, or_, not_][expr.tag_id.value](*conditions)
 
-    return _cast_item(expr, base_dn)
+    return _cast_item(expr)
 
 
 def _from_str_filter(
@@ -172,7 +166,7 @@ def _from_str_filter(
     return op_method(col, item.val)
 
 
-def _api_filter(item: Filter, base_dn: str) -> UnaryExpression:
+def _api_filter(item: Filter) -> UnaryExpression:
     """Retrieve query conditions based on the specified LDAP attribute."""
     if item.comp == '=':
         method = Directory.id.in_
@@ -182,10 +176,10 @@ def _api_filter(item: Filter, base_dn: str) -> UnaryExpression:
         raise ValueError('Incorrect operation method')
 
     filter_func = _get_filter_function(item.attr)
-    return filter_func(method, item.val, base_dn)
+    return filter_func(method, item.val)
 
 
-def _cast_filt_item(item: Filter, base_dn: str) -> UnaryExpression:
+def _cast_filt_item(item: Filter) -> UnaryExpression:
     if item.val == '*':
         if item.attr in User.search_fields:
             return not_(eq(getattr(User, item.attr), None))
@@ -202,7 +196,7 @@ def _cast_filt_item(item: Filter, base_dn: str) -> UnaryExpression:
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item)
     elif item.attr in {'memberof', 'member'}:
-        return _api_filter(item, base_dn)
+        return _api_filter(item)
     else:
         if is_substring:
             cond = Attribute.value.ilike(item.val.replace('*', '%'))
@@ -213,18 +207,16 @@ def _cast_filt_item(item: Filter, base_dn: str) -> UnaryExpression:
             and_(func.lower(Attribute.name) == item.attr, cond))
 
 
-def cast_str_filter2sql(expr: Filter, base_dn: str) -> UnaryExpression:
+def cast_str_filter2sql(expr: Filter) -> UnaryExpression:
     """Cast ldap filter to sa query."""
     if expr.type == "group":
         conditions = []
         for item in expr.filters:
             if expr.type == "group":
-                cond = cast_str_filter2sql(item, base_dn)
-                conditions.append(cond)
+                conditions.append(cast_str_filter2sql(item))
                 continue
 
-            cond = _cast_filt_item(item, base_dn)
-            conditions.append(cond)
+            conditions.append(_cast_filt_item(item))
 
         return {  # type: ignore
             '&': and_,
@@ -232,4 +224,4 @@ def cast_str_filter2sql(expr: Filter, base_dn: str) -> UnaryExpression:
             '!': not_,
         }[expr.comp](*conditions)
 
-    return _cast_filt_item(expr, base_dn)
+    return _cast_filt_item(expr)
