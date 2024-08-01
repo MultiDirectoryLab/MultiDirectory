@@ -165,7 +165,8 @@ services:
 
   kdc:
     build:
-      context: .kerberos
+      context: .
+      dockerfile: ./.docker/krb.Dockerfile
     container_name: kdc
     restart: unless-stopped
     volumes:

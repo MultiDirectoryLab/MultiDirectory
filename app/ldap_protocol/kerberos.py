@@ -145,10 +145,10 @@ class AbstractKadmin(ABC):
     async def add_principal(self, name: str, password: str | None) -> None: ...  # noqa
 
     @abstractmethod
-    async def get_principal(self, name: str) -> dict: ...  # type: ignore  # noqa
+    async def get_principal(self, name: str) -> dict: ...  # noqa
 
     @abstractmethod
-    async def del_principal(self, name: str) -> None: ...  # type: ignore  # noqa
+    async def del_principal(self, name: str) -> None: ...  # noqa
 
     @abstractmethod
     async def change_principal_password(  # noqa
@@ -261,11 +261,11 @@ class StubKadminMDADPIClient(AbstractKadmin):
         ...
 
     @logger_wraps(is_stub=True)
-    async def get_principal(self, name: str) -> None:  # type: ignore  # noqa D102
+    async def get_principal(self, name: str) -> None:  # noqa D102
         ...
 
     @logger_wraps(is_stub=True)
-    async def del_principal(self, name: str) -> None:  # type: ignore  # noqa D102
+    async def del_principal(self, name: str) -> None:  # noqa D102
         ...
 
     @logger_wraps(is_stub=True)
