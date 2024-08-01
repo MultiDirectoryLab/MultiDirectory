@@ -23,7 +23,6 @@ from ldap_protocol.password_policy import (
 )
 from ldap_protocol.utils import (
     ft_to_dt,
-    get_base_dn,
     get_groups,
     get_path_filter,
     get_search_path,
@@ -101,7 +100,7 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        search_path = get_search_path(self.object, await get_base_dn(session))
+        search_path = get_search_path(self.object)
 
         membership1 = selectinload(Directory.user).selectinload(User.groups)
         membership2 = selectinload(Directory.group)\
