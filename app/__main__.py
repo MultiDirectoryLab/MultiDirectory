@@ -262,7 +262,7 @@ class PoolClientHandler:
             container: AsyncContainer) -> None:
         """Get message from queue and handle it."""
         ldap_session = await container.get(LDAPSession)
-        addr = await ldap_session.get_ip(writer)
+        addr = str(await ldap_session.get_ip(writer))
 
         while True:
             try:

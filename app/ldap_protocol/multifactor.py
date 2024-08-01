@@ -60,7 +60,7 @@ async def get_creds(
     if not key or not secret:
         return None
 
-    return Creds(key.value, secret.value)  # type: ignore
+    return Creds(key.value, secret.value)
 
 
 class MultifactorAPI:
