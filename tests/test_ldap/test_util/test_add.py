@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload, subqueryload
 from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from app.ldap_protocol.ldap_requests import AddRequest
+from app.ldap_protocol.utils import get_search_path
 from app.models.ldap3 import Directory, Group, Path, User
 from ldap_protocol.kerberos import AbstractKadmin
 
@@ -25,9 +26,11 @@ from ldap_protocol.kerberos import AbstractKadmin
 async def test_ldap_root_add(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapadd on server."""
+    dn = 'cn=test,dc=md,dc=test'
+    search_path = get_search_path(dn)
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
-            "dn: cn=test,dc=md,dc=test\n"
+            f"dn: {dn}\n"
             "name: test\n"
             "cn: test\n"
             "objectClass: organization\n"
@@ -50,7 +53,7 @@ async def test_ldap_root_add(
 
     query = select(Directory)\
         .options(subqueryload(Directory.attributes))\
-        .join(Directory.path).filter(Path.path == ["cn=test"])
+        .join(Directory.path).filter(Path.path == search_path)
     new_dir = await session.scalar(query)
 
     assert new_dir.name == "test"
@@ -68,9 +71,13 @@ async def test_ldap_root_add(
 async def test_ldap_user_add_with_group(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapadd on server."""
+    user_dn = 'cn=test,dc=md,dc=test'
+    user_search_path = get_search_path(user_dn)
+    group_dn = 'cn=domain admins,cn=groups,dc=md,dc=test'
+
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            "dn: cn=test,dc=md,dc=test\n"
+            f"dn: {user_dn}\n"
             "name: test\n"
             "cn: test\n"
             "userPrincipalName: test\n"
@@ -80,7 +87,7 @@ async def test_ldap_user_add_with_group(
             "objectClass: person\n"
             "objectClass: posixAccount\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n",
+            f"memberOf: {group_dn}\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -101,7 +108,7 @@ async def test_ldap_user_add_with_group(
 
     query = select(Directory)\
         .options(subqueryload(Directory.attributes), membership)\
-        .join(Directory.path).filter(Path.path == ["cn=test"])
+        .join(Directory.path).filter(Path.path == user_search_path)
 
     new_dir = await session.scalar(query)
 
@@ -109,8 +116,7 @@ async def test_ldap_user_add_with_group(
 
     group = new_dir.user.groups[0]
 
-    assert sorted(group.directory.path.path) == sorted(
-        ['cn=domain admins', 'cn=groups'])
+    assert group.directory.path_dn == group_dn
 
 
 @pytest.mark.asyncio
@@ -119,14 +125,18 @@ async def test_ldap_user_add_with_group(
 async def test_ldap_user_add_group_with_group(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapadd on server."""
+    child_group_dn = 'cn=twisted,cn=groups,dc=md,dc=test'
+    child_group_search_path = get_search_path(child_group_dn)
+    group_dn = 'cn=domain admins,cn=groups,dc=md,dc=test'
+
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
-            "dn: cn=twisted,cn=groups,dc=md,dc=test\n"
+            f"dn: {child_group_dn}\n"
             "name: twisted\n"
             "cn: twisted\n"
             "objectClass: group\n"
             "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+            f"memberOf: {group_dn}\n"
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -147,7 +157,7 @@ async def test_ldap_user_add_group_with_group(
 
     query = select(Directory)\
         .options(membership)\
-        .join(Directory.path).filter(Path.path == ["cn=groups", "cn=twisted"])
+        .join(Directory.path).filter(Path.path == child_group_search_path)
 
     new_dir = await session.scalar(query)
 
@@ -155,8 +165,7 @@ async def test_ldap_user_add_group_with_group(
 
     group = new_dir.group.parent_groups[0]
 
-    assert sorted(group.directory.path.path) == sorted(
-        ['cn=domain admins', 'cn=groups'])
+    assert group.directory.path_dn == group_dn
 
 
 @pytest.mark.asyncio

@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from app.config import Settings
 from app.models.ldap3 import Directory, Group, Path, User
+from app.ldap_protocol.utils import get_search_path
 from tests.conftest import TestCreds
 
 
@@ -24,12 +25,12 @@ async def test_ldap_base_modify(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-
+    search_path = get_search_path(dn)
     query = select(Directory)\
         .options(
             subqueryload(Directory.attributes),
             joinedload(Directory.user))\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
+        .join(Directory.path).filter(Path.path == search_path)
 
     directory = await session.scalar(query)
     assert directory.user.mail == "user0@mail.com"
@@ -99,7 +100,7 @@ async def test_ldap_membersip_user_delete(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-
+    search_path = get_search_path(dn)
     membership = selectinload(Directory.user).selectinload(
         User.groups).selectinload(
             Group.directory).selectinload(Directory.path)
@@ -108,7 +109,7 @@ async def test_ldap_membersip_user_delete(
         .options(
             subqueryload(Directory.attributes),
             joinedload(Directory.user), membership)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
+        .join(Directory.path).filter(Path.path == search_path)
 
     directory = await session.scalar(query)
 
@@ -143,7 +144,7 @@ async def test_ldap_membersip_user_add(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-
+    search_path = get_search_path(dn)
     membership = selectinload(Directory.user).selectinload(
         User.groups).selectinload(
             Group.directory).selectinload(Directory.path)
@@ -152,7 +153,7 @@ async def test_ldap_membersip_user_add(
         .options(
             subqueryload(Directory.attributes),
             joinedload(Directory.user), membership)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
+        .join(Directory.path).filter(Path.path == search_path)
 
     directory = await session.scalar(query)
 
@@ -192,7 +193,7 @@ async def test_ldap_membersip_user_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-
+    search_path = get_search_path(dn)
     membership = selectinload(Directory.user).selectinload(
         User.groups).selectinload(
             Group.directory).selectinload(Directory.path)
@@ -201,7 +202,7 @@ async def test_ldap_membersip_user_replace(
         .options(
             subqueryload(Directory.attributes),
             joinedload(Directory.user), membership)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user0"])
+        .join(Directory.path).filter(Path.path == search_path)
 
     directory = await session.scalar(query)
 
@@ -262,7 +263,7 @@ async def test_ldap_membersip_grp_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=domain admins,cn=groups,dc=md,dc=test"
-
+    search_path = get_search_path(dn)
     membership = selectinload(Directory.group).selectinload(
         Group.parent_groups).selectinload(
             Group.directory).selectinload(Directory.path)
@@ -272,7 +273,7 @@ async def test_ldap_membersip_grp_replace(
             subqueryload(Directory.attributes),
             joinedload(Directory.user), membership)\
         .join(Directory.path)\
-        .filter(Path.path == ["cn=groups", "cn=domain admins"])
+        .filter(Path.path == search_path)
 
     directory = await session.scalar(query)
 
@@ -352,7 +353,8 @@ async def test_ldap_modify_dn(
         assert res == 0
 
     query = select(Directory)\
-        .join(Directory.path).filter(Path.path == ["ou=users", "cn=user2"])
+        .join(Directory.path)\
+        .filter(Path.path == ["dc=test", "dc=md", "ou=users", "cn=user2"])
 
     assert await session.scalar(query)
 
