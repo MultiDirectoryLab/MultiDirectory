@@ -19,7 +19,7 @@ services:
       POSTGRES_PASSWORD: password123
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
       # PYTHONTRACEMALLOC: 1
-    command: bash -c "python -m pytest -x -W ignore::DeprecationWarning -vv -s"
+    command: bash -c "python -m pytest -x -W ignore::DeprecationWarning -vv"
     tty: true
 
   postgres:

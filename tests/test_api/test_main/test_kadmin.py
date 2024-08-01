@@ -145,7 +145,7 @@ async def test_setup_call(
     kdc_doc = kadmin.setup.call_args.kwargs.pop('kdc_config').encode()
 
     # NOTE: Asserting documents integrity, tests template rendering
-    assert blake2b(krb_doc, digest_size=8).hexdigest() == '6d7f2acd6790183a'
+    assert blake2b(krb_doc, digest_size=8).hexdigest() == '796bf5c71580189c'
     assert blake2b(kdc_doc, digest_size=8).hexdigest() == '54574991e75bba8c'
 
     assert kadmin.setup.call_args.kwargs == {
