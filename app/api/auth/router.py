@@ -20,12 +20,7 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.utils import (
-    get_base_dn,
-    get_domain_guid,
-    get_domain_sid,
-    set_last_logon_user,
-)
+from ldap_protocol.utils import get_base_directories, set_last_logon_user
 from models.ldap3 import CatalogueSetting, Directory, Group
 from models.ldap3 import User as DBUser
 from security import get_password_hash
@@ -202,8 +197,8 @@ async def check_setup(
     True if setup already complete, False if setup is needed.
     """
     return await session.scalar(select(
-        exists(CatalogueSetting)
-        .where(CatalogueSetting.name == 'defaultNamingContext')))
+        exists(Directory)
+        .where(Directory.parent_id.is_(None))))
 
 
 @auth_router.post(
@@ -216,8 +211,8 @@ async def first_setup(
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name == 'defaultNamingContext'),
+        select(Directory)
+        .filter(Directory.parent_id.is_(None)),
     )
 
     if setup_already_performed:
@@ -300,6 +295,4 @@ async def first_setup(
             await session.rollback()
             raise HTTPException(status.HTTP_423_LOCKED)
         else:
-            get_base_dn.cache_clear()
-            get_domain_sid.cache_clear()
-            get_domain_guid.cache_clear()
+            get_base_directories.cache_clear()
