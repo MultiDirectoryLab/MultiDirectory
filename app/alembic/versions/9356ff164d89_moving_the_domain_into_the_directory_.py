@@ -6,12 +6,10 @@ Create Date: 2024-07-31 07:16:21.242262
 
 """
 from alembic import op
-import sqlalchemy as sa
 from sqlalchemy import delete, orm, select
 
-from models.ldap3 import CatalogueSetting, Directory, Path
 from ldap_protocol.utils import generate_domain_sid, get_domain_attrs
-
+from models.ldap3 import CatalogueSetting, Directory, Path
 
 # revision identifiers, used by Alembic.
 revision = '9356ff164d89'

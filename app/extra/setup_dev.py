@@ -22,9 +22,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from ldap_protocol.utils import (
-    get_domain_attrs,
     create_object_sid,
     generate_domain_sid,
+    get_domain_attrs,
 )
 from models.ldap3 import (
     Attribute,
