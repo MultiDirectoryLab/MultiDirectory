@@ -142,11 +142,12 @@ class Directory(Base):
     password_policy_id = Column(
         Integer, ForeignKey('PasswordPolicies.id'), nullable=True)
 
-    objectguid = Column(
+    object_guid = Column(
         "objectGUID",
         postgresql.UUID(as_uuid=True),
         default=uuid.uuid4,
         nullable=False)
+    objectguid: str = synonym('object_guid')
 
     path: 'Path' = relationship(
         "Path", back_populates="endpoint",
@@ -205,6 +206,16 @@ class Directory(Base):
     def get_dn(self, dn: DistinguishedNamePrefix = 'cn') -> str:
         """Get distinguished name."""
         return f"{dn}={self.name}"
+
+    @property
+    def is_domain(self) -> bool:
+        """Is directory domain."""
+        return not self.parent_id and self.object_class == 'domain'
+
+    @property
+    def path_dn(self) -> str:
+        """Get DN from path."""
+        return ','.join(reversed(self.path.path))  # type: ignore
 
     def create_path(
         self,

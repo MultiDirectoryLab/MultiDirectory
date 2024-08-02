@@ -15,14 +15,17 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import uuid
 from itertools import chain
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from ldap_protocol.utils import create_object_sid, generate_domain_sid
+from ldap_protocol.utils import (
+    create_object_sid,
+    generate_domain_sid,
+    get_domain_attrs,
+)
 from models.ldap3 import (
     Attribute,
     CatalogueSetting,
@@ -30,6 +33,7 @@ from models.ldap3 import (
     DirectoryMembership,
     Group,
     NetworkPolicy,
+    Path,
     User,
 )
 from security import get_password_hash
@@ -46,6 +50,7 @@ async def _get_group(name: str, session: AsyncSession) -> list[Group]:
 async def _create_dir(
     data: dict,
     session: AsyncSession,
+    domain: Directory,
     parent: Directory | None = None,
 ) -> None:
     """Create data recursively."""
@@ -66,8 +71,8 @@ async def _create_dir(
         dir_.depth = len(path.path)
         await session.flush()
 
-        dir_.object_sid = await create_object_sid(
-            session,
+        dir_.object_sid = create_object_sid(
+            domain,
             rid=data.get('objectSid', dir_.id),
             reserved='objectSid' in data,
         )
@@ -121,7 +126,7 @@ async def _create_dir(
 
     if 'children' in data:
         for n_data in data['children']:
-            await _create_dir(n_data, session, dir_)
+            await _create_dir(n_data, session, domain, dir_)
 
 
 async def setup_enviroment(
@@ -136,30 +141,32 @@ async def setup_enviroment(
         logger.warning('dev data already set up')
         return
 
-    object_sid = generate_domain_sid()
-
-    catalogue = CatalogueSetting(
-        name='defaultNamingContext', value=dn)
-    domain_sid = CatalogueSetting(
-        name='domain_object_sid', value=object_sid)
-    domain_guid = CatalogueSetting(
-        name='domain_object_guid', value=str(uuid.uuid4()))
+    domain = Directory(
+        name=dn,
+        object_class='domain',
+        object_sid=generate_domain_sid(),
+    )
+    domain_path = [
+        f"dc={path}"
+        for path in reversed(dn.split('.'))
+    ]
+    path = Path(path=domain_path, endpoint=domain)
 
     async with session.begin_nested():
-        session.add(catalogue)
-        session.add(domain_sid)
-        session.add(domain_guid)
+        session.add_all([domain, path])
+        domain.paths.append(path)
         session.add(NetworkPolicy(
             name='Default open policy',
             netmasks=['0.0.0.0/0'],
             raw=['0.0.0.0/0'],
             priority=1,
         ))
+        session.add_all(list(get_domain_attrs(domain)))
         await session.flush()
 
     try:
         for unit in data:
-            await _create_dir(unit, session)
+            await _create_dir(unit, session, domain, domain)
     except Exception:
         import traceback
         logger.error(traceback.format_exc())  # noqa

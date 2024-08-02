@@ -24,10 +24,11 @@ from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import (
     create_integer_hash,
     create_object_sid,
-    get_base_dn,
+    get_base_directories,
     get_groups,
     get_path_filter,
     get_search_path,
+    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, User
@@ -89,8 +90,7 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        root_dn = get_search_path(
-            self.entry, await get_base_dn(session))
+        root_dn = get_search_path(self.entry)
 
         exists_q = select(select(Directory).join(Directory.path).filter(
             get_path_filter(root_dn)).exists())
@@ -99,35 +99,33 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
-        parent_dn = root_dn[:-1]
-        has_no_parent = len(parent_dn) == 0
-
-        new_dn, name = self.entry.split(',')[0].split('=')
-
-        if has_no_parent:
-            new_dir = Directory(
-                object_class='',
-                name=name,
-            )
-            path = new_dir.create_path(dn=new_dn)
-
+        for base_directory in await get_base_directories(session):
+            if is_dn_in_base_directory(base_directory, self.entry):
+                base_dn = base_directory
+                break
         else:
-            query = select(Directory)\
-                .join(Directory.path)\
-                .options(selectinload(Directory.paths))\
-                .filter(get_path_filter(parent_dn))
-            parent = await session.scalar(query)
+            yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
 
-            if not parent:
-                yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
-                return
+        parent_dn = root_dn[:-1]
+        new_dn, name = root_dn[-1].split('=')
 
-            new_dir = Directory(
-                object_class='',
-                name=name,
-                parent=parent,
-            )
-            path = new_dir.create_path(parent, new_dn)
+        query = select(Directory)\
+            .join(Directory.path)\
+            .options(selectinload(Directory.paths))\
+            .filter(get_path_filter(parent_dn))
+        parent = await session.scalar(query)
+
+        if not parent:
+            yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        new_dir = Directory(
+            object_class='',
+            name=name,
+            parent=parent,
+        )
+        path = new_dir.create_path(parent, new_dn)
 
         group = None
         user = None
@@ -228,15 +226,11 @@ class AddRequest(BaseRequest):
 
             session.add_all(items_to_add)
 
-            if has_no_parent:
-                new_dir.paths.append(path)
-            else:
-                path.directories.extend(
-                    [p.endpoint for p in parent.paths + [path]])
+            path.directories.extend(
+                [p.endpoint for p in parent.paths + [path]])
             await session.flush()
 
-            new_dir.object_sid = await create_object_sid(
-                    session, new_dir.id)
+            new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
             await session.flush()
         except IntegrityError:
             await session.rollback()

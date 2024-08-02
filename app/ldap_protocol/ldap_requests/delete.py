@@ -18,7 +18,6 @@ from ldap_protocol.ldap_responses import (
     DeleteResponse,
 )
 from ldap_protocol.utils import (
-    get_base_dn,
     get_path_filter,
     get_search_path,
     validate_entry,
@@ -56,7 +55,7 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        search_path = get_search_path(self.entry, await get_base_dn(session))
+        search_path = get_search_path(self.entry)
 
         query = select(Directory)\
             .join(Directory.path)\

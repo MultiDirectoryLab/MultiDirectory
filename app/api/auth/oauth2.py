@@ -12,12 +12,11 @@ from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.multifactor import MFA_HTTP_Creds
-from ldap_protocol.utils import get_base_dn, get_user
+from ldap_protocol.utils import get_user
 from models.ldap3 import User as DBUser
 from security import verify_password
 
@@ -48,16 +47,11 @@ async def authenticate_user(
     """
     user = await get_user(session, username)
 
-    try:
-        base_dn = await get_base_dn(session)
-    except NoResultFound:
-        return None
-
     if not user:
         return None
     if not verify_password(password, user.password):
         return None
-    return User.from_db(user, access='access', base_dn=base_dn)
+    return User.from_db(user, access='access')
 
 
 def create_token(
@@ -122,18 +116,12 @@ async def _get_user_from_token(
 
     user = await session.get(DBUser, user_id)
 
-    try:
-        base_dn = await get_base_dn(session)
-    except NoResultFound:
-        raise _CREDENTIALS_EXCEPTION
-
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
     return User.from_db(
         user,
         payload.get("grant_type"),
-        base_dn,
         payload.get("exp"),
     )
 

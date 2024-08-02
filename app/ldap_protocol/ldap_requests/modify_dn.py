@@ -18,9 +18,10 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.utils import (
-    get_base_dn,
+    get_base_directories,
     get_path_filter,
     get_search_path,
+    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import Directory, DirectoryReferenceMixin, Path
@@ -99,8 +100,7 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        base_dn = await get_base_dn(session)
-        obj = get_search_path(self.entry, base_dn)
+        obj = get_search_path(self.entry)
 
         query = select(Directory)\
             .join(Directory.path)\
@@ -114,6 +114,18 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
+        if directory.is_domain:
+            yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
+            return
+
+        for base_directory in await get_base_directories(session):
+            if is_dn_in_base_directory(base_directory, self.entry):
+                base_dn = base_directory
+                break
+        else:
+            yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
         dn, name = self.newrdn.split('=')
 
         if self.new_superior is None:
@@ -123,23 +135,23 @@ class ModifyDNRequest(BaseRequest):
                 depth=directory.depth,
                 parent_id=directory.parent_id,
                 created_at=directory.created_at,
-                objectguid=directory.objectguid,
+                object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
             new_path = new_directory.create_path(directory.parent, dn)
 
-        elif self.new_superior.lower() == base_dn.lower():
+        elif base_dn.path_dn == self.new_superior:
             new_directory = Directory(
                 object_class=directory.object_class,
                 name=name,
-                depth=1,
-                objectguid=directory.objectguid,
+                depth=len(base_dn.path.path)+1,
+                object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
-            new_path = new_directory.create_path(dn=dn)
+            new_path = new_directory.create_path(parent=base_dn, dn=dn)
 
         else:
-            new_sup = get_search_path(self.new_superior, base_dn)
+            new_sup = get_search_path(self.new_superior)
             new_sup_query = select(Directory)\
                 .join(Directory.path)\
                 .options(selectinload(Directory.path))\
@@ -156,7 +168,7 @@ class ModifyDNRequest(BaseRequest):
                 name=name,
                 parent=new_base_directory,
                 depth=len(new_base_directory.path.path)+1,
-                objectguid=directory.objectguid,
+                object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
             new_path = new_directory.create_path(new_base_directory, dn=dn)
