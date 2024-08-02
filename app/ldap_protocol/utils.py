@@ -136,7 +136,7 @@ import struct
 from calendar import timegm
 from datetime import datetime
 from operator import attrgetter
-from typing import Any, Generator
+from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
@@ -483,7 +483,7 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     return result.path_dn
 
 
-def get_domain_attrs(domain: Directory) -> Generator[Attribute, Any, None]:
+def get_domain_attrs(domain: Directory) -> Iterator[Attribute]:
     """Get default domain attrs."""
     schema = 'CN=Schema'
     attributes: dict[str, list[str]] = {
