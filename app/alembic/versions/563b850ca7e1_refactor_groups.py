@@ -14,7 +14,7 @@ from models.ldap3 import Directory, DirectoryMembership, Group, User
 
 # revision identifiers, used by Alembic.
 revision = '563b850ca7e1'
-down_revision = '6355e97cd073'
+down_revision = 'aab3b0e949d9'
 branch_labels = None
 depends_on = None
 
