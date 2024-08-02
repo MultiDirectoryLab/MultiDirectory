@@ -12,6 +12,15 @@ from app.ldap_protocol.dialogue import LDAPCodes, Operation
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures('session')
+async def test_api_before_setup(http_client: AsyncClient) -> None:
+    """Test api before setup."""
+    response = await http_client.get("auth/me")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_root_dse(
