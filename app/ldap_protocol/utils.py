@@ -256,6 +256,9 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
 
             paths.append(get_path_filter(get_search_path(dn)))
 
+    if not paths:
+        return paths
+
     query = select(   # noqa: ECE001
         Directory)\
         .join(Directory.path)\
