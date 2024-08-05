@@ -140,7 +140,7 @@ from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, func, select, update
+from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
@@ -259,7 +259,7 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     query = select(   # noqa: ECE001
         Directory)\
         .join(Directory.path)\
-        .filter(Path.path.in_(paths))\
+        .filter(or_(*[get_path_filter(path) for path in paths]))\
         .options(
             selectinload(Directory.path),
             selectinload(Directory.group).selectinload(
