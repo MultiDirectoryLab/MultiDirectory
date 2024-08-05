@@ -254,12 +254,12 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
             if dn_is_base_directory(base_directory, dn):
                 continue
 
-            paths.append([path for path in get_search_path(dn) if path])
+            paths.append(get_path_filter(get_search_path(dn)))
 
     query = select(   # noqa: ECE001
         Directory)\
         .join(Directory.path)\
-        .filter(or_(*[get_path_filter(path) for path in paths]))\
+        .filter(or_(*paths))\
         .options(
             selectinload(Directory.path),
             selectinload(Directory.group).selectinload(
