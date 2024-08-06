@@ -108,7 +108,7 @@ class AddRequest(BaseRequest):
             return
 
         parent_dn = root_dn[:-1]
-        new_dn, name = root_dn[-1].split('=')
+        new_dn, name = self.entry.split(',')[0].split('=')
 
         query = select(Directory)\
             .join(Directory.path)\

@@ -243,8 +243,7 @@ class SearchRequest(BaseRequest):
         else:
             root_is_base = False
 
-        base_obj = get_search_path(self.base_object)
-        search_path = [path for path in base_obj if path]
+        search_path = get_search_path(self.base_object)
 
         if self.scope == Scope.BASE_OBJECT:
             if self.base_object:

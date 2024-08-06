@@ -140,7 +140,7 @@ from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, func, select, update
+from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
@@ -254,12 +254,15 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
             if dn_is_base_directory(base_directory, dn):
                 continue
 
-            paths.append([path for path in get_search_path(dn) if path])
+            paths.append(get_path_filter(get_search_path(dn)))
+
+    if not paths:
+        return paths
 
     query = select(   # noqa: ECE001
         Directory)\
         .join(Directory.path)\
-        .filter(Path.path.in_(paths))\
+        .filter(or_(*paths))\
         .options(
             selectinload(Directory.path),
             selectinload(Directory.group).selectinload(
@@ -389,7 +392,7 @@ def get_search_path(dn: str) -> list[str]:
     :param str dn: any DN, dn syntax
     :return list[str]: reversed list of dn values
     """
-    search_path = dn.lower().split(',')
+    search_path = [path.strip() for path in dn.lower().split(',')]
     search_path.reverse()
     return search_path
 
