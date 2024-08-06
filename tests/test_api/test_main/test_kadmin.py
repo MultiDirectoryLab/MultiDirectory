@@ -480,3 +480,39 @@ async def test_admin_incorrect_pw_setup(
     }, headers=login_headers)
 
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_update_password(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Update policy."""
+    await http_client.patch(
+        "auth/user/password",
+        json={"identity": "user0", "new_password": "Password123"},
+        headers=login_headers,
+    )
+    assert kadmin.create_or_update_principal_pw.call_args.args == (
+        "user0", "Password123")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_update_password(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Update policy."""
+    kadmin.create_or_update_principal_pw.side_effect = KRBAPIError()
+    response = await http_client.patch(
+        "auth/user/password",
+        json={"identity": "user0", "new_password": "Password123"},
+        headers=login_headers,
+    )
+    assert response.status_code == status.HTTP_424_FAILED_DEPENDENCY
