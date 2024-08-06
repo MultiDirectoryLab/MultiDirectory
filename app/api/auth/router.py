@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
@@ -161,6 +162,7 @@ async def password_reset(
     identity: Annotated[str, Body(example='admin')],
     new_password: Annotated[str, Body(example='password')],
     session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Reset user's (entry) password.
 
@@ -170,7 +172,7 @@ async def password_reset(
     \f
     :raises HTTPException: 404 if user not found
     :return bool: status
-    """  # noqa: D205, D301
+    """
     user = await get_user(session, identity)
 
     if not user:
@@ -185,6 +187,16 @@ async def password_reset(
 
     await post_save_password_actions(user, session)
     user.password = get_password_hash(new_password)
+
+    try:
+        await kadmin.create_or_update_principal_pw(
+            user.user_principal_name, new_password)
+    except KRBAPIError:
+        raise HTTPException(
+            status.HTTP_424_FAILED_DEPENDENCY,
+            'Failed kerberos password update',
+        )
+
     await session.commit()
 
 
