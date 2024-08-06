@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from app.config import Settings
-from app.models.ldap3 import Directory, Group, Path, User
 from app.ldap_protocol.utils import get_search_path
+from app.models.ldap3 import Directory, Group, Path, User
 from tests.conftest import TestCreds
 
 
