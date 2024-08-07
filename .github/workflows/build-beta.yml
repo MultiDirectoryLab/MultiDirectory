@@ -65,13 +65,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pull tests
-        run: cd integration_tests/ssh && docker-compose pull
+        run: cd integration_tests/ssh && docker compose pull
       - name: run test enviroment
-        run: cd integration_tests/ssh && docker-compose up -d
+        run: cd integration_tests/ssh && docker compose up -d
       - name: run ssh test
         run: cd integration_tests/ssh && ./run.sh
       - name: shutdown test enviroment
-        run: cd integration_tests/ssh && docker-compose up -d
+        run: cd integration_tests/ssh && docker compose up -d
 
   run-tests:
     runs-on: ubuntu-latest
@@ -90,15 +90,15 @@ jobs:
       - name: Pull tests
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:beta
-        run: docker-compose -f docker-compose.remote.test.yml pull
+        run: docker compose -f docker-compose.remote.test.yml pull
       - name: Run tests
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:beta
-        run: docker-compose -f docker-compose.remote.test.yml up
+        run: docker compose -f docker-compose.remote.test.yml up
       - name: Teardown tests
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:beta
-        run: docker-compose -f docker-compose.remote.test.yml down
+        run: docker compose -f docker-compose.remote.test.yml down
 
   build-app:
     runs-on: ubuntu-latest
