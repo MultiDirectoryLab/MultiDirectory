@@ -183,7 +183,7 @@ async def password_reset(
         new_password, user, session)
 
     if errors:
-        raise HTTPException(status.HTTP_304_NOT_MODIFIED, detail=errors)
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=errors)
 
     await post_save_password_actions(user, session)
     user.password = get_password_hash(new_password)
