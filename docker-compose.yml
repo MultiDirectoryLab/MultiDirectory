@@ -200,7 +200,7 @@ services:
     volumes:
       - ./certs:/certs
       - keyfile:/etc/krb5.d/
-      - .kerberos/config_server.py:/server/config_server.py
+      - .kerberos/:/server/
       - kdc:/etc
     tty: true
     depends_on:
