@@ -167,4 +167,7 @@ class PasswordPolicySchema(BaseModel):
         )):
             errors.append('password complexity violation')
 
+        if password[-6:].isdecimal():
+            errors.append('password cannot end with 6 digits')
+
         return errors
