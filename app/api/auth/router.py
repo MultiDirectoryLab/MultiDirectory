@@ -179,13 +179,14 @@ async def password_reset(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     policy = await PasswordPolicySchema.get_policy_settings(session)
-    errors = await policy.validate_password_with_policy(
-        new_password, user, session)
+    errors = await policy.validate_password_with_policy(new_password, user)
 
     if errors:
-        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=errors)
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=errors,
+        )
 
-    await post_save_password_actions(user, session)
     user.password = get_password_hash(new_password)
 
     try:
@@ -197,6 +198,7 @@ async def password_reset(
             'Failed kerberos password update',
         )
 
+    await post_save_password_actions(user, session)
     await session.commit()
 
 
@@ -292,7 +294,7 @@ async def first_setup(
 
             default_pwd_policy = PasswordPolicySchema()
             errors = await default_pwd_policy.validate_password_with_policy(
-                request.password, None, session)
+                request.password, None)
 
             if errors:
                 raise HTTPException(
