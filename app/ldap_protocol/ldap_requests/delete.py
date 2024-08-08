@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
@@ -68,8 +68,10 @@ class DeleteRequest(BaseRequest):
             return
 
         if obj.user:
-            await kadmin.del_principal(
-                obj.user.get_upn_prefix())
+            try:
+                await kadmin.del_principal(obj.user.get_upn_prefix())
+            except KRBAPIError:
+                pass
 
         await session.delete(obj)
         await session.commit()
