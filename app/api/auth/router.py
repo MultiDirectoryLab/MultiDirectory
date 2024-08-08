@@ -190,7 +190,7 @@ async def password_reset(
 
     try:
         await kadmin.create_or_update_principal_pw(
-            user.user_principal_name, new_password)
+            user.get_upn_prefix(), new_password)
     except KRBAPIError:
         raise HTTPException(
             status.HTTP_424_FAILED_DEPENDENCY,
