@@ -69,11 +69,12 @@ class Principal(BaseModel):
     pwexpire: datetime | None
 
 
+class PrincipalNotFoundError(Exception):
+    """Not found error."""
+
+
 class AbstractKRBManager(AbstractAsyncContextManager, ABC):
     """Kadmin manager."""
-
-    class PrincipalNotFoundError(Exception):
-        """Not found error."""
 
     @abstractmethod
     async def add_princ(
@@ -162,6 +163,7 @@ class KAdminLocalManager(AbstractKRBManager):
         tb: TracebackType | None,
     ) -> None:
         """Destroy threadpool."""
+        del self.client
         self.pool.__exit__(exc_type, exc, tb)
 
     async def _init_client(self) -> KAdminProtocol:
@@ -184,7 +186,7 @@ class KAdminLocalManager(AbstractKRBManager):
             self.pool, self.client.getprinc, name)
 
         if not principal:
-            raise self.PrincipalNotFoundError(f'{name} not found')
+            raise PrincipalNotFoundError(f'{name} not found')
 
         return principal
 
@@ -215,7 +217,7 @@ class KAdminLocalManager(AbstractKRBManager):
         """
         try:
             await self.change_password(name, new_password)
-        except self.PrincipalNotFoundError:
+        except PrincipalNotFoundError:
             await self.add_princ(name, new_password)
 
     async def del_princ(self, name: str) -> None:
@@ -244,7 +246,7 @@ class KAdminLocalManager(AbstractKRBManager):
         """
         principals = [await self._get_raw_principal(name) for name in names]
         if not all(principals):
-            raise self.PrincipalNotFoundError
+            raise PrincipalNotFoundError("Principal not found")
 
         for princ in principals:
             await self.loop.run_in_executor(
@@ -258,7 +260,9 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
         async with KAdminLocalManager() as kadmind:
             app.state.kadmind = kadmind
             yield
+            del app.state.kadmind
     except Exception:
+        logging.exception("failed executing kadmin")
         yield
 
 
@@ -510,6 +514,5 @@ def create_app() -> FastAPI:
     app.add_exception_handler(kadmin.KDBAccessError, handle_db_error)
     app.add_exception_handler(kadmin.DuplicateError, handle_duplicate)
     app.add_exception_handler(kadmin.KDBNoEntryError, handle_not_found)
-    app.add_exception_handler(
-        AbstractKRBManager.PrincipalNotFoundError, handle_not_found)
+    app.add_exception_handler(PrincipalNotFoundError, handle_not_found)
     return app
