@@ -24,6 +24,7 @@ from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import (
     create_integer_hash,
     create_object_sid,
+    ft_now,
     get_base_directories,
     get_groups,
     get_path_filter,
@@ -181,7 +182,7 @@ class AddRequest(BaseRequest):
                     .get_policy_settings(session)
                 raw_password = self.password.get_secret_value()
                 errors = await validator.validate_password_with_policy(
-                    raw_password, user, session)
+                    raw_password, user)
 
                 if errors:
                     yield AddResponse(
@@ -207,6 +208,11 @@ class AddRequest(BaseRequest):
             attributes.append(Attribute(
                 name='loginShell',
                 value='/bin/bash',
+                directory=new_dir))
+
+            attributes.append(Attribute(
+                name='pwdLastSet',
+                value=ft_now(),
                 directory=new_dir))
 
         elif is_group:
