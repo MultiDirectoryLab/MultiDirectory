@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import Attribute, PasswordPolicy, User
 from security import verify_password
 
-from .utils import dt_to_ft, ft_to_dt
+from .utils import ft_now, ft_to_dt
 
 with open('extra/common_pwds.txt') as f:
     _COMMON_PASSWORDS = set(f.read().split('\n'))
@@ -30,14 +30,12 @@ async def post_save_password_actions(
     :param User user: user from db
     :param AsyncSession session: db
     """
-    new_dt = str(dt_to_ft(datetime.now(tz=ZoneInfo('UTC'))))
     await session.execute(  # update bind reject attribute
         update(Attribute)
-        .values({'value': new_dt})
+        .values({'value': ft_now()})
         .where(
             Attribute.directory_id == user.directory_id,
-            Attribute.name == 'pwdLastSet',
-            Attribute.value == '0'))
+            Attribute.name == 'pwdLastSet'))
     user.password_history.append(user.password)
     await session.flush()
 
@@ -111,10 +109,63 @@ class PasswordPolicySchema(BaseModel):
         await default_policy.update_policy_settings(session)
         return default_policy
 
+    @staticmethod
+    def _count_password_exists_days(last_pwd_set: Attribute) -> int:
+        """Get number of days, pwd exists.
+
+        :param Attribute last_pwd_set: pwdLastSet
+        :return int: days
+        """
+        tz = ZoneInfo('UTC')
+        now = datetime.now(tz=tz)
+
+        last_pwd_set = (
+            ft_to_dt(int(last_pwd_set.value)).astimezone(tz)
+            if last_pwd_set else now)
+
+        return (now - last_pwd_set).days
+
+    @staticmethod
+    async def get_pwd_last_set(
+            session: AsyncSession, directory_id: int) -> Attribute:
+        """Get pwdLastSet.
+
+        :param AsyncSession session: db
+        :param int directory_id: id
+        :return Attribute: pwdLastSet
+        """
+        return await session.scalar(select(Attribute).where(
+            Attribute.directory_id == directory_id,
+            Attribute.name == 'pwdLastSet',
+        ))
+
+    def validate_min_age(self, last_pwd_set: Attribute) -> bool:
+        """Validate min password change age.
+
+        :param Attribute last_pwd_set: last pwd set
+        :return bool: result
+        """
+        password_exists = self._count_password_exists_days(last_pwd_set)
+
+        if password_exists < self.minimum_password_age_days:
+            return True
+        return False
+
+    def validate_max_age(self, last_pwd_set: Attribute) -> bool:
+        """Validate max password change age.
+
+        :param Attribute last_pwd_set: last pwd set
+        :return bool: result
+        """
+        password_exists = self._count_password_exists_days(last_pwd_set)
+
+        if password_exists > self.maximum_password_age_days:
+            return True
+        return False
+
     async def validate_password_with_policy(
         self, password: str,
         user: User | None,
-        session: AsyncSession,
     ) -> list[str]:
         """Validate password with chosen policy.
 
@@ -124,37 +175,17 @@ class PasswordPolicySchema(BaseModel):
         :return bool: status
         """
         errors = []
-
-        last_pwd_set = None
         history: Iterable = []
 
         if user is not None:
-            last_pwd_set = await session.scalar(select(Attribute).where(
-                Attribute.directory_id == user.directory_id,
-                Attribute.name == 'pwdLastSet',
-            ))
             history = islice(
                 reversed(user.password_history),
                 self.password_history_length)
-
-        tz = ZoneInfo('UTC')
-        now = datetime.now(tz=tz)
-
-        last_pwd_set = (
-            ft_to_dt(int(last_pwd_set.value)).astimezone(tz)
-            if last_pwd_set else now)
-        password_exists = (now - last_pwd_set).days
 
         for pwd_hash in history:
             if verify_password(password, pwd_hash):
                 errors.append('password history violation')
                 break
-
-        if password_exists > self.maximum_password_age_days:
-            errors.append('password maximum age violation')
-
-        if password_exists < self.minimum_password_age_days:
-            errors.append('password minimum age violation')
 
         if len(password) <= self.minimum_password_length:
             errors.append('password minimum length violation')

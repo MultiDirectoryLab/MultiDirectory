@@ -386,6 +386,11 @@ def ft_to_dt(filetime: int) -> datetime:
         s, tz=ZoneInfo('UTC')).replace(microsecond=(ns100 // 10))
 
 
+def ft_now() -> str:
+    """Get now filetime timestamp."""
+    return str(dt_to_ft(datetime.now(tz=ZoneInfo('UTC'))))
+
+
 def get_search_path(dn: str) -> list[str]:
     """Get search path for dn.
 

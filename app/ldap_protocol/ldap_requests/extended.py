@@ -202,11 +202,19 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
         validator = await PasswordPolicySchema\
             .get_policy_settings(session)
-        errors = await validator.validate_password_with_policy(
-            self.new_password, user, session)
 
-        if not errors and (user.password is None or
-                           verify_password(self.old_password, user.password)):
+        errors = await validator.validate_password_with_policy(
+            self.new_password, user)
+
+        p_last_set = await validator.get_pwd_last_set(
+            session, user.directory_id)
+
+        if validator.validate_min_age(p_last_set):
+            errors.append("Minimum age violation")
+
+        if not errors and (
+                user.password is None or
+                verify_password(self.old_password, user.password)):
             user.password = get_password_hash(self.new_password)
             await post_save_password_actions(user, session)
             await session.execute(

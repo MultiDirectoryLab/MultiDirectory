@@ -271,12 +271,20 @@ class ModifyRequest(BaseRequest):
 
                 validator = await PasswordPolicySchema\
                     .get_policy_settings(session)
+
+                p_last_set = await validator.get_pwd_last_set(
+                    session, directory.id)
+
                 errors = await validator.validate_password_with_policy(
-                    value, directory.user, session)
+                    value, directory.user)
+
+                if validator.validate_min_age(p_last_set):
+                    errors.append("Minimum age violation")
 
                 if errors:
                     raise PermissionError(
                         f'Password policy violation: {errors}')
+
                 directory.user.password = get_password_hash(value)
                 await post_save_password_actions(directory.user, session)
                 await kadmin.create_or_update_principal_pw(
