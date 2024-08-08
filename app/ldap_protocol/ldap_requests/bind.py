@@ -18,12 +18,13 @@ from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import (
     get_user,
     is_user_group_valid,
     set_last_logon_user,
 )
-from models.ldap3 import Attribute, Group, MFAFlags, User
+from models.ldap3 import Group, MFAFlags, User
 from security import verify_password
 
 from .base import BaseRequest
@@ -261,11 +262,11 @@ class BindRequest(BaseRequest):
             yield self.BAD_RESPONSE
             return
 
-        required_pwd_change = await session.scalar(select(exists().where(
-            Attribute.directory_id == user.directory_id,
-            Attribute.name == 'pwdLastSet',
-            Attribute.value == '0',
-        )))  # type: ignore
+        policy = await PasswordPolicySchema.get_policy_settings(session)
+        p_last_set = await policy.get_pwd_last_set(session, user.directory_id)
+        pwd_expired = policy.validate_max_age(p_last_set)
+
+        required_pwd_change = p_last_set == '0' or pwd_expired
 
         if required_pwd_change:
             yield BindResponse(
