@@ -179,7 +179,7 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def add_principal(self, name: str, password: str | None) -> None:
         """Add request."""
         response = await self.client.post('principal', json={
-            'name': name, 'password': password})
+            'name': name, 'password': password}, timeout=1)
 
         if response.status_code != 201:
             raise KRBAPIError(response.text)
