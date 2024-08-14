@@ -56,13 +56,12 @@ async def test_api_root_dse(
         'defaultNamingContext', 'dnsHostName',
         'domainFunctionality', 'dsServiceName',
         'highestCommittedUSN', 'namingContexts',
-        'objectClass', 'rootDomainNamingContext',
+        'rootDomainNamingContext', 'vendorVersion',
         'schemaNamingContext', 'serverName',
         'serviceName', 'subschemaSubentry',
         'supportedCapabilities', 'supportedControl',
         'supportedLDAPPolicies', 'supportedLDAPVersion',
         'supportedSASLMechanisms', 'vendorName',
-        'vendorVersion',
     ]
 
     assert data['search_result'][0]['object_name'] == ""
