@@ -215,14 +215,12 @@ class SearchRequest(BaseRequest):
         if not (is_root_dse or is_schema) and not user_logged:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
-        logger.error(f"is_root_dse - {is_root_dse}")
-        logger.error(f"is_schema - {is_schema}")
+
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
             if is_schema:
                 yield self._get_subschema()
             elif is_root_dse:
                 attrs = await self.get_root_dse(session, settings)
-                logger.error(attrs)
                 yield SearchResultEntry(
                     object_name='',
                     partial_attributes=[
