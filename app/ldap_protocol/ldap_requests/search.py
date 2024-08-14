@@ -144,6 +144,58 @@ class SearchRequest(BaseRequest):
                 PartialAttribute(type=key, vals=value)
                 for key, value in attrs.items()])
 
+    async def get_root_dse(
+            self, session: AsyncSession,
+            settings: Settings) -> defaultdict[str, list[str]]:
+        """Get RootDSE.
+
+        :return defaultdict[str, list[str]]: queried attrs
+        """
+        data = defaultdict(list)
+        domain = await session.scalar(select(Directory).where(
+            Directory.object_class == 'domain'))
+
+        schema = 'CN=Schema'
+        if self.requested_attrs == ['subschemasubentry']:
+            data['subschemaSubentry'].append(schema)
+            return data
+
+        data['dnsHostName'].append(domain.name)
+        data['serverName'].append(domain.name)
+        data['serviceName'].append(domain.name)
+        data['dsServiceName'].append(domain.name)
+        data['LDAPServiceName'].append(domain.name)
+        data['vendorName'].append(VENDOR_NAME)
+        data['vendorVersion'].append(VENDOR_VERSION)
+        data['namingContexts'].append(domain.path_dn)
+        data['namingContexts'].append(schema)
+        data['rootDomainNamingContext'].append(domain.path_dn)
+        data['supportedLDAPVersion'].append('3')
+        data['defaultNamingContext'].append(domain.path_dn)
+        data['currentTime'].append(get_generalized_now(settings.TIMEZONE))
+        data['subschemaSubentry'].append(schema)
+        data['schemaNamingContext'].append(schema)
+        data['supportedSASLMechanisms'] = ['ANONYMOUS', 'PLAIN']
+        data['highestCommittedUSN'].append('126991')
+        data['supportedExtension'] = [
+            "1.3.6.1.4.1.4203.1.11.3",  # whoami
+            "1.3.6.1.4.1.4203.1.11.1",  # password modify
+        ]
+        data['supportedControl'] = [
+            "2.16.840.1.113730.3.4.4",  # password expire policy
+        ]
+        data['domainFunctionality'].append('0')
+        data['supportedLDAPPolicies'] = [
+            'MaxConnIdleTime',
+            'MaxPageSize',
+            'MaxValRange',
+        ]
+        data['supportedCapabilities'] = [
+            "1.2.840.113556.1.4.1791",  # LDAP_INTEG_OID
+        ]
+
+        return data
+
     def cast_filter(self, filter_: ASN1Row) -> UnaryExpression:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
@@ -188,8 +240,17 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
 
-        if self.scope == Scope.BASE_OBJECT and is_schema:
-            yield self._get_subschema()
+        if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
+            if is_schema:
+                yield self._get_subschema()
+            elif is_root_dse:
+                attrs = await self.get_root_dse(session, settings)
+                yield SearchResultEntry(
+                    object_name='',
+                    partial_attributes=[
+                        PartialAttribute(type=name, vals=values)
+                        for name, values in attrs.items()],
+                )
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
@@ -343,17 +404,6 @@ class SearchRequest(BaseRequest):
                         get_windows_timestamp(directory.user.last_logon),
                     )
                     attrs['authTimestamp'].append(directory.user.last_logon)
-
-            if directory.is_domain:
-                if ['subschemasubentry'] == self.requested_attrs:
-                    attrs['subschemaSubentry'].append('CN=Schema')
-                attrs['vendorName'].append(VENDOR_NAME)
-                attrs['vendorVersion'].append(VENDOR_VERSION)
-                attrs['currentTime'].append(
-                    get_generalized_now(settings.TIMEZONE))
-
-                if not self.base_object:
-                    distinguished_name = ''
 
             if self.member_of:
                 if 'group' in attrs['objectClass'] and (
