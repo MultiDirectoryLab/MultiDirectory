@@ -44,7 +44,7 @@ class Token(BaseModel):
     type: str  # noqa: A003
 
 
-class User(BaseModel):
+class UserSchema(BaseModel):
     """User model, alias for db user."""
 
     id: int  # noqa: A003
@@ -64,7 +64,7 @@ class User(BaseModel):
         user: DBUser,
         access: str,
         exp: int = 0,
-    ) -> 'User':
+    ) -> 'UserSchema':
         """Create model from db model."""
         dn = user.directory.path_dn
 

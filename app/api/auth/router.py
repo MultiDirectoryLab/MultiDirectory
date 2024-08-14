@@ -34,7 +34,7 @@ from .oauth2 import (
     get_user,
     oauth2,
 )
-from .schema import OAuth2Form, SetupRequest, Token, User
+from .schema import OAuth2Form, SetupRequest, Token, UserSchema
 
 auth_router = APIRouter(prefix='/auth', tags=['Auth'])
 
@@ -107,7 +107,7 @@ async def login_for_access_token(
 @auth_router.post("/token/refresh")
 @inject
 async def renew_tokens(
-    user: Annotated[User, Depends(get_current_user_refresh)],
+    user: Annotated[UserSchema, Depends(get_current_user_refresh)],
     token: Annotated[str, Depends(oauth2)],
     *,
     mfa: FromDishka[MultifactorAPI],
@@ -148,7 +148,7 @@ async def renew_tokens(
 
 
 @auth_router.get("/me")
-async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
+async def users_me(user: Annotated[UserSchema, Depends(get_current_user)]) -> UserSchema:
     """Get current logged in user data."""
     return user
 

@@ -18,7 +18,7 @@ from pydantic import EmailStr, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
-from api.auth import User, get_current_user
+from api.auth import UserSchema, get_current_user
 from api.auth.oauth2 import authenticate_user
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
@@ -123,7 +123,7 @@ async def setup_krb_catalogue(
 @inject
 async def setup_kdc(
     data: KerberosSetupRequest,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserSchema, Depends(get_current_user)],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
     kadmin: FromDishka[AbstractKadmin],
