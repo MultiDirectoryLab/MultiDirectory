@@ -329,17 +329,18 @@ class PoolClientHandler:
         finally:
             server.close()
             await server.wait_closed()
+            await self.container.close()
 
 
 def main() -> None:
     """Run server."""
-    settings = [Settings(), Settings().get_copy_4_tls()]
+    settings = Settings()
 
     async def _servers() -> None:
         nonlocal settings
         servers = []
 
-        for setting in settings:
+        for setting in (settings, settings.get_copy_4_tls()):
             container = make_async_container(
                 LDAPServerProvider(),
                 MainProvider(),
@@ -348,18 +349,9 @@ def main() -> None:
                 context={Settings: setting})
 
             settings = await container.get(Settings)
-            servers.append(PoolClientHandler(settings, container))
+            servers.append(PoolClientHandler(settings, container).start())
 
-        ldap_server, ldaps_server = servers
-
-        try:
-            await asyncio.gather(
-                ldap_server.start(),
-                ldaps_server.start(),
-            )
-        finally:
-            await ldap_server.container.close()
-            await ldaps_server.container.close()
+        await asyncio.gather(*servers)
 
     with asyncio.Runner(
             loop_factory=uvloop.new_event_loop,
