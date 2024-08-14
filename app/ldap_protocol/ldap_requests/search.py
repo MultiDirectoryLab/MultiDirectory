@@ -149,16 +149,14 @@ class SearchRequest(BaseRequest):
             settings: Settings) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
-        :param list[str] attributes: list of requested attrs
         :return defaultdict[str, list[str]]: queried attrs
         """
-        attributes = self.requested_attrs
         data = defaultdict(list)
         domain = await session.scalar(select(Directory).where(
             Directory.object_class == 'domain').options(
                 selectinload(Directory.attributes)))
 
-        if attributes == ['subschemasubentry']:
+        if self.requested_attrs == ['subschemasubentry']:
             data['subschemaSubentry'].append('CN=Schema')
             return data
 
