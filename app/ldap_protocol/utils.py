@@ -208,17 +208,20 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :param str name: any name: dn, email or upn
     :return User | None: user from db
     """
+    policies = selectinload(User.groups).selectinload(Group.access_policies)
+
     if '=' not in name:
         if email_re.fullmatch(name):
             cond = User.user_principal_name.ilike(name) | User.mail.ilike(name)
         else:
             cond = User.sam_accout_name.ilike(name)
 
-        return await session.scalar(select(User).where(cond))
+        return await session.scalar(select(User).where(cond).options(policies))
 
     path = await session.scalar(
         select(Path).where(get_filter_from_path(name)))
 
+    # TODO: REMOVE
     domain = await session.scalar(
         select(Directory)
         .filter(
@@ -229,7 +232,9 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         return None
 
     return await session.scalar(
-        select(User).where(User.directory == path.endpoint))
+        select(User)
+        .where(User.directory == path.endpoint)
+        .options(policies))
 
 
 async def get_directories(
