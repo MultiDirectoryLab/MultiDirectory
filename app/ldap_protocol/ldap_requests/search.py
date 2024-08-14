@@ -43,7 +43,7 @@ from ldap_protocol.utils import (
     get_windows_timestamp,
     string_to_sid,
 )
-from models.ldap3 import Directory, Group, Path, User
+from models.ldap3 import AccessPolicy, Directory, Group, Path, User
 
 from .base import BaseRequest
 
@@ -221,12 +221,11 @@ class SearchRequest(BaseRequest):
         Entry -> Reference (optional) -> Done
         """
         async with ldap_session.lock() as user:
-            async for response in self.get_result(
-                    bool(user), session, settings):
+            async for response in self.get_result(user, session, settings):
                 yield response
 
     async def get_result(
-        self, user_logged: bool,
+        self, user: User,
         session: AsyncSession,
         settings: Settings,
     ) -> AsyncGenerator[SearchResultDone, None]:
@@ -239,7 +238,7 @@ class SearchRequest(BaseRequest):
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == 'cn=schema'
 
-        if not (is_root_dse or is_schema) and not user_logged:
+        if not (is_root_dse or is_schema) and not user:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
 
@@ -257,7 +256,7 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session))
+        query = self.build_query(await get_base_directories(session), user)
 
         try:
             cond = self.cast_filter(self.filter)
@@ -290,19 +289,32 @@ class SearchRequest(BaseRequest):
     def all_attrs(self) -> bool:  # noqa
         return '*' in self.requested_attrs or not self.requested_attrs
 
-    def build_query(self, base_directories: list[Directory]) -> Select:
+    def build_query(
+        self,
+        base_directories: list[Directory],
+        user: User,
+    ) -> Select:
         """Build tree query."""
-        query = select(  # noqa: ECE001
-            Directory)\
-            .join(User, isouter=True)\
-            .join(Directory.attributes, isouter=True)\
-            .join(Directory.path)\
+        query = (  # noqa: ECE001
+            select(Directory)
+            .join(User, isouter=True)
+            .join(Directory.attributes, isouter=True)
+            .join(Directory.path)
             .options(
                 selectinload(Directory.path),
                 subqueryload(Directory.attributes),
                 joinedload(Directory.user),
-                joinedload(Directory.group))\
+                joinedload(Directory.group))
             .distinct(Directory.id)
+        )
+
+        if user and isinstance(user, User):
+            ids = [policy.id for group in user.groups for policy in group.access_policies]
+            logger.critical(ids)
+            query = query\
+                .join(Directory.access_policies)\
+                .where(AccessPolicy.id.in_(ids))\
+                .where(AccessPolicy.can_read.is_(True))
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):
