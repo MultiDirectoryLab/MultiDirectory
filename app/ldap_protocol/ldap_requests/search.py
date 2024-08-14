@@ -153,20 +153,46 @@ class SearchRequest(BaseRequest):
         """
         data = defaultdict(list)
         domain = await session.scalar(select(Directory).where(
-            Directory.object_class == 'domain').options(
-                selectinload(Directory.attributes)))
+            Directory.object_class == 'domain'))
 
+        schema = 'CN=Schema'
         if self.requested_attrs == ['subschemasubentry']:
-            data['subschemaSubentry'].append('CN=Schema')
+            data['subschemaSubentry'].append(schema)
             return data
 
-        for attr in domain.attributes:
-            data[attr.name].append(attr.value)
-
+        data['dnsHostName'].append(domain.name)
+        data['serverName'].append(domain.name)
+        data['serviceName'].append(domain.name)
+        data['dsServiceName'].append(domain.name)
+        data['LDAPServiceName'].append(domain.name)
         data['vendorName'].append(VENDOR_NAME)
         data['vendorVersion'].append(VENDOR_VERSION)
-        data['currentTime'].append(
-            get_generalized_now(settings.TIMEZONE))
+        data['namingContexts'].append(domain.path_dn)
+        data['namingContexts'].append(schema)
+        data['rootDomainNamingContext'].append(domain.path_dn)
+        data['supportedLDAPVersion'].append('3')
+        data['defaultNamingContext'].append(domain.path_dn)
+        data['currentTime'].append(get_generalized_now(settings.TIMEZONE))
+        data['subschemaSubentry'].append(schema)
+        data['schemaNamingContext'].append(schema)
+        data['supportedSASLMechanisms'] = ['ANONYMOUS', 'PLAIN']
+        data['highestCommittedUSN'].append('126991')
+        data['supportedExtension'] = [
+            "1.3.6.1.4.1.4203.1.11.3",  # whoami
+            "1.3.6.1.4.1.4203.1.11.1",  # password modify
+        ]
+        data['supportedControl'] = [
+            "2.16.840.1.113730.3.4.4",  # password expire policy
+        ]
+        data['domainFunctionality'].append('0')
+        data['supportedLDAPPolicies'] = [
+            'MaxConnIdleTime',
+            'MaxPageSize',
+            'MaxValRange',
+        ]
+        data['supportedCapabilities'] = [
+            "1.2.840.113556.1.4.1791",  # LDAP_INTEG_OID
+        ]
 
         return data
 

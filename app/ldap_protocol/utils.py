@@ -493,32 +493,9 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
 
 def get_domain_attrs(domain: Directory) -> Iterator[Attribute]:
     """Get default domain attrs."""
-    schema = 'CN=Schema'
     attributes: dict[str, list[str]] = {
-        'dnsHostName': [domain.name],
         'objectClass': ['domain', 'top', 'domainDNS'],
-        'serverName': [domain.name],
         'nisDomain': [domain.name],
-        'serviceName': [domain.name],
-        'dsServiceName': [domain.name],
-        'LDAPServiceName': [domain.name],
-        'namingContexts': [domain.path_dn, schema],
-        'rootDomainNamingContext': [domain.path_dn],
-        'distinguishedName': [domain.path_dn],
-        'supportedLDAPVersion': ['3'],
-        'defaultNamingContext': [domain.path_dn],
-        'subschemaSubentry': [schema],
-        'schemaNamingContext': [schema],
-        'supportedSASLMechanisms': ['ANONYMOUS', 'PLAIN'],
-        'highestCommittedUSN': ['126991'],
-        'serverState': ['1'],
-        'supportedExtension': [
-            '1.3.6.1.4.1.4203.1.11.3', '1.3.6.1.4.1.4203.1.11.1'],
-        'supportedControl': ['2.16.840.1.113730.3.4.4'],
-        'domainFunctionality': ['0'],
-        'supportedLDAPPolicies': [
-            'MaxConnIdleTime', 'MaxPageSize', 'MaxValRange'],
-        'supportedCapabilities': ['1.2.840.113556.1.4.1791'],
     }
     for name, value_list in attributes.items():
         for value in value_list:
