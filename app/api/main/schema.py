@@ -33,3 +33,20 @@ class KerberosSetupRequest(BaseModel):
     krbadmin_password: SecretStr
     admin_password: SecretStr
     stash_password: SecretStr
+
+
+class AccessPolicySchema(BaseModel):
+    """AP Schema w/o id."""
+
+    name: str
+    can_read: bool
+    can_add: bool
+    can_modify: bool
+    directories: list[str]
+    groups: list[str]
+
+
+class MaterialAccessPolicySchema(AccessPolicySchema):
+    """AP Schema with id."""
+
+    id: int  # noqa: A003
