@@ -144,6 +144,34 @@ class SearchRequest(BaseRequest):
                 PartialAttribute(type=key, vals=value)
                 for key, value in attrs.items()])
 
+    async def get_root_dse(
+            self, session: AsyncSession,
+            settings: Settings) -> defaultdict[str, list[str]]:
+        """Get RootDSE.
+
+        :param list[str] attributes: list of requested attrs
+        :return defaultdict[str, list[str]]: queried attrs
+        """
+        attributes = self.requested_attrs
+        data = defaultdict(list)
+        domain = await session.scalar(select(Directory).where(
+            Directory.object_class == 'domain').options(
+                selectinload(Directory.attributes)))
+
+        if attributes == ['subschemasubentry']:
+            data['subschemaSubentry'].append('CN=Schema')
+            return data
+
+        for attr in domain.attributes:
+            data[attr.name].append(attr.value)
+
+        data['vendorName'].append(VENDOR_NAME)
+        data['vendorVersion'].append(VENDOR_VERSION)
+        data['currentTime'].append(
+            get_generalized_now(settings.TIMEZONE))
+
+        return data
+
     def cast_filter(self, filter_: ASN1Row) -> UnaryExpression:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
@@ -187,9 +215,20 @@ class SearchRequest(BaseRequest):
         if not (is_root_dse or is_schema) and not user_logged:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
-
-        if self.scope == Scope.BASE_OBJECT and is_schema:
-            yield self._get_subschema()
+        logger.error(f"is_root_dse - {is_root_dse}")
+        logger.error(f"is_schema - {is_schema}")
+        if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
+            if is_schema:
+                yield self._get_subschema()
+            elif is_root_dse:
+                attrs = await self.get_root_dse(session, settings)
+                logger.error(attrs)
+                yield SearchResultEntry(
+                    object_name='',
+                    partial_attributes=[
+                        PartialAttribute(type=name, vals=values)
+                        for name, values in attrs.items()],
+                )
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
@@ -343,17 +382,6 @@ class SearchRequest(BaseRequest):
                         get_windows_timestamp(directory.user.last_logon),
                     )
                     attrs['authTimestamp'].append(directory.user.last_logon)
-
-            if directory.is_domain:
-                if ['subschemasubentry'] == self.requested_attrs:
-                    attrs['subschemaSubentry'].append('CN=Schema')
-                attrs['vendorName'].append(VENDOR_NAME)
-                attrs['vendorVersion'].append(VENDOR_VERSION)
-                attrs['currentTime'].append(
-                    get_generalized_now(settings.TIMEZONE))
-
-                if not self.base_object:
-                    distinguished_name = ''
 
             if self.member_of:
                 if 'group' in attrs['objectClass'] and (
