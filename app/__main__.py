@@ -355,7 +355,7 @@ def main() -> None:
 
     with asyncio.Runner(
             loop_factory=uvloop.new_event_loop,
-            debug=Settings().DEBUG) as runner:
+            debug=settings.DEBUG) as runner:
         runner.run(_servers())
 
 
