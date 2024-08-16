@@ -41,7 +41,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=VENDOR_VERSION,
         lifespan=_lifespan,
     )
-    origins = ["*"]
+    origins = [settings.DOMAIN]
     app.include_router(auth_router)
     app.include_router(entry_router)
     app.include_router(network_router)

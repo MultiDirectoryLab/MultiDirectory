@@ -323,6 +323,9 @@ class PoolClientHandler:
     async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
+        log.info(
+            f'started {'DEBUG' if self.settings.DEBUG else 'PROD'} '
+            f'{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server')
 
         try:
             await self._run_server(server)
