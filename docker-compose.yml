@@ -220,15 +220,19 @@ services:
   interface:
     build:
       context: ./interface
+      dockerfile: Dockerfile.dev
       args:
         DOCKER_BUILDKIT: 1
     container_name: multidirectory_interface
     restart: "no"
     hostname: interface
+    volumes:
+      - ./interface:/app
     env_file:
       local.env
     environment:
       API_URL: http://md.localhost/api
+    command: npm start
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.interface.rule=Host(`md.localhost`)"
