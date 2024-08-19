@@ -308,7 +308,7 @@ class SearchRequest(BaseRequest):
             .distinct(Directory.id)
         )
 
-        if user and isinstance(user, User):
+        if user and isinstance(user, User) and False:
             ids = [policy.id for group in user.groups for policy in group.access_policies]
             logger.critical(ids)
             query = query\
