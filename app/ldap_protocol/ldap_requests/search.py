@@ -8,10 +8,10 @@ import sys
 from collections import defaultdict
 from functools import cached_property
 from math import ceil
-from typing import AsyncGenerator, ClassVar
+from typing import Any, AsyncGenerator, ClassVar, Optional
 
 from loguru import logger
-from pydantic import Field
+from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -96,9 +96,12 @@ class SearchRequest(BaseRequest):
 
         arbitrary_types_allowed = True
         ignored_types = (cached_property,)
-        json_encoder = {
-            ASN1Row: lambda value: str(value),
-        }
+
+    @field_serializer('filter')
+    def serialize_filter(
+            self, filter: Optional[ASN1Row], _info: Any) -> Optional[dict]:  # noqa
+        """Serialize filter field."""
+        return filter.to_dict() if isinstance(filter, ASN1Row) else None
 
     @classmethod
     def from_data(   # noqa: D102
