@@ -57,23 +57,28 @@ class DeleteRequest(BaseRequest):
 
         search_path = get_search_path(self.entry)
 
-        query = select(Directory)\
-            .join(Directory.path)\
-            .options(joinedload(Directory.user))\
+        directory = await session.scalar((
+            select(Directory)
+            .join(Directory.path)
+            .options(joinedload(Directory.user))
             .filter(get_path_filter(search_path))
-
-        obj = await session.scalar(query)
-        if not obj:
+        ))
+        if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        if obj.user:
+        if directory.is_domain:
+            yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
+            return
+
+        if directory.user:
             try:
-                await kadmin.del_principal(obj.user.get_upn_prefix())
+                await kadmin.del_principal(
+                    directory.user.get_upn_prefix())
             except KRBAPIError:
                 pass
 
-        await session.delete(obj)
+        await session.delete(directory)
         await session.commit()
 
         yield DeleteResponse(result_code=LDAPCodes.SUCCESS)
