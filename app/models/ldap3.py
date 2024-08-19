@@ -256,10 +256,8 @@ class User(DirectoryReferenceMixin, Base):
 
     __tablename__ = "Users"
 
-    sam_accout_name = Column(
-        'sAMAccountName', String, nullable=False, unique=True)
-    user_principal_name: str = Column(
-        'userPrincipalName', String, nullable=False, unique=True)
+    sam_accout_name = Column('sAMAccountName', String, unique=True)
+    user_principal_name: str = Column('userPrincipalName', String, unique=True)
 
     mail = Column(String(255))
     display_name = Column('displayName', String, nullable=True)
@@ -270,10 +268,8 @@ class User(DirectoryReferenceMixin, Base):
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
     accountexpires: str = synonym('account_exp')
-    last_logon = Column(
-        'lastLogon', DateTime(timezone=True), nullable=True)
-    account_exp = Column(
-        'accountExpires', DateTime(timezone=True), nullable=True)
+    last_logon = Column('lastLogon', DateTime(timezone=True))
+    account_exp = Column('accountExpires', DateTime(timezone=True))
 
     search_fields = {
         'mail': 'mail',
