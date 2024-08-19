@@ -63,7 +63,7 @@ class AddRequest(BaseRequest):
 
     @property
     def attr_names(self) -> dict[str, list[str]]:  # noqa
-        return {attr.type: attr.vals for attr in self.attributes}
+        return {attr.type.lower(): attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> 'AddRequest':  # noqa: D102
@@ -161,11 +161,8 @@ class AddRequest(BaseRequest):
                     )
 
         parent_groups = await get_groups(group_attributes, session)
-
-        is_user = 'sAMAccountName' in user_attributes\
-            or 'userPrincipalName' in user_attributes
-
-        is_group = 'group' in self.attr_names.get('objectClass', [])
+        is_group = 'group' in self.attr_names.get('objectclass', [])
+        is_user = 'user' in self.attr_names.get('objectclass', [])
 
         if is_user:
             user = User(
@@ -195,15 +192,16 @@ class AddRequest(BaseRequest):
             items_to_add.append(user)
             user.groups.extend(parent_groups)
 
-            attributes.append(Attribute(
-                name='uidNumber',
-                value=str(create_integer_hash(user.sam_accout_name)),
-                directory=new_dir))
+            if user.sam_accout_name:
+                attributes.append(Attribute(
+                    name='uidNumber',
+                    value=str(create_integer_hash(user.sam_accout_name)),
+                    directory=new_dir))
 
-            attributes.append(Attribute(
-                name='homeDirectory',
-                value=f'/home/{user.sam_accout_name}',
-                directory=new_dir))
+                attributes.append(Attribute(
+                    name='homeDirectory',
+                    value=f'/home/{user.sam_accout_name}',
+                    directory=new_dir))
 
             attributes.append(Attribute(
                 name='loginShell',
