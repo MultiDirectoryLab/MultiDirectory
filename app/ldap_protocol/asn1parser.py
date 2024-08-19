@@ -43,13 +43,22 @@ class ASN1Row:
             value,
         )
 
-    def __repr__(self) -> str:  # noqa: D105
-        return "{" + f'"class_id": "{str(self.class_id)}", ' + \
-            f'"tag_id": "{str(self.tag_id)}", "value": "{str(self.value)}"' + \
-            '}'
+    def to_dict(self) -> dict:
+        """Convert the object to string."""
+        def serialize(obj: Any) -> dict | list | str:
+            if isinstance(obj, ASN1Row):
+                return {
+                    "class_id": str(obj.class_id),
+                    "tag_id": str(obj.tag_id),
+                    "value": serialize(obj.value),
+                }
 
-    def __str__(self) -> str:  # noqa: D105
-        return self.__repr__()
+            if isinstance(obj, list):
+                return [serialize(item) for item in obj]
+
+            return str(obj)
+
+        return serialize(self)  # type: ignore
 
 
 tag_id_to_string_map = {
