@@ -294,9 +294,12 @@ class User(DirectoryReferenceMixin, Base):
         overlaps="group,groups,directory",
     )
 
-    def get_upn_prefix(self) -> str:
+    def get_upn_prefix(self) -> Optional[str]:
         """Get userPrincipalName prefix."""
-        return self.user_principal_name.split('@')[0]
+        if self.user_principal_name:
+            return self.user_principal_name.split('@')[0]
+
+        return None
 
 
 class Group(DirectoryReferenceMixin, Base):
