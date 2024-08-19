@@ -17,7 +17,7 @@ async def adding_test_user(
         "/entry/add",
         json={
             "entry": "cn=test,dc=md,dc=test",
-            "password": "password_test",
+            "password": "P@ssw0rd",
             "attributes": [
                 {
                     "type": "name",
