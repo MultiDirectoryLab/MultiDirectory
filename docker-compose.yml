@@ -220,9 +220,13 @@ services:
   interface:
     build:
       context: ./interface
+      dockerfile: ./configurations/docker/Dockerfile.dev
       args:
         DOCKER_BUILDKIT: 1
     container_name: multidirectory_interface
+    volumes:
+      - ./interface:/app
+      - node_modules:/app/node_modules
     restart: "no"
     hostname: interface
     env_file:
@@ -234,6 +238,7 @@ services:
       - "traefik.http.routers.interface.rule=Host(`md.localhost`)"
       - "traefik.http.routers.interface.entrypoints=web"
       - "traefik.http.services.interface.loadbalancer.server.port=80"
+    command: ng serve --host 0.0.0.0 --port 80 --poll 2000
 
 volumes:
   postgres:
@@ -241,3 +246,4 @@ volumes:
   wireshark:
   keyfile:
   kdc:
+  node_modules:
