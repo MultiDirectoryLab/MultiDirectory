@@ -113,7 +113,6 @@ class ModifyRequest(BaseRequest):
             Directory)\
             .join(Directory.path)\
             .join(Directory.attributes)\
-            .join(User, isouter=True)\
             .options(
                 selectinload(Directory.paths),
                 membership1, membership2, membership3)\
@@ -259,7 +258,14 @@ class ModifyRequest(BaseRequest):
                     .filter(Directory.id == directory.id)
                     .values({name: value}))
 
-            elif name in User.search_fields and directory.user:
+            elif name in User.search_fields:
+                if not directory.user:
+                    async with session.begin_nested():
+                        session.add(User(directory=directory))
+                        await session.commit()
+
+                    await session.refresh(directory)
+
                 if name == 'accountexpires':
                     value = ft_to_dt(int(value))
 
