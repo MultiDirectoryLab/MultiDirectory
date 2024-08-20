@@ -588,7 +588,7 @@ async def test_api_double_add(
         "/entry/add",
         json={
             "entry": "cn=test,dc=md,dc=test",
-            "password": "P@ssw0rd",
+            "password": "",
             "attributes": [
                 {
                     "type": "name",
