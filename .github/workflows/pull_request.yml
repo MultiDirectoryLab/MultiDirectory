@@ -26,4 +26,4 @@ jobs:
           cache-to: type=gha,mode=max
           tags: linter
       - name: Run linters
-        run: docker run linter -- poetry run ruff check
+        run: docker run -t linter ruff check
