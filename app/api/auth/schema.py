@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
@@ -49,7 +49,7 @@ class User(BaseModel):
 
     id: int  # noqa: A003
     sam_accout_name: str
-    user_principal_name: Optional[str]
+    user_principal_name: str | None
     mail: str
     display_name: str
     directory_id: int
