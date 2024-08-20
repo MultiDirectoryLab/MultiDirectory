@@ -16,7 +16,7 @@ WORKDIR /venvs
 
 COPY pyproject.toml poetry.lock ./
 
-RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --with test --no-root
+RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --with linters --no-root
 
 # The runtime image, used to just run the code provided its virtual environment
 FROM python:3.12.4-slim-bookworm as runtime
@@ -32,7 +32,6 @@ ENV VIRTUAL_ENV=/venvs/.venv \
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY app /app
-COPY tests /app/tests
 COPY pyproject.toml /
 
 

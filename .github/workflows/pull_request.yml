@@ -24,3 +24,6 @@ jobs:
           file: .docker/lint.Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          tags: linter
+      - name: Run linters
+        run: docker run linter -- poetry run ruff check
