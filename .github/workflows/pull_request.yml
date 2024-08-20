@@ -1,0 +1,24 @@
+name: build
+on:
+  push:
+    branches: [main]
+  pull_request: null
+
+env:
+  REPO: ${{ github.repository }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - uses: actions/checkout@v4
+      - name: Build docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/lint.Dockerfile
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
