@@ -164,7 +164,12 @@ class Directory(Base):
     attributes: list['Attribute'] = relationship(
         'Attribute', cascade="all,delete")
     group: 'Group' = relationship('Group', uselist=False, cascade="all,delete")
-    user: 'User' = relationship('User', uselist=False, cascade="all,delete")
+    user: 'User' = relationship(
+        'User',
+        uselist=False,
+        cascade="all,delete",
+        lazy="selectin",
+    )
     groups: list['Group'] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
@@ -294,12 +299,9 @@ class User(DirectoryReferenceMixin, Base):
         overlaps="group,groups,directory",
     )
 
-    def get_upn_prefix(self) -> Optional[str]:
+    def get_upn_prefix(self) -> str:
         """Get userPrincipalName prefix."""
-        if self.user_principal_name:
-            return self.user_principal_name.split('@')[0]
-
-        return None
+        return self.user_principal_name.split('@')[0]
 
 
 class Group(DirectoryReferenceMixin, Base):

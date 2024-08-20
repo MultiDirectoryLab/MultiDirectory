@@ -162,7 +162,8 @@ class AddRequest(BaseRequest):
 
         parent_groups = await get_groups(group_attributes, session)
         is_group = 'group' in self.attr_names.get('objectclass', [])
-        is_user = 'user' in self.attr_names.get('objectclass', [])
+        is_user = 'sAMAccountName' in user_attributes\
+            or 'userPrincipalName' in user_attributes
 
         if is_user:
             user = User(
@@ -192,16 +193,15 @@ class AddRequest(BaseRequest):
             items_to_add.append(user)
             user.groups.extend(parent_groups)
 
-            if user.sam_accout_name:
-                attributes.append(Attribute(
-                    name='uidNumber',
-                    value=str(create_integer_hash(user.sam_accout_name)),
-                    directory=new_dir))
+            attributes.append(Attribute(
+                name='uidNumber',
+                value=str(create_integer_hash(user.sam_accout_name)),
+                directory=new_dir))
 
-                attributes.append(Attribute(
-                    name='homeDirectory',
-                    value=f'/home/{user.sam_accout_name}',
-                    directory=new_dir))
+            attributes.append(Attribute(
+                name='homeDirectory',
+                value=f'/home/{user.sam_accout_name}',
+                directory=new_dir))
 
             attributes.append(Attribute(
                 name='loginShell',
