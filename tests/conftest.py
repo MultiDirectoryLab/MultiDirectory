@@ -171,7 +171,7 @@ async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     ctnr = make_async_container(
         TestProvider(),
         MFACredsProvider(),
-        context={Settings: settings},
+        context={Settings: settings.get_copy_4_tls()},
         start_scope=Scope.RUNTIME)
     yield ctnr
     await ctnr.close()
