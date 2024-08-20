@@ -8,7 +8,7 @@ import sys
 from collections import defaultdict
 from functools import cached_property
 from math import ceil
-from typing import Any, AsyncGenerator, ClassVar, Optional
+from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import Field, field_serializer
@@ -99,7 +99,7 @@ class SearchRequest(BaseRequest):
 
     @field_serializer('filter')
     def serialize_filter(
-            self, filter: Optional[ASN1Row], _info: Any) -> Optional[dict]:  # noqa
+            self, filter: ASN1Row | None, _info: Any) -> dict | None:  # noqa
         """Serialize filter field."""
         return filter.to_dict() if isinstance(filter, ASN1Row) else None
 
