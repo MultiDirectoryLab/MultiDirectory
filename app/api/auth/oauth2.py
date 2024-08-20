@@ -9,8 +9,10 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
+from fastapi.security import OAuth2
+from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +28,43 @@ from security import verify_password
 
 ALGORITHM = "HS256"
 
-oauth2 = OAuth2PasswordBearer(tokenUrl="auth/token/get", auto_error=False)
+
+class OAuth2PasswordBearerWithCookie(OAuth2):
+    """Cookie bearer token manager."""
+
+    def __init__(
+        self,
+        tokenUrl: str,  # noqa
+        scheme_name: str | None = None,
+        scopes: dict[str, str] | None = None,
+        auto_error: bool = True,
+    ):
+        """Set token params."""
+        if not scopes:
+            scopes = {}
+        flows = OAuthFlowsModel(
+            password={"tokenUrl": tokenUrl, "scopes": scopes})
+        super().__init__(
+            flows=flows, scheme_name=scheme_name, auto_error=auto_error)
+
+    async def __call__(self, request: Request) -> str | None:
+        """Accept access token from httpOnly Cookie."""
+        authorization: str = request.cookies.get("access_token", '')
+
+        scheme, param = get_authorization_scheme_param(authorization)
+        if not authorization or scheme.lower() != "bearer":
+            if self.auto_error:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not authenticated",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return None
+        return param
+
+
+oauth2 = OAuth2PasswordBearerWithCookie(
+    tokenUrl="auth/token/get", auto_error=False)
 
 _CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
