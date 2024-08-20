@@ -9,7 +9,7 @@ from typing import Annotated
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from extra.setup_dev import setup_enviroment
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,6 +55,7 @@ async def login_for_access_token(
     form: Annotated[OAuth2Form, Depends()],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
+    response: Response,
 ) -> Token:
     """Get refresh and access token on login.
 
@@ -114,7 +115,11 @@ async def login_for_access_token(
     )
 
     await set_last_logon_user(user, session, settings.TIMEZONE)
-
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+    )
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -130,6 +135,7 @@ async def renew_tokens(
     *,
     mfa: FromDishka[MultifactorAPI],
     settings: FromDishka[Settings],
+    response: Response,
 ) -> Token:
     """Grant new access token with refresh token.
 
@@ -158,6 +164,11 @@ async def renew_tokens(
             grant_type='access',
         )
 
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+    )
     return Token(
         access_token=access_token,
         refresh_token=token,
