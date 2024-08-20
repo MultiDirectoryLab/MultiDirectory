@@ -246,13 +246,13 @@ async def get_directories(
     if not paths:
         return paths
 
-    results = await session.execute((
+    results = await session.scalars((
         select(Directory)
         .join(Directory.path)
         .filter(or_(*paths))
         .options(selectinload(Directory.group).selectinload(Group.members))))
 
-    return results.scalars().all()
+    return results.all()
 
 
 def validate_entry(entry: str) -> bool:
