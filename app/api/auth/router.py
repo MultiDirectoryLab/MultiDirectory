@@ -13,8 +13,10 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from config import Settings
+from ldap_protocol.access_policy import create_policy
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.password_policy import (
@@ -148,7 +150,8 @@ async def renew_tokens(
 
 
 @auth_router.get("/me")
-async def users_me(user: Annotated[UserSchema, Depends(get_current_user)]) -> UserSchema:
+async def users_me(
+        user: Annotated[UserSchema, Depends(get_current_user)]) -> UserSchema:
     """Get current logged in user data."""
     return user
 
@@ -292,6 +295,8 @@ async def first_setup(
         try:
             await setup_enviroment(session, dn=request.domain, data=data)
 
+            await session.flush()
+
             default_pwd_policy = PasswordPolicySchema()
             errors = await default_pwd_policy.validate_password_with_policy(
                 request.password, None)
@@ -303,6 +308,22 @@ async def first_setup(
                 )
 
             await default_pwd_policy.create_policy_settings(session)
+
+            domain: Directory = await session.scalar(
+                select(Directory)
+                .options(joinedload(Directory.path))
+                .filter(Directory.parent_id.is_(None)),
+            )
+
+            await create_policy(
+                name='Root Access Policy',
+                can_add=True,
+                can_modify=True,
+                can_read=True,
+                grant_dn=domain.path_dn,
+                groups=["cn=domain admins,cn=groups," + domain.path_dn],
+                session=session,
+            )
             await session.commit()
 
         except IntegrityError:
