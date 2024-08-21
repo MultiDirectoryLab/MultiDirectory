@@ -137,10 +137,11 @@ from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
 from operator import attrgetter
-from typing import Iterator
+from typing import Annotated, Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
+from pydantic import AfterValidator
 from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -273,6 +274,15 @@ def validate_entry(entry: str) -> bool:
         re.match(r'^[a-zA-Z\-]+$', part.split('=')[0])
         and len(part.split('=')) == 2
         for part in entry.split(','))
+
+
+def _type_validate_entry(entry: str) -> str:
+    if validate_entry(entry):
+        return entry
+    raise ValueError(f'Invalid entry name {entry}')
+
+
+ENTRY_TYPE = Annotated[str, AfterValidator(_type_validate_entry)]
 
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
