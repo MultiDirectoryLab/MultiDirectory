@@ -117,7 +117,8 @@ class AccessPolicyMembership(Base):
 
     __tablename__ = "AccessPolicyMemberships"
     dir_id = Column(Integer, ForeignKey("Directory.id"), primary_key=True)
-    policy_id = Column(Integer, ForeignKey("AccessPolicies.id"), primary_key=True)
+    policy_id = Column(
+        Integer, ForeignKey("AccessPolicies.id"), primary_key=True)
 
 
 class GroupAccessPolicyMembership(Base):
@@ -125,7 +126,8 @@ class GroupAccessPolicyMembership(Base):
 
     __tablename__ = "GroupAccessPolicyMemberships"
     group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
-    policy_id = Column(Integer, ForeignKey("AccessPolicies.id"), primary_key=True)
+    policy_id = Column(
+        Integer, ForeignKey("AccessPolicies.id"), primary_key=True)
 
 
 class Directory(Base):
@@ -209,7 +211,7 @@ class Directory(Base):
         "AccessPolicy",
         secondary=AccessPolicyMembership.__table__,
         primaryjoin="Directory.id == AccessPolicyMembership.dir_id",
-        secondaryjoin="AccessPolicyMembership.dir_id == Directory.id",
+        secondaryjoin="AccessPolicyMembership.policy_id == AccessPolicy.id",
         back_populates="directories",
     )
 
