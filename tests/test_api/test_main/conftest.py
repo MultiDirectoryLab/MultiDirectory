@@ -3,9 +3,11 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
+from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
 
 
@@ -13,6 +15,7 @@ from app.ldap_protocol.dialogue import LDAPCodes, Operation
 async def adding_test_user(
     http_client: AsyncClient,
     login_headers: dict[str, str],
+    _force_override_tls: None,
 ) -> None:
     """Test add user like keycloak."""
     test_user_dn = "cn=test,dc=md,dc=test"
