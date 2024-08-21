@@ -510,6 +510,7 @@ class AccessPolicy(Base):
     can_read = Column(Boolean, nullable=False)
     can_add = Column(Boolean, nullable=False)
     can_modify = Column(Boolean, nullable=False)
+    can_delete = Column(Boolean, nullable=False)
 
     directories: list[Directory] = relationship(
         "Directory",
