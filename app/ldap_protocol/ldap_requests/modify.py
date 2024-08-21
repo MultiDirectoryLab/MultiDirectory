@@ -22,11 +22,14 @@ from ldap_protocol.password_policy import (
     post_save_password_actions,
 )
 from ldap_protocol.utils import (
+    create_user_name,
     ft_to_dt,
+    get_base_directories,
     get_directories,
     get_groups,
     get_path_filter,
     get_search_path,
+    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, User
@@ -260,10 +263,20 @@ class ModifyRequest(BaseRequest):
 
             elif name in User.search_fields:
                 if not directory.user:
-                    async with session.begin_nested():
-                        session.add(User(directory=directory))
-                        await session.commit()
+                    path_dn = directory.path_dn
+                    for base_directory in await get_base_directories(session):
+                        if is_dn_in_base_directory(base_directory, path_dn):
+                            base_dn = base_directory
+                            break
 
+                    sam_accout_name = create_user_name(directory.id)
+                    user_principal_name = f"{sam_accout_name}@{base_dn.name}"
+                    session.add(User(
+                        sam_accout_name=sam_accout_name,
+                        user_principal_name=user_principal_name,
+                        directory=directory,
+                    ))
+                    await session.flush()
                     await session.refresh(directory)
 
                 if name == 'accountexpires':

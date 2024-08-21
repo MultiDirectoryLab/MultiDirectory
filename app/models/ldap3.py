@@ -261,8 +261,10 @@ class User(DirectoryReferenceMixin, Base):
 
     __tablename__ = "Users"
 
-    sam_accout_name = Column('sAMAccountName', String, unique=True)
-    user_principal_name: str = Column('userPrincipalName', String, unique=True)
+    sam_accout_name = Column(
+        'sAMAccountName', String, nullable=False, unique=True)
+    user_principal_name: str = Column(
+        'userPrincipalName', String, nullable=False, unique=True)
 
     mail = Column(String(255))
     display_name = Column('displayName', String, nullable=True)

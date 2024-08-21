@@ -49,7 +49,7 @@ class User(BaseModel):
 
     id: int  # noqa: A003
     sam_accout_name: str
-    user_principal_name: str | None
+    user_principal_name: str
     mail: str
     display_name: str
     directory_id: int

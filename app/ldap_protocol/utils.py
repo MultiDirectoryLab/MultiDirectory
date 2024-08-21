@@ -135,6 +135,7 @@ import re
 import struct
 from calendar import timegm
 from datetime import datetime
+from hashlib import blake2b
 from operator import attrgetter
 from typing import Iterator
 from zoneinfo import ZoneInfo
@@ -500,3 +501,11 @@ def get_domain_attrs(domain: Directory) -> Iterator[Attribute]:
     for name, value_list in attributes.items():
         for value in value_list:
             yield Attribute(name=name, value=value, directory=domain)
+
+
+def create_user_name(directory_id: int) -> str:
+    """Create username by directory id.
+
+    NOTE: keycloak
+    """
+    return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
