@@ -22,10 +22,14 @@ from ldap_protocol.password_policy import (
     post_save_password_actions,
 )
 from ldap_protocol.utils import (
+    create_user_name,
     ft_to_dt,
+    get_base_directories,
+    get_directories,
     get_groups,
     get_path_filter,
     get_search_path,
+    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, User
@@ -105,15 +109,16 @@ class ModifyRequest(BaseRequest):
         membership1 = selectinload(Directory.user).selectinload(User.groups)
         membership2 = selectinload(Directory.group)\
             .selectinload(Group.parent_groups)
+        membership3 = selectinload(Directory.group)\
+            .selectinload(Group.members)
 
         query = select(   # noqa: ECE001
             Directory)\
             .join(Directory.path)\
             .join(Directory.attributes)\
-            .join(User, isouter=True)\
             .options(
                 selectinload(Directory.paths),
-                membership1, membership2)\
+                membership1, membership2, membership3)\
             .filter(get_path_filter(search_path))
 
         directory = await session.scalar(query)
@@ -195,6 +200,16 @@ class ModifyRequest(BaseRequest):
 
             return
 
+        if name == 'member':
+            if name_only or not change.modification.vals:
+                directory.group.members.clear()
+            else:
+                members = await get_directories(
+                    change.modification.vals, session)
+                for member in members:
+                    directory.group.members.remove(member)
+            return
+
         if name_only or not change.modification.vals:
             attrs.append(Attribute.name == change.modification.type)
         else:
@@ -228,13 +243,14 @@ class ModifyRequest(BaseRequest):
         name = change.get_name()
 
         if name == 'memberof':
-            groups = await get_groups(change.modification.vals, session)
-            if directory.group:
-                directory.group.parent_groups.extend(groups)
+            directory.groups.extend(
+                await get_groups(change.modification.vals, session))
 
-            elif directory.user:
-                directory.user.groups.extend(groups)
-
+            await session.commit()
+            return
+        if name == 'member':
+            directory.group.members.extend(
+                await get_directories(change.modification.vals, session))
             await session.commit()
             return
 
@@ -245,7 +261,24 @@ class ModifyRequest(BaseRequest):
                     .filter(Directory.id == directory.id)
                     .values({name: value}))
 
-            elif name in User.search_fields and directory.user:
+            elif name in User.search_fields:
+                if not directory.user:
+                    path_dn = directory.path_dn
+                    for base_directory in await get_base_directories(session):
+                        if is_dn_in_base_directory(base_directory, path_dn):
+                            base_dn = base_directory
+                            break
+
+                    sam_accout_name = create_user_name(directory.id)
+                    user_principal_name = f"{sam_accout_name}@{base_dn.name}"
+                    session.add(User(
+                        sam_accout_name=sam_accout_name,
+                        user_principal_name=user_principal_name,
+                        directory=directory,
+                    ))
+                    await session.flush()
+                    await session.refresh(directory)
+
                 if name == 'accountexpires':
                     value = ft_to_dt(int(value))
 
@@ -265,6 +298,7 @@ class ModifyRequest(BaseRequest):
                     raise PermissionError('TLS required')
 
                 try:
+                    value = value.replace('\\x00', '\x00')
                     value = value.encode().decode("UTF-16LE")[1:-1]
                 except UnicodeDecodeError:
                     pass

@@ -24,6 +24,7 @@ from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.utils import (
     create_integer_hash,
     create_object_sid,
+    create_user_name,
     ft_now,
     get_base_directories,
     get_groups,
@@ -63,7 +64,7 @@ class AddRequest(BaseRequest):
 
     @property
     def attr_names(self) -> dict[str, list[str]]:  # noqa
-        return {attr.type: attr.vals for attr in self.attributes}
+        return {attr.type.lower(): attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> 'AddRequest':  # noqa: D102
@@ -127,6 +128,19 @@ class AddRequest(BaseRequest):
             parent=parent,
         )
         path = new_dir.create_path(parent, new_dn)
+        new_dir.depth = len(path.path)
+
+        try:
+            session.add_all([new_dir, path])
+            path.directories.extend(
+                [p.endpoint for p in parent.paths + [path]])
+            await session.flush()
+            new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
+            await session.flush()
+        except IntegrityError:
+            await session.rollback()
+            yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+            return
 
         group = None
         user = None
@@ -161,16 +175,18 @@ class AddRequest(BaseRequest):
                     )
 
         parent_groups = await get_groups(group_attributes, session)
-
+        is_group = 'group' in self.attr_names.get('objectclass', [])
         is_user = 'sAMAccountName' in user_attributes\
             or 'userPrincipalName' in user_attributes
 
-        is_group = 'group' in self.attr_names.get('objectClass', [])
-
         if is_user:
+            sam_accout_name = user_attributes.get(
+                'sAMAccountName', create_user_name(new_dir.id))
+            user_principal_name = user_attributes.get(
+                'userPrincipalName', f"{sam_accout_name}@{base_dn.name}")
             user = User(
-                sam_accout_name=user_attributes.get('sAMAccountName'),
-                user_principal_name=user_attributes.get('userPrincipalName'),
+                sam_accout_name=sam_accout_name,
+                user_principal_name=user_principal_name,
                 mail=user_attributes.get('mail'),
                 display_name=user_attributes.get('displayName'),
                 directory=new_dir,
@@ -227,16 +243,8 @@ class AddRequest(BaseRequest):
                 directory=new_dir))
 
         try:
-            new_dir.depth = len(path.path)
-            items_to_add.extend([new_dir, path] + attributes)
-
+            items_to_add.extend(attributes)
             session.add_all(items_to_add)
-
-            path.directories.extend(
-                [p.endpoint for p in parent.paths + [path]])
-            await session.flush()
-
-            new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
             await session.flush()
         except IntegrityError:
             await session.rollback()

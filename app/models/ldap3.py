@@ -164,7 +164,12 @@ class Directory(Base):
     attributes: list['Attribute'] = relationship(
         'Attribute', cascade="all,delete")
     group: 'Group' = relationship('Group', uselist=False, cascade="all,delete")
-    user: 'User' = relationship('User', uselist=False, cascade="all,delete")
+    user: 'User' = relationship(
+        'User',
+        uselist=False,
+        cascade="all,delete",
+        lazy="selectin",
+    )
     groups: list['Group'] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
@@ -270,10 +275,8 @@ class User(DirectoryReferenceMixin, Base):
     displayname: str = synonym('display_name')
     uid: str = synonym('sam_accout_name')
     accountexpires: str = synonym('account_exp')
-    last_logon = Column(
-        'lastLogon', DateTime(timezone=True), nullable=True)
-    account_exp = Column(
-        'accountExpires', DateTime(timezone=True), nullable=True)
+    last_logon = Column('lastLogon', DateTime(timezone=True))
+    account_exp = Column('accountExpires', DateTime(timezone=True))
 
     search_fields = {
         'mail': 'mail',

@@ -8,10 +8,10 @@ import sys
 from collections import defaultdict
 from functools import cached_property
 from math import ceil
-from typing import AsyncGenerator, ClassVar
+from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import Field
+from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -96,9 +96,12 @@ class SearchRequest(BaseRequest):
 
         arbitrary_types_allowed = True
         ignored_types = (cached_property,)
-        json_encoder = {
-            ASN1Row: lambda value: str(value),
-        }
+
+    @field_serializer('filter')
+    def serialize_filter(
+            self, filter: ASN1Row | None, _info: Any) -> dict | None:  # noqa
+        """Serialize filter field."""
+        return filter.to_dict() if isinstance(filter, ASN1Row) else None
 
     @classmethod
     def from_data(   # noqa: D102
@@ -280,6 +283,10 @@ class SearchRequest(BaseRequest):
         return 'memberof' in self.requested_attrs or self.all_attrs
 
     @cached_property
+    def member(self) -> bool:  # noqa
+        return 'member' in self.requested_attrs or self.all_attrs
+
+    @cached_property
     def all_attrs(self) -> bool:  # noqa
         return '*' in self.requested_attrs or not self.requested_attrs
 
@@ -326,20 +333,9 @@ class SearchRequest(BaseRequest):
                 column=Path.path[1:len(search_path)],
                 path=search_path))
 
-        if self.member_of:
-            s1 = selectinload(Directory.group).selectinload(
-                Group.parent_groups).selectinload(
-                    Group.directory).selectinload(Directory.path)
-
-            s2 = selectinload(Directory.user).selectinload(
-                User.groups).selectinload(
-                    Group.directory).selectinload(Directory.path)
-
-            s3 = selectinload(Directory.group).selectinload(
-                Group.users).selectinload(
-                    User.directory).selectinload(Directory.path)
-
-            query = query.options(s1, s2, s3)
+        if self.member:
+            query = query.options(
+                selectinload(Directory.group).selectinload(Group.members))
 
         return query  # noqa
 
@@ -373,13 +369,16 @@ class SearchRequest(BaseRequest):
 
         async for directory in directories:
             attrs = defaultdict(list)
-            groups = []
+            obj_classes = []
 
             for attr in directory.attributes:
                 if isinstance(attr.value, str):
                     value = attr.value.replace('\\x00', '\x00')
                 else:
                     value = attr.bvalue
+
+                if attr.name.lower() == 'objectclass':
+                    obj_classes.append(value)
 
                 attrs[attr.name].append(value)
 
@@ -406,19 +405,14 @@ class SearchRequest(BaseRequest):
                     attrs['authTimestamp'].append(directory.user.last_logon)
 
             if self.member_of:
-                if 'group' in attrs['objectClass'] and (
-                        directory.group):
-                    groups += directory.group.parent_groups
+                if 'group' in obj_classes or 'user' in obj_classes:
+                    for group in directory.groups:
+                        attrs['memberOf'].append(group.directory.path_dn)
 
-                    for user in directory.group.users:
-                        attrs['member'].append(user.directory.path_dn)
-
-                if 'user' in attrs['objectClass'] and (
-                        directory.user):
-                    groups += directory.user.groups
-
-            for group in groups:
-                attrs['memberOf'].append(group.directory.path_dn)
+            if self.member:
+                if 'group' in obj_classes and directory.group:
+                    for member in directory.group.members:
+                        attrs['member'].append(member.path_dn)
 
             if directory.user:
                 if self.all_attrs:

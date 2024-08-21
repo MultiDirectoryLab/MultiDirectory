@@ -135,6 +135,7 @@ import re
 import struct
 from calendar import timegm
 from datetime import datetime
+from hashlib import blake2b
 from operator import attrgetter
 from typing import Iterator
 from zoneinfo import ZoneInfo
@@ -231,6 +232,30 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         select(User).where(User.directory == path.endpoint))
 
 
+async def get_directories(
+        dn_list: list[str], session: AsyncSession) -> list[Directory]:
+    """Get directories by dn list."""
+    paths = []
+
+    for dn in dn_list:
+        for base_directory in await get_base_directories(session):
+            if dn_is_base_directory(base_directory, dn):
+                continue
+
+            paths.append(get_path_filter(get_search_path(dn)))
+
+    if not paths:
+        return paths
+
+    results = await session.scalars((
+        select(Directory)
+        .join(Directory.path)
+        .filter(or_(*paths))
+        .options(selectinload(Directory.group).selectinload(Group.members))))
+
+    return results.all()
+
+
 def validate_entry(entry: str) -> bool:
     """Validate entry str.
 
@@ -247,33 +272,9 @@ def validate_entry(entry: str) -> bool:
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     """Get dirs with groups by dn list."""
-    paths = []
-
-    for dn in dn_list:
-        for base_directory in await get_base_directories(session):
-            if dn_is_base_directory(base_directory, dn):
-                continue
-
-            paths.append(get_path_filter(get_search_path(dn)))
-
-    if not paths:
-        return paths
-
-    query = select(   # noqa: ECE001
-        Directory)\
-        .join(Directory.path)\
-        .filter(or_(*paths))\
-        .options(
-            selectinload(Directory.path),
-            selectinload(Directory.group).selectinload(
-                Group.parent_groups).selectinload(
-                    Group.directory).selectinload(Directory.path))
-
-    result = await session.stream_scalars(query)
-
     return [
         directory.group
-        async for directory in result
+        for directory in await get_directories(dn_list, session)
         if directory.group is not None]
 
 
@@ -500,3 +501,11 @@ def get_domain_attrs(domain: Directory) -> Iterator[Attribute]:
     for name, value_list in attributes.items():
         for value in value_list:
             yield Attribute(name=name, value=value, directory=domain)
+
+
+def create_user_name(directory_id: int) -> str:
+    """Create username by directory id.
+
+    NOTE: keycloak
+    """
+    return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
