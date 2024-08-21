@@ -14,8 +14,9 @@ async def adding_test_user(
     http_client: AsyncClient,
     login_headers: dict[str, str],
 ) -> None:
-    """Test api first setup."""
+    """Test add user like keycloak."""
     test_user_dn = "cn=test,dc=md,dc=test"
+    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'
     response = await http_client.post(
         "/entry/add",
         json={
@@ -82,7 +83,7 @@ async def adding_test_user(
                     "operation": Operation.ADD,
                     "modification": {
                         "type": "unicodePwd",
-                        "vals": ['"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'],
+                        "vals": [user_password],
                     },
                 },
                 {
