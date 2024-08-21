@@ -35,9 +35,7 @@ class KerberosSetupRequest(BaseModel):
     stash_password: SecretStr
 
 
-class AccessPolicySchema(BaseModel):
-    """AP Schema w/o id."""
-
+class _PolicyFields:
     name: str
     can_read: bool
     can_add: bool
@@ -46,7 +44,13 @@ class AccessPolicySchema(BaseModel):
     groups: list[str]
 
 
-class MaterialAccessPolicySchema(AccessPolicySchema):
-    """AP Schema with id."""
-
+class _MaterialFields:
     id: int  # noqa: A003
+
+
+class AccessPolicySchema(_PolicyFields, BaseModel):
+    """AP Schema w/o id."""
+
+
+class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
+    """AP Schema with id."""
