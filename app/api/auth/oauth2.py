@@ -13,14 +13,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from config import Settings
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.utils import get_user
+from models.ldap3 import Group
 from models.ldap3 import User as DBUser
 from security import verify_password
-
-from .schema import UserSchema
 
 ALGORITHM = "HS256"
 
@@ -114,7 +115,12 @@ async def _get_user_from_token(
     if user_id is None:
         raise _CREDENTIALS_EXCEPTION
 
-    user = await session.get(DBUser, user_id)
+    user = await session.get(
+        DBUser, user_id,
+        options=[(
+            selectinload(DBUser.groups)
+            .selectinload(Group.access_policies)
+        )])
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
