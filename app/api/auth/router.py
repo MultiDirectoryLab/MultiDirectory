@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload
 
 from config import Settings
 from ldap_protocol.access_policy import create_policy
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.password_policy import (
@@ -36,7 +37,7 @@ from .oauth2 import (
     get_user,
     oauth2,
 )
-from .schema import OAuth2Form, SetupRequest, Token, UserSchema
+from .schema import OAuth2Form, SetupRequest, Token
 
 auth_router = APIRouter(prefix='/auth', tags=['Auth'])
 

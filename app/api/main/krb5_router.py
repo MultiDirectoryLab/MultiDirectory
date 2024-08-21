@@ -18,10 +18,10 @@ from pydantic import EmailStr, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
-from api.auth import UserSchema, get_current_user
+from api.auth import get_current_user
 from api.auth.oauth2 import authenticate_user
 from config import Settings
-from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import (
     AbstractKadmin,
     KerberosState,

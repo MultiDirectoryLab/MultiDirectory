@@ -6,8 +6,8 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import Depends
 
-from api.auth import UserSchema, get_current_user
-from ldap_protocol.dialogue import LDAPSession
+from api.auth import get_current_user
+from ldap_protocol.dialogue import LDAPSession, UserSchema
 
 
 @inject

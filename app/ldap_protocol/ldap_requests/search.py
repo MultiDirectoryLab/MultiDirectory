@@ -21,7 +21,7 @@ from sqlalchemy.sql.expression import Select
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, LDAPSession
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession, UserSchema
 from ldap_protocol.filter_interpreter import cast_filter2sql
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -225,7 +225,7 @@ class SearchRequest(BaseRequest):
                 yield response
 
     async def get_result(
-        self, user: User,
+        self, user: UserSchema,
         session: AsyncSession,
         settings: Settings,
     ) -> AsyncGenerator[SearchResultDone, None]:
@@ -292,7 +292,7 @@ class SearchRequest(BaseRequest):
     def build_query(
         self,
         base_directories: list[Directory],
-        user: User,
+        user: UserSchema,
     ) -> Select:
         """Build tree query."""
         query = (  # noqa: ECE001
@@ -308,12 +308,10 @@ class SearchRequest(BaseRequest):
             .distinct(Directory.id)
         )
 
-        if user and isinstance(user, User) and False:
-            ids = [policy.id for group in user.groups for policy in group.access_policies]
-            logger.critical(ids)
+        if user:
             query = query\
                 .join(Directory.access_policies)\
-                .where(AccessPolicy.id.in_(ids))\
+                .where(AccessPolicy.id.in_(user.access_policies_ids))\
                 .where(AccessPolicy.can_read.is_(True))
 
         for base_directory in base_directories:
