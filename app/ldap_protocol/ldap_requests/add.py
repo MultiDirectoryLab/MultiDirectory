@@ -112,10 +112,13 @@ class AddRequest(BaseRequest):
         parent_dn = root_dn[:-1]
         new_dn, name = self.entry.split(',')[0].split('=')
 
-        query = select(Directory)\
-            .join(Directory.path)\
-            .options(selectinload(Directory.paths))\
-            .filter(get_path_filter(parent_dn))
+        query = (
+            select(Directory)
+            .join(Directory.path)
+            .options(
+                selectinload(Directory.paths),
+                selectinload(Directory.access_policies))
+            .filter(get_path_filter(parent_dn)))
         parent = await session.scalar(query)
 
         if not parent:
@@ -127,6 +130,10 @@ class AddRequest(BaseRequest):
             name=name,
             parent=parent,
         )
+
+        new_dir.access_policies.extend(parent.access_policies)
+        await session.flush()
+
         path = new_dir.create_path(parent, new_dn)
         new_dir.depth = len(path.path)
 
