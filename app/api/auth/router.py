@@ -257,6 +257,18 @@ async def first_setup(
                     },
                     "objectSid": 512,
                 },
+                {
+                    "name": "domain users",
+                    "object_class": "group",
+                    "attributes": {
+                        "objectClass": ["top", 'posixGroup'],
+                        'groupType': ['-2147483646'],
+                        'instanceType': ['4'],
+                        'sAMAccountName': ['users'],
+                        'sAMAccountType': ['268435456'],
+                    },
+                    "objectSid": 513,
+                },
             ],
         },
         {
@@ -325,6 +337,17 @@ async def first_setup(
                 groups=["cn=domain admins,cn=groups," + domain.path_dn],
                 session=session,
             )
+
+            await create_policy(
+                name='Users Access Policy',
+                can_add=False,
+                can_modify=False,
+                can_read=True,
+                grant_dn=f"ou=users,{domain.path_dn}",
+                groups=["cn=domain users,cn=groups," + domain.path_dn],
+                session=session,
+            )
+
             await session.commit()
 
         except IntegrityError:
