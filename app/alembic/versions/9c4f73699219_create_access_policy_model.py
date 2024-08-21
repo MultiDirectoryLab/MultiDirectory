@@ -33,28 +33,16 @@ def upgrade() -> None:
         "AccessPolicyMemberships",
         sa.Column("dir_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["dir_id"],
-            ["Directory.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["AccessPolicies.id"],
-        ),
+        sa.ForeignKeyConstraint(["dir_id"], ["Directory.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["AccessPolicies.id"]),
         sa.PrimaryKeyConstraint("dir_id", "policy_id"),
     )
     op.create_table(
         "GroupAccessPolicyMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["AccessPolicies.id"],
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["AccessPolicies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
     # ### end Alembic commands ###
