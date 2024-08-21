@@ -56,13 +56,9 @@ async def create_policy(
         column=Path.path[1:len(path)],
         path=path)
 
-    from loguru import logger
-
     directories = await session.scalars(
         select(Directory).join(Directory.path).where(dir_filter))
     groups_dirs = await get_groups(groups, session)
-
-    logger.critical(groups_dirs)
 
     policy = AccessPolicy(
         name=name,
@@ -76,5 +72,3 @@ async def create_policy(
     await session.flush()
 
     await session.refresh(policy)
-
-    logger.critical(policy)
