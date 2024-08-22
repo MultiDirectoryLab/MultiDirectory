@@ -123,6 +123,7 @@ async def setup_krb_catalogue(
             can_add=True,
             can_modify=True,
             can_read=True,
+            can_delete=True,
             grant_dn=services_container,
             groups=[krbgroup],
             session=session,

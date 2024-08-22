@@ -42,6 +42,7 @@ async def create_policy(
     can_read: bool,
     can_add: bool,
     can_modify: bool,
+    can_delete: bool,
     grant_dn: ENTRY_TYPE,
     groups: list[ENTRY_TYPE],
     session: AsyncSession,
@@ -65,6 +66,7 @@ async def create_policy(
         can_read=can_read,
         can_add=can_add,
         can_modify=can_modify,
+        can_delete=can_delete,
     )
     policy.directories.extend(directories)
     policy.groups.extend(groups_dirs)
