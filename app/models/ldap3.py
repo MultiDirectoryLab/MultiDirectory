@@ -393,7 +393,8 @@ class Group(DirectoryReferenceMixin, Base):
         "AccessPolicy",
         secondary=GroupAccessPolicyMembership.__table__,
         primaryjoin="Group.id == GroupAccessPolicyMembership.group_id",
-        secondaryjoin="GroupAccessPolicyMembership.policy_id == AccessPolicy.id",
+        secondaryjoin=(
+            "GroupAccessPolicyMembership.policy_id == AccessPolicy.id"),
         back_populates="groups",
     )
 
