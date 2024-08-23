@@ -33,7 +33,7 @@ from ldap_protocol.utils import (
     is_dn_in_base_directory,
     validate_entry,
 )
-from models.ldap3 import Attribute, Directory, Group, User
+from models.ldap3 import AccessPolicy, Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -109,20 +109,29 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        parent_dn = root_dn[:-1]
+        parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(',')[0].split('=')
 
-        query = (
+        query = (  # noqa: ECE001
             select(Directory)
             .join(Directory.path)
             .options(
                 selectinload(Directory.paths),
                 selectinload(Directory.access_policies))
-            .filter(get_path_filter(parent_dn)))
+            .join(Directory.access_policies)
+            .where(AccessPolicy.id.in_(ldap_session.user.access_policies_ids))
+            .where(AccessPolicy.can_read.is_(True))
+            .filter(parent_path))
+
         parent = await session.scalar(query)
 
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if not await session.scalar(
+                query.where(AccessPolicy.can_add.is_(True))):
+            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         new_dir = Directory(
