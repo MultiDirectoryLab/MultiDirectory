@@ -104,6 +104,8 @@ class PoolClientHandler:
             ldap_session = await session_scope.get(LDAPSession)
             addr = await ldap_session.get_ip(writer)
 
+            logger.info(f'Connection {addr} opened')
+
             try:
                 async with session_scope(scope=Scope.REQUEST) as r:
                     try:
@@ -356,10 +358,18 @@ def main() -> None:
 
         await asyncio.gather(*servers)
 
-    with asyncio.Runner(
-            loop_factory=uvloop.new_event_loop,
-            debug=settings.DEBUG) as runner:
-        runner.run(_servers())
+    def _run() -> None:
+        uvloop.run(_servers(), debug=settings.DEBUG)
+
+    try:
+        import py_hot_reload
+    except ImportError:
+        _run()
+    else:
+        if settings.DEBUG:
+            py_hot_reload.run_with_reloader(_run)
+        else:
+            _run()
 
 
 if __name__ == '__main__':
