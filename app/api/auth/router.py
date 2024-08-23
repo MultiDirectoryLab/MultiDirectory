@@ -339,17 +339,6 @@ async def first_setup(
                 session=session,
             )
 
-            await create_policy(
-                name='Users Access Policy',
-                can_add=False,
-                can_modify=False,
-                can_read=True,
-                can_delete=False,
-                grant_dn=f"ou=users,{domain.path_dn}",
-                groups=["cn=domain users,cn=groups," + domain.path_dn],
-                session=session,
-            )
-
             await session.commit()
 
         except IntegrityError:
