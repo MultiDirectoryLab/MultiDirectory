@@ -12,7 +12,7 @@ from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import Field, field_serializer
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
@@ -309,10 +309,13 @@ class SearchRequest(BaseRequest):
         )
 
         if user:
+            ap_filter = and_(
+                AccessPolicy.can_read.is_(True),
+                AccessPolicy.id.in_(user.access_policies_ids))
+
             query = query\
-                .join(Directory.access_policies)\
-                .where(AccessPolicy.id.in_(user.access_policies_ids))\
-                .where(AccessPolicy.can_read.is_(True))
+                .join(Directory.access_policies, isouter=True)\
+                .where(or_(ap_filter, Directory.id == user.directory_id))
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):
