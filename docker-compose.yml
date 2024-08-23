@@ -26,7 +26,7 @@ services:
   ldap_server:
     build:
       context: .
-      dockerfile: ./.docker/Dockerfile
+      dockerfile: ./.docker/dev.Dockerfile
       args:
         DOCKER_BUILDKIT: 1
       target: runtime
@@ -45,7 +45,7 @@ services:
         condition: service_completed_successfully
     deploy:
       mode: replicated
-      replicas: 4
+      replicas: 2
       endpoint_mode: dnsrr
       resources:
         limits:
