@@ -8,6 +8,10 @@ Create Date: 2024-08-21 12:52:43.385380
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ldap_protocol.access_policy import create_policy
+from ldap_protocol.utils import get_base_directories
 
 # revision identifiers, used by Alembic.
 revision = "9c4f73699219"
@@ -45,6 +49,28 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["policy_id"], ["AccessPolicies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
+
+    async def _create_root_ap(connection) -> None:
+        session = AsyncSession(bind=connection)
+        await session.begin()
+        base_dn_list = await get_base_directories(session)
+        if not base_dn_list:
+            return
+
+        await create_policy(
+            name='Root Access Policy',
+            can_add=True,
+            can_modify=True,
+            can_read=True,
+            can_delete=True,
+            grant_dn=base_dn_list[0].path_dn,
+            groups=["cn=domain admins,cn=groups," + base_dn_list[0].path_dn],
+            session=session,
+        )
+        await session.close()
+
+    op.run_async(_create_root_ap)
+
     # ### end Alembic commands ###
 
 
