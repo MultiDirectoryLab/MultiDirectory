@@ -32,7 +32,7 @@ from ldap_protocol.utils import (
     is_dn_in_base_directory,
     validate_entry,
 )
-from models.ldap3 import Attribute, Directory, Group, User
+from models.ldap3 import AccessPolicy, Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -112,19 +112,29 @@ class ModifyRequest(BaseRequest):
         membership3 = selectinload(Directory.group)\
             .selectinload(Group.members)
 
-        query = select(   # noqa: ECE001
-            Directory)\
-            .join(Directory.path)\
-            .join(Directory.attributes)\
+        query = (  # noqa: ECE001
+            select(Directory)
+            .join(Directory.path)
+            .join(Directory.attributes)
             .options(
                 selectinload(Directory.paths),
-                membership1, membership2, membership3)\
+                membership1, membership2, membership3)
             .filter(get_path_filter(search_path))
+            .join(Directory.access_policies)
+            .where(AccessPolicy.id.in_(ldap_session.user.access_policies_ids))
+            .where(AccessPolicy.can_read.is_(True))
+        )
 
         directory = await session.scalar(query)
 
         if len(search_path) == 0 or not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if not await session.scalar(
+                query.filter(AccessPolicy.can_modify.is_(True))):
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         for change in self.changes:
