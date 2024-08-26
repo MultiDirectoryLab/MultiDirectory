@@ -18,7 +18,7 @@ from ldap_protocol.ldap_responses import (
     DeleteResponse,
 )
 from ldap_protocol.utils import get_filter_from_path, validate_entry
-from models.ldap3 import Directory
+from models.ldap3 import AccessPolicy, Directory
 
 from .base import BaseRequest
 
@@ -51,14 +51,26 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        directory = await session.scalar((
+        query = (  # noqa: ECE001
             select(Directory)
             .join(Directory.path)
             .options(joinedload(Directory.user))
             .filter(get_filter_from_path(self.entry))
-        ))
+            .join(Directory.access_policies)
+            .where(AccessPolicy.id.in_(ldap_session.user.access_policies_ids))
+            .where(AccessPolicy.can_read.is_(True))
+        )
+
+        directory = await session.scalar(query)
+
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if not await session.scalar(
+                query.filter(AccessPolicy.can_delete.is_(True))):
+            yield DeleteResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         if directory.is_domain:
