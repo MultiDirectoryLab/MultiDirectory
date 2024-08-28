@@ -79,7 +79,7 @@ def _filter_member(method: ColumnOperators, dn: str) -> UnaryExpression:
 
 def _recursive_filter_memberof(
         method: ColumnOperators, dn: str) -> UnaryExpression:
-    """Get."""
+    """Retrieve query conditions with the memberOF attribute(recursive)."""
     group_path = get_search_path(dn)
     path_filter = get_path_filter(group_path)
 
