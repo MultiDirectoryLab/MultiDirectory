@@ -29,23 +29,26 @@ from dishka import (
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from loguru import logger
-from sqlalchemy import event
+from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
     AsyncSession,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import joinedload, sessionmaker
 
 from app.__main__ import PoolClientHandler
 from app.extra import TEST_DATA, setup_enviroment
 from config import Settings
 from ioc import MFACredsProvider
+from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.utils import get_user
+from models import Directory
 from web_app import create_app
 
 
@@ -255,6 +258,22 @@ async def session(
 async def setup_session(session: AsyncSession) -> None:
     """Get session and aquire after completion."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+
+    domain: Directory = await session.scalar(
+        select(Directory)
+        .options(joinedload(Directory.path))
+        .filter(Directory.parent_id.is_(None)),
+    )
+    await create_access_policy(
+        name='Root Access Policy',
+        can_add=True,
+        can_modify=True,
+        can_read=True,
+        can_delete=True,
+        grant_dn=domain.path_dn,
+        groups=["cn=domain admins,cn=groups," + domain.path_dn],
+        session=session,
+    )
     await session.commit()
 
 
@@ -264,6 +283,19 @@ async def ldap_session(
     """Yield empty session."""
     async with container(scope=Scope.SESSION) as container:
         yield await container.get(LDAPSession)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def ldap_bound_session(
+    ldap_session: LDAPSession,
+    session: AsyncSession,
+    creds: TestCreds,
+    setup_session: None,
+) -> AsyncIterator[LDAPSession]:
+    """Yield bound session."""
+    user = await get_user(session, creds.un)
+    await ldap_session.set_user(user)
+    return ldap_session
 
 
 @pytest_asyncio.fixture(scope="session")

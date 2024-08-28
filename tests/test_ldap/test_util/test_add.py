@@ -173,16 +173,14 @@ async def test_ldap_user_add_group_with_group(
 @pytest.mark.usefixtures('session')
 async def test_add_bvalue_attr(
     session: AsyncSession,
-    ldap_session: LDAPSession,
+    ldap_bound_session: LDAPSession,
     kadmin: AbstractKadmin,
 ) -> None:
     """Test AddRequest with bytes data."""
-    ldap_session._user = True
-
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
         attributes=[{"type": "objectclass", "vals": [b"test"]}],
         password=None,
     )
-    result = await anext(request.handle(session, ldap_session, kadmin))
+    result = await anext(request.handle(session, ldap_bound_session, kadmin))
     assert result.result_code == LDAPCodes.SUCCESS
