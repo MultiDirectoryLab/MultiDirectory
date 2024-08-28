@@ -10,11 +10,11 @@ from operator import eq, ge, le, ne
 from typing import Callable
 
 from ldap_filter import Filter
-from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy import and_, func, not_, or_, select, text
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.operators import ColumnOperators
 
-from models.ldap3 import Attribute, Directory, Group, User
+from models.ldap3 import Attribute, Directory, DirectoryMembership, Group, User
 
 from .asn1parser import ASN1Row
 from .utils import get_path_filter, get_search_path
@@ -77,19 +77,56 @@ def _filter_member(method: ColumnOperators, dn: str) -> UnaryExpression:
     ))  # type: ignore
 
 
+def _recursive_filter_memberof(
+        method: ColumnOperators, dn: str) -> UnaryExpression:
+    """Get."""
+    group_path = get_search_path(dn)
+    path_filter = get_path_filter(group_path)
+
+    directory_hierarchy = (  # noqa: ECE001
+        select([Directory.id.label('directory_id'),
+                Group.id.label('group_id')])
+        .select_from(Directory)
+        .join(Directory.group)
+        .join(Directory.path)
+        .where(path_filter)
+    ).cte(recursive=True)
+    recursive_part = (  # noqa: ECE001
+        select([
+            Directory.id.label('directory_id'),
+            Group.id.label('group_id'),
+        ])
+        .select_from(DirectoryMembership)
+        .join(
+            directory_hierarchy,
+            directory_hierarchy.c.group_id == DirectoryMembership.group_id)
+        .join(
+            Directory,
+            Directory.id == DirectoryMembership.directory_id)
+        .join(
+            Group, Directory.id == Group.directory_id, isouter=True)
+    )
+    cte = directory_hierarchy.union_all(recursive_part)
+
+    return method(
+        select(text("directory_id"))
+        .select_from(cte).offset(1))  # type: ignore
+
+
 def _get_filter_function(attribute: str) -> Callable[..., UnaryExpression]:
     """Retrieve the appropriate filter function based on the attribute."""
-    if attribute == 'memberof':  # noqa: R505
+    if attribute.startswith('memberof'):  # noqa: R505
+        if ':1.2.840.113556.1.4.1941:' in attribute:
+            return _recursive_filter_memberof
         return _filter_memberof
-    elif attribute == 'member':
+    elif attribute.startswith('member'):
         return _filter_member
     else:
         raise ValueError('Incorrect attribute specified')
 
 
 def _ldap_filter_by_attribute(
-    item: ASN1Row, right: ASN1Row, attribute: str,
-) -> UnaryExpression:
+        item: ASN1Row, right: ASN1Row, attribute: str) -> UnaryExpression:
     """Retrieve query conditions based on the specified LDAP attribute."""
     if item.tag_id.value == 3:
         method = Directory.id.in_
@@ -195,7 +232,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression:
         return _from_str_filter(User, is_substring, item)
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item)
-    elif item.attr in {'memberof', 'member'}:
+    elif item.attr.startswith('member'):
         return _api_filter(item)
     else:
         if is_substring:
