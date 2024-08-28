@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -118,10 +119,9 @@ class AddRequest(BaseRequest):
             .options(
                 selectinload(Directory.paths),
                 selectinload(Directory.access_policies))
-            .join(Directory.access_policies)
-            .where(AccessPolicy.id.in_(ldap_session.user.access_policies_ids))
-            .where(AccessPolicy.can_read.is_(True))
             .filter(parent_path))
+
+        query = mutate_read_access_policy(query, ldap_session.user)
 
         parent = await session.scalar(query)
 

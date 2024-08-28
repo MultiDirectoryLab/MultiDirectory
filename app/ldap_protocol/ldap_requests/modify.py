@@ -13,6 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -120,10 +121,9 @@ class ModifyRequest(BaseRequest):
                 selectinload(Directory.paths),
                 membership1, membership2, membership3)
             .filter(get_path_filter(search_path))
-            .join(Directory.access_policies)
-            .where(AccessPolicy.id.in_(ldap_session.user.access_policies_ids))
-            .where(AccessPolicy.can_read.is_(True))
         )
+
+        query = mutate_read_access_policy(query, ldap_session.user)
 
         directory = await session.scalar(query)
 

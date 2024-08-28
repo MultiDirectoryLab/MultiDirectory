@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -56,10 +57,9 @@ class DeleteRequest(BaseRequest):
             .join(Directory.path)
             .options(joinedload(Directory.user))
             .filter(get_filter_from_path(self.entry))
-            .join(Directory.access_policies)
-            .where(AccessPolicy.id.in_(ldap_session.user.access_policies_ids))
-            .where(AccessPolicy.can_read.is_(True))
         )
+
+        query = mutate_read_access_policy(query, ldap_session.user)
 
         directory = await session.scalar(query)
 

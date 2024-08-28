@@ -12,7 +12,7 @@ from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import Field, field_serializer
-from sqlalchemy import and_, func, or_
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
@@ -20,6 +20,7 @@ from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, UserSchema
 from ldap_protocol.filter_interpreter import cast_filter2sql
@@ -43,7 +44,7 @@ from ldap_protocol.utils import (
     get_windows_timestamp,
     string_to_sid,
 )
-from models.ldap3 import AccessPolicy, Directory, Group, Path, User
+from models.ldap3 import Directory, Group, Path, User
 
 from .base import BaseRequest
 
@@ -308,14 +309,7 @@ class SearchRequest(BaseRequest):
             .distinct(Directory.id)
         )
 
-        if user:
-            ap_filter = and_(
-                AccessPolicy.can_read.is_(True),
-                AccessPolicy.id.in_(user.access_policies_ids))
-
-            query = query\
-                .join(Directory.access_policies, isouter=True)\
-                .where(or_(ap_filter, Directory.id == user.directory_id))
+        query = mutate_read_access_policy(query, user)
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):
