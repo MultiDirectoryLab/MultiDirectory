@@ -269,7 +269,7 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self.paginate_query(query, session)
 
-        async for response in self.tree_view(query, session, settings):
+        async for response in self.tree_view(query, session):
             yield response
 
         yield SearchResultDone(
@@ -361,8 +361,7 @@ class SearchRequest(BaseRequest):
 
     async def tree_view(
             self, query: Select,
-            session: AsyncSession,
-            settings: Settings) -> AsyncGenerator[SearchResultEntry, None]:
+            session: AsyncSession) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
