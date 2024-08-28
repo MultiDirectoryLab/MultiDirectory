@@ -116,7 +116,13 @@ def _recursive_filter_memberof(
 
 def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
     """Retrieve the appropriate filter function based on the attribute."""
-    attribute, oid = column.split(':')[:-1]
+    if len(column.split(':')) == 1:
+        attribute = column
+        oid = ''
+    elif len(column.split(':')) == 3:
+        attribute, oid = column.split(':')[:-1]
+    else:
+        ValueError('Incorrect attribute specified')
 
     if attribute == 'memberof':  # noqa: R505
         if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL.value:
