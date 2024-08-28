@@ -456,6 +456,7 @@ async def test_delete_princ(
     assert kadmin.del_principal.call_args.args == ("name",)
 
 
+@pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
 @pytest.mark.usefixtures('setup_session')
 async def test_admin_incorrect_pw_setup(
