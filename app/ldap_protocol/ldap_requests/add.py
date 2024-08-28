@@ -21,6 +21,7 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.password_policy import PasswordPolicySchema
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils import (
     create_integer_hash,
     create_object_sid,
@@ -155,7 +156,7 @@ class AddRequest(BaseRequest):
             lname = attr.type.lower()
             for value in attr.vals:
                 if lname in Directory.ro_fields or lname in (
-                        "userpassword", 'unicodepwd'):
+                        "userpassword", 'unicodepwd', 'useraccountcontrol'):
                     continue
 
                 if attr.type in user_fields:
@@ -178,6 +179,7 @@ class AddRequest(BaseRequest):
         is_group = 'group' in self.attr_names.get('objectclass', [])
         is_user = 'sAMAccountName' in user_attributes\
             or 'userPrincipalName' in user_attributes
+        is_computer = 'computer' in self.attr_names.get('objectlass', [])
 
         if is_user:
             sam_accout_name = user_attributes.get(
@@ -212,6 +214,11 @@ class AddRequest(BaseRequest):
             user.groups.extend(parent_groups)
 
             attributes.append(Attribute(
+                name='userAccountControl',
+                value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
+                directory=new_dir))
+
+            attributes.append(Attribute(
                 name='uidNumber',
                 value=str(create_integer_hash(user.sam_accout_name)),
                 directory=new_dir))
@@ -235,6 +242,12 @@ class AddRequest(BaseRequest):
             group = Group(directory=new_dir)
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
+
+        elif is_computer:
+            attributes.append(Attribute(
+                name='userAccountControl',
+                value=str(UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT),
+                directory=new_dir))
 
         if is_user or is_group:
             attributes.append(Attribute(

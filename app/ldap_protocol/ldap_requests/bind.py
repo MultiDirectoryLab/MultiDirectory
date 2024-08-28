@@ -19,6 +19,10 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.password_policy import PasswordPolicySchema
+from ldap_protocol.user_account_control import (
+    UserAccountControlFlag,
+    UserAccountControlSchema,
+)
 from ldap_protocol.utils import (
     get_user,
     is_user_group_valid,
@@ -256,6 +260,24 @@ class BindRequest(BaseRequest):
 
         if not user or not self.authentication_choice.is_valid(user):
             yield self.BAD_RESPONSE
+            return
+
+        uac = await UserAccountControlSchema.get_user_account_control(
+            session,
+            user.directory_id,
+        )
+
+        if await UserAccountControlSchema.is_flag_true(
+            uac,
+            UserAccountControlFlag.ACCOUNTDISABLE,
+        ):
+            yield BindResponse(
+                result_code=LDAPCodes.INVALID_CREDENTIALS,
+                matchedDn='',
+                errorMessage=(
+                    "80090308: LdapErr: DSID-0C09030B, "
+                    "comment: AcceptSecurityContext error, "
+                    "data 533, v893"))
             return
 
         if not await self.is_user_group_valid(user, ldap_session, session):
