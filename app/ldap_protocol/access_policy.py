@@ -21,7 +21,7 @@ from ldap_protocol.utils import (
 from models import AccessPolicy, Directory, Group, Path
 
 T = TypeVar('T', bound=Select)
-__all__ = ['get_policies', 'create_policy', 'mutate_read_access_policy']
+__all__ = ['get_policies', 'create_access_policy', 'mutate_read_access_policy']
 
 
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
@@ -42,7 +42,7 @@ async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
     return (await session.scalars(query)).all()
 
 
-async def create_policy(
+async def create_access_policy(
     name: str,
     can_read: bool,
     can_add: bool,

@@ -21,7 +21,7 @@ from starlette.background import BackgroundTask
 from api.auth import get_current_user
 from api.auth.oauth2 import authenticate_user
 from config import Settings
-from ldap_protocol.access_policy import create_policy
+from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import (
     AbstractKadmin,
@@ -118,7 +118,7 @@ async def setup_krb_catalogue(
             await session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT)
 
-        await create_policy(
+        await create_access_policy(
             name='Kerberos Access Policy',
             can_add=True,
             can_modify=True,

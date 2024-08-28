@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from config import Settings
-from ldap_protocol.access_policy import create_policy
+from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
@@ -328,7 +328,7 @@ async def first_setup(
                 .filter(Directory.parent_id.is_(None)),
             )
 
-            await create_policy(
+            await create_access_policy(
                 name='Root Access Policy',
                 can_add=True,
                 can_modify=True,

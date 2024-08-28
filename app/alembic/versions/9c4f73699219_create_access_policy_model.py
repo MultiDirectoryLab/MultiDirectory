@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.access_policy import create_policy
+from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.utils import get_base_directories
 
 # revision identifiers, used by Alembic.
@@ -57,7 +57,7 @@ def upgrade() -> None:
         if not base_dn_list:
             return
 
-        await create_policy(
+        await create_access_policy(
             name='Root Access Policy',
             can_add=True,
             can_modify=True,
