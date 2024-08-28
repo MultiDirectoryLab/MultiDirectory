@@ -4,10 +4,14 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import TypeVar
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.expression import Select, and_, or_
 
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.utils import (
     ENTRY_TYPE,
     get_groups,
@@ -16,7 +20,8 @@ from ldap_protocol.utils import (
 )
 from models import AccessPolicy, Directory, Group, Path
 
-__all__ = ['get_policies', 'create_policy']
+T = TypeVar('T', bound=Select)
+__all__ = ['get_policies', 'create_policy', 'mutate_read_access_policy']
 
 
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
@@ -74,3 +79,19 @@ async def create_policy(
     await session.flush()
 
     await session.refresh(policy)
+
+
+def mutate_read_access_policy(query: T, user: UserSchema) -> T:
+    """Modify query with read rule filter, joins acess policies.
+
+    :param Select[T] query: _description_
+    :param list[int] ap_ids: ids of policies, defaults to list[id]
+    :return T: Select
+    """
+    ap_filter = and_(
+        AccessPolicy.can_read.is_(True),
+        AccessPolicy.id.in_(user.access_policies_ids))
+
+    return query\
+        .join(Directory.access_policies, isouter=True)\
+        .where(or_(ap_filter, Directory.id == user.directory_id))
