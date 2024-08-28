@@ -165,7 +165,7 @@ class TestCreds:
     pw: str
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     """Create test container."""
     ctnr = make_async_container(
@@ -188,7 +188,7 @@ class MutePolicyBindRequest(BindRequest):
         return True
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
     """Get di kadmin."""
     async with container(scope=Scope.APP) as container:
@@ -266,7 +266,7 @@ async def ldap_session(
         yield await container.get(LDAPSession)
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def handler(
     settings: Settings,
     container: AsyncContainer,
