@@ -231,6 +231,25 @@ TEST_DATA = [  # noqa
                 },
             },
             {
+                "name": "user_non_admin",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_accout_name": "user_non_admin",
+                    "user_principal_name": "user_non_admin",
+                    "mail": "user_non_admin@mail.com",
+                    "display_name": "user_non_admin",
+                    "password": "password",
+                    "groups": [],
+                },
+                "attributes": {
+                    "objectClass": [
+                        "top", "person",
+                        "organizationalPerson", "posixAccount"],
+                    "posixEmail": ["abctest@mail.com"],
+                    "attr_with_bvalue": [b"any"],
+                },
+            },
+            {
                 "name": "russia",
                 "object_class": "organizationalUnit",
                 "attributes": {
