@@ -24,7 +24,8 @@ from ldap_protocol.ldap_requests.bind import (
     SimpleAuthentication,
     UnbindRequest,
 )
-from models.ldap3 import Directory, User
+from ldap_protocol.user_account_control import UserAccountControlFlag
+from models.ldap3 import Directory, User, Attribute
 from security import get_password_hash
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
@@ -47,7 +48,13 @@ async def test_bind_ok_and_unbind(
         password=get_password_hash('password'),
         directory=directory,
     )
-    session.add_all([directory, user])
+    user_account_control_attribute = Attribute(
+        directory=directory,
+        name="userAccountControl",
+        value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
+        bvalue=None,
+    )
+    session.add_all([directory, user, user_account_control_attribute])
     await session.commit()
 
     bind = MutePolicyBindRequest(
@@ -83,7 +90,13 @@ async def test_bind_invalid_password_or_user(
         password=get_password_hash('password'),
         directory=directory,
     )
-    session.add_all([directory, user])
+    user_account_control_attribute = Attribute(
+        directory=directory,
+        name="userAccountControl",
+        value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
+        bvalue=None,
+    )
+    session.add_all([directory, user, user_account_control_attribute])
     await session.commit()
 
     bind = BindRequest(
@@ -191,3 +204,52 @@ async def test_ldap3_bind_sasl_plain(
     )
     assert result
     assert ldap_client.bound
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('session')
+async def test_bind_disabled_user(
+    session: AsyncSession,
+    ldap_session: LDAPSession,
+    container: AsyncContainer,
+) -> None:
+    """Test disabled user bind."""
+    directory = Directory(name='user0', object_class='')
+    user = User(
+        sam_accout_name='user0',
+        user_principal_name='user0',
+        mail='user0',
+        display_name='user0',
+        password=get_password_hash('password'),
+        directory=directory,
+    )
+    user_account_control_attribute = Attribute(
+        directory=directory,
+        name="userAccountControl",
+        value=str(UserAccountControlFlag.ACCOUNTDISABLE),
+        bvalue=None,
+    )
+    session.add_all([directory, user, user_account_control_attribute])
+    await session.commit()
+
+    bind = BindRequest(
+        version=0,
+        name=user.sam_accout_name,
+        AuthenticationChoice=SimpleAuthentication(password='password'),
+    )
+
+    bad_response = BindResponse(
+        result_code=LDAPCodes.INVALID_CREDENTIALS,
+        matchedDn='',
+        errorMessage=(
+            "80090308: LdapErr: DSID-0C09030B, "
+            "comment: AcceptSecurityContext error, "
+            "data 533, v893"),
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(bind.handle, container)
+        result = await anext(handler())
+
+    assert result == bad_response
+    assert ldap_session.user is None

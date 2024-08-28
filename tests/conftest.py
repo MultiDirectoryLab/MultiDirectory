@@ -28,7 +28,6 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
-from loguru import logger
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -293,7 +292,7 @@ def _server(
 def ldap_client(settings: Settings) -> ldap3.Connection:
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
-        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"))
+        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"), client_strategy=ldap3.ASYNC)
 
 
 @pytest_asyncio.fixture(scope="function")
