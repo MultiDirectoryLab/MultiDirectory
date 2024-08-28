@@ -84,9 +84,9 @@ async def create_policy(
 def mutate_read_access_policy(query: T, user: UserSchema) -> T:
     """Modify query with read rule filter, joins acess policies.
 
-    :param Select[T] query: _description_
-    :param list[int] ap_ids: ids of policies, defaults to list[id]
-    :return T: Select
+    :param T query: select(Directory)
+    :param UserSchema user: user data
+    :return T: select(Directory).join(Directory.access_policies)
     """
     ap_filter = and_(
         AccessPolicy.can_read.is_(True),
