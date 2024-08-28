@@ -131,8 +131,17 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        if not await session.scalar(
-                query.filter(AccessPolicy.can_modify.is_(True))):
+        names = {change.get_name() for change in self.changes}
+
+        password_change_requested = (
+            ("userpassword" in names or 'unicodepwd' in names) and
+            len(names) == 1 and
+            directory.id == ldap_session.user.directory_id)
+
+        can_modify = await session.scalar(
+            query.filter(AccessPolicy.can_modify.is_(True)))
+
+        if not can_modify and not password_change_requested:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
