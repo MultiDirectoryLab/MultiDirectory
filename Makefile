@@ -11,7 +11,8 @@ up:  ## run tty container with related services, use with run command
 
 test:  ## run tests
 	docker compose -f docker-compose.test.yml down --remove-orphans
-	make down; docker compose -f docker-compose.test.yml up --no-log-prefix --attach test
+	make down;
+	docker compose -f docker-compose.test.yml up --no-log-prefix --attach test --exit-code-from test
 
 run:  ## runs server 386/636 port
 	clear;docker exec -it multidirectory bash -c "python ."
