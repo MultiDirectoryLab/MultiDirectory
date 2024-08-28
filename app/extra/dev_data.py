@@ -171,7 +171,6 @@ DATA = [  # noqa
     },
 ]
 
-
 TEST_DATA = [  # noqa
     {
         "name": "groups",
@@ -239,6 +238,7 @@ TEST_DATA = [  # noqa
                         "organizationalPerson", "posixAccount"],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
+                    "userAccountControl": ["512"],
                 },
             },
             {
@@ -295,6 +295,7 @@ TEST_DATA = [  # noqa
                                         "posixAccount",
                                     ],
                                     "posixEmail": ["user1@mail.com"],
+                                    "userAccountControl": ["512"],
                                 },
                             },
                         ],

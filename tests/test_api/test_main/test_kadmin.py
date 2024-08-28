@@ -42,6 +42,7 @@ def _create_test_user_data(
             {"type": "sAMAccountName", "vals": [name]},
             {"type": "userPrincipalName", "vals": ['ktest']},
             {"type": "displayName", "vals": ["Kerberos Administrator"]},
+            {"type": "userAccountControl", "vals": ["512"]},
         ]}
 
 

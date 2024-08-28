@@ -3,11 +3,9 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
-from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
 
 
@@ -94,6 +92,13 @@ async def adding_test_user(
                     "modification": {
                         "type": "memberOf",
                         "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["0"],
                     },
                 },
             ],
