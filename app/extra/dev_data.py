@@ -195,6 +195,7 @@ TEST_DATA = [  # noqa
             {
                 "name": "developers",
                 "object_class": "group",
+                "groups": ["domain admins"],
                 "attributes": {
                     "objectClass": ["top"],
                     'groupType': ['-2147483646'],
