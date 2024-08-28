@@ -17,6 +17,7 @@ from sqlalchemy.sql.operators import ColumnOperators
 from models.ldap3 import Attribute, Directory, DirectoryMembership, Group, User
 
 from .asn1parser import ASN1Row
+from .objects import LDAPMatchingRule
 from .utils import get_path_filter, get_search_path
 
 
@@ -113,13 +114,15 @@ def _recursive_filter_memberof(
         .select_from(cte).offset(1))  # type: ignore
 
 
-def _get_filter_function(attribute: str) -> Callable[..., UnaryExpression]:
+def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
     """Retrieve the appropriate filter function based on the attribute."""
-    if attribute.startswith('memberof'):  # noqa: R505
-        if ':1.2.840.113556.1.4.1941:' in attribute:
+    attribute, oid = column.split(':')[:-1]
+
+    if attribute == 'memberof':  # noqa: R505
+        if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL.value:
             return _recursive_filter_memberof
         return _filter_memberof
-    elif attribute.startswith('member'):
+    elif attribute == 'member':
         return _filter_member
     else:
         raise ValueError('Incorrect attribute specified')
@@ -161,7 +164,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression:
         return _from_filter(User, item, attr, right)
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right)
-    elif attr in {'memberof', 'member'}:
+    elif attr.startswith('member'):
         return _ldap_filter_by_attribute(item, right, attr)
     else:
         if is_substring:
