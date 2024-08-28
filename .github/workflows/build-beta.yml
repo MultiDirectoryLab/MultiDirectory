@@ -94,7 +94,7 @@ jobs:
       - name: Run tests
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:beta
-        run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test
+        run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test --exit-code-from md-test
       - name: Teardown tests
         env:
           TAG: ghcr.io/${{ env.REPO }}_test:beta
