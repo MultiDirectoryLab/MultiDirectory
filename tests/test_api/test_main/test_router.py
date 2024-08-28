@@ -7,6 +7,7 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
 
@@ -347,7 +348,7 @@ async def test_api_correct_add(
 async def test_api_correct_add_double_member_of(
         http_client: AsyncClient, login_headers: dict) -> None:
     """
-    Test api correct add a group with a register, assigning it to a user, 
+    Test api correct add a group with a register, assigning it to a user,
     and displaying it in the Search request.
     """
     new_group = "cn=Domain Admins,dc=md,dc=test"
@@ -402,7 +403,7 @@ async def test_api_correct_add_double_member_of(
     data = response.json()
 
     assert data['search_result'][0]['object_name'] == new_group
-    
+
     for attr in data['search_result'][0]['partial_attributes']:
         assert attr['type'] != 'memberOf', \
         'memberOf was not specified in the attributes when adding the group'
@@ -474,7 +475,7 @@ async def test_api_correct_add_double_member_of(
     assert response.status_code == 200
     assert data.get('resultCode') == LDAPCodes.SUCCESS
     assert data['search_result'][0]['object_name'] == user
-    
+
     for attr in data['search_result'][0]['partial_attributes']:
         if attr['type'] == 'memberOf':
             assert all(group in groups for group in attr['vals'])
@@ -841,11 +842,13 @@ async def test_api_delete_non_exist_object(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_correct_update_dn(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient, login_headers: dict, session: AsyncSession) -> None:
     """Test API for update DN."""
-    old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-    new_user_dn = "cn=new_test2,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-    newrdn_user = new_user_dn.split(',', maxsplit=1)[0]
+    root_dn = "ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+
+    old_user_dn = "cn=user1," + root_dn
+    newrdn_user = "cn=new_test2"
+    new_user_dn = ','.join((newrdn_user, root_dn))
 
     old_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
     new_group_dn = "cn=new_developers,cn=groups,dc=md,dc=test"
@@ -867,6 +870,23 @@ async def test_api_correct_update_dn(
     assert isinstance(data, dict)
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": new_user_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": False,
+            "filter": "(objectClass=*)",
+            "attributes": ['*'],
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+    assert data['search_result'][0]['object_name'] == new_user_dn
+
     response = await http_client.put(
         "/entry/update/dn",
         json={
@@ -882,26 +902,6 @@ async def test_api_correct_update_dn(
 
     assert isinstance(data, dict)
     assert data.get('resultCode') == LDAPCodes.SUCCESS
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": "dc=md,dc=test",
-            "scope": 3,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": False,
-            "filter": "(objectClass=*)",
-            "attributes": ['memberOf'],
-        },
-        headers=login_headers,
-    )
-
-    data = response.json()
-
-    for entry in data['search_result']:
-        assert entry['object_name'] != old_user_dn
 
     response = await http_client.post(
         "entry/search",
