@@ -23,7 +23,7 @@ from .utils import get_filter_from_path
 MEMBERS_ATTRS = {
     'member',
     'memberof',
-    f'memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL.value}:',
+    f'memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:',
 }
 
 
