@@ -271,6 +271,12 @@ class Directory(Base):
             path=pre_path + [self.get_dn(dn)],
             endpoint=self)
 
+    def __str__(self) -> str:
+        return f"Directory({self.cn})"
+
+    def __repr__(self) -> str:
+        return f"Directory({self.id}:{self.cn})"
+
 
 @declarative_mixin
 class DirectoryReferenceMixin:
@@ -341,6 +347,12 @@ class User(DirectoryReferenceMixin, Base):
     def get_upn_prefix(self) -> str:
         """Get userPrincipalName prefix."""
         return self.user_principal_name.split('@')[0]
+
+    def __str__(self) -> str:
+        return f"User({self.sam_accout_name})"
+
+    def __repr__(self) -> str:
+        return f"User({self.directory_id}:{self.sam_accout_name})"
 
 
 class Group(DirectoryReferenceMixin, Base):
