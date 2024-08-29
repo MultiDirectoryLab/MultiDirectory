@@ -266,6 +266,41 @@ async def test_api_search_complex_filter(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
+async def test_api_search_recursive_memberof(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test api search."""
+    group = "cn=domain admins,cn=groups,dc=md,dc=test"
+    members = [
+        "cn=developers,cn=groups,dc=md,dc=test",
+        "cn=user0,ou=users,dc=md,dc=test",
+        "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+    ]
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": f"(memberOf:1.2.840.113556.1.4.1941:={group})",
+            "attributes": [],
+            "page_number": 1,
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+    assert len(data['search_result']) == len(members)
+    assert all(
+        obj['object_name'] in members
+        for obj in data['search_result']
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
 async def test_api_correct_add(
         http_client: AsyncClient, login_headers: dict) -> None:
     """Test api correct add."""

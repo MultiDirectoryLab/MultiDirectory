@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import Enum
+from enum import Enum, StrEnum
 
 
 class Scope(int, Enum):
@@ -39,3 +39,12 @@ class DerefAliases(int, Enum):
     DEREF_IN_SEARCHING = 1
     DEREF_FINDING_BASE_OBJ = 2
     DEREF_ALWAYS = 3
+
+
+class LDAPMatchingRule(StrEnum):
+    """Enum for LDAP Matching Rules (extensibleMatch)."""
+
+    LDAP_MATCHING_RULE_BIT_AND = "1.2.840.113556.1.4.803"
+    LDAP_MATCHING_RULE_BIT_OR = "1.2.840.113556.1.4.804"
+    LDAP_MATCHING_RULE_TRANSITIVE_EVAL = "1.2.840.113556.1.4.1941"
+    LDAP_MATCHING_RULE_DN_WITH_DATA = "1.2.840.113556.1.4.2253"

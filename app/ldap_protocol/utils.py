@@ -217,7 +217,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         return await session.scalar(select(User).where(cond))
 
     path = await session.scalar(
-        select(Path).where(get_path_filter(get_search_path(name))))
+        select(Path).where(get_filter_from_path(name)))
 
     domain = await session.scalar(
         select(Directory)
@@ -242,7 +242,7 @@ async def get_directories(
             if dn_is_base_directory(base_directory, dn):
                 continue
 
-            paths.append(get_path_filter(get_search_path(dn)))
+            paths.append(get_filter_from_path(dn))
 
     if not paths:
         return paths
@@ -412,6 +412,12 @@ def get_path_filter(
     :return ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
+
+
+def get_filter_from_path(
+        dn: str, *, column: Column = Path.path) -> ColumnElement:
+    """Get filter condition for path equality from dn."""
+    return get_path_filter(get_search_path(dn), column=column)
 
 
 def string_to_sid(sid_string: str) -> bytes:

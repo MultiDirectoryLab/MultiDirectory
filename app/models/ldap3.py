@@ -77,6 +77,13 @@ class DirectoryMembership(Base):
         "Group", uselist=False, cascade="all,delete", overlaps="group")
     directory: 'Directory' = relationship(
         "Directory", uselist=False, cascade="all,delete", overlaps="directory")
+    member_group: 'Group' = relationship(
+        "Group",
+        secondary="Directory",
+        primaryjoin="DirectoryMembership.directory_id == Directory.id",
+        secondaryjoin="Directory.id == Group.directory_id",
+        uselist=False,
+        overlaps="directory")
 
 
 class DirectoryPath(Base):
@@ -163,7 +170,12 @@ class Directory(Base):
 
     attributes: list['Attribute'] = relationship(
         'Attribute', cascade="all,delete")
-    group: 'Group' = relationship('Group', uselist=False, cascade="all,delete")
+    group: 'Group' = relationship(
+        'Group',
+        uselist=False,
+        cascade="all,delete",
+        overlaps='member_group',
+    )
     user: 'User' = relationship(
         'User',
         uselist=False,
@@ -175,7 +187,7 @@ class Directory(Base):
         secondary=DirectoryMembership.__table__,
         back_populates="members",
         lazy="selectin",
-        overlaps="group,directory",
+        overlaps="group,directory,member_group",
     )
 
     __table_args__ = (
@@ -298,7 +310,7 @@ class User(DirectoryReferenceMixin, Base):
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates='users',
-        overlaps="group,groups,directory",
+        overlaps="group,groups,directory,member_group",
     )
 
     def get_upn_prefix(self) -> str:
@@ -318,7 +330,7 @@ class Group(DirectoryReferenceMixin, Base):
         "Directory",
         secondary=DirectoryMembership.__table__,
         back_populates="groups",
-        overlaps="group,groups,directory",
+        overlaps="group,groups,directory,member_group",
     )
 
     parent_groups: list['Group'] = relationship(
@@ -326,7 +338,7 @@ class Group(DirectoryReferenceMixin, Base):
         secondary=DirectoryMembership.__table__,
         primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
         secondaryjoin=DirectoryMembership.group_id == id,
-        overlaps="group,groups,members,directory",
+        overlaps="group,groups,members,directory,member_group",
     )
 
     policies: list['NetworkPolicy'] = relationship(
@@ -349,7 +361,7 @@ class Group(DirectoryReferenceMixin, Base):
         primaryjoin=id == DirectoryMembership.__table__.c.group_id,
         secondaryjoin=DirectoryMembership.directory_id == User.directory_id,
         back_populates='groups',
-        overlaps="directory,groups,members,parent_groups,group",
+        overlaps="directory,group,members,parent_groups,member_group,groups",
     )
 
 

@@ -83,7 +83,7 @@ async def _create_dir(
         for group_name in data.get('groups', []):
             parent_group: Group = await _get_group(group_name, session)
             session.add(DirectoryMembership(
-                group_id=parent_group.id, group_child_id=dir_.id))
+                group_id=parent_group.id, directory_id=dir_.id))
 
     if "attributes" in data:
         attrs = chain(
