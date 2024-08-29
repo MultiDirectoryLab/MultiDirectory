@@ -18,8 +18,7 @@ from ldap_protocol.ldap_responses import (
     DeleteResponse,
 )
 from ldap_protocol.utils import (
-    get_path_filter,
-    get_search_path,
+    get_filter_from_path,
     validate_entry,
 )
 from models.ldap3 import Directory
@@ -55,13 +54,11 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        search_path = get_search_path(self.entry)
-
         directory = await session.scalar((
             select(Directory)
             .join(Directory.path)
             .options(joinedload(Directory.user))
-            .filter(get_path_filter(search_path))
+            .filter(get_filter_from_path(self.entry))
         ))
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)

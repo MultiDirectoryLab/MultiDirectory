@@ -10,7 +10,7 @@ from operator import eq, ge, le, ne
 from typing import Callable
 
 from ldap_filter import Filter
-from sqlalchemy import and_, func, not_, or_, select, text
+from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.operators import ColumnOperators
 
@@ -18,7 +18,7 @@ from models.ldap3 import Attribute, Directory, DirectoryMembership, Group, User
 
 from .asn1parser import ASN1Row
 from .objects import LDAPMatchingRule
-from .utils import get_path_filter, get_search_path
+from .utils import get_filter_from_path
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
@@ -48,12 +48,9 @@ def _from_filter(
 
 def _filter_memberof(method: ColumnOperators, dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute."""
-    group_path = get_search_path(dn)
-    path_filter = get_path_filter(group_path)
-
     group_id_subquery = select(Group.id).join(  # noqa: ECE001
         Directory.group).join(Directory.path).where(
-            path_filter).scalar_subquery()
+            get_filter_from_path(dn)).scalar_subquery()
 
     return method((
         select(Directory.id)
@@ -64,12 +61,9 @@ def _filter_memberof(method: ColumnOperators, dn: str) -> UnaryExpression:
 
 def _filter_member(method: ColumnOperators, dn: str) -> UnaryExpression:
     """Retrieve query conditions with the member attribute."""
-    group_path = get_search_path(dn)
-    path_filter = get_path_filter(group_path)
-
     user_id_subquery = select(User.id).join(  # noqa: ECE001
         Directory.user).join(Directory.path).where(
-            path_filter).scalar_subquery()
+            get_filter_from_path(dn)).scalar_subquery()
 
     return method((
         select(Group.directory_id)
@@ -81,37 +75,28 @@ def _filter_member(method: ColumnOperators, dn: str) -> UnaryExpression:
 def _recursive_filter_memberof(
         method: ColumnOperators, dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute(recursive)."""
-    group_path = get_search_path(dn)
-    path_filter = get_path_filter(group_path)
-
     directory_hierarchy = (  # noqa: ECE001
         select([Directory.id.label('directory_id'),
                 Group.id.label('group_id')])
         .select_from(Directory)
         .join(Directory.group)
         .join(Directory.path)
-        .where(path_filter)
+        .where(get_filter_from_path(dn))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
         select([
-            Directory.id.label('directory_id'),
+            DirectoryMembership.directory_id.label('directory_id'),
             Group.id.label('group_id'),
         ])
         .select_from(DirectoryMembership)
         .join(
             directory_hierarchy,
             directory_hierarchy.c.group_id == DirectoryMembership.group_id)
-        .join(
-            Directory,
-            Directory.id == DirectoryMembership.directory_id)
-        .join(
-            Group, Directory.id == Group.directory_id, isouter=True)
+        .join(DirectoryMembership.member_group, isouter=True)
     )
     cte = directory_hierarchy.union_all(recursive_part)
 
-    return method(
-        select(text("directory_id"))
-        .select_from(cte).offset(1))  # type: ignore
+    return method(select(cte.c.directory_id).offset(1))  # type: ignore
 
 
 def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:

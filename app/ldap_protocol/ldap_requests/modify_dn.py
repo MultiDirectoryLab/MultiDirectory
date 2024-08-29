@@ -19,8 +19,8 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.utils import (
     get_base_directories,
+    get_filter_from_path,
     get_path_filter,
-    get_search_path,
     is_dn_in_base_directory,
     validate_entry,
 )
@@ -100,13 +100,11 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        obj = get_search_path(self.entry)
-
         query = select(Directory)\
             .join(Directory.path)\
             .options(selectinload(Directory.paths))\
             .options(selectinload(Directory.parent))\
-            .filter(get_path_filter(obj))  # noqa
+            .filter(get_filter_from_path(self.entry))  # noqa
 
         directory: Directory | None = await session.scalar(query)
 
@@ -151,11 +149,10 @@ class ModifyDNRequest(BaseRequest):
             new_path = new_directory.create_path(parent=base_dn, dn=dn)
 
         else:
-            new_sup = get_search_path(self.new_superior)
             new_sup_query = select(Directory)\
                 .join(Directory.path)\
                 .options(selectinload(Directory.path))\
-                .filter(get_path_filter(new_sup))
+                .filter(get_filter_from_path(self.new_superior))
 
             new_base_directory = await session.scalar(new_sup_query)
 
