@@ -74,7 +74,62 @@ def _filter_member(method: ColumnOperators, dn: str) -> UnaryExpression:
 
 def _recursive_filter_memberof(
         method: ColumnOperators, dn: str) -> UnaryExpression:
-    """Retrieve query conditions with the memberOF attribute(recursive)."""
+    """Retrieve query conditions with the memberOF attribute(recursive).
+
+    Function Workflow:
+    ------------------
+
+    1. **Base Query (Initial Part of the CTE)**:
+       The function begins by defining the initial part of the CTE, named
+       `directory_hierarchy`. This query selects the `directory_id` and
+       `group_id` from the `Directory` and `Groups` tables, filtering based
+       on the distinguished name (DN) provided by the `dn` argument.
+
+    2. **Recursive Part of the CTE**:
+       The second part of the CTE is recursive. It joins the results of
+       `directory_hierarchy` with the `DirectoryMemberships` table to find
+       all groups that are members of other groups, iterating through
+       all nested memberships.
+
+    3. **Combining Results**:
+       The CTE combines the initial and recursive parts using `union_all`
+       effectively creating a recursive query that gathers all directorie
+       and their associated groups, both directly and indirectly related.
+
+    4. **Final Query**:
+       The final query applies the method (typically a comparison operation
+       to the results of the CTE, returning the desired condition for furthe
+       use in the main query.
+
+    The query translates to the following SQL:
+
+    WITH RECURSIVE anon_1(directory_id, group_id) as (
+        SELECT "Directory".id as directory_id, "Groups".id as group_id
+        FROM "Directory"
+        JOIN "Groups" ON "Directory".id = "Groups"."directoryId"
+        JOIN "Paths" ON "Directory".id = "Paths".endpoint_id
+        WHERE "Paths"."path" = '{dc=test,dc=md,cn=groups,"cn=domain admins"}'
+
+        UNION ALL
+
+        SELECT "DirectoryMemberships".directory_id  AS directory_id,
+               "Groups".id AS group_id
+        FROM "DirectoryMemberships"
+        JOIN anon_1 ON anon_1.group_id = "DirectoryMemberships".group_id
+        LEFT OUTER JOIN "Groups" ON "DirectoryMemberships".directory_id =
+                                   "Groups"."directoryId"
+    )
+    SELECT * FROM anon_1;
+
+    Example:
+    --------
+    Group1 includes user1, user2, and group2.
+    Group2 includes users user3 and group3.
+    Group3 includes user4.
+
+    In the case of a recursive search through the specified group1, the search
+    result will be as follows: user1, user2, group2, user3, group3, user4.
+    """
     directory_hierarchy = (  # noqa: ECE001
         select([Directory.id.label('directory_id'),
                 Group.id.label('group_id')])
