@@ -171,7 +171,7 @@ def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
         ValueError('Incorrect attribute specified')
 
     if attribute == 'memberof':  # noqa: R505
-        if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL.value:
+        if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL:
             return _recursive_filter_memberof
         return _filter_memberof
     elif attribute == 'member':
