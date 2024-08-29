@@ -414,7 +414,8 @@ def get_path_filter(
     return func.array_lowercase(column) == path
 
 
-def get_filter_from_path(dn: str, column: Column = Path.path) -> ColumnElement:
+def get_filter_from_path(
+        dn: str, *, column: Column = Path.path) -> ColumnElement:
     """Get filter condition for path equality from dn."""
     return get_path_filter(get_search_path(dn), column=column)
 
