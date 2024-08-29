@@ -17,10 +17,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
-from ldap_protocol.utils import (
-    get_filter_from_path,
-    validate_entry,
-)
+from ldap_protocol.utils import get_filter_from_path, validate_entry
 from models.ldap3 import Directory
 
 from .base import BaseRequest

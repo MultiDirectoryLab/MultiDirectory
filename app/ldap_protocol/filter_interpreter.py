@@ -20,6 +20,12 @@ from .asn1parser import ASN1Row
 from .objects import LDAPMatchingRule
 from .utils import get_filter_from_path
 
+MEMBERS_ATTRS = {
+    'member',
+    'memberof',
+    f'memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL.value}:',
+}
+
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
     expr = right.value[0]
@@ -210,7 +216,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression:
         return _from_filter(User, item, attr, right)
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right)
-    elif attr.startswith('member'):
+    elif attr in MEMBERS_ATTRS:
         return _ldap_filter_by_attribute(item, right, attr)
     else:
         if is_substring:
@@ -281,7 +287,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression:
         return _from_str_filter(User, is_substring, item)
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item)
-    elif item.attr.startswith('member'):
+    elif item.attr in MEMBERS_ATTRS:
         return _api_filter(item)
     else:
         if is_substring:
