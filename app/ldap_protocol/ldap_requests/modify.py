@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from app.ldap_protocol.user_account_control import UserAccountControlFlag
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
@@ -35,7 +36,6 @@ from ldap_protocol.utils import (
 from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
-from ..user_account_control import UserAccountControlFlag
 from .base import BaseRequest
 
 
