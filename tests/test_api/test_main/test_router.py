@@ -308,7 +308,7 @@ async def test_api_correct_add(
         "/entry/add",
         json={
             "entry": "cn=test,dc=md,dc=test",
-            "password": "password_test",
+            "password": None,
             "attributes": [
                 {
                     "type": "name",
@@ -623,7 +623,7 @@ async def test_api_double_add(
         "/entry/add",
         json={
             "entry": "cn=test,dc=md,dc=test",
-            "password": "",
+            "password": None,
             "attributes": [
                 {
                     "type": "name",
