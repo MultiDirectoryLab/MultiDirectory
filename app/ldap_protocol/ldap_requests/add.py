@@ -130,6 +130,20 @@ class AddRequest(BaseRequest):
         path = new_dir.create_path(parent, new_dn)
         new_dir.depth = len(path.path)
 
+        if self.password is not None:
+            validator = await PasswordPolicySchema\
+                .get_policy_settings(session)
+            raw_password = self.password.get_secret_value()
+            errors = await validator.validate_password_with_policy(
+                raw_password, None)
+
+            if errors:
+                yield AddResponse(
+                    result_code=LDAPCodes.OPERATIONS_ERROR,
+                    errorMessage='; '.join(errors),
+                )
+                return
+
         try:
             session.add_all([new_dir, path])
             path.directories.extend(
@@ -194,18 +208,6 @@ class AddRequest(BaseRequest):
             )
 
             if self.password is not None:
-                validator = await PasswordPolicySchema\
-                    .get_policy_settings(session)
-                raw_password = self.password.get_secret_value()
-                errors = await validator.validate_password_with_policy(
-                    raw_password, user)
-
-                if errors:
-                    yield AddResponse(
-                        result_code=LDAPCodes.OPERATIONS_ERROR,
-                        errorMessage='; '.join(errors),
-                    )
-                    return
                 user.password = get_password_hash(raw_password)
 
             items_to_add.append(user)
