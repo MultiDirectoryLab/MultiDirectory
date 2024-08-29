@@ -262,14 +262,17 @@ class ModifyRequest(BaseRequest):
         name = change.get_name()
 
         if name == 'memberof':
-            directory.groups.extend(
-                await get_groups(change.modification.vals, session))
-            await session.flush()
+            groups = await get_groups(change.modification.vals, session)
+            directory.groups.extend([
+                group for group in groups if group != directory.group])
+
+            await session.commit()
             return
         if name == 'member':
-            directory.group.members.extend(
-                await get_directories(change.modification.vals, session))
-            await session.flush()
+            members = await get_directories(change.modification.vals, session)
+            directory.group.members.extend([
+                member for member in members if directory != member])
+            await session.commit()
             return
 
         for value in change.modification.vals:

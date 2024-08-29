@@ -193,6 +193,7 @@ class Directory(Base):
         uselist=False,
         cascade="all,delete",
         overlaps='member_group',
+        lazy="selectin",
     )
     user: 'User' = relationship(
         'User',
