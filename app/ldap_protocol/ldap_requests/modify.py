@@ -119,6 +119,7 @@ class ModifyRequest(BaseRequest):
             .join(Directory.attributes)
             .options(
                 selectinload(Directory.paths),
+                selectinload(Directory.groups),
                 membership1, membership2, membership3)
             .filter(get_path_filter(search_path))
         )
@@ -264,13 +265,12 @@ class ModifyRequest(BaseRequest):
         if name == 'memberof':
             directory.groups.extend(
                 await get_groups(change.modification.vals, session))
-
-            await session.commit()
+            await session.flush()
             return
         if name == 'member':
             directory.group.members.extend(
                 await get_directories(change.modification.vals, session))
-            await session.commit()
+            await session.flush()
             return
 
         for value in change.modification.vals:
