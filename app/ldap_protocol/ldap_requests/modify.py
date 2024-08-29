@@ -36,6 +36,7 @@ from ldap_protocol.utils import (
 from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
+from ..user_account_control import UserAccountControlFlag
 from .base import BaseRequest
 
 
