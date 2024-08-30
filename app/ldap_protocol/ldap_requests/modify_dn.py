@@ -19,10 +19,8 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.utils import (
-    get_base_directories,
     get_filter_from_path,
     get_path_filter,
-    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import AccessPolicy, Directory, DirectoryReferenceMixin, Path
