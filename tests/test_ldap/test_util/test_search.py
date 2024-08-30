@@ -17,6 +17,7 @@ from app.ldap_protocol.dialogue import LDAPSession
 from app.ldap_protocol.ldap_requests import SearchRequest
 from app.ldap_protocol.utils import get_group, get_groups, is_user_group_valid
 from app.models.ldap3 import User
+from ldap_protocol.access_policy import create_access_policy
 from tests.conftest import TestCreds
 
 
@@ -158,6 +159,7 @@ async def test_bvalue_in_search_request(
 async def test_ldap_search_access_control_denied(
     settings: Settings,
     creds: TestCreds,
+    session: AsyncSession,
 ) -> None:
     """Test ldapsearch on server.
 
@@ -179,5 +181,40 @@ async def test_ldap_search_access_control_denied(
     dn_list = [d for d in data if d.startswith('dn:')]
 
     assert result == 0
-    assert len(dn_list) == 1
-    assert dn_list[0] == "dn: cn=user_non_admin,ou=users,dc=md,dc=test"
+    assert dn_list == ["dn: cn=user_non_admin,ou=users,dc=md,dc=test"]
+
+    await create_access_policy(
+        name='Groups Read Access Policy',
+        can_add=False,
+        can_modify=False,
+        can_read=True,
+        can_delete=False,
+        grant_dn="cn=groups,dc=md,dc=test",
+        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
+        session=session,
+    )
+    await session.commit()
+
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-x', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
+        '-D', 'user_non_admin',
+        '-w', creds.pw,
+        '-b', 'dc=md,dc=test', 'objectclass=*',
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split('\n')
+    result = await proc.wait()
+
+    dn_list = [d for d in data if d.startswith('dn:')]
+
+    assert result == 0
+    assert sorted(dn_list) == sorted([
+        'dn: cn=groups,dc=md,dc=test',
+        'dn: cn=domain admins,cn=groups,dc=md,dc=test',
+        'dn: cn=developers,cn=groups,dc=md,dc=test',
+        'dn: cn=domain users,cn=groups,dc=md,dc=test',
+        'dn: cn=user_non_admin,ou=users,dc=md,dc=test',
+    ])
