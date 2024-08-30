@@ -151,10 +151,11 @@ class ModifyRequest(BaseRequest):
             if change.modification.type in Directory.ro_fields:
                 continue
 
+            add_args = (change, directory, session, kadmin, settings)
+
             try:
                 if change.operation == Operation.ADD:
-                    await self._add(
-                        change, directory, session, kadmin, settings)
+                    await self._add(*add_args)
 
                 elif change.operation == Operation.DELETE:
                     await self._delete(change, directory, session)
@@ -163,9 +164,9 @@ class ModifyRequest(BaseRequest):
                     async with session.begin_nested():
                         await self._delete(change, directory, session, True)
                         await session.flush()
-                        await self._add(
-                            change, directory, session, kadmin, settings)
+                        await self._add(*add_args)
 
+                await session.flush()
                 await session.execute(
                     update(Directory).where(Directory.id == directory.id),
                 )
@@ -187,7 +188,6 @@ class ModifyRequest(BaseRequest):
                 yield ModifyResponse(
                     result_code=LDAPCodes.STRONGER_AUTH_REQUIRED)
                 return
-
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     async def _delete(
