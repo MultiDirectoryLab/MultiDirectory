@@ -144,12 +144,15 @@ async def test_ldap_membersip_user_add(
         session: AsyncSession, settings: Settings, creds: TestCreds) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
-    query = (
+    query = (  # noqa
         select(Directory)
-        .options(selectinload(Directory.groups))
+        .options(selectinload(Directory.groups).selectinload(Group.directory))
         .join(Directory.path).filter(Path.path == get_search_path(dn)))
 
     directory = await session.scalar(query)
+
+    directory.groups.clear()
+    await session.commit()
 
     assert not directory.groups
 
