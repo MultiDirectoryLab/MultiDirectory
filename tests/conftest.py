@@ -8,7 +8,7 @@ import asyncio
 import uuid
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, AsyncIterator, Generator, Iterator
+from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -37,6 +37,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.orm.session import SessionTransaction
 
 from app.__main__ import PoolClientHandler
 from app.extra import TEST_DATA, setup_enviroment
@@ -106,28 +107,34 @@ class TestProvider(Provider):
             class_=AsyncSession,
         )
 
-    @provide(scope=Scope.APP, provides=AsyncSession)
+    @provide(scope=Scope.APP, cache=False, provides=AsyncSession)
     async def get_session(
             self, engine: AsyncEngine,
             session_factory: sessionmaker) -> AsyncIterator[AsyncSession]:
         """Get test session with a savepoint."""
+        if self._cached_session:
+            yield self._cached_session
+            return
+
         connection = await engine.connect()
         trans = await connection.begin()
         async_session = session_factory(bind=connection)
         nested = await connection.begin_nested()
 
         @event.listens_for(async_session.sync_session, "after_transaction_end")
-        def end_savepoint(session: AsyncSession, transaction: Any) -> None:
+        def end_savepoint(
+            session: AsyncSession,
+            transaction: SessionTransaction,
+        ) -> None:
             nonlocal nested
-
             if not nested.is_active:
                 nested =\
                     connection.sync_connection.begin_nested()  # type: ignore
 
-        if self._cached_session is None:
-            self._cached_session = async_session
+        self._cached_session = async_session
+        self._session_id = uuid.uuid4()
 
-        yield self._cached_session
+        yield async_session
 
         self._cached_session = None
         self._session_id = None
