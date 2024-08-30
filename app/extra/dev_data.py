@@ -204,6 +204,17 @@ TEST_DATA = [  # noqa
                     'sAMAccountType': ['268435456'],
                 },
             },
+            {
+                "name": "domain users",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top"],
+                    'groupType': ['-2147483646'],
+                    'instanceType': ['4'],
+                    'sAMAccountName': ['domain users'],
+                    'sAMAccountType': ['268435456'],
+                },
+            },
         ],
     },
     {
@@ -239,7 +250,7 @@ TEST_DATA = [  # noqa
                     "mail": "user_non_admin@mail.com",
                     "display_name": "user_non_admin",
                     "password": "password",
-                    "groups": [],
+                    "groups": ['domain users'],
                 },
                 "attributes": {
                     "objectClass": [
