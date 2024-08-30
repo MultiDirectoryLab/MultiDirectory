@@ -150,3 +150,34 @@ async def test_bvalue_in_search_request(
     for attr in result.partial_attributes:
         if attr.type == 'attr_with_bvalue':
             assert isinstance(attr.vals[0], bytes)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap_search_access_control_denied(
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch on server.
+
+    Default user can read only himself.
+    """
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-x', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
+        '-D', 'user_non_admin',
+        '-w', creds.pw,
+        '-b', 'dc=md,dc=test', 'objectclass=*',
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split('\n')
+    result = await proc.wait()
+
+    dn_list = [d for d in data if d.startswith('dn:')]
+
+    assert result == 0
+    assert len(dn_list) == 1
+    assert dn_list[0] == "dn: cn=user_non_admin,ou=users,dc=md,dc=test"
