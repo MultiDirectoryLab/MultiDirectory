@@ -141,26 +141,17 @@ async def test_ldap_membersip_user_delete(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 async def test_ldap_membersip_user_add(
-        session: AsyncSession, settings: Settings, user: dict) -> None:
+        session: AsyncSession, settings: Settings, creds: TestCreds) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
-    search_path = get_search_path(dn)
-    membership = selectinload(Directory.user).selectinload(
-        User.groups).selectinload(
-            Group.directory).selectinload(Directory.path)
-
-    query = select(Directory)\
-        .options(
-            subqueryload(Directory.attributes),
-            joinedload(Directory.user), membership)\
-        .join(Directory.path).filter(Path.path == search_path)
+    dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    query = (
+        select(Directory)
+        .options(selectinload(Directory.groups))
+        .join(Directory.path).filter(Path.path == get_search_path(dn)))
 
     directory = await session.scalar(query)
 
-    directory.user.groups.clear()
-    await session.commit()
-
-    assert not directory.user.groups
+    assert not directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
@@ -174,16 +165,18 @@ async def test_ldap_membersip_user_add(
         proc = await asyncio.create_subprocess_exec(
             'ldapmodify',
             '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
+            '-D', creds.un, '-x', '-w', creds.pw,
             '-f', file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
         result = await proc.wait()
 
+    session.expire_all()
+
     assert result == 0
-    await session.refresh(directory)
-    assert directory.user.groups
+    directory = await session.scalar(query)
+    assert directory.groups
 
 
 @pytest.mark.asyncio
