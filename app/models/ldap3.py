@@ -203,6 +203,8 @@ class Directory(Base):
     groups: list['Group'] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
+        primaryjoin="Directory.id == DirectoryMembership.directory_id",
+        secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="members",
         lazy="selectin",
         overlaps="group,directory,member_group",
@@ -409,6 +411,12 @@ class Group(DirectoryReferenceMixin, Base):
             "GroupAccessPolicyMembership.policy_id == AccessPolicy.id"),
         back_populates="groups",
     )
+
+    def __str__(self) -> str:
+        return f"Group({self.id})"
+
+    def __repr__(self) -> str:
+        return f"Group({self.id}:{self.directory_id})"
 
 
 class Attribute(DirectoryReferenceMixin, Base):
