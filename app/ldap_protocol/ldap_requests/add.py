@@ -28,6 +28,7 @@ from ldap_protocol.utils import (
     create_user_name,
     ft_now,
     get_base_directories,
+    get_group,
     get_groups,
     get_path_filter,
     get_search_path,
@@ -210,6 +211,9 @@ class AddRequest(BaseRequest):
             or 'userPrincipalName' in user_attributes
 
         if is_user:
+            parent_groups.append(
+                (await get_group('domain users', session)).group)
+
             sam_accout_name = user_attributes.get(
                 'sAMAccountName', create_user_name(new_dir.id))
             user_principal_name = user_attributes.get(
