@@ -8,7 +8,7 @@ import asyncio
 import uuid
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, AsyncIterator, Generator, Iterator
+from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -29,23 +29,27 @@ from dishka import (
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from loguru import logger
-from sqlalchemy import event
+from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
     AsyncSession,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.orm.session import SessionTransaction
 
 from app.__main__ import PoolClientHandler
 from app.extra import TEST_DATA, setup_enviroment
 from config import Settings
 from ioc import MFACredsProvider
+from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.utils import get_user
+from models import Directory
 from web_app import create_app
 
 
@@ -103,28 +107,34 @@ class TestProvider(Provider):
             class_=AsyncSession,
         )
 
-    @provide(scope=Scope.APP, provides=AsyncSession)
+    @provide(scope=Scope.APP, cache=False, provides=AsyncSession)
     async def get_session(
             self, engine: AsyncEngine,
             session_factory: sessionmaker) -> AsyncIterator[AsyncSession]:
         """Get test session with a savepoint."""
+        if self._cached_session:
+            yield self._cached_session
+            return
+
         connection = await engine.connect()
         trans = await connection.begin()
         async_session = session_factory(bind=connection)
         nested = await connection.begin_nested()
 
         @event.listens_for(async_session.sync_session, "after_transaction_end")
-        def end_savepoint(session: AsyncSession, transaction: Any) -> None:
+        def end_savepoint(
+            session: AsyncSession,
+            transaction: SessionTransaction,
+        ) -> None:
             nonlocal nested
-
             if not nested.is_active:
                 nested =\
                     connection.sync_connection.begin_nested()  # type: ignore
 
-        if self._cached_session is None:
-            self._cached_session = async_session
+        self._cached_session = async_session
+        self._session_id = uuid.uuid4()
 
-        yield self._cached_session
+        yield async_session
 
         self._cached_session = None
         self._session_id = None
@@ -255,6 +265,22 @@ async def session(
 async def setup_session(session: AsyncSession) -> None:
     """Get session and aquire after completion."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+
+    domain: Directory = await session.scalar(
+        select(Directory)
+        .options(joinedload(Directory.path))
+        .filter(Directory.parent_id.is_(None)),
+    )
+    await create_access_policy(
+        name='Root Access Policy',
+        can_add=True,
+        can_modify=True,
+        can_read=True,
+        can_delete=True,
+        grant_dn=domain.path_dn,
+        groups=["cn=domain admins,cn=groups," + domain.path_dn],
+        session=session,
+    )
     await session.commit()
 
 
@@ -264,6 +290,19 @@ async def ldap_session(
     """Yield empty session."""
     async with container(scope=Scope.SESSION) as container:
         yield await container.get(LDAPSession)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def ldap_bound_session(
+    ldap_session: LDAPSession,
+    session: AsyncSession,
+    creds: TestCreds,
+    setup_session: None,
+) -> AsyncIterator[LDAPSession]:
+    """Yield bound session."""
+    user = await get_user(session, creds.un)
+    await ldap_session.set_user(user)
+    return ldap_session
 
 
 @pytest_asyncio.fixture(scope="session")

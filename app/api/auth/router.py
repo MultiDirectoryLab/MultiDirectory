@@ -13,8 +13,11 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from config import Settings
+from ldap_protocol.access_policy import create_access_policy
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.password_policy import (
@@ -34,7 +37,7 @@ from .oauth2 import (
     get_user,
     oauth2,
 )
-from .schema import OAuth2Form, SetupRequest, Token, User
+from .schema import OAuth2Form, SetupRequest, Token
 
 auth_router = APIRouter(prefix='/auth', tags=['Auth'])
 
@@ -107,7 +110,7 @@ async def login_for_access_token(
 @auth_router.post("/token/refresh")
 @inject
 async def renew_tokens(
-    user: Annotated[User, Depends(get_current_user_refresh)],
+    user: Annotated[UserSchema, Depends(get_current_user_refresh)],
     token: Annotated[str, Depends(oauth2)],
     *,
     mfa: FromDishka[MultifactorAPI],
@@ -148,7 +151,8 @@ async def renew_tokens(
 
 
 @auth_router.get("/me")
-async def users_me(user: Annotated[User, Depends(get_current_user)]) -> User:
+async def users_me(
+        user: Annotated[UserSchema, Depends(get_current_user)]) -> UserSchema:
     """Get current logged in user data."""
     return user
 
@@ -253,6 +257,18 @@ async def first_setup(
                     },
                     "objectSid": 512,
                 },
+                {
+                    "name": "domain users",
+                    "object_class": "group",
+                    "attributes": {
+                        "objectClass": ["top", 'posixGroup'],
+                        'groupType': ['-2147483646'],
+                        'instanceType': ['4'],
+                        'sAMAccountName': ['domain users'],
+                        'sAMAccountType': ['268435456'],
+                    },
+                    "objectSid": 513,
+                },
             ],
         },
         {
@@ -292,6 +308,8 @@ async def first_setup(
         try:
             await setup_enviroment(session, dn=request.domain, data=data)
 
+            await session.flush()
+
             default_pwd_policy = PasswordPolicySchema()
             errors = await default_pwd_policy.validate_password_with_policy(
                 request.password, None)
@@ -303,6 +321,24 @@ async def first_setup(
                 )
 
             await default_pwd_policy.create_policy_settings(session)
+
+            domain: Directory = await session.scalar(
+                select(Directory)
+                .options(joinedload(Directory.path))
+                .filter(Directory.parent_id.is_(None)),
+            )
+
+            await create_access_policy(
+                name='Root Access Policy',
+                can_add=True,
+                can_modify=True,
+                can_read=True,
+                can_delete=True,
+                grant_dn=domain.path_dn,
+                groups=["cn=domain admins,cn=groups," + domain.path_dn],
+                session=session,
+            )
+
             await session.commit()
 
         except IntegrityError:

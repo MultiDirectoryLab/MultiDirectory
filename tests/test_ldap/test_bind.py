@@ -31,35 +31,26 @@ from tests.conftest import MutePolicyBindRequest, TestCreds
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures('setup_session')
 async def test_bind_ok_and_unbind(
     session: AsyncSession,
     ldap_session: LDAPSession,
     settings: Settings,
     kadmin: AbstractKadmin,
+    creds: TestCreds,
 ) -> None:
     """Test ok bind."""
-    directory = Directory(name='user0', object_class='')
-    user = User(
-        sam_accout_name='user0',
-        user_principal_name='user0',
-        mail='user0',
-        display_name='user0',
-        password=get_password_hash('password'),
-        directory=directory,
-    )
-    session.add_all([directory, user])
-    await session.commit()
-
     bind = MutePolicyBindRequest(
         version=0,
-        name=user.sam_accout_name,
+        name=creds.un,
         AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
     )
 
     result = await anext(bind.handle(
         session, ldap_session, kadmin, settings, None))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
-    assert ldap_session.user.sam_accout_name == user.sam_accout_name  # type: ignore  # noqa
+    assert ldap_session.user
+    assert ldap_session.user.sam_accout_name == creds.un
 
     with pytest.raises(StopAsyncIteration):
         await anext(UnbindRequest().handle(ldap_session))

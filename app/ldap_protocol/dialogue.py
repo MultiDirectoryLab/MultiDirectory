@@ -7,9 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from enum import IntEnum
 from ipaddress import IPv4Address, ip_address
-from typing import TYPE_CHECKING, AsyncIterator
+from typing import TYPE_CHECKING, AsyncIterator, Literal
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +28,46 @@ class Operation(IntEnum):
     ADD = 0
     DELETE = 1
     REPLACE = 2
+
+
+@dataclass
+class UserSchema:
+    """User model, alias for db user."""
+
+    id: int  # noqa: A003
+    sam_accout_name: str
+    user_principal_name: str
+    mail: str
+    display_name: str
+    directory_id: int
+    dn: str
+
+    access_policies_ids: list[int]
+    access_type: Literal['access', 'refresh', 'multifactor']
+    exp: int
+
+    @classmethod
+    def from_db(
+        cls,
+        user: User,
+        access: Literal['access', 'refresh', 'multifactor'],
+        exp: int = 0,
+    ) -> 'UserSchema':
+        """Create model from db model."""
+        return cls(
+            id=user.id,
+            sam_accout_name=user.sam_accout_name,
+            user_principal_name=user.user_principal_name,
+            mail=user.mail,
+            display_name=user.display_name,
+            access_type=access,
+            exp=exp,
+            directory_id=user.directory_id,
+            dn=user.directory.path_dn,
+            access_policies_ids=[
+                policy.id for group in user.groups
+                for policy in group.access_policies],
+        )
 
 
 class LDAPCodes(IntEnum):
@@ -134,10 +175,10 @@ class LDAPSession:
     ip: IPv4Address
     policy: NetworkPolicy | None
 
-    def __init__(self, *, user: User | None = None) -> None:
+    def __init__(self, *, user: UserSchema | None = None) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
-        self._user: User | None = user
+        self._user: UserSchema | None = user
         self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
         self.id = uuid.uuid4()
 
@@ -146,7 +187,7 @@ class LDAPSession:
         return f"LDAPSession({self.id})"
 
     @property
-    def user(self) -> User | None:
+    def user(self) -> UserSchema | None:
         """User getter, not implemented."""
         return self._user
 
@@ -155,23 +196,26 @@ class LDAPSession:
         raise NotImplementedError(
             'Cannot manually set user, use `set_user()` instead')
 
-    async def set_user(self, user: User) -> None:
+    async def set_user(self, user: User | UserSchema) -> None:
         """Bind user to session concurrently save."""
         async with self._lock:
-            self._user = user
+            if isinstance(user, User):
+                self._user = UserSchema.from_db(user, access='access')
+            else:
+                self._user = user
 
     async def delete_user(self) -> None:
         """Unbind user from session concurrently save."""
         async with self._lock:
             self._user = None
 
-    async def get_user(self) -> User:
+    async def get_user(self) -> UserSchema | None:
         """Get user from session concurrently save."""
         async with self._lock:
             return self._user
 
     @asynccontextmanager
-    async def lock(self) -> AsyncIterator[User]:
+    async def lock(self) -> AsyncIterator[UserSchema | None]:
         """Lock session, user cannot be deleted or get while lock is set."""
         async with self._lock:
             yield self._user

@@ -18,10 +18,11 @@ from pydantic import EmailStr, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
-from api.auth import User, get_current_user
+from api.auth import get_current_user
 from api.auth.oauth2 import authenticate_user
 from config import Settings
-from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.access_policy import create_access_policy
+from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import (
     AbstractKadmin,
     KerberosState,
@@ -116,6 +117,17 @@ async def setup_krb_catalogue(
         if not all(result.result_code == 0 for result in results):
             await session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT)
+
+        await create_access_policy(
+            name='Kerberos Access Policy',
+            can_add=True,
+            can_modify=True,
+            can_read=True,
+            can_delete=True,
+            grant_dn=services_container,
+            groups=[krbgroup],
+            session=session,
+        )
         await session.commit()
 
 
@@ -123,7 +135,7 @@ async def setup_krb_catalogue(
 @inject
 async def setup_kdc(
     data: KerberosSetupRequest,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[UserSchema, Depends(get_current_user)],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
     kadmin: FromDishka[AbstractKadmin],

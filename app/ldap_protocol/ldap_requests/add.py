@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -27,13 +28,14 @@ from ldap_protocol.utils import (
     create_user_name,
     ft_now,
     get_base_directories,
+    get_group,
     get_groups,
     get_path_filter,
     get_search_path,
     is_dn_in_base_directory,
     validate_entry,
 )
-from models.ldap3 import Attribute, Directory, Group, User
+from models.ldap3 import AccessPolicy, Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -109,17 +111,28 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        parent_dn = root_dn[:-1]
+        parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(',')[0].split('=')
 
-        query = select(Directory)\
-            .join(Directory.path)\
-            .options(selectinload(Directory.paths))\
-            .filter(get_path_filter(parent_dn))
+        query = (  # noqa: ECE001
+            select(Directory)
+            .join(Directory.path)
+            .options(
+                selectinload(Directory.paths),
+                selectinload(Directory.access_policies))
+            .filter(parent_path))
+
+        query = mutate_read_access_policy(query, ldap_session.user)
+
         parent = await session.scalar(query)
 
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if not await session.scalar(
+                query.where(AccessPolicy.can_add.is_(True))):
+            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         new_dir = Directory(
@@ -127,6 +140,10 @@ class AddRequest(BaseRequest):
             name=name,
             parent=parent,
         )
+
+        new_dir.access_policies.extend(parent.access_policies)
+        await session.flush()
+
         path = new_dir.create_path(parent, new_dn)
         new_dir.depth = len(path.path)
 
@@ -194,6 +211,9 @@ class AddRequest(BaseRequest):
             or 'userPrincipalName' in user_attributes
 
         if is_user:
+            parent_groups.append(
+                (await get_group('domain users', session)).group)
+
             sam_accout_name = user_attributes.get(
                 'sAMAccountName', create_user_name(new_dir.id))
             user_principal_name = user_attributes.get(

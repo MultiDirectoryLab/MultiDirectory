@@ -13,6 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -32,7 +33,7 @@ from ldap_protocol.utils import (
     is_dn_in_base_directory,
     validate_entry,
 )
-from models.ldap3 import Attribute, Directory, Group, User
+from models.ldap3 import AccessPolicy, Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -112,14 +113,18 @@ class ModifyRequest(BaseRequest):
         membership3 = selectinload(Directory.group)\
             .selectinload(Group.members)
 
-        query = select(   # noqa: ECE001
-            Directory)\
-            .join(Directory.path)\
-            .join(Directory.attributes)\
+        query = (  # noqa: ECE001
+            select(Directory)
+            .join(Directory.path)
+            .join(Directory.attributes)
             .options(
                 selectinload(Directory.paths),
-                membership1, membership2, membership3)\
+                selectinload(Directory.groups),
+                membership1, membership2, membership3)
             .filter(get_path_filter(search_path))
+        )
+
+        query = mutate_read_access_policy(query, ldap_session.user)
 
         directory = await session.scalar(query)
 
@@ -127,14 +132,30 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
+        names = {change.get_name() for change in self.changes}
+
+        password_change_requested = (
+            ("userpassword" in names or 'unicodepwd' in names) and
+            len(names) == 1 and
+            directory.id == ldap_session.user.directory_id)
+
+        can_modify = await session.scalar(
+            query.filter(AccessPolicy.can_modify.is_(True)))
+
+        if not can_modify and not password_change_requested:
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
+            return
+
         for change in self.changes:
             if change.modification.type in Directory.ro_fields:
                 continue
 
+            add_args = (change, directory, session, kadmin, settings)
+
             try:
                 if change.operation == Operation.ADD:
-                    await self._add(
-                        change, directory, session, kadmin, settings)
+                    await self._add(*add_args)
 
                 elif change.operation == Operation.DELETE:
                     await self._delete(change, directory, session)
@@ -143,9 +164,9 @@ class ModifyRequest(BaseRequest):
                     async with session.begin_nested():
                         await self._delete(change, directory, session, True)
                         await session.flush()
-                        await self._add(
-                            change, directory, session, kadmin, settings)
+                        await self._add(*add_args)
 
+                await session.flush()
                 await session.execute(
                     update(Directory).where(Directory.id == directory.id),
                 )
@@ -167,7 +188,6 @@ class ModifyRequest(BaseRequest):
                 yield ModifyResponse(
                     result_code=LDAPCodes.STRONGER_AUTH_REQUIRED)
                 return
-
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     async def _delete(
@@ -245,13 +265,12 @@ class ModifyRequest(BaseRequest):
         if name == 'memberof':
             directory.groups.extend(
                 await get_groups(change.modification.vals, session))
-
-            await session.commit()
+            await session.flush()
             return
         if name == 'member':
             directory.group.members.extend(
                 await get_directories(change.modification.vals, session))
-            await session.commit()
+            await session.flush()
             return
 
         for value in change.modification.vals:

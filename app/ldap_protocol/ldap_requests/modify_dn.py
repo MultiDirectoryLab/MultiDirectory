@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.ldap_responses import (
@@ -18,13 +19,11 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.utils import (
-    get_base_directories,
     get_filter_from_path,
     get_path_filter,
-    is_dn_in_base_directory,
     validate_entry,
 )
-from models.ldap3 import Directory, DirectoryReferenceMixin, Path
+from models.ldap3 import AccessPolicy, Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
 
@@ -100,11 +99,17 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        query = select(Directory)\
-            .join(Directory.path)\
-            .options(selectinload(Directory.paths))\
-            .options(selectinload(Directory.parent))\
-            .filter(get_filter_from_path(self.entry))  # noqa
+        query = (  # noqa
+            select(Directory)
+            .join(Directory.path)
+            .options(selectinload(Directory.paths))
+            .options(
+                selectinload(Directory.parent)
+                .selectinload(Directory.path))
+            .options(selectinload(Directory.access_policies))
+            .filter(get_filter_from_path(self.entry)))
+
+        query = mutate_read_access_policy(query, ldap_session.user)
 
         directory: Directory | None = await session.scalar(query)
 
@@ -116,12 +121,10 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        for base_directory in await get_base_directories(session):
-            if is_dn_in_base_directory(base_directory, self.entry):
-                base_dn = base_directory
-                break
-        else:
-            yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+        if not await session.scalar(
+                query.where(AccessPolicy.can_modify.is_(True))):
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         dn, name = self.newrdn.split('=')
@@ -137,81 +140,84 @@ class ModifyDNRequest(BaseRequest):
                 object_sid=directory.object_sid,
             )
             new_path = new_directory.create_path(directory.parent, dn)
-
-        elif base_dn.path_dn == self.new_superior:
-            new_directory = Directory(
-                object_class=directory.object_class,
-                name=name,
-                depth=len(base_dn.path.path)+1,
-                object_guid=directory.object_guid,
-                object_sid=directory.object_sid,
-            )
-            new_path = new_directory.create_path(parent=base_dn, dn=dn)
+            new_directory.access_policies.extend(directory.access_policies)
 
         else:
-            new_sup_query = select(Directory)\
-                .join(Directory.path)\
-                .options(selectinload(Directory.path))\
-                .filter(get_filter_from_path(self.new_superior))
+            new_sup_query = (
+                select(Directory)
+                .join(Directory.path)
+                .options(selectinload(Directory.path))
+                .options(selectinload(Directory.access_policies))
+                .filter(get_filter_from_path(self.new_superior)))
 
-            new_base_directory = await session.scalar(new_sup_query)
+            new_sup_query = mutate_read_access_policy(
+                new_sup_query, ldap_session.user)
 
-            if not new_base_directory:
+            new_parent_dir: Directory | None = await session.scalar(
+                new_sup_query)
+
+            if not new_parent_dir:
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+                return
+
+            if not await session.scalar(
+                    new_sup_query.where(AccessPolicy.can_add.is_(True))):
+                yield ModifyDNResponse(
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
                 return
 
             new_directory = Directory(
                 object_class=directory.object_class,
                 name=name,
-                parent=new_base_directory,
-                depth=len(new_base_directory.path.path)+1,
+                parent=new_parent_dir,
+                depth=len(new_parent_dir.path.path)+1,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
-            new_path = new_directory.create_path(new_base_directory, dn=dn)
+            new_path = new_directory.create_path(new_parent_dir, dn=dn)
+            new_directory.access_policies.extend(
+                new_parent_dir.access_policies)
 
         async with session.begin_nested():
             session.add_all([new_directory, new_path])
-            await session.commit()
-
-        async with session.begin_nested():
+            await session.flush()
             await session.execute(
                 update(Directory)
                 .where(Directory.parent == directory)
                 .values(parent_id=new_directory.id))
 
-            await session.commit()
+            await session.flush()
 
-        async with session.begin_nested():
             for model in DirectoryReferenceMixin.__subclasses__():
                 await session.execute(
                     update(model)
                     .where(model.directory_id == directory.id)
                     .values(directory_id=new_directory.id))
 
-        async with session.begin_nested():
-            #  TODO: replace text with slice
-            await session.execute(
+            await session.flush()
+
+            update_query = (
                 update(Path)
-                .where(
-                    get_path_filter(
-                        directory.path.path,
-                        column=Path.path[1:directory.depth],
-                    ),
-                )
-                .values(
-                    path=func.array_cat(
-                        new_directory.path.path,
-                        text("path[:depth :]").bindparams(
-                            depth=directory.depth+1),
-                    ),
-                ),
+                .where(get_path_filter(
+                    directory.path.path,
+                    column=Path.path[1:directory.depth]))
+                .values(path=func.array_cat(
+                    new_directory.path.path,
+                    #  TODO: replace text with slice
+                    text("path[:depth :]").bindparams(
+                        depth=directory.depth+1)))
+            )
+
+            await session.execute(
+                update_query,
                 execution_options={"synchronize_session": 'fetch'},
             )
-            await session.commit()
+            await session.flush()
 
-        await session.refresh(directory)
-        await session.delete(directory)
+            if self.deleteoldrdn:
+                await session.delete(directory)
+                await session.flush()
+
         await session.commit()
 
         yield ModifyDNResponse(result_code=LDAPCodes.SUCCESS)

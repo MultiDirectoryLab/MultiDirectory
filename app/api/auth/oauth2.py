@@ -13,14 +13,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from config import Settings
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.utils import get_user
+from models.ldap3 import Group
 from models.ldap3 import User as DBUser
 from security import verify_password
-
-from .schema import User
 
 ALGORITHM = "HS256"
 
@@ -37,7 +38,7 @@ async def authenticate_user(
     session: AsyncSession,
     username: str,
     password: str,
-) -> User | None:
+) -> UserSchema | None:
     """Get user and verify password.
 
     :param AsyncSession session: sa session
@@ -51,7 +52,7 @@ async def authenticate_user(
         return None
     if not verify_password(password, user.password):
         return None
-    return User.from_db(user, access='access')
+    return UserSchema.from_db(user, access='access')
 
 
 def create_token(
@@ -85,7 +86,7 @@ async def _get_user_from_token(
     session: AsyncSession,
     token: str,
     mfa_creds: MFA_HTTP_Creds,
-) -> User:
+) -> UserSchema:
     """Get user from jwt.
 
     :param Settings settings: app settings
@@ -114,12 +115,17 @@ async def _get_user_from_token(
     if user_id is None:
         raise _CREDENTIALS_EXCEPTION
 
-    user = await session.get(DBUser, user_id)
+    user = await session.get(
+        DBUser, user_id,
+        options=[(
+            selectinload(DBUser.groups)
+            .selectinload(Group.access_policies)
+        )])
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
-    return User.from_db(
+    return UserSchema.from_db(
         user,
         payload.get("grant_type"),
         payload.get("exp"),
@@ -132,7 +138,7 @@ async def get_current_user(  # noqa: D103
     session: FromDishka[AsyncSession],
     token: Annotated[str, Depends(oauth2)],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
-) -> User:
+) -> UserSchema:
     user = await _get_user_from_token(settings, session, token, mfa_creds)
 
     if user.access_type not in ('access', 'multifactor'):
@@ -152,7 +158,7 @@ async def get_current_user_refresh(  # noqa: D103
     session: FromDishka[AsyncSession],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     token: Annotated[str, Depends(oauth2)],
-) -> User:
+) -> UserSchema:
     user = await _get_user_from_token(settings, session, token, mfa_creds)
     if user.access_type not in ('refresh', 'multifactor'):
         raise _CREDENTIALS_EXCEPTION

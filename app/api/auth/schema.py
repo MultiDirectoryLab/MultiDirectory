@@ -44,43 +44,6 @@ class Token(BaseModel):
     type: str  # noqa: A003
 
 
-class User(BaseModel):
-    """User model, alias for db user."""
-
-    id: int  # noqa: A003
-    sam_accout_name: str
-    user_principal_name: str
-    mail: str
-    display_name: str
-    directory_id: int
-    dn: str
-
-    access_type: Literal['access', 'refresh', 'multifactor']
-    exp: int
-
-    @classmethod
-    def from_db(
-        cls,
-        user: DBUser,
-        access: str,
-        exp: int = 0,
-    ) -> 'User':
-        """Create model from db model."""
-        dn = user.directory.path_dn
-
-        return cls(
-            id=user.id,
-            sam_accout_name=user.sam_accout_name,
-            user_principal_name=user.user_principal_name,
-            mail=user.mail,
-            display_name=user.display_name,
-            access_type=access,
-            exp=exp,
-            directory_id=user.directory_id,
-            dn=dn,
-        )
-
-
 class SetupRequest(BaseModel):
     """Setup app form."""
 

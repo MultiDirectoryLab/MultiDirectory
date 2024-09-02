@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import (
+    access_policy_router,
     auth_router,
     entry_router,
     krb5_router,
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(mfa_router)
     app.include_router(pwd_router)
     app.include_router(krb5_router)
+    app.include_router(access_policy_router)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

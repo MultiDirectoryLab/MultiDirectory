@@ -112,6 +112,24 @@ class PolicyMFAMembership(Base):
         Integer, ForeignKey("Policies.id"), primary_key=True)
 
 
+class AccessPolicyMembership(Base):
+    """Directory - policy m2m relationship."""
+
+    __tablename__ = "AccessPolicyMemberships"
+    dir_id = Column(Integer, ForeignKey("Directory.id"), primary_key=True)
+    policy_id = Column(
+        Integer, ForeignKey("AccessPolicies.id"), primary_key=True)
+
+
+class GroupAccessPolicyMembership(Base):
+    """Directory - policy m2m relationship."""
+
+    __tablename__ = "GroupAccessPolicyMemberships"
+    group_id = Column(Integer, ForeignKey("Groups.id"), primary_key=True)
+    policy_id = Column(
+        Integer, ForeignKey("AccessPolicies.id"), primary_key=True)
+
+
 class Directory(Base):
     """Chierarcy of catalogue unit."""
 
@@ -185,9 +203,18 @@ class Directory(Base):
     groups: list['Group'] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
+        primaryjoin="Directory.id == DirectoryMembership.directory_id",
+        secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="members",
         lazy="selectin",
         overlaps="group,directory,member_group",
+    )
+    access_policies: list['AccessPolicy'] = relationship(
+        "AccessPolicy",
+        secondary=AccessPolicyMembership.__table__,
+        primaryjoin="Directory.id == AccessPolicyMembership.dir_id",
+        secondaryjoin="AccessPolicyMembership.policy_id == AccessPolicy.id",
+        back_populates="directories",
     )
 
     __table_args__ = (
@@ -246,6 +273,12 @@ class Directory(Base):
             path=pre_path + [self.get_dn(dn)],
             endpoint=self)
 
+    def __str__(self) -> str:
+        return f"Directory({self.cn})"
+
+    def __repr__(self) -> str:
+        return f"Directory({self.id}:{self.cn})"
+
 
 @declarative_mixin
 class DirectoryReferenceMixin:
@@ -269,7 +302,7 @@ class DirectoryReferenceMixin:
 
 
 class User(DirectoryReferenceMixin, Base):
-    """Users data."""
+    """Users data from db."""
 
     __tablename__ = "Users"
 
@@ -317,6 +350,12 @@ class User(DirectoryReferenceMixin, Base):
         """Get userPrincipalName prefix."""
         return self.user_principal_name.split('@')[0]
 
+    def __str__(self) -> str:
+        return f"User({self.sam_accout_name})"
+
+    def __repr__(self) -> str:
+        return f"User({self.directory_id}:{self.sam_accout_name})"
+
 
 class Group(DirectoryReferenceMixin, Base):
     """Group params."""
@@ -363,6 +402,21 @@ class Group(DirectoryReferenceMixin, Base):
         back_populates='groups',
         overlaps="directory,group,members,parent_groups,member_group,groups",
     )
+
+    access_policies: list['AccessPolicy'] = relationship(
+        "AccessPolicy",
+        secondary=GroupAccessPolicyMembership.__table__,
+        primaryjoin="Group.id == GroupAccessPolicyMembership.group_id",
+        secondaryjoin=(
+            "GroupAccessPolicyMembership.policy_id == AccessPolicy.id"),
+        back_populates="groups",
+    )
+
+    def __str__(self) -> str:
+        return f"Group({self.id})"
+
+    def __repr__(self) -> str:
+        return f"Group({self.id}:{self.directory_id})"
 
 
 class Attribute(DirectoryReferenceMixin, Base):
@@ -464,3 +518,30 @@ class PasswordPolicy(Base):
         Integer, nullable=False, server_default='7')
     password_must_meet_complexity_requirements = Column(
         Boolean, server_default=expression.true(), nullable=False)
+
+
+class AccessPolicy(Base):
+    """Access policy."""
+
+    __tablename__ = "AccessPolicies"
+
+    id = Column(Integer, primary_key=True)  # noqa: A003
+    name = Column(String(255), nullable=False, unique=True)
+
+    can_read = Column(Boolean, nullable=False)
+    can_add = Column(Boolean, nullable=False)
+    can_modify = Column(Boolean, nullable=False)
+    can_delete = Column(Boolean, nullable=False)
+
+    directories: list[Directory] = relationship(
+        "Directory",
+        secondary=AccessPolicyMembership.__table__,
+        order_by="Directory.depth",
+        back_populates="access_policies",
+    )
+
+    groups: list[Group] = relationship(
+        "Group",
+        secondary=GroupAccessPolicyMembership.__table__,
+        back_populates="access_policies",
+    )

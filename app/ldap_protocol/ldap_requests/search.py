@@ -20,8 +20,9 @@ from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
+from ldap_protocol.access_policy import mutate_read_access_policy
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, LDAPSession
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession, UserSchema
 from ldap_protocol.filter_interpreter import cast_filter2sql
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -221,12 +222,11 @@ class SearchRequest(BaseRequest):
         Entry -> Reference (optional) -> Done
         """
         async with ldap_session.lock() as user:
-            async for response in self.get_result(
-                    bool(user), session, settings):
+            async for response in self.get_result(user, session, settings):
                 yield response
 
     async def get_result(
-        self, user_logged: bool,
+        self, user: UserSchema,
         session: AsyncSession,
         settings: Settings,
     ) -> AsyncGenerator[SearchResultDone, None]:
@@ -239,7 +239,7 @@ class SearchRequest(BaseRequest):
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == 'cn=schema'
 
-        if not (is_root_dse or is_schema) and not user_logged:
+        if not (is_root_dse or is_schema) and not user:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
 
@@ -257,7 +257,7 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session))
+        query = self.build_query(await get_base_directories(session), user)
 
         try:
             cond = self.cast_filter(self.filter)
@@ -290,19 +290,26 @@ class SearchRequest(BaseRequest):
     def all_attrs(self) -> bool:  # noqa
         return '*' in self.requested_attrs or not self.requested_attrs
 
-    def build_query(self, base_directories: list[Directory]) -> Select:
+    def build_query(
+        self,
+        base_directories: list[Directory],
+        user: UserSchema,
+    ) -> Select:
         """Build tree query."""
-        query = select(  # noqa: ECE001
-            Directory)\
-            .join(User, isouter=True)\
-            .join(Directory.attributes, isouter=True)\
-            .join(Directory.path)\
+        query = (  # noqa: ECE001
+            select(Directory)
+            .join(User, isouter=True)
+            .join(Directory.attributes, isouter=True)
+            .join(Directory.path)
             .options(
                 selectinload(Directory.path),
                 subqueryload(Directory.attributes),
                 joinedload(Directory.user),
-                joinedload(Directory.group))\
+                joinedload(Directory.group))
             .distinct(Directory.id)
+        )
+
+        query = mutate_read_access_policy(query, user)
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):
