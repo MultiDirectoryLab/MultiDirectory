@@ -352,7 +352,8 @@ async def test_api_correct_add_double_member_of(
     and displaying it in the Search request.
     """
     new_group = "cn=Domain Admins,dc=md,dc=test"
-    user = "cn=test,dc=md,dc=test"
+    user = "cn=test0,dc=md,dc=test"
+    un = "test0"
     groups = [
         "cn=domain admins,cn=groups,dc=md,dc=test",
         new_group,
@@ -416,11 +417,11 @@ async def test_api_correct_add_double_member_of(
             "attributes": [
                 {
                     "type": "name",
-                    "vals": ["test"],
+                    "vals": [f"{un}"],
                 },
                 {
                     "type": "cn",
-                    "vals": ["test"],
+                    "vals": [f"{un}"],
                 },
                 {
                     "type": "objectClass",
@@ -428,19 +429,19 @@ async def test_api_correct_add_double_member_of(
                 },
                 {
                     "type": "sAMAccountName",
-                    "vals": ["test"],
+                    "vals": [f"{un}"],
                 },
                 {
                     "type": "userPrincipalName",
-                    "vals": ["test@md.ru"],
+                    "vals": [f"{un}@md.ru"],
                 },
                 {
                     "type": "mail",
-                    "vals": ["test@md.ru"],
+                    "vals": [f"{un}@md.ru"],
                 },
                 {
                     "type": "displayName",
-                    "vals": ["test"],
+                    "vals": [f"{un}"],
                 },
                 {
                     "type": "memberOf",
@@ -476,9 +477,11 @@ async def test_api_correct_add_double_member_of(
     assert data.get('resultCode') == LDAPCodes.SUCCESS
     assert data['search_result'][0]['object_name'] == user
 
+    created_groups = groups + ["cn=domain users,cn=groups,dc=md,dc=test"]
+
     for attr in data['search_result'][0]['partial_attributes']:
         if attr['type'] == 'memberOf':
-            assert all(group in groups for group in attr['vals'])
+            assert all(group in created_groups for group in attr['vals'])
             break
     else:
         raise Exception('memberOf not found')
