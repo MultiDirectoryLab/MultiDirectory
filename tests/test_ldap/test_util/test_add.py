@@ -18,10 +18,9 @@ from app.ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from app.ldap_protocol.ldap_requests import AddRequest
 from app.ldap_protocol.utils import get_search_path
 from app.models.ldap3 import Directory, Group, Path, User
+from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.kerberos import AbstractKadmin
 from tests.conftest import TestCreds
-from ldap_protocol.access_policy import create_access_policy
-from ldap_protocol.dialogue import LDAPCodes
 
 
 @pytest.mark.asyncio
