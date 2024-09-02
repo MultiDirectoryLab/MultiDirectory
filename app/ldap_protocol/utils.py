@@ -570,7 +570,13 @@ async def create_group(
     dir_.access_policies.extend(parent.access_policies)
 
     group = Group(directory=dir_)
-    session.add_all([dir_, group])
+    path = dir_.create_path(parent, f"cn={name}")
+    dir_.depth = len(path.path)
+    session.add_all([dir_, group, path])
+    await session.flush()
+
+    dir_.object_sid = create_object_sid(base_dn_list[0], dir_.id)
+
     await session.flush()
 
     attributes: dict[str, list[str]] = {
