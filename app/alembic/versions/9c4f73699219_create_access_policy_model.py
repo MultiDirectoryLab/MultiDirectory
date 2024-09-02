@@ -8,10 +8,12 @@ Create Date: 2024-08-21 12:52:43.385380
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.access_policy import create_access_policy
-from ldap_protocol.utils import get_base_directories
+from ldap_protocol.utils import create_group, get_base_directories
+from models import Directory, DirectoryMembership, User
 
 # revision identifiers, used by Alembic.
 revision = "9c4f73699219"
@@ -64,9 +66,31 @@ def upgrade() -> None:
             can_read=True,
             can_delete=True,
             grant_dn=base_dn_list[0].path_dn,
-            groups=["cn=domain admins,cn=groups," + base_dn_list[0].path_dn],
+            groups=[
+                "cn=domain admins,cn=groups," + base_dn_list[0].path_dn],
             session=session,
         )
+        await session.flush()
+
+        try:
+            dousrs = await session.scalar(
+                sa.select(Directory)
+                .filter(Directory.name == 'domain users'))
+
+            await session.delete(dousrs)
+
+            await session.flush()
+
+            _, group = await create_group('domain users', 513, session)
+            for user in await session.scalars(sa.select(User)):
+                session.add(DirectoryMembership(
+                    group_id=group.id, directory_id=user.directory_id))
+
+            await session.flush()
+        except (IntegrityError, sa.exc.DBAPIError):
+            pass
+
+        await session.commit()
         await session.close()
 
     op.run_async(_create_root_ap)
