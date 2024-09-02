@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.utils import create_group, get_base_directories
-from models import Directory, DirectoryMembership, User
+from models import Directory, User
 
 # revision identifiers, used by Alembic.
 revision = "9c4f73699219"
@@ -73,18 +73,20 @@ def upgrade() -> None:
         await session.flush()
 
         try:
-            dousrs = await session.scalar(
+            group_dir = await session.scalar(
                 sa.select(Directory)
+                .options(sa.orm.selectinload(Directory.group))
                 .filter(Directory.name == 'domain users'))
 
-            await session.delete(dousrs)
+            if not group_dir:
+                _, group = await create_group(
+                    'domain users', 513, session)
+            else:
+                group = group_dir.group
 
-            await session.flush()
-
-            _, group = await create_group('domain users', 513, session)
-            for user in await session.scalars(sa.select(User)):
-                session.add(DirectoryMembership(
-                    group_id=group.id, directory_id=user.directory_id))
+            for user in await session.scalars(
+                    sa.select(User).options(sa.orm.selectinload(User.groups))):
+                user.groups.append(group)
 
             await session.flush()
         except (IntegrityError, sa.exc.DBAPIError):
