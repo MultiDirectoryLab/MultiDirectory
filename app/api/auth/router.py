@@ -264,7 +264,7 @@ async def first_setup(
                         "objectClass": ["top", 'posixGroup'],
                         'groupType': ['-2147483646'],
                         'instanceType': ['4'],
-                        'sAMAccountName': ['users'],
+                        'sAMAccountName': ['domain users'],
                         'sAMAccountType': ['268435456'],
                     },
                     "objectSid": 513,
