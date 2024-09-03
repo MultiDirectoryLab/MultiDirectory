@@ -25,7 +25,7 @@ from ldap_protocol.ldap_requests.bind import (
     UnbindRequest,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models.ldap3 import Directory, User, Attribute
+from models.ldap3 import Attribute, Directory, User
 from security import get_password_hash
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
