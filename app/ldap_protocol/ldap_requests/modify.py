@@ -22,6 +22,7 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils import (
     create_user_name,
     ft_to_dt,
@@ -36,7 +37,6 @@ from ldap_protocol.utils import (
 from models.ldap3 import AccessPolicy, Attribute, Directory, Group, User
 from security import get_password_hash
 
-from ..user_account_control import UserAccountControlFlag
 from .base import BaseRequest
 
 
