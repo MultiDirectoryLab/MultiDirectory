@@ -19,10 +19,7 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.password_policy import PasswordPolicySchema
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag,
-    get_uac,
-)
+from ldap_protocol.user_account_control import UserAccountControlFlag, get_uac
 from ldap_protocol.utils import (
     get_user,
     is_user_group_valid,

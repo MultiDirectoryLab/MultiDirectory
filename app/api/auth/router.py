@@ -24,10 +24,7 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag,
-    get_uac,
-)
+from ldap_protocol.user_account_control import UserAccountControlFlag, get_uac
 from ldap_protocol.utils import get_base_directories, set_last_logon_user
 from models.ldap3 import CatalogueSetting, Directory, Group
 from models.ldap3 import User as DBUser
