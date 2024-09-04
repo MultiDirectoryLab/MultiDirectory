@@ -52,7 +52,8 @@ async def get_uac(
 
     :param AsyncSession session: SA async session
     :param int directory_id: id
-    :return Callable: function to check given flag in current userAccountControl attribute
+    :return Callable: function to check given flag in current
+        userAccountControl attribute
     """
     uac = await session.scalar(select(Attribute).where(
         Attribute.directory_id == directory_id,
