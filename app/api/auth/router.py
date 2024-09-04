@@ -26,7 +26,7 @@ from ldap_protocol.password_policy import (
 )
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
-    UserAccountControlSchema,
+    get_uac,
 )
 from ldap_protocol.utils import get_base_directories, set_last_logon_user
 from models.ldap3 import CatalogueSetting, Directory, Group
@@ -80,13 +80,12 @@ async def login_for_access_token(
     if not admin_group:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    uac = await UserAccountControlSchema.get_user_account_control(
+    uac_check = await get_uac(
         session, user.directory_id,
     )
 
-    if await UserAccountControlSchema.is_flag_true(
-        uac,
-        UserAccountControlFlag.ACCOUNTDISABLE,
+    if uac_check(
+            UserAccountControlFlag.ACCOUNTDISABLE
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 

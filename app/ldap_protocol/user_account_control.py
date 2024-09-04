@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from enum import IntFlag
+from typing import Callable
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -45,24 +46,16 @@ class UserAccountControlFlag(IntFlag):
     WORKSTATION_TRUST_ACCOUNT = 0x1000
 
 
-class UserAccountControlSchema(BaseModel):
-    """userAccountControl attribute handler."""
-
-    name: str = Field()
-    value: str = Field()
-
-    async def is_flag_true(
-            self, flag: UserAccountControlFlag) -> bool:
-        """Check given flag in UserAccountControl attribute."""
-        return bool(int(self.value) & flag)
-
-    @classmethod
-    async def get_user_account_control(
-            cls, session: AsyncSession, directory_id: int,
-    ) -> 'UserAccountControlSchema':
-        """Get current userAccountControl attribute."""
-        uac = await session.scalar(select(Attribute).where(
+async def get_uac(
+        session: AsyncSession, directory_id: int
+) -> Callable[[UserAccountControlFlag], bool]:
+    """Get UserAccountControl attribute and check binary flags in it."""
+    uac = await session.scalar(select(Attribute).where(
             Attribute.directory_id == directory_id,
             Attribute.name == 'userAccountControl',
-        ))
-        return cls.model_validate(uac, from_attributes=True)
+    ))
+
+    def is_flag_true(flag: UserAccountControlFlag) -> bool:
+        return bool(int(uac.value) & flag)
+
+    return is_flag_true

@@ -21,7 +21,7 @@ from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
-    UserAccountControlSchema,
+    get_uac,
 )
 from ldap_protocol.utils import (
     get_user,
@@ -262,14 +262,12 @@ class BindRequest(BaseRequest):
             yield self.BAD_RESPONSE
             return
 
-        uac = await UserAccountControlSchema.get_user_account_control(
-            session,
-            user.directory_id,
+        uac_check = await get_uac(
+            session, user.directory_id,
         )
 
-        if await UserAccountControlSchema.is_flag_true(
-            uac,
-            UserAccountControlFlag.ACCOUNTDISABLE,
+        if uac_check(
+                UserAccountControlFlag.ACCOUNTDISABLE
         ):
             yield BindResponse(
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
