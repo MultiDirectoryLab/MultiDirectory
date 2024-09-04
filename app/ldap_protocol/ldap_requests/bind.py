@@ -259,13 +259,9 @@ class BindRequest(BaseRequest):
             yield self.BAD_RESPONSE
             return
 
-        uac_check = await get_uac(
-            session, user.directory_id,
-        )
+        uac_check = await get_uac(session, user.directory_id)
 
-        if uac_check(
-                UserAccountControlFlag.ACCOUNTDISABLE
-        ):
+        if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             yield BindResponse(
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
                 matchedDn='',

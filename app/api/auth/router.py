@@ -77,13 +77,9 @@ async def login_for_access_token(
     if not admin_group:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    uac_check = await get_uac(
-        session, user.directory_id,
-    )
+    uac_check = await get_uac(session, user.directory_id)
 
-    if uac_check(
-            UserAccountControlFlag.ACCOUNTDISABLE
-    ):
+    if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(
