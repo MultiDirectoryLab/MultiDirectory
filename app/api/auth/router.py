@@ -24,6 +24,7 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.user_account_control import UserAccountControlFlag, get_uac
 from ldap_protocol.utils import get_base_directories, set_last_logon_user
 from models.ldap3 import CatalogueSetting, Directory, Group
 from models.ldap3 import User as DBUser
@@ -74,6 +75,11 @@ async def login_for_access_token(
         .filter(DBUser.id == user.id, Directory.name == "domain admins"))
 
     if not admin_group:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    uac_check = await get_uac(session, user.directory_id)
+
+    if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(
@@ -297,6 +303,7 @@ async def first_setup(
                         "loginShell": ["/bin/bash"],
                         "uidNumber": ["1000"],
                         "gidNumber": ["10000"],
+                        "userAccountControl": ["0"],
                     },
                     "objectSid": 500,
                 },

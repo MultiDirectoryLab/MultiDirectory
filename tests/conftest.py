@@ -28,7 +28,6 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
-from loguru import logger
 from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,

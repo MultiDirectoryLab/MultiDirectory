@@ -6,6 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from httpx import AsyncClient
 
+from ldap_protocol.dialogue import LDAPCodes, Operation
+
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
@@ -84,3 +86,52 @@ async def test_update_password(
     )
     assert new_auth.status_code == 200
     assert new_auth.json()['type'] == 'bearer'
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_auth_disabled_user(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
+    response = await http_client.post(
+        "auth/token/get",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == 200
+
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["514"],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "auth/token/get",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == 403

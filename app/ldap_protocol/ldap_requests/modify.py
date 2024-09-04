@@ -22,6 +22,7 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils import (
     create_user_name,
     ft_to_dt,
@@ -290,11 +291,18 @@ class ModifyRequest(BaseRequest):
 
                     sam_accout_name = create_user_name(directory.id)
                     user_principal_name = f"{sam_accout_name}@{base_dn.name}"
-                    session.add(User(
+                    user = User(
                         sam_accout_name=sam_accout_name,
                         user_principal_name=user_principal_name,
                         directory=directory,
-                    ))
+                    )
+                    uac_attr = Attribute(
+                        name="userAccountControl",
+                        value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
+                        directory=directory,
+                    )
+
+                    session.add_all([user, uac_attr])
                     await session.flush()
                     await session.refresh(directory)
 
@@ -342,6 +350,9 @@ class ModifyRequest(BaseRequest):
                 await post_save_password_actions(directory.user, session)
                 await kadmin.create_or_update_principal_pw(
                     directory.user.get_upn_prefix(), value)
+
+            elif name == 'useraccountcontrol' and int(value) == 0:
+                continue
 
             else:
                 attrs.append(Attribute(
