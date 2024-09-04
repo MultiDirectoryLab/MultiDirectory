@@ -1,4 +1,4 @@
-"""userAccount control attribute handling.
+"""userAccountControl attribute handling.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from enum import IntFlag
 from typing import Callable
 
-from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,15 +46,25 @@ class UserAccountControlFlag(IntFlag):
 
 
 async def get_uac(
-        session: AsyncSession, directory_id: int
+    session: AsyncSession, directory_id: int,
 ) -> Callable[[UserAccountControlFlag], bool]:
-    """Get UserAccountControl attribute and check binary flags in it."""
+    """Get userAccountControl attribute and check binary flags in it.
+
+    :param AsyncSession session: SA async session
+    :param int directory_id: id
+    :return Callable: function to check given flag in current userAccountControl attribute
+    """
     uac = await session.scalar(select(Attribute).where(
-            Attribute.directory_id == directory_id,
-            Attribute.name == 'userAccountControl',
+        Attribute.directory_id == directory_id,
+        Attribute.name == 'userAccountControl',
     ))
 
     def is_flag_true(flag: UserAccountControlFlag) -> bool:
+        """Check given flag in current userAccountControl attribute.
+
+        :param userAccountControlFlag flag: flag
+        :return bool: result
+        """
         return bool(int(uac.value) & flag)
 
     return is_flag_true
