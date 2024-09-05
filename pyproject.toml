@@ -47,7 +47,7 @@ pytest = "^7.2.0"
 pytest-cov = "^4.1.0"
 gevent = "^23.9.1"
 coverage = "7.3.4"
-pytest-asyncio = "^0.21.1"
+pytest-asyncio = "^0.23.8"
 
 
 [tool.poetry.group.dev.dependencies]
