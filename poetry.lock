@@ -1115,17 +1115,17 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "ldap-filter"
-version = "0.2.2"
+version = "1.0.0"
 description = "A Python utility library for working with Lightweight Directory Access Protocol (LDAP) filters."
 optional = false
-python-versions = "!=2.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
+python-versions = ">=3.4"
 files = [
-    {file = "ldap-filter-0.2.2.tar.gz", hash = "sha256:0df47a3d7439e897bf4b8ad3955c60cd6f321508b00190067403191c10d94382"},
-    {file = "ldap_filter-0.2.2-py2.py3-none-any.whl", hash = "sha256:8c7dd2a04052e779a212fd36681820bdbd2a4133a01a47285fbe1812552e7119"},
+    {file = "ldap_filter-1.0.0-py2.py3-none-any.whl", hash = "sha256:78cd08f97c37cee1a57f818449162803f995dacf38db9f748d667a3ac48e9ac9"},
+    {file = "ldap_filter-1.0.0.tar.gz", hash = "sha256:f00c83880f725ede708b17d421650fb1102aebd63f10aa89492da76bdb9f19fb"},
 ]
 
 [package.extras]
-test = ["coverage (>=4.2)", "pytest (>=3.0.2)"]
+test = ["coverage", "pytest"]
 
 [[package]]
 name = "ldap3"
@@ -2372,4 +2372,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12.4"
-content-hash = "c3f8c2b0d281b5d12c527f03ced6626f33d0933d1b84e689f08bdc29d2fa3856"
+content-hash = "8e8ae44d0d1851e3851de7c61e5114b30945a15ebdaf3b771512dcb26629751e"
