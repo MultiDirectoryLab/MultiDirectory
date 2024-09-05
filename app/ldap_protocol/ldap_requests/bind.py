@@ -21,6 +21,7 @@ from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag, get_uac
 from ldap_protocol.utils import (
+    check_kerberos_group,
     get_user,
     is_user_group_valid,
     set_last_logon_user,
@@ -279,7 +280,10 @@ class BindRequest(BaseRequest):
         p_last_set = await policy.get_pwd_last_set(session, user.directory_id)
         pwd_expired = policy.validate_max_age(p_last_set)
 
-        required_pwd_change = p_last_set == '0' or pwd_expired
+        is_krb_user = await check_kerberos_group(user, session)
+
+        required_pwd_change = (
+            p_last_set == '0' or pwd_expired) and not is_krb_user
 
         if required_pwd_change:
             yield BindResponse(

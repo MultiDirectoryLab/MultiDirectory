@@ -134,10 +134,20 @@ class PasswordPolicySchema(BaseModel):
         :param int directory_id: id
         :return Attribute: pwdLastSet
         """
-        return await session.scalar(select(Attribute).where(
+        plset = await session.scalar(select(Attribute).where(
             Attribute.directory_id == directory_id,
             Attribute.name == 'pwdLastSet',
         ))
+        if not plset:
+            plset = Attribute(
+                directory_id=directory_id,
+                name='pwdLastSet',
+                value=ft_now())
+
+            session.add(plset)
+            await session.commit()
+
+        return plset
 
     def validate_min_age(self, last_pwd_set: Attribute) -> bool:
         """Validate min password change age.

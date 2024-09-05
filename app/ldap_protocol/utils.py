@@ -351,6 +351,28 @@ async def is_user_group_valid(
     return bool(group)
 
 
+async def check_kerberos_group(
+        user: User | None, session: AsyncSession) -> bool:
+    """Check if user in kerberos group.
+
+    :param User | None user: user (sa model)
+    :param AsyncSession session: db
+    :return bool: exists result
+    """
+    if user is None:
+        return False
+
+    return await session.scalar(select((  # noqa: ECE001
+        select(Group)
+        .join(Group.users)
+        .join(Group.directory)
+        .filter(Group.users.contains(user))
+        .filter(Directory.name.ilike("krbadmin"))
+        .limit(1)
+        .exists()
+    )))
+
+
 def create_integer_hash(text: str, size: int = 9) -> int:
     """Create integer hash from text.
 
