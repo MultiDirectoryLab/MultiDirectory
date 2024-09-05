@@ -13,7 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
-from ldap_protocol.access_policy import mutate_read_access_policy
+from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -34,7 +34,7 @@ from ldap_protocol.utils import (
     is_dn_in_base_directory,
     validate_entry,
 )
-from models.ldap3 import AccessPolicy, Attribute, Directory, Group, User
+from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -125,9 +125,7 @@ class ModifyRequest(BaseRequest):
             .filter(get_path_filter(search_path))
         )
 
-        query = mutate_read_access_policy(query, ldap_session.user)
-
-        directory = await session.scalar(query)
+        directory = await session.scalar(mutate_ap(query, ldap_session.user))
 
         if len(search_path) == 0 or not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
@@ -140,8 +138,8 @@ class ModifyRequest(BaseRequest):
             len(names) == 1 and
             directory.id == ldap_session.user.directory_id)
 
-        can_modify = await session.scalar(
-            query.filter(AccessPolicy.can_modify.is_(True)))
+        can_modify = bool(await session.scalar(
+            mutate_ap(query, ldap_session.user, 'modify')))
 
         if not can_modify and not password_change_requested:
             yield ModifyResponse(

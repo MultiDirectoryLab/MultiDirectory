@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
-from ldap_protocol.access_policy import mutate_read_access_policy
+from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -19,7 +19,7 @@ from ldap_protocol.ldap_responses import (
     DeleteResponse,
 )
 from ldap_protocol.utils import get_filter_from_path, validate_entry
-from models.ldap3 import AccessPolicy, Directory
+from models.ldap3 import Directory
 
 from .base import BaseRequest
 
@@ -59,16 +59,14 @@ class DeleteRequest(BaseRequest):
             .filter(get_filter_from_path(self.entry))
         )
 
-        query = mutate_read_access_policy(query, ldap_session.user)
-
-        directory = await session.scalar(query)
+        directory = await session.scalar(mutate_ap(query, ldap_session.user))
 
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
         if not await session.scalar(
-                query.filter(AccessPolicy.can_delete.is_(True))):
+                mutate_ap(query, ldap_session.user, 'del')):
             yield DeleteResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return

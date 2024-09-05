@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,7 @@ from ldap_protocol.utils import (
 from models import AccessPolicy, Directory, Group, Path
 
 T = TypeVar('T', bound=Select)
-__all__ = ['get_policies', 'create_access_policy', 'mutate_read_access_policy']
+__all__ = ['get_policies', 'create_access_policy', 'mutate_ap']
 
 
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
@@ -81,17 +81,29 @@ async def create_access_policy(
     await session.refresh(policy)
 
 
-def mutate_read_access_policy(query: T, user: UserSchema) -> T:
+def mutate_ap(
+        query: T, user: UserSchema,
+        action: Literal['add', 'read', 'modify', 'del'] = 'read') -> T:
     """Modify query with read rule filter, joins acess policies.
 
     :param T query: select(Directory)
     :param UserSchema user: user data
     :return T: select(Directory).join(Directory.access_policies)
     """
-    ap_filter = and_(
-        AccessPolicy.can_read.is_(True),
-        AccessPolicy.id.in_(user.access_policies_ids))
+    whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 
-    return query\
-        .join(Directory.access_policies, isouter=True)\
-        .where(or_(ap_filter, Directory.id == user.directory_id))
+    if action == 'read':
+        ap_filter = or_(
+            and_(AccessPolicy.can_read.is_(True), whitelist),
+            Directory.id == user.directory_id)
+
+    elif action == 'add':
+        ap_filter = AccessPolicy.can_add.is_(True) & whitelist
+
+    elif action == 'modify':
+        ap_filter = AccessPolicy.can_modify.is_(True) & whitelist
+
+    elif action == 'del':
+        ap_filter = AccessPolicy.can_delete.is_(True) & whitelist
+
+    return query.join(Directory.access_policies, isouter=True).where(ap_filter)

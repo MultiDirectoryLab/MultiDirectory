@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.access_policy import mutate_read_access_policy
+from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.ldap_responses import (
@@ -23,7 +23,7 @@ from ldap_protocol.utils import (
     get_path_filter,
     validate_entry,
 )
-from models.ldap3 import AccessPolicy, Directory, DirectoryReferenceMixin, Path
+from models.ldap3 import Directory, DirectoryReferenceMixin, Path
 
 from .base import BaseRequest
 
@@ -109,9 +109,7 @@ class ModifyDNRequest(BaseRequest):
             .options(selectinload(Directory.access_policies))
             .filter(get_filter_from_path(self.entry)))
 
-        query = mutate_read_access_policy(query, ldap_session.user)
-
-        directory: Directory | None = await session.scalar(query)
+        directory = await session.scalar(mutate_ap(query, ldap_session.user))
 
         if not directory:
             yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
@@ -122,7 +120,7 @@ class ModifyDNRequest(BaseRequest):
             return
 
         if not await session.scalar(
-                query.where(AccessPolicy.can_modify.is_(True))):
+                mutate_ap(query, ldap_session.user, "modify")):
             yield ModifyDNResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
@@ -150,7 +148,7 @@ class ModifyDNRequest(BaseRequest):
                 .options(selectinload(Directory.access_policies))
                 .filter(get_filter_from_path(self.new_superior)))
 
-            new_sup_query = mutate_read_access_policy(
+            new_sup_query = mutate_ap(
                 new_sup_query, ldap_session.user)
 
             new_parent_dir: Directory | None = await session.scalar(
@@ -161,7 +159,7 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             if not await session.scalar(
-                    new_sup_query.where(AccessPolicy.can_add.is_(True))):
+                    mutate_ap(query, ldap_session.user, 'add')):
                 yield ModifyDNResponse(
                     result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
                 return

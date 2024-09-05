@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.access_policy import mutate_read_access_policy
+from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -36,7 +36,7 @@ from ldap_protocol.utils import (
     is_dn_in_base_directory,
     validate_entry,
 )
-from models.ldap3 import AccessPolicy, Attribute, Directory, Group, User
+from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -123,16 +123,14 @@ class AddRequest(BaseRequest):
                 selectinload(Directory.access_policies))
             .filter(parent_path))
 
-        query = mutate_read_access_policy(query, ldap_session.user)
-
-        parent = await session.scalar(query)
+        parent = await session.scalar(mutate_ap(query, ldap_session.user))
 
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
         if not await session.scalar(
-                query.where(AccessPolicy.can_add.is_(True))):
+                mutate_ap(query, ldap_session.user, "add")):
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
