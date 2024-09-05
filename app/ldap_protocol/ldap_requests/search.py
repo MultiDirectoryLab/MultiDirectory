@@ -20,7 +20,7 @@ from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
-from ldap_protocol.access_policy import mutate_read_access_policy
+from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, UserSchema
 from ldap_protocol.filter_interpreter import cast_filter2sql
@@ -309,7 +309,7 @@ class SearchRequest(BaseRequest):
             .distinct(Directory.id)
         )
 
-        query = mutate_read_access_policy(query, user)
+        query = mutate_ap(query, user)
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):
