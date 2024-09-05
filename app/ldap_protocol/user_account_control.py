@@ -60,12 +60,14 @@ async def get_uac(
         Attribute.name == 'userAccountControl',
     ))
 
+    value = uac.value if uac is not None else "0"
+
     def is_flag_true(flag: UserAccountControlFlag) -> bool:
         """Check given flag in current userAccountControl attribute.
 
         :param userAccountControlFlag flag: flag
         :return bool: result
         """
-        return bool(int(uac.value) & flag)
+        return bool(int(value) & flag)
 
     return is_flag_true
