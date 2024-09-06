@@ -9,7 +9,15 @@ from typing import Annotated
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from extra.setup_dev import setup_enviroment
-from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +26,7 @@ from config import Settings
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
-from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.multifactor import MFA_HTTP_Creds, MultifactorAPI
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -40,11 +48,11 @@ from .oauth2 import (
     authenticate_user,
     create_token,
     get_current_user,
-    get_current_user_refresh,
+    get_token,
     get_user,
-    oauth2,
+    get_user_from_token,
 )
-from .schema import OAuth2Form, SetupRequest, Token
+from .schema import OAuth2Form, SetupRequest
 
 auth_router = APIRouter(prefix='/auth', tags=['Auth'])
 
@@ -56,7 +64,7 @@ async def login_for_access_token(
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
     response: Response,
-) -> Token:
+) -> None:
     """Get refresh and access token on login.
 
     - **username**: username formats:
@@ -120,23 +128,24 @@ async def login_for_access_token(
         value=f"Bearer {access_token}",
         httponly=True,
     )
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        type="bearer",
+    response.set_cookie(
+        key="refresh_token",
+        value=f"Bearer {refresh_token}",
+        httponly=True,
+        path="auth/token/refresh",
     )
 
 
 @auth_router.post("/token/refresh")
 @inject
 async def renew_tokens(
-    user: Annotated[UserSchema, Depends(get_current_user_refresh)],
-    token: Annotated[str, Depends(oauth2)],
-    *,
+    request: Request,
     mfa: FromDishka[MultifactorAPI],
     settings: FromDishka[Settings],
     response: Response,
-) -> Token:
+    session: FromDishka[AsyncSession],
+    mfa_creds: FromDishka[MFA_HTTP_Creds],
+) -> None:
     """Grant new access token with refresh token.
 
     - **Authorization**: requires refresh bearer token in headers:
@@ -148,7 +157,10 @@ async def renew_tokens(
     :param Settings settings: app settings
     :param str token: refresh token
     :return Token: refresh and access token
-    """  # noqa: D205, D301
+    """
+    token: str = get_token(request, type_="refresh_token")  # type: ignore
+    user = await get_user_from_token(settings, session, token, mfa_creds)
+
     if user.access_type == 'multifactor':
         if not mfa:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
@@ -156,23 +168,20 @@ async def renew_tokens(
         access_token = await mfa.refresh_token(token)
         token = access_token
 
-    else:
+    elif user.access_type == 'refresh':
         access_token = create_token(  # noqa: S106
             uid=user.id,
             secret=settings.SECRET_KEY,
             expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
             grant_type='access',
         )
+    else:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-    )
-    return Token(
-        access_token=access_token,
-        refresh_token=token,
-        type="bearer",
     )
 
 
@@ -181,6 +190,14 @@ async def users_me(
         user: Annotated[UserSchema, Depends(get_current_user)]) -> UserSchema:
     """Get current logged in user data."""
     return user
+
+
+@auth_router.get("/logout")
+def logout(response: Response) -> None:
+    """Delete token cookies."""
+    response.delete_cookie('access_token', httponly=True)
+    response.delete_cookie(
+        'refresh_token', path="/api/auth/token/refresh", httponly=True)
 
 
 @auth_router.patch(
