@@ -1190,3 +1190,180 @@ async def test_api_add_double_case_insensetive(
     )
 
     assert response.json().get('resultCode') == LDAPCodes.ENTRY_ALREADY_EXISTS
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_correct_modify_replace_memberof(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test API for modify object attribute."""
+    user = 'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test'
+    new_group = 'cn=domain admins,cn=groups,dc=md,dc=test'
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": user,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "memberOf",
+                        "vals": [new_group],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": user,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert user == data['search_result'][0]['object_name']
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'memberOf':
+            assert attr['vals'] == [new_group]
+            break
+    else:
+        raise Exception('No groups')
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_modify_add_loop_detect_member(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test API for modify object attribute."""
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": 'cn=developers,cn=groups,dc=md,dc=test',
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "member",
+                        "vals": ['cn=user0,ou=users,dc=md,dc=test'],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.LOOP_DETECT
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_modify_add_loop_detect_memberof(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test API for modify object attribute."""
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": 'cn=user0,ou=users,dc=md,dc=test',
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "memberOf",
+                        "vals": ['cn=developers,cn=groups,dc=md,dc=test'],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.LOOP_DETECT
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_modify_replace_loop_detect_member(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test API for modify object attribute."""
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": 'cn=developers,cn=groups,dc=md,dc=test',
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "member",
+                        "vals": [
+                            'cn=user0,ou=users,dc=md,dc=test',
+                            'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test',
+                        ],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.LOOP_DETECT
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_modify_replace_loop_detect_memberof(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test API for modify object attribute."""
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": 'cn=user0,ou=users,dc=md,dc=test',
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "memberOf",
+                        "vals": [
+                            'cn=developers,cn=groups,dc=md,dc=test',
+                            'cn=domain admins,cn=groups,dc=md,dc=test',
+                        ],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.LOOP_DETECT
+
+
