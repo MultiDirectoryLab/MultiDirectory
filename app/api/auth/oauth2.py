@@ -29,6 +29,34 @@ from security import verify_password
 ALGORITHM = "HS256"
 
 
+def get_token(
+    request: Request,
+    auto_error: bool = True,
+    type_: Literal['access_token', 'refresh_token'] = 'access_token',
+) -> str | None:
+    """Get token from cookies.
+
+    :param Request request: request
+    :param bool auto_error: raise 401 or not, defaults to True
+    :param Literal[access_token, refresh_token]
+        type_: token type choice, defaults to 'access_token'
+    :raises HTTPException: 401
+    :return str | None: parsed token
+    """
+    authorization: str = request.cookies.get(type_, '')
+
+    scheme, param = get_authorization_scheme_param(authorization)
+    if not authorization or scheme.lower() != "bearer":
+        if auto_error:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return None
+    return param
+
+
 class OAuth2PasswordBearerWithCookie(OAuth2):
     """Cookie bearer token manager."""
 
@@ -49,18 +77,7 @@ class OAuth2PasswordBearerWithCookie(OAuth2):
 
     async def __call__(self, request: Request) -> str | None:
         """Accept access token from httpOnly Cookie."""
-        authorization: str = request.cookies.get("access_token", '')
-
-        scheme, param = get_authorization_scheme_param(authorization)
-        if not authorization or scheme.lower() != "bearer":
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Not authenticated",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            return None
-        return param
+        return get_token(request, self.auto_error)
 
 
 oauth2 = OAuth2PasswordBearerWithCookie(
@@ -120,7 +137,7 @@ def create_token(
     return jwt.encode(to_encode, secret)
 
 
-async def _get_user_from_token(
+async def get_user_from_token(
     settings: Settings,
     session: AsyncSession,
     token: str,
@@ -177,7 +194,7 @@ async def get_current_user(  # noqa: D103
     token: Annotated[str, Depends(oauth2)],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
 ) -> UserSchema:
-    user = await _get_user_from_token(settings, session, token, mfa_creds)
+    user = await get_user_from_token(settings, session, token, mfa_creds)
 
     if user.access_type not in ('access', 'multifactor'):
         raise _CREDENTIALS_EXCEPTION
@@ -185,20 +202,6 @@ async def get_current_user(  # noqa: D103
     if user.access_type == 'multifactor' and\
             user.exp - settings.MFA_TOKEN_LEEWAY < (
                 datetime.utcnow().timestamp()):
-        raise _CREDENTIALS_EXCEPTION
-
-    return user
-
-
-@inject
-async def get_current_user_refresh(  # noqa: D103
-    settings: FromDishka[Settings],
-    session: FromDishka[AsyncSession],
-    mfa_creds: FromDishka[MFA_HTTP_Creds],
-    token: Annotated[str, Depends(oauth2)],
-) -> UserSchema:
-    user = await _get_user_from_token(settings, session, token, mfa_creds)
-    if user.access_type not in ('refresh', 'multifactor'):
         raise _CREDENTIALS_EXCEPTION
 
     return user
