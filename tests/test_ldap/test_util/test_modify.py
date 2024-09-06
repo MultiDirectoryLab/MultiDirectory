@@ -17,6 +17,7 @@ from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPCodes
 from app.ldap_protocol.utils import get_search_path
 from app.models.ldap3 import Directory, Group, Path
+from ldap_protocol.access_policy import create_access_policy
 from tests.conftest import TestCreds
 
 
@@ -136,18 +137,17 @@ async def test_ldap_membersip_user_delete(
 async def test_ldap_membersip_user_add(
         session: AsyncSession, settings: Settings, creds: TestCreds) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
-    directory = await session.scalar(
+    dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    query = (  # noqa
         select(Directory)
-        .options(selectinload(Directory.groups))
-        .join(Directory.path)
-        .filter(Path.path == get_search_path(dn)))
+        .options(selectinload(Directory.groups).selectinload(Group.directory))
+        .join(Directory.path).filter(Path.path == get_search_path(dn)))
 
-    directory.groups.clear()
+    directory = await session.scalar(query)
+
     directory.groups.clear()
     await session.commit()
 
-    assert not directory.groups
     assert not directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
@@ -172,7 +172,7 @@ async def test_ldap_membersip_user_add(
     session.expire_all()
 
     assert result == 0
-    await session.refresh(directory)
+    directory = await session.scalar(query)
     assert directory.groups
 
 
