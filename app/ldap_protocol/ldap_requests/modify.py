@@ -29,6 +29,7 @@ from ldap_protocol.utils import (
     get_base_directories,
     get_directories,
     get_groups,
+    get_members_root_group,
     get_path_filter,
     get_search_path,
     is_dn_in_base_directory,
@@ -38,6 +39,10 @@ from models.ldap3 import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
+
+
+class LoopDetect(Exception):
+    """API Error."""
 
 
 class Changes(BaseModel):
@@ -183,6 +188,11 @@ class ModifyRequest(BaseRequest):
                     errorMessage="Kerberos error")
                 return
 
+            except LoopDetect:
+                yield ModifyResponse(
+                    result_code=LDAPCodes.LOOP_DETECT)
+                return
+
             except PermissionError:
                 yield ModifyResponse(
                     result_code=LDAPCodes.STRONGER_AUTH_REQUIRED)
@@ -200,28 +210,33 @@ class ModifyRequest(BaseRequest):
         name = change.modification.type.lower()
 
         if name == 'memberof':
-            if name_only or not change.modification.vals:
-                if directory.group:
-                    directory.group.parent_groups.clear()
+            if not change.modification.vals:
+                directory.groups.clear()
 
-                elif directory.user:
-                    directory.user.groups.clear()
+            elif change.operation == Operation.REPLACE:
+                groups = await get_groups(
+                    change.modification.vals, session)
+                directory.groups = list(set(directory.groups) & set(groups))
 
             else:
                 groups = await get_groups(
                     change.modification.vals, session)
                 for group in groups:
-                    if directory.group:
-                        directory.group.parent_groups.remove(group)
-
-                    elif directory.user:
-                        directory.user.groups.remove(group)
+                    directory.groups.remove(group)
 
             return
 
         if name == 'member':
-            if name_only or not change.modification.vals:
+            if not change.modification.vals:
                 directory.group.members.clear()
+
+            elif change.operation == Operation.REPLACE:
+                members = await get_directories(
+                    change.modification.vals, session)
+
+                directory.group.members = list(set(directory.group.members) &
+                                               set(members))
+
             else:
                 members = await get_directories(
                     change.modification.vals, session)
@@ -261,17 +276,45 @@ class ModifyRequest(BaseRequest):
         attrs = []
         name = change.get_name()
 
-        if name == 'memberof':
-            groups = await get_groups(change.modification.vals, session)
-            directory.groups.extend([
-                group for group in groups if group != directory.group])
+        if name in {'memberof', 'member'}:
+            directories = await get_directories(
+                change.modification.vals, session)
 
-            await session.commit()
-            return
-        if name == 'member':
-            members = await get_directories(change.modification.vals, session)
-            directory.group.members.extend([
-                member for member in members if directory != member])
+            if name == 'memberof':
+                groups = [
+                    _directory.group
+                    for _directory in directories
+                    if _directory.group
+                ]
+                new_groups = list(set(groups) - set(directory.groups))
+                directories = [new_group.directory for new_group in new_groups]
+            else:
+                directories = list(set(directories) -
+                                   set(directory.group.members))
+
+            if not directories:
+                return
+
+            members = await get_members_root_group(
+                directory.path_dn, session)
+            directories_to_add = [
+                _directory
+                for _directory in directories
+                if (_directory != directory and
+                    _directory not in members)
+            ]
+
+            if len(directories) != len(directories_to_add):
+                raise LoopDetect
+
+            if name == 'memberof':
+                directory.groups.extend([
+                    _directory.group
+                    for _directory in directories
+                    if _directory.group])
+            else:
+                directory.group.members.extend(directories)
+
             await session.commit()
             return
 
