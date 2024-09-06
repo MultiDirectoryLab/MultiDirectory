@@ -28,10 +28,9 @@ from ldap_protocol.utils import (
     ft_to_dt,
     get_base_directories,
     get_directories,
+    get_filter_from_path,
     get_groups,
     get_members_root_group,
-    get_path_filter,
-    get_search_path,
     is_dn_in_base_directory,
     validate_entry,
 )
@@ -111,14 +110,6 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        search_path = get_search_path(self.object)
-
-        membership1 = selectinload(Directory.user).selectinload(User.groups)
-        membership2 = selectinload(Directory.group)\
-            .selectinload(Group.parent_groups)
-        membership3 = selectinload(Directory.group)\
-            .selectinload(Group.members)
-
         query = (  # noqa: ECE001
             select(Directory)
             .join(Directory.path)
@@ -126,13 +117,13 @@ class ModifyRequest(BaseRequest):
             .options(
                 selectinload(Directory.paths),
                 selectinload(Directory.groups),
-                membership1, membership2, membership3)
-            .filter(get_path_filter(search_path))
+                selectinload(Directory.group).selectinload(Group.members))
+            .filter(get_filter_from_path(self.object))
         )
 
         directory = await session.scalar(mutate_ap(query, ldap_session.user))
 
-        if len(search_path) == 0 or not directory:
+        if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
@@ -210,36 +201,33 @@ class ModifyRequest(BaseRequest):
         name = change.modification.type.lower()
 
         if name == 'memberof':
+            groups = await get_groups(
+                    change.modification.vals, session)
+
             if not change.modification.vals:
                 directory.groups.clear()
 
             elif change.operation == Operation.REPLACE:
-                groups = await get_groups(
-                    change.modification.vals, session)
                 directory.groups = list(set(directory.groups) & set(groups))
 
             else:
-                groups = await get_groups(
-                    change.modification.vals, session)
                 for group in groups:
                     directory.groups.remove(group)
 
             return
 
         if name == 'member':
+            members = await get_directories(
+                    change.modification.vals, session)
+
             if not change.modification.vals:
                 directory.group.members.clear()
 
             elif change.operation == Operation.REPLACE:
-                members = await get_directories(
-                    change.modification.vals, session)
-
                 directory.group.members = list(set(directory.group.members) &
                                                set(members))
 
             else:
-                members = await get_directories(
-                    change.modification.vals, session)
                 for member in members:
                     directory.group.members.remove(member)
             return
