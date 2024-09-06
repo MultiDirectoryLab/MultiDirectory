@@ -136,7 +136,7 @@ async def login_for_access_token(
     )
 
 
-@auth_router.post("/token/refresh")
+@auth_router.post("/token/refresh", response_class=Response)
 @inject
 async def renew_tokens(
     request: Request,
@@ -192,12 +192,12 @@ async def users_me(
     return user
 
 
-@auth_router.get("/logout")
+@auth_router.delete("/token/refresh", response_class=Response)
 def logout(response: Response) -> None:
     """Delete token cookies."""
     response.delete_cookie('access_token', httponly=True)
     response.delete_cookie(
-        'refresh_token', path="/api/auth/token/refresh", httponly=True)
+        'refresh_token', path="auth/token/refresh", httponly=True)
 
 
 @auth_router.patch(
