@@ -360,6 +360,9 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
     if await create_proc.wait() != 0:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, stderr.decode())
 
+    with open('/etc/krb5kdc/kadm5.acl', 'w') as f:
+        f.write(f"*/admin@{schema.domain.upper()}        *\n")
+
 
 @principal_router.post('', response_class=Response, status_code=201)
 async def add_princ(
