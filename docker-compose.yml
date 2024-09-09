@@ -14,12 +14,14 @@ services:
       - "--entrypoints.ldap.address=:389"
       - "--entrypoints.kdc.address=:88"
       - "--entrypoints.ldaps.address=:636"
+      - "--entrypoints.kadmind.address=:749"
     ports:
       - "80:80"
       - "8080:8080"
       - "389:389"
       - "636:636"
       - "88:88"
+      - "749:749"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
@@ -195,9 +197,9 @@ services:
       - traefik.tcp.routers.kdc.service=kdc
       - traefik.tcp.services.kdc.loadbalancer.server.port=88
 
-  kadmin:
+  kadmin-api:
     image: krb5md
-    container_name: kadmin
+    container_name: kadmin-api
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -210,7 +212,6 @@ services:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully
-
     ports:
       - 8000:8000
     working_dir: /server
@@ -218,6 +219,26 @@ services:
              --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
              --ssl-certfile=/certs/krbcert.pem
              --reload
+
+  kadmind:
+    container_name: kadmind
+    restart: unless-stopped
+    hostname: kadmind
+    volumes:
+      - keyfile:/etc/krb5.d/
+      - kdc:/etc
+    image: krb5md
+    tty: true
+    depends_on:
+      - ldap_server
+      - kdc
+    command: kadmind -nofork
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kadmind.entrypoints=kadmind
+      - traefik.tcp.routers.kadmind.service=kadmind
+      - traefik.tcp.services.kadmind.loadbalancer.server.port=749
 
   interface:
     build:
