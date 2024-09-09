@@ -254,6 +254,49 @@ class ModifyRequest(BaseRequest):
 
             await session.execute(del_query)
 
+    async def _add_group_attrs(
+        self, change: Changes,
+        directory: Directory,
+        session: AsyncSession,
+    ) -> None:
+        name = change.get_name()
+        directories = await get_directories(change.modification.vals, session)
+
+        if name == 'memberof':
+            groups = [
+                _directory.group
+                for _directory in directories
+                if _directory.group
+            ]
+            new_groups = list(set(groups) - set(directory.groups))
+            directories = [new_group.directory for new_group in new_groups]
+        else:
+            directories = list(set(directories) - set(directory.group.members))
+
+        if not directories:
+            return
+
+        members = await get_members_root_group(directory.path_dn, session)
+        directories_to_add = [
+            _directory
+            for _directory in directories
+            if (_directory != directory and
+                _directory not in members)
+        ]
+
+        if len(directories) != len(directories_to_add):
+            raise LoopDetect
+
+        if name == 'memberof':
+            directory.groups.extend([
+                _directory.group
+                for _directory in directories
+                if _directory.group])
+        else:
+            directory.group.members.extend(directories)
+
+        await session.commit()
+
     async def _add(
         self, change: Changes,
         directory: Directory,
@@ -265,46 +308,7 @@ class ModifyRequest(BaseRequest):
         name = change.get_name()
 
         if name in {'memberof', 'member'}:
-            directories = await get_directories(
-                change.modification.vals, session)
-
-            if name == 'memberof':
-                groups = [
-                    _directory.group
-                    for _directory in directories
-                    if _directory.group
-                ]
-                new_groups = list(set(groups) - set(directory.groups))
-                directories = [new_group.directory for new_group in new_groups]
-            else:
-                directories = list(set(directories) -
-                                   set(directory.group.members))
-
-            if not directories:
-                return
-
-            members = await get_members_root_group(
-                directory.path_dn, session)
-            directories_to_add = [
-                _directory
-                for _directory in directories
-                if (_directory != directory and
-                    _directory not in members)
-            ]
-
-            if len(directories) != len(directories_to_add):
-                raise LoopDetect
-
-            if name == 'memberof':
-                directory.groups.extend([
-                    _directory.group
-                    for _directory in directories
-                    if _directory.group])
-            else:
-                directory.group.members.extend(directories)
-
-            await session.commit()
-            return
+            return await self._add_group_attrs(change, directory, session)
 
         for value in change.modification.vals:
             if name in Directory.search_fields:
