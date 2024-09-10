@@ -23,6 +23,9 @@ services:
       - "--entrypoints.ldap.address=:389"
       - "--entrypoints.ldaps.address=:636"
 
+      - "--entrypoints.kdc.address=:88"
+      - "--entrypoints.kadmind.address=:749"
+
       - --entryPoints.websecure.http.tls=true
       - --entryPoints.websecure.http.tls.certResolver=md-resolver
 
@@ -35,6 +38,8 @@ services:
       - "443:443"
       - "389:389"
       - "636:636"
+      - "88:88"
+      - "749:749"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
@@ -50,7 +55,8 @@ services:
 
   interface:
     build:
-      context: interface
+      context: ./interface
+      dockerfile: ./configurations/docker/Dockerfile
       args:
         DOCKER_BUILDKIT: 1
     container_name: multidirectory_interface
@@ -64,6 +70,15 @@ services:
       - "traefik.http.routers.interface.entrypoints=websecure"
       - "traefik.http.routers.interface.tls.certresolver=md-resolver"
       - "traefik.http.services.interface.loadbalancer.server.port=80"
+
+  cert_check:
+    image: multidirectory
+    container_name: multidirectory_certs_check
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
+    command: ./extra/generate_cert.sh
 
   migrations:
     image: multidirectory
@@ -179,31 +194,72 @@ services:
       retries: 10
       start_period: 3s
 
-  krb5:
+  kdc:
     build:
-      context: .kerberos
-      dockerfile: ./Dockerfile
-    container_name: krb5
+      context: .
+      dockerfile: ./.docker/krb.Dockerfile
+    container_name: kdc
+    restart: unless-stopped
     volumes:
-      - ./certs:/certs
-      - .kerberos/kdc.conf:/var/kerberos/krb5kdc/kdc.conf
-      # - .kerberos/krb5.conf:/etc/krb5.conf
       - d_keyfile:/etc/krb5.d/
-      - d_kdc:/etc/krb5kdc/
-      - .kerberos/config_server.py:/server/config_server.py
-      - .kerberos/supervisord.conf:/etc/supervisord.conf
+      - d_kdc:/etc
     image: krb5md
     tty: true
     depends_on:
       - ldap_server
+    command: /usr/sbin/krb5kdc -n -w 4
+
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kdc.entrypoints=kdc
+      - traefik.tcp.routers.kdc.service=kdc
+      - traefik.tcp.services.kdc.loadbalancer.server.port=88
+
+  kadmin-api:
+    image: krb5md
+    container_name: kadmin-api
+    restart: unless-stopped
+    volumes:
+      - ./certs:/certs
+      - d_keyfile:/etc/krb5.d/
+      - .kerberos/:/server/
+      - d_kdc:/etc
+    tty: true
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+      cert_check:
+        condition: service_completed_successfully
     ports:
-      # - 8000:8000  # config server
-      - 88:88  # kdc
-      - 464:464  # kadmin
-      - 749:749  # kadmin
+      - 8000:8000
+    working_dir: /server
+    command: uvicorn --factory config_server:create_app
+             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
+             --ssl-certfile=/certs/krbcert.pem
+             --reload
+
+  kadmind:
+    container_name: kadmind
+    restart: unless-stopped
+    hostname: kadmind
+    volumes:
+      - d_keyfile:/etc/krb5.d/
+      - d_kdc:/etc
+    image: krb5md
+    tty: true
+    depends_on:
+      - ldap_server
+      - kdc
+    command: kadmind -nofork
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kadmind.entrypoints=kadmind
+      - traefik.tcp.routers.kadmind.service=kadmind
+      - traefik.tcp.services.kadmind.loadbalancer.server.port=749
 
 volumes:
   d_postgres:
   d_pgadmin:
   d_keyfile:
-  d_kdc:
