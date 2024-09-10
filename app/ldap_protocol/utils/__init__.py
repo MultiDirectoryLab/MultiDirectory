@@ -5,5 +5,5 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from .const import *  # noqa
 from .cte import *  # noqa
-from .queries import *  # noqa
 from .helpers import *  # noqa
+from .queries import *  # noqa
