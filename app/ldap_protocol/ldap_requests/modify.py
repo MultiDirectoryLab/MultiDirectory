@@ -40,10 +40,6 @@ from security import get_password_hash
 from .base import BaseRequest
 
 
-class LoopDetect(Exception):
-    """API Error."""
-
-
 class Changes(BaseModel):
     """Changes for mod request."""
 
@@ -179,7 +175,7 @@ class ModifyRequest(BaseRequest):
                     errorMessage="Kerberos error")
                 return
 
-            except LoopDetect:
+            except RecursionError:
                 yield ModifyResponse(
                     result_code=LDAPCodes.LOOP_DETECT)
                 return
@@ -285,7 +281,7 @@ class ModifyRequest(BaseRequest):
         ]
 
         if len(directories) != len(directories_to_add):
-            raise LoopDetect
+            raise RecursionError
 
         if name == 'memberof':
             directory.groups.extend([
