@@ -33,12 +33,12 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.utils import (
+    ATTRIBUTE_TYPES,
+    OBJECT_CLASSES,
     dn_is_base_directory,
     dt_to_ft,
-    get_attribute_types,
     get_base_directories,
     get_generalized_now,
-    get_object_classes,
     get_path_filter,
     get_search_path,
     get_windows_timestamp,
@@ -47,9 +47,6 @@ from ldap_protocol.utils import (
 from models.ldap3 import Directory, Group, Path, User
 
 from .base import BaseRequest
-
-ATTRIBUTE_TYPES = get_attribute_types()
-OBJECT_CLASSES = get_object_classes()
 
 
 class SearchRequest(BaseRequest):

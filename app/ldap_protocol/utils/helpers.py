@@ -137,20 +137,9 @@ from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
 from operator import attrgetter
-from typing import Annotated, Iterator
 from zoneinfo import ZoneInfo
 
-from asyncstdlib.functools import cache
-from pydantic import AfterValidator
-from sqlalchemy import Column, func, or_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-from sqlalchemy.sql.expression import ColumnElement
-
-from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, Path, User
-
-email_re = re.compile(
-    r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
+from models.ldap3 import Directory
 
 
 def validate_entry(entry: str) -> bool:
@@ -171,17 +160,6 @@ def _type_validate_entry(entry: str) -> str:
     if validate_entry(entry):
         return entry
     raise ValueError(f'Invalid entry name {entry}')
-
-
-ENTRY_TYPE = Annotated[str, AfterValidator(_type_validate_entry)]
-
-
-@cache
-async def get_base_directories(session: AsyncSession) -> list[Directory]:
-    """Get base domain directories."""
-    result = await session.execute(select(Directory).filter(
-        Directory.parent_id.is_(None)))
-    return result.scalars().all()
 
 
 def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
@@ -225,154 +203,6 @@ def _get_domain(name: str) -> str:
     ])
 
 
-async def get_user(session: AsyncSession, name: str) -> User | None:
-    """Get user with username.
-
-    :param AsyncSession session: sqlalchemy session
-    :param str name: any name: dn, email or upn
-    :return User | None: user from db
-    """
-    policies = selectinload(User.groups).selectinload(Group.access_policies)
-
-    if '=' not in name:
-        if email_re.fullmatch(name):
-            cond = User.user_principal_name.ilike(name) | User.mail.ilike(name)
-        else:
-            cond = User.sam_accout_name.ilike(name)
-
-        return await session.scalar(select(User).where(cond).options(policies))
-
-    path = await session.scalar(
-        select(Path).where(get_filter_from_path(name)))
-
-    # TODO: REMOVE
-    domain = await session.scalar(
-        select(Directory)
-        .filter(
-            Directory.name == _get_domain(name),
-            Directory.object_class == 'domain'))
-
-    if not domain or not path:
-        return None
-
-    return await session.scalar(
-        select(User)
-        .where(User.directory == path.endpoint)
-        .options(policies))
-
-
-async def get_directories(
-        dn_list: list[ENTRY_TYPE], session: AsyncSession) -> list[Directory]:
-    """Get directories by dn list."""
-    paths = []
-
-    for dn in dn_list:
-        for base_directory in await get_base_directories(session):
-            if dn_is_base_directory(base_directory, dn):
-                continue
-
-            paths.append(get_filter_from_path(dn))
-
-    if not paths:
-        return paths
-
-    results = await session.scalars((
-        select(Directory)
-        .join(Directory.path)
-        .filter(or_(*paths))
-        .options(selectinload(Directory.group).selectinload(Group.members))))
-
-    return results.all()
-
-
-async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
-    """Get dirs with groups by dn list."""
-    return [
-        directory.group
-        for directory in await get_directories(dn_list, session)
-        if directory.group is not None]
-
-
-async def get_group(dn: str | ENTRY_TYPE, session: AsyncSession) -> Directory:
-    """Get dir with group by dn.
-
-    :param str dn: Distinguished Name
-    :param AsyncSession session: SA session
-    :raises AttributeError: on invalid dn
-    :return Directory: dir with group
-    """
-    for base_directory in await get_base_directories(session):
-        if dn_is_base_directory(base_directory, dn):
-            raise ValueError('Cannot set memberOf with base dn')
-
-    query = (
-        select(Directory)
-        .join(Directory.path)
-        .options(
-            selectinload(Directory.group), selectinload(Directory.path)))
-
-    if validate_entry(dn):
-        query = query.filter(Path.path == get_search_path(dn))
-    else:
-        query = query.filter(Directory.name == dn)
-
-    directory = await session.scalar(query)
-    if not directory:
-        raise ValueError("Group not found")
-
-    return directory
-
-
-async def is_user_group_valid(
-    user: User,
-    policy: NetworkPolicy,
-    session: AsyncSession,
-) -> bool:
-    """Validate user groups, is it including to policy.
-
-    :param User user: db user
-    :param NetworkPolicy policy: db policy
-    :param AsyncSession session: db
-    :return bool: status
-    """
-    if user is None:
-        return False
-
-    if not policy.groups:
-        return True
-
-    group = await session.scalar((  # noqa: ECE001
-        select(Group)
-        .join(Group.users)
-        .join(Group.policies, isouter=True)
-        .filter(Group.users.contains(user) & Group.policies.contains(policy))
-        .limit(1)
-    ))
-    return bool(group)
-
-
-async def check_kerberos_group(
-        user: User | None, session: AsyncSession) -> bool:
-    """Check if user in kerberos group.
-
-    :param User | None user: user (sa model)
-    :param AsyncSession session: db
-    :return bool: exists result
-    """
-    if user is None:
-        return False
-
-    return await session.scalar(select((  # noqa: ECE001
-        select(Group)
-        .join(Group.users)
-        .join(Group.directory)
-        .filter(Group.users.contains(user))
-        .filter(Directory.name.ilike("krbadmin"))
-        .limit(1)
-        .exists()
-    )))
-
-
 def create_integer_hash(text: str, size: int = 9) -> int:
     """Create integer hash from text.
 
@@ -381,19 +211,6 @@ def create_integer_hash(text: str, size: int = 9) -> int:
     :return int: hash
     """
     return int(hashlib.sha256(text.encode('utf-8')).hexdigest(), 16) % 10**size
-
-
-async def set_last_logon_user(
-        user: User, session: AsyncSession, tz: ZoneInfo) -> None:
-    """Update lastLogon attr."""
-    await session.execute(
-        update(User).values(
-            {"last_logon": datetime.now(tz=tz)},
-        ).where(
-            User.id == user.id,
-        ),
-    )
-    await session.commit()
 
 
 def get_windows_timestamp(value: datetime) -> int:
@@ -432,34 +249,6 @@ def ft_to_dt(filetime: int) -> datetime:
 def ft_now() -> str:
     """Get now filetime timestamp."""
     return str(dt_to_ft(datetime.now(tz=ZoneInfo('UTC'))))
-
-
-def get_search_path(dn: str) -> list[str]:
-    """Get search path for dn.
-
-    :param str dn: any DN, dn syntax
-    :return list[str]: reversed list of dn values
-    """
-    search_path = [path.strip() for path in dn.lower().split(',')]
-    search_path.reverse()
-    return search_path
-
-
-def get_path_filter(
-        path: list[str], *, column: Column = Path.path) -> ColumnElement:
-    """Get filter condition for path equality.
-
-    :param list[str] path: dn
-    :param Column field: path column, defaults to Path.path
-    :return ColumnElement: filter (where) element
-    """
-    return func.array_lowercase(column) == path
-
-
-def get_filter_from_path(
-        dn: str, *, column: Column = Path.path) -> ColumnElement:
-    """Get filter condition for path equality from dn."""
-    return get_path_filter(get_search_path(dn), column=column)
 
 
 def string_to_sid(sid_string: str) -> bytes:
@@ -521,36 +310,6 @@ def generate_domain_sid() -> str:
     return 'S-1-5-21-' + '-'.join(str(part) for part in sub_authorities)
 
 
-get_class_name = attrgetter('__class__.__name__')
-
-
-async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
-    """Get dn by id.
-
-    >>> await get_dn_by_id(0, session)
-    >>> 'cn=groups,dc=example,dc=com'
-    """
-    query = select(Directory)\
-        .join(Directory.path)\
-        .filter(Directory.id == id_)\
-        .options(selectinload(Directory.path))
-
-    result = await session.scalar(query)
-
-    return result.path_dn
-
-
-def get_domain_attrs(domain: Directory) -> Iterator[Attribute]:
-    """Get default domain attrs."""
-    attributes: dict[str, list[str]] = {
-        'objectClass': ['domain', 'top', 'domainDNS'],
-        'nisDomain': [domain.name],
-    }
-    for name, value_list in attributes.items():
-        for value in value_list:
-            yield Attribute(name=name, value=value, directory=domain)
-
-
 def create_user_name(directory_id: int) -> str:
     """Create username by directory id.
 
@@ -559,65 +318,4 @@ def create_user_name(directory_id: int) -> str:
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
 
 
-async def create_group(
-    name: str,
-    sid: int | None,
-    session: AsyncSession,
-) -> tuple[Directory, Group]:
-    """Create group in default groups path.
-
-    cn=name,cn=groups,dc=domain,dc=com
-
-    :param str name: group name
-    :param int sid: objectSid
-    :param AsyncSession session: db
-    """
-    base_dn_list = await get_base_directories(session)
-
-    query = (  # noqa: ECE001
-        select(Directory)
-        .join(Directory.path)
-        .options(
-            selectinload(Directory.paths),
-            selectinload(Directory.access_policies))
-        .filter(get_filter_from_path("cn=groups," + base_dn_list[0].path_dn)))
-
-    parent = await session.scalar(query)
-
-    dir_ = Directory(
-        object_class='',
-        name=name,
-        parent=parent,
-    )
-    dir_.access_policies.extend(parent.access_policies)
-
-    group = Group(directory=dir_)
-    path = dir_.create_path(parent, f"cn={name}")
-    dir_.depth = len(path.path)
-    session.add_all([dir_, group, path])
-    await session.flush()
-
-    dir_.object_sid = create_object_sid(base_dn_list[0], dir_.id)
-
-    await session.flush()
-
-    attributes: dict[str, list[str]] = {
-        "objectClass": ["top", 'posixGroup'],
-        'groupType': ['-2147483646'],
-        'instanceType': ['4'],
-        'sAMAccountName': ['domain users'],
-        'sAMAccountType': ['268435456'],
-    }
-
-    for name, attr in attributes.items():
-        for val in attr:
-            session.add(Attribute(name=name, value=val, directory=dir_))
-
-    if sid is not None:
-        session.add(
-            Attribute(name='objectSid', value=str(sid), directory=dir_))
-
-    await session.flush()
-    await session.refresh(dir_)
-    await session.refresh(group)
-    return dir_, group
+get_class_name = attrgetter('__class__.__name__')
