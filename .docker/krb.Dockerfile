@@ -36,6 +36,7 @@ RUN set -eux; \
     krb5-admin-server \
     wamerican \
     libsasl2-modules-gssapi-mit \
+    krb5-sync-plugin \
     --no-install-recommends -y
 
 RUN rm -rf /var/lib/krb5kdc/principal;\
@@ -50,7 +51,8 @@ RUN rm -rf /var/lib/krb5kdc/principal;\
     mkdir /server;\
     mkdir /certs;\
     touch /etc/krb5.conf;\
-    touch /etc/kdc.conf;
+    touch /etc/kdc.conf;\
+    mkdir /tmp/krb5-sync;
 
 COPY .kerberos/config_server.py /server/
 EXPOSE 8000
