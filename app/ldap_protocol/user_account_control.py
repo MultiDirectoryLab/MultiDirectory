@@ -4,12 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from enum import IntFlag
-from typing import Callable
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.ldap3 import Attribute
 
 
 class UserAccountControlFlag(IntFlag):
@@ -43,31 +37,3 @@ class UserAccountControlFlag(IntFlag):
     ACCOUNTDISABLE = 0x2
     NORMAL_ACCOUNT = 0x200
     WORKSTATION_TRUST_ACCOUNT = 0x1000
-
-
-async def get_uac(
-    session: AsyncSession, directory_id: int,
-) -> Callable[[UserAccountControlFlag], bool]:
-    """Get userAccountControl attribute and check binary flags in it.
-
-    :param AsyncSession session: SA async session
-    :param int directory_id: id
-    :return Callable: function to check given flag in current
-        userAccountControl attribute
-    """
-    uac = await session.scalar(select(Attribute).where(
-        Attribute.directory_id == directory_id,
-        Attribute.name == 'userAccountControl',
-    ))
-
-    value = uac.value if uac is not None else "0"
-
-    def is_flag_true(flag: UserAccountControlFlag) -> bool:
-        """Check given flag in current userAccountControl attribute.
-
-        :param userAccountControlFlag flag: flag
-        :return bool: result
-        """
-        return bool(int(value) & flag)
-
-    return is_flag_true

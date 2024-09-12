@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from datetime import datetime
-from typing import Iterator
+from typing import Callable, Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, Path, User
 
 from .const import EMAIL_RE, ENTRY_TYPE
@@ -295,3 +296,45 @@ async def create_group(
     await session.refresh(dir_)
     await session.refresh(group)
     return dir_, group
+
+
+async def get_uac_by_directory_id(
+        session: AsyncSession, directory_id: int) -> Attribute:
+    """Get userAccountControl attribute by directory id."""
+    return await session.scalar(select(Attribute).where(
+        Attribute.directory_id == directory_id,
+        Attribute.name == 'userAccountControl',
+    ))
+
+
+async def set_directory_uac(
+        directory_id: int, uac_value: int, session: AsyncSession) -> None:
+    """Add a value to the UserAccountControl attribute."""
+    uac = await get_uac_by_directory_id(session, directory_id)
+    uac.value = str(int(uac.value) + uac_value)
+    await session.commit()
+
+
+async def get_check_uac(
+    session: AsyncSession, directory_id: int,
+) -> Callable[[UserAccountControlFlag], bool]:
+    """Get userAccountControl attribute and check binary flags in it.
+
+    :param AsyncSession session: SA async session
+    :param int directory_id: id
+    :return Callable: function to check given flag in current
+        userAccountControl attribute
+    """
+    uac = await get_uac_by_directory_id(session, directory_id)
+
+    value = uac.value if uac is not None else "0"
+
+    def is_flag_true(flag: UserAccountControlFlag) -> bool:
+        """Check given flag in current userAccountControl attribute.
+
+        :param userAccountControlFlag flag: flag
+        :return bool: result
+        """
+        return bool(int(value) & flag)
+
+    return is_flag_true
