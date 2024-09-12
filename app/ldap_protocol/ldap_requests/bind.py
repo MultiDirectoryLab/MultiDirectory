@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
@@ -19,11 +20,13 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.password_policy import PasswordPolicySchema
-from ldap_protocol.user_account_control import UserAccountControlFlag, get_uac
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils import (
     check_kerberos_group,
+    get_check_uac,
     get_user,
     is_user_group_valid,
+    set_directory_uac,
     set_last_logon_user,
 )
 from models.ldap3 import Group, MFAFlags, User
@@ -260,7 +263,7 @@ class BindRequest(BaseRequest):
             yield self.BAD_RESPONSE
             return
 
-        uac_check = await get_uac(session, user.directory_id)
+        uac_check = await get_check_uac(session, user.directory_id)
 
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             yield BindResponse(
@@ -285,14 +288,32 @@ class BindRequest(BaseRequest):
         required_pwd_change = (
             p_last_set == '0' or pwd_expired) and not is_krb_user
 
+        if user.account_exp:
+            now = datetime.now(tz=timezone.utc)
+            user_account_exp = user.account_exp.astimezone(timezone.utc)
+
+            if now > user_account_exp:
+                await set_directory_uac(
+                    user.directory_id,
+                    UserAccountControlFlag.ACCOUNTDISABLE,
+                    session)
+                yield BindResponse(
+                    result_code=LDAPCodes.INVALID_CREDENTIALS,
+                    matchedDn='',
+                    errorMessage=(
+                        "80090308: LdapErr: DSID-0C09030B, "
+                        "comment: AcceptSecurityContext error, "
+                        "data 773, v893"))
+                return
+
         if required_pwd_change:
             yield BindResponse(
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
                 matchedDn='',
                 errorMessage=(
-                    "80090308: LdapErr: DSID-0C09030B, "
-                    "comment: AcceptSecurityContext error, "
-                    "data 773, v893"))
+                    "80090322: LdapErr: DSID-0C090334, ",
+                    "comment: AcceptSecurityContext error, ",
+                    "data 532, v2580"))
             return
 
         if policy := getattr(ldap_session, 'policy', None):
