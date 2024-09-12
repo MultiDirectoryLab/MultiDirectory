@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
 from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
@@ -25,8 +24,8 @@ from ldap_protocol.utils import (
     check_kerberos_group,
     get_check_uac,
     get_user,
+    is_account_expired,
     is_user_group_valid,
-    set_directory_uac,
     set_last_logon_user,
 )
 from models.ldap3 import Group, MFAFlags, User
@@ -288,23 +287,16 @@ class BindRequest(BaseRequest):
         required_pwd_change = (
             p_last_set == '0' or pwd_expired) and not is_krb_user
 
-        if user.account_exp:
-            now = datetime.now(tz=timezone.utc)
-            user_account_exp = user.account_exp.astimezone(timezone.utc)
-
-            if now > user_account_exp:
-                await set_directory_uac(
-                    user.directory_id,
-                    UserAccountControlFlag.ACCOUNTDISABLE,
-                    session)
-                yield BindResponse(
-                    result_code=LDAPCodes.INVALID_CREDENTIALS,
-                    matchedDn='',
-                    errorMessage=(
-                        "80090308: LdapErr: DSID-0C09030B, "
-                        "comment: AcceptSecurityContext error, "
-                        "data 773, v893"))
-                return
+        if await is_account_expired(
+                user.directory_id, user.account_exp, session):
+            yield BindResponse(
+                result_code=LDAPCodes.INVALID_CREDENTIALS,
+                matchedDn='',
+                errorMessage=(
+                    "80090308: LdapErr: DSID-0C09030B, "
+                    "comment: AcceptSecurityContext error, "
+                    "data 773, v893"))
+            return
 
         if required_pwd_change:
             yield BindResponse(

@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from datetime import datetime, timezone
 from typing import Annotated
 
 from dishka import FromDishka
@@ -30,7 +29,7 @@ from ldap_protocol.utils import (
     ft_now,
     get_base_directories,
     get_check_uac,
-    set_directory_uac,
+    is_account_expired,
     set_last_logon_user,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group
@@ -89,16 +88,8 @@ async def login_for_access_token(
     if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if user.account_exp:
-        now = datetime.now(tz=timezone.utc)
-        user_account_exp = user.account_exp.astimezone(timezone.utc)
-
-        if now > user_account_exp:
-            await set_directory_uac(
-                user.directory_id,
-                UserAccountControlFlag.ACCOUNTDISABLE,
-                session)
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
+    if await is_account_expired(user.directory_id, user.account_exp, session):
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(
         select(CatalogueSetting)

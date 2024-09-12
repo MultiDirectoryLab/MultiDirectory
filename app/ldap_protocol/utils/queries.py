@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable, Iterator
 from zoneinfo import ZoneInfo
 
@@ -313,6 +313,25 @@ async def set_directory_uac(
     uac = await get_uac_by_directory_id(session, directory_id)
     uac.value = str(int(uac.value) + uac_value)
     await session.commit()
+
+
+async def is_account_expired(
+        directory_id: int, account_exp: datetime | None, session: AsyncSession,
+) -> bool:
+    """Check AccountExpires and set disable flag into userAccountControl."""
+    if account_exp is None:
+        return False
+
+    now = datetime.now(tz=timezone.utc)
+    user_account_exp = account_exp.astimezone(timezone.utc)
+
+    if now > user_account_exp:
+        uac = await get_uac_by_directory_id(session, directory_id)
+        uac.value = str(int(uac.value) + UserAccountControlFlag.ACCOUNTDISABLE)
+        await session.commit()
+
+        return True
+    return False
 
 
 async def get_check_uac(
