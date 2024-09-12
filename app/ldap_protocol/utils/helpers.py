@@ -156,12 +156,6 @@ def validate_entry(entry: str) -> bool:
         for part in entry.split(','))
 
 
-def _type_validate_entry(entry: str) -> str:
-    if validate_entry(entry):
-        return entry
-    raise ValueError(f'Invalid entry name {entry}')
-
-
 def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
     """Check if an entry in a base dn."""
     return entry.lower().endswith(base_directory.path_dn.lower())
