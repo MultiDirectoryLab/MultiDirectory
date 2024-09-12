@@ -305,9 +305,9 @@ class BindRequest(BaseRequest):
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
                 matchedDn='',
                 errorMessage=(
-                    "80090322: LdapErr: DSID-0C090334, ",
-                    "comment: AcceptSecurityContext error, ",
-                    "data 532, v2580"))
+                    "80090308: LdapErr: DSID-0C09030B, "
+                    "comment: AcceptSecurityContext error, "
+                    "data 773, v893"))
             return
 
         if policy := getattr(ldap_session, 'policy', None):
