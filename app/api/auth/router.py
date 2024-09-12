@@ -24,11 +24,13 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.user_account_control import (
+    UserAccountControlFlag,
+    get_check_uac,
+)
 from ldap_protocol.utils import (
     ft_now,
     get_base_directories,
-    get_check_uac,
     is_account_expired,
     set_last_logon_user,
 )
