@@ -293,9 +293,9 @@ class BindRequest(BaseRequest):
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
                 matchedDn='',
                 errorMessage=(
-                    "80090308: LdapErr: DSID-0C09030B, "
-                    "comment: AcceptSecurityContext error, "
-                    "data 773, v893"))
+                    "80090308: LdapErr: DSID-0C09030B, ",
+                    "comment: AcceptSecurityContext error, ",
+                    "data 533, v893"))
             return
 
         if required_pwd_change:
