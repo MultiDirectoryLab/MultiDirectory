@@ -14,12 +14,14 @@ services:
       - "--entrypoints.ldap.address=:389"
       - "--entrypoints.kdc.address=:88"
       - "--entrypoints.ldaps.address=:636"
+      - "--entrypoints.kadmind.address=:749"
     ports:
       - "80:80"
       - "8080:8080"
       - "389:389"
       - "636:636"
       - "88:88"
+      - "749:749"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
@@ -173,11 +175,35 @@ services:
       - "traefik.http.routers.pg.entrypoints=web"
       - "traefik.http.services.pg.loadbalancer.server.port=80"
 
+  kadmin_api:
+    image: krb5md
+    container_name: kadmin_api
+    restart: unless-stopped
+    volumes:
+      - ./certs:/certs
+      - keyfile:/etc/krb5.d/
+      - .kerberos/:/server/
+      - kdc:/etc
+    tty: true
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+      cert_check:
+        condition: service_completed_successfully
+    ports:
+      - 8000:8000
+    working_dir: /server
+    command: uvicorn --factory config_server:create_app
+             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
+             --ssl-certfile=/certs/krbcert.pem
+             --reload
+
   kdc:
     build:
       context: .
       dockerfile: ./.docker/krb.Dockerfile
     container_name: kdc
+    hostname: kerberos
     restart: unless-stopped
     volumes:
       - keyfile:/etc/krb5.d/
@@ -195,29 +221,48 @@ services:
       - traefik.tcp.routers.kdc.service=kdc
       - traefik.tcp.services.kdc.loadbalancer.server.port=88
 
-  kadmin:
-    image: krb5md
-    container_name: kadmin
+  kadmind:
+    container_name: kadmind
     restart: unless-stopped
+    hostname: kerberos
     volumes:
-      - ./certs:/certs
       - keyfile:/etc/krb5.d/
-      - .kerberos/:/server/
       - kdc:/etc
+      - psync_queue:/var/spool/krb5-sync
+    image: krb5md
     tty: true
     depends_on:
-      ldap_server:
-        condition: service_healthy
-      cert_check:
-        condition: service_completed_successfully
+      - ldap_server
+      - kdc
+    command: kadmind -nofork
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kadmind.entrypoints=kadmind
+      - traefik.tcp.routers.kadmind.service=kadmind
+      - traefik.tcp.services.kadmind.loadbalancer.server.port=749
 
-    ports:
-      - 8000:8000
-    working_dir: /server
-    command: uvicorn --factory config_server:create_app
-             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
-             --ssl-certfile=/certs/krbcert.pem
-             --reload
+  maintence:
+    image: multidirectory
+    container_name: md_maintence
+    volumes:
+      - ./app:/app
+      - psync_queue:/var/spool/krb5-sync
+    env_file:
+      local.env
+    command: python schedule.py
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+        reservations:
+          cpus: '0.1'
+          memory: 6M
 
   interface:
     build:
@@ -244,3 +289,4 @@ volumes:
   wireshark:
   keyfile:
   kdc:
+  psync_queue:

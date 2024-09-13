@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import sys
 from ipaddress import IPv4Address, IPv4Network, summarize_address_range
+from typing import Self
 
 from pydantic import (
     BaseModel,
@@ -128,7 +129,7 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     mfa_groups: list[str] | None = None
 
     @model_validator(mode='after')
-    def check_passwords_match(self) -> 'PolicyUpdate':
+    def check_passwords_match(self) -> Self:
         """Validate if all fields are empty."""
         if not self.name and not self.netmasks and not self.groups:
             raise ValueError("Name, netmasks and group cannot be empty")

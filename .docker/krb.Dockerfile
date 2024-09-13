@@ -1,13 +1,7 @@
 # The builder image, used to build the virtual environment
 FROM python:3.12.4-bookworm as builder
 
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_VIRTUALENVS_OPTIONS_NO_PIP=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache \
-    POETRY_VIRTUALENVS_PATH=/venvs \
-    VIRTUAL_ENV=/venvs/.venv \
+ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
 
 WORKDIR /venvs
@@ -42,11 +36,10 @@ RUN set -eux; \
     krb5-admin-server \
     wamerican \
     libsasl2-modules-gssapi-mit \
+    krb5-sync-plugin \
     --no-install-recommends -y
 
-RUN rm -r /var/lib/krb5kdc/;\
-    rm -r /etc/krb5kdc/;\
-    rm -rf /var/lib/krb5kdc/principal;\
+RUN rm -rf /var/lib/krb5kdc/principal;\
     mkdir -pv /var/kerberos/krb5kdc/principal;\
     mkdir -pv /var/log/kerberos/ \
     mkdir /etc/krb5.d \
@@ -58,7 +51,8 @@ RUN rm -r /var/lib/krb5kdc/;\
     mkdir /server;\
     mkdir /certs;\
     touch /etc/krb5.conf;\
-    touch /etc/kdc.conf;
+    touch /etc/kdc.conf;\
+    mkdir -pv /var/spool/krb5-sync;
 
 COPY .kerberos/config_server.py /server/
 EXPOSE 8000
