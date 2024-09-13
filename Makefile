@@ -58,3 +58,9 @@ stage_update:  ## update service
 	make stage_up;
 	docker exec -it multidirectory-ldap bash -c\
 		"alembic downgrade -1; alembic upgrade head; python -m extra.setup_dev"
+
+krb_client_build:
+	docker build -f integration_tests/kerberos/Dockerfile . -t krbclient:runtime
+
+krb_client:
+	docker run --rm --init -it --name krbclient --network multidirectory_default krbclient:runtime bash
