@@ -208,7 +208,7 @@ class AddRequest(BaseRequest):
         is_group = 'group' in self.attr_names.get('objectclass', [])
         is_user = 'sAMAccountName' in user_attributes\
             or 'userPrincipalName' in user_attributes
-        is_computer = 'computer' in self.attr_names.get('objectlass', [])
+        is_computer = 'computer' in self.attr_names.get('objectclass', [])
 
         if is_user:
             parent_groups.append(
@@ -283,7 +283,7 @@ class AddRequest(BaseRequest):
             await session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:
-            if user:
+            if user or is_computer:
                 pw = (
                     self.password.get_secret_value()
                     if self.password else None)
@@ -291,8 +291,14 @@ class AddRequest(BaseRequest):
                 try:
                     # in case server is not available: raise error and rollback
                     # stub cannot raise error
-                    await kadmin.add_principal(
-                        user.get_upn_prefix(), pw)
+                    if user:
+                        await kadmin.add_principal(
+                            user.get_upn_prefix(), pw)
+                    else:
+                        await kadmin.add_principal(
+                            f"HOST/{new_dir.name}.{base_dn.name}", None)
+                        await kadmin.add_principal(
+                            f"HOST/{new_dir.name}", None)
                 except KRBAPIError:
                     await session.rollback()
                     yield AddResponse(
