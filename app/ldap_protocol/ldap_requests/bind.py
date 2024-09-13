@@ -53,6 +53,26 @@ class SASLMethod(StrEnum):
     UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
 
 
+class LDAPBindErrors(StrEnum):
+    """LDAP Bind errors."""
+
+    NO_SUCH_USER = "525"
+    LOGON_FAILURE = "52e"
+    INVALID_LOGON_HOURS = "530"
+    INVALID_WORKSTATION = "531"
+    PASSWORD_EXPIRED = "532"  # noqa
+    ACCOUNT_DISABLED = "533"
+    ACCOUNT_EXPIRED = "701"
+    PASSWORD_MUST_CHANGE = "773"  # noqa
+    ACCOUNT_LOCKED_OUT = "775"
+
+    def __str__(self) -> str:  # noqa
+        return (
+            "80090308: LdapErr: DSID-0C09030B, "
+            "comment: AcceptSecurityContext error, "
+            f"data {self.value}, v893")
+
+
 class AbstractLDAPAuth(ABC, BaseModel):
     """Auth base class."""
 
@@ -211,10 +231,7 @@ class BindRequest(BaseRequest):
     BAD_RESPONSE: ClassVar[BindResponse] = BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
         matchedDN='',
-        errorMessage=(
-            '80090308: LdapErr: DSID-0C090447, '
-            'comment: AcceptSecurityContext error, '
-            'data 52e, v3839'),
+        errorMessage=str(LDAPBindErrors.LOGON_FAILURE),
     )
 
     @staticmethod
@@ -270,10 +287,7 @@ class BindRequest(BaseRequest):
             yield BindResponse(
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
                 matchedDn='',
-                errorMessage=(
-                    "80090308: LdapErr: DSID-0C09030B, "
-                    "comment: AcceptSecurityContext error, "
-                    "data 533, v893"))
+                errorMessage=str(LDAPBindErrors.ACCOUNT_DISABLED))
             return
 
         if not await self.is_user_group_valid(user, ldap_session, session):
@@ -289,25 +303,18 @@ class BindRequest(BaseRequest):
         required_pwd_change = (
             p_last_set == '0' or pwd_expired) and not is_krb_user
 
-        if await is_account_expired(
-                user.directory_id, user.account_exp, session):
+        if is_account_expired(user.account_exp):
             yield BindResponse(
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
                 matchedDn='',
-                errorMessage=(
-                    "80090308: LdapErr: DSID-0C09030B, ",
-                    "comment: AcceptSecurityContext error, ",
-                    "data 533, v893"))
+                errorMessage=str(LDAPBindErrors.ACCOUNT_EXPIRED))
             return
 
         if required_pwd_change:
             yield BindResponse(
                 result_code=LDAPCodes.INVALID_CREDENTIALS,
                 matchedDn='',
-                errorMessage=(
-                    "80090308: LdapErr: DSID-0C09030B, "
-                    "comment: AcceptSecurityContext error, "
-                    "data 773, v893"))
+                errorMessage=str(LDAPBindErrors.PASSWORD_MUST_CHANGE))
             return
 
         if policy := getattr(ldap_session, 'policy', None):
