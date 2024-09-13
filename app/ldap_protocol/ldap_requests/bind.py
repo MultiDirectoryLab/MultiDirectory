@@ -73,6 +73,22 @@ class LDAPBindErrors(StrEnum):
             f"data {self.value}, v893")
 
 
+def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
+    """Generate BindResponse object with an invalid credentials error.
+
+    :param LDAPBindErrors error_message: Error message to include in the
+                                         response
+    :return BindResponse: A response object with the result code set to
+                          INVALID_CREDENTIALS, an empty matchedDN, and the
+                          provided error message
+    """
+    return BindResponse(
+        result_code=LDAPCodes.INVALID_CREDENTIALS,
+        matchedDN='',
+        errorMessage=str(error_message),
+    )
+
+
 class AbstractLDAPAuth(ABC, BaseModel):
     """Auth base class."""
 
@@ -228,12 +244,6 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    BAD_RESPONSE: ClassVar[BindResponse] = BindResponse(
-        result_code=LDAPCodes.INVALID_CREDENTIALS,
-        matchedDN='',
-        errorMessage=str(LDAPBindErrors.LOGON_FAILURE),
-    )
-
     @staticmethod
     async def is_user_group_valid(
             user: User,
@@ -278,20 +288,17 @@ class BindRequest(BaseRequest):
         user = await self.authentication_choice.get_user(session, self.name)
 
         if not user or not self.authentication_choice.is_valid(user):
-            yield self.BAD_RESPONSE
+            yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
         uac_check = await get_check_uac(session, user.directory_id)
 
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
-            yield BindResponse(
-                result_code=LDAPCodes.INVALID_CREDENTIALS,
-                matchedDn='',
-                errorMessage=str(LDAPBindErrors.ACCOUNT_DISABLED))
+            yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
 
         if not await self.is_user_group_valid(user, ldap_session, session):
-            yield self.BAD_RESPONSE
+            yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
         policy = await PasswordPolicySchema.get_policy_settings(session)
@@ -304,17 +311,11 @@ class BindRequest(BaseRequest):
             p_last_set == '0' or pwd_expired) and not is_krb_user
 
         if is_account_expired(user.account_exp):
-            yield BindResponse(
-                result_code=LDAPCodes.INVALID_CREDENTIALS,
-                matchedDn='',
-                errorMessage=str(LDAPBindErrors.ACCOUNT_EXPIRED))
+            yield get_bad_response(LDAPBindErrors.ACCOUNT_EXPIRED)
             return
 
         if required_pwd_change:
-            yield BindResponse(
-                result_code=LDAPCodes.INVALID_CREDENTIALS,
-                matchedDn='',
-                errorMessage=str(LDAPBindErrors.PASSWORD_MUST_CHANGE))
+            yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 
         if policy := getattr(ldap_session, 'policy', None):
@@ -335,7 +336,7 @@ class BindRequest(BaseRequest):
                         self.authentication_choice.otpassword)
 
                     if mfa_status is False:
-                        yield self.BAD_RESPONSE
+                        yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
                         return
 
         try:
@@ -346,10 +347,9 @@ class BindRequest(BaseRequest):
             pass
 
         await ldap_session.set_user(user)
-        await set_last_logon_user(
-            user, session, settings.TIMEZONE)
+        await set_last_logon_user(user, session, settings.TIMEZONE)
 
-        yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
+        yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
 
 class UnbindRequest(BaseRequest):
