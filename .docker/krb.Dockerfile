@@ -52,7 +52,7 @@ RUN rm -rf /var/lib/krb5kdc/principal;\
     mkdir /certs;\
     touch /etc/krb5.conf;\
     touch /etc/kdc.conf;\
-    mkdir /tmp/krb5-sync;
+    mkdir -pv /var/spool/krb5-sync;
 
 COPY .kerberos/config_server.py /server/
 EXPOSE 8000
