@@ -19,4 +19,4 @@ RUN touch /etc/krb5.conf && echo """\
         admin_server = kerberos:749\n\
         default_domain = kerberos\n\
     }\n\
-""" >> /etc/krb5.conf;
+""" > /etc/krb5.conf;
