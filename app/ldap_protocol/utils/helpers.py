@@ -134,7 +134,7 @@ import random
 import re
 import struct
 from calendar import timegm
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import blake2b
 from operator import attrgetter
 from zoneinfo import ZoneInfo
@@ -154,12 +154,6 @@ def validate_entry(entry: str) -> bool:
         re.match(r'^[a-zA-Z\-]+$', part.split('=')[0])
         and len(part.split('=')) == 2
         for part in entry.split(','))
-
-
-def _type_validate_entry(entry: str) -> str:
-    if validate_entry(entry):
-        return entry
-    raise ValueError(f'Invalid entry name {entry}')
 
 
 def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
@@ -316,6 +310,17 @@ def create_user_name(directory_id: int) -> str:
     NOTE: keycloak
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
+
+
+def is_account_expired(account_exp: datetime | None) -> bool:
+    """Check AccountExpires."""
+    if account_exp is None:
+        return False
+
+    now = datetime.now(tz=timezone.utc)
+    user_account_exp = account_exp.astimezone(timezone.utc)
+
+    return True if now > user_account_exp else False
 
 
 get_class_name = attrgetter('__class__.__name__')

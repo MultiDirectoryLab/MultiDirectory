@@ -19,10 +19,14 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.password_policy import PasswordPolicySchema
-from ldap_protocol.user_account_control import UserAccountControlFlag, get_uac
+from ldap_protocol.user_account_control import (
+    UserAccountControlFlag,
+    get_check_uac,
+)
 from ldap_protocol.utils import (
     check_kerberos_group,
     get_user,
+    is_account_expired,
     is_user_group_valid,
     set_last_logon_user,
 )
@@ -47,6 +51,42 @@ class SASLMethod(StrEnum):
     UNBOUNDID_TOTP = "UNBOUNDID-TOTP"
     UNBOUNDID_DELIVERED_OTP = "UNBOUNDID-DELIVERED-OTP"
     UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
+
+
+class LDAPBindErrors(StrEnum):
+    """LDAP Bind errors."""
+
+    NO_SUCH_USER = "525"
+    LOGON_FAILURE = "52e"
+    INVALID_LOGON_HOURS = "530"
+    INVALID_WORKSTATION = "531"
+    PASSWORD_EXPIRED = "532"  # noqa
+    ACCOUNT_DISABLED = "533"
+    ACCOUNT_EXPIRED = "701"
+    PASSWORD_MUST_CHANGE = "773"  # noqa
+    ACCOUNT_LOCKED_OUT = "775"
+
+    def __str__(self) -> str:  # noqa
+        return (
+            "80090308: LdapErr: DSID-0C09030B, "
+            "comment: AcceptSecurityContext error, "
+            f"data {self.value}, v893")
+
+
+def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
+    """Generate BindResponse object with an invalid credentials error.
+
+    :param LDAPBindErrors error_message: Error message to include in the
+                                         response
+    :return BindResponse: A response object with the result code set to
+                          INVALID_CREDENTIALS, an empty matchedDN, and the
+                          provided error message
+    """
+    return BindResponse(
+        result_code=LDAPCodes.INVALID_CREDENTIALS,
+        matchedDN='',
+        errorMessage=str(error_message),
+    )
 
 
 class AbstractLDAPAuth(ABC, BaseModel):
@@ -204,15 +244,6 @@ class BindRequest(BaseRequest):
             AuthenticationChoice=auth_choice,
         )
 
-    BAD_RESPONSE: ClassVar[BindResponse] = BindResponse(
-        result_code=LDAPCodes.INVALID_CREDENTIALS,
-        matchedDN='',
-        errorMessage=(
-            '80090308: LdapErr: DSID-0C090447, '
-            'comment: AcceptSecurityContext error, '
-            'data 52e, v3839'),
-    )
-
     @staticmethod
     async def is_user_group_valid(
             user: User,
@@ -257,23 +288,17 @@ class BindRequest(BaseRequest):
         user = await self.authentication_choice.get_user(session, self.name)
 
         if not user or not self.authentication_choice.is_valid(user):
-            yield self.BAD_RESPONSE
+            yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        uac_check = await get_uac(session, user.directory_id)
+        uac_check = await get_check_uac(session, user.directory_id)
 
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
-            yield BindResponse(
-                result_code=LDAPCodes.INVALID_CREDENTIALS,
-                matchedDn='',
-                errorMessage=(
-                    "80090308: LdapErr: DSID-0C09030B, "
-                    "comment: AcceptSecurityContext error, "
-                    "data 533, v893"))
+            yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
 
         if not await self.is_user_group_valid(user, ldap_session, session):
-            yield self.BAD_RESPONSE
+            yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
         policy = await PasswordPolicySchema.get_policy_settings(session)
@@ -285,14 +310,12 @@ class BindRequest(BaseRequest):
         required_pwd_change = (
             p_last_set == '0' or pwd_expired) and not is_krb_user
 
+        if is_account_expired(user.account_exp):
+            yield get_bad_response(LDAPBindErrors.ACCOUNT_EXPIRED)
+            return
+
         if required_pwd_change:
-            yield BindResponse(
-                result_code=LDAPCodes.INVALID_CREDENTIALS,
-                matchedDn='',
-                errorMessage=(
-                    "80090308: LdapErr: DSID-0C09030B, "
-                    "comment: AcceptSecurityContext error, "
-                    "data 773, v893"))
+            yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 
         if policy := getattr(ldap_session, 'policy', None):
@@ -313,7 +336,7 @@ class BindRequest(BaseRequest):
                         self.authentication_choice.otpassword)
 
                     if mfa_status is False:
-                        yield self.BAD_RESPONSE
+                        yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
                         return
 
         try:
@@ -324,10 +347,9 @@ class BindRequest(BaseRequest):
             pass
 
         await ldap_session.set_user(user)
-        await set_last_logon_user(
-            user, session, settings.TIMEZONE)
+        await set_last_logon_user(user, session, settings.TIMEZONE)
 
-        yield BindResponse(result_code=LDAPCodes.SUCCESS, matchedDn='')
+        yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
 
 class UnbindRequest(BaseRequest):

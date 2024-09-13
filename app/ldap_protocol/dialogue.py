@@ -8,6 +8,7 @@ import asyncio
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from enum import IntEnum
 from ipaddress import IPv4Address, ip_address
 from typing import TYPE_CHECKING, AsyncIterator, Literal
@@ -45,6 +46,7 @@ class UserSchema:
     access_policies_ids: list[int]
     access_type: Literal['access', 'refresh', 'multifactor']
     exp: int
+    account_exp: datetime | None
 
     @classmethod
     def from_db(
@@ -67,6 +69,7 @@ class UserSchema:
             access_policies_ids=[
                 policy.id for group in user.groups
                 for policy in group.access_policies],
+            account_exp=user.account_exp,
         )
 
 

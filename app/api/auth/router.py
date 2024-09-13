@@ -24,10 +24,14 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.user_account_control import UserAccountControlFlag, get_uac
+from ldap_protocol.user_account_control import (
+    UserAccountControlFlag,
+    get_check_uac,
+)
 from ldap_protocol.utils import (
     ft_now,
     get_base_directories,
+    is_account_expired,
     set_last_logon_user,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group
@@ -81,9 +85,12 @@ async def login_for_access_token(
     if not admin_group:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    uac_check = await get_uac(session, user.directory_id)
+    uac_check = await get_check_uac(session, user.directory_id)
 
     if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    if is_account_expired(user.account_exp):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(

@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, Path, User
 
 from .const import EMAIL_RE, ENTRY_TYPE

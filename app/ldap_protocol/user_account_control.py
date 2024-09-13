@@ -45,7 +45,7 @@ class UserAccountControlFlag(IntFlag):
     WORKSTATION_TRUST_ACCOUNT = 0x1000
 
 
-async def get_uac(
+async def get_check_uac(
     session: AsyncSession, directory_id: int,
 ) -> Callable[[UserAccountControlFlag], bool]:
     """Get userAccountControl attribute and check binary flags in it.

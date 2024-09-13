@@ -94,9 +94,9 @@ async def test_bind_invalid_password_or_user(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
         matchedDN='',
         errorMessage=(
-            '80090308: LdapErr: DSID-0C090447, '
+            '80090308: LdapErr: DSID-0C09030B, '
             'comment: AcceptSecurityContext error, '
-            'data 52e, v3839'),
+            'data 52e, v893'),
     )
 
     async with container(scope=Scope.REQUEST) as container:
