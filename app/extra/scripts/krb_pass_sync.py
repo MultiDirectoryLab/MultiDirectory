@@ -51,5 +51,5 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
         user.password_history.append(password)
         await session.commit()
 
-        logger.info('synced password from kerberos to ldap db for {}', upn)
+        logger.info('synced for {}', upn)
         os.remove(path)
