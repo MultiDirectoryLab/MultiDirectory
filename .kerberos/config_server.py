@@ -14,7 +14,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime, timedelta
 from tempfile import gettempdir
 from types import TracebackType
-from typing import Annotated, AsyncIterator, Protocol
+from typing import Annotated, AsyncIterator, Protocol, Self
 
 import kadmin_local as kadmin
 from fastapi import (
@@ -142,7 +142,7 @@ class KAdminLocalManager(AbstractKRBManager):
         """Create threadpool and get loop."""
         self.loop = loop or asyncio.get_running_loop()
 
-    async def __aenter__(self) -> "KAdminLocalManager":
+    async def __aenter__(self) -> Self:
         """Create threadpool for kadmin client."""
         self.pool = ThreadPoolExecutor(max_workers=500).__enter__()
         logging.info('Initializing ldap connect...')

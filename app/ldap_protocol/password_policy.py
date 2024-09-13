@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import re
 from datetime import datetime
 from itertools import islice
-from typing import Iterable
+from typing import Iterable, Self
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, model_validator
@@ -59,8 +59,7 @@ class PasswordPolicySchema(BaseModel):
                 'lower or equal than maximum password age days')
         return self
 
-    async def create_policy_settings(
-            self, session: AsyncSession) -> 'PasswordPolicySchema':
+    async def create_policy_settings(self, session: AsyncSession) -> Self:
         """Create policies settings.
 
         :param AsyncSession session: db session
