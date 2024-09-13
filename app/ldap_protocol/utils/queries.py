@@ -296,33 +296,3 @@ async def create_group(
     await session.refresh(dir_)
     await session.refresh(group)
     return dir_, group
-
-
-async def is_account_expired(
-        directory_id: int, account_exp: datetime | None, session: AsyncSession,
-) -> bool:
-    """Check AccountExpires and set disable flag into userAccountControl."""
-    if account_exp is None:
-        return False
-
-    now = datetime.now(tz=timezone.utc)
-    user_account_exp = account_exp.astimezone(timezone.utc)
-
-    if now > user_account_exp:
-        uac = await session.scalar(select(Attribute).where(
-            Attribute.directory_id == directory_id,
-            Attribute.name == 'userAccountControl',
-        ))
-
-        if uac is None:
-            session.add(Attribute(
-                name="userAccountControl",
-                value="514",
-                directory_id=directory_id))
-        elif not bool(int(uac.value) & UserAccountControlFlag.ACCOUNTDISABLE):
-            uac.value = str(int(uac.value) +
-                            UserAccountControlFlag.ACCOUNTDISABLE)
-        await session.commit()
-
-        return True
-    return False

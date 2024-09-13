@@ -90,7 +90,7 @@ async def login_for_access_token(
     if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if await is_account_expired(user.directory_id, user.account_exp, session):
+    if is_account_expired(user.account_exp):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(
