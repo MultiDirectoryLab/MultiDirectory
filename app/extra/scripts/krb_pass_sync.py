@@ -24,8 +24,10 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
         if os.path.isfile(fp := os.path.join(_PATH, f))
         and f != _LOCK_FILE][:100]
 
-    if files:
-        logger.info("found: {}", files)
+    if not files:
+        return
+
+    logger.info("found: {}", files)
 
     domains = await get_base_directories(session)
     if not domains:
