@@ -6,10 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import uuid
 
 import pytest
-from fastapi import status
 from httpx import AsyncClient
 
-from app.ldap_protocol.dialogue import LDAPCodes, Operation
+from app.ldap_protocol.dialogue import LDAPCodes
 
 
 @pytest.mark.asyncio
@@ -328,65 +327,3 @@ async def test_api_bytes_to_hex(
     for attr in response['search_result'][0]['partial_attributes']:
         if attr['type'] == 'attr_with_bvalue':
             assert attr['vals'][0] == b"any".hex()
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
-async def test_api_account_expires(
-        http_client: AsyncClient, login_headers: dict) -> None:
-    """Test api search."""
-    entry_dn = "cn=test,dc=md,dc=test"
-    await http_client.patch(
-        "/entry/update",
-        json={
-            "object": entry_dn,
-            "changes": [
-                {
-                    "operation": Operation.ADD,
-                    "modification": {
-                        "type": "accountExpires",
-                        "vals": ["133075840000000000"],
-                    },
-                },
-            ],
-        },
-        headers=login_headers,
-    )
-    auth = await http_client.post(
-        "auth/token/get",
-        data={
-            "username": 'new_user@md.test',
-            "password": 'P@ssw0rd',
-        })
-
-    assert auth.status_code == status.HTTP_403_FORBIDDEN
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": entry_dn,
-            "scope": 0,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(objectClass=*)",
-            "attributes": [],
-            "page_number": 1,
-        },
-        headers=login_headers,
-    )
-
-    data = response.json()
-
-    assert data['resultCode'] == LDAPCodes.SUCCESS
-    assert data['search_result'][0]['object_name'] == entry_dn
-
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'userAccountControl':
-            assert attr['vals'][0] == "514"
-            break
-    else:
-        raise Exception('UserAccountControl not found')

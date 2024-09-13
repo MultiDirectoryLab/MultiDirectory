@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import pytest_asyncio
+from fastapi import status
 from httpx import AsyncClient
 
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
@@ -116,3 +117,28 @@ async def adding_test_user(
         })
 
     assert auth.json()['access_token']
+
+    await http_client.patch(
+        "/entry/update",
+        json={
+            "object": test_user_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "accountExpires",
+                        "vals": ["133075840000000000"],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    auth = await http_client.post(
+        "auth/token/get",
+        data={
+            "username": 'new_user@md.test',
+            "password": 'P@ssw0rd',
+        })
+
+    assert auth.status_code == status.HTTP_403_FORBIDDEN
