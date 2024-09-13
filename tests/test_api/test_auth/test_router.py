@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import pytest
+from fastapi import status
 from httpx import AsyncClient
 
 from ldap_protocol.dialogue import LDAPCodes, Operation
@@ -15,7 +16,7 @@ from ldap_protocol.dialogue import LDAPCodes, Operation
 async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
     """Test api first setup."""
     response = await http_client.get("/auth/setup")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() is False
 
     response = await http_client.post("/auth/setup", json={
@@ -26,10 +27,10 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
         "mail": "test@example.com",
         "password": "Password123",
     })
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     response = await http_client.get("/auth/setup")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
 
     auth = await http_client.post("auth/token/get", data={
@@ -39,7 +40,7 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
     login_header = {'Authorization': f"Bearer {auth.json()['access_token']}"}
 
     response = await http_client.get("auth/me", headers=login_header)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     result = response.json()
 
@@ -65,7 +66,7 @@ async def test_update_password(
         headers=login_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() is None
 
     new_auth = await http_client.post(
@@ -102,7 +103,7 @@ async def test_auth_disabled_user(
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     response = await http_client.patch(
         "entry/update",

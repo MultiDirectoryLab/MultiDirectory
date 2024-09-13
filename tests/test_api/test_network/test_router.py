@@ -8,6 +8,7 @@ from ipaddress import IPv4Network
 
 import httpx
 import pytest
+from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -89,7 +90,7 @@ async def test_update_policy(
         http_client: AsyncClient, login_headers: dict) -> None:
     """Update policy."""
     raw_response = await http_client.get("/policy", headers=login_headers)
-    assert raw_response.status_code == 200
+    assert raw_response.status_code == status.HTTP_200_OK
     response = raw_response.json()
 
     pol_id = response[0].pop('id')
@@ -115,7 +116,7 @@ async def test_update_policy(
             'name': 'Default open policy 2',
         }, headers=login_headers)
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     response = response.json()
     response.pop('id')
@@ -132,7 +133,7 @@ async def test_update_policy(
     }
 
     response = await http_client.get("/policy", headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     response = response.json()
 
     response[0].pop('id')
@@ -169,7 +170,7 @@ async def test_delete_policy(
     await session.commit()
 
     raw_response = await http_client.get("/policy", headers=login_headers)
-    assert raw_response.status_code == 200
+    assert raw_response.status_code == status.HTTP_200_OK
     response = raw_response.json()
 
     pol_id = response[0].pop('id')
@@ -191,7 +192,7 @@ async def test_delete_policy(
     assert response.status_code == 303
     assert response.next_request.url.path == '/api/policy'
     response = await http_client.get("/policy", headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     response = response.json()
 
     assert len(response) == 1
@@ -222,7 +223,7 @@ async def test_switch_policy(
     await session.commit()
 
     raw_response = await http_client.get("/policy", headers=login_headers)
-    assert raw_response.status_code == 200
+    assert raw_response.status_code == status.HTTP_200_OK
     response = raw_response.json()
 
     pol_id = response[0].pop('id')
@@ -243,7 +244,7 @@ async def test_switch_policy(
         f"/policy/{pol_id}",
         headers=login_headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
 
     response = await http_client.get("/policy", headers=login_headers)
@@ -262,7 +263,7 @@ async def test_404(
         http_client: AsyncClient, login_headers: dict) -> None:
     """Delete policy."""
     response = await http_client.get("/policy", headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     some_id = response.json()[0]['id'] + 1
 
     response = await http_client.delete(

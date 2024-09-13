@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from copy import copy
 
 import pytest
+from fastapi import status
 from httpx import AsyncClient
 
 
@@ -39,7 +40,7 @@ async def test_policy_password(
     assert response.json() == policy_data
 
     response = await http_client.get("/password-policy", headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == policy_data
 
     changed_data = copy(policy_data)
@@ -52,19 +53,19 @@ async def test_policy_password(
         json=changed_data,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == changed_data
 
     response = await http_client.get("/password-policy", headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == changed_data
 
     response = await http_client.delete(
         "/password-policy", headers=login_headers)
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == policy_data
 
     response = await http_client.get("/password-policy", headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == policy_data

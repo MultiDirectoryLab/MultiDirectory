@@ -4,9 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import pytest
+from fastapi import status
 from httpx import AsyncClient
 
 from app.ldap_protocol.dialogue import LDAPCodes
+from app.ldap_protocol.user_account_control import UserAccountControlFlag
 
 
 @pytest.mark.asyncio
@@ -47,9 +49,69 @@ async def test_api_correct_add(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert data.get('resultCode') == LDAPCodes.SUCCESS
     assert data.get('errorMessage') == ''
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_add_computer(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test api correct add computer."""
+    new_entry = "cn=PC,dc=md,dc=test"
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": new_entry,
+            "password": None,
+            "attributes": [
+                {
+                    "type": "name",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "cn",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "objectClass",
+                    "vals": ["computer", "top"],
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": new_entry,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+
+    assert data['search_result'][0]['object_name'] == new_entry
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'userAccountControl':
+            assert int(attr['vals'][0]) &\
+                UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
+            break
+    else:
+        raise Exception('Computer without userAccountControl')
 
 
 @pytest.mark.asyncio
@@ -93,7 +155,7 @@ async def test_api_correct_add_double_member_of(
     )
     data = response.json()
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
     response = await http_client.post(
@@ -162,7 +224,7 @@ async def test_api_correct_add_double_member_of(
     )
     data = response.json()
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
     response = await http_client.post(
@@ -182,7 +244,7 @@ async def test_api_correct_add_double_member_of(
     )
     data = response.json()
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert data.get('resultCode') == LDAPCodes.SUCCESS
     assert data['search_result'][0]['object_name'] == user
 
