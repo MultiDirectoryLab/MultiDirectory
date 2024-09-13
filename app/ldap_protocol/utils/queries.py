@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from ldap_protocol.user_account_control import UserAccountControlFlag
 from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, Path, User
 
 from .const import EMAIL_RE, ENTRY_TYPE
@@ -47,6 +46,9 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 
     path = await session.scalar(
         select(Path).where(get_filter_from_path(name)))
+
+    if not path:
+        return None
 
     return await session.scalar(
         select(User)
