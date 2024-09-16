@@ -261,11 +261,6 @@ class Directory(Base):
     def path_dn(self) -> str:
         """Get DN from path."""
         return ','.join(reversed(self.path.path))  # type: ignore
-    
-    @property
-    def is_computer(self) -> bool:
-        """Is directory computer."""
-        return self.object_class == 'computer'
 
     def create_path(
         self,

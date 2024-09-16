@@ -8,7 +8,7 @@ from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
@@ -60,8 +60,9 @@ class DeleteRequest(BaseRequest):
         query = (  # noqa: ECE001
             select(Directory)
             .join(Directory.path)
-            .join(Directory.attributes)
-            .options(joinedload(Directory.user))
+            .options(
+                joinedload(Directory.user),
+                selectinload(Directory.attributes))
             .filter(get_filter_from_path(self.entry))
         )
 
@@ -90,10 +91,13 @@ class DeleteRequest(BaseRequest):
             if directory.user:
                 await kadmin.del_principal(directory.user.get_upn_prefix())
 
-            if directory.is_computer:
-                await kadmin.del_principal(f"HOST/{directory.name}")
-                await kadmin.del_principal(
-                    f"HOST/{directory.name}.{base_dn.name}")
+            for attr in directory.attributes:
+                if (attr.name.lower() == 'objectclass' and
+                        attr.value == 'computer'):
+                    await kadmin.del_principal(f"HOST/{directory.name}")
+                    await kadmin.del_principal(
+                        f"HOST/{directory.name}.{base_dn.name}")
+                    break
         except KRBAPIError:
             pass
 
