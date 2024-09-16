@@ -134,8 +134,10 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
+        is_computer = 'computer' in self.attr_names.get('objectclass', [])
+
         new_dir = Directory(
-            object_class='',
+            object_class='computer' if is_computer else '',
             name=name,
             parent=parent,
         )
@@ -208,7 +210,6 @@ class AddRequest(BaseRequest):
         is_group = 'group' in self.attr_names.get('objectclass', [])
         is_user = 'sAMAccountName' in user_attributes\
             or 'userPrincipalName' in user_attributes
-        is_computer = 'computer' in self.attr_names.get('objectclass', [])
 
         if is_user:
             parent_groups.append(
@@ -294,7 +295,7 @@ class AddRequest(BaseRequest):
                     if user:
                         await kadmin.add_principal(
                             user.get_upn_prefix(), pw)
-                    else:
+                    if is_computer:
                         await kadmin.add_principal(
                             f"HOST/{new_dir.name}.{base_dn.name}", None)
                         await kadmin.add_principal(
