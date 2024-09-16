@@ -271,7 +271,7 @@ async def test_ldap_add(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_ldap_kadmin_delete(
+async def test_ldap_kadmin_delete_user(
     http_client: AsyncClient,
     login_headers: dict,
     kadmin: AbstractKadmin,
@@ -294,6 +294,39 @@ async def test_ldap_kadmin_delete(
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
     assert kadmin.del_principal.call_args.args[0] == "ktest"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap_kadmin_delete_computer(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for delete object."""
+    await http_client.post(
+        "/entry/add",
+        headers=login_headers,
+        json={
+            "entry": "cn=ktest,dc=md,dc=test",
+            "password": None,
+            "attributes": [
+                {"type": "objectClass", "vals": ["computer", "top"]}],
+        })
+
+    response = await http_client.request(
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn=ktest,dc=md,dc=test"},
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    assert kadmin.del_principal.call_args.args[0] == 'HOST/ktest.md.test'
 
 
 @pytest.mark.asyncio
