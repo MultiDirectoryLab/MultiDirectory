@@ -27,6 +27,8 @@ services:
       - "--entrypoints.ldaps.address=:636"
 
       - "--entrypoints.kdc.address=:88"
+      - "--entrypoints.kadmind.address=:749"
+      - "--entrypoints.kpasswd.address=:464"
 
       - --entryPoints.websecure.http.tls=true
       - --entryPoints.websecure.http.tls.certResolver=md-resolver
@@ -41,6 +43,8 @@ services:
       - "389:389"
       - "636:636"
       - "88:88"
+      - "749:749"
+      - "464:464"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
@@ -54,7 +58,7 @@ services:
           memory: 32M
 
   interface:
-    image: ghcr.io/multidirectorylab/multidirectory-web-admin:latest
+    image: ghcr.io/multidirectorylab/multidirectory-web-admin:${VERSION:-latest}
     container_name: multidirectory_interface
     restart: unless-stopped
     hostname: interface
@@ -68,7 +72,7 @@ services:
       - "traefik.http.services.interface.loadbalancer.server.port=80"
 
   migrations:
-    image: ghcr.io/multidirectorylab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_migrations
     restart: "no"
     env_file:
@@ -79,7 +83,7 @@ services:
         condition: service_healthy
 
   ldap_server:
-    image: ghcr.io/multidirectorylab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     restart: unless-stopped
     hostname: multidirectory-ldap
     env_file:
@@ -123,7 +127,7 @@ services:
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
 
   api_server:
-    image: ghcr.io/multidirectorylab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_api
     restart: unless-stopped
     env_file:
@@ -172,19 +176,41 @@ services:
       start_period: 5s
 
   cert_check:
-    image: ghcr.io/multidirectorylab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_certs_check
     restart: "no"
     volumes:
       - ./certs:/certs
     command: ./extra/generate_cert.sh
 
+  maintence:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: md_maintence
+    volumes:
+      - psync_queue:/var/spool/krb5-sync
+    env_file:
+      .env
+    command: python schedule.py
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+        reservations:
+          cpus: '0.1'
+          memory: 6M
+
   kdc:
     container_name: kdc
     restart: unless-stopped
+    hostname: kerberos
     volumes:
       - kdc:/etc
-    image: ghcr.io/multidirectorylab/multidirectory_kerberos:latest
+    image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
     tty: true
     depends_on:
       - ldap_server
@@ -196,9 +222,9 @@ services:
       - traefik.tcp.routers.kdc.service=kdc
       - traefik.tcp.services.kdc.loadbalancer.server.port=88
 
-  kadmin:
-    image: ghcr.io/multidirectorylab/multidirectory_kerberos:latest
-    container_name: kadmin
+  kadmin_api:
+    image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
+    container_name: kadmin_api
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -214,8 +240,32 @@ services:
              --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
              --ssl-certfile=/certs/krbcert.pem
 
+  kadmind:
+    image: ghcr.io/multidirectorylab/multidirectory_kerberos:beta
+    container_name: kadmind
+    restart: unless-stopped
+    hostname: kerberos
+    volumes:
+      - kdc:/etc
+      - psync_queue:/var/spool/krb5-sync
+    tty: true
+    depends_on:
+      - ldap_server
+      - kdc
+    command: kadmind -nofork
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kadmind.entrypoints=kadmind
+      - traefik.tcp.routers.kadmind.service=kadmind
+      - traefik.tcp.services.kadmind.loadbalancer.server.port=749
+
+      - traefik.tcp.routers.kpasswd.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kpasswd.entrypoints=kpasswd
+      - traefik.tcp.routers.kpasswd.service=kpasswd
+      - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
+
 volumes:
-  traefik:
   postgres:
-  pgadmin:
   kdc:
+  psync_queue:
