@@ -284,14 +284,13 @@ class AddRequest(BaseRequest):
             await session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:
-            pw = (
-                self.password.get_secret_value()
-                if self.password else None)
-
             try:
                 # in case server is not available: raise error and rollback
                 # stub cannot raise error
                 if user:
+                    pw = (
+                        self.password.get_secret_value()
+                        if self.password else None)
                     await kadmin.add_principal(
                         user.get_upn_prefix(), pw)
                 if is_computer:
