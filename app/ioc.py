@@ -61,7 +61,7 @@ class MainProvider(Provider):
             yield session
             await session.commit()
 
-    @provide(scope=Scope.APP)
+    @provide(scope=Scope.SESSION)
     async def get_krb_class(
             self, session_maker: sessionmaker) -> type[AbstractKadmin]:
         """Get kerberos type."""
@@ -90,7 +90,7 @@ class MainProvider(Provider):
         ) as client:
             yield KadminHTTPClient(client)
 
-    @provide(scope=Scope.APP, provides=AbstractKadmin)
+    @provide(scope=Scope.REQUEST, provides=AbstractKadmin)
     async def get_kadmin(
         self, client: KadminHTTPClient,
         kadmin_class: type[AbstractKadmin],
