@@ -5,7 +5,7 @@ from typing import Callable, Coroutine, TypeAlias
 import uvloop
 from dishka import AsyncContainer, Scope, make_async_container
 from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
-from extra.scripts.uac_sync import update_uac_accounts
+from extra.scripts.uac_sync import disable_accounts
 from loguru import logger
 
 from config import Settings
@@ -14,10 +14,10 @@ from ldap_protocol.dependency import resolve_deps
 
 task_type: TypeAlias = Callable[..., Coroutine]
 
-TASKS: tuple[tuple[task_type, float]] = (
+TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),
-    (update_uac_accounts, 600.0),
-)  # type: ignore
+    (disable_accounts, 600.0),
+}
 
 
 async def schedule(
