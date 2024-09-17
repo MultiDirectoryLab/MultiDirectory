@@ -16,7 +16,7 @@ from tempfile import gettempdir
 from types import TracebackType
 from typing import Annotated, AsyncIterator, Protocol, Self
 
-import kadmin_local as kadmin
+import kadmin_local as kadmv
 from fastapi import (
     APIRouter,
     Body,
@@ -176,7 +176,7 @@ class KAdminLocalManager(AbstractKRBManager):
 
     async def _init_client(self) -> KAdminProtocol:
         """Init kadmin local connection."""
-        return await self.loop.run_in_executor(self.pool, kadmin.local)
+        return await self.loop.run_in_executor(self.pool, kadmv.local)
 
     async def add_princ(
             self, name: str, password: str | None, **dbargs) -> None:
@@ -272,7 +272,7 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
         while not getattr(app.state, "kadmin", None):
             try:
                 app.state.kadmind = await KAdminLocalManager().connect()
-            except (kadmin.KAdminError, TimeoutError):
+            except (kadmv.KAdminError, TimeoutError):
                 await asyncio.sleep(1)
             else:
                 logging.info('Successfully connected to kadmin local')
@@ -534,8 +534,8 @@ def create_app() -> FastAPI:
     )
     app.include_router(setup_router)
     app.include_router(principal_router)
-    app.add_exception_handler(kadmin.KDBAccessError, handle_db_error)
-    app.add_exception_handler(kadmin.DuplicateError, handle_duplicate)
-    app.add_exception_handler(kadmin.KDBNoEntryError, handle_not_found)
+    app.add_exception_handler(kadmv.KDBAccessError, handle_db_error)
+    app.add_exception_handler(kadmv.DuplicateError, handle_duplicate)
+    app.add_exception_handler(kadmv.KDBNoEntryError, handle_not_found)
     app.add_exception_handler(PrincipalNotFoundError, handle_not_found)
     return app
