@@ -97,7 +97,11 @@ class DeleteRequest(BaseRequest):
                 await kadmin.del_principal(
                     f"HOST/{directory.name}.{base_dn.name}")
         except KRBAPIError:
-            pass
+            yield DeleteResponse(
+                result_code=LDAPCodes.UNAVAILABLE,
+                errorMessage="KerberosError",
+            )
+            return
 
         await session.delete(directory)
         await session.commit()
