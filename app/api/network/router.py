@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
-from ldap_protocol.utils import get_groups
+from ldap_protocol.utils.queries import get_groups
 from models.ldap3 import Directory, Group, NetworkPolicy
 
 from .schema import (

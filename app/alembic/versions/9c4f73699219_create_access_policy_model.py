@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.access_policy import create_access_policy
-from ldap_protocol.utils import create_group, get_base_directories
+from ldap_protocol.utils.queries import create_group, get_base_directories
 from models import Directory, User
 
 # revision identifiers, used by Alembic.

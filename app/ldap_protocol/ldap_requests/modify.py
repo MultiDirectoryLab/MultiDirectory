@@ -23,15 +23,17 @@ from ldap_protocol.password_policy import (
     post_save_password_actions,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from ldap_protocol.utils import (
+from ldap_protocol.utils.cte import get_members_root_group
+from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
+    is_dn_in_base_directory,
+)
+from ldap_protocol.utils.queries import (
     get_base_directories,
     get_directories,
     get_filter_from_path,
     get_groups,
-    get_members_root_group,
-    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, User

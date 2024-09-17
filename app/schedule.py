@@ -5,6 +5,7 @@ from typing import Callable, Coroutine, TypeAlias
 import uvloop
 from dishka import AsyncContainer, Scope, make_async_container
 from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
+from extra.scripts.uac_sync import disable_accounts
 from loguru import logger
 
 from config import Settings
@@ -13,9 +14,10 @@ from ldap_protocol.dependency import resolve_deps
 
 task_type: TypeAlias = Callable[..., Coroutine]
 
-TASKS: tuple[tuple[task_type, float]] = (
+TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),
-)
+    (disable_accounts, 600.0),
+}
 
 
 async def schedule(
@@ -37,16 +39,32 @@ async def schedule(
         await asyncio.sleep(wait)
 
 
-async def main() -> None:
+def main() -> None:
     """Sript entrypoint."""
-    container = make_async_container(
-        MainProvider(),
-        context={Settings: Settings()})
+    settings = Settings()
 
-    async with asyncio.TaskGroup() as tg:
-        for task, timeout in TASKS:
-            tg.create_task(schedule(task, timeout, container))
+    async def scheduler(settings: Settings) -> None:
+        container = make_async_container(
+            MainProvider(),
+            context={Settings: settings})
+
+        async with asyncio.TaskGroup() as tg:
+            for task, timeout in TASKS:
+                tg.create_task(schedule(task, timeout, container))
+
+    def _run() -> None:
+        uvloop.run(scheduler(settings))
+
+    try:
+        import py_hot_reload
+    except ImportError:
+        _run()
+    else:
+        if settings.DEBUG:
+            py_hot_reload.run_with_reloader(_run)
+        else:
+            _run()
 
 
 if __name__ == "__main__":
-    uvloop.run(main())
+    main()

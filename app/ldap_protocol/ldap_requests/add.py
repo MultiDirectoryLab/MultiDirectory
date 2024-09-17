@@ -23,17 +23,19 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from ldap_protocol.utils import (
+from ldap_protocol.utils.helpers import (
     create_integer_hash,
-    create_object_sid,
     create_user_name,
     ft_now,
+    is_dn_in_base_directory,
+)
+from ldap_protocol.utils.queries import (
+    create_object_sid,
     get_base_directories,
     get_group,
     get_groups,
     get_path_filter,
     get_search_path,
-    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, User

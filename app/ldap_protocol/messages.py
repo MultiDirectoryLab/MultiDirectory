@@ -15,7 +15,7 @@ from .asn1parser import asn1todict
 from .dialogue import LDAPCodes
 from .ldap_requests import BaseRequest, protocol_id_map
 from .ldap_responses import BaseResponse, LDAPResult
-from .utils import get_class_name
+from .utils.helpers import get_class_name
 
 
 class Control(BaseModel):

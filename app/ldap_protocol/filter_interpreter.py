@@ -18,7 +18,7 @@ from models.ldap3 import Attribute, Directory, Group, User
 
 from .asn1parser import ASN1Row
 from .objects import LDAPMatchingRule
-from .utils import find_members_recursive_cte, get_filter_from_path
+from .utils.cte import find_members_recursive_cte, get_filter_from_path
 
 MEMBERS_ATTRS = {
     'member',

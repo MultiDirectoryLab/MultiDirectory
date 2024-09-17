@@ -1,12 +1,15 @@
-"""Kerberos password sync."""
+"""Kerberos password sync.
 
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 import os
 
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils import get_base_directories
+from ldap_protocol.utils.queries import get_base_directories
 from models import User
 from security import get_password_hash
 
@@ -17,7 +20,7 @@ _PATH = "/var/spool/krb5-sync"
 async def read_and_save_krb_pwds(session: AsyncSession) -> None:
     """Process file queue with lock.
 
-    :param AsyncContainer container: container
+    :param AsyncSession session: db
     """
     files = [  # noqa: ECE001
         fp for f in os.listdir(_PATH)

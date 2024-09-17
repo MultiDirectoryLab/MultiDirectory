@@ -12,8 +12,8 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, and_, or_
 
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.utils import (
-    ENTRY_TYPE,
+from ldap_protocol.utils.const import ENTRY_TYPE
+from ldap_protocol.utils.queries import (
     get_groups,
     get_path_filter,
     get_search_path,

@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPCodes
-from app.ldap_protocol.utils import get_search_path
+from app.ldap_protocol.utils.queries import get_search_path
 from app.models.ldap3 import Directory, Group, Path
 from ldap_protocol.access_policy import create_access_policy
 from tests.conftest import TestCreds

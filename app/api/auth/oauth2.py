@@ -18,7 +18,7 @@ from sqlalchemy.orm import selectinload
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.multifactor import MFA_HTTP_Creds
-from ldap_protocol.utils import get_user
+from ldap_protocol.utils.queries import get_user
 from models.ldap3 import Group
 from models.ldap3 import User as DBUser
 from security import verify_password

@@ -21,11 +21,8 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from ldap_protocol.utils import (
-    create_object_sid,
-    generate_domain_sid,
-    get_domain_attrs,
-)
+from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
+from ldap_protocol.utils.queries import get_domain_attrs
 from models.ldap3 import (
     Attribute,
     CatalogueSetting,

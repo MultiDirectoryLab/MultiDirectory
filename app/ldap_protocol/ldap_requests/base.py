@@ -16,7 +16,7 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_responses import BaseResponse
-from ldap_protocol.utils import get_class_name
+from ldap_protocol.utils.helpers import get_class_name
 
 log_api = logger.bind(name='admin')
 

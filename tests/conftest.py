@@ -47,7 +47,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
-from ldap_protocol.utils import get_user
+from ldap_protocol.utils.queries import get_user
 from models import Directory
 from web_app import create_app
 
