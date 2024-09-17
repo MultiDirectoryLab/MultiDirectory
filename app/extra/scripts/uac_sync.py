@@ -17,7 +17,7 @@ async def update_uac_accounts(session: AsyncSession) -> None:
     """
     subquery = select(User.directory_id).where(
         User.account_exp < func.now(),
-        User.directory_id == Attribute.directory_id).scalar_subquery()
+        User.directory_id == Attribute.directory_id).as_scalar()
     await session.execute(  # noqa
         update(Attribute)
         .values(value=cast(cast(Attribute.value, Integer).op('|')(2), String))
