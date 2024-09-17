@@ -10,7 +10,11 @@ import os
 import uuid
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextlib import (
+    AbstractAsyncContextManager,
+    asynccontextmanager,
+    suppress,
+)
 from datetime import datetime, timedelta
 from tempfile import gettempdir
 from types import TracebackType
@@ -142,19 +146,20 @@ class KAdminLocalManager(AbstractKRBManager):
         """Create threadpool and get loop."""
         self.loop = loop or asyncio.get_running_loop()
 
-    async def __aenter__(self) -> Self:
+    async def connect(self) -> Self:
         """Create threadpool for kadmin client."""
         self.pool = ThreadPoolExecutor(max_workers=500).__enter__()
-        logging.info('Initializing ldap connect...')
-
-        try:
-            self.client = await asyncio.wait_for(self._init_client(), 40)
-        except Exception as e:
-            logging.exception('Failed kadmin initialiation')
-            raise SystemError from e
-
-        logging.info('Successfully connected to kadmin local')
+        self.client = await asyncio.wait_for(self._init_client(), 40)
         return self
+
+    async def disconnect(self) -> None:
+        """Destroy threadpool."""
+        del self.client
+        self.pool.__exit__(None, None, None)
+
+    async def __aenter__(self) -> Self:
+        """Create threadpool for kadmin client."""
+        await self.connect()
 
     async def __aexit__(
         self,
@@ -163,8 +168,7 @@ class KAdminLocalManager(AbstractKRBManager):
         tb: TracebackType | None,
     ) -> None:
         """Destroy threadpool."""
-        del self.client
-        self.pool.__exit__(exc_type, exc, tb)
+        await self.disconnect()
 
     async def _init_client(self) -> KAdminProtocol:
         """Init kadmin local connection."""
@@ -256,14 +260,24 @@ class KAdminLocalManager(AbstractKRBManager):
 @asynccontextmanager
 async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create kadmin instance."""
-    try:
-        async with KAdminLocalManager() as kadmind:
-            app.state.kadmind = kadmind
-            yield
-            del app.state.kadmind
-    except Exception:
-        logging.exception("failed executing kadmin")
-        yield
+    loop = asyncio.get_running_loop()
+
+    async def try_set_kadmin(app: FastAPI) -> None:
+        logging.info('Trying to initialize ldap connect...')
+
+        while not getattr(app.state, "kadmin", None):
+            try:
+                app.state.kadmind = await KAdminLocalManager().connect()
+            except (kadmin.KAdminError, TimeoutError):
+                await asyncio.sleep(1)
+            else:
+                logging.info('Successfully connected to kadmin local')
+                return
+
+    loop.create_task(try_set_kadmin(app))
+    yield
+    with suppress(AttributeError):
+        delattr(app.state, "kadmind")
 
 
 def get_kadmin() -> KAdminLocalManager:
