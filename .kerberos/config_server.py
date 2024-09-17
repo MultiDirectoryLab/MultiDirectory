@@ -10,11 +10,7 @@ import os
 import uuid
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import (
-    AbstractAsyncContextManager,
-    asynccontextmanager,
-    suppress,
-)
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from tempfile import gettempdir
 from types import TracebackType
@@ -77,8 +73,16 @@ class PrincipalNotFoundError(Exception):
     """Not found error."""
 
 
-class AbstractKRBManager(AbstractAsyncContextManager, ABC):
+class AbstractKRBManager(ABC):
     """Kadmin manager."""
+
+    @abstractmethod
+    async def connect(self) -> Self:
+        """Connect."""
+
+    @abstractmethod
+    async def disconnect(self) -> None:
+        """Disconnect."""
 
     @abstractmethod
     async def add_princ(
@@ -276,8 +280,10 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     loop.create_task(try_set_kadmin(app))
     yield
-    with suppress(AttributeError):
+    if kadmind := getattr(app.state, "kadmind", None):
+        await kadmind.disconnect()
         delattr(app.state, "kadmind")
+        logging.info('Successfully shutted down kadmin local')
 
 
 def get_kadmin() -> KAdminLocalManager:
