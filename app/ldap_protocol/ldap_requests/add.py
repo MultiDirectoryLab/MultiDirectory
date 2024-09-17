@@ -134,10 +134,8 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
-        is_computer = 'computer' in self.attr_names.get('objectclass', [])
-
         new_dir = Directory(
-            object_class='computer' if is_computer else '',
+            object_class='',
             name=name,
             parent=parent,
         )
@@ -210,6 +208,7 @@ class AddRequest(BaseRequest):
         is_group = 'group' in self.attr_names.get('objectclass', [])
         is_user = 'sAMAccountName' in user_attributes\
             or 'userPrincipalName' in user_attributes
+        is_computer = 'computer' in self.attr_names.get('objectclass', [])
 
         if is_user:
             parent_groups.append(
