@@ -21,6 +21,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.utils import (
     get_base_directories,
     get_filter_from_path,
+    is_computer,
     is_dn_in_base_directory,
     validate_entry,
 )
@@ -91,13 +92,10 @@ class DeleteRequest(BaseRequest):
             if directory.user:
                 await kadmin.del_principal(directory.user.get_upn_prefix())
 
-            for attr in directory.attributes:
-                if (attr.name.lower() == 'objectclass' and
-                        attr.value == 'computer'):
-                    await kadmin.del_principal(f"HOST/{directory.name}")
-                    await kadmin.del_principal(
-                        f"HOST/{directory.name}.{base_dn.name}")
-                    break
+            if await is_computer(directory.id, session):
+                await kadmin.del_principal(f"HOST/{directory.name}")
+                await kadmin.del_principal(
+                    f"HOST/{directory.name}.{base_dn.name}")
         except KRBAPIError:
             pass
 

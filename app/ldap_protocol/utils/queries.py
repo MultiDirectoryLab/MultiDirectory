@@ -298,3 +298,15 @@ async def create_group(
     await session.refresh(dir_)
     await session.refresh(group)
     return dir_, group
+
+
+async def is_computer(directory_id: int, session: AsyncSession) -> bool:
+    """Determine whether the entry is a computer.
+
+    :param AsyncSession session: db
+    :param int directory_id: id
+    """
+    return await session.scalar(select(select(Attribute).where(
+        func.lower(Attribute.name) == 'objectclass',
+        Attribute.value == 'computer',
+        Attribute.directory_id == directory_id).exists()))
