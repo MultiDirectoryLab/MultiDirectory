@@ -63,7 +63,7 @@ async def test_tree_creation(
         "krbadmin_password": krbadmin_pw,
     }, headers=login_headers)
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     response = await http_client.post(
         "entry/search",
@@ -138,7 +138,7 @@ async def test_setup_call(
         "stash_password": 'Password123',
     }, headers=login_headers)
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     kadmin.setup.assert_called()
 
@@ -176,7 +176,7 @@ async def test_status_change(
     """
     response = await http_client.get(
         '/kerberos/status', headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == KerberosState.NOT_CONFIGURED
 
     await http_client.post('/kerberos/setup', json={
@@ -264,14 +264,14 @@ async def test_ldap_add(
         headers=login_headers,
         json=_create_test_user_data(san, pw))
 
-    assert response.status_code == 200, response.json()
+    assert response.status_code == status.HTTP_200_OK, response.json()
     assert kadmin.add_principal.call_args.args == (san, pw)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_ldap_kadmin_delete(
+async def test_ldap_kadmin_delete_user(
     http_client: AsyncClient,
     login_headers: dict,
     kadmin: AbstractKadmin,
@@ -294,6 +294,39 @@ async def test_ldap_kadmin_delete(
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
     assert kadmin.del_principal.call_args.args[0] == "ktest"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap_kadmin_delete_computer(
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for delete object."""
+    await http_client.post(
+        "/entry/add",
+        headers=login_headers,
+        json={
+            "entry": "cn=ktest,dc=md,dc=test",
+            "password": None,
+            "attributes": [
+                {"type": "objectClass", "vals": ["computer", "top"]}],
+        })
+
+    response = await http_client.request(
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn=ktest,dc=md,dc=test"},
+        headers=login_headers,
+    )
+
+    data = response.json()
+
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    assert kadmin.del_principal.call_args.args[0] == 'HOST/ktest.md.test'
 
 
 @pytest.mark.asyncio
@@ -377,7 +410,7 @@ async def test_add_princ(
             "instance": "12345",
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert kadmin.add_principal.call_args.args == ("host/12345", None)
 
 
@@ -403,7 +436,7 @@ async def test_rename_princ(
             "principal_new_name": "nname",
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert kadmin.rename_princ.call_args.args == ("name", "nname")
 
 
@@ -429,7 +462,7 @@ async def test_change_princ(
             "new_password": "pw123",
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert kadmin.change_principal_password.call_args.args == ("name", "pw123")
 
 
@@ -453,7 +486,7 @@ async def test_delete_princ(
         json={"principal_name": "name"},
         headers=login_headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert kadmin.del_principal.call_args.args == ("name",)
 
 
@@ -472,7 +505,7 @@ async def test_admin_incorrect_pw_setup(
     """
     response = await http_client.get(
         '/kerberos/status', headers=login_headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == KerberosState.NOT_CONFIGURED
 
     response = await http_client.post('/kerberos/setup', json={

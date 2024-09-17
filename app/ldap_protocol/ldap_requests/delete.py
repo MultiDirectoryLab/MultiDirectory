@@ -8,7 +8,7 @@ from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
@@ -18,7 +18,13 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
-from ldap_protocol.utils import get_filter_from_path, validate_entry
+from ldap_protocol.utils import (
+    get_base_directories,
+    get_filter_from_path,
+    is_computer,
+    is_dn_in_base_directory,
+    validate_entry,
+)
 from models.ldap3 import Directory
 
 from .base import BaseRequest
@@ -55,7 +61,9 @@ class DeleteRequest(BaseRequest):
         query = (  # noqa: ECE001
             select(Directory)
             .join(Directory.path)
-            .options(joinedload(Directory.user))
+            .options(
+                joinedload(Directory.user),
+                selectinload(Directory.attributes))
             .filter(get_filter_from_path(self.entry))
         )
 
@@ -75,12 +83,25 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        if directory.user:
-            try:
+        for base_directory in await get_base_directories(session):
+            if is_dn_in_base_directory(base_directory, self.entry):
+                base_dn = base_directory
+                break
+
+        try:
+            if directory.user:
+                await kadmin.del_principal(directory.user.get_upn_prefix())
+
+            if await is_computer(directory.id, session):
+                await kadmin.del_principal(f"HOST/{directory.name}")
                 await kadmin.del_principal(
-                    directory.user.get_upn_prefix())
-            except KRBAPIError:
-                pass
+                    f"HOST/{directory.name}.{base_dn.name}")
+        except KRBAPIError:
+            yield DeleteResponse(
+                result_code=LDAPCodes.UNAVAILABLE,
+                errorMessage="KerberosError",
+            )
+            return
 
         await session.delete(directory)
         await session.commit()
