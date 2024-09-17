@@ -43,8 +43,7 @@ def main() -> None:
     """Sript entrypoint."""
     settings = Settings()
 
-    async def scheduler() -> None:
-        nonlocal settings
+    async def scheduler(settings: Settings) -> None:
         container = make_async_container(
             MainProvider(),
             context={Settings: settings})
@@ -54,7 +53,7 @@ def main() -> None:
                 tg.create_task(schedule(task, timeout, container))
 
     def _run() -> None:
-        uvloop.run(scheduler())
+        uvloop.run(scheduler(settings))
 
     try:
         import py_hot_reload

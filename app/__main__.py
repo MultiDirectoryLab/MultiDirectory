@@ -341,8 +341,7 @@ def main() -> None:
     """Run server."""
     settings = Settings()
 
-    async def _servers() -> None:
-        nonlocal settings
+    async def _servers(settings: Settings) -> None:
         servers = []
 
         for setting in (settings, settings.get_copy_4_tls()):
@@ -359,7 +358,7 @@ def main() -> None:
         await asyncio.gather(*servers)
 
     def _run() -> None:
-        uvloop.run(_servers(), debug=settings.DEBUG)
+        uvloop.run(_servers(settings), debug=settings.DEBUG)
 
     try:
         import py_hot_reload
