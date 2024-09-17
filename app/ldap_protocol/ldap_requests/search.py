@@ -32,17 +32,18 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.objects import DerefAliases, Scope
-from ldap_protocol.utils import (
-    ATTRIBUTE_TYPES,
-    OBJECT_CLASSES,
-    dn_is_base_directory,
+from ldap_protocol.utils.const import ATTRIBUTE_TYPES, OBJECT_CLASSES
+from ldap_protocol.utils.helpers import (
     dt_to_ft,
-    get_base_directories,
     get_generalized_now,
-    get_path_filter,
-    get_search_path,
     get_windows_timestamp,
     string_to_sid,
+)
+from ldap_protocol.utils.queries import (
+    dn_is_base_directory,
+    get_base_directories,
+    get_path_filter,
+    get_search_path,
 )
 from models.ldap3 import Directory, Group, Path, User
 

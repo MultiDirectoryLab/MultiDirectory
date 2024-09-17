@@ -23,10 +23,10 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
 )
-from ldap_protocol.utils import (
+from ldap_protocol.utils.helpers import is_account_expired
+from ldap_protocol.utils.queries import (
     check_kerberos_group,
     get_user,
-    is_account_expired,
     is_user_group_valid,
     set_last_logon_user,
 )

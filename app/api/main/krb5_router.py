@@ -31,7 +31,7 @@ from ldap_protocol.kerberos import (
     set_state,
 )
 from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.utils import get_base_directories, get_dn_by_id
+from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session

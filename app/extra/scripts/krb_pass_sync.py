@@ -9,7 +9,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils import get_base_directories
+from ldap_protocol.utils.queries import get_base_directories
 from models import User
 from security import get_password_hash
 

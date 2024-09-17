@@ -28,10 +28,9 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
 )
-from ldap_protocol.utils import (
-    ft_now,
+from ldap_protocol.utils.helpers import ft_now, is_account_expired
+from ldap_protocol.utils.queries import (
     get_base_directories,
-    is_account_expired,
     set_last_logon_user,
 )
 from models.ldap3 import CatalogueSetting, Directory, Group

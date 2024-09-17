@@ -18,7 +18,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
-from ldap_protocol.utils import (
+from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_path_filter,
     validate_entry,

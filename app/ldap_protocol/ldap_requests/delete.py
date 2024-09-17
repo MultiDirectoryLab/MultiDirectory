@@ -18,11 +18,11 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
-from ldap_protocol.utils import (
+from ldap_protocol.utils.helpers import is_dn_in_base_directory
+from ldap_protocol.utils.queries import (
     get_base_directories,
     get_filter_from_path,
     is_computer,
-    is_dn_in_base_directory,
     validate_entry,
 )
 from models.ldap3 import Directory

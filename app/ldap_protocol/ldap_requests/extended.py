@@ -25,7 +25,7 @@ from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.utils import get_user
+from ldap_protocol.utils.queries import get_user
 from models import Directory, User
 from security import get_password_hash, verify_password
 

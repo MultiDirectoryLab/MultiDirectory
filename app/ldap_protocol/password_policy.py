@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import Attribute, PasswordPolicy, User
 from security import verify_password
 
-from .utils import ft_now, ft_to_dt
+from .utils.helpers import ft_now, ft_to_dt
 
 with open('extra/common_pwds.txt') as f:
     _COMMON_PASSWORDS = set(f.read().split('\n'))
