@@ -39,19 +39,22 @@ async def schedule(
         await asyncio.sleep(wait)
 
 
-async def main() -> None:
+def main() -> None:
     """Sript entrypoint."""
     settings = Settings()
-    container = make_async_container(
-        MainProvider(),
-        context={Settings: settings})
 
-    async with asyncio.TaskGroup() as tg:
-        for task, timeout in TASKS:
-            tg.create_task(schedule(task, timeout, container))
+    async def scheduler() -> None:
+        nonlocal settings
+        container = make_async_container(
+            MainProvider(),
+            context={Settings: settings})
+
+        async with asyncio.TaskGroup() as tg:
+            for task, timeout in TASKS:
+                tg.create_task(schedule(task, timeout, container))
 
     def _run() -> None:
-        uvloop.run(main())
+        uvloop.run(scheduler())
 
     try:
         import py_hot_reload
@@ -63,5 +66,6 @@ async def main() -> None:
         else:
             _run()
 
+
 if __name__ == "__main__":
-    uvloop.run(main())
+    main()
