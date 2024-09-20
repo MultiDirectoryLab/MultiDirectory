@@ -198,7 +198,7 @@ async def password_reset(
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    policy = await PasswordPolicySchema.get_policy_settings(session)
+    policy = await PasswordPolicySchema.get_policy_settings(session, kadmin)
     errors = await policy.validate_password_with_policy(new_password, user)
 
     if errors:
@@ -242,6 +242,7 @@ async def check_setup(
 async def first_setup(
     request: SetupRequest,
     session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
@@ -338,7 +339,7 @@ async def first_setup(
                     detail=errors,
                 )
 
-            await default_pwd_policy.create_policy_settings(session)
+            await default_pwd_policy.create_policy_settings(session, kadmin)
 
             domain: Directory = await session.scalar(
                 select(Directory)

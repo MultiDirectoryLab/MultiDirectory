@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.kerberos import AbstractKadmin
 from models import Attribute, PasswordPolicy, User
 from security import verify_password
 
@@ -59,7 +60,9 @@ class PasswordPolicySchema(BaseModel):
                 'lower or equal than maximum password age days')
         return self
 
-    async def create_policy_settings(self, session: AsyncSession) -> Self:
+    async def create_policy_settings(
+            self, session: AsyncSession,
+            kadmin: AbstractKadmin) -> Self:
         """Create policies settings.
 
         :param AsyncSession session: db session
@@ -70,11 +73,18 @@ class PasswordPolicySchema(BaseModel):
             raise PermissionError('Policy already exists')
         session.add(PasswordPolicy(**self.model_dump(mode='json')))
         await session.flush()
+        await kadmin.create_or_update_policy(
+            self.minimum_password_age_days,
+            self.maximum_password_age_days,
+            self.minimum_password_length,
+            3 if self.password_must_meet_complexity_requirements else 0,
+        )
         return self
 
     @classmethod
     async def get_policy_settings(
-            cls, session: AsyncSession) -> 'PasswordPolicySchema':
+            cls, session: AsyncSession,
+            kadmin: AbstractKadmin) -> 'PasswordPolicySchema':
         """Get policy settings.
 
         :param AsyncSession session: db
@@ -82,10 +92,12 @@ class PasswordPolicySchema(BaseModel):
         """
         policy = await session.scalar(select(PasswordPolicy))
         if not policy:
-            return cls()
+            policy = await cls().create_policy_settings(session, kadmin)
         return cls.model_validate(policy, from_attributes=True)
 
-    async def update_policy_settings(self, session: AsyncSession) -> None:
+    async def update_policy_settings(
+            self, session: AsyncSession,
+            kadmin: AbstractKadmin) -> None:
         """Update policy.
 
         :param AsyncSession session: db
@@ -94,18 +106,25 @@ class PasswordPolicySchema(BaseModel):
             update(PasswordPolicy)
             .values(self.model_dump(mode='json'))
         ))
+        await kadmin.create_or_update_policy(
+            self.minimum_password_age_days,
+            self.maximum_password_age_days,
+            self.minimum_password_length,
+            3 if self.password_must_meet_complexity_requirements else 0,
+        )
         await session.commit()
 
     @classmethod
     async def delete_policy_settings(
-            cls, session: AsyncSession) -> 'PasswordPolicySchema':
+            cls, session: AsyncSession,
+            kadmin: AbstractKadmin) -> 'PasswordPolicySchema':
         """Reset (delete) default policy.
 
         :param AsyncSession session: db
         :return PasswordPolicySchema: schema policy
         """
         default_policy = cls()
-        await default_policy.update_policy_settings(session)
+        await default_policy.update_policy_settings(session, kadmin)
         return default_policy
 
     @staticmethod

@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
+import httpx
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -301,7 +302,8 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        policy = await PasswordPolicySchema.get_policy_settings(session)
+        policy = await PasswordPolicySchema.get_policy_settings(
+            session, kadmin)
         p_last_set = await policy.get_pwd_last_set(session, user.directory_id)
         pwd_expired = policy.validate_max_age(p_last_set)
 
@@ -342,8 +344,8 @@ class BindRequest(BaseRequest):
         try:
             await kadmin.add_principal(
                 user.get_upn_prefix(),
-                self.authentication_choice.password.get_secret_value())
-        except KRBAPIError:
+                self.authentication_choice.password.get_secret_value(), 0.1)
+        except (KRBAPIError, httpx.TimeoutException):
             pass
 
         await ldap_session.set_user(user)
