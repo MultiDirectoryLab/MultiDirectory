@@ -189,6 +189,13 @@ class KAdminLocalManager(AbstractKRBManager):
             self.pool,
             self.client.add_principal, name, password)
 
+        princ = await self._get_raw_principal(name)
+        princ.policy = "default_policy"
+        await self.loop.run_in_executor(
+            self.pool,
+            princ.commit,
+        )
+
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
         principal = await self.loop.run_in_executor(
             self.pool, self.client.getprinc, name)
@@ -261,6 +268,50 @@ class KAdminLocalManager(AbstractKRBManager):
                 self.pool, princ.ktadd, fn)
 
 
+async def create_update_default_policy(
+    minlife: int,
+    maxlife: int,
+    minlength: int,
+    minclasses: int,
+) -> None:
+    """Create or update default policy.
+
+    :param int minlife: minimum pw life
+    :param int maxlife: maximum pw life
+    :param int minlength: minimum pw length
+    :param int minclasses: cases of chars
+    """
+    proc = await asyncio.create_subprocess_shell(
+        'kadmin.local',
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    msg = (
+        f'-maxlife "{maxlife} days" '
+        f'-minlife "{minlife} days" '
+        f'-minlength {minlength} '
+        f'-minclasses {minclasses} '
+        'default_policy'
+    )
+    _, stderr = await proc.communicate(
+        ("add_policy " + msg).encode("UTF-8"))
+    await proc.wait()
+
+    if "Principal or policy already exists" not in stderr.decode():
+        return
+
+    proc = await asyncio.create_subprocess_shell(
+        'kadmin.local',
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    await proc.communicate(
+        ('modify_policy ' + msg).encode("UTF-8"))
+    await proc.wait()
+
+
 @asynccontextmanager
 async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create kadmin instance."""
@@ -309,8 +360,8 @@ def handle_not_found(request: Request, exc: BaseException):
         status.HTTP_404_NOT_FOUND, detail='Principal does not exist')
 
 
-setup_router = APIRouter(prefix='/setup')
-principal_router = APIRouter(prefix='/principal')
+setup_router = APIRouter(prefix='/setup', tags=['setup'])
+principal_router = APIRouter(prefix='/principal', tags=['config'])
 
 
 @setup_router.post('/configs', status_code=status.HTTP_201_CREATED)
@@ -383,6 +434,8 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
     with open('/etc/krb5kdc/kadm5.acl', 'w') as f:
         f.write(f"*/admin@{schema.domain.upper()}        *\n")
 
+    await create_update_default_policy(0, 1, 2, 2)
+
 
 @principal_router.post('', response_class=Response, status_code=201)
 async def add_princ(
@@ -397,6 +450,27 @@ async def add_princ(
     :param Annotated[str, Body password: principal password
     """
     await kadmin.add_princ(name, password)
+
+
+@principal_router.post('/password_policy')
+async def create_or_update_default_pw_policy(
+    minlife: Annotated[int, Body()],
+    maxlife: Annotated[int, Body()],
+    minlength: Annotated[int, Body()],
+    minclasses: Annotated[int, Body()],
+) -> None:
+    """Add principal.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    :param Annotated[str, Body password: principal password
+    """
+    await create_update_default_policy(
+        minlife,
+        maxlife,
+        minlength,
+        minclasses,
+    )
 
 
 @principal_router.get('')
