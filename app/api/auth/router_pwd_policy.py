@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.password_policy import PasswordPolicySchema
 
 pwd_router = APIRouter(
@@ -24,18 +25,20 @@ pwd_router = APIRouter(
 async def create_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> PasswordPolicySchema:
     """Create current policy setting."""
-    return await policy.create_policy_settings(session)
+    return await policy.create_policy_settings(session, kadmin)
 
 
 @pwd_router.get('')
 @inject
 async def get_policy(
     session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> PasswordPolicySchema:
     """Get current policy setting."""
-    return await PasswordPolicySchema.get_policy_settings(session)
+    return await PasswordPolicySchema.get_policy_settings(session, kadmin)
 
 
 @pwd_router.put('')
@@ -43,9 +46,10 @@ async def get_policy(
 async def update_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> PasswordPolicySchema:
     """Update current policy setting."""
-    await policy.update_policy_settings(session)
+    await policy.update_policy_settings(session, kadmin)
     return policy
 
 
@@ -53,6 +57,7 @@ async def update_policy(
 @inject
 async def reset_policy(
     session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> PasswordPolicySchema:
     """Reset current policy setting."""
-    return await PasswordPolicySchema.delete_policy_settings(session)
+    return await PasswordPolicySchema.delete_policy_settings(session, kadmin)

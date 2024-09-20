@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
+import httpx
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -150,7 +151,7 @@ class AddRequest(BaseRequest):
 
         if self.password is not None:
             validator = await PasswordPolicySchema\
-                .get_policy_settings(session)
+                .get_policy_settings(session, kadmin)
             raw_password = self.password.get_secret_value()
             errors = await validator.validate_password_with_policy(
                 raw_password, None)
@@ -299,13 +300,15 @@ class AddRequest(BaseRequest):
                         f"HOST/{new_dir.name}.{base_dn.name}", None)
                     await kadmin.add_principal(
                         f"HOST/{new_dir.name}", None)
-            except KRBAPIError:
+            except (KRBAPIError):
                 await session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
                     errorMessage="KerberosError",
                 )
                 return
+            except httpx.TimeoutException:
+                pass
 
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
