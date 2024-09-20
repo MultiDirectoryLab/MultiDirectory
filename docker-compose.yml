@@ -188,6 +188,7 @@ services:
     depends_on:
       ldap_server:
         condition: service_healthy
+        restart: true
       cert_check:
         condition: service_completed_successfully
     ports:
@@ -210,10 +211,11 @@ services:
       - kdc:/etc
     image: krb5md
     tty: true
-    depends_on:
-      - ldap_server
     command: /usr/sbin/krb5kdc -n -w 4
-
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+        restart: true
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
@@ -231,10 +233,13 @@ services:
       - psync_queue:/var/spool/krb5-sync
     image: krb5md
     tty: true
-    depends_on:
-      - ldap_server
-      - kdc
     command: kadmind -nofork
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+        restart: true
+      kdc:
+        condition: service_started
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)
