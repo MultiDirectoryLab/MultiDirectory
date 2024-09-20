@@ -354,7 +354,7 @@ async def test_bind_create_user(
     )
 
     assert await proc.wait() == 0
-    assert kadmin.add_principal.call_args.args == (san, pw)
+    assert kadmin.add_principal.call_args.args == (san, pw, 0.1)
 
 
 @pytest.mark.asyncio
