@@ -15,7 +15,11 @@ from sqlalchemy.orm import selectinload
 from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPSession
 from app.ldap_protocol.ldap_requests import SearchRequest
-from app.ldap_protocol.utils.queries import get_group, get_groups, is_user_group_valid
+from app.ldap_protocol.utils.queries import (
+    get_group,
+    get_groups,
+    is_user_group_valid,
+)
 from app.models.ldap3 import User
 from ldap_protocol.access_policy import create_access_policy
 from tests.conftest import TestCreds

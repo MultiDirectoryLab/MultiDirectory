@@ -9,7 +9,11 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.utils.queries import get_group, get_user, is_user_group_valid
+from ldap_protocol.utils.queries import (
+    get_group,
+    get_user,
+    is_user_group_valid,
+)
 from models import NetworkPolicy
 
 
