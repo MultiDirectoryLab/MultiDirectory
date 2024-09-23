@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
@@ -39,7 +40,15 @@ class MainProvider(Provider):
     @provide(scope=Scope.APP, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
-        return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
+        return create_async_engine(
+            str(settings.POSTGRES_URI),
+            pool_size=settings.INSTANCE_DB_POOL_SIZE,
+            max_overflow=settings.INSTANCE_DB_POOL_LIMIT,
+            pool_timeout=settings.INSTANCE_DB_POOL_TIMEOUT,
+            poolclass=FallbackAsyncAdaptedQueuePool,
+            pool_pre_ping=True,
+            pool_use_lifo=False,
+        )
 
     @provide(scope=Scope.APP, provides=sessionmaker)
     def get_session_factory(
