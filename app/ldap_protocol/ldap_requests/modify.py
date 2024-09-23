@@ -350,7 +350,7 @@ class ModifyRequest(BaseRequest):
                     await session.refresh(directory)
 
                 if name == 'accountexpires':
-                    value = ft_to_dt(int(value))
+                    value = ft_to_dt(int(value)) if value != '0' else None
 
                 await session.execute(
                     update(User)
