@@ -52,6 +52,10 @@ class Settings(BaseSettings):
 
     HOSTNAME: str | None = None
 
+    INSTANCE_DB_POOL_SIZE: int = 30
+    INSTANCE_DB_POOL_LIMIT: int = 100
+    INSTANCE_DB_POOL_TIMEOUT: int = 5
+
     SSL_CERT: str = '/certs/cert.pem'
     SSL_KEY: str = '/certs/privkey.pem'
 

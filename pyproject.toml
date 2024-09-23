@@ -27,9 +27,9 @@ bcrypt = "4.0.1"
 jinja2 = "^3.1.4"
 uvicorn = "^0.30.0"
 dishka = "^1.2.0"
-asyncpg = "^0.29.0"
 uvloop = "^0.19.0"
-sqlalchemy = {version = "1.4.45", extras = ["asyncio", "mypy"]}
+sqlalchemy = {version = "1.4.54", extras = ["asyncio", "mypy"]}
+asyncpg = "^0.29.0"
 
 [tool.poetry.group.linters.dependencies]
 flake8-pytest = "^1.4"

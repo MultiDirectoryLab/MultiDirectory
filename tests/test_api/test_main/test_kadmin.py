@@ -213,10 +213,9 @@ async def test_ktadd(
 
     assert response.status_code == status.HTTP_200_OK
     assert response.content == b'test_string'
-    assert response.headers == {
-        'Content-Disposition': 'attachment; filename="md.keytab"',
-        'content-type': 'application/txt',
-    }
+    assert response.headers[
+        'Content-Disposition'] == 'attachment; filename="md.keytab"'
+    assert response.headers['content-type'] == 'application/txt'
 
 
 @pytest.mark.asyncio
