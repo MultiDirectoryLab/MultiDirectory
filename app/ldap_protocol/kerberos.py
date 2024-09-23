@@ -243,7 +243,6 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     async def get_status(self) -> bool: # noqa
         response = await self.client.get('/setup/status')
-        log.critical(response.text)
         return response.json()
 
     async def ktadd(self, names: list[str]) -> httpx.Response:
