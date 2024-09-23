@@ -74,7 +74,7 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         un = getattr(ldap_session.user, 'user_principal_name', 'ANONYMOUS')
 
         if settings.DEBUG:
-            log_api.info(self.model_dump_json(indent=4))
+            log_api.info(self.model_dump_json())
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
@@ -83,7 +83,7 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
 
         if settings.DEBUG:
             for response in responses:
-                log_api.info(response.model_dump_json(indent=4))
+                log_api.info(response.model_dump_json())
         else:
             for response in responses:
                 log_api.info(f"{get_class_name(response)}[{un}]")
