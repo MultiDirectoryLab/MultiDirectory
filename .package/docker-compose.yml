@@ -187,6 +187,7 @@ services:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: md_maintence
     volumes:
+      - ./certs:/certs
       - psync_queue:/var/spool/krb5-sync
     env_file:
       .env

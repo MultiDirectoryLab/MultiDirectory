@@ -38,7 +38,7 @@ async def authenticate_user(
     session: AsyncSession,
     username: str,
     password: str,
-) -> UserSchema | None:
+) -> DBUser | None:
     """Get user and verify password.
 
     :param AsyncSession session: sa session
@@ -52,7 +52,7 @@ async def authenticate_user(
         return None
     if not verify_password(password, user.password):
         return None
-    return UserSchema.from_db(user, access='access')
+    return user
 
 
 def create_token(

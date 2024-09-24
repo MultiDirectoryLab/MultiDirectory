@@ -251,6 +251,7 @@ services:
     image: multidirectory
     container_name: md_maintence
     volumes:
+      - ./certs:/certs
       - ./app:/app
       - psync_queue:/var/spool/krb5-sync
     env_file:

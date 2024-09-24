@@ -140,6 +140,14 @@ class AbstractKRBManager(ABC):
         :param str fn: filename
         """
 
+    @abstractmethod
+    async def lock_princ(self, name: str, **dbargs) -> None:
+        """Lock principal.
+
+        :param str name: principal
+        :param str | None password: if empty - uses randkey.
+        """
+
 
 class KAdminLocalManager(AbstractKRBManager):
     """Kadmin manager."""
@@ -266,6 +274,16 @@ class KAdminLocalManager(AbstractKRBManager):
         for princ in principals:
             await self.loop.run_in_executor(
                 self.pool, princ.ktadd, fn)
+
+    async def lock_princ(self, name: str, **dbargs) -> None:
+        """Lock princ.
+
+        :param str name: upn
+        """
+        princ = await self._get_raw_principal(name)
+        princ.expire = u'Now'
+        await self.loop.run_in_executor(
+            self.pool, princ.commit)
 
 
 async def create_update_default_policy(
@@ -568,6 +586,19 @@ async def ktadd(
         filename,
         background=BackgroundTask(os.unlink, filename),
     )
+
+
+@principal_router.post('/lock', response_class=Response)
+async def lock_princ(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    name: Annotated[str, Body(embed=True)],
+) -> None:
+    """Lock principal.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    """
+    await kadmin.lock_princ(name)
 
 
 @setup_router.get('/status')

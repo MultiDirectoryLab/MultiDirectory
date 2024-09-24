@@ -28,7 +28,7 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
 )
-from ldap_protocol.utils.helpers import ft_now, is_account_expired
+from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
     get_base_directories,
     set_last_logon_user,
@@ -89,7 +89,7 @@ async def login_for_access_token(
     if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if is_account_expired(user.account_exp):
+    if user.is_expired():
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(
