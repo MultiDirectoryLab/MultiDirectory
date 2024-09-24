@@ -12,6 +12,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -115,12 +116,11 @@ async def _get_user_from_token(
     if user_id is None:
         raise _CREDENTIALS_EXCEPTION
 
-    user = await session.get(
-        DBUser, user_id,
-        options=[(
-            selectinload(DBUser.groups)
-            .selectinload(Group.access_policies)
-        )])
+    user = await session.scalar(
+        select(DBUser)
+        .options(selectinload(DBUser.groups)
+                 .selectinload(Group.access_policies))
+        .where(DBUser.id == user_id))
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
