@@ -7,9 +7,9 @@ from sqlalchemy import Integer, String, cast, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, select
 
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from models.ldap3 import Attribute, User
-from ldap_protocol.kerberos import AbstractKadmin
 
 
 async def disable_accounts(
