@@ -8,6 +8,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from ldap_protocol.dialogue import LDAPCodes, Operation
+from ldap_protocol.kerberos import AbstractKadmin
 
 
 @pytest.mark.asyncio
@@ -93,7 +94,10 @@ async def test_update_password(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_auth_disabled_user(
-        http_client: AsyncClient, login_headers: dict) -> None:
+    http_client: AsyncClient,
+    login_headers: dict,
+    kadmin: AbstractKadmin,
+) -> None:
     """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
     response = await http_client.post(
         "auth/token/get",
@@ -122,6 +126,7 @@ async def test_auth_disabled_user(
         headers=login_headers,
     )
 
+    kadmin.lock_principal.assert_called()
     data = response.json()
 
     assert isinstance(data, dict)
