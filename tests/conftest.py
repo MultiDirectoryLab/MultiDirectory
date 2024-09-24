@@ -268,7 +268,6 @@ async def setup_session(session: AsyncSession) -> None:
 
     domain: Directory = await session.scalar(
         select(Directory)
-        .options(joinedload(Directory.path))
         .filter(Directory.parent_id.is_(None)),
     )
     await create_access_policy(

@@ -17,7 +17,7 @@ from app.config import Settings
 from app.ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from app.ldap_protocol.ldap_requests import AddRequest
 from app.ldap_protocol.utils.queries import get_search_path
-from app.models.ldap3 import Directory, Group, Path, User
+from app.models.ldap3 import Directory, Group, User
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.kerberos import AbstractKadmin
 from tests.conftest import TestCreds
@@ -53,10 +53,10 @@ async def test_ldap_root_add(
 
     assert result == 0
 
-    query = select(Directory)\
-        .options(subqueryload(Directory.attributes))\
-        .join(Directory.path).filter(Path.path == search_path)
-    new_dir = await session.scalar(query)
+    new_dir = await session.scalar(
+        select(Directory)
+        .options(subqueryload(Directory.attributes))
+        .filter(Directory.path == search_path))
 
     assert new_dir.name == "test"
 
@@ -105,14 +105,12 @@ async def test_ldap_user_add_with_group(
     assert result == 0
 
     membership = selectinload(Directory.user).selectinload(
-        User.groups).selectinload(
-            Group.directory).selectinload(Directory.path)
+        User.groups).selectinload(Group.directory)
 
-    query = select(Directory)\
-        .options(subqueryload(Directory.attributes), membership)\
-        .join(Directory.path).filter(Path.path == user_search_path)
-
-    new_dir = await session.scalar(query)
+    new_dir = await session.scalar(
+        select(Directory)
+        .options(subqueryload(Directory.attributes), membership)
+        .filter(Directory.path == user_search_path))
 
     assert new_dir.name == "test"
 
@@ -154,14 +152,12 @@ async def test_ldap_user_add_group_with_group(
         assert result == 0
 
     membership = selectinload(Directory.group).selectinload(
-        Group.parent_groups).selectinload(
-            Group.directory).selectinload(Directory.path)
+        Group.parent_groups).selectinload(Group.directory)
 
-    query = select(Directory)\
-        .options(membership)\
-        .join(Directory.path).filter(Path.path == child_group_search_path)
-
-    new_dir = await session.scalar(query)
+    new_dir = await session.scalar(
+        select(Directory)
+        .options(membership)
+        .filter(Directory.path == child_group_search_path))
 
     assert new_dir.name == "twisted"
 

@@ -66,7 +66,10 @@ async def test_bind_invalid_password_or_user(
     container: AsyncContainer,
 ) -> None:
     """Test invalid password bind."""
-    directory = Directory(name='user0', object_class='')
+    directory = Directory(
+        name='user0',
+        object_class='',
+        path=['cn=user0', 'ou=users', 'dc=md', 'dc=test'])
     user = User(
         sam_accout_name='user0',
         user_principal_name='user0',
@@ -199,7 +202,10 @@ async def test_bind_disabled_user(
     container: AsyncContainer,
 ) -> None:
     """Test disabled user bind."""
-    directory = Directory(name='user0', object_class='')
+    directory = Directory(
+        name='user0',
+        object_class='',
+        path=['cn=user0', 'ou=users', 'dc=md', 'dc=test'])
     user = User(
         sam_accout_name='user0',
         user_principal_name='user0',
