@@ -75,10 +75,10 @@ def downgrade() -> None:
     bind = op.get_bind()
     session = orm.Session(bind=bind)
 
-    base_directory = session.scalar(select(Directory.id).where(
+    base_directory = session.scalar(select(Directory).where(
         Directory.parent_id.is_(None)))
 
-    if not bool(base_directory):
+    if base_directory is None:
         return
 
     len_domain_path = len(base_directory.path)
