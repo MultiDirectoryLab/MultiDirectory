@@ -118,8 +118,8 @@ async def _get_user_from_token(
 
     user = await session.scalar(
         select(DBUser)
-        .options(selectinload(DBUser.groups)
-                 .selectinload(Group.access_policies))
+        .options(
+            selectinload(DBUser.groups).selectinload(Group.access_policies))
         .where(DBUser.id == user_id))
 
     if user is None:

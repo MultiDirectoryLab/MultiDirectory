@@ -29,8 +29,9 @@ async def test_ldap_base_modify(
     dn = "cn=user0,ou=users,dc=md,dc=test"
     directory = await session.scalar(
         select(Directory)
-        .options(subqueryload(Directory.attributes),
-                 joinedload(Directory.user))
+        .options(
+            subqueryload(Directory.attributes),
+            joinedload(Directory.user))
         .filter(Directory.path == get_search_path(dn)))
 
     assert directory.user.mail == "user0@mail.com"
