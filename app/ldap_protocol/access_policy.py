@@ -18,7 +18,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AccessPolicy, Directory, Group, Path
+from models import AccessPolicy, Directory, Group
 
 T = TypeVar('T', bound=Select)
 __all__ = ['get_policies', 'create_access_policy', 'mutate_ap']
@@ -33,10 +33,8 @@ async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
     query = (
         select(AccessPolicy)
         .options(
-            selectinload(AccessPolicy.groups)
-            .selectinload(Group.directory).selectinload(Directory.path),
-            selectinload(AccessPolicy.directories)
-            .selectinload(Directory.path),
+            selectinload(AccessPolicy.groups).selectinload(Group.directory),
+            selectinload(AccessPolicy.directories),
         ))
 
     return (await session.scalars(query)).all()
@@ -59,11 +57,10 @@ async def create_access_policy(
     """
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
-        column=Path.path[1:len(path)],
+        column=Directory.path[1:len(path)],
         path=path)
 
-    directories = await session.scalars(
-        select(Directory).join(Directory.path).where(dir_filter))
+    directories = await session.scalars(select(Directory).where(dir_filter))
     groups_dirs = await get_groups(groups, session)
 
     policy = AccessPolicy(

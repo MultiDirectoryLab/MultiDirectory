@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, Path, User
+from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, User
 
 from .const import EMAIL_RE, ENTRY_TYPE
 from .helpers import create_object_sid, dn_is_base_directory, validate_entry
@@ -44,16 +44,11 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 
         return await session.scalar(select(User).where(cond).options(policies))
 
-    path = await session.scalar(
-        select(Path).where(get_filter_from_path(name)))
-
-    if not path:
-        return None
-
     return await session.scalar(
         select(User)
-        .where(User.directory == path.endpoint)
-        .options(policies))
+        .join(User.directory)
+        .options(policies)
+        .where(get_filter_from_path(name)))
 
 
 async def get_directories(
@@ -73,7 +68,6 @@ async def get_directories(
 
     results = await session.scalars((
         select(Directory)
-        .join(Directory.path)
         .filter(or_(*paths))
         .options(selectinload(Directory.group).selectinload(Group.members))))
 
@@ -102,12 +96,10 @@ async def get_group(dn: str | ENTRY_TYPE, session: AsyncSession) -> Directory:
 
     query = (
         select(Directory)
-        .join(Directory.path)
-        .options(
-            selectinload(Directory.group), selectinload(Directory.path)))
+        .options(selectinload(Directory.group)))
 
     if validate_entry(dn):
-        query = query.filter(Path.path == get_search_path(dn))
+        query = query.filter(Directory.path == get_search_path(dn))
     else:
         query = query.filter(Directory.name == dn)
 
@@ -193,18 +185,18 @@ def get_search_path(dn: str) -> list[str]:
 
 
 def get_path_filter(
-        path: list[str], *, column: Column = Path.path) -> ColumnElement:
+        path: list[str], *, column: Column = Directory.path) -> ColumnElement:
     """Get filter condition for path equality.
 
     :param list[str] path: dn
-    :param Column field: path column, defaults to Path.path
+    :param Column field: path column, defaults to Directory.path
     :return ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
 
 
 def get_filter_from_path(
-        dn: str, *, column: Column = Path.path) -> ColumnElement:
+        dn: str, *, column: Column = Directory.path) -> ColumnElement:
     """Get filter condition for path equality from dn."""
     return get_path_filter(get_search_path(dn), column=column)
 
@@ -215,12 +207,9 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     >>> await get_dn_by_id(0, session)
     >>> 'cn=groups,dc=example,dc=com'
     """
-    query = select(Directory)\
-        .join(Directory.path)\
-        .filter(Directory.id == id_)\
-        .options(selectinload(Directory.path))
-
-    result = await session.scalar(query)
+    result = await session.scalar(
+        select(Directory)
+        .filter(Directory.id == id_))
 
     return result.path_dn
 
@@ -251,12 +240,9 @@ async def create_group(
     """
     base_dn_list = await get_base_directories(session)
 
-    query = (  # noqa: ECE001
+    query = (
         select(Directory)
-        .join(Directory.path)
-        .options(
-            selectinload(Directory.paths),
-            selectinload(Directory.access_policies))
+        .options(selectinload(Directory.access_policies))
         .filter(get_filter_from_path("cn=groups," + base_dn_list[0].path_dn)))
 
     parent = await session.scalar(query)
@@ -269,9 +255,8 @@ async def create_group(
     dir_.access_policies.extend(parent.access_policies)
 
     group = Group(directory=dir_)
-    path = dir_.create_path(parent, f"cn={name}")
-    dir_.depth = len(path.path)
-    session.add_all([dir_, group, path])
+    dir_.create_path(parent, f"cn={name}")
+    session.add_all([dir_, group])
     await session.flush()
 
     dir_.object_sid = create_object_sid(base_dn_list[0], dir_.id)
