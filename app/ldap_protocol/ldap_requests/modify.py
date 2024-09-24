@@ -304,9 +304,20 @@ class ModifyRequest(BaseRequest):
         name = change.get_name()
 
         if name in {'memberof', 'member'}:
-            return await self._add_group_attrs(change, directory, session)
+            await self._add_group_attrs(change, directory, session)
+            return
 
         for value in change.modification.vals:
+
+            if name == 'useraccountcontrol':
+                if bool(
+                    int(value) & UserAccountControlFlag.ACCOUNTDISABLE,
+                ) and directory.user:
+                    await kadmin.lock_principal(
+                        directory.user.get_upn_prefix())
+                elif int(value) == 0:
+                    continue
+
             if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
@@ -382,9 +393,6 @@ class ModifyRequest(BaseRequest):
                 await post_save_password_actions(directory.user, session)
                 await kadmin.create_or_update_principal_pw(
                     directory.user.get_upn_prefix(), value)
-
-            elif name == 'useraccountcontrol' and int(value) == 0:
-                continue
 
             else:
                 attrs.append(Attribute(
