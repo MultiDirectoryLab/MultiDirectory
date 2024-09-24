@@ -54,8 +54,7 @@ def _from_filter(
 
 def _filter_memberof(method: ColumnOperators, dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute."""
-    group_id_subquery = select(Group.id).join(  # noqa: ECE001
-        Directory.group).join(Directory.path).where(
+    group_id_subquery = select(Group.id).join(Group.directory).where(
             get_filter_from_path(dn)).scalar_subquery()
 
     return method((
@@ -67,8 +66,7 @@ def _filter_memberof(method: ColumnOperators, dn: str) -> UnaryExpression:
 
 def _filter_member(method: ColumnOperators, dn: str) -> UnaryExpression:
     """Retrieve query conditions with the member attribute."""
-    user_id_subquery = select(User.id).join(  # noqa: ECE001
-        Directory.user).join(Directory.path).where(
+    user_id_subquery = select(User.id).join(User.directory).where(
             get_filter_from_path(dn)).scalar_subquery()
 
     return method((

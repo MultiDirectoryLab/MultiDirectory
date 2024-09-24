@@ -13,7 +13,6 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from config import Settings
 from ldap_protocol.access_policy import create_access_policy
@@ -343,7 +342,6 @@ async def first_setup(
 
             domain: Directory = await session.scalar(
                 select(Directory)
-                .options(joinedload(Directory.path))
                 .filter(Directory.parent_id.is_(None)),
             )
 

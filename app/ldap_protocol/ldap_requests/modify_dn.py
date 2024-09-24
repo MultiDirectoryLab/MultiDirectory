@@ -23,7 +23,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models.ldap3 import Directory, DirectoryReferenceMixin, Path
+from models.ldap3 import Directory, DirectoryReferenceMixin
 
 from .base import BaseRequest
 
@@ -99,14 +99,11 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        query = (  # noqa
+        query = (
             select(Directory)
-            .join(Directory.path)
-            .options(selectinload(Directory.paths))
             .options(
-                selectinload(Directory.parent)
-                .selectinload(Directory.path))
-            .options(selectinload(Directory.access_policies))
+                selectinload(Directory.parent),
+                selectinload(Directory.access_policies))
             .filter(get_filter_from_path(self.entry)))
 
         directory = await session.scalar(mutate_ap(query, ldap_session.user))
@@ -131,20 +128,17 @@ class ModifyDNRequest(BaseRequest):
             new_directory = Directory(
                 name=name,
                 object_class=directory.object_class,
-                depth=directory.depth,
                 parent_id=directory.parent_id,
                 created_at=directory.created_at,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
-            new_path = new_directory.create_path(directory.parent, dn)
+            new_directory.create_path(directory.parent, dn)
             new_directory.access_policies.extend(directory.access_policies)
 
         else:
             new_sup_query = (
                 select(Directory)
-                .join(Directory.path)
-                .options(selectinload(Directory.path))
                 .options(selectinload(Directory.access_policies))
                 .filter(get_filter_from_path(self.new_superior)))
 
@@ -168,16 +162,15 @@ class ModifyDNRequest(BaseRequest):
                 object_class=directory.object_class,
                 name=name,
                 parent=new_parent_dir,
-                depth=len(new_parent_dir.path.path)+1,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
-            new_path = new_directory.create_path(new_parent_dir, dn=dn)
+            new_directory.create_path(new_parent_dir, dn=dn)
             new_directory.access_policies.extend(
                 new_parent_dir.access_policies)
 
         async with session.begin_nested():
-            session.add_all([new_directory, new_path])
+            session.add(new_directory)
             await session.flush()
             await session.execute(
                 update(Directory)
@@ -195,12 +188,12 @@ class ModifyDNRequest(BaseRequest):
             await session.flush()
 
             update_query = (
-                update(Path)
+                update(Directory)
                 .where(get_path_filter(
-                    directory.path.path,
-                    column=Path.path[1:directory.depth]))
+                    directory.path,
+                    column=Directory.path[1:directory.depth]))
                 .values(path=func.array_cat(
-                    new_directory.path.path,
+                    new_directory.path,
                     #  TODO: replace text with slice
                     text("path[:depth :]").bindparams(
                         depth=directory.depth+1)))

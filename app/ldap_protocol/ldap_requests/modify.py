@@ -110,10 +110,8 @@ class ModifyRequest(BaseRequest):
 
         query = (  # noqa: ECE001
             select(Directory)
-            .join(Directory.path)
             .join(Directory.attributes)
             .options(
-                selectinload(Directory.paths),
                 selectinload(Directory.groups),
                 selectinload(Directory.group).selectinload(Group.members))
             .filter(get_filter_from_path(self.object))

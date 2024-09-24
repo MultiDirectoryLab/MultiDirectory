@@ -51,8 +51,8 @@ def find_members_recursive_cte(dn: str) -> CTE:
         SELECT "Directory".id as directory_id, "Groups".id as group_id
         FROM "Directory"
         JOIN "Groups" ON "Directory".id = "Groups"."directoryId"
-        JOIN "Paths" ON "Directory".id = "Paths".endpoint_id
-        WHERE "Paths"."path" = '{dc=test,dc=md,cn=groups,"cn=domain admins"}'
+        WHERE "Directory"."path" =
+                '{dc=test,dc=md,cn=groups,"cn=domain admins"}'
 
         UNION ALL
 
@@ -79,7 +79,6 @@ def find_members_recursive_cte(dn: str) -> CTE:
                 Group.id.label('group_id')])
         .select_from(Directory)
         .join(Directory.group)
-        .join(Directory.path)
         .where(get_filter_from_path(dn))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
@@ -106,8 +105,8 @@ def find_root_group_recursive_cte(dn: str) -> CTE:
         SELECT "Directory".id as directory_id, "Groups".id as group_id
         FROM "Directory"
         LEFT OUTER JOIN "Groups" ON "Directory".id = "Groups"."directoryId"
-        JOIN "Paths" ON "Directory".id = "Paths".endpoint_id
-        WHERE "Paths"."path" = '{dc=test,dc=md,cn=groups,"cn=domain admins"}'
+        WHERE "Directory"."path" =
+                '{dc=test,dc=md,cn=groups,"cn=domain admins"}'
 
         UNION ALL
 
@@ -135,7 +134,6 @@ def find_root_group_recursive_cte(dn: str) -> CTE:
                 Group.id.label('group_id')])
         .select_from(Directory)
         .join(Directory.group, isouter=True)
-        .join(Directory.path)
         .where(get_filter_from_path(dn))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001

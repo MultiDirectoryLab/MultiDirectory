@@ -100,7 +100,7 @@ class AddRequest(BaseRequest):
 
         root_dn = get_search_path(self.entry)
 
-        exists_q = select(select(Directory).join(Directory.path).filter(
+        exists_q = select(select(Directory).filter(
             get_path_filter(root_dn)).exists())
 
         if await session.scalar(exists_q) is True:
@@ -118,12 +118,9 @@ class AddRequest(BaseRequest):
         parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(',')[0].split('=')
 
-        query = (  # noqa: ECE001
+        query = (
             select(Directory)
-            .join(Directory.path)
-            .options(
-                selectinload(Directory.paths),
-                selectinload(Directory.access_policies))
+            .options(selectinload(Directory.access_policies))
             .filter(parent_path))
 
         parent = await session.scalar(mutate_ap(query, ldap_session.user))
@@ -146,8 +143,7 @@ class AddRequest(BaseRequest):
         new_dir.access_policies.extend(parent.access_policies)
         await session.flush()
 
-        path = new_dir.create_path(parent, new_dn)
-        new_dir.depth = len(path.path)
+        new_dir.create_path(parent, new_dn)
 
         if self.password is not None:
             validator = await PasswordPolicySchema\
@@ -164,9 +160,7 @@ class AddRequest(BaseRequest):
                 return
 
         try:
-            session.add_all([new_dir, path])
-            path.directories.extend(
-                [p.endpoint for p in parent.paths + [path]])
+            session.add(new_dir)
             await session.flush()
             new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
             await session.flush()
