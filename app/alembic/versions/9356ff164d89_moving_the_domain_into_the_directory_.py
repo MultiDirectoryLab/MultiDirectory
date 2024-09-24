@@ -10,7 +10,7 @@ from sqlalchemy import delete, orm, select
 
 from ldap_protocol.utils.helpers import generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_attrs
-from models.ldap3 import CatalogueSetting, Directory, Path
+from models.ldap3 import CatalogueSetting, Directory
 
 # revision identifiers, used by Alembic.
 revision = '9356ff164d89'
@@ -37,16 +37,15 @@ def upgrade() -> None:
         object_class='domain',
         object_sid=domain_sid,
     )
-    domain_path = [
+    base_directory.path = [
         f"dc={path}"
         for path in reversed(domain.split('.'))
     ]
-    path = Path(path=domain_path, endpoint=base_directory)
-    base_directory.paths.append(path)
-    session.add_all([base_directory, path])
+    base_directory.depth = len(base_directory.path)
+    session.add(base_directory)
     session.flush()
 
-    for directory in session.query(Directory).join(Directory.path):
+    for directory in session.query(Directory):
         if directory.is_domain:
             continue
 
@@ -58,8 +57,8 @@ def upgrade() -> None:
         else:
             directory.object_sid = domain_sid + f'-{1000+directory.id}'
 
-        directory.path.path = path.path + directory.path.path
-        directory.depth = len(directory.path.path)
+        directory.path = base_directory.path + directory.path
+        directory.depth = len(directory.path)
 
     session.execute(delete(CatalogueSetting).where(
         CatalogueSetting.name == 'defaultNamingContext'))
@@ -79,10 +78,8 @@ def downgrade() -> None:
     base_directory = session.scalar(select(Directory).where(
         Directory.parent_id.is_(None)))
 
-    if not bool(base_directory):
+    if base_directory is None:
         return
-
-    len_domain_path = len(base_directory.path.path)
 
     for directory in session.query(Directory):
         if directory.is_domain:
@@ -90,8 +87,8 @@ def downgrade() -> None:
         if directory.parent_id == base_directory.id:
             directory.parent_id = None
 
-        directory.depth -= len_domain_path
-        directory.path.path = directory.path.path[len_domain_path:]
+        directory.depth -= base_directory.depth
+        directory.path = directory.path[base_directory.depth:]
 
     session.add(CatalogueSetting(
         name='defaultNamingContext', value=base_directory.name))

@@ -87,14 +87,6 @@ class DirectoryMembership(Base):
         overlaps="directory")
 
 
-class DirectoryPath(Base):
-    """Directory - path m2m relationship."""
-
-    __tablename__ = "DirectoryPaths"
-    dir_id = Column(Integer, ForeignKey("Directory.id"), primary_key=True)
-    path_id = Column(Integer, ForeignKey("Paths.id"), primary_key=True)
-
-
 class PolicyMembership(Base):
     """Policy membership - path m2m relationship."""
 
@@ -175,17 +167,7 @@ class Directory(Base):
         nullable=False)
     objectguid: str = synonym('object_guid')
 
-    path: 'Path' = relationship(
-        "Path", back_populates="endpoint",
-        lazy="joined", uselist=False,
-        cascade="all,delete",
-    )
-
-    paths: list['Path'] = relationship(
-        "Path",
-        secondary=DirectoryPath.__table__,
-        back_populates="directories",
-    )
+    path = Column(postgresql.ARRAY(String), nullable=False, index=True)
 
     attributes: list['Attribute'] = relationship(
         'Attribute', cascade="all,delete")
@@ -261,19 +243,17 @@ class Directory(Base):
     @property
     def path_dn(self) -> str:
         """Get DN from path."""
-        return ','.join(reversed(self.path.path))  # type: ignore
+        return ','.join(reversed(self.path))  # type: ignore
 
     def create_path(
         self,
         parent: Optional['Directory'] = None,
         dn: DistinguishedNamePrefix = 'cn',
-    ) -> 'Path':
-        """Create Path from a new directory."""
-        pre_path: list[str] =\
-            parent.path.path if parent else []  # type: ignore
-        return Path(
-            path=pre_path + [self.get_dn(dn)],
-            endpoint=self)
+    ) -> None:
+        """Create path from a new directory."""
+        pre_path: list[str] = parent.path if parent else []  # type: ignore
+        self.path = pre_path + [self.get_dn(dn)]
+        self.depth = len(self.path)
 
     def __str__(self) -> str:
         return f"Directory({self.cn})"
@@ -445,26 +425,6 @@ class Attribute(DirectoryReferenceMixin, Base):
 
     directory: Directory = relationship(
         'Directory', back_populates='attributes', uselist=False)
-
-
-class Path(Base):
-    """Directory path data."""
-
-    __tablename__ = "Paths"
-
-    id = Column(Integer, primary_key=True)  # noqa: A003
-    path = Column(postgresql.ARRAY(String), nullable=False, index=True)
-
-    endpoint_id = Column(Integer, ForeignKey('Directory.id'), nullable=False)
-    endpoint: Directory = relationship(
-        "Directory", back_populates="path", lazy="joined")
-
-    directories: list[Directory] = relationship(
-        "Directory",
-        secondary=DirectoryPath.__table__,
-        order_by="Directory.depth",
-        back_populates="paths",
-    )
 
 
 class MFAFlags(int, enum.Enum):

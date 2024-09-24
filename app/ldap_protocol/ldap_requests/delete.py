@@ -58,9 +58,8 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        query = (  # noqa: ECE001
+        query = (
             select(Directory)
-            .join(Directory.path)
             .options(
                 joinedload(Directory.user),
                 selectinload(Directory.attributes))

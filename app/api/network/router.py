@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
 from ldap_protocol.utils.queries import get_groups
-from models.ldap3 import Directory, Group, NetworkPolicy
+from models.ldap3 import Group, NetworkPolicy
 
 from .schema import (
     Policy,
@@ -101,11 +101,9 @@ async def get_network_policies(
     :return list[PolicyResponse]: all policies
     """  # noqa: D205, D301
     groups = selectinload(NetworkPolicy.groups)\
-        .selectinload(Group.directory)\
-        .selectinload(Directory.path)
+        .selectinload(Group.directory)
     mfa_groups = selectinload(NetworkPolicy.mfa_groups)\
-        .selectinload(Group.directory)\
-        .selectinload(Directory.path)
+        .selectinload(Group.directory)
 
     return [
         PolicyResponse(

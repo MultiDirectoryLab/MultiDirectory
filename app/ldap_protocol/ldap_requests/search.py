@@ -45,7 +45,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models.ldap3 import Directory, Group, Path, User
+from models.ldap3 import Directory, Group, User
 
 from .base import BaseRequest
 
@@ -298,9 +298,7 @@ class SearchRequest(BaseRequest):
             select(Directory)
             .join(User, isouter=True)
             .join(Directory.attributes, isouter=True)
-            .join(Directory.path)
             .options(
-                selectinload(Directory.path),
                 subqueryload(Directory.attributes),
                 joinedload(Directory.user),
                 joinedload(Directory.group))
@@ -323,19 +321,19 @@ class SearchRequest(BaseRequest):
                 query = query.filter(get_path_filter(search_path))
             else:
                 query = query.filter(or_(*[
-                    get_path_filter(domain.path.path)
+                    get_path_filter(domain.path)
                     for domain in base_directories]))
 
         elif self.scope == Scope.SINGLE_LEVEL:
             query = query.filter(
-                func.cardinality(Path.path) == len(search_path) + 1,
+                func.cardinality(Directory.path) == len(search_path) + 1,
                 get_path_filter(
-                    column=Path.path[0:len(search_path)],
+                    column=Directory.path[0:len(search_path)],
                     path=search_path))
 
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
             query = query.filter(get_path_filter(
-                column=Path.path[1:len(search_path)],
+                column=Directory.path[1:len(search_path)],
                 path=search_path))
 
         if self.member:

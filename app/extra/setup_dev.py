@@ -30,7 +30,6 @@ from models.ldap3 import (
     DirectoryMembership,
     Group,
     NetworkPolicy,
-    Path,
     User,
 )
 from security import get_password_hash
@@ -55,17 +54,10 @@ async def _create_dir(
         object_class=data['object_class'],
         name=data['name'],
         parent=parent)
-    path = dir_.create_path(parent, dir_.get_dn_prefix())
+    dir_.create_path(parent, dir_.get_dn_prefix())
 
     async with session.begin_nested():
-        session.add_all([dir_, path])
-        if parent:
-            path.directories.extend(
-                [p.endpoint for p in parent.paths + [path]])
-        else:
-            dir_.paths.append(path)
-
-        dir_.depth = len(path.path)
+        session.add(dir_)
         await session.flush()
 
         dir_.object_sid = create_object_sid(
@@ -143,15 +135,14 @@ async def setup_enviroment(
         object_class='domain',
         object_sid=generate_domain_sid(),
     )
-    domain_path = [
+    domain.path = [
         f"dc={path}"
         for path in reversed(dn.split('.'))
     ]
-    path = Path(path=domain_path, endpoint=domain)
+    domain.depth = len(domain.path)
 
     async with session.begin_nested():
-        session.add_all([domain, path])
-        domain.paths.append(path)
+        session.add(domain)
         session.add(NetworkPolicy(
             name='Default open policy',
             netmasks=['0.0.0.0/0'],
