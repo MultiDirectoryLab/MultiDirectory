@@ -178,6 +178,9 @@ class AbstractKadmin(ABC):
         minclasses: int,
     ) -> None: ...
 
+    @abstractmethod
+    async def lock_principal(self, name: str) -> None: ...  # noqa
+
 
 class KerberosMDAPIClient(AbstractKadmin):
     """KRB server integration."""
@@ -286,6 +289,19 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
+    @logger_wraps()
+    async def lock_principal(self, name: str) -> None:
+        """Lock princ.
+
+        :param str name: upn
+        :raises KRBAPIError: on error
+        """
+        response = await self.client.post(
+            'principal/lock', json={'name': name})
+
+        if response.status_code != 200:
+            raise KRBAPIError(response.text)
+
 
 class StubKadminMDADPIClient(AbstractKadmin):
     """Stub client for non set up dirs."""
@@ -337,6 +353,10 @@ class StubKadminMDADPIClient(AbstractKadmin):
         minlength: int,
         minclasses: int,
     ) -> None:
+        ...
+
+    @logger_wraps(is_stub=True)
+    async def lock_principal(self, name: str) -> None:  # noqa
         ...
 
 
