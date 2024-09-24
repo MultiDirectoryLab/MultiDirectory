@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import enum
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
 from sqlalchemy import (
@@ -357,6 +358,15 @@ class User(DirectoryReferenceMixin, Base):
     def __repr__(self) -> str:
         return f"User({self.directory_id}:{self.sam_accout_name})"
 
+    def is_expired(self) -> bool:
+        """Check AccountExpires."""
+        if self.account_exp is None:
+            return False
+
+        now = datetime.now(tz=timezone.utc)
+        user_account_exp = self.account_exp.astimezone(timezone.utc)
+
+        return True if now > user_account_exp else False
 
 class Group(DirectoryReferenceMixin, Base):
     """Group params."""

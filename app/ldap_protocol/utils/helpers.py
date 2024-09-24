@@ -134,7 +134,7 @@ import random
 import re
 import struct
 from calendar import timegm
-from datetime import datetime, timezone
+from datetime import datetime
 from hashlib import blake2b
 from operator import attrgetter
 from zoneinfo import ZoneInfo
@@ -310,17 +310,6 @@ def create_user_name(directory_id: int) -> str:
     NOTE: keycloak
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
-
-
-def is_account_expired(account_exp: datetime | None) -> bool:
-    """Check AccountExpires."""
-    if account_exp is None:
-        return False
-
-    now = datetime.now(tz=timezone.utc)
-    user_account_exp = account_exp.astimezone(timezone.utc)
-
-    return True if now > user_account_exp else False
 
 
 get_class_name = attrgetter('__class__.__name__')

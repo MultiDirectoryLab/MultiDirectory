@@ -24,7 +24,6 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
 )
-from ldap_protocol.utils.helpers import is_account_expired
 from ldap_protocol.utils.queries import (
     check_kerberos_group,
     get_user,
@@ -312,7 +311,7 @@ class BindRequest(BaseRequest):
         required_pwd_change = (
             p_last_set == '0' or pwd_expired) and not is_krb_user
 
-        if is_account_expired(user.account_exp):
+        if user.is_expired():
             yield get_bad_response(LDAPBindErrors.ACCOUNT_EXPIRED)
             return
 
