@@ -81,16 +81,14 @@ def downgrade() -> None:
     if base_directory is None:
         return
 
-    len_domain_path = len(base_directory.path)
-
     for directory in session.query(Directory):
         if directory.is_domain:
             continue
         if directory.parent_id == base_directory.id:
             directory.parent_id = None
 
-        directory.depth -= len_domain_path
-        directory.path = directory.path[len_domain_path:]
+        directory.depth -= base_directory.depth
+        directory.path = directory.path[base_directory.depth:]
 
     session.add(CatalogueSetting(
         name='defaultNamingContext', value=base_directory.name))
