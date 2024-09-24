@@ -81,6 +81,7 @@ class TestProvider(Provider):
         kadmin.create_or_update_principal_pw = AsyncMock()
         kadmin.change_principal_password = AsyncMock()
         kadmin.create_or_update_policy = AsyncMock()
+        kadmin.lock_principal = AsyncMock()
 
         if not self._cached_kadmin:
             self._cached_kadmin = kadmin
