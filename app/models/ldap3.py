@@ -239,6 +239,11 @@ class Directory(Base):
     def is_domain(self) -> bool:
         """Is directory domain."""
         return not self.parent_id and self.object_class == 'domain'
+    
+    @property
+    def princ_computer_name(self) -> str:
+        """Principal computer name"""
+        return f"host/{self.name}"
 
     @property
     def path_dn(self) -> str:
