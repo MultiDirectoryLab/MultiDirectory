@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.sql.elements import UnaryExpression
 
+from ldap_protocol.dns import DNSRecordType
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_requests.base import APIMultipleResponseMixin
@@ -54,3 +55,10 @@ class AccessPolicySchema(_PolicyFields, BaseModel):
 
 class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
     """AP Schema with id."""
+
+
+class DNSServiceRequest(BaseModel):
+    hostname: str
+    ip: str
+    record_type: DNSRecordType
+    ttl: int

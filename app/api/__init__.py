@@ -11,6 +11,7 @@ from .main.ap_router import access_policy_router
 from .main.krb5_router import krb5_router
 from .main.router import entry_router
 from .network.router import network_router
+from .main.dns_router import dns_router
 
 __all__ = [
     'auth_router',
@@ -20,4 +21,5 @@ __all__ = [
     'pwd_router',
     'krb5_router',
     'access_policy_router',
+    'dns_router',
 ]
