@@ -325,7 +325,7 @@ async def test_ldap_kadmin_delete_computer(
 
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
-    assert kadmin.del_principal.call_args.args[0] == 'HOST/ktest.md.test'
+    assert kadmin.del_principal.call_args.args[0] == 'host/ktest.md.test'
 
 
 @pytest.mark.asyncio
