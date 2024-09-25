@@ -25,8 +25,8 @@ async def create_record(
     try:
         dns_manager = DNSManager()
         await dns_manager.create_record(hostname, ip, record_type, ttl)
-    except Exception:
-        raise HTTPException(500, "DNS transaction failed")
+    except Exception as e:
+        raise HTTPException(500, f"{e}")
 
 
 @dns_router.delete('/record')
@@ -39,7 +39,7 @@ async def delete_single_record(
 ):
     try:
         dns_manager = DNSManager()
-        await dns_manager.create_record(hostname, ip, record_type, ttl)
+        await dns_manager.delete_record(hostname, ip, record_type)
     except Exception:
         raise HTTPException(500, "DNS transaction failed")
 
@@ -54,9 +54,9 @@ async def update_record(
 ):
     try:
         dns_manager = DNSManager()
-        await dns_manager.create_record(hostname, ip, record_type, ttl)
-    except Exception:
-        raise HTTPException(500, "DNS transaction failed")
+        await dns_manager.update_record(hostname, ip, record_type, ttl)
+    except Exception as e:
+        raise HTTPException(500, f"{e}")
 
 
 @dns_router.get('/record')

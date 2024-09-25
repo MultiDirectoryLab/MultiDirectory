@@ -4,6 +4,7 @@ from enum import Enum
 
 import dns
 import dns.asyncquery
+import dns.update
 
 
 class DNSRecordType(str, Enum):
@@ -42,6 +43,7 @@ class DNSManager:
                 result[rdata.rdtype.name].append({
                     "hostname": name.to_text() + f".{self.ZONE}",
                     "ip": rdata.to_text(),
+                    "ttl": ttl,
                 })
             else:
                 if rdata.rdtype.name == "SOA":
@@ -50,6 +52,7 @@ class DNSManager:
                     result[rdata.rdtype.name] = [{
                         "hostname": name.to_text() + f".{self.ZONE}",
                         "ip": rdata.to_text(),
+                        "ttl": ttl,
                     }]
         response = []
         for record_type in result.keys():
@@ -59,9 +62,9 @@ class DNSManager:
             })
         return response
 
-    async def update_record(self, ip, record_type, ttl):
+    async def update_record(self, hostname, ip, record_type, ttl):
         action = dns.update.Update(self.ZONE)
-        action.replace(dns.name.from_text(self.DOMAIN), ttl, record_type, ip)
+        action.replace(hostname, ttl, record_type, ip)
         await self.client(action)
 
     async def delete_record(self, hostname, ip, record_type):
