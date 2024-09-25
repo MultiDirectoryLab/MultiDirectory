@@ -241,7 +241,7 @@ class Directory(Base):
         return not self.parent_id and self.object_class == 'domain'
     
     @property
-    def princ_computer_name(self) -> str:
+    def host_principal(self) -> str:
         """Principal computer name"""
         return f"host/{self.name}"
 
