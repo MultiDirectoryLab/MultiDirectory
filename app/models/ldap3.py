@@ -336,12 +336,6 @@ class User(DirectoryReferenceMixin, Base):
     def get_upn_prefix(self) -> str:
         """Get userPrincipalName prefix."""
         return self.user_principal_name.split('@')[0]
-    
-    @property
-    def principal_name(self) -> str:
-        """Kerberos princ name."""
-        username, domain = self.user_principal_name.split('@')
-        return f"{username}@{domain.upper()}"
 
     def __str__(self) -> str:
         return f"User({self.sam_accout_name})"

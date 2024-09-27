@@ -11,10 +11,10 @@ from typing import Any, Callable, NoReturn
 
 import httpx
 from loguru import logger as loguru_logger
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import CatalogueSetting
+from models import Attribute, CatalogueSetting, Directory
 
 KERBEROS_STATE_NAME = 'KerberosState'
 
@@ -399,3 +399,19 @@ async def get_kerberos_class(
     if await get_krb_server_state(session) == KerberosState.READY:
         return KerberosMDAPIClient
     return StubKadminMDADPIClient
+
+
+async def unlock_principal(name: str, session: AsyncSession) -> None:
+    """Unlock principal.
+
+    :param str name: upn
+    :param AsyncSession session: db
+    """
+    subquery = select(Directory.id).where(
+        Directory.name.ilike(name)).as_scalar()
+    await session.execute(
+        delete(Attribute)
+        .where(
+            Attribute.directory_id == subquery,
+            Attribute.name == 'krbprincipalexpiration')
+        .execution_options(synchronize_session=False))

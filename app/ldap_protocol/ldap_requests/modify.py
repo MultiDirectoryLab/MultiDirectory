@@ -16,7 +16,11 @@ from config import Settings
 from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import (
+    AbstractKadmin,
+    KRBAPIError,
+    unlock_principal,
+)
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
@@ -34,7 +38,6 @@ from ldap_protocol.utils.queries import (
     get_directories,
     get_filter_from_path,
     get_groups,
-    unlock_principal,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, User
@@ -323,7 +326,7 @@ class ModifyRequest(BaseRequest):
                     int(value) & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
                     await unlock_principal(
-                        directory.user.principal_name, session)
+                        directory.user.user_principal_name, session)
 
             if name in Directory.search_fields:
                 await session.execute(
