@@ -34,6 +34,7 @@ from ldap_protocol.utils.queries import (
     get_directories,
     get_filter_from_path,
     get_groups,
+    unlock_principal,
     validate_entry,
 )
 from models.ldap3 import Attribute, Directory, Group, User
@@ -310,13 +311,19 @@ class ModifyRequest(BaseRequest):
         for value in change.modification.vals:
 
             if name == 'useraccountcontrol':
+                if int(value) == 0:
+                    continue
+
                 if bool(
                     int(value) & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
                     await kadmin.lock_principal(
                         directory.user.get_upn_prefix())
-                elif int(value) == 0:
-                    continue
+                elif not bool(
+                    int(value) & UserAccountControlFlag.ACCOUNTDISABLE,
+                ) and directory.user:
+                    await unlock_principal(
+                        directory.user.principal_name, session)
 
             if name in Directory.search_fields:
                 await session.execute(

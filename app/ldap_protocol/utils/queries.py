@@ -8,7 +8,7 @@ from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, func, or_, select, update
+from sqlalchemy import Column, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
@@ -290,3 +290,19 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
         func.lower(Attribute.name) == 'objectclass',
         Attribute.value == 'computer',
         Attribute.directory_id == directory_id).exists()))
+
+
+async def unlock_principal(name: str, session: AsyncSession) -> None:
+    """Unlock principal.
+
+    :param str name: upn
+    :param AsyncSession session: db
+    """
+    subquery = select(Directory.id).where(
+        Directory.name == name).as_scalar()
+    await session.execute(
+        delete(Attribute)
+        .where(
+            Attribute.directory_id == subquery,
+            Attribute.name == 'krbprincipalexpiration')
+        .execution_options(synchronize_session=False))
