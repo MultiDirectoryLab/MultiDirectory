@@ -16,13 +16,15 @@ class DNSRecordType(str, Enum):
     txt = "TXT"
     soa = "SOA"
     ptr = "PTR"
+    srv = "SRV"
+
 
 class DNSManager:
 
     client: [functools.partial]
     DNS_SERVER: str = "5.35.9.32"
-    DOMAIN: str = "example.com."
-    ZONE: str = "example.com"
+    DOMAIN: str = "beta.multidirectory.io."
+    ZONE: str = "beta.multidirectory.io"
 
     def __init__(self) -> None:
         self.client = functools.partial(dns.asyncquery.tcp, where=self.DNS_SERVER)
@@ -33,11 +35,10 @@ class DNSManager:
         action.add(hostname, ttl, record_type, ip)
         await self.client(action)
 
-    async def get_all_records(self):
+    async def get_all_records(self) -> dict:
         zone = dns.zone.from_xfr(dns.query.xfr(self.DNS_SERVER, self.DOMAIN))
 
         result = {}
-        records = defaultdict(list)
         for name, ttl, rdata in zone.iterate_rdatas():
             if rdata.rdtype.name in result.keys():
                 result[rdata.rdtype.name].append({
@@ -71,3 +72,10 @@ class DNSManager:
         action = dns.update.Update(self.ZONE)
         action.delete(hostname, record_type, ip)
         await self.client(action)
+
+    async def setup(self, dns_ip_address):
+        pass
+
+
+async def get_dns_manager():
+    return DNSManager()

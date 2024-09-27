@@ -18,6 +18,7 @@ from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.dns import DNSManager, get_dns_manager
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
     LDAPMultiFactorAPI,
@@ -114,6 +115,10 @@ class MainProvider(Provider):
         logger.debug('Initialized kadmin {}', kadmin_class)
         yield kadmin_class(client)
         logger.debug('Closed kadmin {}', kadmin_class)
+
+    @provide(scope=scope.REQUEST, provides=DNSManager)
+    async def get_dns_mngr(self) -> AsyncIterator[DNSManager]:
+        yield await get_dns_manager()
 
 
 class HTTPProvider(Provider):

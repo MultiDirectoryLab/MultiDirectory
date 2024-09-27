@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from typing import List, Annotated
 
+from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import Body, HTTPException
 from fastapi.routing import APIRouter
@@ -21,9 +22,9 @@ async def create_record(
     ip: Annotated[str, Body()],
     record_type: Annotated[str, Body()],
     ttl: Annotated[str, Body()],
+    dns_manager: FromDishka[DNSManager],
 ):
     try:
-        dns_manager = DNSManager()
         await dns_manager.create_record(hostname, ip, record_type, ttl)
     except Exception as e:
         raise HTTPException(500, f"{e}")
@@ -35,10 +36,9 @@ async def delete_single_record(
     hostname: Annotated[str, Body()],
     ip: Annotated[str, Body()],
     record_type: Annotated[str, Body()],
-    ttl: Annotated[str, Body()],
+    dns_manager: FromDishka[DNSManager],
 ):
     try:
-        dns_manager = DNSManager()
         await dns_manager.delete_record(hostname, ip, record_type)
     except Exception:
         raise HTTPException(500, "DNS transaction failed")
@@ -51,9 +51,9 @@ async def update_record(
     ip: Annotated[str, Body()],
     record_type: Annotated[str, Body()],
     ttl: Annotated[str, Body()],
+    dns_manager: FromDishka[DNSManager],
 ):
     try:
-        dns_manager = DNSManager()
         await dns_manager.update_record(hostname, ip, record_type, ttl)
     except Exception as e:
         raise HTTPException(500, f"{e}")
@@ -61,9 +61,17 @@ async def update_record(
 
 @dns_router.get('/record')
 @inject
-async def get_all_records():
+async def get_all_records(dns_manager: FromDishka[DNSManager]):
     try:
-        dns_manager = DNSManager()
         return await dns_manager.get_all_records()
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+@dns_router.post('/setup')
+@inject
+async def setup_dns(
+        dns_ip_address: Annotated[str, Body()],
+        dns_manager: FromDishka[DNSManager],
+) -> None:
+    await dns_manager.setup(dns_ip_address)
