@@ -92,9 +92,9 @@ class DeleteRequest(BaseRequest):
                 await kadmin.del_principal(directory.user.get_upn_prefix())
 
             if await is_computer(directory.id, session):
-                await kadmin.del_principal(directory.princ_computer_name)
+                await kadmin.del_principal(directory.host_principal)
                 await kadmin.del_principal(
-                    f"{directory.princ_computer_name}.{base_dn.name}")
+                    f"{directory.host_principal}.{base_dn.name}")
         except KRBAPIError:
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,

@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from typing import AsyncGenerator, ClassVar
 
+from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import and_, delete, or_, update
 from sqlalchemy.exc import IntegrityError
@@ -16,7 +17,11 @@ from config import Settings
 from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import (
+    AbstractKadmin,
+    KRBAPIError,
+    unlock_principal,
+)
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
@@ -162,6 +167,14 @@ class ModifyRequest(BaseRequest):
                     update(Directory).where(Directory.id == directory.id),
                 )
                 await session.commit()
+
+            except ValueError as err:
+                logger.error(f"Invalid value: {err}")
+                await session.rollback()
+                yield ModifyResponse(
+                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE)
+                return
+
             except IntegrityError:
                 await session.rollback()
                 yield ModifyResponse(
@@ -308,15 +321,23 @@ class ModifyRequest(BaseRequest):
             return
 
         for value in change.modification.vals:
-
             if name == 'useraccountcontrol':
-                if bool(
-                    int(value) & UserAccountControlFlag.ACCOUNTDISABLE,
+                uac_val = int(value)
+
+                if uac_val == 0:  # noqa: R507
+                    continue
+
+                elif bool(
+                    uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
                     await kadmin.lock_principal(
                         directory.user.get_upn_prefix())
-                elif int(value) == 0:
-                    continue
+
+                elif not bool(
+                    uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
+                ) and directory.user:
+                    await unlock_principal(
+                        directory.user.user_principal_name, session)
 
             if name in Directory.search_fields:
                 await session.execute(
@@ -350,7 +371,7 @@ class ModifyRequest(BaseRequest):
                     await session.refresh(directory)
 
                 if name == 'accountexpires':
-                    value = ft_to_dt(int(value))
+                    value = ft_to_dt(int(value)) if value != '0' else None
 
                 await session.execute(
                     update(User)

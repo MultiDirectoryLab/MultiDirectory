@@ -9,7 +9,7 @@ from alembic import op
 from sqlalchemy import delete, orm, select
 
 from ldap_protocol.utils.helpers import generate_domain_sid
-from ldap_protocol.utils.queries import get_domain_attrs
+from ldap_protocol.utils.queries import get_domain_object_class
 from models.ldap3 import CatalogueSetting, Directory
 
 # revision identifiers, used by Alembic.
@@ -63,7 +63,7 @@ def upgrade() -> None:
     session.execute(delete(CatalogueSetting).where(
         CatalogueSetting.name == 'defaultNamingContext'))
 
-    session.add_all(get_domain_attrs(base_directory))
+    session.add_all(get_domain_object_class(base_directory))
 
     session.commit()
 

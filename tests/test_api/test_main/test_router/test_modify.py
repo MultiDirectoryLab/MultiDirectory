@@ -298,3 +298,31 @@ async def test_api_modify_replace_loop_detect_memberof(
     data = response.json()
 
     assert data['resultCode'] == LDAPCodes.LOOP_DETECT
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_api_modify_incorrect_uac(
+        http_client: AsyncClient, login_headers: dict) -> None:
+    """Test API for modify object attribute."""
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": 'cn=user0,ou=users,dc=md,dc=test',
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ['string'],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE

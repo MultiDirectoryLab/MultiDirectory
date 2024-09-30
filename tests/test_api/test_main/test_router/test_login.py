@@ -50,3 +50,28 @@ async def test_api_auth_after_change_account_exp(
         })
 
     assert auth.status_code == status.HTTP_403_FORBIDDEN
+
+    await http_client.patch(
+        "/entry/update",
+        json={
+            "object": "cn=test,dc=md,dc=test",
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "accountExpires",
+                        "vals": ["0"],
+                    },
+                },
+            ],
+        },
+        headers=login_headers,
+    )
+    auth = await http_client.post(
+        "auth/token/get",
+        data={
+            "username": 'new_user@md.test',
+            "password": 'P@ssw0rd',
+        })
+
+    assert auth.json()['access_token']

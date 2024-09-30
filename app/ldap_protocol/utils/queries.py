@@ -214,15 +214,10 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     return result.path_dn
 
 
-def get_domain_attrs(domain: Directory) -> Iterator[Attribute]:
+def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
     """Get default domain attrs."""
-    attributes: dict[str, list[str]] = {
-        'objectClass': ['domain', 'top', 'domainDNS'],
-        'nisDomain': [domain.name],
-    }
-    for name, value_list in attributes.items():
-        for value in value_list:
-            yield Attribute(name=name, value=value, directory=domain)
+    for value in ['domain', 'top', 'domainDNS']:
+        yield Attribute(name='objectClass', value=value, directory=domain)
 
 
 async def create_group(

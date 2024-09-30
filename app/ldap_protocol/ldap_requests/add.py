@@ -291,9 +291,9 @@ class AddRequest(BaseRequest):
                         user.get_upn_prefix(), pw)
                 if is_computer:
                     await kadmin.add_principal(
-                        f"{new_dir.princ_computer_name}.{base_dn.name}", None)
+                        f"{new_dir.host_principal}.{base_dn.name}", None)
                     await kadmin.add_principal(
-                        new_dir.princ_computer_name, None)
+                        new_dir.host_principal, None)
             except (KRBAPIError):
                 await session.rollback()
                 yield AddResponse(
