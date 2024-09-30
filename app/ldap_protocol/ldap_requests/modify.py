@@ -319,18 +319,18 @@ class ModifyRequest(BaseRequest):
             return
 
         for value in change.modification.vals:
-
             if name == 'useraccountcontrol':
-                if int(value) == 0:
+                uac_val = int(value)
+                if uac_val == 0:
                     continue
 
                 if bool(
-                    int(value) & UserAccountControlFlag.ACCOUNTDISABLE,
+                    uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
                     await kadmin.lock_principal(
                         directory.user.get_upn_prefix())
                 elif not bool(
-                    int(value) & UserAccountControlFlag.ACCOUNTDISABLE,
+                    uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
                     await unlock_principal(
                         directory.user.user_principal_name, session)
