@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import secrets
 from typing import Annotated
 
 from dishka import FromDishka
@@ -113,6 +114,7 @@ async def login_for_access_token(
         secret=settings.SECRET_KEY,
         expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         grant_type='access',
+        extra_data={'uuid': secrets.token_urlsafe(8)},
     )
 
     refresh_token = create_token(  # noqa: S106
@@ -120,6 +122,7 @@ async def login_for_access_token(
         secret=settings.SECRET_KEY,
         expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
         grant_type='refresh',
+        extra_data={'uuid': secrets.token_urlsafe(8)},
     )
 
     await set_last_logon_user(user, session, settings.TIMEZONE)
@@ -132,7 +135,7 @@ async def login_for_access_token(
         key="refresh_token",
         value=f"Bearer {refresh_token}",
         httponly=True,
-        path="auth/token/refresh",
+        path="/api/auth/token/refresh",
     )
 
 
@@ -174,6 +177,7 @@ async def renew_tokens(
             secret=settings.SECRET_KEY,
             expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
             grant_type='access',
+            extra_data={'uuid': secrets.token_urlsafe(8)},
         )
     else:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
@@ -197,7 +201,7 @@ def logout(response: Response) -> None:
     """Delete token cookies."""
     response.delete_cookie('access_token', httponly=True)
     response.delete_cookie(
-        'refresh_token', path="auth/token/refresh", httponly=True)
+        'refresh_token', path="/api/auth/token/refresh", httponly=True)
 
 
 @auth_router.patch(
