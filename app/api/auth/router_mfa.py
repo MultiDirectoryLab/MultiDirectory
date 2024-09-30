@@ -32,6 +32,7 @@ from models.ldap3 import User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (
+    REFRESH_PATH,
     MFAChallengeResponse,
     MFACreateRequest,
     MFAGetResponse,
@@ -141,7 +142,7 @@ async def callback_mfa(
         key="refresh_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        path="auth/token/refresh",
+        path=REFRESH_PATH,
     )
     return response
 

@@ -5,16 +5,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
-from typing import Literal
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, SecretStr, computed_field, validator
 
-from models.ldap3 import User as DBUser
-
 domain_regex = "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z]{2,6}"
 domain_re = re.compile(domain_regex)
+REFRESH_PATH = "/api/auth/token/refresh"
 
 
 class Login(BaseModel):

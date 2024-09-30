@@ -53,7 +53,7 @@ from .oauth2 import (
     get_user,
     get_user_from_token,
 )
-from .schema import OAuth2Form, SetupRequest
+from .schema import REFRESH_PATH, OAuth2Form, SetupRequest
 
 auth_router = APIRouter(prefix='/auth', tags=['Auth'])
 
@@ -135,7 +135,7 @@ async def login_for_access_token(
         key="refresh_token",
         value=f"Bearer {refresh_token}",
         httponly=True,
-        path="/api/auth/token/refresh",
+        path=REFRESH_PATH,
     )
 
 
@@ -169,7 +169,13 @@ async def renew_tokens(
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
 
         access_token = await mfa.refresh_token(token)
-        token = access_token
+
+        response.set_cookie(
+            key="refresh_token",
+            value=f"Bearer {access_token}",
+            httponly=True,
+            path=REFRESH_PATH,
+        )
 
     elif user.access_type == 'refresh':
         access_token = create_token(  # noqa: S106
