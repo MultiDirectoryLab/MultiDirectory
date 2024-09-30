@@ -288,10 +288,8 @@ async def test_api_modify_replace_loop_detect_memberof(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_modify_incorrect_uac(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -307,7 +305,6 @@ async def test_api_modify_incorrect_uac(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 
