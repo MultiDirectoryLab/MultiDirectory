@@ -12,7 +12,6 @@ from app.ldap_protocol.dialogue import LDAPCodes, Operation
 @pytest_asyncio.fixture(scope='function')
 async def adding_test_user(
     http_client: AsyncClient,
-    login_headers: dict[str, str],
     _force_override_tls: None,
 ) -> None:
     """Test add user like keycloak."""
@@ -42,7 +41,6 @@ async def adding_test_user(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
     assert data['resultCode'] == LDAPCodes.SUCCESS
@@ -103,7 +101,6 @@ async def adding_test_user(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
     assert data['resultCode'] == LDAPCodes.SUCCESS
@@ -115,4 +112,4 @@ async def adding_test_user(
             "password": 'P@ssw0rd',
         })
 
-    assert auth.json()['access_token']
+    assert auth.cookies.get('access_token')

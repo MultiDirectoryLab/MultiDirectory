@@ -12,14 +12,9 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('login_headers')
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
-async def test_policy_password(
-    http_client: AsyncClient,
-    login_headers: dict,
-) -> None:
+async def test_policy_password(http_client: AsyncClient) -> None:
     """Test create policy."""
     policy_data = {
         "name": "Default domain password policy",
@@ -30,16 +25,12 @@ async def test_policy_password(
         "password_must_meet_complexity_requirements": True,
     }
 
-    response = await http_client.post(
-        "/password-policy",
-        headers=login_headers,
-        json=policy_data,
-    )
+    response = await http_client.post("/password-policy", json=policy_data)
 
     assert response.status_code == 201
     assert response.json() == policy_data
 
-    response = await http_client.get("/password-policy", headers=login_headers)
+    response = await http_client.get("/password-policy")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == policy_data
 
@@ -49,23 +40,21 @@ async def test_policy_password(
 
     response = await http_client.put(
         "/password-policy",
-        headers=login_headers,
         json=changed_data,
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == changed_data
 
-    response = await http_client.get("/password-policy", headers=login_headers)
+    response = await http_client.get("/password-policy")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == changed_data
 
-    response = await http_client.delete(
-        "/password-policy", headers=login_headers)
+    response = await http_client.delete("/password-policy")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == policy_data
 
-    response = await http_client.get("/password-policy", headers=login_headers)
+    response = await http_client.get("/password-policy")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == policy_data

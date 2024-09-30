@@ -131,11 +131,19 @@ async def callback_mfa(
     if user_id is None or not await session.get(DBUser, user_id):
         return RedirectResponse('/mfa_token_error', status.HTTP_302_FOUND)
 
-    return RedirectResponse(
-        '/', status.HTTP_302_FOUND,
-        headers={'Set-Cookie': (
-            f"access_token={access_token};"
-            " SameSite=Lax; Path=/; Secure;")})
+    response = RedirectResponse('/', status.HTTP_302_FOUND)
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        path="auth/token/refresh",
+    )
+    return response
 
 
 @mfa_router.post('/connect', response_model=MFAChallengeResponse)
