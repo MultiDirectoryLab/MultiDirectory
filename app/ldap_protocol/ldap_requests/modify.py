@@ -166,6 +166,11 @@ class ModifyRequest(BaseRequest):
                     update(Directory).where(Directory.id == directory.id),
                 )
                 await session.commit()
+            except ValueError:
+                await session.rollback()
+                yield ModifyResponse(
+                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE)
+                return
             except IntegrityError:
                 await session.rollback()
                 yield ModifyResponse(
