@@ -167,12 +167,14 @@ class ModifyRequest(BaseRequest):
                     update(Directory).where(Directory.id == directory.id),
                 )
                 await session.commit()
+
             except ValueError as err:
                 logger.error(f"Invalid value: {err}")
                 await session.rollback()
                 yield ModifyResponse(
                     result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE)
                 return
+
             except IntegrityError:
                 await session.rollback()
                 yield ModifyResponse(
@@ -321,10 +323,10 @@ class ModifyRequest(BaseRequest):
         for value in change.modification.vals:
             if name == 'useraccountcontrol':
                 uac_val = int(value)
-                if uac_val == 0:
-                    continue
 
-                if bool(
+                if uac_val == 0:  # noqa: R507
+                    continue
+                elif bool(
                     uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
                     await kadmin.lock_principal(
