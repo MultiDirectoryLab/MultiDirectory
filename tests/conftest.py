@@ -35,7 +35,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
 )
-from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import SessionTransaction
 
 from app.__main__ import PoolClientHandler
@@ -348,8 +348,13 @@ async def app(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def http_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
-    """Async client for fastapi tests."""
+async def unbound_http_client(
+        app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+    """Get async client for fastapi tests.
+
+    :param FastAPI app: asgi app
+    :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
+    """
     async with httpx.AsyncClient(
             transport=httpx.ASGITransport(
                 app=app, root_path='/api',  # type: ignore
@@ -358,14 +363,26 @@ async def http_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
         yield client
 
 
-@pytest_asyncio.fixture(scope='function')
-async def login_headers(
-        http_client: httpx.AsyncClient, creds: TestCreds) -> dict:
-    """Get ldap clinet without a creds."""
-    auth = await http_client.post("auth/token/get", data={
+@pytest_asyncio.fixture(scope="function")
+async def http_client(
+    unbound_http_client: httpx.AsyncClient,
+    creds: TestCreds,
+    setup_session: None,
+) -> httpx.AsyncClient:
+    """Authenticate and return client with cookies.
+
+    :param httpx.AsyncClient unbound_http_client: client w/o cookies
+    :param TestCreds creds: creds to authn
+    :param None setup_session: just a fixture call
+    :return httpx.AsyncClient: bound client with cookies
+    """
+    response = await unbound_http_client.post("auth/token/get", data={
         "username": creds.un, "password": creds.pw})
 
-    return {'Authorization': f"Bearer {auth.json()['access_token']}"}
+    assert response.status_code == 200
+    assert unbound_http_client.cookies.get('access_token')
+
+    return unbound_http_client
 
 
 @pytest.fixture

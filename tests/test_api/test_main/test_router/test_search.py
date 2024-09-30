@@ -12,14 +12,11 @@ from app.ldap_protocol.dialogue import LDAPCodes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_root_dse(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_root_dse(http_client: AsyncClient) -> None:
     """Test api root dse."""
     response = await http_client.post(
         "entry/search",
-        headers=login_headers,
         json={
             "base_object": "",
             "scope": 0,
@@ -63,10 +60,8 @@ async def test_api_root_dse(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_search(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_search(http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
         "entry/search",
@@ -81,7 +76,6 @@ async def test_api_search(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
 
     response = raw_response.json()
@@ -99,10 +93,8 @@ async def test_api_search(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_search_filter_memberof(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_search_filter_memberof(http_client: AsyncClient) -> None:
     """Test api search."""
     member = 'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test'
     raw_response = await http_client.post(
@@ -118,7 +110,6 @@ async def test_api_search_filter_memberof(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
 
     response = raw_response.json()
@@ -128,10 +119,8 @@ async def test_api_search_filter_memberof(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_search_filter_member(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_search_filter_member(http_client: AsyncClient) -> None:
     """Test api search."""
     member = 'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test'
     group = 'cn=developers,cn=groups,dc=md,dc=test'
@@ -148,7 +137,6 @@ async def test_api_search_filter_member(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
 
     response = raw_response.json()
@@ -158,10 +146,8 @@ async def test_api_search_filter_member(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_search_filter_objectguid(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
         "entry/search",
@@ -176,7 +162,6 @@ async def test_api_search_filter_objectguid(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = raw_response.json()
 
@@ -205,7 +190,6 @@ async def test_api_search_filter_objectguid(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = raw_response.json()
 
@@ -214,10 +198,8 @@ async def test_api_search_filter_objectguid(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_search_complex_filter(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
     """Test api search."""
     user = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     raw_response = await http_client.post(
@@ -248,17 +230,14 @@ async def test_api_search_complex_filter(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = raw_response.json()
     assert data['search_result'][0]['object_name'] == user
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_search_recursive_memberof(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     """Test api search."""
     group = "cn=domain admins,cn=groups,dc=md,dc=test"
     members = [
@@ -279,7 +258,6 @@ async def test_api_search_recursive_memberof(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = response.json()
     assert len(data['search_result']) == len(members)
@@ -290,10 +268,8 @@ async def test_api_search_recursive_memberof(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_bytes_to_hex(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_bytes_to_hex(http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
         "entry/search",
@@ -308,7 +284,6 @@ async def test_api_bytes_to_hex(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
 
     response = raw_response.json()

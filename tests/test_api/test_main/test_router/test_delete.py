@@ -13,8 +13,7 @@ from app.ldap_protocol.dialogue import LDAPCodes
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_correct_delete(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_correct_delete(http_client: AsyncClient) -> None:
     """Test API for delete object."""
     response = await http_client.request(
         "delete",
@@ -22,7 +21,6 @@ async def test_api_correct_delete(
         json={
             "entry": "cn=test,dc=md,dc=test",
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -35,8 +33,7 @@ async def test_api_correct_delete(
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_delete_with_incorrect_dn(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for delete object with incorrect DN."""
     response = await http_client.request(
         "delete",
@@ -44,7 +41,6 @@ async def test_api_delete_with_incorrect_dn(
         json={
             "entry": "cn!=test,dc=md,dc=test",
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -58,7 +54,7 @@ async def test_api_delete_with_incorrect_dn(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_delete_non_exist_object(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient, ) -> None:
     """Test API for delete non-existen object."""
     response = await http_client.request(
         "delete",
@@ -66,7 +62,6 @@ async def test_api_delete_non_exist_object(
         json={
             "entry": "cn=non-exist-object,dc=md,dc=test",
         },
-        headers=login_headers,
     )
 
     data = response.json()

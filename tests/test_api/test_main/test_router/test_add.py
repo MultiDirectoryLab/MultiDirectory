@@ -12,10 +12,8 @@ from app.ldap_protocol.user_account_control import UserAccountControlFlag
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_correct_add(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_correct_add(http_client: AsyncClient) -> None:
     """Test api correct add."""
     response = await http_client.post(
         "/entry/add",
@@ -43,7 +41,6 @@ async def test_api_correct_add(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -55,10 +52,8 @@ async def test_api_correct_add(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_add_computer(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_add_computer(http_client: AsyncClient) -> None:
     """Test api correct add computer."""
     new_entry = "cn=PC,dc=md,dc=test"
     response = await http_client.post(
@@ -81,7 +76,6 @@ async def test_api_add_computer(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -99,7 +93,6 @@ async def test_api_add_computer(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -115,12 +108,12 @@ async def test_api_add_computer(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_correct_add_double_member_of(
-        http_client: AsyncClient, login_headers: dict) -> None:
-    """
-    Test api correct add a group with a register, assigning it to a user,
+        http_client: AsyncClient) -> None:
+    """Test api correct add a group with a register.
+
+    assigning it to a user,
     and displaying it in the Search request.
     """
     new_group = "cn=Domain Admins,dc=md,dc=test"
@@ -151,7 +144,6 @@ async def test_api_correct_add_double_member_of(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -171,7 +163,6 @@ async def test_api_correct_add_double_member_of(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -220,7 +211,6 @@ async def test_api_correct_add_double_member_of(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -240,7 +230,6 @@ async def test_api_correct_add_double_member_of(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -261,16 +250,17 @@ async def test_api_correct_add_double_member_of(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_add_non_auth_user(http_client: AsyncClient) -> None:
+async def test_api_add_non_auth_user(unbound_http_client: AsyncClient) -> None:
     """Test API add for unauthorized user."""
-    response = await http_client.post(
+    unbound_http_client.cookies.set(
+        'access_token', "Bearer 09e67421-2f92-8ddc-494108a6e04f")
+    response = await unbound_http_client.post(
         "/entry/add",
         json={
             "entry": "cn=test,dc=md,dc=test",
             "password": "password_test",
             "attributes": [],
         },
-        headers={'Authorization': "Bearer 09e67421-2f92-8ddc-494108a6e04f"},
     )
 
     data = response.json()
@@ -280,10 +270,8 @@ async def test_api_add_non_auth_user(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_add_with_incorrect_dn(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_add_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect DN."""
     response = await http_client.post(
         "/entry/add",
@@ -292,7 +280,6 @@ async def test_api_add_with_incorrect_dn(
             "password": "password_test",
             "attributes": [],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -301,10 +288,8 @@ async def test_api_add_with_incorrect_dn(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_add_with_incorrect_name(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_add_with_incorrect_name(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect name."""
     response = await http_client.post(
         "/entry/add",
@@ -313,7 +298,6 @@ async def test_api_add_with_incorrect_name(
             "password": "password_test",
             "attributes": [],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -321,10 +305,8 @@ async def test_api_add_with_incorrect_name(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_add_with_space_end_name(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect name."""
     entry = "cn=test test ,dc=md,dc=test"
     response = await http_client.post(
@@ -339,7 +321,6 @@ async def test_api_add_with_space_end_name(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -358,7 +339,6 @@ async def test_api_add_with_space_end_name(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -366,10 +346,8 @@ async def test_api_add_with_space_end_name(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_add_with_non_exist_parent(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_add_with_non_exist_parent(http_client: AsyncClient) -> None:
     """Test API add a user with non-existen parent."""
     response = await http_client.post(
         "/entry/add",
@@ -378,7 +356,6 @@ async def test_api_add_with_non_exist_parent(
             "password": "password_test",
             "attributes": [],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -391,8 +368,7 @@ async def test_api_add_with_non_exist_parent(
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_double_add(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_double_add(http_client: AsyncClient) -> None:
     """Test API for adding a user who already exists."""
     response = await http_client.post(
         "/entry/add",
@@ -420,7 +396,6 @@ async def test_api_double_add(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -430,10 +405,9 @@ async def test_api_double_add(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_add_double_case_insensetive(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test api double add."""
     response = await http_client.post(
         "/entry/add",
@@ -460,7 +434,6 @@ async def test_api_add_double_case_insensetive(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     assert response.json().get('resultCode') == LDAPCodes.SUCCESS
@@ -490,7 +463,6 @@ async def test_api_add_double_case_insensetive(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     assert response.json().get('resultCode') == LDAPCodes.ENTRY_ALREADY_EXISTS

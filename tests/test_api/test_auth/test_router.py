@@ -14,13 +14,13 @@ from ldap_protocol.kerberos import AbstractKadmin
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
-async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
+async def test_first_setup_and_oauth(unbound_http_client: AsyncClient) -> None:
     """Test api first setup."""
-    response = await http_client.get("/auth/setup")
+    response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is False
 
-    response = await http_client.post("/auth/setup", json={
+    response = await unbound_http_client.post("/auth/setup", json={
         "domain": "md.test",
         "username": "test",
         "user_principal_name": "test",
@@ -30,17 +30,16 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
     })
     assert response.status_code == status.HTTP_200_OK
 
-    response = await http_client.get("/auth/setup")
+    response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
 
-    auth = await http_client.post("auth/token/get", data={
+    auth = await unbound_http_client.post("auth/token/get", data={
         "username": "test", "password": "Password123"})
     assert auth.status_code == 200
+    assert list(auth.cookies.keys()) == ['access_token', 'refresh_token']
 
-    login_header = {'Authorization': f"Bearer {auth.json()['access_token']}"}
-
-    response = await http_client.get("auth/me", headers=login_header)
+    response = await unbound_http_client.get("auth/me")
     assert response.status_code == status.HTTP_200_OK
 
     result = response.json()
@@ -53,10 +52,9 @@ async def test_first_setup_and_oauth(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_update_password(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Update policy."""
     response = await http_client.patch(
         "auth/user/password",
@@ -64,7 +62,6 @@ async def test_update_password(
             "identity": "user0",
             "new_password": "Password123",
         },
-        headers=login_headers,
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -87,15 +84,15 @@ async def test_update_password(
         },
     )
     assert new_auth.status_code == 200
-    assert new_auth.json()['type'] == 'bearer'
+    token = new_auth.cookies.get('access_token')
+    assert token
+    assert 'bearer' in token.lower()
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_auth_disabled_user(
     http_client: AsyncClient,
-    login_headers: dict,
     kadmin: AbstractKadmin,
 ) -> None:
     """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
@@ -123,7 +120,6 @@ async def test_auth_disabled_user(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     kadmin.lock_principal.assert_called()

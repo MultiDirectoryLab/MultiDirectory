@@ -13,8 +13,7 @@ from app.ldap_protocol.dialogue import LDAPCodes, Operation
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_correct_modify(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_correct_modify(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     entry_dn = 'cn=test,dc=md,dc=test'
     new_value = "133632677730000000"
@@ -32,7 +31,6 @@ async def test_api_correct_modify(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -53,7 +51,6 @@ async def test_api_correct_modify(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -70,8 +67,7 @@ async def test_api_correct_modify(
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_modify_with_incorrect_dn(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_modify_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for modify object attribute with incorrect DN."""
     response = await http_client.patch(
         "/entry/update",
@@ -87,7 +83,6 @@ async def test_api_modify_with_incorrect_dn(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -97,10 +92,8 @@ async def test_api_modify_with_incorrect_dn(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_modify_non_exist_object(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_modify_non_exist_object(http_client: AsyncClient) -> None:
     """Test API for modify object attribute with non-existen attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -116,7 +109,6 @@ async def test_api_modify_non_exist_object(
                 },
             ],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -130,7 +122,7 @@ async def test_api_modify_non_exist_object(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_correct_modify_replace_memberof(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     user = 'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test'
     new_group = 'cn=domain admins,cn=groups,dc=md,dc=test'
@@ -148,7 +140,6 @@ async def test_api_correct_modify_replace_memberof(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -167,7 +158,6 @@ async def test_api_correct_modify_replace_memberof(
             "attributes": [],
             "page_number": 1,
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -187,7 +177,7 @@ async def test_api_correct_modify_replace_memberof(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_modify_add_loop_detect_member(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -203,7 +193,6 @@ async def test_api_modify_add_loop_detect_member(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -215,7 +204,7 @@ async def test_api_modify_add_loop_detect_member(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_modify_add_loop_detect_memberof(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -231,7 +220,6 @@ async def test_api_modify_add_loop_detect_memberof(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -243,7 +231,7 @@ async def test_api_modify_add_loop_detect_memberof(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_modify_replace_loop_detect_member(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -262,7 +250,6 @@ async def test_api_modify_replace_loop_detect_member(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 
@@ -274,7 +261,7 @@ async def test_api_modify_replace_loop_detect_member(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_modify_replace_loop_detect_memberof(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -293,7 +280,6 @@ async def test_api_modify_replace_loop_detect_memberof(
                 },
             ],
         },
-        headers=login_headers,
     )
     data = response.json()
 

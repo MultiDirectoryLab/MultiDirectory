@@ -16,10 +16,9 @@ from app.models import NetworkPolicy
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_add_policy(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test api policy add and read."""
     compare_netmasks = [
         '127.0.0.1/32', '172.0.0.2/31', '172.0.0.4/30',
@@ -47,13 +46,13 @@ async def test_add_policy(
         "netmasks": raw_netmasks,
         "priority": 2,
         'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-    }, headers=login_headers)
+    })
 
     assert raw_response.status_code == 201
     assert raw_response.json()["netmasks"] == compare_netmasks
     assert raw_response.json()["enabled"] is True
 
-    raw_response = await http_client.get("/policy", headers=login_headers)
+    raw_response = await http_client.get("/policy")
     response = raw_response.json()
 
     for pol in response:
@@ -84,12 +83,10 @@ async def test_add_policy(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_update_policy(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_update_policy(http_client: AsyncClient) -> None:
     """Update policy."""
-    raw_response = await http_client.get("/policy", headers=login_headers)
+    raw_response = await http_client.get("/policy")
     assert raw_response.status_code == status.HTTP_200_OK
     response = raw_response.json()
 
@@ -114,7 +111,7 @@ async def test_update_policy(
             'id': pol_id,
             'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
             'name': 'Default open policy 2',
-        }, headers=login_headers)
+        })
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -132,7 +129,7 @@ async def test_update_policy(
         'priority': 1,
     }
 
-    response = await http_client.get("/policy", headers=login_headers)
+    response = await http_client.get("/policy")
     assert response.status_code == status.HTTP_200_OK
     response = response.json()
 
@@ -153,11 +150,9 @@ async def test_update_policy(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 async def test_delete_policy(
     http_client: httpx.AsyncClient,
     session: AsyncSession,
-    login_headers: dict,
 ) -> None:
     """Delete policy."""
     session.add(NetworkPolicy(
@@ -169,7 +164,7 @@ async def test_delete_policy(
     ))
     await session.commit()
 
-    raw_response = await http_client.get("/policy", headers=login_headers)
+    raw_response = await http_client.get("/policy")
     assert raw_response.status_code == status.HTTP_200_OK
     response = raw_response.json()
 
@@ -188,10 +183,10 @@ async def test_delete_policy(
     }
 
     response = await http_client.delete(
-        f"/policy/{pol_id}", headers=login_headers, follow_redirects=False)
+        f"/policy/{pol_id}", follow_redirects=False)
     assert response.status_code == 303
     assert response.next_request.url.path == '/api/policy'
-    response = await http_client.get("/policy", headers=login_headers)
+    response = await http_client.get("/policy")
     assert response.status_code == status.HTTP_200_OK
     response = response.json()
 
@@ -199,18 +194,15 @@ async def test_delete_policy(
     assert response[0]['name'] == "Local policy"
     assert response[0]['priority'] == 1
 
-    response = await http_client.delete(
-        f"/policy/{pol_id2}", headers=login_headers)
+    response = await http_client.delete(f"/policy/{pol_id2}")
     assert response.status_code == 422
     assert response.json()['detail'] == "At least one policy should be active"
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 async def test_switch_policy(
     http_client: AsyncClient,
     session: AsyncSession,
-    login_headers: dict,
 ) -> None:
     """Switch policy."""
     session.add(NetworkPolicy(
@@ -222,7 +214,7 @@ async def test_switch_policy(
     ))
     await session.commit()
 
-    raw_response = await http_client.get("/policy", headers=login_headers)
+    raw_response = await http_client.get("/policy")
     assert raw_response.status_code == status.HTTP_200_OK
     response = raw_response.json()
 
@@ -242,39 +234,33 @@ async def test_switch_policy(
 
     response = await http_client.patch(
         f"/policy/{pol_id}",
-        headers=login_headers,
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
 
-    response = await http_client.get("/policy", headers=login_headers)
+    response = await http_client.get("/policy")
     assert response.json()[0]['enabled'] is False
 
-    response = await http_client.patch(
-        f"/policy/{pol_id2}", headers=login_headers)
+    response = await http_client.patch(f"/policy/{pol_id2}")
     assert response.status_code == 422
     assert response.json()['detail'] == "At least one policy should be active"
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_404(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_404(http_client: AsyncClient) -> None:
     """Delete policy."""
-    response = await http_client.get("/policy", headers=login_headers)
+    response = await http_client.get("/policy")
     assert response.status_code == status.HTTP_200_OK
     some_id = response.json()[0]['id'] + 1
 
     response = await http_client.delete(
         f"/policy/{some_id}",
-        headers=login_headers,
     )
     assert response.status_code == 404
 
     response = await http_client.patch(
         f"/policy/{some_id}",
-        headers=login_headers,
     )
     assert response.status_code == 404
 
@@ -284,16 +270,13 @@ async def test_404(
             'id': some_id,
             "name": '123',
         },
-        headers=login_headers,
     )
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_swap(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_swap(http_client: AsyncClient) -> None:
     """Test swap policies."""
     raw_response = await http_client.post(
         "/policy",
@@ -310,10 +293,9 @@ async def test_swap(
             "priority": 2,
             'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
         },
-        headers=login_headers,
     )
 
-    raw_get_response = await http_client.get("/policy", headers=login_headers)
+    raw_get_response = await http_client.get("/policy")
     get_response = raw_get_response.json()
 
     assert get_response[0]['priority'] == 1
@@ -326,7 +308,6 @@ async def test_swap(
             'first_policy_id': get_response[0]['id'],
             'second_policy_id': get_response[1]['id'],
         },
-        headers=login_headers,
     )
 
     assert swap_response.json() == {
@@ -336,7 +317,7 @@ async def test_swap(
         "second_policy_priority": 1,
     }
 
-    raw_response = await http_client.get("/policy", headers=login_headers)
+    raw_response = await http_client.get("/policy")
     response = raw_response.json()
 
     assert response[0]['priority'] == 1

@@ -6,27 +6,22 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import httpx
 import pytest
-from fastapi import FastAPI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.oauth2 import authenticate_user, create_token
 from app.config import Settings
 from app.models import CatalogueSetting
-from ldap_protocol.multifactor import MultifactorAPI  # sync object ids
 from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
 async def test_set_mfa(
         http_client: httpx.AsyncClient,
-        session: AsyncSession,
-        login_headers: dict) -> None:
+        session: AsyncSession) -> None:
     """Set mfa."""
     response = await http_client.post(
         "/multifactor/setup",
-        headers=login_headers,
         json={
             'mfa_key': "123",
             'mfa_secret': "123",
@@ -47,7 +42,6 @@ async def test_set_mfa(
 @pytest.mark.usefixtures('setup_session')
 async def test_connect_mfa(
     http_client: httpx.AsyncClient,
-    app: FastAPI,
     session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
@@ -83,4 +77,5 @@ async def test_connect_mfa(
         data={'accessToken': token}, follow_redirects=False)
 
     assert response.status_code == 302
-    assert response.cookies == {'access_token': token}
+    assert response.cookies.get('access_token') == f'"Bearer {token}"'
+    assert response.cookies.get('refresh_token') == f'"Bearer {token}"'

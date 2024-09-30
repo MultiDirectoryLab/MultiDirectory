@@ -13,8 +13,7 @@ from app.ldap_protocol.dialogue import LDAPCodes
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_correct_update_dn(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
     """Test API for update DN."""
     root_dn = "ou=moscow,ou=russia,ou=users,dc=md,dc=test"
 
@@ -34,7 +33,6 @@ async def test_api_correct_update_dn(
             "deleteoldrdn": True,
             "new_superior": None,
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -54,7 +52,6 @@ async def test_api_correct_update_dn(
             "filter": "(objectClass=*)",
             "attributes": ['*'],
         },
-        headers=login_headers,
     )
     data = response.json()
     assert data['search_result'][0]['object_name'] == new_user_dn
@@ -67,7 +64,6 @@ async def test_api_correct_update_dn(
             "deleteoldrdn": True,
             "new_superior": new_superior_group,
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -87,7 +83,6 @@ async def test_api_correct_update_dn(
             "filter": "(objectClass=*)",
             "attributes": ['memberOf'],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -103,8 +98,7 @@ async def test_api_correct_update_dn(
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_update_dn_with_parent(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
     """Test API for update DN."""
     old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     new_user_dn = "cn=new_test2,ou=users,dc=md,dc=test"
@@ -118,7 +112,6 @@ async def test_api_update_dn_with_parent(
             "deleteoldrdn": True,
             "new_superior": new_superior,
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -137,7 +130,6 @@ async def test_api_update_dn_with_parent(
             "filter": "(objectClass=*)",
             "attributes": ['*'],
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -151,6 +143,7 @@ async def test_api_update_dn_with_parent(
 @pytest.mark.usefixtures('session')
 async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
     """Test API update dn for unauthorized user."""
+    http_client.cookies.clear()
     response = await http_client.put(
         "/entry/update/dn",
         json={
@@ -159,7 +152,6 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
             "deleteoldrdn": True,
             "new_superior": "dc=md,dc=test",
         },
-        headers={'Authorization': "Bearer 09e67421-2f92-8ddc-494108a6e04f"},
     )
 
     data = response.json()
@@ -172,7 +164,7 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_update_dn_non_exist_superior(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test API update dn with non-existen new_superior."""
     response = await http_client.put(
         "/entry/update/dn",
@@ -182,7 +174,6 @@ async def test_api_update_dn_non_exist_superior(
             "deleteoldrdn": True,
             "new_superior": "dc=non-exist,dc=test",
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -195,8 +186,7 @@ async def test_api_update_dn_non_exist_superior(
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_update_dn_non_exist_entry(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_update_dn_non_exist_entry(http_client: AsyncClient) -> None:
     """Test API update dn with non-existen entry."""
     response = await http_client.put(
         "/entry/update/dn",
@@ -206,7 +196,6 @@ async def test_api_update_dn_non_exist_entry(
             "deleteoldrdn": True,
             "new_superior": "dc=md,dc=test",
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -219,8 +208,7 @@ async def test_api_update_dn_non_exist_entry(
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
-async def test_api_update_dn_invalid_entry(
-        http_client: AsyncClient, login_headers: dict) -> None:
+async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
     """Test API update dn with invalid entry."""
     response = await http_client.put(
         "/entry/update/dn",
@@ -230,7 +218,6 @@ async def test_api_update_dn_invalid_entry(
             "deleteoldrdn": True,
             "new_superior": "dc=md,dc=test",
         },
-        headers=login_headers,
     )
 
     data = response.json()
@@ -244,7 +231,7 @@ async def test_api_update_dn_invalid_entry(
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_update_dn_invalid_new_superior(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test API update dn with invalid new_superior."""
     response = await http_client.put(
         "/entry/update/dn",
@@ -254,7 +241,6 @@ async def test_api_update_dn_invalid_new_superior(
             "deleteoldrdn": True,
             "new_superior": "dc!=,",
         },
-        headers=login_headers,
     )
 
     data = response.json()

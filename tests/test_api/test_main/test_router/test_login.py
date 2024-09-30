@@ -12,9 +12,9 @@ from app.ldap_protocol.dialogue import Operation
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-async def test_api_before_setup(http_client: AsyncClient) -> None:
+async def test_api_before_setup(unbound_http_client: AsyncClient) -> None:
     """Test api before setup."""
-    response = await http_client.get("auth/me")
+    response = await unbound_http_client.get("auth/me")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -24,7 +24,7 @@ async def test_api_before_setup(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_auth_after_change_account_exp(
-        http_client: AsyncClient, login_headers: dict) -> None:
+        http_client: AsyncClient) -> None:
     """Test api auth."""
     await http_client.patch(
         "/entry/update",
@@ -40,7 +40,6 @@ async def test_api_auth_after_change_account_exp(
                 },
             ],
         },
-        headers=login_headers,
     )
     auth = await http_client.post(
         "auth/token/get",
