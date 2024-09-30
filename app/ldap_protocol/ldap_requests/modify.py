@@ -326,11 +326,13 @@ class ModifyRequest(BaseRequest):
 
                 if uac_val == 0:  # noqa: R507
                     continue
+
                 elif bool(
                     uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
                     await kadmin.lock_principal(
                         directory.user.get_upn_prefix())
+
                 elif not bool(
                     uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
                 ) and directory.user:
