@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from typing import AsyncGenerator, ClassVar
 
+from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import and_, delete, or_, update
 from sqlalchemy.exc import IntegrityError
@@ -166,7 +167,8 @@ class ModifyRequest(BaseRequest):
                     update(Directory).where(Directory.id == directory.id),
                 )
                 await session.commit()
-            except ValueError:
+            except ValueError as err:
+                logger.error(f"Invalid value: {err}")
                 await session.rollback()
                 yield ModifyResponse(
                     result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE)
