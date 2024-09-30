@@ -239,7 +239,7 @@ class KerberosMDAPIClient(AbstractKadmin):
     @logger_wraps()
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename request."""
-        response = await self.client.patch('principal', json={
+        response = await self.client.put('principal', json={
             'name': name, 'new_name': new_name})
         if response.status_code != 200:
             raise KRBAPIError(response.text)
