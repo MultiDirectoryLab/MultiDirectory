@@ -267,9 +267,11 @@ class AddRequest(BaseRequest):
                 directory=new_dir))
 
         if is_user or is_group:
+            value = '513' if is_user else str(
+                create_integer_hash(new_dir.name[::-1]))
             attributes.append(Attribute(
                 name='gidNumber',  # reverse dir name if it matches samAN
-                value=str(create_integer_hash(new_dir.name[::-1])),
+                value=value,
                 directory=new_dir))
 
         try:
