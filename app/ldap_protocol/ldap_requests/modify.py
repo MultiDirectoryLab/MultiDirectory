@@ -345,6 +345,10 @@ class ModifyRequest(BaseRequest):
                     .filter(Directory.id == directory.id)
                     .values({name: value}))
 
+            if name == "pwdlastset" and value == "0" and directory.user:
+                await kadmin.force_princ_pw_change(
+                    directory.user.get_upn_prefix())
+
             elif name in User.search_fields:
                 if not directory.user:
                     path_dn = directory.path_dn

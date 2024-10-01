@@ -148,6 +148,14 @@ class AbstractKRBManager(ABC):
         :param str | None password: if empty - uses randkey.
         """
 
+    @abstractmethod
+    async def force_pw_principal(self, name: str, **dbargs) -> None:
+        """Lock principal.
+
+        :param str name: principal
+        :param str | None password: if empty - uses randkey.
+        """
+
 
 class KAdminLocalManager(AbstractKRBManager):
     """Kadmin manager."""
@@ -282,6 +290,16 @@ class KAdminLocalManager(AbstractKRBManager):
         """
         princ = await self._get_raw_principal(name)
         princ.expire = u'Now'
+        await self.loop.run_in_executor(
+            self.pool, princ.commit)
+
+    async def force_pw_principal(self, name: str, **dbargs) -> None:
+        """Lock princ.
+
+        :param str name: upn
+        """
+        princ = await self._get_raw_principal(name)
+        princ.pwexpire = u'Now'
         await self.loop.run_in_executor(
             self.pool, princ.commit)
 
@@ -599,6 +617,19 @@ async def lock_princ(
     :param Annotated[str, Body name: principal name
     """
     await kadmin.lock_princ(name)
+
+
+@principal_router.post('/force_reset', response_class=Response)
+async def force_pw_reset_principal(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    name: Annotated[str, Body(embed=True)],
+) -> None:
+    """Mark princ as pw expired.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    """
+    await kadmin.force_pw_principal(name)
 
 
 @setup_router.get('/status')

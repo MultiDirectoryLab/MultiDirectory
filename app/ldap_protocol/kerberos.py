@@ -181,6 +181,9 @@ class AbstractKadmin(ABC):
     @abstractmethod
     async def lock_principal(self, name: str) -> None: ...  # noqa
 
+    @abstractmethod
+    async def force_princ_pw_change(self, name: str) -> None: ...  # noqa
+
 
 class KerberosMDAPIClient(AbstractKadmin):
     """KRB server integration."""
@@ -302,6 +305,18 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
+    async def force_princ_pw_change(self, name: str) -> None:
+        """Force mark password change for principal.
+
+        :param str name: pw
+        :raises KRBAPIError: err
+        """
+        response = await self.client.post(
+            'principal/force_reset', json={'name': name})
+
+        if response.status_code != 200:
+            raise KRBAPIError(response.text)
+
 
 class StubKadminMDADPIClient(AbstractKadmin):
     """Stub client for non set up dirs."""
@@ -357,6 +372,10 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps(is_stub=True)
     async def lock_principal(self, name: str) -> None:  # noqa
+        ...
+
+    @logger_wraps(is_stub=True)
+    async def force_princ_pw_change(self, name: str) -> None:  # noqa
         ...
 
 
