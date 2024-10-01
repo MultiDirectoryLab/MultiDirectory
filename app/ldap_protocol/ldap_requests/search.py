@@ -285,6 +285,10 @@ class SearchRequest(BaseRequest):
         return 'member' in self.requested_attrs or self.all_attrs
 
     @cached_property
+    def token_groups(self) -> bool:  # noqa
+        return 'tokengroups' in self.requested_attrs or self.all_attrs
+
+    @cached_property
     def all_attrs(self) -> bool:  # noqa
         return '*' in self.requested_attrs or not self.requested_attrs
 
@@ -410,6 +414,15 @@ class SearchRequest(BaseRequest):
                 if 'group' in obj_classes or 'user' in obj_classes:
                     for group in directory.groups:
                         attrs['memberOf'].append(group.directory.path_dn)
+
+            if self.token_groups:
+                if 'user' in obj_classes:
+                    attrs['tokenGroups'].append(
+                        string_to_sid(directory.object_sid))
+
+                    for group in directory.groups:
+                        attrs['tokenGroups'].append(
+                            string_to_sid(group.directory.object_sid))
 
             if self.member:
                 if 'group' in obj_classes and directory.group:
