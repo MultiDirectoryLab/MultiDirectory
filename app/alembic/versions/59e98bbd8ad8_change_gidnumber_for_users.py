@@ -23,8 +23,7 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    subquery = select(User.directory_id).where(
-        User.sam_accout_name != 'krbadmin').as_scalar()
+    subquery = select(User.directory_id).as_scalar()
     session.execute(
         update(Attribute)
         .values(value='513')
