@@ -339,15 +339,15 @@ class ModifyRequest(BaseRequest):
                     await unlock_principal(
                         directory.user.user_principal_name, session)
 
+            if name == "pwdlastset" and value == "0" and directory.user:
+                await kadmin.force_princ_pw_change(
+                    directory.user.get_upn_prefix())
+
             if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
                     .filter(Directory.id == directory.id)
                     .values({name: value}))
-
-            if name == "pwdlastset" and value == "0" and directory.user:
-                await kadmin.force_princ_pw_change(
-                    directory.user.get_upn_prefix())
 
             elif name in User.search_fields:
                 if not directory.user:

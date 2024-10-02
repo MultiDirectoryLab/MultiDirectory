@@ -9,6 +9,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.password_policy import post_save_password_actions
 from ldap_protocol.utils.queries import get_base_directories
 from models import User
 from security import get_password_hash
@@ -54,6 +55,7 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
 
         user.password = get_password_hash(password)
         user.password_history.append(password)
+        await post_save_password_actions(user, session)
         await session.commit()
 
         logger.info('synced for {}', upn)
