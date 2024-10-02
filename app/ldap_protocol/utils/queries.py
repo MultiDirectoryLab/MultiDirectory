@@ -287,6 +287,6 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
     :param int directory_id: id
     """
     return await session.scalar(select(select(Attribute).where(
-        func.lower(Attribute.name) == 'objectclass',
+        Attribute.name.ilike('objectclass'),
         Attribute.value == 'computer',
         Attribute.directory_id == directory_id).exists()))

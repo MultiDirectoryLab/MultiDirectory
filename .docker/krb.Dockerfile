@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.4-bookworm as builder
+FROM python:3.12.4-bookworm AS builder
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
@@ -13,7 +13,7 @@ RUN pip install \
     https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
 
 
-FROM python:3.12.4-slim-bookworm as runtime
+FROM python:3.12.4-slim-bookworm AS runtime
 # kerberos server configuration
 
 ENV LANG=C.UTF-8 \
@@ -36,8 +36,14 @@ RUN set -eux; \
     krb5-admin-server \
     wamerican \
     libsasl2-modules-gssapi-mit \
-    krb5-sync-plugin \
     --no-install-recommends -y
+
+RUN mkdir /plugins; \
+    apt download krb5-sync-plugin; \
+    dpkg-deb -x ./krb5-sync-plugin_*.deb krb5-sync; \
+    cp $(find krb5-sync -name "*.so") /plugins; \
+    rm -rf krb5-sync; \
+    test -f /plugins/sync.so
 
 RUN rm -rf /var/lib/krb5kdc/principal;\
     mkdir -pv /var/kerberos/krb5kdc/principal;\
