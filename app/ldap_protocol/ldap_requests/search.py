@@ -33,6 +33,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.utils.const import ATTRIBUTE_TYPES, OBJECT_CLASSES
+from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
     get_generalized_now,
@@ -420,9 +421,10 @@ class SearchRequest(BaseRequest):
                     attrs['tokenGroups'].append(
                         string_to_sid(directory.object_sid))
 
-                    for group in directory.groups:
+                    for directory_ in await get_all_parent_group_directories(
+                            directory.groups, session):
                         attrs['tokenGroups'].append(
-                            string_to_sid(group.directory.object_sid))
+                            string_to_sid(directory_.object_sid))
 
             if self.member:
                 if 'group' in obj_classes and directory.group:
