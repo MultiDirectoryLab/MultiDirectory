@@ -42,7 +42,8 @@ RUN mkdir /plugins; \
     apt download krb5-sync-plugin; \
     dpkg-deb -x ./krb5-sync-plugin_*.deb krb5-sync; \
     cp $(find krb5-sync -name "*.so") /plugins; \
-    rm -rf krb5-sync
+    rm -rf krb5-sync; \
+    test -f /plugins/sync.so
 
 RUN rm -rf /var/lib/krb5kdc/principal;\
     mkdir -pv /var/kerberos/krb5kdc/principal;\
