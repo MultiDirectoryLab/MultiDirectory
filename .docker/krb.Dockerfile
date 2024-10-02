@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.4-bookworm as builder
+FROM python:3.12.4-bookworm AS builder
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
@@ -13,7 +13,7 @@ RUN pip install \
     https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
 
 
-FROM python:3.12.4-slim-bookworm as runtime
+FROM python:3.12.4-slim-bookworm AS runtime
 # kerberos server configuration
 
 ENV LANG=C.UTF-8 \

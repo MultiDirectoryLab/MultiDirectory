@@ -203,6 +203,8 @@ services:
     build:
       context: .
       dockerfile: ./.docker/krb.Dockerfile
+      platforms:
+        - "linux/arm64"
     container_name: kdc
     hostname: kerberos
     restart: unless-stopped
