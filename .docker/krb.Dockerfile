@@ -36,8 +36,13 @@ RUN set -eux; \
     krb5-admin-server \
     wamerican \
     libsasl2-modules-gssapi-mit \
-    krb5-sync-plugin \
     --no-install-recommends -y
+
+RUN mkdir /plugins; \
+    apt download krb5-sync-plugin; \
+    dpkg-deb -x ./krb5-sync-plugin_*.deb krb5-sync; \
+    cp $(find krb5-sync -name "*.so") /plugins; \
+    rm -rf krb5-sync
 
 RUN rm -rf /var/lib/krb5kdc/principal;\
     mkdir -pv /var/kerberos/krb5kdc/principal;\
