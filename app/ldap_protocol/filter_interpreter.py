@@ -129,7 +129,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression:
         if attr in Directory.search_fields:
             return not_(eq(getattr(Directory, attr), None))
 
-        return func.lower(Attribute.name) == item.value.lower()
+        return Attribute.name.ilike(item.value.lower())
 
     left, right = item.value
     attr = left.value.lower().replace('objectcategory', 'objectclass')
@@ -147,12 +147,12 @@ def _cast_item(item: ASN1Row) -> UnaryExpression:
             cond = Attribute.value.ilike(_get_substring(right))
         else:
             if isinstance(right.value, str):
-                cond = func.lower(Attribute.value) == right.value.lower()
+                cond = Attribute.value.ilike(right.value)
             else:
-                cond = func.lower(Attribute.bvalue) == right.value
+                cond = Attribute.bvalue == right.value
 
         return Directory.attributes.any(
-            and_(func.lower(Attribute.name) == attr, cond))
+            and_(Attribute.name.ilike(attr), cond))
 
 
 def cast_filter2sql(expr: ASN1Row) -> UnaryExpression:
@@ -203,7 +203,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression:
         if item.attr in Directory.search_fields:
             return not_(eq(getattr(Directory, item.attr), None))
 
-        return func.lower(Attribute.name) == item.attr
+        return Attribute.name.ilike(item.attr)
 
     is_substring = item.val.startswith('*') or item.val.endswith('*')
 
@@ -217,10 +217,10 @@ def _cast_filt_item(item: Filter) -> UnaryExpression:
         if is_substring:
             cond = Attribute.value.ilike(item.val.replace('*', '%'))
         else:
-            cond = func.lower(Attribute.value) == item.val
+            cond = Attribute.value.ilike(item.val)
 
         return Directory.attributes.any(
-            and_(func.lower(Attribute.name) == item.attr, cond))
+            and_(Attribute.name.ilike(item.attr), cond))
 
 
 def cast_str_filter2sql(expr: Filter) -> UnaryExpression:
