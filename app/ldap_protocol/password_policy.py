@@ -11,13 +11,14 @@ from typing import Iterable, Self
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import exists, select, update
+from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.kerberos import AbstractKadmin
 from models import Attribute, PasswordPolicy, User
 from security import verify_password
 
+from .user_account_control import UserAccountControlFlag
 from .utils.helpers import ft_now, ft_to_dt
 
 with open('extra/common_pwds.txt') as f:
@@ -37,6 +38,20 @@ async def post_save_password_actions(
         .where(
             Attribute.directory_id == user.directory_id,
             Attribute.name == 'pwdLastSet'))
+
+    new_value = cast(
+        cast(Attribute.value, Integer)
+        .op('&')(~UserAccountControlFlag.PASSWORD_EXPIRED),
+        String,
+    )
+    await session.execute(
+        update(Attribute)
+        .values(value=new_value)
+        .where(
+            Attribute.directory_id == user.directory_id,
+            Attribute.name == 'userAccountControl')
+        .execution_options(synchronize_session=False))
+
     user.password_history.append(user.password)
     await session.flush()
 
