@@ -17,9 +17,9 @@ from sqlalchemy import exc
 from api import (
     access_policy_router,
     auth_router,
+    dns_router,
     entry_router,
     krb5_router,
-    dns_router,
     mfa_router,
     network_router,
     pwd_router,

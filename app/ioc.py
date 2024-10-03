@@ -18,7 +18,12 @@ from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.dns import DNSManager, get_dns_manager
+from ldap_protocol.dns import (
+    DNSManager,
+    DNSManagerSettings,
+    get_dns_manager,
+    get_dns_manager_settings,
+)
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
     LDAPMultiFactorAPI,
@@ -29,6 +34,7 @@ from ldap_protocol.multifactor import (
 )
 
 KadminHTTPClient = NewType('KadminHTTPClient', httpx.AsyncClient)
+DNSManagerHTTPClient = NewType('DNSManagerHTTPClient', httpx.AsyncClient)
 MFAHTTPClient = NewType('MFAHTTPClient', httpx.AsyncClient)
 
 
@@ -78,6 +84,13 @@ class MainProvider(Provider):
         async with session_maker() as session:
             return await get_kerberos_class(session)
 
+    @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
+    async def get_dns_mngr_settings(
+            self, session_maker: sessionmaker) -> dict:
+        """Get DNS manager's settings"""
+        async with session_maker() as session:
+            return await get_dns_manager_settings(session)
+
     @provide(scope=Scope.APP, provides=KadminHTTPClient)
     async def get_kadmin_http(
             self, settings: Settings) -> AsyncIterator[KadminHTTPClient]:
@@ -100,6 +113,16 @@ class MainProvider(Provider):
         ) as client:
             yield KadminHTTPClient(client)
 
+    @provide(scope=Scope.APP, provides=DNSManagerHTTPClient)
+    async def get_dns_manager_http(
+            self, settings: Settings) -> AsyncIterator[DNSManagerHTTPClient]:
+        """Get DNS manager HTTP client."""
+        async with httpx.AsyncClient(
+            timeout=30,
+            base_url=str(settings.DNS_SERVER_URL),
+        ) as client:
+            yield DNSManagerHTTPClient(client)
+
     @provide(scope=Scope.REQUEST, provides=AbstractKadmin)
     async def get_kadmin(
         self, client: KadminHTTPClient,
@@ -117,8 +140,15 @@ class MainProvider(Provider):
         logger.debug('Closed kadmin {}', kadmin_class)
 
     @provide(scope=scope.REQUEST, provides=DNSManager)
-    async def get_dns_mngr(self) -> AsyncIterator[DNSManager]:
-        yield await get_dns_manager()
+    async def get_dns_mngr(
+            self, http_client: DNSManagerHTTPClient,
+            settings: DNSManagerSettings,
+    ) -> AsyncIterator[DNSManager]:
+        """Get DNSManager class."""
+        yield await get_dns_manager(
+            http_client=http_client,
+            settings=settings
+        )
 
 
 class HTTPProvider(Provider):
