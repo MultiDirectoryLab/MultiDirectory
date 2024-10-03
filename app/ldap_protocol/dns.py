@@ -58,7 +58,6 @@ class DNSManagerState(StrEnum):
 class DNSManager:
     """DNS server manager."""
     settings: DNSManagerSettings
-    client: [functools.partial]
     http_client: httpx.AsyncClient
 
     def __init__(
@@ -68,17 +67,17 @@ class DNSManager:
     ) -> None:
         """Set up DNS manager."""
         self._settings = settings
-        self.client = functools.partial(
-            dns.asyncquery.tcp, where=settings.dns_server_ip,
-        )
         self.http_client = http_client
+
+    async def _send(self, action: dns.message.Message):
+        await dns.asyncquery.tcp(action, where=self._settings.dns_server_ip)
 
     async def create_record(self, hostname, ip, record_type, ttl):
         """Create DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
 
-        await self.client(action)
+        await self._send(action)
 
     async def get_all_records(self) -> list:
         """Get all DNS records."""
@@ -122,14 +121,14 @@ class DNSManager:
         action = dns.update.Update(self._settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
-        await self.client(action)
+        await self._send(action)
 
     async def delete_record(self, hostname, ip, record_type):
         """Delete DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.delete(hostname, record_type, ip)
 
-        await self.client(action)
+        await self._send(action)
 
     async def setup(
             self,
@@ -215,7 +214,7 @@ async def get_dns_manager_settings(session: AsyncSession) -> dict:
     for setting in await session.scalars(
             select(CatalogueSetting)
             .filter(or_(
-                [
+                *[
                     CatalogueSetting.name == DNS_MANAGER_ZONE_NAME,
                     CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME,
                     CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME,
