@@ -35,7 +35,7 @@ class UserAccountControlFlag(IntFlag):
     # -- 0x100000(1048576) reserved --
     # -- 0x200000(2097152) reserved --
     # -- 0x400000(4194304) reserved --
-    # -- 0x800000(8388608) reserved --
+    PASSWORD_EXPIRED=0x800000(8388608)
     # -- 0x1000000(16777216) reserved --
     # -- 0x4000000(67108864) reserved --
     """
@@ -43,6 +43,7 @@ class UserAccountControlFlag(IntFlag):
     ACCOUNTDISABLE = 0x2
     NORMAL_ACCOUNT = 0x200
     WORKSTATION_TRUST_ACCOUNT = 0x1000
+    PASSWORD_EXPIRED = 0x800000
 
 
 async def get_check_uac(
