@@ -53,8 +53,70 @@ async def test_first_setup_and_oauth(unbound_http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-async def test_update_password(
-        http_client: AsyncClient) -> None:
+async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
+    """Update password and check userAccountControl attr."""
+    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": user_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["8389120"],  # normal and paswd expire
+                    },
+                },
+            ],
+        },
+    )
+
+    assert response.json().get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.patch(
+        "auth/user/password",
+        json={
+            "identity": user_dn,
+            "new_password": "Password123",
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() is None
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": user_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.SUCCESS
+    assert data['search_result'][0]['object_name'] == user_dn
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'userAccountControl':
+            assert attr['vals'][0] == '512'
+            break
+    else:
+        raise Exception('UserAccountControl not found')
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('session')
+async def test_update_password(http_client: AsyncClient) -> None:
     """Update policy."""
     response = await http_client.patch(
         "auth/user/password",
@@ -74,7 +136,7 @@ async def test_update_password(
             "password": "password",
         },
     )
-    assert new_auth.status_code == 401
+    assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
     new_auth = await http_client.post(
         "auth/token/get",
@@ -83,7 +145,7 @@ async def test_update_password(
             "password": "Password123",
         },
     )
-    assert new_auth.status_code == 200
+    assert new_auth.status_code == status.HTTP_200_OK
     token = new_auth.cookies.get('access_token')
     assert token
     assert 'bearer' in token.lower()
