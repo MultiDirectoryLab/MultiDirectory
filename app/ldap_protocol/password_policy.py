@@ -35,9 +35,9 @@ async def post_save_password_actions(
     await session.execute(  # update bind reject attribute
         update(Attribute)
         .values({'value': ft_now()})
-        .where(
-            Attribute.directory_id == user.directory_id,
-            Attribute.name == 'pwdLastSet'))
+        .filter_by(
+            directory_id=user.directory_id,
+            name='pwdLastSet'))
 
     new_value = cast(
         cast(Attribute.value, Integer)
