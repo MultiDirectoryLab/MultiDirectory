@@ -35,9 +35,7 @@ async def post_save_password_actions(
     await session.execute(  # update bind reject attribute
         update(Attribute)
         .values({'value': ft_now()})
-        .filter_by(
-            directory_id=user.directory_id,
-            name='pwdLastSet'))
+        .filter_by(directory_id=user.directory_id, name='pwdLastSet'))
 
     new_value = cast(
         cast(Attribute.value, Integer)
@@ -47,9 +45,7 @@ async def post_save_password_actions(
     await session.execute(
         update(Attribute)
         .values(value=new_value)
-        .filter_by(
-            directory_id=user.directory_id,
-            name='userAccountControl'))
+        .filter_by(directory_id=user.directory_id, name='userAccountControl'))
 
     user.password_history.append(user.password)
     await session.flush()
