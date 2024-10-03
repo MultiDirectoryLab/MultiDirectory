@@ -47,10 +47,9 @@ async def post_save_password_actions(
     await session.execute(
         update(Attribute)
         .values(value=new_value)
-        .where(
-            Attribute.directory_id == user.directory_id,
-            Attribute.name == 'userAccountControl')
-        .execution_options(synchronize_session=False))
+        .filter_by(
+            directory_id=user.directory_id,
+            name='userAccountControl'))
 
     user.password_history.append(user.password)
     await session.flush()
