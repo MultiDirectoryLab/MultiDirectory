@@ -21,7 +21,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     DNSManager,
     DNSManagerSettings,
-    get_dns_manager_settings, AbstractDNSManager, get_DNS_manager_class,
+    get_dns_manager_settings, AbstractDNSManager, get_dns_manager_class,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
@@ -88,7 +88,7 @@ class MainProvider(Provider):
             self, session_maker: sessionmaker,
     ) -> type[AbstractDNSManager]:
         async with session_maker() as session:
-            return await get_DNS_manager_class(session)
+            return await get_dns_manager_class(session)
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
     async def get_dns_mngr_settings(

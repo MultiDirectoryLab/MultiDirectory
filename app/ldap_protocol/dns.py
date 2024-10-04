@@ -319,7 +319,7 @@ async def get_dns_manager_settings(session: AsyncSession) -> 'DNSManagerSettings
     return settings
 
 
-async def get_DNS_manager_class(
+async def get_dns_manager_class(
         session: AsyncSession,
 ) -> type[AbstractDNSManager]:
     """Get DNS manager class."""
