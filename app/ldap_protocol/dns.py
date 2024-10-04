@@ -119,17 +119,54 @@ class AbstractDNSManager(ABC):
         """Set up DNS manager."""
         self._settings = settings
 
-    @abstractmethod
     async def setup(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        domain: str,
-        dns_ip_address: str | None,
-        zone_file: str | None,
-        tsig_key: str | None,
-        named_conf_local_part: str | None,
-    ) -> None: ...
+            self,
+            session: AsyncSession,
+            settings: Settings,
+            domain: str,
+            dns_ip_address: str | None,
+            zone_file: str | None,
+            tsig_key: str | None,
+            named_conf_local_part: str | None,
+    ) -> None:
+        """Set up DNS server and DNS manager."""
+        async with open(settings.DNS_ZONE_FILE_DIR, "w") as f:
+            await f.write(zone_file)
+
+        async with open(
+                os.path.join(
+                    settings.DNS_SERVER_CONFIGS,
+                    "named.conf.local"
+                ),
+                "a",
+        ) as f:
+            await f.write(named_conf_local_part)
+
+        async with open(
+                os.path.join(
+                    settings.DNS_SERVER_CONFIGS,
+                    "named.conf"
+                ),
+                "a",
+        ) as f:
+            await f.write("\ninclude \"/opt/zone.key\"")
+
+        session.add_all(
+            [
+                CatalogueSetting(
+                    name=DNS_MANAGER_IP_ADDRESS_NAME,
+                    value=dns_ip_address,
+                ),
+                CatalogueSetting(
+                    name=DNS_MANAGER_ZONE_NAME,
+                    value=domain,
+                ),
+                CatalogueSetting(
+                    name=DNS_MANAGER_TSIG_KEY_NAME,
+                    value=tsig_key,
+                ),
+            ],
+        )
 
     @abstractmethod
     async def create_record( # noqa
@@ -157,6 +194,7 @@ class DNSManager(AbstractDNSManager):
     """DNS server manager."""
 
     async def _send(self, action: dns.message.Message):
+        """Send request to DNS server."""
         await dns.asyncquery.tcp(action, where=self._settings.dns_server_ip)
 
     async def create_record(
@@ -167,15 +205,26 @@ class DNSManager(AbstractDNSManager):
         action = dns.update.Update(self._settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
 
+        if self._settings.tsig_key is not None:
+            action.use_tsig(keyring=self._settings.tsig_key, keyname="zone")
+
         await self._send(action)
 
     async def get_all_records(self) -> list:
         """Get all DNS records."""
-        zone = dns.zone.from_xfr(
-            dns.query.xfr(
+        if self._settings.tsig_key is not None:
+            zone_xfr_response = dns.query.xfr(
+                self._settings.dns_server_ip,
+                self._settings.domain,
+                keyring=self._settings.tsig_key,
+                keyalgorithm=dns.tsig.default_algorithm
+            )
+        else:
+            zone_xfr_response = dns.query.xfr(
                 self._settings.dns_server_ip, self._settings.domain,
-            ),
-        )
+            )
+
+        zone = dns.zone.from_xfr(zone_xfr_response)
 
         result = {}
         for name, ttl, rdata in zone.iterate_rdatas():
@@ -212,6 +261,9 @@ class DNSManager(AbstractDNSManager):
         action = dns.update.Update(self._settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
+        if self._settings.tsig_key is not None:
+            action.use_tsig(keyring=self._settings.tsig_key, keyname="zone")
+
         await self._send(action)
 
     async def delete_record(
@@ -222,56 +274,10 @@ class DNSManager(AbstractDNSManager):
         action = dns.update.Update(self._settings.zone_name)
         action.delete(hostname, record_type, ip)
 
+        if self._settings.tsig_key is not None:
+            action.use_tsig(keyring=self._settings.tsig_key, keyname="zone")
+
         await self._send(action)
-
-    async def setup(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        domain: str,
-        dns_ip_address: str | None,
-        zone_file: str | None,
-        tsig_key: str | None,
-        named_conf_local_part: str | None,
-    ) -> None:
-        """Set up DNS server and DNS manager."""
-        async with open(settings.DNS_ZONE_FILE_DIR, "w") as f:
-            await f.write(zone_file)
-
-        async with open(
-            os.path.join(
-                settings.DNS_SERVER_CONFIGS,
-                "named.conf.local"
-            ),
-            "a",
-        ) as f:
-            await f.write(named_conf_local_part)
-
-        async with open(
-            os.path.join(
-                settings.DNS_SERVER_CONFIGS,
-                "named.conf"
-            ),
-            "a",
-        ) as f:
-            await f.write("\ninclude \"/opt/zone.key\"")
-
-        session.add_all(
-            [
-                CatalogueSetting(
-                    name=DNS_MANAGER_IP_ADDRESS_NAME,
-                    value=dns_ip_address,
-                ),
-                CatalogueSetting(
-                    name=DNS_MANAGER_ZONE_NAME,
-                    value=domain,
-                ),
-                CatalogueSetting(
-                    name=DNS_MANAGER_TSIG_KEY_NAME,
-                    value=tsig_key,
-                ),
-            ],
-        )
 
 
 class StubDNSManager(AbstractDNSManager):
