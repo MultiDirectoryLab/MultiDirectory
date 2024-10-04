@@ -185,8 +185,7 @@ class AddRequest(BaseRequest):
                         "userpassword", 'unicodepwd'):
                     continue
 
-                if attr.type in user_fields or \
-                        attr.type == 'userAccountControl':
+                if attr.type in user_fields or lname == 'useraccountcontrol':
                     user_attributes[attr.type] = value
 
                 elif attr.type == 'memberOf':
@@ -233,10 +232,7 @@ class AddRequest(BaseRequest):
 
             uac_value: str = user_attributes.get('userAccountControl', '0')
 
-            if any([
-                not uac_value.isdigit(),
-                not UserAccountControlFlag.is_value_valid(uac_value),
-            ]):
+            if not UserAccountControlFlag.is_value_valid(uac_value):
                 uac_value = str(UserAccountControlFlag.NORMAL_ACCOUNT)
 
             attributes.append(Attribute(

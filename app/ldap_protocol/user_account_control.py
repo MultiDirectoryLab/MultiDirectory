@@ -75,8 +75,12 @@ class UserAccountControlFlag(IntFlag):
         :param int uac_value: userAccountControl attribute value
         :return: True if the value is valid (only known flags), False otherwise
         """
-        if isinstance(uac_value, str):
+        if isinstance(uac_value, int):
+            pass
+        elif isinstance(uac_value, str) and uac_value.isdigit():
             uac_value = int(uac_value)
+        else:
+            return False
 
         return False if uac_value & ~sum(flag.value for flag in cls) else True
 
