@@ -139,12 +139,12 @@ class MainProvider(Provider):
         yield kadmin_class(client)
         logger.debug('Closed kadmin {}', kadmin_class)
 
-    @provide(scope=scope.REQUEST, provides=DNSManager)
+    @provide(scope=scope.REQUEST, provides=AbstractDNSManager)
     async def get_dns_mngr(
         self,
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
-    ) -> AsyncIterator[DNSManager]:
+    ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class."""
         yield dns_manager_class(
             settings=settings,

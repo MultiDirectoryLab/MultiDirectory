@@ -14,8 +14,8 @@ from starlette import status
 
 from config import Settings
 from ldap_protocol.dns import (
+    AbstractDNSManager,
     DNSAPIError,
-    DNSManager,
     DNSManagerSettings,
     DNSManagerState,
     get_dns_state,
@@ -31,8 +31,8 @@ async def create_record(
     hostname: Annotated[str, Body()],
     ip: Annotated[str, Body()],
     record_type: Annotated[str, Body()],
-    ttl: Annotated[str, Body()],
-    dns_manager: FromDishka[DNSManager],
+    ttl: Annotated[int, Body()],
+    dns_manager: FromDishka[AbstractDNSManager],
 ):
     """Create DNS record with given params."""
     try:
@@ -47,7 +47,7 @@ async def delete_single_record(
     hostname: Annotated[str, Body()],
     ip: Annotated[str, Body()],
     record_type: Annotated[str, Body()],
-    dns_manager: FromDishka[DNSManager],
+    dns_manager: FromDishka[AbstractDNSManager],
 ):
     """Delete DNS record with given params."""
     try:
@@ -62,8 +62,8 @@ async def update_record(
     hostname: Annotated[str, Body()],
     ip: Annotated[str, Body()],
     record_type: Annotated[str, Body()],
-    ttl: Annotated[str, Body()],
-    dns_manager: FromDishka[DNSManager],
+    ttl: Annotated[int, Body()],
+    dns_manager: FromDishka[AbstractDNSManager],
 ):
     """Update DNS record with given params."""
     try:
@@ -74,7 +74,9 @@ async def update_record(
 
 @dns_router.get('/record')
 @inject
-async def get_all_records(dns_manager: FromDishka[DNSManager]):
+async def get_all_records(
+        dns_manager: FromDishka[AbstractDNSManager],
+) -> list:
     """Get all DNS records of current zone."""
     try:
         return await dns_manager.get_all_records()
@@ -103,7 +105,7 @@ async def setup_dns(
     domain: Annotated[str, Body()],
     dns_ip_address: Annotated[str | None, Body()],
     tsig_key: Annotated[str | None, Body()],
-    dns_manager: FromDishka[DNSManager],
+    dns_manager: FromDishka[AbstractDNSManager],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
 ):
