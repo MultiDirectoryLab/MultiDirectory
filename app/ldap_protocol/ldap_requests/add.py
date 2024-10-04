@@ -176,7 +176,7 @@ class AddRequest(BaseRequest):
         parent_groups: list[Group] = []
         user_attributes = {}
         group_attributes: list[str] = []
-        user_fields = User.search_fields.values()
+        user_fields = User.search_fields.keys()
 
         for attr in self.attributes:
             lname = attr.type.lower()
@@ -185,7 +185,7 @@ class AddRequest(BaseRequest):
                         "userpassword", 'unicodepwd'):
                     continue
 
-                if attr.type in user_fields or lname == 'useraccountcontrol':
+                if lname in user_fields or lname == 'useraccountcontrol':
                     user_attributes[attr.type] = value
 
                 elif attr.type == 'memberOf':
