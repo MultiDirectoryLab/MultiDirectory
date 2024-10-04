@@ -9,6 +9,7 @@ from functools import cached_property
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+import jinja2
 from pydantic import (
     Field,
     HttpUrl,
@@ -88,6 +89,11 @@ class Settings(BaseSettings):
     KRB5_CONFIG_SERVER: HttpUrl = 'https://kadmin_api:8000'  # type: ignore
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
+
+    TEMPLATES = jinja2.Environment(
+        loader=jinja2.FileSystemLoader('extra'),
+        enable_async=True, autoescape=True
+    )
 
     @field_validator('TIMEZONE', mode='before')
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805

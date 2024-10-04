@@ -13,6 +13,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from config import Settings
 from ldap_protocol.dns import (
     DNSAPIError,
     DNSManager,
@@ -23,10 +24,6 @@ from ldap_protocol.dns import (
 )
 
 dns_router = APIRouter(prefix='/dns', tags=['DNS_SERVICE'])
-
-TEMPLATES = jinja2.Environment(
-    loader=jinja2.FileSystemLoader('extra'),
-    enable_async=True, autoescape=True)
 
 
 @dns_router.post('/record')
@@ -109,7 +106,8 @@ async def setup_dns(
     tsig_key: Annotated[str | None, Body()],
     dns_manager: FromDishka[DNSManager],
     session: FromDishka[AsyncSession],
-) -> None:
+    settings: FromDishka[Settings],
+):
     """Set up DNS service.
 
     Create zone file, get TSIG key, reload DNS server if selfhosted.
@@ -117,7 +115,7 @@ async def setup_dns(
     zone_file = None
     state = DNSManagerState.HOSTED
     if tsig_key is None:
-        zone_file_template = TEMPLATES.get_template("zone.template")
+        zone_file_template = settings.TEMPLATES.get_template("zone.template")
         zone_file = await zone_file_template.render_async(domain=domain)
         state = DNSManagerState.SELFHOSTED
 
