@@ -3,5 +3,5 @@ zone "{{ domain }}" {
     file "/opt/db.zone";
     notify no;
     allow-query { any; };
-    allow-update { key zone ; };
+    allow-update { key zone. ; };
 };
