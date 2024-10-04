@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from sqlalchemy import or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.sql.selectable import CTE
 
 from models.ldap3 import Directory, DirectoryMembership, Group
@@ -96,7 +96,7 @@ def find_members_recursive_cte(dn: str) -> CTE:
     return directory_hierarchy.union_all(recursive_part)
 
 
-def find_root_group_recursive_cte(dn: str) -> CTE:
+def find_root_group_recursive_cte(dn_list: list) -> CTE:
     """Create CTE to filter directory root group.
 
     The query translates to the following SQL:
@@ -134,7 +134,7 @@ def find_root_group_recursive_cte(dn: str) -> CTE:
                 Group.id.label('group_id')])
         .select_from(Directory)
         .join(Directory.group, isouter=True)
-        .where(get_filter_from_path(dn))
+        .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
         select([
@@ -165,7 +165,7 @@ async def get_members_root_group(
     result will be as follows: group1, user1, user2, group2, user3, group3,
     user4.
     """
-    cte = find_root_group_recursive_cte(dn)
+    cte = find_root_group_recursive_cte([dn])
     result = await session.scalars(select(cte.c.directory_id))
     group_ids = result.all()
 
@@ -189,3 +189,29 @@ async def get_members_root_group(
               for directory_id in directories_ids])))
 
     return result.all()
+
+
+async def get_all_parent_group_directories(
+    groups: list[Group],
+    session: AsyncSession,
+) -> AsyncScalarResult | None:
+    """Get all parent groups directory.
+
+    :param list[Group] groups: directory groups
+    :param AsyncSession session: session
+    :return set[Directory]: all groups and their parent group directories
+    """
+    dn_list = [group.directory.path_dn for group in groups]
+
+    if not dn_list:
+        return None
+
+    cte = find_root_group_recursive_cte(dn_list)
+    result = await session.scalars(select(cte.c.directory_id).distinct())
+    directories_ids = result.all()
+
+    if not directories_ids:
+        return None
+
+    return await session.stream_scalars(
+        select(Directory).where(Directory.id.in_(directories_ids)))
