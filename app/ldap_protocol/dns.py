@@ -130,26 +130,27 @@ class AbstractDNSManager(ABC):
             named_conf_local_part: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        async with open(settings.DNS_ZONE_FILE_DIR, "w") as f:
-            await f.write(zone_file)
+        if zone_file is not None:
+            async with open(settings.DNS_ZONE_FILE, "w") as f:
+                await f.write(zone_file)
 
-        async with open(
-                os.path.join(
-                    settings.DNS_SERVER_CONFIGS,
-                    "named.conf.local"
-                ),
-                "a",
-        ) as f:
-            await f.write(named_conf_local_part)
+            async with open(
+                    os.path.join(
+                        settings.DNS_SERVER_CONFIGS,
+                        "named.conf.local"
+                    ),
+                    "a",
+            ) as f:
+                await f.write(named_conf_local_part)
 
-        async with open(
-                os.path.join(
-                    settings.DNS_SERVER_CONFIGS,
-                    "named.conf"
-                ),
-                "a",
-        ) as f:
-            await f.write("\ninclude \"/opt/zone.key\"")
+            async with open(
+                    os.path.join(
+                        settings.DNS_SERVER_CONFIGS,
+                        "named.conf"
+                    ),
+                    "a",
+            ) as f:
+                await f.write("\ninclude \"/opt/zone.key\"")
 
         session.add_all(
             [
