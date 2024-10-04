@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from typing import Annotated
 
-import jinja2
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import Body, HTTPException
@@ -94,7 +93,7 @@ async def get_dns_status(
     return {
         "dns_status": state,
         "zone_name": settings.zone_name,
-        "dns_server_ip": settings.dns_server_ip
+        "dns_server_ip": settings.dns_server_ip,
     }
 
 

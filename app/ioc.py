@@ -19,9 +19,11 @@ from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
+    AbstractDNSManager,
     DNSManager,
     DNSManagerSettings,
-    get_dns_manager_settings, AbstractDNSManager, get_dns_manager_class,
+    get_dns_manager_class,
+    get_dns_manager_settings,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
@@ -85,15 +87,17 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_dns_mngr_class(
-            self, session_maker: sessionmaker,
+        self, session_maker: sessionmaker,
     ) -> type[AbstractDNSManager]:
+        """Get DNS manager type."""
         async with session_maker() as session:
             return await get_dns_manager_class(session)
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
     async def get_dns_mngr_settings(
-            self, session_maker: sessionmaker) -> 'DNSManagerSettings':
-        """Get DNS manager's settings"""
+        self, session_maker: sessionmaker,
+    ) -> 'DNSManagerSettings':
+        """Get DNS manager's settings."""
         async with session_maker() as session:
             return await get_dns_manager_settings(session)
 
@@ -137,13 +141,13 @@ class MainProvider(Provider):
 
     @provide(scope=scope.REQUEST, provides=DNSManager)
     async def get_dns_mngr(
-            self,
-            settings: DNSManagerSettings,
-            dns_manager_class: type[AbstractDNSManager]
+        self,
+        settings: DNSManagerSettings,
+        dns_manager_class: type[AbstractDNSManager],
     ) -> AsyncIterator[DNSManager]:
         """Get DNSManager class."""
         yield dns_manager_class(
-            settings=settings
+            settings=settings,
         )
 
 
