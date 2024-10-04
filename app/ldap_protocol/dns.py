@@ -196,6 +196,12 @@ class DNSManager(AbstractDNSManager):
 
     async def _send(self, action: dns.message.Message):
         """Send request to DNS server."""
+        if self._settings.tsig_key is not None:
+            action.use_tsig(
+                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
+                keyname="zone",
+            )
+
         await dns.asyncquery.tcp(action, where=self._settings.dns_server_ip)
 
     async def create_record(
@@ -205,12 +211,6 @@ class DNSManager(AbstractDNSManager):
         """Create DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
-
-        if self._settings.tsig_key is not None:
-            action.use_tsig(
-                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
-                keyname="zone"
-            )
 
         await self._send(action)
 
@@ -268,12 +268,6 @@ class DNSManager(AbstractDNSManager):
         action = dns.update.Update(self._settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
-        if self._settings.tsig_key is not None:
-            action.use_tsig(
-                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
-                keyname="zone"
-            )
-
         await self._send(action)
 
     async def delete_record(
@@ -283,12 +277,6 @@ class DNSManager(AbstractDNSManager):
         """Delete DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.delete(hostname, record_type, ip)
-
-        if self._settings.tsig_key is not None:
-            action.use_tsig(
-                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
-                keyname="zone"
-            )
 
         await self._send(action)
 
