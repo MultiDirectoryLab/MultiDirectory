@@ -86,7 +86,7 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
     async def get_dns_mngr_settings(
-            self, session_maker: sessionmaker) -> dict:
+            self, session_maker: sessionmaker) -> 'DNSManagerSettings':
         """Get DNS manager's settings"""
         async with session_maker() as session:
             return await get_dns_manager_settings(session)

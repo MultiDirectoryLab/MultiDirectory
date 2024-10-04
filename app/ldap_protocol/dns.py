@@ -35,15 +35,20 @@ class DNSRecordType(str, Enum):
 
 class DNSManagerSettings:
     """DNS Manager settings."""
-    zone_name: str
-    domain: str
-    dns_server_ip: str
-    tsig_key: str
+    zone_name: str | None
+    domain: str | None
+    dns_server_ip: str | None
+    tsig_key: str | None
 
-    def __init__(self, zone_name: str, dns_server_ip: str, tsig_key: str):
+    def __init__(
+            self,
+            zone_name: str | None,
+            dns_server_ip: str | None,
+            tsig_key: str | None,
+    ) -> None:
         """Set settings."""
         self.zone_name = zone_name
-        self.domain = zone_name + "."
+        self.domain = zone_name + "." if zone_name is not None else None
         self.dns_server_ip = dns_server_ip
         self.tsig_key = tsig_key
 
@@ -208,9 +213,9 @@ async def set_dns_manager_state(
     )
 
 
-async def get_dns_manager_settings(session: AsyncSession) -> dict:
+async def get_dns_manager_settings(session: AsyncSession) -> 'DNSManagerSettings':
     """Get DNS manager's settings."""
-    settings = dict()
+    settings_dict = dict()
     for setting in await session.scalars(
             select(CatalogueSetting)
             .filter(or_(
@@ -221,7 +226,13 @@ async def get_dns_manager_settings(session: AsyncSession) -> dict:
                 ]
             ))
     ):
-        settings[setting.name] = setting.value
+        settings_dict[setting.name] = setting.value
+
+    settings = DNSManagerSettings(
+        zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
+        dns_server_ip=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
+        tsig_key=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
+    )
 
     return settings
 
