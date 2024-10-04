@@ -359,8 +359,8 @@ async def get_dns_manager_settings(
 
     return DNSManagerSettings(
         zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
-        dns_server_ip=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
-        tsig_key=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
+        dns_server_ip=settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None),
+        tsig_key=settings_dict.get(DNS_MANAGER_TSIG_KEY_NAME, None),
     )
 
 
