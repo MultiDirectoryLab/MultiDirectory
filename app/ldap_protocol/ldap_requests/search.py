@@ -287,7 +287,7 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def token_groups(self) -> bool:  # noqa
-        return 'tokengroups' in self.requested_attrs or self.all_attrs
+        return 'tokengroups' in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:  # noqa
