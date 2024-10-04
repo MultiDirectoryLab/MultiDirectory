@@ -131,26 +131,26 @@ class AbstractDNSManager(ABC):
     ) -> None:
         """Set up DNS server and DNS manager."""
         if zone_file is not None:
-            async with open(settings.DNS_ZONE_FILE, "w") as f:
-                await f.write(zone_file)
+            with open(settings.DNS_ZONE_FILE, "w") as f:
+                f.write(zone_file)
 
-            async with open(
-                    os.path.join(
-                        settings.DNS_SERVER_CONFIGS,
-                        "named.conf.local"
-                    ),
-                    "a",
+            with open(
+                os.path.join(
+                    settings.DNS_SERVER_CONFIGS,
+                    "named.conf.local"
+                ),
+                "a",
             ) as f:
-                await f.write(named_conf_local_part)
+                f.write(named_conf_local_part)
 
-            async with open(
-                    os.path.join(
-                        settings.DNS_SERVER_CONFIGS,
-                        "named.conf"
-                    ),
-                    "a",
+            with open(
+                os.path.join(
+                    settings.DNS_SERVER_CONFIGS,
+                    "named.conf"
+                ),
+                "a",
             ) as f:
-                await f.write("\ninclude \"/opt/zone.key\"")
+                f.write("\ninclude \"/opt/zone.key\"")
 
         session.add_all(
             [
@@ -217,7 +217,10 @@ class DNSManager(AbstractDNSManager):
             zone_xfr_response = dns.query.xfr(
                 self._settings.dns_server_ip,
                 self._settings.domain,
-                keyring=self._settings.tsig_key,
+                keyring={
+                    dns.name.from_text("zone"):
+                        dns.tsig.Key("zone", self._settings.tsig_key)
+                },
                 keyalgorithm=dns.tsig.default_algorithm
             )
         else:

@@ -123,15 +123,15 @@ async def setup_dns(
         zone_file_template = settings.TEMPLATES.get_template("zone.template")
         zone_file = await zone_file_template.render_async(domain=domain)
 
-        async with open(settings.DNS_TSIG_KEY_DIR, "rb") as f:
-            key_file_content = await f.read()
+        with open(settings.DNS_TSIG_KEY, "r") as f:
+            key_file_content = f.read()
 
         tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
 
         named_conf_local_part_template = settings.TEMPLATES.get_template(
             "named_conf_local_zone_part.template",
         )
-        named_conf_local_part = named_conf_local_part_template.render_async(
+        named_conf_local_part = await named_conf_local_part_template.render_async(
             domain=domain,
         )
 
