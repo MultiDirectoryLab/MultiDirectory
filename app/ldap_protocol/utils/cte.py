@@ -96,7 +96,7 @@ def find_members_recursive_cte(dn: str) -> CTE:
     return directory_hierarchy.union_all(recursive_part)
 
 
-def find_root_group_recursive_cte(dn: str) -> CTE:
+def find_root_group_recursive_cte(dn_list: list) -> CTE:
     """Create CTE to filter directory root group.
 
     The query translates to the following SQL:
@@ -134,7 +134,7 @@ def find_root_group_recursive_cte(dn: str) -> CTE:
                 Group.id.label('group_id')])
         .select_from(Directory)
         .join(Directory.group, isouter=True)
-        .where(get_filter_from_path(dn))
+        .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
         select([
@@ -165,7 +165,7 @@ async def get_members_root_group(
     result will be as follows: group1, user1, user2, group2, user3, group3,
     user4.
     """
-    cte = find_root_group_recursive_cte(dn)
+    cte = find_root_group_recursive_cte([dn])
     result = await session.scalars(select(cte.c.directory_id))
     group_ids = result.all()
 
@@ -201,15 +201,17 @@ async def get_all_parent_group_directories(
     :param AsyncSession session: session
     :return set[Directory]: all groups and their parent group directories
     """
-    directories_ids = []
+    dn_list = [group.directory.path_dn for group in groups]
 
-    for group in groups:
-        cte = find_root_group_recursive_cte(group.directory.path_dn)
-        result = await session.scalars(select(cte.c.directory_id))
-        directories_ids.extend(result.all())
+    if not dn_list:
+        return []
+
+    cte = find_root_group_recursive_cte(dn_list)
+    result = await session.scalars(select(cte.c.directory_id))
+    directories_ids = result.all()
 
     if directories_ids:
         return await session.stream_scalars(
             select(Directory).where(Directory.id.in_(directories_ids)))
 
-    return directories_ids
+    return []
