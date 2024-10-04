@@ -207,7 +207,10 @@ class DNSManager(AbstractDNSManager):
         action.add(hostname, ttl, record_type, ip)
 
         if self._settings.tsig_key is not None:
-            action.use_tsig(keyring=self._settings.tsig_key, keyname="zone")
+            action.use_tsig(
+                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
+                keyname="zone"
+            )
 
         await self._send(action)
 
@@ -266,7 +269,10 @@ class DNSManager(AbstractDNSManager):
         action.replace(hostname, ttl, record_type, ip)
 
         if self._settings.tsig_key is not None:
-            action.use_tsig(keyring=self._settings.tsig_key, keyname="zone")
+            action.use_tsig(
+                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
+                keyname="zone"
+            )
 
         await self._send(action)
 
@@ -279,7 +285,10 @@ class DNSManager(AbstractDNSManager):
         action.delete(hostname, record_type, ip)
 
         if self._settings.tsig_key is not None:
-            action.use_tsig(keyring=self._settings.tsig_key, keyname="zone")
+            action.use_tsig(
+                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
+                keyname="zone"
+            )
 
         await self._send(action)
 
