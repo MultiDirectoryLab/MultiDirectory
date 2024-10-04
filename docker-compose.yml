@@ -38,6 +38,8 @@ services:
     volumes:
       - ./app:/app
       - ./certs:/certs
+      - dns_server_file:/DNS_SERVER_FILE/
+      - dns_server_config:/DNS_SERVER_CONFIGS/
     env_file:
       local.env
     command: python -OO . --loop uvloop
@@ -83,6 +85,8 @@ services:
     volumes:
       - ./app:/app
       - ./certs:/certs
+      - dns_server_file:/DNS_SERVER_FILE/
+      - dns_server_config:/DNS_SERVER_CONFIGS/
     env_file:
       local.env
     command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --reload --loop uvloop
@@ -199,6 +203,22 @@ services:
              --ssl-certfile=/certs/krbcert.pem
              --reload
 
+  bind_dns:
+    build:
+      context: .
+      dockerfile: ./.docker/bind_dns.Dockerfile
+    container_name: bind9
+    hostname: bind9
+    restart: unless-stopped
+    volumes:
+      - dns_server_file:/opt/
+      - dns_server_config:/etc/bind/
+    tty: true
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+        restart: true
+
   kdc:
     build:
       context: .
@@ -296,3 +316,9 @@ volumes:
   keyfile:
   kdc:
   psync_queue:
+  dns_server_file:
+  dns_server_config:
+
+networks:
+  dns-network:
+    driver

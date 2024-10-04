@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import functools
+import os
 from abc import ABC, abstractmethod
 from enum import Enum, StrEnum
 from typing import Any, Callable
@@ -15,6 +16,7 @@ from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from models import CatalogueSetting
 
 DNS_MANAGER_STATE_NAME = "DNSManagerState"
@@ -110,14 +112,24 @@ class DNSManagerState(StrEnum):
 class AbstractDNSManager(ABC):
     """Abstract DNS manager class."""
 
-    _settings: DNSManagerSettings
-
     def __init__(
         self,
         settings: DNSManagerSettings,
     ) -> None:
         """Set up DNS manager."""
         self._settings = settings
+
+    @abstractmethod
+    async def setup(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        domain: str,
+        dns_ip_address: str | None,
+        zone_file: str | None,
+        tsig_key: str | None,
+        named_conf_local_part: str | None,
+    ) -> None: ...
 
     @abstractmethod
     async def create_record( # noqa
@@ -215,14 +227,34 @@ class DNSManager(AbstractDNSManager):
     async def setup(
         self,
         session: AsyncSession,
+        settings: Settings,
         domain: str,
         dns_ip_address: str | None,
         zone_file: str | None,
         tsig_key: str | None,
+        named_conf_local_part: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        if tsig_key is None:
-            pass
+        async with open(settings.DNS_ZONE_FILE_DIR, "w") as f:
+            await f.write(zone_file)
+
+        async with open(
+            os.path.join(
+                settings.DNS_SERVER_CONFIGS,
+                "named.conf.local"
+            ),
+            "a",
+        ) as f:
+            await f.write(named_conf_local_part)
+
+        async with open(
+            os.path.join(
+                settings.DNS_SERVER_CONFIGS,
+                "named.conf"
+            ),
+            "a",
+        ) as f:
+            await f.write("\ninclude \"/opt/zone.key\"")
 
         session.add_all(
             [
@@ -291,7 +323,7 @@ async def get_dns_state(
 
 async def set_dns_manager_state(
     session: AsyncSession,
-    state: 'DNSManagerState',
+    state: DNSManagerState | str,
 ) -> None:
     """Update DNS state."""
     await session.execute(

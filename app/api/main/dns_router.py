@@ -3,6 +3,8 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+import re
+import socket
 from typing import Annotated
 
 from dishka import FromDishka
@@ -88,20 +90,21 @@ async def get_all_records(
 @inject
 async def get_dns_status(
     session: FromDishka[AsyncSession],
-    settings: FromDishka[DNSManagerSettings],
+    dns_settings: FromDishka[DNSManagerSettings],
 ):
     """Get DNS service status."""
     state = await get_dns_state(session)
     return {
         "dns_status": state,
-        "zone_name": settings.zone_name,
-        "dns_server_ip": settings.dns_server_ip,
+        "zone_name": dns_settings.zone_name,
+        "dns_server_ip": dns_settings.dns_server_ip,
     }
 
 
 @dns_router.post('/setup')
 @inject
 async def setup_dns(
+    dns_status: Annotated[str, Body()],
     domain: Annotated[str, Body()],
     dns_ip_address: Annotated[str | None, Body()],
     tsig_key: Annotated[str | None, Body()],
@@ -114,22 +117,38 @@ async def setup_dns(
     Create zone file, get TSIG key, reload DNS server if selfhosted.
     """
     zone_file = None
-    state = DNSManagerState.HOSTED
-    if tsig_key is None:
+    named_conf_local_part = None
+
+    if dns_status == DNSManagerState.SELFHOSTED:
         zone_file_template = settings.TEMPLATES.get_template("zone.template")
         zone_file = await zone_file_template.render_async(domain=domain)
-        state = DNSManagerState.SELFHOSTED
+
+        async with open(settings.DNS_TSIG_KEY_DIR, "rb") as f:
+            key_file_content = await f.read()
+
+        tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
+
+        named_conf_local_part_template = settings.TEMPLATES.get_template(
+            "named_conf_local_zone_part.template",
+        )
+        named_conf_local_part = named_conf_local_part_template.render_async(
+            domain=domain,
+        )
+
+        dns_ip_address = socket.gethostbyname(settings.DNS_BIND_HOST)
 
     try:
         await dns_manager.setup(
             session=session,
+            settings=settings,
             domain=domain,
             dns_ip_address=dns_ip_address,
             zone_file=zone_file,
             tsig_key=tsig_key,
+            named_conf_local_part=named_conf_local_part,
         )
     except DNSAPIError as e:
         raise HTTPException(status.HTTP_304_NOT_MODIFIED, e)
 
-    await set_dns_manager_state(session, state)
+    await set_dns_manager_state(session, dns_status)
     await session.commit()

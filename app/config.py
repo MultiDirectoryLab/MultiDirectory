@@ -90,10 +90,15 @@ class Settings(BaseSettings):
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
 
-    TEMPLATES = jinja2.Environment(
-        loader=jinja2.FileSystemLoader('extra'),
+    TEMPLATES: jinja2.environment.Environment = jinja2.Environment(
+        loader=jinja2.FileSystemLoader('extra/templates'),
         enable_async=True, autoescape=True
     )
+
+    DNS_BIND_HOST: str = 'bind_dns'
+    DNS_TSIG_KEY: str = '/DNS_SERVER_FILE/zone.key'
+    DNS_ZONE_FILE: str = '/DNS_SERVER_FILE/db.zone'
+    DNS_SERVER_CONFIGS: str = '/DNS_SERVER_CONFIGS/'
 
     @field_validator('TIMEZONE', mode='before')
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
