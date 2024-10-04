@@ -179,11 +179,11 @@ async def test_api_correct_add_double_member_of(
             "attributes": [
                 {
                     "type": "name",
-                    "vals": [f"{un}"],
+                    "vals": [un],
                 },
                 {
                     "type": "cn",
-                    "vals": [f"{un}"],
+                    "vals": [un],
                 },
                 {
                     "type": "objectClass",
@@ -191,7 +191,7 @@ async def test_api_correct_add_double_member_of(
                 },
                 {
                     "type": "sAMAccountName",
-                    "vals": [f"{un}"],
+                    "vals": [un],
                 },
                 {
                     "type": "userPrincipalName",
@@ -203,11 +203,15 @@ async def test_api_correct_add_double_member_of(
                 },
                 {
                     "type": "displayName",
-                    "vals": [f"{un}"],
+                    "vals": [un],
                 },
                 {
                     "type": "memberOf",
                     "vals": groups,
+                },
+                {
+                    "type": "userAccountControl",
+                    "vals": ["514"],
                 },
             ],
         },
@@ -245,6 +249,95 @@ async def test_api_correct_add_double_member_of(
             break
     else:
         raise Exception('memberOf not found')
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'userAccountControl':
+            assert attr['vals'][0] == "514"
+            break
+    else:
+        raise Exception('userAccountControl not found')
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('session')
+async def test_api_add_user_inccorect_uac(
+        http_client: AsyncClient) -> None:
+    """Test api add."""
+    user = "cn=test0,dc=md,dc=test"
+    un = "test0"
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": user,
+            "password": "P@ssw0rd",
+            "attributes": [
+                {
+                    "type": "name",
+                    "vals": [un],
+                },
+                {
+                    "type": "cn",
+                    "vals": [un],
+                },
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top", "user"],
+                },
+                {
+                    "type": "sAMAccountName",
+                    "vals": [un],
+                },
+                {
+                    "type": "userPrincipalName",
+                    "vals": [f"{un}@md.ru"],
+                },
+                {
+                    "type": "mail",
+                    "vals": [f"{un}@md.ru"],
+                },
+                {
+                    "type": "displayName",
+                    "vals": [un],
+                },
+                {
+                    "type": "userAccountControl",
+                    "vals": ["516"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+
+    assert response.status_code == status.HTTP_200_OK
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": user,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+    data = response.json()
+
+    assert response.status_code == status.HTTP_200_OK
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data['search_result'][0]['object_name'] == user
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'userAccountControl':
+            assert attr['vals'][0] == "512"
+            break
+    else:
+        raise Exception('userAccountControl not found')
 
 
 @pytest.mark.asyncio

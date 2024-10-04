@@ -324,7 +324,7 @@ class ModifyRequest(BaseRequest):
             if name == 'useraccountcontrol':
                 uac_val = int(value)
 
-                if uac_val == 0:  # noqa: R507
+                if not UserAccountControlFlag.is_value_valid(uac_val):  # noqa
                     continue
 
                 elif bool(

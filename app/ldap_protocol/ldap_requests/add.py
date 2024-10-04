@@ -176,16 +176,16 @@ class AddRequest(BaseRequest):
         parent_groups: list[Group] = []
         user_attributes = {}
         group_attributes: list[str] = []
-        user_fields = User.search_fields.values()
+        user_fields = User.search_fields.keys()
 
         for attr in self.attributes:
             lname = attr.type.lower()
             for value in attr.vals:
                 if lname in Directory.ro_fields or lname in (
-                        "userpassword", 'unicodepwd', 'useraccountcontrol'):
+                        "userpassword", 'unicodepwd'):
                     continue
 
-                if attr.type in user_fields:
+                if lname in user_fields or lname == 'useraccountcontrol':
                     user_attributes[attr.type] = value
 
                 elif attr.type == 'memberOf':
@@ -230,9 +230,14 @@ class AddRequest(BaseRequest):
             items_to_add.append(user)
             user.groups.extend(parent_groups)
 
+            uac_value: str = user_attributes.get('userAccountControl', '0')
+
+            if not UserAccountControlFlag.is_value_valid(uac_value):
+                uac_value = str(UserAccountControlFlag.NORMAL_ACCOUNT)
+
             attributes.append(Attribute(
                 name='userAccountControl',
-                value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
+                value=uac_value,
                 directory=new_dir))
 
             attributes.append(Attribute(
