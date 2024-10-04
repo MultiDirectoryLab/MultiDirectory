@@ -1,6 +1,3 @@
 FROM ubuntu/bind9:latest
 
-COPY .dns/dns-entrypoint.sh /
-RUN chmod 777 /dns-entrypoint.sh
-
-ENTRYPOINT ["/dns-entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "-c", "test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone > /opt/zone.key && source docker-entrypoint.sh"]

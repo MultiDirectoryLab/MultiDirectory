@@ -318,7 +318,3 @@ volumes:
   psync_queue:
   dns_server_file:
   dns_server_config:
-
-networks:
-  dns-network:
-    driver
