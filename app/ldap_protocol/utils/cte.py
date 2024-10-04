@@ -3,8 +3,8 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from sqlalchemy import or_, select
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncScalarResult
+from sqlalchemy import distinct, or_, select
+from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.sql.selectable import CTE
 
 from models.ldap3 import Directory, DirectoryMembership, Group
@@ -207,7 +207,7 @@ async def get_all_parent_group_directories(
         return None
 
     cte = find_root_group_recursive_cte(dn_list)
-    result = await session.scalars(select(cte.c.directory_id))
+    result = await session.scalars(select(distinct(cte.c.directory_id)))
     directories_ids = result.all()
 
     if not directories_ids:
