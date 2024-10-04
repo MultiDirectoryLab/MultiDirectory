@@ -1,10 +1,12 @@
 import functools
+from abc import ABC, abstractmethod
 from enum import Enum, StrEnum
+from typing import Callable, Any
 
 import dns
 import dns.asyncquery
 import dns.update
-import httpx
+from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +16,43 @@ DNS_MANAGER_STATE_NAME = "DNSManagerState"
 DNS_MANAGER_ZONE_NAME = "DNSManagerZoneName"
 DNS_MANAGER_IP_ADDRESS_NAME = "DNSManagerIpAddress"
 DNS_MANAGER_TSIG_KEY_NAME = "DNSManagerTSIGKey"
+
+
+log = loguru_logger.bind(name='DNSManager')
+
+log.add(
+    "logs/dnsmanager_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == 'dnsmanager',
+    retention="10 days",
+    rotation="1d",
+    colorize=False)
+
+
+def logger_wraps(is_stub: bool = False) -> Callable:
+    """Log DNSManager calls."""
+    def wrapper(func: Callable) -> Callable:
+        name = func.__name__
+        bus_type = " stub " if is_stub else " "
+
+        @functools.wraps(func)
+        async def wrapped(*args: str, **kwargs: str) -> Any:
+            logger = log.opt(depth=1)
+
+            logger.info(f"Calling{bus_type}'{name}'")
+            try:
+                result = await func(*args, **kwargs)
+            except DNSAPIError as err:
+                logger.error(f'{name} call raised: {err}')
+                raise
+
+            else:
+                if not is_stub:
+                    logger.success(f"Executed {name}")
+            return result
+
+        return wrapped
+
+    return wrapper
 
 
 class DNSAPIError(Exception):
@@ -60,24 +99,50 @@ class DNSManagerState(StrEnum):
     HOSTED = '2'
 
 
-class DNSManager:
-    """DNS server manager."""
-    settings: DNSManagerSettings
-    http_client: httpx.AsyncClient
+class AbstractDNSManager(ABC):
+    """Abstract DNS manager class."""
+
+    _settings: DNSManagerSettings
 
     def __init__(
         self,
         settings: DNSManagerSettings,
-        http_client: httpx.AsyncClient,
     ) -> None:
         """Set up DNS manager."""
         self._settings = settings
-        self.http_client = http_client
+
+    @abstractmethod
+    async def create_record(
+        self, hostname: str, ip: str,
+        record_type: str, ttl: int,
+    ) -> None: ...
+
+    @abstractmethod
+    async def update_record(
+        self, hostname: str, ip: str,
+        record_type: str, ttl: int,
+    ) -> None: ...
+
+    @abstractmethod
+    async def delete_record(
+        self, hostname: str, ip: str,
+        record_type: str,
+    ) -> None: ...
+
+    @abstractmethod
+    async def get_all_records(self) -> list: ...
+
+
+class DNSManager(AbstractDNSManager):
+    """DNS server manager."""
 
     async def _send(self, action: dns.message.Message):
         await dns.asyncquery.tcp(action, where=self._settings.dns_server_ip)
 
-    async def create_record(self, hostname, ip, record_type, ttl):
+    async def create_record(
+        self, hostname: str, ip: str,
+        record_type: str, ttl: int,
+    ) -> None:
         """Create DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
@@ -121,14 +186,20 @@ class DNSManager:
 
         return response
 
-    async def update_record(self, hostname, ip, record_type, ttl):
+    async def update_record(
+        self, hostname: str, ip: str,
+        record_type: str, ttl: int,
+    ):
         """Update DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
         await self._send(action)
 
-    async def delete_record(self, hostname, ip, record_type):
+    async def delete_record(
+            self, hostname: str, ip: str,
+            record_type: str,
+    ) -> None:
         """Delete DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.delete(hostname, record_type, ip)
@@ -142,24 +213,10 @@ class DNSManager:
             dns_ip_address: str | None,
             zone_file: str | None,
             tsig_key: str | None,
-    ):
+    ) -> None:
         """Set up DNS server and DNS manager."""
         if tsig_key is None:
-            response = await self.http_client.post("/setup/zone_file", json={
-                "zone_file": zone_file.encode().hex()
-            })
-            if response.status_code != 200:
-                raise DNSAPIError(response.text)
-
-            response = await self.http_client.get("/setup/tsig_key")
-            if response.status_code != 200:
-                raise DNSAPIError(response.text)
-
-            tsig_key = response.json()
-
-            response = await self.http_client.get("/setup/finish")
-            if response.status_code != 200:
-                raise DNSAPIError(response.text)
+            pass
 
         session.add_all(
             [
@@ -177,6 +234,31 @@ class DNSManager:
                 ),
             ],
         )
+
+
+class StubDNSManager(AbstractDNSManager):
+    """Stub client."""
+
+    @logger_wraps(is_stub=True)
+    async def create_record(
+        self, hostname: str, ip: str,
+        record_type: str, ttl: int,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def update_record(
+        self, hostname: str, ip: str,
+        record_type: str, ttl: int,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def delete_record(
+        self, hostname: str, ip: str,
+        record_type: str,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def get_all_records(self) -> list: ...
 
 
 async def get_dns_state(
@@ -237,12 +319,10 @@ async def get_dns_manager_settings(session: AsyncSession) -> 'DNSManagerSettings
     return settings
 
 
-async def get_dns_manager(
-    settings: DNSManagerSettings,
-    http_client: httpx.AsyncClient,
-) -> 'DNSManager':
-    """Get DNS manager."""
-    return DNSManager(
-        settings=settings,
-        http_client=http_client,
-    )
+async def get_DNS_manager_class(
+        session: AsyncSession,
+) -> type[AbstractDNSManager]:
+    """Get DNS manager class."""
+    if await get_dns_state(session) != DNSManagerState.NOT_CONFIGURED:
+        return DNSManager
+    return StubDNSManager

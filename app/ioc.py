@@ -21,8 +21,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     DNSManager,
     DNSManagerSettings,
-    get_dns_manager,
-    get_dns_manager_settings,
+    get_dns_manager_settings, AbstractDNSManager, get_DNS_manager_class,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
@@ -84,6 +83,13 @@ class MainProvider(Provider):
         async with session_maker() as session:
             return await get_kerberos_class(session)
 
+    @provide(scope=Scope.SESSION)
+    async def get_dns_mngr_class(
+            self, session_maker: sessionmaker,
+    ) -> type[AbstractDNSManager]:
+        async with session_maker() as session:
+            return await get_DNS_manager_class(session)
+
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
     async def get_dns_mngr_settings(
             self, session_maker: sessionmaker) -> 'DNSManagerSettings':
@@ -113,16 +119,6 @@ class MainProvider(Provider):
         ) as client:
             yield KadminHTTPClient(client)
 
-    @provide(scope=Scope.APP, provides=DNSManagerHTTPClient)
-    async def get_dns_manager_http(
-            self, settings: Settings) -> AsyncIterator[DNSManagerHTTPClient]:
-        """Get DNS manager HTTP client."""
-        async with httpx.AsyncClient(
-            timeout=30,
-            base_url=str(settings.DNS_SERVER_URL),
-        ) as client:
-            yield DNSManagerHTTPClient(client)
-
     @provide(scope=Scope.REQUEST, provides=AbstractKadmin)
     async def get_kadmin(
         self, client: KadminHTTPClient,
@@ -141,12 +137,12 @@ class MainProvider(Provider):
 
     @provide(scope=scope.REQUEST, provides=DNSManager)
     async def get_dns_mngr(
-            self, http_client: DNSManagerHTTPClient,
+            self,
             settings: DNSManagerSettings,
+            dns_manager_class: type[AbstractDNSManager]
     ) -> AsyncIterator[DNSManager]:
         """Get DNSManager class."""
-        yield await get_dns_manager(
-            http_client=http_client,
+        yield dns_manager_class(
             settings=settings
         )
 
