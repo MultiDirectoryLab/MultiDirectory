@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 from sqlalchemy import or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncScalarResult
 from sqlalchemy.sql.selectable import CTE
 
 from models.ldap3 import Directory, DirectoryMembership, Group
@@ -192,24 +192,24 @@ async def get_members_root_group(
 
 
 async def get_all_parent_group_directories(
-        groups: list[Group], session: AsyncSession) -> set[Directory]:
+    groups: list[Group],
+    session: AsyncSession,
+) -> AsyncScalarResult | list:
     """Get all parent groups directory.
 
     :param list[Group] groups: directory groups
     :param AsyncSession session: session
     :return set[Directory]: all groups and their parent group directories
     """
-    directories: set[Directory] = set()
+    directories_ids = []
 
     for group in groups:
         cte = find_root_group_recursive_cte(group.directory.path_dn)
         result = await session.scalars(select(cte.c.directory_id))
-        group_ids = result.all()
+        directories_ids.extend(result.all())
 
-        if group_ids:
-            directory_parent_groups = await session.scalars(
-                select(Directory).where(Directory.id.in_(group_ids)))
+    if directories_ids:
+        return await session.stream_scalars(
+            select(Directory).where(Directory.id.in_(directories_ids)))
 
-            directories.update(directory_parent_groups)
-
-    return directories
+    return directories_ids

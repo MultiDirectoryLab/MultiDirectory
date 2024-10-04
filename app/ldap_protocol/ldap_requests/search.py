@@ -287,7 +287,7 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def token_groups(self) -> bool:  # noqa
-        return 'tokengroups' in self.requested_attrs or self.all_attrs
+        return 'tokengroups' in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:  # noqa
@@ -421,10 +421,13 @@ class SearchRequest(BaseRequest):
                     attrs['tokenGroups'].append(
                         string_to_sid(directory.object_sid))
 
-                    for directory_ in await get_all_parent_group_directories(
-                            directory.groups, session):
-                        attrs['tokenGroups'].append(
-                            string_to_sid(directory_.object_sid))
+                    group_directories = await get_all_parent_group_directories(
+                        directory.groups, session)
+
+                    if group_directories:
+                        async for directory_ in group_directories:
+                            attrs['tokenGroups'].append(
+                                string_to_sid(directory_.object_sid))
 
             if self.member:
                 if 'group' in obj_classes and directory.group:
