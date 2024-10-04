@@ -198,8 +198,8 @@ class DNSManager(AbstractDNSManager):
         """Send request to DNS server."""
         if self._settings.tsig_key is not None:
             action.use_tsig(
-                keyring=dns.tsig.Key("zone", self._settings.tsig_key),
-                keyname="zone",
+                keyring=dns.tsig.Key("zone.", self._settings.tsig_key),
+                keyname="zone.",
             )
 
         await dns.asyncquery.tcp(action, where=self._settings.dns_server_ip)
@@ -221,8 +221,8 @@ class DNSManager(AbstractDNSManager):
                 self._settings.dns_server_ip,
                 self._settings.domain,
                 keyring={
-                    dns.name.from_text("zone"):
-                        dns.tsig.Key("zone", self._settings.tsig_key)
+                    dns.name.from_text("zone."):
+                        dns.tsig.Key("zone.", self._settings.tsig_key)
                 },
                 keyalgorithm=dns.tsig.default_algorithm
             )
