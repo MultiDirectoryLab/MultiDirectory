@@ -194,7 +194,7 @@ async def get_members_root_group(
 async def get_all_parent_group_directories(
     groups: list[Group],
     session: AsyncSession,
-) -> AsyncScalarResult | list:
+) -> AsyncScalarResult | None:
     """Get all parent groups directory.
 
     :param list[Group] groups: directory groups
@@ -204,14 +204,14 @@ async def get_all_parent_group_directories(
     dn_list = [group.directory.path_dn for group in groups]
 
     if not dn_list:
-        return []
+        return None
 
     cte = find_root_group_recursive_cte(dn_list)
     result = await session.scalars(select(cte.c.directory_id))
     directories_ids = result.all()
 
-    if directories_ids:
-        return await session.stream_scalars(
-            select(Directory).where(Directory.id.in_(directories_ids)))
+    if not directories_ids:
+        return None
 
-    return []
+    return await session.stream_scalars(
+        select(Directory).where(Directory.id.in_(directories_ids)))
