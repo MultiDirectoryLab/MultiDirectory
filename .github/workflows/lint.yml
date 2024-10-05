@@ -8,7 +8,7 @@ env:
   REPO: ${{ github.repository }}
 
 jobs:
-  lint:
+  ruff:
     runs-on: ubuntu-latest
     steps:
       - name: downcase REPO
@@ -26,4 +26,46 @@ jobs:
           cache-to: type=gha,mode=max
           tags: linter
       - name: Run linters
-        run: docker run -t linter ruff check
+        run: docker run linter ruff check
+
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - name: downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/lint.Dockerfile
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: linter
+      - name: Run linters
+        run: docker run linter flake8
+
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/lint.Dockerfile
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: linter
+      - name: Run linters
+        run: docker run linter mypy .
+
+
