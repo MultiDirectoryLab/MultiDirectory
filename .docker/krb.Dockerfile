@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.4-bookworm AS builder
+FROM python:3.12.6-bookworm AS builder
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"

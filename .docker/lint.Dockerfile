@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.4-bookworm AS builder
+FROM python:3.12.6-bookworm AS builder
 
 RUN pip install poetry
 
@@ -32,6 +32,4 @@ ENV VIRTUAL_ENV=/venvs/.venv \
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY app /app
-COPY pyproject.toml /
-
-
+COPY pyproject.toml .flake8 ./
