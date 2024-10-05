@@ -1,4 +1,4 @@
-name: build
+name: process_pull_request
 on:
   push:
     branches: [main]
