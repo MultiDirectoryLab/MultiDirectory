@@ -225,7 +225,7 @@ class LDAPSession:
 
     @staticmethod
     def get_address(writer: asyncio.StreamWriter) -> str:
-        """Get client address"""
+        """Get client address."""
         return ':'.join(map(str, writer.get_extra_info('peername')))
 
     async def get_ip(self, writer: asyncio.StreamWriter) -> IPv4Address:

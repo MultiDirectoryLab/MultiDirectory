@@ -239,10 +239,10 @@ class Directory(Base):
     def is_domain(self) -> bool:
         """Is directory domain."""
         return not self.parent_id and self.object_class == 'domain'
-    
+
     @property
     def host_principal(self) -> str:
-        """Principal computer name"""
+        """Principal computer name."""
         return f"host/{self.name}"
 
     @property
@@ -261,9 +261,11 @@ class Directory(Base):
         self.depth = len(self.path)
 
     def __str__(self) -> str:
+        """Dir name."""
         return f"Directory({self.cn})"
 
     def __repr__(self) -> str:
+        """Dir id and name."""
         return f"Directory({self.id}:{self.cn})"
 
 
@@ -338,9 +340,11 @@ class User(DirectoryReferenceMixin, Base):
         return self.user_principal_name.split('@')[0]
 
     def __str__(self) -> str:
+        """User show."""
         return f"User({self.sam_accout_name})"
 
     def __repr__(self) -> str:
+        """User map with dir id."""
         return f"User({self.directory_id}:{self.sam_accout_name})"
 
     def is_expired(self) -> bool:
@@ -352,6 +356,7 @@ class User(DirectoryReferenceMixin, Base):
         user_account_exp = self.account_exp.astimezone(timezone.utc)
 
         return True if now > user_account_exp else False
+
 
 class Group(DirectoryReferenceMixin, Base):
     """Group params."""
@@ -409,9 +414,11 @@ class Group(DirectoryReferenceMixin, Base):
     )
 
     def __str__(self) -> str:
+        """Group id."""
         return f"Group({self.id})"
 
     def __repr__(self) -> str:
+        """Group id and dir id."""
         return f"Group({self.id}:{self.directory_id})"
 
 
