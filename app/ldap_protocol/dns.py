@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import functools
 import os
+import socket
 from abc import ABC, abstractmethod
 from enum import Enum, StrEnum
 from typing import Any, Callable
@@ -150,7 +151,7 @@ class AbstractDNSManager(ABC):
                 ),
                 "a",
             ) as f:
-                f.write("\ninclude \"/opt/zone.key\"")
+                f.write("\ninclude \"/opt/zone.key\";")
 
         session.add_all(
             [
@@ -217,6 +218,9 @@ class DNSManager(AbstractDNSManager):
     async def get_all_records(self) -> list:
         """Get all DNS records."""
         if self._settings.tsig_key is not None:
+            loguru_logger.debug(self._settings.dns_server_ip)
+            loguru_logger.debug(self._settings.domain)
+            loguru_logger.debug(self._settings.tsig_key)
             zone_xfr_response = dns.query.xfr(
                 self._settings.dns_server_ip,
                 self._settings.domain,
@@ -357,9 +361,14 @@ async def get_dns_manager_settings(
     ):
         settings_dict[setting.name] = setting.value
 
+    dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None)
+
+    if get_dns_state(session) == DNSManagerState.SELFHOSTED:
+        dns_server_ip = socket.gethostbyname("bind9")
+
     return DNSManagerSettings(
         zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
-        dns_server_ip=settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None),
+        dns_server_ip=dns_server_ip,
         tsig_key=settings_dict.get(DNS_MANAGER_TSIG_KEY_NAME, None),
     )
 
