@@ -8,4 +8,4 @@ $TTL 604800	; 1 week
                     21600      ; negative (6 hours)
                     )
 			            NS	ns1.{{ domain }}.
-ns1.{{ domain }}    IN  A   {{ namespace_ip }}
+ns1.{{ domain }}    IN  A   127.0.0.1
