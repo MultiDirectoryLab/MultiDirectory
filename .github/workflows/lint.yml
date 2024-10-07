@@ -25,6 +25,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ghcr.io/${{ env.REPO }}_linters:latest
+          push: true
       - name: Run linters
         run: docker run ghcr.io/${{ env.REPO }}_linters:latest ruff check
 
@@ -45,6 +46,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ghcr.io/${{ env.REPO }}_linters:latest
+          push: true
       - name: Run linters
         run: docker run ghcr.io/${{ env.REPO }}_linters:latest flake8
 
@@ -65,6 +67,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ghcr.io/${{ env.REPO }}_linters:latest
+          push: true
       - name: Run linters
         run: docker run ghcr.io/${{ env.REPO }}_linters:latest mypy .
 
