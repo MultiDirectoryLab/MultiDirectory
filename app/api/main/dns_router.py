@@ -3,19 +3,17 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-import re
 import socket
-from typing import Annotated, Any, Optional
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import Body, HTTPException, Depends
+from fastapi import HTTPException, Depends
 from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth import get_current_user
-from api.main.schema import DNSServiceSetupRequest
+from api.main.schema import DNSServiceSetupRequest, DNSServiceRecordRequest
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -29,22 +27,24 @@ from ldap_protocol.dns import (
 dns_router = APIRouter(
     prefix='/dns',
     tags=['DNS_SERVICE'],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 
 @dns_router.post('/record')
 @inject
 async def create_record(
-    hostname: Annotated[str, Body()],
-    ip: Annotated[str, Body()],
-    record_type: Annotated[str, Body()],
-    ttl: Annotated[int, Body()],
+    data: DNSServiceRecordRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ):
     """Create DNS record with given params."""
     try:
-        await dns_manager.create_record(hostname, ip, record_type, ttl)
+        await dns_manager.create_record(
+            data.record_name,
+            data.record_value,
+            data.record_type,
+            data.ttl,
+        )
     except Exception as e:
         raise HTTPException(500, f"{e}")
 
@@ -52,14 +52,16 @@ async def create_record(
 @dns_router.delete('/record')
 @inject
 async def delete_single_record(
-    hostname: Annotated[str, Body()],
-    ip: Annotated[str, Body()],
-    record_type: Annotated[str, Body()],
+    data: DNSServiceRecordRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ):
     """Delete DNS record with given params."""
     try:
-        await dns_manager.delete_record(hostname, ip, record_type)
+        await dns_manager.delete_record(
+            data.record_name,
+            data.record_value,
+            data.record_type,
+        )
     except Exception:
         raise HTTPException(500, "DNS transaction failed")
 
@@ -67,15 +69,17 @@ async def delete_single_record(
 @dns_router.patch('/record')
 @inject
 async def update_record(
-    hostname: Annotated[str, Body()],
-    ip: Annotated[str, Body()],
-    record_type: Annotated[str, Body()],
-    ttl: Annotated[int, Body()],
+    data: DNSServiceRecordRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ):
     """Update DNS record with given params."""
     try:
-        await dns_manager.update_record(hostname, ip, record_type, ttl)
+        await dns_manager.update_record(
+            data.record_name,
+            data.record_value,
+            data.record_type,
+            data.ttl
+        )
     except Exception as e:
         raise HTTPException(500, f"{e}")
 

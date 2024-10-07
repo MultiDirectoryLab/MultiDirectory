@@ -61,5 +61,12 @@ class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
 class DNSServiceSetupRequest(BaseModel):
     dns_status: DNSManagerState
     domain: str
-    dns_ip_address: Optional[str]
-    tsig_key: Optional[str]
+    dns_ip_address: Optional[str] = Field(None)
+    tsig_key: Optional[str] = Field(None)
+
+
+class DNSServiceRecordRequest(BaseModel):
+    record_name: str
+    record_type: str
+    record_value: Optional[str]
+    ttl: Optional[int] = Field(None)
