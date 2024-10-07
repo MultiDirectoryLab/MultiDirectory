@@ -112,11 +112,10 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
     async def get_dns_mngr_settings(
-            self, session_maker: sessionmaker,
+            self, session: AsyncSession,
     ) -> 'DNSManagerSettings':
         """Get DNS manager's settings."""
-        async with session_maker() as session:
-            return await get_dns_manager_settings(session)
+        return await get_dns_manager_settings(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:

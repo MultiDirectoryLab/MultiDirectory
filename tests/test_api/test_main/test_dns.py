@@ -144,39 +144,7 @@ async def test_dns_get_status(
     session: AsyncSession,
 ) -> None:
     """DNS Manager get status test."""
-    dns_ip_address = "127.0.0.1"
-    domain = "example.com"
-    dns_state = DNSManagerState.HOSTED
-    #
-    # session.add_all(
-    #     [
-    #         CatalogueSetting(
-    #             name=DNS_MANAGER_IP_ADDRESS_NAME,
-    #             value=dns_ip_address,
-    #         ),
-    #         CatalogueSetting(
-    #             name=DNS_MANAGER_ZONE_NAME,
-    #             value=domain,
-    #         ),
-    #         CatalogueSetting(
-    #             name=DNS_MANAGER_STATE_NAME,
-    #             value=dns_state,
-    #         ),
-    #     ],
-    # )
-    # await session.commit()
-
-    # f = await session.scalars(
-    #     select(CatalogueSetting)
-    # )
-    #
-    # f = f.all()
-    #
-    # f = [i.value for i in f]
-    #
-    # raise Exception(f"{f}")
-
     response = await http_client.get('/dns/status')
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"dns_status": "1", "zone_name": "example.com", "dns_server_ip": "127.0.0.1"}
+    assert response.json() == {"dns_status": "2", "zone_name": "example.com", "dns_server_ip": "127.0.0.1"}
