@@ -74,7 +74,7 @@ class ModifyDNRequest(BaseRequest):
     new_superior: str | None
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> "ModifyDNResponse":
+    def from_data(cls, data: list[ASN1Row]) -> "ModifyDNRequest":
         """Create structure from ASN1Row dataclass list."""
         return cls(
             entry=data[0].value,
