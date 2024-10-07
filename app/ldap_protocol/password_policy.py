@@ -21,12 +21,13 @@ from security import verify_password
 from .user_account_control import UserAccountControlFlag
 from .utils.helpers import ft_now, ft_to_dt
 
-with open('extra/common_pwds.txt') as f:
-    _COMMON_PASSWORDS = set(f.read().split('\n'))
+with open("extra/common_pwds.txt") as f:
+    _COMMON_PASSWORDS = set(f.read().split("\n"))
 
 
 async def post_save_password_actions(
-        user: User, session: AsyncSession) -> None:
+    user: User, session: AsyncSession,
+) -> None:
     """Post save actions for password update.
 
     :param User user: user from db
@@ -34,20 +35,24 @@ async def post_save_password_actions(
     """
     await session.execute(  # update bind reject attribute
         update(Attribute)
-        .values({'value': ft_now()})
-        .filter_by(directory_id=user.directory_id, name='pwdLastSet'))
+        .values({"value": ft_now()})
+        .filter_by(directory_id=user.directory_id, name="pwdLastSet"),
+    )
 
     new_value = cast(
-        cast(Attribute.value, Integer)
-        .op('&')(~UserAccountControlFlag.PASSWORD_EXPIRED),
+        cast(Attribute.value, Integer).op("&")(
+            ~UserAccountControlFlag.PASSWORD_EXPIRED,
+        ),
         String,
     )
-    await session.execute(
+    qeury = (
         update(Attribute)
         .values(value=new_value)
-        .filter_by(directory_id=user.directory_id, name='userAccountControl'))
+        .filter_by(directory_id=user.directory_id, name="userAccountControl")
+    )
+    await session.execute(qeury)
 
-    user.password_history.append(user.password)
+    user.password_history.append(user.password)  # type: ignore
     await session.flush()
 
 
@@ -55,24 +60,26 @@ class PasswordPolicySchema(BaseModel):
     """PasswordPolicy schema."""
 
     name: str = Field(
-        "Default domain password policy", min_length=3, max_length=255)
+        "Default domain password policy", min_length=3, max_length=255,
+    )
     password_history_length: int = Field(4, ge=0, le=24)
     maximum_password_age_days: int = Field(0, ge=0, le=999)
     minimum_password_age_days: int = Field(0, ge=0, le=999)
     minimum_password_length: int = Field(7, ge=0, le=256)
     password_must_meet_complexity_requirements: bool = True
 
-    @model_validator(mode='after')
-    def _validate_minimum_pwd_age(self) -> 'PasswordPolicySchema':
+    @model_validator(mode="after")
+    def _validate_minimum_pwd_age(self) -> "PasswordPolicySchema":
         if self.minimum_password_age_days > self.maximum_password_age_days:
             raise ValueError(
-                'Minimum password age days must be '
-                'lower or equal than maximum password age days')
+                "Minimum password age days must be "
+                "lower or equal than maximum password age days",
+            )
         return self
 
     async def create_policy_settings(
-            self, session: AsyncSession,
-            kadmin: AbstractKadmin) -> Self:
+        self, session: AsyncSession, kadmin: AbstractKadmin,
+    ) -> Self:
         """Create policies settings.
 
         :param AsyncSession session: db session
@@ -80,8 +87,8 @@ class PasswordPolicySchema(BaseModel):
         """
         existing_policy = await session.scalar(select(exists(PasswordPolicy)))
         if existing_policy:
-            raise PermissionError('Policy already exists')
-        session.add(PasswordPolicy(**self.model_dump(mode='json')))
+            raise PermissionError("Policy already exists")
+        session.add(PasswordPolicy(**self.model_dump(mode="json")))
         await session.flush()
         await kadmin.create_or_update_policy(
             self.minimum_password_age_days,
@@ -93,8 +100,8 @@ class PasswordPolicySchema(BaseModel):
 
     @classmethod
     async def get_policy_settings(
-            cls, session: AsyncSession,
-            kadmin: AbstractKadmin) -> 'PasswordPolicySchema':
+        cls, session: AsyncSession, kadmin: AbstractKadmin,
+    ) -> "PasswordPolicySchema":
         """Get policy settings.
 
         :param AsyncSession session: db
@@ -106,16 +113,15 @@ class PasswordPolicySchema(BaseModel):
         return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(
-            self, session: AsyncSession,
-            kadmin: AbstractKadmin) -> None:
+        self, session: AsyncSession, kadmin: AbstractKadmin,
+    ) -> None:
         """Update policy.
 
         :param AsyncSession session: db
         """
-        await session.execute((
-            update(PasswordPolicy)
-            .values(self.model_dump(mode='json'))
-        ))
+        await session.execute(
+            (update(PasswordPolicy).values(self.model_dump(mode="json"))),
+        )
         await kadmin.create_or_update_policy(
             self.minimum_password_age_days,
             self.maximum_password_age_days,
@@ -126,8 +132,8 @@ class PasswordPolicySchema(BaseModel):
 
     @classmethod
     async def delete_policy_settings(
-            cls, session: AsyncSession,
-            kadmin: AbstractKadmin) -> 'PasswordPolicySchema':
+        cls, session: AsyncSession, kadmin: AbstractKadmin,
+    ) -> "PasswordPolicySchema":
         """Reset (delete) default policy.
 
         :param AsyncSession session: db
@@ -144,33 +150,37 @@ class PasswordPolicySchema(BaseModel):
         :param Attribute last_pwd_set: pwdLastSet
         :return int: days
         """
-        tz = ZoneInfo('UTC')
+        tz = ZoneInfo("UTC")
         now = datetime.now(tz=tz)
 
-        last_pwd_set = (
+        val = (
             ft_to_dt(int(last_pwd_set.value)).astimezone(tz)
-            if last_pwd_set else now)
+            if last_pwd_set
+            else now
+        )
 
-        return (now - last_pwd_set).days
+        return (now - val).days
 
     @staticmethod
     async def get_pwd_last_set(
-            session: AsyncSession, directory_id: int) -> Attribute:
+        session: AsyncSession, directory_id: int,
+    ) -> Attribute:
         """Get pwdLastSet.
 
         :param AsyncSession session: db
         :param int directory_id: id
         :return Attribute: pwdLastSet
         """
-        plset = await session.scalar(select(Attribute).where(
-            Attribute.directory_id == directory_id,
-            Attribute.name == 'pwdLastSet',
-        ))
+        plset = await session.scalar(
+            select(Attribute).where(
+                Attribute.directory_id == directory_id,
+                Attribute.name == "pwdLastSet",
+            ),
+        )
         if not plset:
             plset = Attribute(
-                directory_id=directory_id,
-                name='pwdLastSet',
-                value=ft_now())
+                directory_id=directory_id, name="pwdLastSet", value=ft_now(),
+            )
 
             session.add(plset)
             await session.commit()
@@ -202,7 +212,8 @@ class PasswordPolicySchema(BaseModel):
         return False
 
     async def validate_password_with_policy(
-        self, password: str,
+        self,
+        password: str,
         user: User | None,
     ) -> list[str]:
         """Validate password with chosen policy.
@@ -217,26 +228,28 @@ class PasswordPolicySchema(BaseModel):
 
         if user is not None:
             history = islice(
-                reversed(user.password_history),
-                self.password_history_length)
+                reversed(user.password_history), self.password_history_length,
+            )
 
         for pwd_hash in history:
             if verify_password(password, pwd_hash):
-                errors.append('password history violation')
+                errors.append("password history violation")
                 break
 
         if len(password) <= self.minimum_password_length:
-            errors.append('password minimum length violation')
+            errors.append("password minimum length violation")
 
-        if self.password_must_meet_complexity_requirements and not all((
-            re.search('[A-ZА-Я]', password) is not None,
-            re.search('[a-zа-я]', password) is not None,
-            re.search('[0-9]', password) is not None,
+        regex = (
+            re.search("[A-ZА-Я]", password) is not None,
+            re.search("[a-zа-я]", password) is not None,
+            re.search("[0-9]", password) is not None,
             password.lower() not in _COMMON_PASSWORDS,
-        )):
-            errors.append('password complexity violation')
+        )
+
+        if self.password_must_meet_complexity_requirements and not all(regex):
+            errors.append("password complexity violation")
 
         if password[-6:].isdecimal():
-            errors.append('password cannot end with 6 digits')
+            errors.append("password cannot end with 6 digits")
 
         return errors

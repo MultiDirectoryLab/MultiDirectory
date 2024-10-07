@@ -36,7 +36,7 @@ from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
 
-krb5_router = APIRouter(prefix='/kerberos', tags=['KRB5 API'])
+krb5_router = APIRouter(prefix="/kerberos", tags=["KRB5 API"])
 
 TEMPLATES = jinja2.Environment(
     loader=jinja2.FileSystemLoader('extra'),
@@ -44,9 +44,10 @@ TEMPLATES = jinja2.Environment(
 
 
 @krb5_router.post(
-    '/setup/tree',
+    "/setup/tree",
     response_class=Response,
-    dependencies=[Depends(get_current_user)])
+    dependencies=[Depends(get_current_user)],
+)
 @inject
 async def setup_krb_catalogue(
     session: FromDishka[AsyncSession],
@@ -65,17 +66,20 @@ async def setup_krb_catalogue(
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
 
-    krbadmin = 'cn=krbadmin,ou=users,' + base_dn
-    services_container = 'ou=services,' + base_dn
-    krbgroup = 'cn=krbadmin,cn=groups,' + base_dn
+    krbadmin = "cn=krbadmin,ou=users," + base_dn
+    services_container = "ou=services," + base_dn
+    krbgroup = "cn=krbadmin,cn=groups," + base_dn
 
-    group = AddRequest.from_dict(krbgroup, {
-        "objectClass": ["group", "top", 'posixGroup'],
-        'groupType': ['-2147483646'],
-        'instanceType': ['4'],
-        'description': ["Kerberos administrator's group."],
-        'gidNumber': ["800"],
-    })
+    group = AddRequest.from_dict(
+        krbgroup,
+        {
+            "objectClass": ["group", "top", "posixGroup"],
+            "groupType": ["-2147483646"],
+            "instanceType": ["4"],
+            "description": ["Kerberos administrator's group."],
+            "gidNumber": ["800"],
+        },
+    )
 
     services = AddRequest.from_dict(
         services_container,
@@ -83,11 +87,14 @@ async def setup_krb_catalogue(
     )
 
     rkb_user = AddRequest.from_dict(
-        krbadmin, password=krbadmin_password.get_secret_value(),
+        krbadmin,
+        password=krbadmin_password.get_secret_value(),
         attributes={
             "mail": [mail],
             "objectClass": [
-                "user", "top", "person",
+                "user",
+                "top",
+                "person",
                 "organizationalPerson",
                 "posixAccount",
                 "shadowAccount",
@@ -101,8 +108,8 @@ async def setup_krb_catalogue(
             "uid": ["krbadmin"],
             "homeDirectory": ["/home/krbadmin"],
             "memberOf": [krbgroup],
-            "sAMAccountName": ['krbadmin'],
-            "userPrincipalName": ['krbadmin'],
+            "sAMAccountName": ["krbadmin"],
+            "userPrincipalName": ["krbadmin"],
             "displayName": ["Kerberos Administrator"],
         },
     )
@@ -119,7 +126,7 @@ async def setup_krb_catalogue(
             raise HTTPException(status.HTTP_409_CONFLICT)
 
         await create_access_policy(
-            name='Kerberos Access Policy',
+            name="Kerberos Access Policy",
             can_add=True,
             can_modify=True,
             can_read=True,
@@ -131,7 +138,7 @@ async def setup_krb_catalogue(
         await session.commit()
 
 
-@krb5_router.post('/setup', response_class=Response)
+@krb5_router.post("/setup", response_class=Response)
 @inject
 async def setup_kdc(
     data: KerberosSetupRequest,
@@ -154,9 +161,10 @@ async def setup_kdc(
     :param Annotated[LDAPSession, Depends ldap_session: ldap session
     """
     if not await authenticate_user(
-            session,
-            user.user_principal_name,
-            data.admin_password.get_secret_value()):
+        session,
+        user.user_principal_name,
+        data.admin_password.get_secret_value(),
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Incorrect password",
@@ -167,11 +175,11 @@ async def setup_kdc(
     base_dn = base_dn_list[0].path_dn
     domain: str = base_dn_list[0].name  # type: ignore
 
-    krbadmin = 'cn=krbadmin,ou=users,' + base_dn
-    services_container = 'ou=services,' + base_dn
+    krbadmin = "cn=krbadmin,ou=users," + base_dn
+    services_container = "ou=services," + base_dn
 
-    krb5_template = TEMPLATES.get_template('krb5.conf')
-    kdc_template = TEMPLATES.get_template('kdc.conf')
+    krb5_template = TEMPLATES.get_template("krb5.conf")
+    kdc_template = TEMPLATES.get_template("kdc.conf")
 
     kdc_config = await kdc_template.render_async(domain=domain)
 
@@ -203,12 +211,12 @@ async def setup_kdc(
 
 LIMITED_STR = Annotated[str, Len(min_length=1, max_length=8100)]
 LIMITED_LIST = Annotated[
-    list[LIMITED_STR], Len(min_length=1, max_length=10000)]
+    list[LIMITED_STR],
+    Len(min_length=1, max_length=10000),
+]
 
 
-@krb5_router.post(
-    '/ktadd',
-    dependencies=[Depends(get_current_user)])
+@krb5_router.post("/ktadd", dependencies=[Depends(get_current_user)])
 @inject
 async def ktadd(
     kadmin: FromDishka[AbstractKadmin],
@@ -227,12 +235,12 @@ async def ktadd(
     return StreamingResponse(
         response.aiter_bytes(),
         media_type="application/txt",
-        headers={'Content-Disposition': 'attachment; filename="md.keytab"'},
+        headers={"Content-Disposition": 'attachment; filename="md.keytab"'},
         background=BackgroundTask(response.aclose),
     )
 
 
-@krb5_router.get('/status', dependencies=[Depends(get_current_user)])
+@krb5_router.get("/status", dependencies=[Depends(get_current_user)])
 @inject
 async def get_krb_status(
     session: FromDishka[AsyncSession],
@@ -256,7 +264,7 @@ async def get_krb_status(
     return db_state
 
 
-@krb5_router.post('/principal/add', dependencies=[Depends(get_current_user)])
+@krb5_router.post("/principal/add", dependencies=[Depends(get_current_user)])
 @inject
 async def add_principal(
     primary: Annotated[LIMITED_STR, Body()],
@@ -276,7 +284,8 @@ async def add_principal(
 
 
 @krb5_router.patch(
-    '/principal/rename', dependencies=[Depends(get_current_user)])
+    "/principal/rename", dependencies=[Depends(get_current_user)],
+)
 @inject
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -297,7 +306,9 @@ async def rename_principal(
 
 
 @krb5_router.patch(
-    '/principal/reset', dependencies=[Depends(get_current_user)])
+    "/principal/reset",
+    dependencies=[Depends(get_current_user)],
+)
 @inject
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -318,7 +329,8 @@ async def reset_principal_pw(
 
 
 @krb5_router.delete(
-    '/principal/delete', dependencies=[Depends(get_current_user)])
+    "/principal/delete", dependencies=[Depends(get_current_user)],
+)
 @inject
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],

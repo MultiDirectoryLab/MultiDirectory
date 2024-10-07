@@ -86,7 +86,8 @@ class AbstractKRBManager(ABC):
 
     @abstractmethod
     async def add_princ(
-            self, name: str, password: str | None, **dbargs) -> None:
+        self, name: str, password: str | None, **dbargs,
+    ) -> None:
         """Create principal.
 
         :param str name: principal
@@ -195,15 +196,16 @@ class KAdminLocalManager(AbstractKRBManager):
         return await self.loop.run_in_executor(self.pool, kadmv.local)
 
     async def add_princ(
-            self, name: str, password: str | None, **dbargs) -> None:
+        self, name: str, password: str | None, **dbargs,
+    ) -> None:
         """Create principal.
 
         :param str name: principal
         :param str | None password: if empty - uses randkey.
         """
         await self.loop.run_in_executor(
-            self.pool,
-            self.client.add_principal, name, password)
+            self.pool, self.client.add_principal, name, password,
+        )
 
         princ = await self._get_raw_principal(name)
         princ.policy = "default_policy"
@@ -214,10 +216,11 @@ class KAdminLocalManager(AbstractKRBManager):
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
         principal = await self.loop.run_in_executor(
-            self.pool, self.client.getprinc, name)
+            self.pool, self.client.getprinc, name,
+        )
 
         if not principal:
-            raise PrincipalNotFoundError(f'{name} not found')
+            raise PrincipalNotFoundError(f"{name} not found")
 
         return principal
 
@@ -238,7 +241,8 @@ class KAdminLocalManager(AbstractKRBManager):
         """
         princ = await self._get_raw_principal(name)
         await self.loop.run_in_executor(
-            self.pool, princ.change_password, new_password)
+            self.pool, princ.change_password, new_password,
+        )
 
     async def create_or_update_princ_pw(self, name: str, new_password) -> None:
         """Create new principal or update password.
@@ -256,8 +260,7 @@ class KAdminLocalManager(AbstractKRBManager):
 
         :param str name: principal
         """
-        await self.loop.run_in_executor(
-            self.pool, self.client.delprinc, name)
+        await self.loop.run_in_executor(self.pool, self.client.delprinc, name)
 
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename principal.
@@ -266,7 +269,8 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str new_name: new name
         """
         await self.loop.run_in_executor(
-            self.pool, self.client.rename_principal, name, new_name)
+            self.pool, self.client.rename_principal, name, new_name,
+        )
 
     async def ktadd(self, names: list[str], fn: str) -> None:
         """Create or write to keytab.
@@ -280,8 +284,7 @@ class KAdminLocalManager(AbstractKRBManager):
             raise PrincipalNotFoundError("Principal not found")
 
         for princ in principals:
-            await self.loop.run_in_executor(
-                self.pool, princ.ktadd, fn)
+            await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
 
     async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock princ.
@@ -289,9 +292,8 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str name: upn
         """
         princ = await self._get_raw_principal(name)
-        princ.expire = u'Now'
-        await self.loop.run_in_executor(
-            self.pool, princ.commit)
+        princ.expire = "Now"
+        await self.loop.run_in_executor(self.pool, princ.commit)
 
     async def force_pw_principal(self, name: str, **dbargs) -> None:
         """Lock princ.
@@ -299,9 +301,8 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str name: upn
         """
         princ = await self._get_raw_principal(name)
-        princ.pwexpire = u'Now'
-        await self.loop.run_in_executor(
-            self.pool, princ.commit)
+        princ.pwexpire = "Now"
+        await self.loop.run_in_executor(self.pool, princ.commit)
 
 
 async def create_update_default_policy(
@@ -318,7 +319,7 @@ async def create_update_default_policy(
     :param int minclasses: cases of chars
     """
     proc = await asyncio.create_subprocess_shell(
-        'kadmin.local',
+        "kadmin.local",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -326,25 +327,23 @@ async def create_update_default_policy(
     msg = (
         f'-maxlife "{maxlife} days" '
         f'-minlife "{minlife} days" '
-        f'-minlength {minlength} '
-        f'-minclasses {minclasses} '
-        'default_policy'
+        f"-minlength {minlength} "
+        f"-minclasses {minclasses} "
+        "default_policy"
     )
-    _, stderr = await proc.communicate(
-        ("add_policy " + msg).encode("UTF-8"))
+    _, stderr = await proc.communicate(("add_policy " + msg).encode("UTF-8"))
     await proc.wait()
 
     if "Principal or policy already exists" not in stderr.decode():
         return
 
     proc = await asyncio.create_subprocess_shell(
-        'kadmin.local',
+        "kadmin.local",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    await proc.communicate(
-        ('modify_policy ' + msg).encode("UTF-8"))
+    await proc.communicate(("modify_policy " + msg).encode("UTF-8"))
     await proc.wait()
 
 
@@ -354,7 +353,7 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
     loop = asyncio.get_running_loop()
 
     async def try_set_kadmin(app: FastAPI) -> None:
-        logging.info('Trying to initialize ldap connect...')
+        logging.info("Trying to initialize ldap connect...")
 
         while not getattr(app.state, "kadmin", None):
             try:
@@ -362,7 +361,7 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
             except (kadmv.KAdminError, TimeoutError):
                 await asyncio.sleep(1)
             else:
-                logging.info('Successfully connected to kadmin local')
+                logging.info("Successfully connected to kadmin local")
                 return
 
     loop.create_task(try_set_kadmin(app))
@@ -370,7 +369,7 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
     if kadmind := getattr(app.state, "kadmind", None):
         await kadmind.disconnect()
         delattr(app.state, "kadmind")
-        logging.info('Successfully shutted down kadmin local')
+        logging.info("Successfully shutted down kadmin local")
 
 
 def get_kadmin() -> KAdminLocalManager:
@@ -381,26 +380,29 @@ def get_kadmin() -> KAdminLocalManager:
 def handle_db_error(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_424_FAILED_DEPENDENCY, detail='Database Error')
+        status.HTTP_424_FAILED_DEPENDENCY, detail="Database Error",
+    )
 
 
 def handle_duplicate(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_409_CONFLICT, detail='Principal already exists')
+        status.HTTP_409_CONFLICT, detail="Principal already exists",
+    )
 
 
 def handle_not_found(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_404_NOT_FOUND, detail='Principal does not exist')
+        status.HTTP_404_NOT_FOUND, detail="Principal does not exist",
+    )
 
 
-setup_router = APIRouter(prefix='/setup', tags=['setup'])
-principal_router = APIRouter(prefix='/principal', tags=['config'])
+setup_router = APIRouter(prefix="/setup", tags=["setup"])
+principal_router = APIRouter(prefix="/principal", tags=["config"])
 
 
-@setup_router.post('/configs', status_code=status.HTTP_201_CREATED)
+@setup_router.post("/configs", status_code=status.HTTP_201_CREATED)
 def write_configs(
     krb5_config: Annotated[str, Body()],
     kdc_config: Annotated[str, Body()],
@@ -410,37 +412,46 @@ def write_configs(
     :param Annotated[str, Body krb5_config: krb5 hex bytes format config
     :param Annotated[str, Body kdc_config: kdc hex bytes format config
     """
-    with open('/etc/krb5.conf', 'wb') as f:
+    with open("/etc/krb5.conf", "wb") as f:
         f.write(bytes.fromhex(krb5_config))
 
-    with open('/etc/kdc.conf', 'wb') as f:
+    with open("/etc/kdc.conf", "wb") as f:
         f.write(bytes.fromhex(kdc_config))
 
 
-@setup_router.post('/stash', status_code=201)
+@setup_router.post("/stash", status_code=201)
 async def run_setup_stash(schema: ConfigSchema) -> None:
     """Set up stash file."""
     proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util",
-        "-D", schema.admin_dn,
-        "stashsrvpw", "-f", "/etc/krb5.d/stash.keyfile", schema.krbadmin_dn,
+        "-D",
+        schema.admin_dn,
+        "stashsrvpw",
+        "-f",
+        "/etc/krb5.d/stash.keyfile",
+        schema.krbadmin_dn,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    data = b'\n'.join([
-        schema.admin_password.encode(),
-        schema.krbadmin_password.encode(),
-        schema.krbadmin_password.encode(),
-    ]) + b'\n'
+    data = (
+        b"\n".join(
+            [
+                schema.admin_password.encode(),
+                schema.krbadmin_password.encode(),
+                schema.krbadmin_password.encode(),
+            ],
+        )
+        + b"\n"
+    )
 
     logging.info(await proc.communicate(input=data))
 
     if await proc.wait() != 0:
-        raise HTTPException(status.HTTP_409_CONFLICT, 'failed stash')
+        raise HTTPException(status.HTTP_409_CONFLICT, "failed stash")
 
 
-@setup_router.post('/subtree', status_code=201)
+@setup_router.post("/subtree", status_code=201)
 async def run_setup_subtree(schema: ConfigSchema) -> None:
     """Set up subtree in ldap.
 
@@ -448,18 +459,27 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
     :raises HTTPException: _description_
     """
     create_proc = await asyncio.create_subprocess_exec(
-        "kdb5_ldap_util", "-D", schema.admin_dn,
-        "create", "-subtrees", schema.services_dn,
-        "-r", schema.domain.upper(), "-s",
+        "kdb5_ldap_util",
+        "-D",
+        schema.admin_dn,
+        "create",
+        "-subtrees",
+        schema.services_dn,
+        "-r",
+        schema.domain.upper(),
+        "-s",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    data = b'\n'.join([
-        schema.admin_password.encode(),
-        schema.stash_password.encode(),
-        schema.stash_password.encode(), b'',
-    ])
+    data = b"\n".join(
+        [
+            schema.admin_password.encode(),
+            schema.stash_password.encode(),
+            schema.stash_password.encode(),
+            b"",
+        ],
+    )
     stdin, stderr = await create_proc.communicate(input=data)
 
     logging.info(stdin)
@@ -467,13 +487,13 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
     if await create_proc.wait() != 0:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, stderr.decode())
 
-    with open('/etc/krb5kdc/kadm5.acl', 'w') as f:
+    with open("/etc/krb5kdc/kadm5.acl", "w") as f:
         f.write(f"*/admin@{schema.domain.upper()}        *\n")
 
     await create_update_default_policy(0, 1, 2, 2)
 
 
-@principal_router.post('', response_class=Response, status_code=201)
+@principal_router.post("", response_class=Response, status_code=201)
 async def add_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
@@ -488,7 +508,7 @@ async def add_princ(
     await kadmin.add_princ(name, password)
 
 
-@principal_router.post('/password_policy')
+@principal_router.post("/password_policy")
 async def create_or_update_default_pw_policy(
     minlife: Annotated[int, Body()],
     maxlife: Annotated[int, Body()],
@@ -509,7 +529,7 @@ async def create_or_update_default_pw_policy(
     )
 
 
-@principal_router.get('')
+@principal_router.get("")
 async def get_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
@@ -523,7 +543,7 @@ async def get_princ(
     return await kadmin.get_princ(name)
 
 
-@principal_router.delete('')
+@principal_router.delete("")
 async def del_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
@@ -537,7 +557,7 @@ async def del_princ(
     await kadmin.del_princ(name)
 
 
-@principal_router.patch('', status_code=201, response_class=Response)
+@principal_router.patch("", status_code=201, response_class=Response)
 async def change_princ_password(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
@@ -553,7 +573,9 @@ async def change_princ_password(
 
 
 @principal_router.post(
-    '/create_or_update', status_code=201, response_class=Response)
+    "/create_or_update", status_code=201,
+    response_class=Response,
+)
 async def create_or_update_princ_password(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
@@ -569,8 +591,9 @@ async def create_or_update_princ_password(
 
 
 @principal_router.put(
-    '', status_code=status.HTTP_202_ACCEPTED,
-    response_class=Response)
+    "", status_code=status.HTTP_202_ACCEPTED,
+    response_class=Response,
+)
 async def rename_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body()],
@@ -586,7 +609,7 @@ async def rename_princ(
     await kadmin.rename_princ(name, new_name)
 
 
-@principal_router.post('/ktadd')
+@principal_router.post("/ktadd")
 async def ktadd(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     names: Annotated[list[str], Body()],
@@ -606,7 +629,7 @@ async def ktadd(
     )
 
 
-@principal_router.post('/lock', response_class=Response)
+@principal_router.post("/lock", response_class=Response)
 async def lock_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body(embed=True)],
@@ -619,7 +642,7 @@ async def lock_princ(
     await kadmin.lock_princ(name)
 
 
-@principal_router.post('/force_reset', response_class=Response)
+@principal_router.post("/force_reset", response_class=Response)
 async def force_pw_reset_principal(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body(embed=True)],
@@ -632,14 +655,14 @@ async def force_pw_reset_principal(
     await kadmin.force_pw_principal(name)
 
 
-@setup_router.get('/status')
+@setup_router.get("/status")
 def get_status(request: Request) -> bool:
     """Get kadmin status.
 
     true - is ready
     false - not set
     """
-    kadmind = getattr(request.app.state, 'kadmind', None)
+    kadmind = getattr(request.app.state, "kadmind", None)
 
     if kadmind is not None:
         return True

@@ -29,9 +29,9 @@ type_map = {
 class LDAPResult(BaseModel):
     """Base LDAP result structure."""
 
-    result_code: LDAPCodes = Field(..., alias='resultCode')
-    matched_dn: str = Field('', alias='matchedDN')
-    error_message: str = Field('', alias="errorMessage")
+    result_code: LDAPCodes = Field(..., alias="resultCode")
+    matched_dn: str = Field("", alias="matchedDN")
+    error_message: str = Field("", alias="errorMessage")
 
     class Config:  # noqa
         populate_by_name = True
@@ -46,7 +46,7 @@ class BaseEncoder(BaseModel):
 
     def _get_asn1_fields(self) -> dict:  # noqa
         fields = self.model_dump()
-        fields.pop('PROTOCOL_OP', None)
+        fields.pop("PROTOCOL_OP", None)
         return fields
 
     def to_asn1(self, enc: Encoder) -> None:
@@ -76,12 +76,12 @@ class PartialAttribute(BaseModel):
     type: Annotated[str, annotated_types.Len(max_length=8100)]  # noqa: A003
     vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
-    @field_validator('type', mode="before")
+    @field_validator("type", mode="before")
     @classmethod
     def validate_type(cls, v: str | bytes | int) -> str:  # noqa
         return str(v)
 
-    @field_validator('vals', mode="before")
+    @field_validator("vals", mode="before")
     @classmethod
     def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:  # noqa
         return [v if isinstance(v, bytes) else str(v) for v in vals]
@@ -144,18 +144,19 @@ class SearchResultDone(LDAPResult, BaseResponse):
 
     def _get_asn1_fields(self) -> dict:  # noqa
         fields = super()._get_asn1_fields()
-        fields.pop('total_pages')
-        fields.pop('total_objects')
+        fields.pop("total_pages")
+        fields.pop("total_objects")
         return fields
 
 
 INVALID_ACCESS_RESPONSE = {
-    'result_code': LDAPCodes.OPERATIONS_ERROR,
-    'errorMessage': (
-        '000004DC: LdapErr: DSID-0C090A71, '
-        'comment: In order to perform this operation '
-        'a successful bind must be '
-        'completed on the connection., data 0, v3839'),
+    "result_code": LDAPCodes.OPERATIONS_ERROR,
+    "errorMessage": (
+        "000004DC: LdapErr: DSID-0C090A71, "
+        "comment: In order to perform this operation "
+        "a successful bind must be "
+        "completed on the connection., data 0, v3839"
+    ),
 }
 
 
@@ -220,6 +221,7 @@ class ExtendedResponse(LDAPResult, BaseResponse):
 
         if self.response_value and (value := self.response_value.get_value()):
             enc.write(value, type_map[type(value)])
+
 
 # 15: 'compare Response'
 # 19: 'Search Result Reference'

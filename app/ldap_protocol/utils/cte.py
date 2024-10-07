@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.sql.selectable import CTE
@@ -75,22 +76,25 @@ def find_members_recursive_cte(dn: str) -> CTE:
     result will be as follows: user1, user2, group2, user3, group3, user4.
     """
     directory_hierarchy = (  # noqa: ECE001
-        select([Directory.id.label('directory_id'),
-                Group.id.label('group_id')])
+        select(
+            [Directory.id.label("directory_id"), Group.id.label("group_id")],
+        )
         .select_from(Directory)
         .join(Directory.group)
         .where(get_filter_from_path(dn))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
-        select([
-            DirectoryMembership.directory_id.label('directory_id'),
-            Group.id.label('group_id'),
-        ])
+        select(
+            [
+                DirectoryMembership.directory_id.label("directory_id"),
+                Group.id.label("group_id"),
+            ],
+        )
         .select_from(DirectoryMembership)
         .join(
             directory_hierarchy,
-            directory_hierarchy.c.group_id ==\
-            DirectoryMembership.group_id)
+            directory_hierarchy.c.group_id == DirectoryMembership.group_id,
+        )
         .join(DirectoryMembership.member_group, isouter=True)
     )
     return directory_hierarchy.union_all(recursive_part)
@@ -130,29 +134,34 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     user4.
     """
     directory_hierarchy = (  # noqa: ECE001
-        select([Directory.id.label('directory_id'),
-                Group.id.label('group_id')])
+        select(
+            [Directory.id.label("directory_id"), Group.id.label("group_id")],
+        )
         .select_from(Directory)
         .join(Directory.group, isouter=True)
         .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
-        select([
-            Group.directory_id.label('directory_id'),
-            Group.id.label('group_id'),
-        ])
+        select(
+            [
+                Group.directory_id.label("directory_id"),
+                Group.id.label("group_id"),
+            ],
+        )
         .select_from(DirectoryMembership)
         .join(
             directory_hierarchy,
-            directory_hierarchy.c.directory_id ==\
-            DirectoryMembership.directory_id)
+            directory_hierarchy.c.directory_id
+            == DirectoryMembership.directory_id,
+        )
         .join(DirectoryMembership.group)
     )
     return directory_hierarchy.union_all(recursive_part)
 
 
 async def get_members_root_group(
-        dn: str, session: AsyncSession) -> list[Directory]:
+    dn: str, session: AsyncSession,
+) -> list[Directory]:
     """Get all members root group by dn.
 
     Example:
@@ -175,7 +184,8 @@ async def get_members_root_group(
     root_group_id = group_ids[-1]
 
     directory = await session.scalar(
-        select(Directory).where(Directory.id == root_group_id))
+        select(Directory).where(Directory.id == root_group_id),
+    )
 
     cte = find_members_recursive_cte(directory.path_dn)
     result = await session.scalars(select(cte.c.directory_id))
@@ -184,11 +194,20 @@ async def get_members_root_group(
     if not directories_ids:
         return []
 
-    result = await session.scalars(select(Directory).where(
-        or_(*[Directory.id == directory_id
-              for directory_id in directories_ids])))
+    query = (
+        select(Directory).where(
+            or_(
+                *[
+                    Directory.id == directory_id
+                    for directory_id in directories_ids
+                ],
+            ),
+        )
+    )
 
-    return result.all()
+    retval = await session.scalars(query)
+
+    return retval.all()
 
 
 async def get_all_parent_group_directories(
@@ -213,5 +232,6 @@ async def get_all_parent_group_directories(
     if not directories_ids:
         return None
 
-    return await session.stream_scalars(
-        select(Directory).where(Directory.id.in_(directories_ids)))
+    query = select(Directory).where(Directory.id.in_(directories_ids))
+
+    return await session.stream_scalars(query)

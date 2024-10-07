@@ -45,12 +45,13 @@ class NetmasksMixin:
         for item in self.netmasks:
             if isinstance(item, IPRange):
                 values.extend(
-                    list(summarize_address_range(item.start, item.end)))
+                    list(summarize_address_range(item.start, item.end)),
+                )
             else:
                 values.append(IPv4Network(item))
         return values  # type: ignore
 
-    @field_validator('groups')
+    @field_validator("groups")
     @classmethod
     def validate_group(cls, groups: list[str]) -> list[str]:  # noqa
         if not groups:
@@ -58,9 +59,9 @@ class NetmasksMixin:
         if all(validate_entry(group) for group in groups):
             return groups
 
-        raise ValueError('Invalid DN')
+        raise ValueError("Invalid DN")
 
-    @field_validator('mfa_groups')
+    @field_validator("mfa_groups")
     @classmethod
     def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:  # noqa
         if not mfa_groups:
@@ -68,12 +69,13 @@ class NetmasksMixin:
         if all(validate_entry(group) for group in mfa_groups):
             return mfa_groups
 
-        raise ValueError('Invalid DN')
+        raise ValueError("Invalid DN")
 
-    @field_serializer('netmasks')
+    @field_serializer("netmasks")
     @classmethod
     def netmasks_serialize(
-            cls, netmasks: IPv4IntefaceListType) -> list[str | dict]:
+        cls, netmasks: IPv4IntefaceListType,
+    ) -> list[str | dict]:
         """Serialize netmasks to list.
 
         :param IPv4IntefaceListType netmasks: ip masks
@@ -84,7 +86,8 @@ class NetmasksMixin:
         for netmask in netmasks:
             if isinstance(netmask, IPRange):
                 values.append(
-                    {"start": str(netmask.start), "end": str(netmask.end)})
+                    {"start": str(netmask.start), "end": str(netmask.end)},
+                )
             else:
                 values.append(str(netmask))
 
@@ -94,7 +97,7 @@ class NetmasksMixin:
 class Policy(BaseModel, NetmasksMixin):
     """Network Policy model."""
 
-    name: str = Field(examples=['local network'], max_length=100)
+    name: str = Field(examples=["local network"], max_length=100)
     netmasks: IPv4IntefaceListType = Field(examples=[["172.0.0.0/8"]])
     priority: int = Field(ge=1, le=sys.maxsize, examples=[2])
     groups: list[str] = []
@@ -128,7 +131,7 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     mfa_status: MFAFlags | None = None
     mfa_groups: list[str] | None = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def check_passwords_match(self) -> Self:
         """Validate if all fields are empty."""
         if not self.name and not self.netmasks and not self.groups:

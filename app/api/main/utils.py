@@ -1,6 +1,6 @@
 """Common utils for ldap api."""
 
-from typing import Annotated, AsyncIterator
+from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
@@ -14,7 +14,7 @@ from ldap_protocol.dialogue import LDAPSession, UserSchema
 async def get_ldap_session(
     ldap_session: FromDishka[LDAPSession],
     user: Annotated[UserSchema, Depends(get_current_user)],
-) -> AsyncIterator[LDAPSession]:
+) -> LDAPSession:
     """Create LDAP session."""
     await ldap_session.set_user(user)
     return ldap_session

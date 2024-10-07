@@ -14,13 +14,13 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.password_policy import PasswordPolicySchema
 
 pwd_router = APIRouter(
-    prefix='/password-policy',
+    prefix="/password-policy",
     dependencies=[Depends(get_current_user)],
-    tags=['Password policy'],
+    tags=["Password policy"],
 )
 
 
-@pwd_router.post('', status_code=status.HTTP_201_CREATED)
+@pwd_router.post("", status_code=status.HTTP_201_CREATED)
 @inject
 async def create_policy(
     policy: PasswordPolicySchema,
@@ -31,7 +31,7 @@ async def create_policy(
     return await policy.create_policy_settings(session, kadmin)
 
 
-@pwd_router.get('')
+@pwd_router.get("")
 @inject
 async def get_policy(
     session: FromDishka[AsyncSession],
@@ -41,7 +41,7 @@ async def get_policy(
     return await PasswordPolicySchema.get_policy_settings(session, kadmin)
 
 
-@pwd_router.put('')
+@pwd_router.put("")
 @inject
 async def update_policy(
     policy: PasswordPolicySchema,
@@ -53,7 +53,7 @@ async def update_policy(
     return policy
 
 
-@pwd_router.delete('')
+@pwd_router.delete("")
 @inject
 async def reset_policy(
     session: FromDishka[AsyncSession],

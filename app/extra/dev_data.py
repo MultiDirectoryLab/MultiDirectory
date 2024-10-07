@@ -6,10 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 group_attrs = {
     "objectClass": ["top"],
-    'groupType': ['-2147483646'],
-    'instanceType': ['4'],
-    'sAMAccountName': ['groups'],
-    'sAMAccountType': ['268435456'],
+    "groupType": ["-2147483646"],
+    "instanceType": ["4"],
+    "sAMAccountName": ["groups"],
+    "sAMAccountType": ["268435456"],
 }
 
 
@@ -19,30 +19,30 @@ DATA = [  # noqa
         "object_class": "builtinDomain",
         "attributes": {
             "objectClass": ["top"],
-            'sAMAccountName': ['main'],
+            "sAMAccountName": ["main"],
         },
         "children": [
             {
                 "name": "administrators",
                 "object_class": "group",
-                "attributes": group_attrs | {
-                    'sAMAccountName': ['administrators']},
+                "attributes": group_attrs
+                | {"sAMAccountName": ["administrators"]},
             },
             {
                 "name": "committers",
                 "object_class": "group",
-                "attributes": group_attrs | {'sAMAccountName': ['committers']},
+                "attributes": group_attrs | {"sAMAccountName": ["committers"]},
             },
             {
                 "name": "operators",
                 "object_class": "group",
-                "attributes": group_attrs | {'sAMAccountName': ['operators']},
+                "attributes": group_attrs | {"sAMAccountName": ["operators"]},
             },
             {
                 "name": "guests",
                 "object_class": "group",
-                "attributes": group_attrs | {'sAMAccountName': ['guests']},
-                'groups': ["operators", 'committers'],
+                "attributes": group_attrs | {"sAMAccountName": ["guests"]},
+                "groups": ["operators", "committers"],
             },
         ],
     },
@@ -60,11 +60,16 @@ DATA = [  # noqa
                     "mail": "username1@multifactor.dev",
                     "display_name": "User 1",
                     "password": "password",
-                    "groups": ['administrators', 'operators'],
+                    "groups": ["administrators", "operators"],
                 },
-                "attributes": {"objectClass": [
-                    "top", "person",
-                    "organizationalPerson", "posixAccount"]},
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                    ]
+                },
             },
             {
                 "name": "user 2",
@@ -75,11 +80,16 @@ DATA = [  # noqa
                     "mail": "username2@multifactor.dev",
                     "display_name": "User 2",
                     "password": "password",
-                    "groups": ['administrators', 'operators'],
+                    "groups": ["administrators", "operators"],
                 },
-                "attributes": {"objectClass": [
-                    "top", "person",
-                    "organizationalPerson", "posixAccount"]},
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                    ]
+                },
             },
         ],
     },
@@ -92,11 +102,16 @@ DATA = [  # noqa
             "mail": "username0@multifactor.dev",
             "display_name": "User 0",
             "password": "password",
-            "groups": ['administrators', 'operators'],
+            "groups": ["administrators", "operators"],
         },
-        "attributes": {"objectClass": [
-            "top", "person",
-            "organizationalPerson", "posixAccount"]},
+        "attributes": {
+            "objectClass": [
+                "top",
+                "person",
+                "organizationalPerson",
+                "posixAccount",
+            ]
+        },
     },
     {
         "name": "users",
@@ -116,8 +131,11 @@ DATA = [  # noqa
                 },
                 "attributes": {
                     "objectClass": [
-                        "top", "person",
-                        "organizationalPerson", "posixAccount"],
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                    ],
                     "uidNumber": ["20000"],
                     "gidNumber": ["20000"],
                     "loginShell": ["/bin/bash"],
@@ -136,9 +154,14 @@ DATA = [  # noqa
                     "password": "password",
                     "groups": ["guests"],
                 },
-                "attributes": {"objectClass": [
-                    "top", "person",
-                    "organizationalPerson", "posixAccount"]},
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                    ]
+                },
             },
         ],
     },
@@ -154,16 +177,22 @@ DATA = [  # noqa
                 "children": [
                     {
                         "name": "user 5",
-                        "object_class": "user", "organizationalPerson": {
+                        "object_class": "user",
+                        "organizationalPerson": {
                             "sam_accout_name": "username5",
                             "user_principal_name": "username5@multifactor.dev",
                             "mail": "username5@multifactor.dev",
                             "display_name": "User 5",
                             "password": "password",
                         },
-                        "attributes": {"objectClass": [
-                            "top", "person",
-                            "organizationalPerson", "posixAccount"]},
+                        "attributes": {
+                            "objectClass": [
+                                "top",
+                                "person",
+                                "organizationalPerson",
+                                "posixAccount",
+                            ]
+                        },
                     },
                 ],
             },
@@ -177,7 +206,7 @@ TEST_DATA = [  # noqa
         "object_class": "container",
         "attributes": {
             "objectClass": ["top"],
-            'sAMAccountName': ['groups'],
+            "sAMAccountName": ["groups"],
         },
         "children": [
             {
@@ -185,10 +214,10 @@ TEST_DATA = [  # noqa
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top"],
-                    'groupType': ['-2147483646'],
-                    'instanceType': ['4'],
-                    'sAMAccountName': ['domain admins'],
-                    'sAMAccountType': ['268435456'],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["domain admins"],
+                    "sAMAccountType": ["268435456"],
                 },
             },
             {
@@ -197,10 +226,10 @@ TEST_DATA = [  # noqa
                 "groups": ["domain admins"],
                 "attributes": {
                     "objectClass": ["top"],
-                    'groupType': ['-2147483646'],
-                    'instanceType': ['4'],
-                    'sAMAccountName': ['developers'],
-                    'sAMAccountType': ['268435456'],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["developers"],
+                    "sAMAccountType": ["268435456"],
                 },
             },
             {
@@ -208,10 +237,10 @@ TEST_DATA = [  # noqa
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top"],
-                    'groupType': ['-2147483646'],
-                    'instanceType': ['4'],
-                    'sAMAccountName': ['domain users'],
-                    'sAMAccountType': ['268435456'],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["domain users"],
+                    "sAMAccountType": ["268435456"],
                 },
             },
         ],
@@ -230,12 +259,15 @@ TEST_DATA = [  # noqa
                     "mail": "user0@mail.com",
                     "display_name": "user0",
                     "password": "password",
-                    "groups": ['domain admins'],
+                    "groups": ["domain admins"],
                 },
                 "attributes": {
                     "objectClass": [
-                        "top", "person",
-                        "organizationalPerson", "posixAccount"],
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                    ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
@@ -250,12 +282,15 @@ TEST_DATA = [  # noqa
                     "mail": "user_non_admin@mail.com",
                     "display_name": "user_non_admin",
                     "password": "password",
-                    "groups": ['domain users'],
+                    "groups": ["domain users"],
                 },
                 "attributes": {
                     "objectClass": [
-                        "top", "person",
-                        "organizationalPerson", "posixAccount"],
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                    ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
@@ -266,7 +301,7 @@ TEST_DATA = [  # noqa
                 "object_class": "organizationalUnit",
                 "attributes": {
                     "objectClass": ["top"],
-                    'sAMAccountName': ['groups'],
+                    "sAMAccountName": ["groups"],
                 },
                 "children": [
                     {
@@ -274,7 +309,7 @@ TEST_DATA = [  # noqa
                         "object_class": "organizationalUnit",
                         "attributes": {
                             "objectClass": ["top"],
-                            'sAMAccountName': ['groups'],
+                            "sAMAccountName": ["groups"],
                         },
                         "children": [
                             {
@@ -286,7 +321,7 @@ TEST_DATA = [  # noqa
                                     "mail": "user1@mail.com",
                                     "display_name": "user1",
                                     "password": "password",
-                                    "groups": ['developers'],
+                                    "groups": ["developers"],
                                 },
                                 "attributes": {
                                     "objectClass": [

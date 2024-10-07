@@ -38,13 +38,13 @@ class UserSchema:
     id: int  # noqa: A003
     sam_accout_name: str
     user_principal_name: str
-    mail: str
-    display_name: str
+    mail: str | None
+    display_name: str | None
     directory_id: int
     dn: str
 
     access_policies_ids: list[int]
-    access_type: Literal['access', 'refresh', 'multifactor']
+    access_type: Literal["access", "refresh", "multifactor"]
     exp: int
     account_exp: datetime | None
 
@@ -52,9 +52,9 @@ class UserSchema:
     def from_db(
         cls,
         user: User,
-        access: Literal['access', 'refresh', 'multifactor'],
+        access: Literal["access", "refresh", "multifactor"],
         exp: int = 0,
-    ) -> 'UserSchema':
+    ) -> "UserSchema":
         """Create model from db model."""
         return cls(
             id=user.id,
@@ -67,8 +67,10 @@ class UserSchema:
             directory_id=user.directory_id,
             dn=user.directory.path_dn,
             access_policies_ids=[
-                policy.id for group in user.groups
-                for policy in group.access_policies],
+                policy.id
+                for group in user.groups
+                for policy in group.access_policies
+            ],
             account_exp=user.account_exp,
         )
 
@@ -182,7 +184,7 @@ class LDAPSession:
         """Set lock."""
         self._lock = asyncio.Lock()
         self._user: UserSchema | None = user
-        self.queue: asyncio.Queue['LDAPRequestMessage'] = asyncio.Queue()
+        self.queue: asyncio.Queue["LDAPRequestMessage"] = asyncio.Queue()
         self.id = uuid.uuid4()
 
     def __str__(self) -> str:
@@ -197,13 +199,14 @@ class LDAPSession:
     @user.setter
     def user(self, user: User) -> None:
         raise NotImplementedError(
-            'Cannot manually set user, use `set_user()` instead')
+            "Cannot manually set user, use `set_user()` instead",
+        )
 
     async def set_user(self, user: User | UserSchema) -> None:
         """Bind user to session concurrently save."""
         async with self._lock:
             if isinstance(user, User):
-                self._user = UserSchema.from_db(user, access='access')
+                self._user = UserSchema.from_db(user, access="access")
             else:
                 self._user = user
 
@@ -226,28 +229,30 @@ class LDAPSession:
     @staticmethod
     def get_address(writer: asyncio.StreamWriter) -> str:
         """Get client address."""
-        return ':'.join(map(str, writer.get_extra_info('peername')))
+        return ":".join(map(str, writer.get_extra_info("peername")))
 
     async def get_ip(self, writer: asyncio.StreamWriter) -> IPv4Address:
         """Get ip addr from writer."""
         addr = self.get_address(writer)
-        return ip_address(addr.split(':')[0])  # type: ignore
+        return ip_address(addr.split(":")[0])  # type: ignore
 
     @staticmethod
     async def _get_policy(
-            ip: IPv4Address, session: AsyncSession) -> NetworkPolicy | None:
-        return await session.scalar((  # noqa
+        ip: IPv4Address, session: AsyncSession,
+    ) -> NetworkPolicy | None:
+        query = (  # noqa
             select(NetworkPolicy)
             .filter_by(enabled=True)
             .options(selectinload(NetworkPolicy.groups))
-            .filter(
-                text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
+            .filter(text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
             .order_by(NetworkPolicy.priority.asc())
             .limit(1)
-        ))
+        )
+        return await session.scalar(query)
 
     async def validate_conn(
-            self, ip: IPv4Address, session: AsyncSession) -> None:
+        self, ip: IPv4Address, session: AsyncSession,
+    ) -> None:
         """Validate network policies."""
         policy = await self._get_policy(ip, session)
         if policy is not None:

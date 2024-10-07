@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import HTTPException, Request, status
@@ -27,12 +28,14 @@ from .schema import (
 )
 from .utils import check_policy_count
 
-network_router = APIRouter(prefix='/policy', tags=['Network policy'])
+network_router = APIRouter(prefix="/policy", tags=["Network policy"])
 
 
 @network_router.post(
-    '', status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_user)])
+    "",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)],
+)
 @inject
 async def add_network_policy(
     policy: Policy,
@@ -50,7 +53,7 @@ async def add_network_policy(
         name=policy.name,
         netmasks=policy.complete_netmasks,
         priority=policy.priority,
-        raw=policy.model_dump(mode='json')['netmasks'],
+        raw=policy.model_dump(mode="json")["netmasks"],
         mfa_status=policy.mfa_status,
     )
     group_dns = []
@@ -71,7 +74,8 @@ async def add_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, 'Entry already exists')
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists",
+        )
 
     await session.refresh(new_policy)
 
@@ -89,8 +93,8 @@ async def add_network_policy(
 
 
 @network_router.get(
-    '', name='policy',
-    dependencies=[Depends(get_current_user)])
+    "", name="policy", dependencies=[Depends(get_current_user)],
+)
 @inject
 async def get_network_policies(
     session: FromDishka[AsyncSession],
@@ -100,10 +104,11 @@ async def get_network_policies(
     \f
     :return list[PolicyResponse]: all policies
     """  # noqa: D205, D301
-    groups = selectinload(NetworkPolicy.groups)\
+    groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
+    mfa_groups = (
+        selectinload(NetworkPolicy.mfa_groups)
         .selectinload(Group.directory)
-    mfa_groups = selectinload(NetworkPolicy.mfa_groups)\
-        .selectinload(Group.directory)
+    )
 
     return [
         PolicyResponse(
@@ -116,16 +121,19 @@ async def get_network_policies(
             groups=(group.directory.path_dn for group in policy.groups),
             mfa_status=policy.mfa_status,
             mfa_groups=(
-                group.directory.path_dn
-                for group in policy.mfa_groups),
+                group.directory.path_dn for group in policy.mfa_groups
+            ),
         )
         for policy in await session.scalars(
-            select(NetworkPolicy).options(groups, mfa_groups)
-            .order_by(NetworkPolicy.priority.asc()))]
+            select(NetworkPolicy)
+            .options(groups, mfa_groups)
+            .order_by(NetworkPolicy.priority.asc()),
+        )
+    ]
 
 
 @network_router.delete(
-    '/{policy_id}',
+    "/{policy_id}",
     response_class=RedirectResponse,
     status_code=status.HTTP_303_SEE_OTHER,
     dependencies=[Depends(get_current_user)],
@@ -146,8 +154,7 @@ async def delete_network_policy(
         at least 1 should be in database.
     :return bool: status of delete
     """  # noqa: D205, D301
-    policy = await session.get(
-        NetworkPolicy, policy_id, with_for_update=True)
+    policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
 
     if not policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
@@ -157,21 +164,23 @@ async def delete_network_policy(
     async with session.begin_nested():
         await session.delete(policy)
         await session.flush()
-        await session.execute((
-            update(NetworkPolicy)
-            .values({'priority': NetworkPolicy.priority - 1})
-            .filter(NetworkPolicy.priority > policy.priority)
-        ))
+        await session.execute(
+            (
+                update(NetworkPolicy)
+                .values({"priority": NetworkPolicy.priority - 1})
+                .filter(NetworkPolicy.priority > policy.priority)
+            ),
+        )
         await session.commit()
 
     return RedirectResponse(
-        request.url_for('policy'),
+        request.url_for("policy"),
         status_code=status.HTTP_303_SEE_OTHER,
         headers=request.headers,
     )  # type: ignore
 
 
-@network_router.patch('/{policy_id}', dependencies=[Depends(get_current_user)])
+@network_router.patch("/{policy_id}", dependencies=[Depends(get_current_user)])
 @inject
 async def switch_network_policy(
     policy_id: int,
@@ -188,8 +197,7 @@ async def switch_network_policy(
         at least 1 should be active
     :return bool: status of update
     """  # noqa: D205, D301
-    policy = await session.get(
-        NetworkPolicy, policy_id, with_for_update=True)
+    policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
 
     if not policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
@@ -202,7 +210,7 @@ async def switch_network_policy(
     return True
 
 
-@network_router.put('', dependencies=[Depends(get_current_user)])
+@network_router.put("", dependencies=[Depends(get_current_user)])
 @inject
 async def update_network_policy(
     request: PolicyUpdate,
@@ -218,7 +226,9 @@ async def update_network_policy(
     :return PolicyResponse: Policy from database
     """  # noqa: D205, D301
     selected_policy = await session.get(
-        NetworkPolicy, request.id, with_for_update=True,
+        NetworkPolicy,
+        request.id,
+        with_for_update=True,
         options=[
             selectinload(NetworkPolicy.groups),
             selectinload(NetworkPolicy.mfa_groups),
@@ -233,7 +243,7 @@ async def update_network_policy(
 
     if request.netmasks:
         selected_policy.netmasks = request.complete_netmasks
-        selected_policy.raw = request.model_dump(mode='json')['netmasks']
+        selected_policy.raw = request.model_dump(mode="json")["netmasks"]
 
     if request.mfa_status is not None:
         selected_policy.mfa_status = request.mfa_status
@@ -260,7 +270,9 @@ async def update_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, 'Entry already exists')
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Entry already exists",
+        )
 
     return PolicyResponse(
         id=selected_policy.id,
@@ -275,7 +287,7 @@ async def update_network_policy(
     )
 
 
-@network_router.post('/swap', dependencies=[Depends(get_current_user)])
+@network_router.post("/swap", dependencies=[Depends(get_current_user)])
 @inject
 async def swap_network_policy(
     swap: SwapRequest,
@@ -292,11 +304,11 @@ async def swap_network_policy(
     :return SwapResponse: policy new priorities
     """  # noqa: D205, D301
     policy1 = await session.get(
-        NetworkPolicy, swap.first_policy_id,
-        with_for_update=True)
+        NetworkPolicy, swap.first_policy_id, with_for_update=True,
+    )
     policy2 = await session.get(
-        NetworkPolicy, swap.second_policy_id,
-        with_for_update=True)
+        NetworkPolicy, swap.second_policy_id, with_for_update=True,
+    )
 
     if not policy1 or not policy2:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")

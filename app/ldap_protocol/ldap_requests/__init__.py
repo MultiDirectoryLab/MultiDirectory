@@ -29,4 +29,4 @@ requests: list[type[BaseRequest]] = [
 protocol_id_map = {request.PROTOCOL_OP: request for request in requests}
 
 
-__all__ = ['protocol_id_map', 'BaseRequest']
+__all__ = ["protocol_id_map", "BaseRequest"]

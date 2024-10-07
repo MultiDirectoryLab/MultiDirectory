@@ -1,3 +1,5 @@
 [flake8]
 extend-ignore = S101, I900, G004, IF100, S311, D301, E231
-exclude = alembic
+exclude =
+    app/alembic
+    alembic

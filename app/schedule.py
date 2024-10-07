@@ -1,4 +1,5 @@
 """Simple scheduler for tasks."""
+
 import asyncio
 from typing import Callable, Coroutine, TypeAlias
 
@@ -31,7 +32,7 @@ async def schedule(
     :param AsyncContainer container: container
     :param float wait: time to wait after execution
     """
-    logger.info('Registered: {}', task.__name__)
+    logger.info("Registered: {}", task.__name__)
     while True:
         async with container(scope=Scope.REQUEST) as ctnr:
             handler = await resolve_deps(func=task, container=ctnr)
@@ -45,8 +46,8 @@ def main() -> None:
 
     async def scheduler(settings: Settings) -> None:
         container = make_async_container(
-            MainProvider(),
-            context={Settings: settings})
+            MainProvider(), context={Settings: settings},
+        )
 
         async with asyncio.TaskGroup() as tg:
             for task, timeout in TASKS:

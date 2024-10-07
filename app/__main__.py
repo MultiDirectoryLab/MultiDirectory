@@ -27,7 +27,8 @@ def main() -> None:
                 MainProvider(),
                 MFAProvider(),
                 MFACredsProvider(),
-                context={Settings: setting})
+                context={Settings: setting},
+            )
 
             settings = await container.get(Settings)
             servers.append(PoolClientHandler(settings, container).start())
@@ -48,5 +49,5 @@ def main() -> None:
             _run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

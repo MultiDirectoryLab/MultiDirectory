@@ -27,15 +27,16 @@ from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 
-log = logger.bind(name='ldap')
+log = logger.bind(name="ldap")
 
 
 log.add(
     "logs/ldap_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == 'ldap',
+    filter=lambda rec: rec["extra"].get("name") == "ldap",
     retention="10 days",
     rotation="1d",
-    colorize=False)
+    colorize=False,
+)
 
 
 infinity = cast(int, math.inf)
@@ -70,14 +71,15 @@ class PoolClientHandler:
 
         if self.settings.USE_CORE_TLS:
             with (
-                NamedTemporaryFile('w+') as certfile,
-                NamedTemporaryFile('w+') as keyfile,
+                NamedTemporaryFile("w+") as certfile,
+                NamedTemporaryFile("w+") as keyfile,
             ):
-                if os.path.exists('/certs/cert.pem') and os.path.exists(
-                        '/certs/privkey.pem'):
+                if os.path.exists("/certs/cert.pem") and os.path.exists(
+                    "/certs/privkey.pem",
+                ):
                     cert_name = self.settings.SSL_CERT
                     key_name = self.settings.SSL_KEY
-                    log.success('Found existing cert and key, loading...')
+                    log.success("Found existing cert and key, loading...")
 
                 else:
                     cert, key = self._read_acme_cert()
@@ -103,7 +105,7 @@ class PoolClientHandler:
             ldap_session = await session_scope.get(LDAPSession)
             addr = await ldap_session.get_ip(writer)
 
-            logger.info(f'Connection {addr} opened')
+            logger.info(f"Connection {addr} opened")
 
             try:
                 async with session_scope(scope=Scope.REQUEST) as r:
@@ -122,7 +124,7 @@ class PoolClientHandler:
             except RuntimeError:
                 log.exception(f"The connection {addr} raised")
             except ConnectionAbortedError:
-                logger.info(f'Connection {addr} closed')
+                logger.info(f"Connection {addr} closed")
 
             finally:
                 await session_scope.close()
@@ -148,27 +150,26 @@ class PoolClientHandler:
 
     @staticmethod
     def _read_acme_cert() -> tuple[str, str]:
-        if not os.path.exists('/certs/acme.json'):
-            log.critical('Cannot load SSL cert for MultiDirectory')
+        if not os.path.exists("/certs/acme.json"):
+            log.critical("Cannot load SSL cert for MultiDirectory")
             raise
 
-        with open('/certs/acme.json') as certfile:
+        with open("/certs/acme.json") as certfile:
             data = json.load(certfile)
 
         try:
-            domain = data['md-resolver'][
-                'Certificates'][0]['domain']['main']
+            domain = data["md-resolver"]["Certificates"][0]["domain"]["main"]
         except (KeyError, IndexError):
-            log.critical('Cannot load SSL cert for MultiDirectory')
+            log.critical("Cannot load SSL cert for MultiDirectory")
             raise
 
-        log.info(f'loaded cert for {domain}')
+        log.info(f"loaded cert for {domain}")
 
-        cert = data['md-resolver']['Certificates'][0]['certificate']
-        key = data['md-resolver']['Certificates'][0]['key']
+        cert = data["md-resolver"]["Certificates"][0]["certificate"]
+        key = data["md-resolver"]["Certificates"][0]["key"]
 
-        cert = base64.b64decode(cert.encode('ascii')).decode()
-        key = base64.b64decode(key.encode('ascii')).decode()
+        cert = base64.b64decode(cert.encode("ascii")).decode()
+        key = base64.b64decode(key.encode("ascii")).decode()
 
         return cert, key
 
@@ -202,7 +203,7 @@ class PoolClientHandler:
                 cont = bytes_length
                 for byte in data[2:2 + bytes_length]:
                     cont -= 1
-                    value_length += byte * (256 ** cont)
+                    value_length += byte * (256**cont)
                 return value_length + 2 + bytes_length
         return infinity
 
@@ -223,14 +224,13 @@ class PoolClientHandler:
             data = await self.recieve(reader)
 
             if not data:
-                raise ConnectionAbortedError(
-                    'Connection terminated by client')
+                raise ConnectionAbortedError("Connection terminated by client")
 
             try:
                 request = LDAPRequestMessage.from_bytes(data)
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
-                log.error(f'Invalid schema {format_exc()}')
+                log.error(f"Invalid schema {format_exc()}")
 
                 writer.write(LDAPRequestMessage.from_err(data, err).encode())
                 await writer.drain()
@@ -245,22 +245,23 @@ class PoolClientHandler:
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
         log.debug(
             f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}\n")
+            f"{msg.model_dump_json()}\n",
+        )
 
     @staticmethod
     def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
         log.debug(
             f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}"[:3000])
+            f"{msg.model_dump_json()}"[:3000],
+        )
 
     @staticmethod
     def _log_short(addr: str, msg: LDAPMessage) -> None:
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(
-            self,
-            writer: asyncio.StreamWriter,
-            container: AsyncContainer) -> None:
+        self, writer: asyncio.StreamWriter, container: AsyncContainer,
+    ) -> None:
         """Get message from queue and handle it."""
         ldap_session = await container.get(LDAPSession)
         addr = str(await ldap_session.get_ip(writer))
@@ -274,7 +275,8 @@ class PoolClientHandler:
                     # NOTE: Automatically provides requested arguments
                     handler = await resolve_deps(
                         func=message.context.handle,
-                        container=request_container)
+                        container=request_container,
+                    )
 
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
@@ -286,7 +288,8 @@ class PoolClientHandler:
                 raise RuntimeError(err) from err
 
     async def _handle_responses(
-        self, writer: asyncio.StreamWriter,
+        self,
+        writer: asyncio.StreamWriter,
         container: AsyncContainer,
     ) -> None:
         """Create pool of workers and apply handler to it.
@@ -305,7 +308,9 @@ class PoolClientHandler:
     async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
         return await asyncio.start_server(
-            self, str(self.settings.HOST), self.settings.PORT,
+            self,
+            str(self.settings.HOST),
+            self.settings.PORT,
             flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
             ssl=self.ssl_context,
         )
@@ -318,15 +323,16 @@ class PoolClientHandler:
 
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:  # noqa
-        addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
-        log.info(f'Server on {addrs}')
+        addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
+        log.info(f"Server on {addrs}")
 
     async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
         log.info(
             f'started {'DEBUG' if self.settings.DEBUG else 'PROD'} '
-            f'{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server')
+            f'{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server',
+        )
 
         try:
             await self._run_server(server)

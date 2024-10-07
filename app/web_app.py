@@ -29,7 +29,9 @@ from ioc import HTTPProvider, MainProvider, MFACredsProvider, MFAProvider
 
 
 async def proc_time_header_middleware(
-        request: Request, call_next: Callable) -> Response:
+    request: Request,
+    call_next: Callable,
+) -> Response:
     """Set X-Process-Time header.
 
     :param Request request: _description_
@@ -45,6 +47,7 @@ async def proc_time_header_middleware(
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create FastAPI app with dependencies overrides."""
+
     @asynccontextmanager
     async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
@@ -87,9 +90,12 @@ def create_prod_app() -> FastAPI:
     """Create production app with container."""
     app = create_app()
     container = make_async_container(
-        MainProvider(), MFAProvider(),
-        HTTPProvider(), MFACredsProvider(),
-        context={Settings: Settings()})
+        MainProvider(),
+        MFAProvider(),
+        HTTPProvider(),
+        MFACredsProvider(),
+        context={Settings: Settings()},
+    )
 
     setup_dishka(container, app)
     return app

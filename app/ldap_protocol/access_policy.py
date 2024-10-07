@@ -20,8 +20,8 @@ from ldap_protocol.utils.queries import (
 )
 from models import AccessPolicy, Directory, Group
 
-T = TypeVar('T', bound=Select)
-__all__ = ['get_policies', 'create_access_policy', 'mutate_ap']
+T = TypeVar("T", bound=Select)
+__all__ = ["get_policies", "create_access_policy", "mutate_ap"]
 
 
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
@@ -30,12 +30,10 @@ async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
     :param AsyncSession session: db
     :return list[AccessPolicy]: result
     """
-    query = (
-        select(AccessPolicy)
-        .options(
-            selectinload(AccessPolicy.groups).selectinload(Group.directory),
-            selectinload(AccessPolicy.directories),
-        ))
+    query = select(AccessPolicy).options(
+        selectinload(AccessPolicy.groups).selectinload(Group.directory),
+        selectinload(AccessPolicy.directories),
+    )
 
     return (await session.scalars(query)).all()
 
@@ -58,7 +56,8 @@ async def create_access_policy(
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
         column=Directory.path[1:len(path)],
-        path=path)
+        path=path,
+    )
 
     directories = await session.scalars(select(Directory).where(dir_filter))
     groups_dirs = await get_groups(groups, session)
@@ -79,8 +78,10 @@ async def create_access_policy(
 
 
 def mutate_ap(
-        query: T, user: UserSchema,
-        action: Literal['add', 'read', 'modify', 'del'] = 'read') -> T:
+    query: T,
+    user: UserSchema,
+    action: Literal["add", "read", "modify", "del"] = "read",
+) -> T:
     """Modify query with read rule filter, joins acess policies.
 
     :param T query: select(Directory)
@@ -89,18 +90,23 @@ def mutate_ap(
     """
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 
-    if action == 'read':
+    if action == "read":
         ap_filter = or_(
             and_(AccessPolicy.can_read.is_(True), whitelist),
-            Directory.id == user.directory_id)
+            Directory.id == user.directory_id,
+        )
 
-    elif action == 'add':
-        ap_filter = AccessPolicy.can_add.is_(True) & whitelist
+    elif action == "add":
+        ap_filter = AccessPolicy.can_add.is_(True) & whitelist  # type: ignore
 
-    elif action == 'modify':
-        ap_filter = AccessPolicy.can_modify.is_(True) & whitelist
+    elif action == "modify":
+        ap_filter = (
+            AccessPolicy.can_modify.is_(  # type: ignore
+                True) & whitelist
+        )
 
-    elif action == 'del':
-        ap_filter = AccessPolicy.can_delete.is_(True) & whitelist
+    elif action == "del":
+        ap_filter = AccessPolicy.can_delete.is_(
+            True) & whitelist  # type: ignore
 
     return query.join(Directory.access_policies, isouter=True).where(ap_filter)

@@ -21,7 +21,7 @@ from pydantic import (
 from pydantic_settings import BaseSettings
 
 with open("/pyproject.toml", "rb") as f:
-    VENDOR_VERSION = tomllib.load(f)['tool']['poetry']['version']
+    VENDOR_VERSION = tomllib.load(f)["tool"]["poetry"]["version"]
 
 
 VENDOR_NAME = "MultiFactor"
@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
 
-    POSTGRES_SCHEMA: str = 'postgresql+asyncpg'
-    POSTGRES_DB: str = 'postgres'
+    POSTGRES_SCHEMA: str = "postgresql+asyncpg"
+    POSTGRES_DB: str = "postgres"
 
     POSTGRES_HOST: str = "postgres"
     POSTGRES_USER: str
@@ -56,10 +56,10 @@ class Settings(BaseSettings):
     INSTANCE_DB_POOL_LIMIT: int = 100
     INSTANCE_DB_POOL_TIMEOUT: int = 5
 
-    SSL_CERT: str = '/certs/cert.pem'
-    SSL_KEY: str = '/certs/privkey.pem'
+    SSL_CERT: str = "/certs/cert.pem"
+    SSL_KEY: str = "/certs/privkey.pem"
 
-    @validator('POSTGRES_URI', pre=True, always=True)
+    @validator("POSTGRES_URI", pre=True, always=True)
     def create_postgres(cls, v: str, values: dict) -> str:  # noqa: N805
         """Build postgres DSN."""
         return (
@@ -79,17 +79,16 @@ class Settings(BaseSettings):
 
     MFA_TIMEOUT_SECONDS: int = 60
     MFA_TOKEN_LEEWAY: int = 15
-    MFA_API_SOURCE: Literal['dev', 'ru'] = 'ru'
+    MFA_API_SOURCE: Literal["dev", "ru"] = "ru"
 
-    TIMEZONE: ZoneInfo = Field(
-        ZoneInfo('UTC'), alias='TZ')
+    TIMEZONE: ZoneInfo = Field(ZoneInfo("UTC"), alias="TZ")
 
-    KRB5_LDAP_URI: str = 'ldap://ldap_server'
-    KRB5_CONFIG_SERVER: HttpUrl = 'https://kadmin_api:8000'  # type: ignore
+    KRB5_LDAP_URI: str = "ldap://ldap_server"
+    KRB5_CONFIG_SERVER: HttpUrl = "https://kadmin_api:8000"  # type: ignore
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
 
-    @field_validator('TIMEZONE', mode='before')
+    @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
         """Get timezone from a string."""
         try:
@@ -108,13 +107,14 @@ class Settings(BaseSettings):
 
         :return str: url
         """
-        if self.MFA_API_SOURCE == 'dev':
-            return 'https://api.multifactor.dev'
-        return 'https://api.multifactor.ru'
+        if self.MFA_API_SOURCE == "dev":
+            return "https://api.multifactor.dev"
+        return "https://api.multifactor.ru"
 
-    def get_copy_4_tls(self) -> 'Settings':
+    def get_copy_4_tls(self) -> "Settings":
         """Create a copy for TLS bind."""
         from copy import copy
+
         tls_settings = copy(self)
         tls_settings.USE_CORE_TLS = True
         tls_settings.PORT = tls_settings.TLS_PORT
