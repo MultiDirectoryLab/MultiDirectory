@@ -9,7 +9,7 @@ from sqlalchemy.sql import func, select
 
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models.ldap3 import Attribute, User
+from models import Attribute, User
 
 
 async def disable_accounts(

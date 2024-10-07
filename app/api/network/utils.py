@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.ldap3 import NetworkPolicy
+from models import NetworkPolicy
 
 
 async def check_policy_count(session: AsyncSession) -> None:

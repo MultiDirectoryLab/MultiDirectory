@@ -19,7 +19,7 @@ from pydantic import (
 )
 
 from ldap_protocol.utils.helpers import validate_entry
-from models.ldap3 import MFAFlags
+from models import MFAFlags
 
 
 class IPRange(BaseModel):

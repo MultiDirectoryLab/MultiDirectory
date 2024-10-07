@@ -11,8 +11,8 @@ import pytest
 from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ldap_protocol.utils.queries import get_user
-from app.security import verify_password
+from ldap_protocol.utils.queries import get_user
+from security import verify_password
 from tests.conftest import TestCreds
 
 

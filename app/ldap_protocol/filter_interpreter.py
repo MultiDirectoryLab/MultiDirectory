@@ -14,7 +14,7 @@ from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.operators import ColumnOperators
 
-from models.ldap3 import Attribute, Directory, Group, User
+from models import Attribute, Directory, Group, User
 
 from .asn1parser import ASN1Row
 from .objects import LDAPMatchingRule

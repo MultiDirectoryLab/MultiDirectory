@@ -139,7 +139,7 @@ from hashlib import blake2b
 from operator import attrgetter
 from zoneinfo import ZoneInfo
 
-from models.ldap3 import Directory
+from models import Directory
 
 
 def validate_entry(entry: str) -> bool:

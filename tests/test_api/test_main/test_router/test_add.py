@@ -7,8 +7,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from app.ldap_protocol.dialogue import LDAPCodes
-from app.ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.dialogue import LDAPCodes
+from ldap_protocol.user_account_control import UserAccountControlFlag
 
 
 @pytest.mark.asyncio

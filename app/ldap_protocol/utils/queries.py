@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models.ldap3 import Attribute, Directory, Group, NetworkPolicy, User
+from models import Attribute, Directory, Group, NetworkPolicy, User
 
 from .const import EMAIL_RE, ENTRY_TYPE
 from .helpers import create_object_sid, dn_is_base_directory, validate_entry

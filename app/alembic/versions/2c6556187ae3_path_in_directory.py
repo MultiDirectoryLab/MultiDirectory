@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import declarative_base
 
-from models.ldap3 import Directory
+from models import Directory
 
 # revision identifiers, used by Alembic.
 revision = '2c6556187ae3'

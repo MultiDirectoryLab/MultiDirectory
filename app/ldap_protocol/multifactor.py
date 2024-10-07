@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from models.ldap3 import CatalogueSetting
+from models import CatalogueSetting
 
 
 @dataclass(frozen=True)

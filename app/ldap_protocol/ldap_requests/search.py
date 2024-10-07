@@ -46,7 +46,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models.ldap3 import Directory, Group, User
+from models import Directory, Group, User
 
 from .base import BaseRequest
 

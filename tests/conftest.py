@@ -38,15 +38,15 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import SessionTransaction
 
-from app.__main__ import PoolClientHandler
-from app.extra import TEST_DATA, setup_enviroment
 from config import Settings
+from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.utils.queries import get_user
 from models import Directory
 from web_app import create_app

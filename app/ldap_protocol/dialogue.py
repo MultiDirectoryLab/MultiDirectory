@@ -17,7 +17,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.ldap3 import NetworkPolicy, User
+from models import NetworkPolicy, User
 
 if TYPE_CHECKING:
     from .messages import LDAPRequestMessage

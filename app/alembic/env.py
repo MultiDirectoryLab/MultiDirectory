@@ -7,7 +7,7 @@ from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Settings
-from models.database import Base
+from models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

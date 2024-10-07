@@ -13,9 +13,9 @@ from dishka import AsyncContainer, Scope
 from ldap3 import PLAIN, SASL, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ldap_protocol.dialogue import LDAPSession
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import (
     BindRequest,
@@ -25,7 +25,7 @@ from ldap_protocol.ldap_requests.bind import (
     UnbindRequest,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models.ldap3 import Attribute, Directory, User
+from models import Attribute, Directory, User
 from security import get_password_hash
 from tests.conftest import MutePolicyBindRequest, TestCreds
 

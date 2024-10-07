@@ -10,7 +10,7 @@ from sqlalchemy import delete, orm, select
 
 from ldap_protocol.utils.helpers import generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
-from models.ldap3 import CatalogueSetting, Directory
+from models import CatalogueSetting, Directory
 
 # revision identifiers, used by Alembic.
 revision = '9356ff164d89'

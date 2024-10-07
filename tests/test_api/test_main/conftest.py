@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest_asyncio
 from httpx import AsyncClient
 
-from app.ldap_protocol.dialogue import LDAPCodes, Operation
+from ldap_protocol.dialogue import LDAPCodes, Operation
 
 
 @pytest_asyncio.fixture(scope='function')

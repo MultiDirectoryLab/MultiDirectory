@@ -7,7 +7,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.sql.selectable import CTE
 
-from models.ldap3 import Directory, DirectoryMembership, Group
+from models import Directory, DirectoryMembership, Group
 
 from .queries import get_filter_from_path
 

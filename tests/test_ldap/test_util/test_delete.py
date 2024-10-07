@@ -11,10 +11,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import Settings
-from app.models.ldap3 import Directory
+from config import Settings
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPCodes
+from models import Directory
 from tests.conftest import TestCreds
 
 

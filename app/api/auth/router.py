@@ -41,8 +41,8 @@ from ldap_protocol.utils.queries import (
     get_base_directories,
     set_last_logon_user,
 )
-from models.ldap3 import CatalogueSetting, Directory, Group
-from models.ldap3 import User as DBUser
+from models import CatalogueSetting, Directory, Group
+from models import User as DBUser
 from security import get_password_hash
 
 from .oauth2 import (

@@ -27,8 +27,8 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from models.ldap3 import CatalogueSetting
-from models.ldap3 import User as DBUser
+from models import CatalogueSetting
+from models import User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (

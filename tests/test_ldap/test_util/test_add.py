@@ -13,13 +13,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
 
-from app.config import Settings
-from app.ldap_protocol.dialogue import LDAPCodes, LDAPSession
-from app.ldap_protocol.ldap_requests import AddRequest
-from app.ldap_protocol.utils.queries import get_search_path
-from app.models.ldap3 import Directory, Group, User
+from config import Settings
 from ldap_protocol.access_policy import create_access_policy
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.ldap_requests import AddRequest
+from ldap_protocol.utils.queries import get_search_path
+from models import Directory, Group, User
 from tests.conftest import TestCreds
 
 

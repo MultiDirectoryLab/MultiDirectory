@@ -9,7 +9,7 @@ from typing import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.ldap3 import Attribute
+from models import Attribute
 
 
 class UserAccountControlFlag(IntFlag):

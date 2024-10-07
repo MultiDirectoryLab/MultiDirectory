@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
 from ldap_protocol.utils.queries import get_groups
-from models.ldap3 import Group, NetworkPolicy
+from models import Group, NetworkPolicy
 
 from .schema import (
     Policy,

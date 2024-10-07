@@ -3,7 +3,6 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
 import enum
 import uuid
 from datetime import datetime, timezone
@@ -28,6 +27,7 @@ from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import (
     Mapped,
     backref,
+    declarative_base,
     declarative_mixin,
     declared_attr,
     relationship,
@@ -37,9 +37,9 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from .database import Base
-
 DistinguishedNamePrefix = Literal['cn', 'ou', 'dc']
+
+Base = declarative_base()
 
 UniqueConstraint.argument_for("postgresql", 'nulls_not_distinct', None)
 

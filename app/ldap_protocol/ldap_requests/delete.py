@@ -25,7 +25,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models.ldap3 import Directory
+from models import Directory
 
 from .base import BaseRequest
 

@@ -30,7 +30,7 @@ from ldap_protocol.utils.queries import (
     is_user_group_valid,
     set_last_logon_user,
 )
-from models.ldap3 import Group, MFAFlags, User
+from models import Group, MFAFlags, User
 from security import verify_password
 
 from .base import BaseRequest

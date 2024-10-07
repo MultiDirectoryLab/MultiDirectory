@@ -9,9 +9,9 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.oauth2 import authenticate_user, create_token
-from app.config import Settings
-from app.models import CatalogueSetting
+from api.auth.oauth2 import authenticate_user, create_token
+from config import Settings
+from models import CatalogueSetting
 from tests.conftest import TestCreds
 
 

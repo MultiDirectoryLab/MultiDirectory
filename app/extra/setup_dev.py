@@ -23,7 +23,7 @@ from sqlalchemy.future import select
 
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
-from models.ldap3 import (
+from models import (
     Attribute,
     CatalogueSetting,
     Directory,
