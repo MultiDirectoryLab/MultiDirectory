@@ -14,6 +14,13 @@ jobs:
       - name: downcase REPO
         run: |
           echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+            -
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -25,7 +32,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ghcr.io/${{ env.REPO }}_linters:latest
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           push: true
       - name: Run linters
         run: docker run ghcr.io/${{ env.REPO }}_linters:latest ruff check
@@ -36,6 +42,12 @@ jobs:
       - name: downcase REPO
         run: |
           echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
