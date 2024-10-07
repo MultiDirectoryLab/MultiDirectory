@@ -24,9 +24,9 @@ jobs:
           file: .docker/lint.Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: linter
+          tags: ghcr.io/${{ env.REPO }}_linters:latest
       - name: Run linters
-        run: docker run linter ruff check
+        run: docker run ghcr.io/${{ env.REPO }}_linters:latest ruff check
 
   flake8:
     runs-on: ubuntu-latest
@@ -44,9 +44,9 @@ jobs:
           file: .docker/lint.Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: linter
+          tags: ghcr.io/${{ env.REPO }}_linters:latest
       - name: Run linters
-        run: docker run linter flake8
+        run: docker run ghcr.io/${{ env.REPO }}_linters:latest flake8
 
   mypy:
     runs-on: ubuntu-latest
@@ -64,8 +64,8 @@ jobs:
           file: .docker/lint.Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: linter
+          tags: ghcr.io/${{ env.REPO }}_linters:latest
       - name: Run linters
-        run: docker run linter mypy .
+        run: docker run ghcr.io/${{ env.REPO }}_linters:latest mypy .
 
 
