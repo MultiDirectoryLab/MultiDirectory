@@ -4,24 +4,33 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dishka import AsyncContainer
 from pydantic import BaseModel, Field, SecretStr
-from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
-from ldap_protocol.ldap_requests.base import APIMultipleResponseMixin
+from ldap_protocol.ldap_requests.base import BaseResponse
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 
 
-class SearchRequest(APIMultipleResponseMixin, LDAPSearchRequest):
+class SearchRequest(LDAPSearchRequest):
     """Search request for web api."""
 
-    filter: str = Field(..., examples=["(objectClass=*)"])  # noqa: A003
+    filter: str = Field(  # noqa: A003
+        ..., examples=["(objectClass=*)"])  # type: ignore
 
-    def cast_filter(self) -> UnaryExpression:
+    def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
         return cast_str_filter2sql(Filter.parse(filter_).simplify())
+
+    async def handle_api(  # type: ignore
+        self,
+        container: AsyncContainer,
+    ) -> list[BaseResponse]:
+        """Get all responses."""
+        return await self._handle_api(container)  # type: ignore
 
 
 class SearchResponse(SearchResultDone):  # noqa: D101

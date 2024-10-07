@@ -83,7 +83,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
-        responses = [response async for response in handler()]  # type: ignore
+        responses = [response async for response in handler()]
 
         if settings.DEBUG:
             for response in responses:
@@ -101,14 +101,3 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     async def handle_api(self, container: AsyncContainer) -> LDAPResult:
         """Get single response."""
         return (await self._handle_api(container))[0]  # type: ignore
-
-
-class APIMultipleResponseMixin(_APIProtocol):
-    """Get multiple responses."""
-
-    async def handle_api(
-        self,
-        container: AsyncContainer,
-    ) -> list[BaseResponse]:
-        """Get all responses."""
-        return await self._handle_api(container)  # type: ignore
