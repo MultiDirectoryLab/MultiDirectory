@@ -250,7 +250,7 @@ async def create_group(
     dir_.access_policies.extend(parent.access_policies)
 
     group = Group(directory=dir_)
-    dir_.create_path(parent, f"cn={name}")
+    dir_.create_path(parent)
     session.add_all([dir_, group])
     await session.flush()
 
