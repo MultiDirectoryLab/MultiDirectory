@@ -5,15 +5,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import re
 import socket
-from typing import Annotated
+from typing import Annotated, Any, Optional
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import Body, HTTPException
+from fastapi import Body, HTTPException, Depends
 from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from api.auth import get_current_user
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -24,7 +25,11 @@ from ldap_protocol.dns import (
     set_dns_manager_state,
 )
 
-dns_router = APIRouter(prefix='/dns', tags=['DNS_SERVICE'])
+dns_router = APIRouter(
+    prefix='/dns',
+    tags=['DNS_SERVICE'],
+    dependencies=[Depends(get_current_user)]
+)
 
 
 @dns_router.post('/record')
@@ -106,9 +111,9 @@ async def get_dns_status(
 async def setup_dns(
     dns_status: Annotated[str, Body()],
     domain: Annotated[str, Body()],
+    dns_manager: FromDishka[AbstractDNSManager],
     dns_ip_address: Annotated[str | None, Body()],
     tsig_key: Annotated[str | None, Body()],
-    dns_manager: FromDishka[AbstractDNSManager],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
 ):
