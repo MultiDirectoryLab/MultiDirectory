@@ -256,7 +256,7 @@ class DNSManager(AbstractDNSManager):
                     }]
 
         response = []
-        for record_type in result.keys():
+        for record_type in result:
             response.append({
                 "record_type": record_type,
                 "records": result[record_type],
