@@ -4,11 +4,11 @@ from typing import Callable, Coroutine, TypeAlias
 
 import uvloop
 from dishka import AsyncContainer, Scope, make_async_container
-from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
-from extra.scripts.uac_sync import disable_accounts
 from loguru import logger
 
 from config import Settings
+from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
+from extra.scripts.uac_sync import disable_accounts
 from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
 

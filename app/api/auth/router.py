@@ -9,7 +9,6 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from extra.setup_dev import setup_enviroment
 from fastapi import (
     APIRouter,
     Body,
@@ -24,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from extra.setup_dev import setup_enviroment
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
