@@ -77,7 +77,7 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
-        responses = [response async for response in handler()]
+        responses = [response async for response in handler()]  # type: ignore
 
         if settings.DEBUG:
             for response in responses:
