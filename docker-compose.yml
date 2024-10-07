@@ -298,7 +298,11 @@ services:
           memory: 6M
 
   interface:
-    image: ghcr.io/multidirectorylab/multidirectory-web-admin:beta
+    build:
+      context: ./interface
+      dockerfile: ./configurations/docker/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
     container_name: multidirectory_interface
     restart: "no"
     hostname: interface
