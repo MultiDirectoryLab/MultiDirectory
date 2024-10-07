@@ -21,7 +21,7 @@ from ldap_protocol.dns import (
     DNSManagerSettings,
     DNSManagerState,
     get_dns_state,
-    set_dns_manager_state,
+    set_dns_manager_state, resolve_dns_server_ip,
 )
 
 dns_router = APIRouter(
@@ -139,10 +139,7 @@ async def setup_dns(
             domain=data.domain,
         )
 
-        try:
-            dns_ip_address = socket.gethostbyname(settings.DNS_BIND_HOST)
-        except socket.error:
-            dns_ip_address = None
+        dns_ip_address = await resolve_dns_server_ip()
 
     try:
         await dns_manager.setup(

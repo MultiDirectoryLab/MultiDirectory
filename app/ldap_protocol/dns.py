@@ -13,6 +13,7 @@ from typing import Any, Callable
 import dns
 import dns.asyncquery
 import dns.update
+import dns.asyncresolver
 from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -228,10 +229,7 @@ class DNSManager(AbstractDNSManager):
     async def get_all_records(self) -> list:
         """Get all DNS records."""
         if self._settings.tsig_key is not None:
-            loguru_logger.debug(self._settings.dns_server_ip)
-            loguru_logger.debug(self._settings.domain)
-            loguru_logger.debug(self._settings.tsig_key)
-            zone_xfr_response = dns.query.xfr(
+            zone_xfr_response = await dns.asyncquery.xfr(
                 self._settings.dns_server_ip,
                 self._settings.domain,
                 keyring={
@@ -241,7 +239,7 @@ class DNSManager(AbstractDNSManager):
                 keyalgorithm=dns.tsig.default_algorithm
             )
         else:
-            zone_xfr_response = dns.query.xfr(
+            zone_xfr_response = await dns.asyncquery.xfr(
                 self._settings.dns_server_ip, self._settings.domain,
             )
 
@@ -355,6 +353,14 @@ async def set_dns_manager_state(
     )
 
 
+async def resolve_dns_server_ip() -> str:
+    """Get DNS server IP from Docker network."""
+    async_resolver = dns.asyncresolver.Resolver()
+    dns_server_ip_resolve = await async_resolver.resolve("bind9")
+
+    return dns_server_ip_resolve.rrset[0]
+
+
 async def get_dns_manager_settings(
     session: AsyncSession,
 ) -> 'DNSManagerSettings':
@@ -375,7 +381,7 @@ async def get_dns_manager_settings(
     dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None)
 
     if await get_dns_state(session) == DNSManagerState.SELFHOSTED:
-        dns_server_ip = socket.gethostbyname("bind9")
+        dns_server_ip = await resolve_dns_server_ip()
 
     return DNSManagerSettings(
         zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
