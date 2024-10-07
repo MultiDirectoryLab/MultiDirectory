@@ -15,6 +15,7 @@ services:
       - "--entrypoints.kdc.address=:88"
       - "--entrypoints.ldaps.address=:636"
       - "--entrypoints.kadmind.address=:749"
+      - "--entrypoints.bind_dns.address=:53"
     ports:
       - "80:80"
       - "8080:8080"
@@ -22,6 +23,7 @@ services:
       - "636:636"
       - "88:88"
       - "749:749"
+      - "53:53"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
@@ -218,6 +220,12 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
+      - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
+      - traefik.tcp.routers.bind_dns.service=bind_dns
+      - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
 
   kdc:
     build:
