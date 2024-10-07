@@ -5,8 +5,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ldap_protocol.dialogue import LDAPCodes, Operation
+from ldap_protocol.dns import DNS_MANAGER_IP_ADDRESS_NAME, DNS_MANAGER_ZONE_NAME, DNS_MANAGER_STATE_NAME, \
+    DNSManagerState
+from models import CatalogueSetting
 
 
 @pytest_asyncio.fixture(scope='function')
@@ -113,3 +117,31 @@ async def adding_test_user(
         })
 
     assert auth.cookies.get('access_token')
+
+
+@pytest_asyncio.fixture(scope='function')
+async def add_dns_settings(
+    session: AsyncSession,
+) -> None:
+    """Add DNS manager settings to DB."""
+    dns_ip_address = "127.0.0.1"
+    domain = "example.com"
+    dns_state = DNSManagerState.HOSTED
+
+    session.add_all(
+        [
+            CatalogueSetting(
+                name=DNS_MANAGER_IP_ADDRESS_NAME,
+                value=dns_ip_address,
+            ),
+            CatalogueSetting(
+                name=DNS_MANAGER_ZONE_NAME,
+                value=domain,
+            ),
+            CatalogueSetting(
+                name=DNS_MANAGER_STATE_NAME,
+                value=dns_state,
+            ),
+        ]
+    )
+    await session.commit()

@@ -44,6 +44,7 @@ from config import Settings
 from ioc import MFACredsProvider
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.dns import AbstractDNSManager, DNSManagerSettings, get_dns_manager_settings
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
@@ -61,6 +62,7 @@ class TestProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.RUNTIME)
     _cached_session: AsyncSession | None = None
     _cached_kadmin: Mock | None = None
+    _cached_dns_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
 
     @provide(scope=Scope.APP, provides=AbstractKadmin)
@@ -89,6 +91,32 @@ class TestProvider(Provider):
         yield self._cached_kadmin
 
         self._cached_kadmin = None
+
+    @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
+    async def get_dns_mngr(self) -> AsyncIterator[AsyncMock]:
+        """Get mock DNS manager."""
+        dns_manager = Mock()
+
+        dns_manager.create_record = AsyncMock()
+        dns_manager.update_record = AsyncMock()
+        dns_manager.delete_record = AsyncMock()
+        dns_manager.get_all_records = AsyncMock(return_value=[{"record_type": "A", "records": [{"hostname": "example.com", "ip": "127.0.0.1", "ttl": 3600}]}])
+        dns_manager.setup = AsyncMock()
+
+        if not self._cached_dns_manager:
+            self._cached_dns_manager = dns_manager
+
+        yield self._cached_dns_manager
+
+        self._cached_dns_manager = None
+
+    @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
+    async def get_dns_mngr_settings(
+            self, session_maker: sessionmaker,
+    ) -> 'DNSManagerSettings':
+        """Get DNS manager's settings."""
+        async with session_maker() as session:
+            return await get_dns_manager_settings(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -204,6 +232,14 @@ async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
     """Get di kadmin."""
     async with container(scope=Scope.APP) as container:
         yield await container.get(AbstractKadmin)
+
+
+@pytest_asyncio.fixture
+async def dns_manager(container: AsyncContainer)\
+        -> AsyncIterator[AbstractDNSManager]:
+    """Get DI DNS manager."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(AbstractDNSManager)
 
 
 @pytest.fixture(scope="session")
