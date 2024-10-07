@@ -307,7 +307,8 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def get_all_records(self) -> list: ... # noqa
+    async def get_all_records(self) -> list:
+        return []
 
 
 async def get_dns_state(
