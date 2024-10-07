@@ -357,7 +357,7 @@ async def get_dns_manager_settings(
 
     dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None)
 
-    if get_dns_state(session) == DNSManagerState.SELFHOSTED:
+    if await get_dns_state(session) == DNSManagerState.SELFHOSTED:
         dns_server_ip = socket.gethostbyname("bind9")
 
     return DNSManagerSettings(
