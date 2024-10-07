@@ -98,7 +98,8 @@ class Settings(BaseSettings):
     DNS_BIND_HOST: str = 'bind_dns'
     DNS_TSIG_KEY: str = '/DNS_SERVER_FILE/zone.key'
     DNS_ZONE_FILE: str = '/DNS_SERVER_FILE/db.zone'
-    DNS_SERVER_CONFIGS: str = '/DNS_SERVER_CONFIGS/'
+    DNS_SERVER_NAMED_CONF: str = '/DNS_SERVER_CONFIGS/named.conf'
+    DNS_SERVER_CONFIGS_NAMED_CONF_LOCAL: str = '/DNS_SERVER_CONFIGS/named.conf.local'
 
     @field_validator('TIMEZONE', mode='before')
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805

@@ -135,22 +135,10 @@ class AbstractDNSManager(ABC):
             with open(settings.DNS_ZONE_FILE, "w") as f:
                 f.write(zone_file)
 
-            with open(
-                os.path.join(
-                    settings.DNS_SERVER_CONFIGS,
-                    "named.conf.local"
-                ),
-                "a",
-            ) as f:
+            with open(settings.DNS_SERVER_NAMED_CONF_LOCAL, "a") as f:
                 f.write(named_conf_local_part)
 
-            with open(
-                os.path.join(
-                    settings.DNS_SERVER_CONFIGS,
-                    "named.conf"
-                ),
-                "a",
-            ) as f:
+            with open(settings.DNS_SERVER_NAMED_CONF, "a") as f:
                 f.write("\ninclude \"/opt/zone.key\";")
 
         session.add_all(
