@@ -184,7 +184,7 @@ async def test_auth_disabled_user(
         },
     )
 
-    kadmin.lock_principal.assert_called()
+    kadmin.lock_principal.assert_called()  # type: ignore
     data = response.json()
 
     assert isinstance(data, dict)

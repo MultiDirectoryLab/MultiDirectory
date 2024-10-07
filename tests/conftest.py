@@ -147,7 +147,8 @@ class TestProvider(Provider):
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_ldap_session(self) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        return LDAPSession()
+        yield LDAPSession()
+        return
 
     @provide(scope=Scope.REQUEST, provides=MultifactorAPI)
     async def get_mfa_api(self) -> Mock:
@@ -203,7 +204,7 @@ class MutePolicyBindRequest(BindRequest):
 async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
     """Get di kadmin."""
     async with container(scope=Scope.APP) as container:
-        yield await container.get(AbstractKadmin)
+        yield await container.get(AbstractKadmin)  # type: ignore
 
 
 @pytest.fixture(scope="session")
@@ -301,8 +302,10 @@ async def ldap_bound_session(
 ) -> AsyncIterator[LDAPSession]:
     """Yield bound session."""
     user = await get_user(session, creds.un)
+    assert user
     await ldap_session.set_user(user)
-    return ldap_session
+    yield ldap_session
+    return
 
 
 @pytest_asyncio.fixture(scope="session")
