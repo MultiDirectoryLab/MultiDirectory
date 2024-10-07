@@ -35,7 +35,6 @@ from ldap_protocol.multifactor import (
 )
 
 KadminHTTPClient = NewType('KadminHTTPClient', httpx.AsyncClient)
-DNSManagerHTTPClient = NewType('DNSManagerHTTPClient', httpx.AsyncClient)
 MFAHTTPClient = NewType('MFAHTTPClient', httpx.AsyncClient)
 
 
