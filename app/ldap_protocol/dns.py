@@ -146,22 +146,39 @@ class AbstractDNSManager(ABC):
 
             tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
 
-        session.add_all(
-            [
-                CatalogueSetting(
-                    name=DNS_MANAGER_IP_ADDRESS_NAME,
-                    value=dns_ip_address,
-                ),
-                CatalogueSetting(
-                    name=DNS_MANAGER_ZONE_NAME,
-                    value=domain,
-                ),
-                CatalogueSetting(
-                    name=DNS_MANAGER_TSIG_KEY_NAME,
-                    value=tsig_key,
-                ),
-            ],
-        )
+        if self._settings.domain is not None:
+            await session.execute(
+                update(CatalogueSetting)
+                .values({"value": domain})
+                .where(CatalogueSetting.name == DNS_MANAGER_ZONE_NAME),
+            )
+            await session.execute(
+                update(CatalogueSetting)
+                .values({"value": dns_ip_address})
+                .where(CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME),
+            )
+            await session.execute(
+                update(CatalogueSetting)
+                .values({"value": tsig_key})
+                .where(CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME),
+            )
+        else:
+            session.add_all(
+                [
+                    CatalogueSetting(
+                        name=DNS_MANAGER_IP_ADDRESS_NAME,
+                        value=dns_ip_address,
+                    ),
+                    CatalogueSetting(
+                        name=DNS_MANAGER_ZONE_NAME,
+                        value=domain,
+                    ),
+                    CatalogueSetting(
+                        name=DNS_MANAGER_TSIG_KEY_NAME,
+                        value=tsig_key,
+                    ),
+                ],
+            )
 
     @abstractmethod
     async def create_record( # noqa
