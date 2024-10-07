@@ -87,7 +87,7 @@ async def test_tree_creation(
     )
 
     result = await anext(bind.handle(
-        session, ldap_session, kadmin, settings, None))
+        session, ldap_session, kadmin, settings, None))  # type: ignore
     assert result.result_code == LDAPCodes.SUCCESS
 
 
@@ -484,7 +484,11 @@ async def test_update_password(
     kadmin: AbstractKadmin,
 ) -> None:
     """Update policy."""
-    kadmin.create_or_update_principal_pw.side_effect = KRBAPIError()
+    (
+        kadmin.
+        create_or_update_principal_pw.
+        side_effect  # type: ignore
+    ) = KRBAPIError()
     response = await http_client.patch(
         "auth/user/password",
         json={"identity": "user0", "new_password": "Password123"},

@@ -155,7 +155,7 @@ class PasswordPolicySchema(BaseModel):
 
         val = (
             ft_to_dt(int(last_pwd_set.value)).astimezone(tz)
-            if last_pwd_set
+            if last_pwd_set and last_pwd_set.value is not None
             else now
         )
 
