@@ -407,6 +407,8 @@ class ModifyRequest(BaseRequest):
 
                 if name == "accountexpires":
                     new_value = ft_to_dt(int(value)) if value != "0" else None
+                else:
+                    new_value = value  # type: ignore
 
                 await session.execute(
                     update(User)
