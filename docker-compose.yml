@@ -206,9 +206,7 @@ services:
              --reload
 
   bind_dns:
-    build:
-      context: .
-      dockerfile: ./.docker/bind_dns.Dockerfile
+    image: ubuntu/bind9:latest
     container_name: bind9
     hostname: bind9
     restart: unless-stopped
@@ -220,6 +218,7 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+    command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
@@ -299,11 +298,7 @@ services:
           memory: 6M
 
   interface:
-    build:
-      context: ./interface
-      dockerfile: ./configurations/docker/Dockerfile
-      args:
-        DOCKER_BUILDKIT: 1
+    image: ghcr.io/multidirectorylab/multidirectory-web-admin:beta
     container_name: multidirectory_interface
     restart: "no"
     hostname: interface
