@@ -341,7 +341,7 @@ class BindRequest(BaseRequest):
                                 Group.users.contains(user),
                             ),
                         ),
-                    )  # type: ignore
+                    )
 
                 if check_group:
                     mfa_status = await self.check_mfa(

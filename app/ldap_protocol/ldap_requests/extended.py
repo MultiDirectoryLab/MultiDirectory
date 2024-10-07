@@ -212,7 +212,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         )
 
         p_last_set = await validator.get_pwd_last_set(
-            session, user.directory_id,  # type: ignore
+            session, user.directory_id,
         )
 
         if validator.validate_min_age(p_last_set):

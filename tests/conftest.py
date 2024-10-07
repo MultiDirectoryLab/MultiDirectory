@@ -204,7 +204,7 @@ class MutePolicyBindRequest(BindRequest):
 async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
     """Get di kadmin."""
     async with container(scope=Scope.APP) as container:
-        yield await container.get(AbstractKadmin)  # type: ignore
+        yield await container.get(AbstractKadmin)
 
 
 @pytest.fixture(scope="session")
@@ -362,6 +362,7 @@ async def unbound_http_client(
             transport=httpx.ASGITransport(
                 app=app, root_path='/api',  # type: ignore
             ),
+            timeout=3,
             base_url="http://test") as client:
         yield client
 
