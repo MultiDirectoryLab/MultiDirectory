@@ -57,7 +57,6 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
     async def handle(self, *args: Any, **kwargs: Any) -> AsyncGenerator[
             BaseResponse, None]:
         """Handle message with current user."""
-        yield BaseResponse()
 
     async def _handle_api(
             self, container: AsyncContainer) -> list[BaseResponse]:
@@ -78,8 +77,7 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
-        responses = [
-            response async for response in handler()]
+        responses = [response async for response in handler()]
 
         if settings.DEBUG:
             for response in responses:
@@ -105,4 +103,4 @@ class APIMultipleResponseMixin(_APIProtocol):
         self, container: AsyncContainer,
     ) -> list[BaseResponse]:
         """Get all responses."""
-        return await self._handle_api(container)
+        return await self._handle_api(container)  # type: ignore

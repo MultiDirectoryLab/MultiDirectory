@@ -87,9 +87,9 @@ async def get_mfa(
     :return MFAGetResponse: response
     """  # noqa: D301
     if not mfa_creds:
-        mfa_creds = Creds(None, None)
+        mfa_creds = MFA_HTTP_Creds(Creds(None, None))
     if not mfa_creds_ldap:
-        mfa_creds_ldap = Creds(None, None)
+        mfa_creds_ldap = MFA_LDAP_Creds(Creds(None, None))
 
     return MFAGetResponse(
         mfa_key=mfa_creds.key,

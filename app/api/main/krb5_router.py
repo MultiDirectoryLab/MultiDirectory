@@ -165,7 +165,7 @@ async def setup_kdc(
 
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
-    domain = base_dn_list[0].name
+    domain: str = base_dn_list[0].name  # type: ignore
 
     krbadmin = 'cn=krbadmin,ou=users,' + base_dn
     services_container = 'ou=services,' + base_dn

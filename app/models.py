@@ -128,7 +128,7 @@ class Directory(Base):
 
     __tablename__ = "Directory"
 
-    id = Column(Integer, primary_key=True)  # noqa: A003
+    id: int = Column(Integer, primary_key=True)  # noqa: A003
 
     parent_id = Column(
         'parentId', Integer,
@@ -273,7 +273,7 @@ class Directory(Base):
 class DirectoryReferenceMixin:
     """Mixin with dir id reference."""
 
-    id = Column(Integer, primary_key=True)  # noqa: A003
+    id: int = Column(Integer, primary_key=True)  # noqa: A003
 
     @declared_attr
     def directory_id(cls) -> Mapped[int]:  # noqa: N805, D102

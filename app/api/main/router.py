@@ -30,7 +30,7 @@ async def search(
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
     responses = await request.handle_api(req.state.dishka_container)
-    metadata: SearchResultDone = responses.pop(-1)
+    metadata = responses.pop(-1)
 
     return SearchResponse(
         result_code=metadata.result_code,

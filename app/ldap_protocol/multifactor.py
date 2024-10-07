@@ -23,8 +23,8 @@ from models import CatalogueSetting
 class Creds:
     """Creds for mfa."""
 
-    key: str
-    secret: str
+    key: str | None
+    secret: str | None
 
 
 MFA_HTTP_Creds = NewType('MFA_HTTP_Creds', Creds)

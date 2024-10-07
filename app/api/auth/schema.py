@@ -66,6 +66,7 @@ class MFACreateRequest(BaseModel):
     mfa_secret: str
     is_ldap_scope: bool
 
+    @property
     @computed_field
     def key_name(self) -> str:  # noqa
         if self.is_ldap_scope:
@@ -73,6 +74,7 @@ class MFACreateRequest(BaseModel):
 
         return 'mfa_key'
 
+    @property
     @computed_field
     def secret_name(self) -> str:  # noqa
         if self.is_ldap_scope:

@@ -106,7 +106,7 @@ async def authenticate_user(
 
     if not user:
         return None
-    if not verify_password(password, user.password):
+    if not verify_password(password, user.password or ''):
         return None
     return user
 
