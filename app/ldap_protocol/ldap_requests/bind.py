@@ -278,7 +278,7 @@ class BindRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         settings: Settings,
-        mfa: LDAPMultiFactorAPI,
+        mfa: LDAPMultiFactorAPI | None,
     ) -> AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():

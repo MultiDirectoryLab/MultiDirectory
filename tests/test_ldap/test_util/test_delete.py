@@ -87,7 +87,7 @@ async def test_ldap_delete_w_access_control(
 
         assert await proc.wait() == LDAPCodes.SUCCESS
 
-    async def try_delete() -> LDAPCodes:
+    async def try_delete() -> int:
         proc = await asyncio.create_subprocess_exec(
             'ldapdelete',
             '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',

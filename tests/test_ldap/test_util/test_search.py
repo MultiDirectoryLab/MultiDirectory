@@ -16,6 +16,7 @@ from config import Settings
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
+from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.utils.queries import (
     get_group,
     get_groups,
@@ -148,7 +149,8 @@ async def test_bvalue_in_search_request(
         attributes=["*"],
     )
 
-    result = await anext(request.handle(session, ldap_bound_session, settings))
+    result: SearchResultEntry = await anext(request.handle(
+        session, ldap_bound_session, settings))  # type: ignore
 
     assert result
 
