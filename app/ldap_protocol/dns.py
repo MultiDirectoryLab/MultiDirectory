@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import functools
-import os
+import re
 import socket
 from abc import ABC, abstractmethod
 from enum import Enum, StrEnum
@@ -140,6 +140,11 @@ class AbstractDNSManager(ABC):
 
             with open(settings.DNS_SERVER_NAMED_CONF, "a") as f:
                 f.write("\ninclude \"/opt/zone.key\";")
+
+            with open(settings.DNS_TSIG_KEY, "r") as f:
+                key_file_content = f.read()
+
+            tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
 
         session.add_all(
             [

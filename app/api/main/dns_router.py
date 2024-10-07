@@ -128,11 +128,6 @@ async def setup_dns(
         zone_file_template = settings.TEMPLATES.get_template("zone.template")
         zone_file = await zone_file_template.render_async(domain=data.domain)
 
-        with open(settings.DNS_TSIG_KEY, "r") as f:
-            key_file_content = f.read()
-
-        tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
-
         named_conf_local_part_template = settings.TEMPLATES.get_template(
             "named_conf_local_zone_part.template",
         )
@@ -140,7 +135,10 @@ async def setup_dns(
             domain=data.domain,
         )
 
-        dns_ip_address = socket.gethostbyname(settings.DNS_BIND_HOST)
+        try:
+            dns_ip_address = socket.gethostbyname(settings.DNS_BIND_HOST)
+        except socket.error:
+            dns_ip_address = None
 
     try:
         await dns_manager.setup(
