@@ -303,7 +303,8 @@ async def test_ldap_membersip_grp_replace(
 
         assert result == 0
 
-    await session.refresh(query)
+    session.expire_all()
+    directory = await session.scalar(query)
     assert directory.group.parent_groups[0].directory.name == "twisted1"
 
 
@@ -387,12 +388,14 @@ async def test_ldap_modify_with_ap(
     dn = "ou=users,dc=md,dc=test"
     search_path = get_search_path(dn)
 
-    directory = await session.scalar(
+    query = (
         select(Directory)
         .options(
             subqueryload(Directory.attributes),
             joinedload(Directory.user))
         .filter(Directory.path == search_path))
+
+    directory = await session.scalar(query)
 
     async def try_modify() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
@@ -453,7 +456,8 @@ async def test_ldap_modify_with_ap(
 
     assert await try_modify() == LDAPCodes.SUCCESS
 
-    await session.refresh(directory)
+    session.expire_all()
+    directory = await session.scalar(query)
 
     attributes = defaultdict(list)
 
