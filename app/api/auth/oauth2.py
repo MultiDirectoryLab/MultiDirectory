@@ -22,8 +22,8 @@ from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.utils.queries import get_user
-from models.ldap3 import Group
-from models.ldap3 import User as DBUser
+from models import Group
+from models import User as DBUser
 from security import verify_password
 
 ALGORITHM = "HS256"
@@ -32,7 +32,7 @@ ALGORITHM = "HS256"
 def get_token(
     request: Request,
     auto_error: bool = True,
-    type_: Literal['access_token', 'refresh_token'] = 'access_token',
+    type_: Literal["access_token", "refresh_token"] = "access_token",
 ) -> str | None:
     """Get token from cookies.
 
@@ -43,7 +43,7 @@ def get_token(
     :raises HTTPException: 401
     :return str | None: parsed token
     """
-    authorization: str = request.cookies.get(type_, '')
+    authorization: str = request.cookies.get(type_, "")
 
     scheme, param = get_authorization_scheme_param(authorization)
     if not authorization or scheme.lower() != "bearer":
@@ -71,9 +71,13 @@ class OAuth2PasswordBearerWithCookie(OAuth2):
         if not scopes:
             scopes = {}
         flows = OAuthFlowsModel(
-            password={"tokenUrl": tokenUrl, "scopes": scopes})
+            password={"tokenUrl": tokenUrl, "scopes": scopes},
+        )
         super().__init__(
-            flows=flows, scheme_name=scheme_name, auto_error=auto_error)
+            flows=flows,
+            scheme_name=scheme_name,
+            auto_error=auto_error,
+        )
 
     async def __call__(self, request: Request) -> str | None:
         """Accept access token from httpOnly Cookie."""
@@ -81,7 +85,8 @@ class OAuth2PasswordBearerWithCookie(OAuth2):
 
 
 oauth2 = OAuth2PasswordBearerWithCookie(
-    tokenUrl="auth/token/get", auto_error=False)
+    tokenUrl="auth/token/get", auto_error=False,
+)
 
 _CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -106,7 +111,7 @@ async def authenticate_user(
 
     if not user:
         return None
-    if not verify_password(password, user.password):
+    if not verify_password(password, user.password or ""):
         return None
     return user
 
@@ -115,8 +120,9 @@ def create_token(
     uid: int,
     secret: str,
     expires_minutes: int,
-    grant_type: Literal['refresh', 'access'],
-    *, extra_data: dict | None = None,
+    grant_type: Literal["refresh", "access"],
+    *,
+    extra_data: dict | None = None,
 ) -> str:
     """Create jwt token.
 
@@ -131,9 +137,9 @@ def create_token(
         extra_data = {}
 
     to_encode = extra_data.copy()
-    to_encode['uid'] = uid
+    to_encode["uid"] = uid
     expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
-    to_encode.update({"exp": expire, 'grant_type': grant_type})
+    to_encode.update({"exp": expire, "grant_type": grant_type})
     return jwt.encode(to_encode, secret)
 
 
@@ -162,7 +168,8 @@ async def get_user_from_token(
                 token,
                 mfa_creds.secret,
                 audience=mfa_creds.key,
-                algorithms=ALGORITHM)
+                algorithms=ALGORITHM,
+            )
         except (JWTError, AttributeError):
             raise _CREDENTIALS_EXCEPTION
 
@@ -196,12 +203,14 @@ async def get_current_user(  # noqa: D103
 ) -> UserSchema:
     user = await get_user_from_token(settings, session, token, mfa_creds)
 
-    if user.access_type not in ('access', 'multifactor'):
+    if user.access_type not in ("access", "multifactor"):
         raise _CREDENTIALS_EXCEPTION
 
-    if user.access_type == 'multifactor' and\
-            user.exp - settings.MFA_TOKEN_LEEWAY < (
-                datetime.utcnow().timestamp()):
+    if (
+        user.access_type == "multifactor"
+        and user.exp - settings.MFA_TOKEN_LEEWAY
+        < (datetime.utcnow().timestamp())
+    ):
         raise _CREDENTIALS_EXCEPTION
 
     return user

@@ -35,19 +35,17 @@ from .base import BaseRequest
 class BaseExtendedValue(ABC, BaseModel):
     """Base extended request body."""
 
-    @property
-    @abstractmethod
-    def REQUEST_ID(self) -> LDAPOID:  # noqa: N802, D102
-        """Protocol id code."""
+    REQUEST_ID: ClassVar[LDAPOID]
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: ASN1Row) -> 'BaseExtendedValue':
+    def from_data(cls, data: ASN1Row) -> "BaseExtendedValue":
         """Create model from data, decoded from responseValue bytes."""
 
     @abstractmethod
     async def handle(
-        self, ldap_session: LDAPSession,
+        self,
+        ldap_session: LDAPSession,
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
@@ -57,7 +55,7 @@ class BaseExtendedValue(ABC, BaseModel):
     @staticmethod
     def _decode_value(data: ASN1Row) -> ASN1Row:
         dec = Decoder()
-        dec.start(data[1].value)
+        dec.start(data[1].value)  # type: ignore
         output = asn1todict(dec)
         return output[0].value
 
@@ -94,7 +92,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
     base: int = 123
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> 'WhoAmIRequestValue':
+    def from_data(cls, data: ASN1Row) -> "WhoAmIRequestValue":
         """Create model from data, WhoAmIRequestValue data is empty."""
         return cls()
 
@@ -108,7 +106,9 @@ class WhoAmIRequestValue(BaseExtendedValue):
         """Return user from session."""
         un = (
             f"u:{ldap_session.user.user_principal_name}"
-            if ldap_session.user else '')
+            if ldap_session.user
+            else ""
+        )
 
         return WhoAmIResponse(authz_id=un)
 
@@ -118,7 +118,7 @@ class StartTLSResponse(BaseExtendedResponseValue):
 
     def get_value(self) -> str | None:
         """Get response value."""
-        return ''
+        return ""
 
 
 class StartTLSRequestValue(BaseExtendedValue):
@@ -137,10 +137,10 @@ class StartTLSRequestValue(BaseExtendedValue):
         if settings.USE_CORE_TLS:
             return StartTLSResponse()
 
-        raise PermissionError('No TLS')
+        raise PermissionError("No TLS")
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> 'StartTLSRequestValue':
+    def from_data(cls, data: ASN1Row) -> "StartTLSRequestValue":
         """Create model from data, decoded from responseValue bytes."""
         return cls()
 
@@ -152,7 +152,7 @@ class PasswdModifyResponse(BaseExtendedResponseValue):
         genPasswd       [0]     OCTET STRING OPTIONAL }
     """
 
-    gen_passwd: str = ''
+    gen_passwd: str = ""
 
     def get_value(self) -> str | None:
         """Return gen password."""
@@ -181,40 +181,47 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     new_password: str
 
     async def handle(
-        self, ldap_session: LDAPSession,
+        self,
+        ldap_session: LDAPSession,
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> PasswdModifyResponse:
         """Update password of current or selected user."""
         if not settings.USE_CORE_TLS:
-            raise PermissionError('TLS required')
+            raise PermissionError("TLS required")
+        user: User
 
         if self.user_identity is not None:
-            user = await get_user(session, self.user_identity)
-            if not user:
-                raise PermissionError('Cannot acquire user by DN')
+            user = await get_user(session, self.user_identity)  # type: ignore
+            if user is None:
+                raise PermissionError("Cannot acquire user by DN")
         else:
             if not ldap_session.user:
-                raise PermissionError('Anonymous user')
+                raise PermissionError("Anonymous user")
 
-            user = await session.get(User, ldap_session.user.id)
+            user = await session.get(
+                User, ldap_session.user.id)  # type: ignore
 
-        validator = await PasswordPolicySchema\
-            .get_policy_settings(session, kadmin)
+        validator = await PasswordPolicySchema.get_policy_settings(
+            session, kadmin,
+        )
 
         errors = await validator.validate_password_with_policy(
-            self.new_password, user)
+            self.new_password, user,
+        )
 
         p_last_set = await validator.get_pwd_last_set(
-            session, user.directory_id)
+            session, user.directory_id,
+        )
 
         if validator.validate_min_age(p_last_set):
             errors.append("Minimum age violation")
 
         if not errors and (
-                user.password is None or
-                verify_password(self.old_password, user.password)):
+            user.password is None
+            or verify_password(self.old_password, user.password)
+        ):
             user.password = get_password_hash(self.new_password)
             await post_save_password_actions(user, session)
             await session.execute(
@@ -224,27 +231,27 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             try:
                 await kadmin.create_or_update_principal_pw(
-                    user.get_upn_prefix(), self.new_password)
+                    user.get_upn_prefix(), self.new_password,
+                )
             except KRBAPIError:
                 await session.rollback()
                 raise PermissionError("Kadmin Error")
 
             return PasswdModifyResponse()
-        raise PermissionError('No user provided')
+        raise PermissionError("No user provided")
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> \
-            'PasswdModifyRequestValue':
+    def from_data(cls, data: ASN1Row) -> "PasswdModifyRequestValue":
         """Create model from data, decoded from responseValue bytes."""
-        data = cls._decode_value(data)
-        if len(data) == 3:
+        d: list = cls._decode_value(data)  # type: ignore
+        if len(d) == 3:
             return cls(
-                user_identity=data[0].value,
-                old_password=data[1].value,
-                new_password=data[2].value,
+                user_identity=d[0].value,
+                old_password=d[1].value,
+                new_password=d[2].value,
             )
 
-        return cls(old_password=data[0].value, new_password=data[1].value)
+        return cls(old_password=d[0].value, new_password=d[1].value)
 
 
 _REQUEST_LIST: list[type[BaseExtendedValue]] = [
@@ -272,7 +279,8 @@ class ExtendedRequest(BaseRequest):
     request_value: SerializeAsAny[BaseExtendedValue]
 
     async def handle(
-        self, ldap_session: LDAPSession,
+        self,
+        ldap_session: LDAPSession,
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
@@ -280,7 +288,8 @@ class ExtendedRequest(BaseRequest):
         """Call proxy handler."""
         try:
             response = await self.request_value.handle(
-                ldap_session, session, kadmin, settings)
+                ldap_session, session, kadmin, settings,
+            )
         except PermissionError as err:
             logger.critical(err)  # noqa
             yield ExtendedResponse(
@@ -296,7 +305,7 @@ class ExtendedRequest(BaseRequest):
             )
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> 'ExtendedRequest':
+    def from_data(cls, data: list[ASN1Row]) -> "ExtendedRequest":
         """Create extended request from asn.1 decoded string.
 
         :param ASN1Row data: any data
@@ -306,5 +315,5 @@ class ExtendedRequest(BaseRequest):
         ext_request = EXTENDED_REQUEST_OID_MAP[oid]
         return cls(
             request_name=oid,
-            request_value=ext_request.from_data(data),
+            request_value=ext_request.from_data(data),  # type: ignore
         )

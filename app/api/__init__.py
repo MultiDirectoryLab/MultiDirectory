@@ -13,11 +13,11 @@ from .main.router import entry_router
 from .network.router import network_router
 
 __all__ = [
-    'auth_router',
-    'entry_router',
-    'network_router',
-    'mfa_router',
-    'pwd_router',
-    'krb5_router',
-    'access_policy_router',
+    "auth_router",
+    "entry_router",
+    "network_router",
+    "mfa_router",
+    "pwd_router",
+    "krb5_router",
+    "access_policy_router",
 ]

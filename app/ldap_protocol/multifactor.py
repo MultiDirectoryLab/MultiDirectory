@@ -16,27 +16,28 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from models.ldap3 import CatalogueSetting
+from models import CatalogueSetting
 
 
 @dataclass(frozen=True)
 class Creds:
     """Creds for mfa."""
 
-    key: str
-    secret: str
+    key: str | None
+    secret: str | None
 
 
-MFA_HTTP_Creds = NewType('MFA_HTTP_Creds', Creds)
-MFA_LDAP_Creds = NewType('MFA_LDAP_Creds', Creds)
+MFA_HTTP_Creds = NewType("MFA_HTTP_Creds", Creds)
+MFA_LDAP_Creds = NewType("MFA_LDAP_Creds", Creds)
 
-log_mfa = logger.bind(name='mfa')
+log_mfa = logger.bind(name="mfa")
 
 log_mfa.add(
     "logs/mfa_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == 'mfa',
+    filter=lambda rec: rec["extra"].get("name") == "mfa",
     rotation="500 MB",
-    colorize=False)
+    colorize=False,
+)
 
 
 class _MultifactorError(Exception):
@@ -76,8 +77,12 @@ class MultifactorAPI:
     settings: Settings
 
     def __init__(
-            self, key: str, secret: str,
-            client: httpx.AsyncClient, settings: Settings):
+        self,
+        key: str,
+        secret: str,
+        client: httpx.AsyncClient,
+        settings: Settings,
+    ):
         """Set creds and web client.
 
         :param str key: _description_
@@ -94,7 +99,8 @@ class MultifactorAPI:
         return {"mf-trace-id": f"md:{uuid.uuid4()}"}
 
     @log_mfa.catch(reraise=True)
-    async def ldap_validate_mfa(self, username: str, password: str) -> bool:
+    async def ldap_validate_mfa(
+            self, username: str, password: str | None) -> bool:
         """Validate multifactor.
 
         :param str username: un
@@ -104,8 +110,8 @@ class MultifactorAPI:
         :raises MultifactorError: Invalid status
         :return bool: status
         """
-        passcode = password or 'm'
-        log_mfa.debug(f'LDAP MFA request: {username}, {password}')
+        passcode = password or "m"
+        log_mfa.debug(f"LDAP MFA request: {username}, {password}")
         try:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.AUTH_URL_USERS,
@@ -115,29 +121,34 @@ class MultifactorAPI:
                     "Identity": username,
                     "passCode": passcode,
                     "GroupPolicyPreset": {},
-                }, timeout=60)
+                },
+                timeout=60,
+            )
 
             data = response.json()
-            log_mfa.info({
-                "response": data,
-                "req_content": response.request.content.decode(),
-                "req_headers": response.request.headers,
-            })
+            log_mfa.info(
+                {
+                    "response": data,
+                    "req_content": response.request.content.decode(),
+                    "req_headers": response.request.headers,
+                },
+            )
         except httpx.ConnectTimeout as err:
-            raise self.MultifactorError('API Timeout') from err
+            raise self.MultifactorError("API Timeout") from err
         except JSONDecodeError as err:
-            raise self.MultifactorError('Invalid json') from err
+            raise self.MultifactorError("Invalid json") from err
 
         if response.status_code != 200:
-            raise self.MultifactorError('Status error')
+            raise self.MultifactorError("Status error")
 
-        if data.get('model', {}).get('status') != 'Granted':
+        if data.get("model", {}).get("status") != "Granted":
             return False
         return True
 
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(
-            self, username: str, callback_url: str, uid: int) -> str:
+        self, username: str, callback_url: str, uid: int,
+    ) -> str:
         """Create mfa link.
 
         :param str username: un
@@ -164,14 +175,15 @@ class MultifactorAPI:
                 self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
                 auth=self.auth,
                 headers=self._generate_trace_id_header(),
-                json=data)
+                json=data,
+            )
 
             response_data = response.json()
             log_mfa.info(response_data)
-            return response_data['model']['url']
+            return response_data["model"]["url"]
 
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
-            raise self.MultifactorError(f'MFA API error: {err}') from err
+            raise self.MultifactorError(f"MFA API error: {err}") from err
 
     async def refresh_token(self, token: str) -> str:
         """Refresh mfa token.
@@ -185,14 +197,15 @@ class MultifactorAPI:
                 self.settings.MFA_API_URI + self.REFRESH_URL,
                 auth=self.auth,
                 headers=self._generate_trace_id_header(),
-                json={"AccessToken": token})
+                json={"AccessToken": token},
+            )
 
             response_data = response.json()
             log_mfa.info(response_data)
-            return response_data['model']
+            return response_data["model"]
 
         except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
-            raise self.MultifactorError(f'MFA API error: {err}') from err
+            raise self.MultifactorError(f"MFA API error: {err}") from err
 
 
-LDAPMultiFactorAPI = NewType('LDAPMultiFactorAPI', MultifactorAPI)
+LDAPMultiFactorAPI = NewType("LDAPMultiFactorAPI", MultifactorAPI)

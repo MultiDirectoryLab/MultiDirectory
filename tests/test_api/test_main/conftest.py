@@ -3,13 +3,14 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import pytest_asyncio
 from httpx import AsyncClient
 
-from app.ldap_protocol.dialogue import LDAPCodes, Operation
+from ldap_protocol.dialogue import LDAPCodes, Operation
 
 
-@pytest_asyncio.fixture(scope='function')
+@pytest_asyncio.fixture(scope="function")
 async def adding_test_user(
     http_client: AsyncClient,
     _force_override_tls: None,
@@ -33,7 +34,7 @@ async def adding_test_user(
                 },
                 {
                     "type": "testing_attr",
-                    "vals": ['test'],
+                    "vals": ["test"],
                 },
                 {
                     "type": "objectClass",
@@ -43,7 +44,7 @@ async def adding_test_user(
         },
     )
     data = response.json()
-    assert data['resultCode'] == LDAPCodes.SUCCESS
+    assert data["resultCode"] == LDAPCodes.SUCCESS
 
     response = await http_client.patch(
         "/entry/update",
@@ -103,13 +104,14 @@ async def adding_test_user(
         },
     )
     data = response.json()
-    assert data['resultCode'] == LDAPCodes.SUCCESS
+    assert data["resultCode"] == LDAPCodes.SUCCESS
 
     auth = await http_client.post(
         "auth/token/get",
         data={
-            "username": 'new_user@md.test',
-            "password": 'P@ssw0rd',
-        })
+            "username": "new_user@md.test",
+            "password": "P@ssw0rd",
+        },
+    )
 
-    assert auth.cookies.get('access_token')
+    assert auth.cookies.get("access_token")

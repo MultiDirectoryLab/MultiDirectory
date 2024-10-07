@@ -23,7 +23,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models.ldap3 import Directory, DirectoryReferenceMixin
+from models import Directory, DirectoryReferenceMixin
 
 from .base import BaseRequest
 
@@ -74,7 +74,7 @@ class ModifyDNRequest(BaseRequest):
     new_superior: str | None
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> 'ModifyDNResponse':
+    def from_data(cls, data: list[ASN1Row]) -> "ModifyDNRequest":
         """Create structure from ASN1Row dataclass list."""
         return cls(
             entry=data[0].value,
@@ -84,27 +84,33 @@ class ModifyDNRequest(BaseRequest):
         )
 
     async def handle(
-        self, ldap_session: LDAPSession, session: AsyncSession,
+        self,
+        ldap_session: LDAPSession,
+        session: AsyncSession,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
 
-        if any([
-            not validate_entry(self.entry),
-            self.new_superior and not validate_entry(self.new_superior),
-            not validate_entry(self.newrdn),
-        ]):
-            yield ModifyDNResponse(resultCode=LDAPCodes.INVALID_DN_SYNTAX)
+        if any(
+            [
+                not validate_entry(self.entry),
+                self.new_superior and not validate_entry(self.new_superior),
+                not validate_entry(self.newrdn),
+            ],
+        ):
+            yield ModifyDNResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
         query = (
             select(Directory)
             .options(
                 selectinload(Directory.parent),
-                selectinload(Directory.access_policies))
-            .filter(get_filter_from_path(self.entry)))
+                selectinload(Directory.access_policies),
+            )
+            .filter(get_filter_from_path(self.entry))
+        )
 
         directory = await session.scalar(mutate_ap(query, ldap_session.user))
 
@@ -117,12 +123,14 @@ class ModifyDNRequest(BaseRequest):
             return
 
         if not await session.scalar(
-                mutate_ap(query, ldap_session.user, "modify")):
+            mutate_ap(query, ldap_session.user, "modify"),
+        ):
             yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
             return
 
-        dn, name = self.newrdn.split('=')
+        dn, name = self.newrdn.split("=")
 
         if self.new_superior is None:
             new_directory = Directory(
@@ -140,22 +148,23 @@ class ModifyDNRequest(BaseRequest):
             new_sup_query = (
                 select(Directory)
                 .options(selectinload(Directory.access_policies))
-                .filter(get_filter_from_path(self.new_superior)))
+                .filter(get_filter_from_path(self.new_superior))
+            )
 
-            new_sup_query = mutate_ap(
-                new_sup_query, ldap_session.user)
+            new_sup_query = mutate_ap(new_sup_query, ldap_session.user)
 
-            new_parent_dir: Directory | None = await session.scalar(
-                new_sup_query)
+            new_parent_dir = await session.scalar(new_sup_query)
 
             if not new_parent_dir:
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
 
             if not await session.scalar(
-                    mutate_ap(query, ldap_session.user, 'add')):
+                mutate_ap(query, ldap_session.user, "add"),
+            ):
                 yield ModifyDNResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                )
                 return
 
             new_directory = Directory(
@@ -167,7 +176,8 @@ class ModifyDNRequest(BaseRequest):
             )
             new_directory.create_path(new_parent_dir, dn=dn)
             new_directory.access_policies.extend(
-                new_parent_dir.access_policies)
+                new_parent_dir.access_policies,
+            )
 
         async with session.begin_nested():
             session.add(new_directory)
@@ -175,7 +185,8 @@ class ModifyDNRequest(BaseRequest):
             await session.execute(
                 update(Directory)
                 .where(Directory.parent == directory)
-                .values(parent_id=new_directory.id))
+                .values(parent_id=new_directory.id),
+            )
 
             await session.flush()
 
@@ -183,25 +194,33 @@ class ModifyDNRequest(BaseRequest):
                 await session.execute(
                     update(model)
                     .where(model.directory_id == directory.id)
-                    .values(directory_id=new_directory.id))
+                    .values(directory_id=new_directory.id),
+                )
 
             await session.flush()
 
             update_query = (
                 update(Directory)
-                .where(get_path_filter(
-                    directory.path,
-                    column=Directory.path[1:directory.depth]))
-                .values(path=func.array_cat(
-                    new_directory.path,
-                    #  TODO: replace text with slice
-                    text("path[:depth :]").bindparams(
-                        depth=directory.depth+1)))
+                .where(
+                    get_path_filter(
+                        directory.path,
+                        column=Directory.path[1:directory.depth],
+                    ),
+                )
+                .values(
+                    path=func.array_cat(
+                        new_directory.path,
+                        #  TODO: replace text with slice
+                        text("path[:depth :]").bindparams(
+                            depth=directory.depth + 1,
+                        ),
+                    ),
+                )
             )
 
             await session.execute(
                 update_query,
-                execution_options={"synchronize_session": 'fetch'},
+                execution_options={"synchronize_session": "fetch"},
             )
             await session.flush()
 

@@ -19,7 +19,7 @@ class AbandonRequest(BaseRequest):
     message_id: int
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> 'AbandonRequest':
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "AbandonRequest":
         """Create structure from ASN1Row dataclass list."""
         return cls(message_id=1)
 

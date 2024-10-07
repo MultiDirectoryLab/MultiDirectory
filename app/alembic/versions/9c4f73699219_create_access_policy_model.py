@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.utils.queries import create_group, get_base_directories
-from models.ldap3 import Directory, User
+from models import Directory, User
 
 # revision identifiers, used by Alembic.
 revision = "9c4f73699219"

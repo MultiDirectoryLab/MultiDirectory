@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import os
 
 from loguru import logger
@@ -24,9 +25,10 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
     :param AsyncSession session: db
     """
     files = [  # noqa: ECE001
-        fp for f in os.listdir(_PATH)
-        if os.path.isfile(fp := os.path.join(_PATH, f))
-        and f != _LOCK_FILE][:100]
+        fp
+        for f in os.listdir(_PATH)
+        if os.path.isfile(fp := os.path.join(_PATH, f)) and f != _LOCK_FILE
+    ][:100]
 
     if not files:
         return
@@ -40,13 +42,13 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
     domain = domains[0].name
 
     for path in files:
-        with open(path, 'r') as file:
-            data = file.read().split('\n')
+        with open(path, "r") as file:
+            data = file.read().split("\n")
             username, password = data[0], data[3]
 
         upn = f"{username}@{domain}"
-        user = await session.scalar(
-            select(User).where(User.user_principal_name == upn))
+        query = select(User).where(User.user_principal_name == upn)
+        user = await session.scalar(query)
 
         if not user:
             logger.error("cannot find principal {}", upn)
@@ -58,5 +60,5 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
         await post_save_password_actions(user, session)
         await session.commit()
 
-        logger.info('synced for {}', upn)
+        logger.info("synced for {}", upn)
         os.remove(path)

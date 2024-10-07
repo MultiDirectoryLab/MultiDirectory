@@ -14,10 +14,11 @@ from ldap_protocol.access_policy import get_policies
 from .schema import MaterialAccessPolicySchema
 
 access_policy_router = APIRouter(
-    prefix='/access_policy', tags=['Access Policy'])
+    prefix="/access_policy", tags=["Access Policy"],
+)
 
 
-@access_policy_router.get('', dependencies=[Depends(get_current_user)])
+@access_policy_router.get("", dependencies=[Depends(get_current_user)])
 @inject
 async def get_access_policies(
     session: FromDishka[AsyncSession],
@@ -27,12 +28,15 @@ async def get_access_policies(
     :param AccessPolicySchema policy: ap
     :param FromDishka[AsyncSession] session: db
     """
-    return [MaterialAccessPolicySchema(
-        id=policy.id,
-        name=policy.name,
-        can_read=policy.can_read,
-        can_add=policy.can_add,
-        can_modify=policy.can_modify,
-        directories=(d.path_dn for d in policy.directories),
-        groups=(g.directory.path_dn for g in policy.groups),
-    ) for policy in await get_policies(session)]
+    return [
+        MaterialAccessPolicySchema(
+            id=policy.id,
+            name=policy.name,
+            can_read=policy.can_read,
+            can_add=policy.can_add,
+            can_modify=policy.can_modify,
+            directories=(d.path_dn for d in policy.directories),
+            groups=(g.directory.path_dn for g in policy.groups),
+        )
+        for policy in await get_policies(session)
+    ]

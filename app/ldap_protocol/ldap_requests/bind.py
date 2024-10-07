@@ -30,7 +30,7 @@ from ldap_protocol.utils.queries import (
     is_user_group_valid,
     set_last_logon_user,
 )
-from models.ldap3 import Group, MFAFlags, User
+from models import Group, MFAFlags, User
 from security import verify_password
 
 from .base import BaseRequest
@@ -70,7 +70,8 @@ class LDAPBindErrors(StrEnum):
         return (
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "
-            f"data {self.value}, v893")
+            f"data {self.value}, v893"
+        )
 
 
 def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
@@ -84,7 +85,7 @@ def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
     """
     return BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
-        matchedDN='',
+        matchedDN="",
         errorMessage=str(error_message),
     )
 
@@ -109,7 +110,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
         """Return true if anonymous."""
 
     @abstractmethod
-    async def get_user(self, session: LDAPSession, username: str) -> User:
+    async def get_user(self, session: AsyncSession, username: str) -> User:
         """Get user."""
 
 
@@ -125,8 +126,9 @@ class SimpleAuthentication(AbstractLDAPAuth):
         :return bool: status
         """
         password = getattr(user, "password", None)
-        return bool(password) and verify_password(
-            self.password.get_secret_value(), password)
+        if password is not None:
+            return verify_password(self.password.get_secret_value(), password)
+        return False
 
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.
@@ -135,9 +137,9 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         return not self.password
 
-    async def get_user(self, session: LDAPSession, username: str) -> User:
+    async def get_user(self, session: AsyncSession, username: str) -> User:
         """Get user."""
-        return await get_user(session, username)
+        return await get_user(session, username)  # type: ignore
 
 
 class SaslAuthentication(AbstractLDAPAuth):
@@ -148,7 +150,7 @@ class SaslAuthentication(AbstractLDAPAuth):
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: list[ASN1Row]) -> 'SaslPLAINAuthentication':
+    def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
         """Get auth from data."""
 
 
@@ -166,8 +168,11 @@ class SaslPLAINAuthentication(SaslAuthentication):
         :return bool: status
         """
         password = getattr(user, "password", None)
-        return bool(password) and verify_password(
-            self.password.get_secret_value(), password)
+        if password is not None:
+            return verify_password(
+                self.password.get_secret_value(), password,
+            )
+        return False
 
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.
@@ -177,18 +182,18 @@ class SaslPLAINAuthentication(SaslAuthentication):
         return False
 
     @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> 'SaslPLAINAuthentication':
+    def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
         """Get auth from data."""
-        _, username, password = data[1].value.split('\\x00')
+        _, username, password = data[1].value.split("\\x00")
         return cls(
             credentials=data[1].value,
             username=username,
             password=password,
         )
 
-    async def get_user(self, session: LDAPSession, _: str) -> User:
+    async def get_user(self, session: AsyncSession, _: str) -> User:
         """Get user."""
-        return await get_user(session, self.username)
+        return await get_user(session, self.username)  # type: ignore
 
 
 sasl_mechanism: list[type[SaslAuthentication]] = [
@@ -207,15 +212,17 @@ class BindRequest(BaseRequest):
 
     version: int
     name: str
-    authentication_choice: AbstractLDAPAuth =\
-        Field(..., alias='AuthenticationChoice')
+    authentication_choice: AbstractLDAPAuth = Field(
+        ..., alias="AuthenticationChoice",
+    )
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> 'BindRequest':
+    def from_data(cls, data: list[ASN1Row]) -> "BindRequest":
         """Get bind from data dict."""
         auth = data[2].tag_id.value
 
         otpassword: str | None
+        auth_choice: AbstractLDAPAuth
 
         if auth == SimpleAuthentication.METHOD_ID:
             payload: str = data[2].value
@@ -233,10 +240,11 @@ class BindRequest(BaseRequest):
             )
         elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
             sasl_method = data[2].value[0].value
-            auth_choice = sasl_mechanism_map[
-                sasl_method].from_data(data[2].value)  # type: ignore
+            auth_choice = sasl_mechanism_map[sasl_method].from_data(
+                data[2].value,
+            )
         else:
-            raise ValueError('Auth version not supported')
+            raise ValueError("Auth version not supported")
 
         return cls(
             version=data[0].value,
@@ -246,9 +254,8 @@ class BindRequest(BaseRequest):
 
     @staticmethod
     async def is_user_group_valid(
-            user: User,
-            ldap_session: LDAPSession,
-            session: AsyncSession) -> bool:
+        user: User, ldap_session: LDAPSession, session: AsyncSession,
+    ) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
 
@@ -274,7 +281,8 @@ class BindRequest(BaseRequest):
             return False
 
     async def handle(
-        self, session: AsyncSession,
+        self,
+        session: AsyncSession,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         settings: Settings,
@@ -302,14 +310,16 @@ class BindRequest(BaseRequest):
             return
 
         policy = await PasswordPolicySchema.get_policy_settings(
-            session, kadmin)
+            session, kadmin,
+        )
         p_last_set = await policy.get_pwd_last_set(session, user.directory_id)
         pwd_expired = policy.validate_max_age(p_last_set)
 
         is_krb_user = await check_kerberos_group(user, session)
 
         required_pwd_change = (
-            p_last_set == '0' or pwd_expired) and not is_krb_user
+            p_last_set == "0" or pwd_expired
+        ) and not is_krb_user
 
         if user.is_expired():
             yield get_bad_response(LDAPBindErrors.ACCOUNT_EXPIRED)
@@ -319,22 +329,26 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 
-        if policy := getattr(ldap_session, 'policy', None):
+        if policy := getattr(ldap_session, "policy", None):  # type: ignore
             if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
-
                 check_group = True
 
                 if policy.mfa_status == MFAFlags.WHITELIST:
-                    check_group = await session.scalar(select(exists().where(
-                        Group.mfa_policies.contains(policy),
-                        Group.users.contains(user),
-                    )))  # type: ignore
+                    check_group = await session.scalar(
+                        select(
+                            exists().where(  # type: ignore
+                                Group.mfa_policies.contains(policy),
+                                Group.users.contains(user),
+                            ),
+                        ),
+                    )
 
                 if check_group:
                     mfa_status = await self.check_mfa(
                         mfa,
                         user.user_principal_name,
-                        self.authentication_choice.otpassword)
+                        self.authentication_choice.otpassword,
+                    )
 
                     if mfa_status is False:
                         yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
@@ -343,7 +357,9 @@ class BindRequest(BaseRequest):
         try:
             await kadmin.add_principal(
                 user.get_upn_prefix(),
-                self.authentication_choice.password.get_secret_value(), 0.1)
+                self.authentication_choice.password.get_secret_value(),
+                0.1,
+            )
         except (KRBAPIError, httpx.TimeoutException):
             pass
 
@@ -359,12 +375,13 @@ class UnbindRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = 2
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> 'UnbindRequest':
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":
         """Unbind request has no body."""
         return cls()
 
-    async def handle(self, ldap_session: LDAPSession) -> \
-            AsyncGenerator[BaseResponse, None]:
+    async def handle(
+        self, ldap_session: LDAPSession,
+    ) -> AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ldap_session.delete_user()
         return  # declare empty async generator and exit

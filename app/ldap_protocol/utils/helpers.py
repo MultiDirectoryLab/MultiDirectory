@@ -129,6 +129,7 @@ https://github.com/jleclanche/winfiletime/blob/master/winfiletime/filetime.py
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import hashlib
 import random
 import re
@@ -139,7 +140,7 @@ from hashlib import blake2b
 from operator import attrgetter
 from zoneinfo import ZoneInfo
 
-from models.ldap3 import Directory
+from models import Directory
 
 
 def validate_entry(entry: str) -> bool:
@@ -151,9 +152,10 @@ def validate_entry(entry: str) -> bool:
     :return bool: result
     """
     return all(
-        re.match(r'^[a-zA-Z\-]+$', part.split('=')[0])
-        and len(part.split('=')) == 2
-        for part in entry.split(','))
+        re.match(r"^[a-zA-Z\-]+$", part.split("=")[0])
+        and len(part.split("=")) == 2
+        for part in entry.split(",")
+    )
 
 
 def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
@@ -171,8 +173,8 @@ def get_attribute_types() -> list[str]:
 
     :return list[list[str]]: attrs
     """
-    with open('extra/adTypes.txt', 'r') as file:
-        return [line.replace(')\n', ' )') for line in file]
+    with open("extra/adTypes.txt", "r") as file:
+        return [line.replace(")\n", " )") for line in file]
 
 
 def get_object_classes() -> list[str]:
@@ -180,21 +182,24 @@ def get_object_classes() -> list[str]:
 
     :return list[list[str]]: attrs
     """
-    with open('extra/adClasses.txt', 'r') as file:
+    with open("extra/adClasses.txt", "r") as file:
         return list(file)
 
 
 def get_generalized_now(tz: ZoneInfo) -> str:
     """Get generalized time (formated) with tz."""
-    return datetime.now(tz).strftime('%Y%m%d%H%M%S.%f%z')
+    return datetime.now(tz).strftime("%Y%m%d%H%M%S.%f%z")
 
 
 def _get_domain(name: str) -> str:
     """Get domain from name."""
-    return '.'.join([
-        item[3:].lower() for item in name.split(',')
-        if item[:2] in ('DC', 'dc')
-    ])
+    return ".".join(
+        [
+            item[3:].lower()
+            for item in name.split(",")
+            if item[:2] in ("DC", "dc")
+        ],
+    )
 
 
 def create_integer_hash(text: str, size: int = 9) -> int:
@@ -204,7 +209,7 @@ def create_integer_hash(text: str, size: int = 9) -> int:
     :param int size: fixed size of hash, defaults to 15
     :return int: hash
     """
-    return int(hashlib.sha256(text.encode('utf-8')).hexdigest(), 16) % 10**size
+    return int(hashlib.sha256(text.encode("utf-8")).hexdigest(), 16) % 10**size
 
 
 def get_windows_timestamp(value: datetime) -> int:
@@ -222,7 +227,7 @@ def dt_to_ft(dt: datetime) -> int:
     If the object is time zone-naive, it is forced to UTC before conversion.
     """
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) != 0:
-        dt = dt.astimezone(ZoneInfo('UTC'))
+        dt = dt.astimezone(ZoneInfo("UTC"))
 
     filetime = _EPOCH_AS_FILETIME + (timegm(dt.timetuple()) * _HUNDREDS_OF_NS)
     return filetime + (dt.microsecond * 10)
@@ -236,13 +241,14 @@ def ft_to_dt(filetime: int) -> datetime:
     2) Convert to datetime object, with remainder as microseconds.
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
-    return datetime.fromtimestamp(
-        s, tz=ZoneInfo('UTC')).replace(microsecond=(ns100 // 10))
+    return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(
+        microsecond=(ns100 // 10),
+    )
 
 
 def ft_now() -> str:
     """Get now filetime timestamp."""
-    return str(dt_to_ft(datetime.now(tz=ZoneInfo('UTC'))))
+    return str(dt_to_ft(datetime.now(tz=ZoneInfo("UTC"))))
 
 
 def string_to_sid(sid_string: str) -> bytes:
@@ -260,7 +266,7 @@ def string_to_sid(sid_string: str) -> bytes:
     :param sid_string: The string representation of the SID
     :return bytes: The binary representation of the SID
     """
-    parts = sid_string.split('-')
+    parts = sid_string.split("-")
 
     revision = int(parts[1])
     identifier_authority = int(parts[2])
@@ -268,19 +274,20 @@ def string_to_sid(sid_string: str) -> bytes:
     sub_authorities = [int(part) for part in parts[3:]]
     sub_auth_count = len(sub_authorities)
 
-    sid = struct.pack('<B', revision)
-    sid += struct.pack('B', sub_auth_count)
+    sid = struct.pack("<B", revision)
+    sid += struct.pack("B", sub_auth_count)
 
-    sid += struct.pack('>Q', identifier_authority)[2:]
+    sid += struct.pack(">Q", identifier_authority)[2:]
 
     for sub_auth in sub_authorities:
-        sid += struct.pack('<I', sub_auth)
+        sid += struct.pack("<I", sub_auth)
 
     return sid
 
 
 def create_object_sid(
-        domain: Directory, rid: int, reserved: bool = False) -> str:
+    domain: Directory, rid: int, reserved: bool = False,
+) -> str:
     """Generate the objectSid attribute for an object.
 
     :param domain: domain directory
@@ -301,7 +308,7 @@ def generate_domain_sid() -> str:
         random.randint(1000000000, (1 << 32) - 1),
         random.randint(100000000, 999999999),
     ]
-    return 'S-1-5-21-' + '-'.join(str(part) for part in sub_authorities)
+    return "S-1-5-21-" + "-".join(str(part) for part in sub_authorities)
 
 
 def create_user_name(directory_id: int) -> str:
@@ -312,4 +319,4 @@ def create_user_name(directory_id: int) -> str:
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
 
 
-get_class_name = attrgetter('__class__.__name__')
+get_class_name = attrgetter("__class__.__name__")

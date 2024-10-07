@@ -9,7 +9,7 @@ from typing import Callable, TypeVar, get_type_hints
 
 from dishka import AsyncContainer
 
-T = TypeVar('T', bound=Callable)
+T = TypeVar("T", bound=Callable)
 
 
 async def resolve_deps(func: T, container: AsyncContainer) -> T:
@@ -20,7 +20,7 @@ async def resolve_deps(func: T, container: AsyncContainer) -> T:
     :return T: Awaitable
     """
     hints = get_type_hints(func)
-    del hints['return']
+    del hints["return"]
     kwargs = {}
 
     for arg_name, hint in hints.items():

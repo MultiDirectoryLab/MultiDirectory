@@ -87,7 +87,7 @@ async def test_tree_creation(
     )
 
     result = await anext(bind.handle(
-        session, ldap_session, kadmin, settings, None))
+        session, ldap_session, kadmin, settings, None))  # type: ignore
     assert result.result_code == LDAPCodes.SUCCESS
 
 
@@ -191,8 +191,8 @@ async def test_ktadd(
     names = ['test1', 'test2']
     response = await http_client.post('/kerberos/ktadd', json=names)
 
-    kadmin.ktadd.assert_called()
-    assert kadmin.ktadd.call_args.args[0] == names
+    kadmin.ktadd.assert_called()  # type: ignore
+    assert kadmin.ktadd.call_args.args[0] == names  # type: ignore
 
     assert response.status_code == status.HTTP_200_OK
     assert response.content == b'test_string'
@@ -212,7 +212,7 @@ async def test_ktadd_404(
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    kadmin.ktadd.side_effect = KRBAPIError()
+    kadmin.ktadd.side_effect = KRBAPIError()  # type: ignore
 
     names = ['test1', 'test2']
     response = await http_client.post('/kerberos/ktadd', json=names)
@@ -239,7 +239,7 @@ async def test_ldap_add(
         json=_create_test_user_data(san, pw))
 
     assert response.status_code == status.HTTP_200_OK, response.json()
-    assert kadmin.add_principal.call_args.args == (san, pw)
+    assert kadmin.add_principal.call_args.args == (san, pw)  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -262,7 +262,7 @@ async def test_ldap_kadmin_delete_user(
 
     assert data.get('resultCode') == LDAPCodes.SUCCESS
 
-    assert kadmin.del_principal.call_args.args[0] == "ktest"
+    assert kadmin.del_principal.call_args.args[0] == "ktest"  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -289,8 +289,8 @@ async def test_ldap_kadmin_delete_computer(
     data = response.json()
 
     assert data.get('resultCode') == LDAPCodes.SUCCESS
-
-    assert kadmin.del_principal.call_args.args[0] == 'host/ktest.md.test'
+    principal = kadmin.del_principal.call_args.args[0]  # type: ignore
+    assert principal == 'host/ktest.md.test'
 
 
 @pytest.mark.asyncio
@@ -313,7 +313,8 @@ async def test_bind_create_user(
     )
 
     assert await proc.wait() == 0
-    assert kadmin.add_principal.call_args.args == (san, pw, 0.1)
+    kadmin_args = kadmin.add_principal.call_args.args  # type: ignore
+    assert kadmin_args == (san, pw, 0.1)
 
 
 @pytest.mark.asyncio
@@ -343,8 +344,9 @@ async def test_extended_pw_change_call(
         ))
 
     assert result
-    assert kadmin.create_or_update_principal_pw.call_args.args == (
-        'user0', new_test_password)
+    kadmin_args = (
+        kadmin.create_or_update_principal_pw.call_args.args)  # type: ignore
+    assert kadmin_args == ('user0', new_test_password)
 
 
 @pytest.mark.asyncio
@@ -365,8 +367,9 @@ async def test_add_princ(
             "instance": "12345",
         },
     )
+    kadmin_args = kadmin.add_principal.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
-    assert kadmin.add_principal.call_args.args == ("host/12345", None)
+    assert kadmin_args == ("host/12345", None)
 
 
 @pytest.mark.asyncio
@@ -387,8 +390,9 @@ async def test_rename_princ(
             "principal_new_name": "nname",
         },
     )
+    kadmin_args = kadmin.rename_princ.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
-    assert kadmin.rename_princ.call_args.args == ("name", "nname")
+    assert kadmin_args == ("name", "nname")
 
 
 @pytest.mark.asyncio
@@ -409,8 +413,10 @@ async def test_change_princ(
             "new_password": "pw123",
         },
     )
+    kadmin_args = (
+        kadmin.change_principal_password.call_args.args)  # type: ignore
     assert response.status_code == status.HTTP_200_OK
-    assert kadmin.change_principal_password.call_args.args == ("name", "pw123")
+    assert kadmin_args == ("name", "pw123")
 
 
 @pytest.mark.asyncio
@@ -430,7 +436,7 @@ async def test_delete_princ(
         json={"principal_name": "name"},
     )
     assert response.status_code == status.HTTP_200_OK
-    assert kadmin.del_principal.call_args.args == ("name",)
+    assert kadmin.del_principal.call_args.args == ("name",)  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -466,8 +472,9 @@ async def test_api_update_password(
         "auth/user/password",
         json={"identity": "user0", "new_password": "Password123"},
     )
-    assert kadmin.create_or_update_principal_pw.call_args.args == (
-        "user0", "Password123")
+    kadmin_args = (
+        kadmin.create_or_update_principal_pw.call_args.args)  # type: ignore
+    assert kadmin_args == ("user0", "Password123")
 
 
 @pytest.mark.asyncio
@@ -477,7 +484,11 @@ async def test_update_password(
     kadmin: AbstractKadmin,
 ) -> None:
     """Update policy."""
-    kadmin.create_or_update_principal_pw.side_effect = KRBAPIError()
+    (
+        kadmin.
+        create_or_update_principal_pw.
+        side_effect  # type: ignore
+    ) = KRBAPIError()
     response = await http_client.patch(
         "auth/user/password",
         json={"identity": "user0", "new_password": "Password123"},

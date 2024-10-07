@@ -16,7 +16,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
-from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import VENDOR_NAME, VENDOR_VERSION, Settings
@@ -46,7 +46,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models.ldap3 import Directory, Group, User
+from models import Directory, Group, User
 
 from .base import BaseRequest
 
@@ -80,7 +80,7 @@ class SearchRequest(BaseRequest):
 
     PROTOCOL_OP: ClassVar[int] = 3
 
-    base_object: str = Field('', description='Any `DistinguishedName`')
+    base_object: str = Field("", description="Any `DistinguishedName`")
     scope: Scope
     deref_aliases: DerefAliases
     size_limit: int = Field(ge=0, le=sys.maxsize, examples=[1000])
@@ -97,15 +97,17 @@ class SearchRequest(BaseRequest):
         arbitrary_types_allowed = True
         ignored_types = (cached_property,)
 
-    @field_serializer('filter')
+    @field_serializer("filter")
     def serialize_filter(
-            self, filter: ASN1Row | None, _info: Any) -> dict | None:  # noqa
+        self, val: ASN1Row | None, _info: Any,
+    ) -> dict | None:  # noqa
         """Serialize filter field."""
-        return filter.to_dict() if isinstance(filter, ASN1Row) else None
+        return val.to_dict() if isinstance(val, ASN1Row) else None
 
     @classmethod
-    def from_data(   # noqa: D102
-            cls, data: dict[str, list[ASN1Row]]) -> 'SearchRequest':
+    def from_data(  # noqa: D102
+        cls, data: dict[str, list[ASN1Row]],
+    ) -> "SearchRequest":
         (
             base_object,
             scope,
@@ -134,86 +136,91 @@ class SearchRequest(BaseRequest):
 
     def _get_subschema(self) -> SearchResultEntry:
         attrs = defaultdict(list)
-        attrs['name'].append('Schema')
-        attrs['objectClass'].append('subSchema')
-        attrs['objectClass'].append('top')
+        attrs["name"].append("Schema")
+        attrs["objectClass"].append("subSchema")
+        attrs["objectClass"].append("top")
 
-        attrs['attributeTypes'] = ATTRIBUTE_TYPES
-        attrs['objectClasses'] = OBJECT_CLASSES
+        attrs["attributeTypes"] = ATTRIBUTE_TYPES
+        attrs["objectClasses"] = OBJECT_CLASSES
 
         return SearchResultEntry(
-            object_name='CN=Schema',
+            object_name="CN=Schema",
             partial_attributes=[
                 PartialAttribute(type=key, vals=value)
-                for key, value in attrs.items()])
+                for key, value in attrs.items()
+            ],
+        )
 
     async def get_root_dse(
-            self, session: AsyncSession,
-            settings: Settings) -> defaultdict[str, list[str]]:
+        self, session: AsyncSession, settings: Settings,
+    ) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
         :return defaultdict[str, list[str]]: queried attrs
         """
         data = defaultdict(list)
-        domain = await session.scalar(select(Directory).where(
-            Directory.object_class == 'domain'))
+        domain = await session.scalar(
+            select(Directory).where(Directory.object_class == "domain"),
+        )
 
-        schema = 'CN=Schema'
-        if self.requested_attrs == ['subschemasubentry']:
-            data['subschemaSubentry'].append(schema)
+        schema = "CN=Schema"
+        if self.requested_attrs == ["subschemasubentry"]:
+            data["subschemaSubentry"].append(schema)
             return data
 
-        data['dnsHostName'].append(domain.name)
-        data['serverName'].append(domain.name)
-        data['serviceName'].append(domain.name)
-        data['dsServiceName'].append(domain.name)
-        data['LDAPServiceName'].append(domain.name)
-        data['vendorName'].append(VENDOR_NAME)
-        data['vendorVersion'].append(VENDOR_VERSION)
-        data['namingContexts'].append(domain.path_dn)
-        data['namingContexts'].append(schema)
-        data['rootDomainNamingContext'].append(domain.path_dn)
-        data['supportedLDAPVersion'].append('3')
-        data['defaultNamingContext'].append(domain.path_dn)
-        data['currentTime'].append(get_generalized_now(settings.TIMEZONE))
-        data['subschemaSubentry'].append(schema)
-        data['schemaNamingContext'].append(schema)
-        data['supportedSASLMechanisms'] = ['ANONYMOUS', 'PLAIN']
-        data['highestCommittedUSN'].append('126991')
-        data['supportedExtension'] = [
+        data["dnsHostName"].append(domain.name)
+        data["serverName"].append(domain.name)
+        data["serviceName"].append(domain.name)
+        data["dsServiceName"].append(domain.name)
+        data["LDAPServiceName"].append(domain.name)
+        data["vendorName"].append(VENDOR_NAME)
+        data["vendorVersion"].append(VENDOR_VERSION)
+        data["namingContexts"].append(domain.path_dn)
+        data["namingContexts"].append(schema)
+        data["rootDomainNamingContext"].append(domain.path_dn)
+        data["supportedLDAPVersion"].append("3")
+        data["defaultNamingContext"].append(domain.path_dn)
+        data["currentTime"].append(get_generalized_now(settings.TIMEZONE))
+        data["subschemaSubentry"].append(schema)
+        data["schemaNamingContext"].append(schema)
+        data["supportedSASLMechanisms"] = ["ANONYMOUS", "PLAIN"]
+        data["highestCommittedUSN"].append("126991")
+        data["supportedExtension"] = [
             "1.3.6.1.4.1.4203.1.11.3",  # whoami
             "1.3.6.1.4.1.4203.1.11.1",  # password modify
         ]
-        data['supportedControl'] = [
+        data["supportedControl"] = [
             "2.16.840.1.113730.3.4.4",  # password expire policy
         ]
-        data['domainFunctionality'].append('0')
-        data['supportedLDAPPolicies'] = [
-            'MaxConnIdleTime',
-            'MaxPageSize',
-            'MaxValRange',
+        data["domainFunctionality"].append("0")
+        data["supportedLDAPPolicies"] = [
+            "MaxConnIdleTime",
+            "MaxPageSize",
+            "MaxValRange",
         ]
-        data['supportedCapabilities'] = [
+        data["supportedCapabilities"] = [
             "1.2.840.113556.1.4.1791",  # LDAP_INTEG_OID
         ]
 
         return data
 
-    def cast_filter(self, filter_: ASN1Row) -> UnaryExpression:
+    def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
         :param ASN1Row filter_: requested filter_
         :param AsyncSession session: sa session
         :return UnaryExpression: condition
         """
-        return cast_filter2sql(filter_)
+        return cast_filter2sql(self.filter)
 
     async def handle(
-        self, session: AsyncSession,
+        self,
+        session: AsyncSession,
         ldap_session: LDAPSession,
         settings: Settings,
     ) -> AsyncGenerator[
-        SearchResultDone | SearchResultReference | SearchResultEntry, None,
+        SearchResultDone | SearchResultReference | SearchResultEntry,
+        None,
     ]:
         """Search tree.
 
@@ -225,10 +232,11 @@ class SearchRequest(BaseRequest):
                 yield response
 
     async def get_result(
-        self, user: UserSchema,
+        self,
+        user: UserSchema | None,
         session: AsyncSession,
         settings: Settings,
-    ) -> AsyncGenerator[SearchResultDone, None]:
+    ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
         :param bool user_logged: is user in session
@@ -236,9 +244,9 @@ class SearchRequest(BaseRequest):
         :yield SearchResult: search result
         """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
-        is_schema = self.base_object.lower() == 'cn=schema'
+        is_schema = self.base_object.lower() == "cn=schema"
 
-        if not (is_root_dse or is_schema) and not user:
+        if not (is_root_dse or is_schema) and user is None:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return
 
@@ -248,21 +256,23 @@ class SearchRequest(BaseRequest):
             elif is_root_dse:
                 attrs = await self.get_root_dse(session, settings)
                 yield SearchResultEntry(
-                    object_name='',
+                    object_name="",
                     partial_attributes=[
                         PartialAttribute(type=name, vals=values)
-                        for name, values in attrs.items()],
+                        for name, values in attrs.items()
+                    ],
                 )
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session), user)
+        query = self.build_query(
+            await get_base_directories(session), user)  # type: ignore
 
         try:
-            cond = self.cast_filter(self.filter)
+            cond = self.cast_filter()
             query = query.filter(cond)
         except Exception as err:
-            logger.error(f'Filter syntax error {err}')
+            logger.error(f"Filter syntax error {err}")
             yield SearchResultDone(result_code=LDAPCodes.PROTOCOL_ERROR)
             return
 
@@ -279,19 +289,19 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def member_of(self) -> bool:  # noqa
-        return 'memberof' in self.requested_attrs or self.all_attrs
+        return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def member(self) -> bool:  # noqa
-        return 'member' in self.requested_attrs or self.all_attrs
+        return "member" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def token_groups(self) -> bool:  # noqa
-        return 'tokengroups' in self.requested_attrs
+        return "tokengroups" in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:  # noqa
-        return '*' in self.requested_attrs or not self.requested_attrs
+        return "*" in self.requested_attrs or not self.requested_attrs
 
     def build_query(
         self,
@@ -306,7 +316,8 @@ class SearchRequest(BaseRequest):
             .options(
                 subqueryload(Directory.attributes),
                 joinedload(Directory.user),
-                joinedload(Directory.group))
+                joinedload(Directory.group),
+            )
             .distinct(Directory.id)
         )
 
@@ -325,21 +336,31 @@ class SearchRequest(BaseRequest):
             if self.base_object:
                 query = query.filter(get_path_filter(search_path))
             else:
-                query = query.filter(or_(*[
-                    get_path_filter(domain.path)
-                    for domain in base_directories]))
+                query = query.filter(
+                    or_(
+                        *[
+                            get_path_filter(domain.path)
+                            for domain in base_directories
+                            if domain.path is not None
+                        ],
+                    ),
+                )
 
         elif self.scope == Scope.SINGLE_LEVEL:
             query = query.filter(
                 func.cardinality(Directory.path) == len(search_path) + 1,
                 get_path_filter(
                     column=Directory.path[0:len(search_path)],
-                    path=search_path))
+                    path=search_path,
+                ),
+            )
 
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
-            query = query.filter(get_path_filter(
-                column=Directory.path[1:len(search_path)],
-                path=search_path))
+            query = query.filter(
+                get_path_filter(
+                    column=Directory.path[1:len(search_path)],
+                    path=search_path),
+            )
 
         if self.member:
             query = query.options(
@@ -348,7 +369,9 @@ class SearchRequest(BaseRequest):
         return query  # noqa
 
     async def paginate_query(
-        self, query: Select, session: AsyncSession,
+        self,
+        query: Select,
+        session: AsyncSession,
     ) -> tuple[Select, int, int]:
         """Paginate query.
 
@@ -359,8 +382,7 @@ class SearchRequest(BaseRequest):
         if self.page_number is None:
             return query, 0, 0
 
-        count = await session.scalar(
-            select(func.count()).select_from(query))
+        count = await session.scalar(select(func.count()).select_from(query))
         start = (self.page_number - 1) * self.size_limit
         end = start + self.size_limit
         query = query.offset(start).limit(end)
@@ -368,8 +390,8 @@ class SearchRequest(BaseRequest):
         return query, int(ceil(count / float(self.size_limit))), count
 
     async def tree_view(
-            self, query: Select,
-            session: AsyncSession) -> AsyncGenerator[SearchResultEntry, None]:
+        self, query: Select, session: AsyncSession,
+    ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
@@ -380,68 +402,71 @@ class SearchRequest(BaseRequest):
 
             for attr in directory.attributes:
                 if isinstance(attr.value, str):
-                    value = attr.value.replace('\\x00', '\x00')
+                    value = attr.value.replace("\\x00", "\x00")
                 else:
                     value = attr.bvalue
 
-                if attr.name.lower() == 'objectclass':
+                if attr.name.lower() == "objectclass":
                     obj_classes.append(value)
 
                 attrs[attr.name].append(value)
 
             distinguished_name = directory.path_dn
 
-            attrs['distinguishedName'].append(distinguished_name)
-            attrs['whenCreated'].append(
+            attrs["distinguishedName"].append(distinguished_name)
+            attrs["whenCreated"].append(
                 directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
             )
 
             if directory.user:
                 if directory.user.account_exp is None:
-                    attrs['accountExpires'].append('0')
+                    attrs["accountExpires"].append("0")
                 else:
-                    attrs['accountExpires'].append(
-                        dt_to_ft(directory.user.account_exp),
-                    )
+                    attrs["accountExpires"].append(
+                        str(dt_to_ft(directory.user.account_exp)))
                 if directory.user.last_logon is None:
-                    attrs['lastLogon'].append('0')
+                    attrs["lastLogon"].append("0")
                 else:
-                    attrs['lastLogon'].append(
-                        get_windows_timestamp(directory.user.last_logon),
-                    )
-                    attrs['authTimestamp'].append(directory.user.last_logon)
+                    attrs["lastLogon"].append(
+                        str(get_windows_timestamp(directory.user.last_logon)))
+                    attrs["authTimestamp"].append(directory.user.last_logon)
 
             if self.member_of:
-                if 'group' in obj_classes or 'user' in obj_classes:
+                if "group" in obj_classes or "user" in obj_classes:
                     for group in directory.groups:
-                        attrs['memberOf'].append(group.directory.path_dn)
+                        attrs["memberOf"].append(group.directory.path_dn)
 
             if self.token_groups:
-                if 'user' in obj_classes:
-                    attrs['tokenGroups'].append(
-                        string_to_sid(directory.object_sid))
+                if "user" in obj_classes:
+                    attrs["tokenGroups"].append(
+                        str(string_to_sid(directory.object_sid)))
 
                     group_directories = await get_all_parent_group_directories(
-                        directory.groups, session)
+                        directory.groups, session,
+                    )
 
                     if group_directories is not None:
                         async for directory_ in group_directories:
-                            attrs['tokenGroups'].append(
-                                string_to_sid(directory_.object_sid))
+                            attrs["tokenGroups"].append(
+                                str(string_to_sid(directory_.object_sid)))
 
             if self.member:
-                if 'group' in obj_classes and directory.group:
+                if "group" in obj_classes and directory.group:
                     for member in directory.group.members:
-                        attrs['member'].append(member.path_dn)
+                        attrs["member"].append(member.path_dn)
 
             if directory.user:
                 if self.all_attrs:
                     user_fields = directory.user.search_fields.keys()
                 else:
                     user_fields = (
-                        attr for attr in self.requested_attrs if (
-                            directory.user and (
-                                attr in directory.user.search_fields)))
+                        attr
+                        for attr in self.requested_attrs
+                        if (
+                            directory.user
+                            and (attr in directory.user.search_fields)
+                        )
+                    )
             else:
                 user_fields = []
 
@@ -450,9 +475,13 @@ class SearchRequest(BaseRequest):
                     group_fields = directory.group.search_fields.keys()
                 else:
                     group_fields = (
-                        attr for attr in self.requested_attrs if (
-                            directory.group and (
-                                attr in directory.group.search_fields)))
+                        attr
+                        for attr in self.requested_attrs
+                        if (
+                            directory.group
+                            and (attr in directory.group.search_fields)
+                        )
+                    )
             else:
                 group_fields = []
 
@@ -461,7 +490,7 @@ class SearchRequest(BaseRequest):
                 attrs[directory.group.search_fields[attr]].append(attribute)
 
             for attr in user_fields:
-                if attr == 'accountexpires':
+                if attr == "accountexpires":
                     continue
                 attribute = getattr(directory.user, attr)
                 attrs[directory.user.search_fields[attr]].append(attribute)
@@ -470,14 +499,16 @@ class SearchRequest(BaseRequest):
                 directory_fields = directory.search_fields.keys()
             else:
                 directory_fields = (
-                    attr for attr in self.requested_attrs
-                    if attr in directory.search_fields)
+                    attr
+                    for attr in self.requested_attrs
+                    if attr in directory.search_fields
+                )
 
             for attr in directory_fields:
                 attribute = getattr(directory, attr)
-                if attr == 'objectsid':
+                if attr == "objectsid":
                     attribute = string_to_sid(attribute)
-                elif attr == 'objectguid':
+                elif attr == "objectguid":
                     attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
 
@@ -485,5 +516,6 @@ class SearchRequest(BaseRequest):
                 object_name=distinguished_name,
                 partial_attributes=[
                     PartialAttribute(type=key, vals=value)
-                    for key, value in attrs.items()],
+                    for key, value in attrs.items()
+                ],
             )

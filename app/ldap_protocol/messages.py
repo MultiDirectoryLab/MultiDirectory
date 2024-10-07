@@ -23,14 +23,14 @@ class Control(BaseModel):
 
     control_type: str
     criticality: bool = False
-    control_value: str = ''
+    control_value: str = ""
 
 
 class LDAPMessage(ABC, BaseModel):
     """Base message structure. Pydantic for types validation."""
 
-    message_id: int = Field(..., alias='messageID')
-    protocol_op: int = Field(..., alias='protocolOP')
+    message_id: int = Field(..., alias="messageID")
+    protocol_op: int = Field(..., alias="protocolOP")
     context: BaseRequest | BaseResponse
     controls: list[Control] = []
 
@@ -75,7 +75,7 @@ class LDAPRequestMessage(LDAPMessage):
     context: SerializeAsAny[BaseRequest]
 
     @classmethod
-    def from_bytes(cls, source: bytes) -> 'LDAPRequestMessage':
+    def from_bytes(cls, source: bytes) -> "LDAPRequestMessage":
         """Create message from bytes."""
         dec = Decoder()
         dec.start(source)
@@ -83,7 +83,7 @@ class LDAPRequestMessage(LDAPMessage):
 
         sequence = output[0]
         if sequence.tag_id.value != Numbers.Sequence:
-            raise ValueError('Wrong schema')
+            raise ValueError("Wrong schema")
 
         seq_fields = sequence.value
         message_id, protocol = seq_fields[:2]
@@ -92,19 +92,22 @@ class LDAPRequestMessage(LDAPMessage):
 
         try:
             for ctrl in seq_fields[2].value:
-                controls.append(Control(
-                    control_type=ctrl.value[0].value,
-                    criticality=ctrl.value[1].value,
-                    control_value=ctrl.value[2].value,
-                ))
+                controls.append(
+                    Control(
+                        control_type=ctrl.value[0].value,
+                        criticality=ctrl.value[1].value,
+                        control_value=ctrl.value[2].value,
+                    ),
+                )
         except (IndexError, ValueError, AttributeError):
             pass
 
         if len(seq_fields) >= 3:
             logger.debug({"controls": seq_fields[2]})
 
-        context = protocol_id_map[
-            protocol.tag_id.value].from_data(protocol.value)
+        context = protocol_id_map[protocol.tag_id.value].from_data(
+            protocol.value,
+        )
         return cls(
             messageID=message_id.value,
             protocolOP=protocol.tag_id.value,
@@ -139,12 +142,14 @@ class LDAPRequestMessage(LDAPMessage):
             protocolOP=protocol_op,
             context=LDAPResult(
                 result_code=LDAPCodes.PROTOCOL_ERROR,
-                matchedDN='',
-                errorMessage=str(err)),
+                matchedDN="",
+                errorMessage=str(err),
+            ),
         )
 
     async def create_response(
-        self, handler: Callable[..., AsyncGenerator[BaseResponse, None]],
+        self,
+        handler: Callable[..., AsyncGenerator[BaseResponse, None]],
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 

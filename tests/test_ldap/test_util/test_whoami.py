@@ -8,7 +8,7 @@ import asyncio
 
 import pytest
 
-from app.config import Settings
+from config import Settings
 from tests.conftest import TestCreds
 
 

@@ -25,7 +25,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models.ldap3 import Directory
+from models import Directory
 
 from .base import BaseRequest
 
@@ -41,11 +41,12 @@ class DeleteRequest(BaseRequest):
     entry: str
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> 'DeleteRequest':  # noqa: D102
+    def from_data(cls, data: ASN1Row) -> "DeleteRequest":  # noqa: D102
         return cls(entry=data)
 
     async def handle(
-        self, session: AsyncSession,
+        self,
+        session: AsyncSession,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
     ) -> AsyncGenerator[DeleteResponse, None]:
@@ -61,8 +62,8 @@ class DeleteRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                joinedload(Directory.user),
-                selectinload(Directory.attributes))
+                joinedload(Directory.user), selectinload(Directory.attributes),
+            )
             .filter(get_filter_from_path(self.entry))
         )
 
@@ -73,9 +74,11 @@ class DeleteRequest(BaseRequest):
             return
 
         if not await session.scalar(
-                mutate_ap(query, ldap_session.user, 'del')):
+            mutate_ap(query, ldap_session.user, "del"),
+        ):
             yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
             return
 
         if directory.is_domain:
@@ -94,7 +97,8 @@ class DeleteRequest(BaseRequest):
             if await is_computer(directory.id, session):
                 await kadmin.del_principal(directory.host_principal)
                 await kadmin.del_principal(
-                    f"{directory.host_principal}.{base_dn.name}")
+                    f"{directory.host_principal}.{base_dn.name}",
+                )
         except KRBAPIError:
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,

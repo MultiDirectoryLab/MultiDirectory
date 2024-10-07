@@ -9,7 +9,6 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from extra.setup_dev import setup_enviroment
 from fastapi import (
     APIRouter,
     Body,
@@ -24,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from extra.setup_dev import setup_enviroment
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -41,8 +41,8 @@ from ldap_protocol.utils.queries import (
     get_base_directories,
     set_last_logon_user,
 )
-from models.ldap3 import CatalogueSetting, Directory, Group
-from models.ldap3 import User as DBUser
+from models import CatalogueSetting, Directory, Group
+from models import User as DBUser
 from security import get_password_hash
 
 from .oauth2 import (
@@ -55,7 +55,7 @@ from .oauth2 import (
 )
 from .schema import REFRESH_PATH, OAuth2Form, SetupRequest
 
-auth_router = APIRouter(prefix='/auth', tags=['Auth'])
+auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @auth_router.post("/token/get")
@@ -88,7 +88,8 @@ async def login_for_access_token(
     admin_group = await session.scalar(
         select(Group)
         .join(Group.users)
-        .filter(DBUser.id == user.id, Directory.name == "domain admins"))
+        .filter(DBUser.id == user.id, Directory.name == "domain admins"),
+    )
 
     if not admin_group:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
@@ -102,27 +103,31 @@ async def login_for_access_token(
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(
-        select(CatalogueSetting)
-        .filter(CatalogueSetting.name.in_(['mfa_key', 'mfa_secret'])))
+        select(CatalogueSetting).filter(
+            CatalogueSetting.name.in_(["mfa_key", "mfa_secret"]),
+        ),
+    )
 
     if mfa_enabled:
         raise HTTPException(
-            status.HTTP_426_UPGRADE_REQUIRED, detail='Requires MFA connect')
+            status.HTTP_426_UPGRADE_REQUIRED,
+            detail="Requires MFA connect",
+        )
 
     access_token = create_token(  # noqa: S106
         uid=user.id,
         secret=settings.SECRET_KEY,
         expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        grant_type='access',
-        extra_data={'uuid': secrets.token_urlsafe(8)},
+        grant_type="access",
+        extra_data={"uuid": secrets.token_urlsafe(8)},
     )
 
     refresh_token = create_token(  # noqa: S106
         uid=user.id,
         secret=settings.SECRET_KEY,
         expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        grant_type='refresh',
-        extra_data={'uuid': secrets.token_urlsafe(8)},
+        grant_type="refresh",
+        extra_data={"uuid": secrets.token_urlsafe(8)},
     )
 
     await set_last_logon_user(user, session, settings.TIMEZONE)
@@ -164,7 +169,7 @@ async def renew_tokens(
     token: str = get_token(request, type_="refresh_token")  # type: ignore
     user = await get_user_from_token(settings, session, token, mfa_creds)
 
-    if user.access_type == 'multifactor':
+    if user.access_type == "multifactor":
         if not mfa:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
 
@@ -177,13 +182,13 @@ async def renew_tokens(
             path=REFRESH_PATH,
         )
 
-    elif user.access_type == 'refresh':
+    elif user.access_type == "refresh":
         access_token = create_token(  # noqa: S106
             uid=user.id,
             secret=settings.SECRET_KEY,
             expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-            grant_type='access',
-            extra_data={'uuid': secrets.token_urlsafe(8)},
+            grant_type="access",
+            extra_data={"uuid": secrets.token_urlsafe(8)},
         )
     else:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
@@ -197,7 +202,8 @@ async def renew_tokens(
 
 @auth_router.get("/me")
 async def users_me(
-        user: Annotated[UserSchema, Depends(get_current_user)]) -> UserSchema:
+    user: Annotated[UserSchema, Depends(get_current_user)],
+) -> UserSchema:
     """Get current logged in user data."""
     return user
 
@@ -205,19 +211,23 @@ async def users_me(
 @auth_router.delete("/token/refresh", response_class=Response)
 def logout(response: Response) -> None:
     """Delete token cookies."""
-    response.delete_cookie('access_token', httponly=True)
+    response.delete_cookie("access_token", httponly=True)
     response.delete_cookie(
-        'refresh_token', path="/api/auth/token/refresh", httponly=True)
+        "refresh_token",
+        path="/api/auth/token/refresh",
+        httponly=True,
+    )
 
 
 @auth_router.patch(
-    '/user/password',
+    "/user/password",
     status_code=200,
-    dependencies=[Depends(get_current_user)])
+    dependencies=[Depends(get_current_user)],
+)
 @inject
 async def password_reset(
-    identity: Annotated[str, Body(example='admin')],
-    new_password: Annotated[str, Body(example='password')],
+    identity: Annotated[str, Body(example="admin")],
+    new_password: Annotated[str, Body(example="password")],
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
@@ -248,33 +258,36 @@ async def password_reset(
 
     try:
         await kadmin.create_or_update_principal_pw(
-            user.get_upn_prefix(), new_password)
+            user.get_upn_prefix(),
+            new_password,
+        )
     except KRBAPIError:
         raise HTTPException(
             status.HTTP_424_FAILED_DEPENDENCY,
-            'Failed kerberos password update',
+            "Failed kerberos password update",
         )
 
     await post_save_password_actions(user, session)
     await session.commit()
 
 
-@auth_router.get('/setup')
+@auth_router.get("/setup")
 @inject
-async def check_setup(
-        session: FromDishka[AsyncSession]) -> bool:
+async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     """Check if initial setup needed.
 
     True if setup already complete, False if setup is needed.
     """
-    return await session.scalar(select(
-        exists(Directory)
-        .where(Directory.parent_id.is_(None))))
+    return await session.scalar(
+        select(exists(Directory).where(Directory.parent_id.is_(None))),
+    )
 
 
 @auth_router.post(
-    '/setup', status_code=status.HTTP_200_OK,
-    responses={423: {"detail": 'Locked'}})
+    "/setup",
+    status_code=status.HTTP_200_OK,
+    responses={423: {"detail": "Locked"}},
+)
 @inject
 async def first_setup(
     request: SetupRequest,
@@ -283,8 +296,7 @@ async def first_setup(
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
-        select(Directory)
-        .filter(Directory.parent_id.is_(None)),
+        select(Directory).filter(Directory.parent_id.is_(None)),
     )
 
     if setup_already_performed:
@@ -296,19 +308,19 @@ async def first_setup(
             "object_class": "container",
             "attributes": {
                 "objectClass": ["top"],
-                'sAMAccountName': ['groups'],
+                "sAMAccountName": ["groups"],
             },
             "children": [
                 {
                     "name": "domain admins",
                     "object_class": "group",
                     "attributes": {
-                        "objectClass": ["top", 'posixGroup'],
-                        'groupType': ['-2147483646'],
-                        'instanceType': ['4'],
-                        'sAMAccountName': ['domain admins'],
-                        'sAMAccountType': ['268435456'],
-                        'gidNumber': ['512'],
+                        "objectClass": ["top", "posixGroup"],
+                        "groupType": ["-2147483646"],
+                        "instanceType": ["4"],
+                        "sAMAccountName": ["domain admins"],
+                        "sAMAccountType": ["268435456"],
+                        "gidNumber": ["512"],
                     },
                     "objectSid": 512,
                 },
@@ -316,12 +328,12 @@ async def first_setup(
                     "name": "domain users",
                     "object_class": "group",
                     "attributes": {
-                        "objectClass": ["top", 'posixGroup'],
-                        'groupType': ['-2147483646'],
-                        'instanceType': ['4'],
-                        'sAMAccountName': ['domain users'],
-                        'sAMAccountType': ['268435456'],
-                        'gidNumber': ['513'],
+                        "objectClass": ["top", "posixGroup"],
+                        "groupType": ["-2147483646"],
+                        "instanceType": ["4"],
+                        "sAMAccountName": ["domain users"],
+                        "sAMAccountType": ["268435456"],
+                        "gidNumber": ["513"],
                     },
                     "objectSid": 513,
                 },
@@ -341,11 +353,12 @@ async def first_setup(
                         "mail": request.mail,
                         "display_name": request.display_name,
                         "password": request.password,
-                        "groups": ['domain admins'],
+                        "groups": ["domain admins"],
                     },
                     "attributes": {
                         "objectClass": [
-                            "top", "person",
+                            "top",
+                            "person",
                             "organizationalPerson",
                             "posixAccount",
                             "shadowAccount",
@@ -370,7 +383,8 @@ async def first_setup(
 
             default_pwd_policy = PasswordPolicySchema()
             errors = await default_pwd_policy.validate_password_with_policy(
-                request.password, None)
+                request.password, None,
+            )
 
             if errors:
                 raise HTTPException(
@@ -381,12 +395,11 @@ async def first_setup(
             await default_pwd_policy.create_policy_settings(session, kadmin)
 
             domain: Directory = await session.scalar(
-                select(Directory)
-                .filter(Directory.parent_id.is_(None)),
+                select(Directory).filter(Directory.parent_id.is_(None)),
             )
 
             await create_access_policy(
-                name='Root Access Policy',
+                name="Root Access Policy",
                 can_add=True,
                 can_modify=True,
                 can_read=True,

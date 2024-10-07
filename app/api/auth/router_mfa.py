@@ -27,8 +27,8 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from models.ldap3 import CatalogueSetting
-from models.ldap3 import User as DBUser
+from models import CatalogueSetting
+from models import User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (
@@ -39,14 +39,14 @@ from .schema import (
     OAuth2Form,
 )
 
-mfa_router = APIRouter(
-    prefix='/multifactor',
-    tags=['Multifactor'])
+mfa_router = APIRouter(prefix="/multifactor", tags=["Multifactor"])
 
 
 @mfa_router.post(
-    '/setup', status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_user)])
+    "/setup",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)],
+)
 @inject
 async def setup_mfa(
     mfa: MFACreateRequest,
@@ -60,23 +60,27 @@ async def setup_mfa(
     :return bool: status
     """  # noqa: D301
     async with session.begin_nested():
-        await session.execute((
-            delete(CatalogueSetting)
-            .filter(operator.or_(
-                CatalogueSetting.name == mfa.key_name,
-                CatalogueSetting.name == mfa.secret_name,
-            ))
-        ))
+        await session.execute(
+            (
+                delete(CatalogueSetting).filter(
+                    operator.or_(
+                        CatalogueSetting.name == mfa.key_name,
+                        CatalogueSetting.name == mfa.secret_name,
+                    ),
+                )
+            ),
+        )
         await session.flush()
         session.add(CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key))
         session.add(
-            CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret))
+            CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret),
+        )
         await session.commit()
 
     return True
 
 
-@mfa_router.post('/get', dependencies=[Depends(get_current_user)])
+@mfa_router.post("/get", dependencies=[Depends(get_current_user)])
 @inject
 async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
@@ -87,9 +91,9 @@ async def get_mfa(
     :return MFAGetResponse: response
     """  # noqa: D301
     if not mfa_creds:
-        mfa_creds = Creds(None, None)
+        mfa_creds = MFA_HTTP_Creds(Creds(None, None))
     if not mfa_creds_ldap:
-        mfa_creds_ldap = Creds(None, None)
+        mfa_creds_ldap = MFA_LDAP_Creds(Creds(None, None))
 
     return MFAGetResponse(
         mfa_key=mfa_creds.key,
@@ -99,10 +103,10 @@ async def get_mfa(
     )
 
 
-@mfa_router.post('/create', name='callback_mfa', include_in_schema=False)
+@mfa_router.post("/create", name="callback_mfa", include_in_schema=False)
 @inject
 async def callback_mfa(
-    access_token: Annotated[str, Form(alias='accessToken')],
+    access_token: Annotated[str, Form(alias="accessToken")],
     session: FromDishka[AsyncSession],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
 ) -> RedirectResponse:
@@ -123,16 +127,17 @@ async def callback_mfa(
             access_token,
             mfa_creds.secret,
             audience=mfa_creds.key,
-            algorithms=ALGORITHM)
+            algorithms=ALGORITHM,
+        )
     except (JWTError, AttributeError, JWKError) as err:
         logger.error(f"Invalid MFA token: {err}")
-        return RedirectResponse('/mfa_token_error', status.HTTP_302_FOUND)
+        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
 
     user_id: int = int(payload.get("uid"))
     if user_id is None or not await session.get(DBUser, user_id):
-        return RedirectResponse('/mfa_token_error', status.HTTP_302_FOUND)
+        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
 
-    response = RedirectResponse('/', status.HTTP_302_FOUND)
+    response = RedirectResponse("/", status.HTTP_302_FOUND)
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
@@ -147,7 +152,7 @@ async def callback_mfa(
     return response
 
 
-@mfa_router.post('/connect', response_model=MFAChallengeResponse)
+@mfa_router.post("/connect", response_model=MFAChallengeResponse)
 @inject
 async def two_factor_protocol(
     form: Annotated[OAuth2Form, Depends()],
@@ -170,18 +175,22 @@ async def two_factor_protocol(
     """  # noqa: D301
     if not api:
         raise HTTPException(
-            status.HTTP_428_PRECONDITION_REQUIRED, 'Missing API credentials')
+            status.HTTP_428_PRECONDITION_REQUIRED,
+            "Missing API credentials",
+        )
 
     user = await authenticate_user(session, form.username, form.password)
 
     if not user:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, 'Invalid credentials')
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Invalid credentials",
+        )
 
     try:
-        url = request.url_for('callback_mfa')
+        url = request.url_for("callback_mfa")
         if settings.USE_CORE_TLS:
-            url = url.replace(scheme='https')
+            url = url.replace(scheme="https")
 
         redirect_url = await api.get_create_mfa(
             user.user_principal_name,
@@ -191,6 +200,8 @@ async def two_factor_protocol(
     except MultifactorAPI.MultifactorError:
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
-            status.HTTP_406_NOT_ACCEPTABLE, 'Multifactor error')
+            status.HTTP_406_NOT_ACCEPTABLE,
+            "Multifactor error",
+        )
 
-    return MFAChallengeResponse(status='pending', message=redirect_url)
+    return MFAChallengeResponse(status="pending", message=redirect_url)

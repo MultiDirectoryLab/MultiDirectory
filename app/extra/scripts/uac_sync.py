@@ -3,17 +3,19 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from sqlalchemy import Integer, String, cast, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, select
 
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models.ldap3 import Attribute, User
+from models import Attribute, User
 
 
 async def disable_accounts(
-        session: AsyncSession, kadmin: AbstractKadmin) -> None:
+    session: AsyncSession, kadmin: AbstractKadmin,
+) -> None:
     """Update userAccountControl attr.
 
     :param AsyncSession session: db
@@ -27,21 +29,29 @@ async def disable_accounts(
             a."directoryId" = u."directoryId" and
             a."name" = 'userAccountControl'
     """
-    subquery = select(User.directory_id).where(
-        User.account_exp < func.now(),
-        User.directory_id == Attribute.directory_id).as_scalar()
+    subquery = (
+        select(User.directory_id)
+        .where(
+            User.account_exp < func.now(),
+            User.directory_id == Attribute.directory_id,
+        )
+        .as_scalar()
+    )
     new_value = cast(
-        cast(Attribute.value, Integer)
-        .op('|')(UserAccountControlFlag.ACCOUNTDISABLE),
+        cast(Attribute.value, Integer).op("|")(
+            UserAccountControlFlag.ACCOUNTDISABLE,
+        ),
         String,
     )
     conditions = [
         (
-            cast(Attribute.value, Integer)
-            .op('&')(UserAccountControlFlag.ACCOUNTDISABLE) == 0
+            cast(Attribute.value, Integer).op("&")(
+                UserAccountControlFlag.ACCOUNTDISABLE,
+            )
+            == 0
         ),
         Attribute.directory_id.in_(subquery),
-        Attribute.name == 'userAccountControl',
+        Attribute.name == "userAccountControl",
     ]
 
     ids = await session.scalars(  # noqa: ECE001
@@ -49,10 +59,12 @@ async def disable_accounts(
         .values(value=new_value)
         .where(*conditions)
         .returning(Attribute.directory_id)
-        .execution_options(synchronize_session=False))
+        .execution_options(synchronize_session=False),
+    )
 
     users = await session.stream_scalars(
-        select(User).where(User.directory_id.in_(ids)))
+        select(User).where(User.directory_id.in_(ids)),
+    )
 
     async for user in users:
         await kadmin.lock_principal(user.get_upn_prefix())

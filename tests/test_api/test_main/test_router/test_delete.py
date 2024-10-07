@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from httpx import AsyncClient
 
-from app.ldap_protocol.dialogue import LDAPCodes
+from ldap_protocol.dialogue import LDAPCodes
 
 
 @pytest.mark.asyncio
@@ -16,11 +16,8 @@ from app.ldap_protocol.dialogue import LDAPCodes
 async def test_api_correct_delete(http_client: AsyncClient) -> None:
     """Test API for delete object."""
     response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={
-            "entry": "cn=test,dc=md,dc=test",
-        },
+        "delete", "/entry/delete",
+        json={"entry": "cn=test,dc=md,dc=test"},
     )
 
     data = response.json()

@@ -7,7 +7,7 @@ import httpx
 import pytest
 from fastapi import status
 
-from app.ldap_protocol.dialogue import Operation
+from ldap_protocol.dialogue import Operation
 from tests.conftest import TestCreds
 
 

@@ -11,10 +11,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import Settings
-from app.models.ldap3 import Directory
+from config import Settings
 from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPCodes
+from models import Directory
 from tests.conftest import TestCreds
 
 
@@ -87,7 +87,7 @@ async def test_ldap_delete_w_access_control(
 
         assert await proc.wait() == LDAPCodes.SUCCESS
 
-    async def try_delete() -> LDAPCodes:
+    async def try_delete() -> int:
         proc = await asyncio.create_subprocess_exec(
             'ldapdelete',
             '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',

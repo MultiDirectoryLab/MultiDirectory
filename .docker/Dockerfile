@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.4-bookworm AS builder
+FROM python:3.12.6-bookworm AS builder
 
 RUN pip install poetry
 

@@ -23,7 +23,7 @@ class ASN1id:
         return self.string
 
     def __repr__(self) -> str:  # noqa: D105
-        return f'[{self.string}: {repr(self.value)}]'
+        return f"[{self.string}: {repr(self.value)}]"
 
 
 @dataclass
@@ -35,7 +35,7 @@ class ASN1Row:
     value: Any
 
     @classmethod
-    def from_tag(cls, tag: Tag, value: Any) -> 'ASN1Row':
+    def from_tag(cls, tag: Tag, value: Any) -> "ASN1Row":
         """Create row from tag."""
         return cls(
             ASN1id(class_id_to_string(tag.cls), tag.cls),
@@ -45,6 +45,7 @@ class ASN1Row:
 
     def to_dict(self) -> dict:
         """Convert the object to string."""
+
         def serialize(obj: Any) -> dict | list | str:
             if isinstance(obj, ASN1Row):
                 return {
@@ -93,7 +94,7 @@ def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
         return value
     if isinstance(value, bytes):
         with suppress(UnicodeDecodeError):
-            return value.decode().replace('\x00', '\\x00')
+            return value.decode().replace("\x00", "\\x00")
         return value
     if isinstance(value, str):
         return value
@@ -102,14 +103,14 @@ def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
 
 def tag_id_to_string(identifier: int) -> Numbers:
     """Return a string representation of a ASN.1 id."""
-    return tag_id_to_string_map.get(identifier, '{:#02x}'.format(identifier))
+    return tag_id_to_string_map.get(identifier, "{:#02x}".format(identifier))
 
 
 def class_id_to_string(identifier: int) -> Classes:
     """Return a string representation of an ASN.1 class."""
     if identifier in class_id_to_string_map:
         return class_id_to_string_map[identifier]
-    raise ValueError('Illegal class: {:#02x}'.format(identifier))
+    raise ValueError("Illegal class: {:#02x}".format(identifier))
 
 
 def asn1todict(decoder: Decoder) -> list[ASN1Row]:
@@ -137,7 +138,7 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
 def _validate_oid(oid: str) -> str:
     """Validate ldap oid with regex."""
     if not Encoder._re_oid.match(oid):
-        raise ValueError('Invalid LDAPOID')
+        raise ValueError("Invalid LDAPOID")
     return oid
 
 

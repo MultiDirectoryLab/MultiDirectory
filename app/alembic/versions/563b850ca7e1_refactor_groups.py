@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy import Column, Integer
 from sqlalchemy.orm import Session, declarative_base, selectinload
 
-from models.ldap3 import Directory, DirectoryMembership, Group, User
+from models import Directory, DirectoryMembership, Group, User
 
 # revision identifiers, used by Alembic.
 revision = '563b850ca7e1'

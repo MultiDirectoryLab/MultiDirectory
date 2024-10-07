@@ -13,9 +13,9 @@ from dishka import AsyncContainer, Scope
 from ldap3 import PLAIN, SASL, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ldap_protocol.dialogue import LDAPSession
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import (
     BindRequest,
@@ -25,14 +25,14 @@ from ldap_protocol.ldap_requests.bind import (
     UnbindRequest,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models.ldap3 import Attribute, Directory, User
+from models import Attribute, Directory, User
 from security import get_password_hash
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
 async def test_bind_ok_and_unbind(
     session: AsyncSession,
     ldap_session: LDAPSession,
@@ -44,11 +44,15 @@ async def test_bind_ok_and_unbind(
     bind = MutePolicyBindRequest(
         version=0,
         name=creds.un,
-        AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
-    result = await anext(bind.handle(
-        session, ldap_session, kadmin, settings, None))
+    result = await anext(
+        bind.handle(
+            session, ldap_session,
+            kadmin, settings, None,  # type: ignore
+        ),
+    )
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ldap_session.user
     assert ldap_session.user.sam_accout_name == creds.un
@@ -59,7 +63,7 @@ async def test_bind_ok_and_unbind(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_bind_invalid_password_or_user(
     session: AsyncSession,
     ldap_session: LDAPSession,
@@ -67,15 +71,16 @@ async def test_bind_invalid_password_or_user(
 ) -> None:
     """Test invalid password bind."""
     directory = Directory(
-        name='user0',
-        object_class='',
-        path=['cn=user0', 'ou=users', 'dc=md', 'dc=test'])
+        name="user0",
+        object_class="",
+        path=["cn=user0", "ou=users", "dc=md", "dc=test"],
+    )
     user = User(
-        sam_accout_name='user0',
-        user_principal_name='user0',
-        mail='user0',
-        display_name='user0',
-        password=get_password_hash('password'),
+        sam_accout_name="user0",
+        user_principal_name="user0",
+        mail="user0",
+        display_name="user0",
+        password=get_password_hash("password"),
         directory=directory,
     )
     user_account_control_attribute = Attribute(
@@ -89,42 +94,43 @@ async def test_bind_invalid_password_or_user(
 
     bind = BindRequest(
         version=0,
-        name='user0',
-        AuthenticationChoice=SimpleAuthentication(password='fail'),  # noqa
+        name="user0",
+        AuthenticationChoice=SimpleAuthentication(password="fail"),  # noqa
     )
 
     bad_response = BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
-        matchedDN='',
+        matchedDN="",
         errorMessage=(
-            '80090308: LdapErr: DSID-0C09030B, '
-            'comment: AcceptSecurityContext error, '
-            'data 52e, v893'),
+            "80090308: LdapErr: DSID-0C09030B, "
+            "comment: AcceptSecurityContext error, "
+            "data 52e, v893"
+        ),
     )
 
     async with container(scope=Scope.REQUEST) as container:
         handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())
+        result = await anext(handler())  # type: ignore
 
     assert result == bad_response
     assert ldap_session.user is None
 
     bind = BindRequest(
         version=0,
-        name='user1',
-        AuthenticationChoice=SimpleAuthentication(password='password'),  # noqa
+        name="user1",
+        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
     # async with container(scope=Scope.REQUEST) as container:
     handler = await resolve_deps(bind.handle, container)
-    result = await anext(handler())
+    result = await anext(handler())  # type: ignore
 
     assert result == bad_response
     assert ldap_session.user is None
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_anonymous_bind(
     ldap_session: LDAPSession,
     container: AsyncContainer,
@@ -132,12 +138,12 @@ async def test_anonymous_bind(
     """Test anonymous."""
     bind = BindRequest(
         version=0,
-        name='',
-        AuthenticationChoice=SimpleAuthentication(password=''),  # noqa
+        name="",
+        AuthenticationChoice=SimpleAuthentication(password=""),  # noqa
     )
     async with container(scope=Scope.REQUEST) as container:
         handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())
+        result = await anext(handler())  # type: ignore
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ldap_session.user is None
 
@@ -154,12 +160,11 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_ldap3_bind(
-        ldap_client: Connection,
-        event_loop: BaseEventLoop,
-        creds: TestCreds) -> None:
+    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound
 
@@ -168,7 +173,8 @@ async def test_ldap3_bind(
     assert ldap_client.bound
 
     result = await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw))
+        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw),
+    )
     assert result
     assert ldap_client.bound
 
@@ -177,25 +183,29 @@ async def test_ldap3_bind(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_ldap3_bind_sasl_plain(
-        ldap_client: Connection,
-        event_loop: BaseEventLoop,
-        creds: TestCreds) -> None:
+    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound
 
     result = await event_loop.run_in_executor(
-        None, ldap_client.rebind, None, None, SASL, PLAIN, (None, creds.un,
-                                                            creds.pw),
+        None,
+        ldap_client.rebind,
+        None,
+        None,
+        SASL,
+        PLAIN,
+        (None, creds.un, creds.pw),
     )
     assert result
     assert ldap_client.bound
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_bind_disabled_user(
     session: AsyncSession,
     ldap_session: LDAPSession,
@@ -203,15 +213,16 @@ async def test_bind_disabled_user(
 ) -> None:
     """Test disabled user bind."""
     directory = Directory(
-        name='user0',
-        object_class='',
-        path=['cn=user0', 'ou=users', 'dc=md', 'dc=test'])
+        name="user0",
+        object_class="",
+        path=["cn=user0", "ou=users", "dc=md", "dc=test"],
+    )
     user = User(
-        sam_accout_name='user0',
-        user_principal_name='user0',
-        mail='user0',
-        display_name='user0',
-        password=get_password_hash('password'),
+        sam_accout_name="user0",
+        user_principal_name="user0",
+        mail="user0",
+        display_name="user0",
+        password=get_password_hash("password"),
         directory=directory,
     )
     user_account_control_attribute = Attribute(
@@ -226,21 +237,22 @@ async def test_bind_disabled_user(
     bind = BindRequest(
         version=0,
         name=user.sam_accout_name,
-        AuthenticationChoice=SimpleAuthentication(password='password'),
+        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
     bad_response = BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
-        matchedDn='',
+        matchedDn="",
         errorMessage=(
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "
-            "data 533, v893"),
+            "data 533, v893"
+        ),
     )
 
     async with container(scope=Scope.REQUEST) as container:
         handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())
+        result = await anext(handler())  # type: ignore
 
     assert result == bad_response
     assert ldap_session.user is None

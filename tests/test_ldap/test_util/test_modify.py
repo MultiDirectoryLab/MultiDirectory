@@ -13,11 +13,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
-from app.config import Settings
-from app.ldap_protocol.dialogue import LDAPCodes
-from app.ldap_protocol.utils.queries import get_search_path
-from app.models.ldap3 import Directory, Group
+from config import Settings
 from ldap_protocol.access_policy import create_access_policy
+from ldap_protocol.dialogue import LDAPCodes
+from ldap_protocol.utils.queries import get_search_path
+from models import Directory, Group
 from tests.conftest import TestCreds
 
 
@@ -27,12 +27,14 @@ async def test_ldap_base_modify(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-    directory = await session.scalar(
+    query = (
         select(Directory)
         .options(
             subqueryload(Directory.attributes),
             joinedload(Directory.user))
         .filter(Directory.path == get_search_path(dn)))
+
+    directory = await session.scalar(query)
 
     assert directory.user.mail == "user0@mail.com"
 
@@ -75,7 +77,8 @@ async def test_ldap_base_modify(
         result = await proc.wait()
 
     assert result == 0
-    await session.refresh(directory)
+    session.expire_all()
+    directory = await session.scalar(query)
 
     attributes = defaultdict(list)
 
@@ -244,11 +247,17 @@ async def test_ldap_membersip_grp_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=domain admins,cn=groups,dc=md,dc=test"
-    directory = await session.scalar(
+
+    query = (
         select(Directory)
-        .options(selectinload(Directory.group)
-                 .selectinload(Group.parent_groups))
-        .filter(Directory.path == get_search_path(dn)))
+        .options(
+            selectinload(Directory.group)
+            .selectinload(Group.parent_groups)
+            .selectinload(Group.directory))
+        .filter(Directory.path == get_search_path(dn))
+    )
+
+    directory = await session.scalar(query)
 
     assert not directory.group.parent_groups
 
@@ -294,7 +303,8 @@ async def test_ldap_membersip_grp_replace(
 
         assert result == 0
 
-    await session.refresh(directory)
+    session.expire_all()
+    directory = await session.scalar(query)
     assert directory.group.parent_groups[0].directory.name == "twisted1"
 
 
@@ -378,12 +388,14 @@ async def test_ldap_modify_with_ap(
     dn = "ou=users,dc=md,dc=test"
     search_path = get_search_path(dn)
 
-    directory = await session.scalar(
+    query = (
         select(Directory)
         .options(
             subqueryload(Directory.attributes),
             joinedload(Directory.user))
         .filter(Directory.path == search_path))
+
+    directory = await session.scalar(query)
 
     async def try_modify() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
@@ -444,7 +456,8 @@ async def test_ldap_modify_with_ap(
 
     assert await try_modify() == LDAPCodes.SUCCESS
 
-    await session.refresh(directory)
+    session.expire_all()
+    directory = await session.scalar(query)
 
     attributes = defaultdict(list)
 

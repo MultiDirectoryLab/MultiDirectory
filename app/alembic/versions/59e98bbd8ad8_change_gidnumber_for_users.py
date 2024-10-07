@@ -9,7 +9,7 @@ from alembic import op
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from models.ldap3 import Attribute, User
+from models import Attribute, User
 
 # revision identifiers, used by Alembic.
 revision = '59e98bbd8ad8'

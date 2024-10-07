@@ -52,11 +52,11 @@ class SetupRequest(BaseModel):
     mail: EmailStr
     password: str
 
-    @validator('domain')
+    @validator("domain")
     def validate_domain(cls, v: str) -> str:  # noqa
         if re.match(domain_re, v) is None:
-            raise ValueError('Invalid domain value')
-        return v.lower().replace('http://', '').replace('https://', '')
+            raise ValueError("Invalid domain value")
+        return v.lower().replace("http://", "").replace("https://", "")
 
 
 class MFACreateRequest(BaseModel):
@@ -66,19 +66,21 @@ class MFACreateRequest(BaseModel):
     mfa_secret: str
     is_ldap_scope: bool
 
-    @computed_field
+    @computed_field  # type: ignore
+    @property
     def key_name(self) -> str:  # noqa
         if self.is_ldap_scope:
-            return 'mfa_key_ldap'
+            return "mfa_key_ldap"
 
-        return 'mfa_key'
+        return "mfa_key"
 
-    @computed_field
+    @computed_field  # type: ignore
+    @property
     def secret_name(self) -> str:  # noqa
         if self.is_ldap_scope:
-            return 'mfa_secret_ldap'
+            return "mfa_secret_ldap"
 
-        return 'mfa_secret'
+        return "mfa_secret"
 
 
 class MFAGetResponse(BaseModel):

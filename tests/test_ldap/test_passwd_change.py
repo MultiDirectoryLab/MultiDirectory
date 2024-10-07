@@ -11,8 +11,8 @@ import pytest
 from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ldap_protocol.utils.queries import get_user
-from app.security import verify_password
+from ldap_protocol.utils.queries import get_user
+from security import verify_password
 from tests.conftest import TestCreds
 
 
@@ -44,6 +44,7 @@ async def test_anonymous_pwd_change(
 
     user = await get_user(session, user_dn)
     assert user
+    assert user.password
 
     assert verify_password(new_test_password, user.password)
 
@@ -78,7 +79,8 @@ async def test_bind_pwd_change(
 
     user = await get_user(session, user_dn)
 
-    assert user is not None
+    assert user
+    assert user.password
 
     assert verify_password(new_test_password, user.password)
 

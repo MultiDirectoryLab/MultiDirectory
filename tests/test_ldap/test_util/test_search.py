@@ -12,16 +12,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.config import Settings
-from app.ldap_protocol.dialogue import LDAPSession
-from app.ldap_protocol.ldap_requests import SearchRequest
-from app.ldap_protocol.utils.queries import (
+from config import Settings
+from ldap_protocol.access_policy import create_access_policy
+from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.ldap_requests import SearchRequest
+from ldap_protocol.ldap_responses import SearchResultEntry
+from ldap_protocol.utils.queries import (
     get_group,
     get_groups,
     is_user_group_valid,
 )
-from app.models.ldap3 import User
-from ldap_protocol.access_policy import create_access_policy
+from models import User
 from tests.conftest import TestCreds
 
 
@@ -148,7 +149,8 @@ async def test_bvalue_in_search_request(
         attributes=["*"],
     )
 
-    result = await anext(request.handle(session, ldap_bound_session, settings))
+    result: SearchResultEntry = await anext(request.handle(
+        session, ldap_bound_session, settings))  # type: ignore
 
     assert result
 

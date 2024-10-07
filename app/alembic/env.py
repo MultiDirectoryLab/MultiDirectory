@@ -7,7 +7,7 @@ from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Settings
-from models.database import Base
+from models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -23,10 +23,12 @@ target_metadata = Base.metadata
 
 def do_run_migrations(connection):
     """Run sync migrations."""
-    context.configure(connection=connection,
-                      target_metadata=target_metadata,
-                      include_schemas=True,
-                      version_table_schema=target_metadata.schema)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_schemas=True,
+        version_table_schema=target_metadata.schema,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
