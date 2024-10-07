@@ -251,17 +251,17 @@ class DNSManager(AbstractDNSManager):
         for name, ttl, rdata in zone.iterate_rdatas():
             if rdata.rdtype.name in result.keys():
                 result[rdata.rdtype.name].append({
-                    "hostname":
+                    "record_name":
                         name.to_text() + f".{self._settings.zone_name}",
-                    "ip": rdata.to_text(),
+                    "record_value": rdata.to_text(),
                     "ttl": ttl,
                 })
             else:
                 if rdata.rdtype.name != "SOA":
                     result[rdata.rdtype.name] = [{
-                        "hostname":
+                        "record_name":
                             name.to_text() + f".{self._settings.zone_name}",
-                        "ip": rdata.to_text(),
+                        "record_value": rdata.to_text(),
                         "ttl": ttl,
                     }]
 
