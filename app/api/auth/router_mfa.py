@@ -103,10 +103,11 @@ async def get_mfa(
     )
 
 
-@mfa_router.post("/create", name="callback_mfa", include_in_schema=False)
+@mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
 @inject
 async def callback_mfa(
-    access_token: Annotated[str, Form(alias="accessToken")],
+    access_token: Annotated[str, Form(
+        alias="accessToken", validation_alias="accessToken")],
     session: FromDishka[AsyncSession],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
 ) -> RedirectResponse:
