@@ -265,7 +265,8 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session), user)
+        query = self.build_query(
+            await get_base_directories(session), user)  # type: ignore
 
         try:
             cond = self.cast_filter()
@@ -340,6 +341,7 @@ class SearchRequest(BaseRequest):
                         *[
                             get_path_filter(domain.path)
                             for domain in base_directories
+                            if domain.path is not None
                         ],
                     ),
                 )
@@ -348,7 +350,7 @@ class SearchRequest(BaseRequest):
             query = query.filter(
                 func.cardinality(Directory.path) == len(search_path) + 1,
                 get_path_filter(
-                    column=Directory.path[0 : len(search_path)],
+                    column=Directory.path[0:len(search_path)],
                     path=search_path,
                 ),
             )
@@ -356,15 +358,13 @@ class SearchRequest(BaseRequest):
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
             query = query.filter(
                 get_path_filter(
-                    column=Directory.path[1 : len(search_path)],
-                    path=search_path,
-                )
+                    column=Directory.path[1:len(search_path)],
+                    path=search_path),
             )
 
         if self.member:
             query = query.options(
-                selectinload(Directory.group).selectinload(Group.members)
-            )
+                selectinload(Directory.group).selectinload(Group.members))
 
         return query  # noqa
 
@@ -423,14 +423,12 @@ class SearchRequest(BaseRequest):
                     attrs["accountExpires"].append("0")
                 else:
                     attrs["accountExpires"].append(
-                        dt_to_ft(directory.user.account_exp),
-                    )
+                        str(dt_to_ft(directory.user.account_exp)))
                 if directory.user.last_logon is None:
                     attrs["lastLogon"].append("0")
                 else:
                     attrs["lastLogon"].append(
-                        get_windows_timestamp(directory.user.last_logon),
-                    )
+                        str(get_windows_timestamp(directory.user.last_logon)))
                     attrs["authTimestamp"].append(directory.user.last_logon)
 
             if self.member_of:
@@ -441,8 +439,7 @@ class SearchRequest(BaseRequest):
             if self.token_groups:
                 if "user" in obj_classes:
                     attrs["tokenGroups"].append(
-                        string_to_sid(directory.object_sid),
-                    )
+                        str(string_to_sid(directory.object_sid)))
 
                     group_directories = await get_all_parent_group_directories(
                         directory.groups, session,
@@ -451,8 +448,7 @@ class SearchRequest(BaseRequest):
                     if group_directories is not None:
                         async for directory_ in group_directories:
                             attrs["tokenGroups"].append(
-                                string_to_sid(directory_.object_sid),
-                            )
+                                str(string_to_sid(directory_.object_sid)))
 
             if self.member:
                 if "group" in obj_classes and directory.group:
