@@ -68,7 +68,7 @@ DATA = [  # noqa
                         "person",
                         "organizationalPerson",
                         "posixAccount",
-                    ]
+                    ],
                 },
             },
             {
@@ -88,7 +88,7 @@ DATA = [  # noqa
                         "person",
                         "organizationalPerson",
                         "posixAccount",
-                    ]
+                    ],
                 },
             },
         ],
@@ -110,7 +110,7 @@ DATA = [  # noqa
                 "person",
                 "organizationalPerson",
                 "posixAccount",
-            ]
+            ],
         },
     },
     {
@@ -160,7 +160,7 @@ DATA = [  # noqa
                         "person",
                         "organizationalPerson",
                         "posixAccount",
-                    ]
+                    ],
                 },
             },
         ],
@@ -191,7 +191,7 @@ DATA = [  # noqa
                                 "person",
                                 "organizationalPerson",
                                 "posixAccount",
-                            ]
+                            ],
                         },
                     },
                 ],

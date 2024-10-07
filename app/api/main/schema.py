@@ -30,7 +30,7 @@ class SearchRequest(LDAPSearchRequest):
         container: AsyncContainer,
     ) -> list[BaseResponse]:
         """Get all responses."""
-        return await self._handle_api(container)  # type: ignore
+        return await self._handle_api(container)
 
 
 class SearchResponse(SearchResultDone):  # noqa: D101

@@ -211,7 +211,7 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sa session
         :return UnaryExpression: condition
         """
-        return cast_filter2sql(self.filter)  # type: ignore
+        return cast_filter2sql(self.filter)
 
     async def handle(
         self,
