@@ -15,7 +15,7 @@ from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.ldap_responses import BaseResponse
+from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
 from ldap_protocol.utils.helpers import get_class_name
 
 log_api = logger.bind(name='admin')
@@ -91,9 +91,9 @@ class BaseRequest(ABC, BaseModel, _APIProtocol):
 
         return responses
 
-    async def handle_api(self, container: AsyncContainer) -> BaseResponse:
+    async def handle_api(self, container: AsyncContainer) -> LDAPResult:
         """Get single response."""
-        return (await self._handle_api(container))[0]
+        return (await self._handle_api(container))[0]  # type: ignore
 
 
 class APIMultipleResponseMixin(_APIProtocol):
