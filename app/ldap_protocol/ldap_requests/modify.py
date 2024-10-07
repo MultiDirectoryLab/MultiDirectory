@@ -406,12 +406,12 @@ class ModifyRequest(BaseRequest):
                     await session.refresh(directory)
 
                 if name == "accountexpires":
-                    value = ft_to_dt(int(value)) if value != "0" else None
+                    new_value = ft_to_dt(int(value)) if value != "0" else None
 
                 await session.execute(
                     update(User)
                     .filter(User.directory == directory)
-                    .values({name: value}),
+                    .values({name: new_value}),
                 )
 
             elif name in Group.search_fields and directory.group:
@@ -424,6 +424,9 @@ class ModifyRequest(BaseRequest):
             elif name in ("userpassword", "unicodepwd") and directory.user:
                 if not settings.USE_CORE_TLS:
                     raise PermissionError("TLS required")
+
+                if isinstance(value, bytes):
+                    raise ValueError('password is bytes')
 
                 try:
                     value = value.replace("\\x00", "\x00")
@@ -464,7 +467,6 @@ class ModifyRequest(BaseRequest):
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory=directory,
-                    )
-                )
+                    ))
 
         session.add_all(attrs)
