@@ -8,6 +8,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Callable
 
+import dns.exception
 from dishka import make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
@@ -24,7 +25,7 @@ from api import (
     network_router,
     pwd_router,
 )
-from api.exception_handlers import handle_db_connect_error
+from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import VENDOR_VERSION, Settings
 from ioc import HTTPProvider, MainProvider, MFACredsProvider, MFAProvider
 
@@ -82,6 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.add_exception_handler(exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(exc.InterfaceError, handle_db_connect_error)
+    app.add_exception_handler(dns.exception.DNSException, handle_dns_error)
     return app
 
 
