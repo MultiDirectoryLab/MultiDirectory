@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth import get_current_user
+from api.main.schema import DNSServiceSetupRequest
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -109,11 +110,8 @@ async def get_dns_status(
 @dns_router.post('/setup')
 @inject
 async def setup_dns(
-    dns_status: Annotated[str, Body()],
-    domain: Annotated[str, Body()],
+    data: DNSServiceSetupRequest,
     dns_manager: FromDishka[AbstractDNSManager],
-    dns_ip_address: Annotated[str | None, Body()],
-    tsig_key: Annotated[str | None, Body()],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
 ):
@@ -123,10 +121,12 @@ async def setup_dns(
     """
     zone_file = None
     named_conf_local_part = None
+    dns_ip_address = data.dns_ip_address
+    tsig_key = data.tsig_key
 
-    if dns_status == DNSManagerState.SELFHOSTED:
+    if data.dns_status == DNSManagerState.SELFHOSTED:
         zone_file_template = settings.TEMPLATES.get_template("zone.template")
-        zone_file = await zone_file_template.render_async(domain=domain)
+        zone_file = await zone_file_template.render_async(domain=data.domain)
 
         with open(settings.DNS_TSIG_KEY, "r") as f:
             key_file_content = f.read()
@@ -137,7 +137,7 @@ async def setup_dns(
             "named_conf_local_zone_part.template",
         )
         named_conf_local_part = await named_conf_local_part_template.render_async(
-            domain=domain,
+            domain=data.domain,
         )
 
         dns_ip_address = socket.gethostbyname(settings.DNS_BIND_HOST)
@@ -146,7 +146,7 @@ async def setup_dns(
         await dns_manager.setup(
             session=session,
             settings=settings,
-            domain=domain,
+            domain=data.domain,
             dns_ip_address=dns_ip_address,
             zone_file=zone_file,
             tsig_key=tsig_key,
@@ -155,5 +155,5 @@ async def setup_dns(
     except DNSAPIError as e:
         raise HTTPException(status.HTTP_304_NOT_MODIFIED, e)
 
-    await set_dns_manager_state(session, dns_status)
+    await set_dns_manager_state(session, data.dns_status)
     await session.commit()
