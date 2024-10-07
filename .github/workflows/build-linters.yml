@@ -1,0 +1,32 @@
+name: build-push linters cache
+on:
+  push:
+    branches: [main]
+  pull_request: null
+
+
+env:
+  REPO: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker image
+        env:
+          TAG: ghcr.io/${{ env.REPO }}_linters:beta
+          DOCKER_BUILDKIT: '1'
+        run: |
+          echo $TAG
+          docker build --push --target=runtime -f .docker/lint.Dockerfile . -t $TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
