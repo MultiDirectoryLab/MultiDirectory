@@ -8,8 +8,9 @@ $TTL 604800	; 1 week
                     21600      ; negative (6 hours)
                     )
 			            NS	ns1.{{ domain }}.
-ns1.{{ domain }}    IN  A   192.0.0.1
-ns1.{{ domain }}    IN  A   192.0.2.1
+ns1.{{ domain }}    IN  A   127.0.0.1
+{{ domain }}    IN  A   192.0.0.1
+{{ domain }}    IN  A   192.0.2.1
 {{ domain }}. IN A 192.0.0.1
 _ldap._tcp.{{ domain }}. IN SRV 0 0 389 {{ domain }}.
 _ldaps._tcp.{{ domain }}. IN SRV 0 0 636 {{ domain }}.
