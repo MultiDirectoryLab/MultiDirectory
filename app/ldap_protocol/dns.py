@@ -213,6 +213,9 @@ class DNSManager(AbstractDNSManager):
                 keyname="zone.",
             )
 
+        if self._dns_settings.dns_server_ip is None:
+            raise ConnectionError
+
         await dns.asyncquery.tcp(
             action,
             where=self._dns_settings.dns_server_ip,
@@ -262,7 +265,7 @@ class DNSManager(AbstractDNSManager):
                 if rdata.rdtype.name != "SOA":
                     result[rdata.rdtype.name] = [{
                         "record_name":
-                            name.to_text() + f".{self._dns_settings.zone_name}",
+                            name.to_text()+f".{self._dns_settings.zone_name}",
                         "record_value": rdata.to_text(),
                         "ttl": ttl,
                     }]

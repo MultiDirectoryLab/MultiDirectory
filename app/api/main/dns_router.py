@@ -115,7 +115,7 @@ async def setup_dns(
     Create zone file, get TSIG key, reload DNS server if selfhosted.
     """
     zone_file = None
-    named_conf_local_part = None
+    conf_part = None
     dns_ip_address = data.dns_ip_address
     tsig_key = data.tsig_key
 
@@ -123,13 +123,10 @@ async def setup_dns(
         zone_file_template = settings.TEMPLATES.get_template("zone.template")
         zone_file = await zone_file_template.render_async(domain=data.domain)
 
-        named_conf_local_part_template = settings.TEMPLATES.get_template(
+        tmpl = settings.TEMPLATES.get_template(
             "named_conf_local_zone_part.template",
         )
-        named_conf_local_part = \
-            await named_conf_local_part_template.render_async(
-                domain=data.domain,
-            )
+        conf_part = await tmpl.render_async(domain=data.domain)
 
     try:
         await dns_manager.setup(
@@ -139,7 +136,7 @@ async def setup_dns(
             dns_ip_address=dns_ip_address,
             zone_file=zone_file,
             tsig_key=tsig_key,
-            named_conf_local_part=named_conf_local_part,
+            named_conf_local_part=conf_part,
         )
     except DNSAPIError as e:
         raise HTTPException(status.HTTP_304_NOT_MODIFIED, e)
