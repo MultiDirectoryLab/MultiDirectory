@@ -28,6 +28,7 @@ from api import (
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import VENDOR_VERSION, Settings
 from ioc import HTTPProvider, MainProvider, MFACredsProvider, MFAProvider
+from ldap_protocol.dns import DNSConnectionError
 
 
 async def proc_time_header_middleware(
@@ -87,6 +88,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
     app.add_exception_handler(DNSException, handle_dns_error)
+    app.add_exception_handler(DNSConnectionError, handle_dns_error)
     return app
 
 

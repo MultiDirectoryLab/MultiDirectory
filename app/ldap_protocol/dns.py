@@ -12,11 +12,15 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any, Awaitable, Callable
 
-import dns
-import dns.asyncquery
-import dns.asyncresolver
-import dns.query
-import dns.update
+from dns.asyncquery import tcp as asynctcp
+from dns.asyncresolver import Resolver as AsyncResolver
+from dns.message import Message
+from dns.name import from_text
+from dns.query import xfr
+from dns.tsig import Key as TsigKey
+from dns.tsig import default_algorithm
+from dns.update import Update
+from dns.zone import from_xfr
 from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,7 +57,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
             logger.info(f"Calling{bus_type}'{name}'")
             try:
                 result = await func(*args, **kwargs)
-            except DNSAPIError as err:
+            except DNSConnectionError as err:
                 logger.error(f'{name} call raised: {err}')
                 raise
 
@@ -65,10 +69,6 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         return wrapped
 
     return wrapper
-
-
-class DNSAPIError(Exception):
-    """API Error."""
 
 
 class DNSConnectionError(ConnectionError):
@@ -211,18 +211,18 @@ class AbstractDNSManager(ABC):
 class DNSManager(AbstractDNSManager):
     """DNS server manager."""
 
-    async def _send(self, action: dns.message.Message) -> None:
+    async def _send(self, action: Message) -> None:
         """Send request to DNS server."""
         if self._dns_settings.tsig_key is not None:
             action.use_tsig(
-                keyring=dns.tsig.Key("zone.", self._dns_settings.tsig_key),
+                keyring=TsigKey("zone.", self._dns_settings.tsig_key),
                 keyname="zone.",
             )
 
         if self._dns_settings.dns_server_ip is None:
             raise DNSConnectionError
 
-        await dns.asyncquery.tcp(action, self._dns_settings.dns_server_ip)
+        await asynctcp(action, self._dns_settings.dns_server_ip)
 
     @logger_wraps()
     async def create_record(
@@ -230,7 +230,7 @@ class DNSManager(AbstractDNSManager):
         record_type: str, ttl: int | None,
     ) -> None:
         """Create DNS record."""
-        action = dns.update.Update(self._dns_settings.zone_name)
+        action = Update(self._dns_settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
 
         await self._send(action)
@@ -238,8 +238,10 @@ class DNSManager(AbstractDNSManager):
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
         """Get all DNS records."""
-        if (self._dns_settings.dns_server_ip is None or
-                self._dns_settings.domain is None):
+        if (
+            self._dns_settings.dns_server_ip is None or
+            self._dns_settings.domain is None
+        ):
             raise DNSConnectionError
 
         loop = asyncio.get_running_loop()
@@ -247,22 +249,21 @@ class DNSManager(AbstractDNSManager):
         if self._dns_settings.tsig_key is not None:
             zone_xfr_response = await loop.run_in_executor(
                 None,
-                lambda: dns.query.xfr(
+                lambda: xfr(
                     self._dns_settings.dns_server_ip,  # type: ignore
                     self._dns_settings.domain,  # type: ignore
                     keyring={
-                        dns.name.from_text("zone."):
-                            dns.tsig.Key("zone.", self._dns_settings.tsig_key),
+                        from_text("zone."):
+                            TsigKey("zone.", self._dns_settings.tsig_key),
                     },
-                    keyalgorithm=dns.tsig.default_algorithm))
+                    keyalgorithm=default_algorithm))
         else:
             zone_xfr_response = await loop.run_in_executor(
-                None,
-                dns.query.xfr,
+                None, xfr,
                 self._dns_settings.dns_server_ip,
                 self._dns_settings.domain)
 
-        zone = dns.zone.from_xfr(zone_xfr_response)
+        zone = from_xfr(zone_xfr_response)
 
         result: defaultdict[str, list] = defaultdict(list)
         for name, ttl, rdata in zone.iterate_rdatas():
@@ -289,7 +290,7 @@ class DNSManager(AbstractDNSManager):
         record_type: str, ttl: int | None,
     ) -> None:
         """Update DNS record."""
-        action = dns.update.Update(self._dns_settings.zone_name)
+        action = Update(self._dns_settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
         await self._send(action)
@@ -300,7 +301,7 @@ class DNSManager(AbstractDNSManager):
         record_type: str,
     ) -> None:
         """Delete DNS record."""
-        action = dns.update.Update(self._dns_settings.zone_name)
+        action = Update(self._dns_settings.zone_name)
         action.delete(hostname, record_type, ip)
 
         await self._send(action)
@@ -369,7 +370,7 @@ async def set_dns_manager_state(
 
 async def resolve_dns_server_ip(host: str) -> str:
     """Get DNS server IP from Docker network."""
-    async_resolver = dns.asyncresolver.Resolver()
+    async_resolver = AsyncResolver()
     dns_server_ip_resolve = await async_resolver.resolve(host)
     if (dns_server_ip_resolve is None or
             dns_server_ip_resolve.rrset is None):

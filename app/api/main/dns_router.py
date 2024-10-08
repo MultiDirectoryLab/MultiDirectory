@@ -20,7 +20,6 @@ from api.main.schema import (
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
-    DNSAPIError,
     DNSManagerSettings,
     DNSManagerState,
     DNSRecords,
@@ -139,7 +138,7 @@ async def setup_dns(
             tsig_key=tsig_key,
             named_conf_local_part=conf_part,
         )
-    except DNSAPIError as e:
+    except Exception as e:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, e)
 
     await set_dns_manager_state(session, data.dns_status)
