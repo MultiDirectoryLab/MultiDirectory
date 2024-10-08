@@ -1,7 +1,7 @@
 """Exception handlers."""
-
 from typing import NoReturn
 
+import dns.exception
 from fastapi import HTTPException, Request, status
 from loguru import logger
 
@@ -20,5 +20,16 @@ def handle_db_connect_error(
         )
 
     logger.critical("DB BACKEND ERR {}", exc)
+
+    raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+async def handle_dns_error(
+    request: Request,
+    exc: dns.exception.DNSException,
+) -> NoReturn:
+    """Handle EmptyLabel exception."""
+
+    logger.critical("DNS manager error: {}", exc)
 
     raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)

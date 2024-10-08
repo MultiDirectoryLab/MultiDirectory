@@ -7,13 +7,13 @@ import socket
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import HTTPException, Depends
+from fastapi import Depends, HTTPException
 from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth import get_current_user
-from api.main.schema import DNSServiceSetupRequest, DNSServiceRecordRequest
+from api.main.schema import DNSServiceRecordRequest, DNSServiceSetupRequest
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -21,7 +21,8 @@ from ldap_protocol.dns import (
     DNSManagerSettings,
     DNSManagerState,
     get_dns_state,
-    set_dns_manager_state, resolve_dns_server_ip,
+    resolve_dns_server_ip,
+    set_dns_manager_state,
 )
 
 dns_router = APIRouter(

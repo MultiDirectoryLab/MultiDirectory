@@ -11,8 +11,8 @@ from typing import Any, Callable
 
 import dns
 import dns.asyncquery
-import dns.update
 import dns.asyncresolver
+import dns.update
 from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
