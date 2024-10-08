@@ -113,22 +113,19 @@ class DNSManagerState(StrEnum):
 class AbstractDNSManager(ABC):
     """Abstract DNS manager class."""
 
-    def __init__(
-        self,
-        settings: DNSManagerSettings,
-    ) -> None:
+    def __init__(self, settings: DNSManagerSettings) -> None:
         """Set up DNS manager."""
         self._dns_settings = settings
 
     async def setup(
-            self,
-            session: AsyncSession,
-            settings: Settings,
-            domain: str,
-            dns_ip_address: str | None,
-            zone_file: str | None,
-            tsig_key: str | None,
-            named_conf_local_part: str | None,
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        domain: str,
+        dns_ip_address: str | None,
+        zone_file: str | None,
+        tsig_key: str | None,
+        named_conf_local_part: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
         if zone_file is not None and named_conf_local_part is not None:
@@ -146,39 +143,22 @@ class AbstractDNSManager(ABC):
 
             tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
 
+        new_settings = {
+            DNS_MANAGER_IP_ADDRESS_NAME: dns_ip_address,
+            DNS_MANAGER_ZONE_NAME: domain,
+            DNS_MANAGER_TSIG_KEY_NAME: tsig_key,
+        }
         if self._dns_settings.domain is not None:
-            await session.execute(
-                update(CatalogueSetting)
-                .values({"value": domain})
-                .where(CatalogueSetting.name == DNS_MANAGER_ZONE_NAME),
-            )
-            await session.execute(
-                update(CatalogueSetting)
-                .values({"value": dns_ip_address})
-                .where(CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME),
-            )
-            await session.execute(
-                update(CatalogueSetting)
-                .values({"value": tsig_key})
-                .where(CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME),
-            )
+            for name, value in new_settings.items():
+                await session.execute(
+                    update(CatalogueSetting)
+                    .values({"value": value})
+                    .where(CatalogueSetting.name == name),
+                )
         else:
-            session.add_all(
-                [
-                    CatalogueSetting(
-                        name=DNS_MANAGER_IP_ADDRESS_NAME,
-                        value=dns_ip_address,
-                    ),
-                    CatalogueSetting(
-                        name=DNS_MANAGER_ZONE_NAME,
-                        value=domain,
-                    ),
-                    CatalogueSetting(
-                        name=DNS_MANAGER_TSIG_KEY_NAME,
-                        value=tsig_key,
-                    ),
-                ],
-            )
+            session.add_all([
+                CatalogueSetting(name=name, value=value)
+                for name, value in new_settings.items()])
 
     @abstractmethod
     async def create_record( # noqa
@@ -216,10 +196,7 @@ class DNSManager(AbstractDNSManager):
         if self._dns_settings.dns_server_ip is None:
             raise ConnectionError
 
-        await dns.asyncquery.tcp(
-            action,
-            where=self._dns_settings.dns_server_ip,
-        )
+        await dns.asyncquery.tcp(action, self._dns_settings.dns_server_ip)
 
     async def create_record(
         self, hostname: str, ip: str,
@@ -247,8 +224,7 @@ class DNSManager(AbstractDNSManager):
             )
         else:
             zone_xfr_response = await dns.asyncquery.xfr(  # type: ignore
-                self._dns_settings.dns_server_ip, self._dns_settings.domain,
-            )
+                self._dns_settings.dns_server_ip, self._dns_settings.domain)
 
         zone = dns.zone.from_xfr(zone_xfr_response)
 
@@ -270,14 +246,10 @@ class DNSManager(AbstractDNSManager):
                         "ttl": ttl,
                     }]
 
-        response = []
-        for record_type in result:
-            response.append({
-                "record_type": record_type,
-                "records": result[record_type],
-            })
-
-        return response
+        return [
+            {"record_type": record_type, "records": result[record_type]}
+            for record_type in result
+        ]
 
     async def update_record(
         self, hostname: str, ip: str | None,
@@ -380,12 +352,9 @@ async def get_dns_manager_settings(
     for setting in await session.scalars(
         select(CatalogueSetting)
         .filter(or_(
-            *[
-                CatalogueSetting.name == DNS_MANAGER_ZONE_NAME,
-                CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME,
-                CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME,
-            ],
-        )),
+            CatalogueSetting.name == DNS_MANAGER_ZONE_NAME,
+            CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME,
+            CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME)),
     ):
         settings_dict[setting.name] = setting.value
 
