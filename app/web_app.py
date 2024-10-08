@@ -17,11 +17,12 @@ from sqlalchemy import exc
 from api import (
     access_policy_router,
     auth_router,
+    dns_router,
     entry_router,
     krb5_router,
     mfa_router,
     network_router,
-    pwd_router, dns_router,
+    pwd_router,
 )
 from api.exception_handlers import handle_db_connect_error
 from config import VENDOR_VERSION, Settings

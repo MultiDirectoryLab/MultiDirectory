@@ -11,8 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth import get_current_user
-from api.main.schema import DNSServiceSetupRequest, DNSServiceRecordCreateRequest, DNSServiceRecordDeleteRequest, \
-    DNSServiceRecordUpdateRequest
+from api.main.schema import (
+    DNSServiceRecordCreateRequest,
+    DNSServiceRecordDeleteRequest,
+    DNSServiceRecordUpdateRequest,
+    DNSServiceSetupRequest,
+)
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,

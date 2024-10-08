@@ -23,7 +23,8 @@ from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
     get_dns_manager_class,
-    get_dns_manager_settings, resolve_dns_server_ip,
+    get_dns_manager_settings,
+    resolve_dns_server_ip,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
