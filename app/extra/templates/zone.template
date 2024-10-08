@@ -1,6 +1,6 @@
 $ORIGIN .
 $TTL 604800	; 1 week
-{{ domain }}		IN  SOA	ns1.{{ domain }}. info. (
+{{ domain }}		IN  SOA	ns1.{{ domain }}. info.{{ domain }}. (
                     20240725   ; serial
                     10800      ; refresh (3 hours)
                     3600       ; retry (1 hour)
