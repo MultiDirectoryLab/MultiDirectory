@@ -119,6 +119,7 @@ class AbstractDNSManager(ABC):
         """Set up DNS manager."""
         self._dns_settings = settings
 
+    @logger_wraps()
     async def setup(
         self,
         session: AsyncSession,
@@ -200,6 +201,7 @@ class DNSManager(AbstractDNSManager):
 
         await dns.asyncquery.tcp(action, self._dns_settings.dns_server_ip)
 
+    @logger_wraps()
     async def create_record(
         self, hostname: str, ip: str,
         record_type: str, ttl: int | None,
@@ -210,6 +212,7 @@ class DNSManager(AbstractDNSManager):
 
         await self._send(action)
 
+    @logger_wraps()
     async def get_all_records(self) -> list:
         """Get all DNS records."""
         if (self._dns_settings.dns_server_ip is None or
@@ -261,6 +264,7 @@ class DNSManager(AbstractDNSManager):
             for record_type in result
         ]
 
+    @logger_wraps()
     async def update_record(
         self, hostname: str, ip: str | None,
         record_type: str, ttl: int | None,
@@ -271,6 +275,7 @@ class DNSManager(AbstractDNSManager):
 
         await self._send(action)
 
+    @logger_wraps()
     async def delete_record(
         self, hostname: str, ip: str,
         record_type: str,
