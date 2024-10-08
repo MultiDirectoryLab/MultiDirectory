@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import uuid
+import weakref
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
@@ -128,12 +129,15 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
     async def get_dns_mngr_settings(
-            self, session: AsyncSession,
-    ) -> 'DNSManagerSettings':
+        self, session: AsyncSession,
+    ) -> AsyncIterator['DNSManagerSettings']:
         """Get DNS manager's settings."""
         async def resolve() -> str:
             return '127.0.0.1'
-        return await get_dns_manager_settings(session, resolve())
+
+        resolver = resolve()
+        yield await get_dns_manager_settings(session, resolver)
+        weakref.finalize(resolver, resolver.close)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
