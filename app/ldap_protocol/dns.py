@@ -7,8 +7,10 @@ import asyncio
 import functools
 import re
 from abc import ABC, abstractmethod
+from collections import defaultdict
+from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Any, Callable, Coroutine
+from typing import Any, Callable, Coroutine, List
 
 import dns
 import dns.asyncquery
@@ -108,6 +110,19 @@ class DNSManagerSettings:
         self.tsig_key = tsig_key
 
 
+@dataclass
+class DNSRecord:
+    record_name: str
+    record_value: str
+    ttl: int
+
+
+@dataclass
+class DNSRecords:
+    record_type: str
+    records: list[DNSRecord]
+
+
 class DNSManagerState(StrEnum):
     """DNSManager state enum."""
 
@@ -186,7 +201,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def get_all_records(self) -> list: ... # noqa
+    async def get_all_records(self) -> list[DNSRecords]: ... # noqa
 
 
 class DNSManager(AbstractDNSManager):
@@ -217,7 +232,7 @@ class DNSManager(AbstractDNSManager):
         await self._send(action)
 
     @logger_wraps()
-    async def get_all_records(self) -> list:
+    async def get_all_records(self) -> list[DNSRecords]:
         """Get all DNS records."""
         if (self._dns_settings.dns_server_ip is None or
                 self._dns_settings.domain is None):
@@ -245,27 +260,23 @@ class DNSManager(AbstractDNSManager):
 
         zone = dns.zone.from_xfr(zone_xfr_response)
 
-        result: dict[str, list] = {}
+        result: defaultdict[str, list] = defaultdict(list)
         for name, ttl, rdata in zone.iterate_rdatas():
-            if rdata.rdtype.name in result.keys():
-                result[rdata.rdtype.name].append({
-                    "record_name":
-                        name.to_text() + f".{self._dns_settings.zone_name}",
-                    "record_value": rdata.to_text(),
-                    "ttl": ttl,
-                })
-            else:
-                if rdata.rdtype.name != "SOA":
-                    result[rdata.rdtype.name] = [{
-                        "record_name":
-                            name.to_text()+f".{self._dns_settings.zone_name}",
-                        "record_value": rdata.to_text(),
-                        "ttl": ttl,
-                    }]
+            record_type = rdata.rdtype.name
+
+            if record_type not in result or record_type == "SOA":
+                continue
+
+            result[record_type].append(DNSRecord(
+                record_name=(
+                    name.to_text() + f".{self._dns_settings.zone_name}"),
+                record_value=rdata.to_text(),
+                ttl=ttl,
+            ))
 
         return [
-            {"record_type": record_type, "records": result[record_type]}
-            for record_type in result
+            DNSRecords(record_type=record_type, records=records)
+            for record_type, records in result.items()
         ]
 
     @logger_wraps()
@@ -313,7 +324,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def get_all_records(self) -> list:
+    async def get_all_records(self) -> list[DNSRecords]:
         """Stub DNS manager get all records."""
         return []
 

@@ -24,7 +24,7 @@ from ldap_protocol.dns import (
     DNSManagerSettings,
     DNSManagerState,
     get_dns_state,
-    set_dns_manager_state,
+    set_dns_manager_state, DNSRecords,
 )
 
 dns_router = APIRouter(
@@ -82,7 +82,7 @@ async def update_record(
 @inject
 async def get_all_records(
     dns_manager: FromDishka[AbstractDNSManager],
-) -> list:
+) -> list[DNSRecords]:
     """Get all DNS records of current zone."""
     return await dns_manager.get_all_records()
 
