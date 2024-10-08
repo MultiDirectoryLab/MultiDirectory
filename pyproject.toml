@@ -44,7 +44,7 @@ flake8-isort = "^6.1.1"
 isort = "^5.13.2"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.2.0"
+pytest = "^8.3.3"
 pytest-cov = "^4.1.0"
 gevent = "^23.9.1"
 coverage = "7.3.4"
