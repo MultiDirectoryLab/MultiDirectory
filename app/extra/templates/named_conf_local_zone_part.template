@@ -1,0 +1,7 @@
+zone "{{ domain }}" {
+    type master;
+    file "/opt/db.zone";
+    notify no;
+    allow-query { any; };
+    allow-update { key zone. ; };
+};

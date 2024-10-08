@@ -1,0 +1,11 @@
+$ORIGIN .
+$TTL 604800	; 1 week
+{{ domain }}		IN  SOA	ns1.{{ domain }}. john.{{ domain }}. (
+                    20240725   ; serial
+                    10800      ; refresh (3 hours)
+                    3600       ; retry (1 hour)
+                    604800     ; expire (1 week)
+                    21600      ; negative (6 hours)
+                    )
+			            NS	ns1.{{ domain }}.
+ns1.{{ domain }}    IN  A   127.0.0.1
