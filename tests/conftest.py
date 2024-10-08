@@ -404,9 +404,7 @@ async def unbound_http_client(
     :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
     """
     async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(
-                app=app, root_path='/api',  # type: ignore
-            ),
+            transport=httpx.ASGITransport(app=app, root_path='/api'),
             timeout=3,
             base_url="http://test") as client:
         yield client
