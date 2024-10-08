@@ -30,6 +30,7 @@ sqlalchemy = {version = "1.4.54", extras = ["asyncio", "mypy"]}
 asyncpg = "^0.29.0"
 httpx = "^0.27.2"
 fastapi = "^0.115.0"
+watchdog = "4.0.2"
 
 [tool.poetry.group.linters.dependencies]
 flake8-pytest = "^1.4"
