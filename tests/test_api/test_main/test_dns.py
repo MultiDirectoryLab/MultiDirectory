@@ -97,9 +97,7 @@ async def test_dns_update_record(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-async def test_dns_get_all_records(
-    http_client: AsyncClient,
-) -> None:
+async def test_dns_get_all_records(http_client: AsyncClient) -> None:
     """DNS Manager get all records test."""
     response = await http_client.get('/dns/record')
 
@@ -145,9 +143,7 @@ async def test_dns_setup_selfhosted(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('add_dns_settings')
 @pytest.mark.usefixtures('session')
-async def test_dns_get_status(
-    http_client: AsyncClient,
-) -> None:
+async def test_dns_get_status(http_client: AsyncClient) -> None:
     """DNS Manager get status test."""
     response = await http_client.get('/dns/status')
 
