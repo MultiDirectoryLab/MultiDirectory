@@ -69,6 +69,10 @@ class DNSAPIError(Exception):
     """API Error."""
 
 
+class DNSConnectionError(ConnectionError):
+    """API Error."""
+
+
 class DNSRecordType(str, Enum):
     """DNS record types."""
 
@@ -197,7 +201,7 @@ class DNSManager(AbstractDNSManager):
             )
 
         if self._dns_settings.dns_server_ip is None:
-            raise ConnectionError
+            raise DNSConnectionError
 
         await dns.asyncquery.tcp(action, self._dns_settings.dns_server_ip)
 
@@ -217,7 +221,7 @@ class DNSManager(AbstractDNSManager):
         """Get all DNS records."""
         if (self._dns_settings.dns_server_ip is None or
                 self._dns_settings.domain is None):
-            raise ConnectionError
+            raise DNSConnectionError
 
         loop = asyncio.get_running_loop()
 
@@ -352,10 +356,10 @@ async def resolve_dns_server_ip(host: str) -> str:
     """Get DNS server IP from Docker network."""
     async_resolver = dns.asyncresolver.Resolver()
     dns_server_ip_resolve = await async_resolver.resolve(host)
-    if (dns_server_ip_resolve is not None and
-            dns_server_ip_resolve.rrset is not None):
-        return dns_server_ip_resolve.rrset[0].address
-    return ""
+    if (dns_server_ip_resolve is None or
+            dns_server_ip_resolve.rrset is None):
+        raise DNSConnectionError
+    return dns_server_ip_resolve.rrset[0].address
 
 
 async def get_dns_manager_settings(
