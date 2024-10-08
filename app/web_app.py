@@ -10,9 +10,10 @@ from typing import AsyncIterator, Callable
 
 from dishka import make_async_container
 from dishka.integrations.fastapi import setup_dishka
+from dns.exception import DNSException
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import exc
+from sqlalchemy import exc as sa_exc
 
 from api import (
     access_policy_router,
@@ -24,7 +25,7 @@ from api import (
     network_router,
     pwd_router,
 )
-from api.exception_handlers import handle_db_connect_error
+from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import VENDOR_VERSION, Settings
 from ioc import HTTPProvider, MainProvider, MFACredsProvider, MFAProvider
 
@@ -83,8 +84,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.DEBUG:
         app.middleware("http")(proc_time_header_middleware)
 
-    app.add_exception_handler(exc.TimeoutError, handle_db_connect_error)
-    app.add_exception_handler(exc.InterfaceError, handle_db_connect_error)
+    app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
+    app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
+    app.add_exception_handler(DNSException, handle_dns_error)
     return app
 
 
