@@ -12,6 +12,7 @@ from typing import Any, Callable, Coroutine
 import dns
 import dns.asyncquery
 import dns.asyncresolver
+import dns.query
 import dns.update
 from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
@@ -210,10 +211,12 @@ class DNSManager(AbstractDNSManager):
 
     async def get_all_records(self) -> list:
         """Get all DNS records."""
-        if self._dns_settings.dns_server_ip is None:
+        if (self._dns_settings.dns_server_ip is None or
+                self._dns_settings.domain is None):
             raise ConnectionError
+
         if self._dns_settings.tsig_key is not None:
-            zone_xfr_response = await dns.asyncquery.xfr(  # type: ignore
+            zone_xfr_response = dns.query.xfr(
                 self._dns_settings.dns_server_ip,
                 self._dns_settings.domain,
                 keyring={
@@ -223,7 +226,7 @@ class DNSManager(AbstractDNSManager):
                 keyalgorithm=dns.tsig.default_algorithm,
             )
         else:
-            zone_xfr_response = await dns.asyncquery.xfr(  # type: ignore
+            zone_xfr_response = dns.query.xfr(
                 self._dns_settings.dns_server_ip, self._dns_settings.domain)
 
         zone = dns.zone.from_xfr(zone_xfr_response)
