@@ -268,7 +268,7 @@ class DNSManager(AbstractDNSManager):
         for name, ttl, rdata in zone.iterate_rdatas():
             record_type = rdata.rdtype.name
 
-            if record_type not in result or record_type == "SOA":
+            if record_type == "SOA":
                 continue
 
             result[record_type].append(DNSRecord(
