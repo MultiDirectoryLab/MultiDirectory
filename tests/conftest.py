@@ -105,7 +105,18 @@ class TestProvider(Provider):
         dns_manager.update_record = AsyncMock()
         dns_manager.delete_record = AsyncMock()
         dns_manager.get_all_records = AsyncMock(return_value=[
-            {"record_type": "A", "records": [{"hostname": "example.com", "ip": "127.0.0.1", "ttl": 3600}]}])
+            {
+                "record_type": "A",
+                "records": [
+                    {
+                        "hostname":
+                        "example.com",
+                        "ip": "127.0.0.1",
+                        "ttl": 3600,
+                    },
+                ],
+            },
+        ])
         dns_manager.setup = AsyncMock()
 
         if not self._cached_dns_manager:
@@ -120,7 +131,9 @@ class TestProvider(Provider):
             self, session: AsyncSession,
     ) -> 'DNSManagerSettings':
         """Get DNS manager's settings."""
-        return await get_dns_manager_settings(session)
+        async def resolve() -> str:
+            return '127.0.0.1'
+        return await get_dns_manager_settings(session, resolve())
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
