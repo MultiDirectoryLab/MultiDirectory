@@ -29,7 +29,6 @@ async def handle_dns_error(
     exc: dns.exception.DNSException,
 ) -> NoReturn:
     """Handle EmptyLabel exception."""
-
     logger.critical("DNS manager error: {}", exc)
 
     raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)

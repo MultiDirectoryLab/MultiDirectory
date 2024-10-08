@@ -213,7 +213,10 @@ class DNSManager(AbstractDNSManager):
                 keyname="zone.",
             )
 
-        await dns.asyncquery.tcp(action, where=self._dns_settings.dns_server_ip)
+        await dns.asyncquery.tcp(
+            action,
+            where=self._dns_settings.dns_server_ip,
+        )
 
     async def create_record(
         self, hostname: str, ip: str,
@@ -235,9 +238,9 @@ class DNSManager(AbstractDNSManager):
                 self._dns_settings.domain,
                 keyring={
                     dns.name.from_text("zone."):
-                        dns.tsig.Key("zone.", self._dns_settings.tsig_key)
+                        dns.tsig.Key("zone.", self._dns_settings.tsig_key),
                 },
-                keyalgorithm=dns.tsig.default_algorithm
+                keyalgorithm=dns.tsig.default_algorithm,
             )
         else:
             zone_xfr_response = await dns.asyncquery.xfr(  # type: ignore
@@ -317,6 +320,7 @@ class StubDNSManager(AbstractDNSManager):
 
     @logger_wraps(is_stub=True)
     async def get_all_records(self) -> list:
+        """Stub DNS manager get all records."""
         return []
 
 

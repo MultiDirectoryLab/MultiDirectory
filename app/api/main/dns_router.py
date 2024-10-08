@@ -24,7 +24,6 @@ from ldap_protocol.dns import (
     DNSManagerSettings,
     DNSManagerState,
     get_dns_state,
-    resolve_dns_server_ip,
     set_dns_manager_state,
 )
 
@@ -127,9 +126,10 @@ async def setup_dns(
         named_conf_local_part_template = settings.TEMPLATES.get_template(
             "named_conf_local_zone_part.template",
         )
-        named_conf_local_part = await named_conf_local_part_template.render_async(
-            domain=data.domain,
-        )
+        named_conf_local_part = \
+            await named_conf_local_part_template.render_async(
+                domain=data.domain,
+            )
 
     try:
         await dns_manager.setup(

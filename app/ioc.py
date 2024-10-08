@@ -129,7 +129,7 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_dns_mngr_class(
-            self, session_maker: sessionmaker,
+        self, session_maker: sessionmaker,
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
         async with session_maker() as session:
@@ -137,8 +137,8 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
     async def get_dns_mngr_settings(
-            self, session_maker: sessionmaker,
-            settings: Settings,
+        self, session_maker: sessionmaker,
+        settings: Settings,
     ) -> 'DNSManagerSettings':
         """Get DNS manager's settings."""
         resolve_coro = resolve_dns_server_ip(settings.DNS_BIND_HOST)
@@ -147,9 +147,9 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
     async def get_dns_mngr(
-            self,
-            settings: DNSManagerSettings,
-            dns_manager_class: type[AbstractDNSManager],
+        self,
+        settings: DNSManagerSettings,
+        dns_manager_class: type[AbstractDNSManager],
     ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class."""
         yield dns_manager_class(

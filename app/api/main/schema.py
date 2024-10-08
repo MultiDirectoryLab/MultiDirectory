@@ -69,6 +69,7 @@ class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
 
 
 class DNSServiceSetupRequest(BaseModel):
+    """"DNS setup request schema."""
     dns_status: DNSManagerState
     domain: str
     dns_ip_address: Optional[str] = Field(None)
@@ -76,19 +77,27 @@ class DNSServiceSetupRequest(BaseModel):
 
 
 class DNSServiceRecordBaseRequest(BaseModel):
+    """"DNS setup base schema."""
+
     record_name: str
     record_type: str
 
 
 class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
+    """"DNS create request schema."""
+
     record_value: str
     ttl: Optional[int] = Field(None)
 
 
 class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
+    """"DNS delete request schema."""
+
     record_value: str
 
 
 class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
+    """"DNS update request schema."""
+
     record_value: Optional[str] = Field(None)
     ttl: Optional[int] = Field(None)
