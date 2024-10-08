@@ -16,7 +16,7 @@ async def test_dns_create_record(
     hostname = "hello"
     ip = "127.0.0.1"
     record_type = "A"
-    ttl = "3600"
+    ttl = 3600
     response = await http_client.post(
         "/dns/record",
         json={
@@ -75,7 +75,7 @@ async def test_dns_update_record(
     hostname = "hello"
     ip = "127.0.0.1"
     record_type = "A"
-    ttl = "3600"
+    ttl = 3600
     response = await http_client.request(
         'PATCH',
         '/dns/record',

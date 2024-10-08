@@ -7,7 +7,7 @@ import functools
 import re
 from abc import ABC, abstractmethod
 from enum import Enum, StrEnum
-from typing import Any, Callable, Awaitable, Coroutine
+from typing import Any, Callable, Coroutine
 
 import dns
 import dns.asyncquery
@@ -118,7 +118,7 @@ class AbstractDNSManager(ABC):
         settings: DNSManagerSettings,
     ) -> None:
         """Set up DNS manager."""
-        self._settings = settings
+        self._dns_settings = settings
 
     async def setup(
             self,
@@ -146,7 +146,7 @@ class AbstractDNSManager(ABC):
 
             tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
 
-        if self._settings.domain is not None:
+        if self._dns_settings.domain is not None:
             await session.execute(
                 update(CatalogueSetting)
                 .values({"value": domain})
@@ -188,8 +188,8 @@ class AbstractDNSManager(ABC):
 
     @abstractmethod
     async def update_record( # noqa
-        self, hostname: str, ip: str,
-        record_type: str | None, ttl: int | None,
+        self, hostname: str, ip: str | None,
+        record_type: str, ttl: int | None,
     ) -> None: ...
 
     @abstractmethod
@@ -207,39 +207,41 @@ class DNSManager(AbstractDNSManager):
 
     async def _send(self, action: dns.message.Message) -> None:
         """Send request to DNS server."""
-        if self._settings.tsig_key is not None:
+        if self._dns_settings.tsig_key is not None:
             action.use_tsig(
-                keyring=dns.tsig.Key("zone.", self._settings.tsig_key),
+                keyring=dns.tsig.Key("zone.", self._dns_settings.tsig_key),
                 keyname="zone.",
             )
 
-        await dns.asyncquery.tcp(action, where=self._settings.dns_server_ip)
+        await dns.asyncquery.tcp(action, where=self._dns_settings.dns_server_ip)
 
     async def create_record(
         self, hostname: str, ip: str,
         record_type: str, ttl: int | None,
     ) -> None:
         """Create DNS record."""
-        action = dns.update.Update(self._settings.zone_name)
+        action = dns.update.Update(self._dns_settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
 
         await self._send(action)
 
     async def get_all_records(self) -> list:
         """Get all DNS records."""
-        if self._settings.tsig_key is not None:
-            zone_xfr_response = await dns.asyncquery.xfr(
-                self._settings.dns_server_ip,
-                self._settings.domain,
+        if self._dns_settings.dns_server_ip is None:
+            raise ConnectionError
+        if self._dns_settings.tsig_key is not None:
+            zone_xfr_response = await dns.asyncquery.xfr(  # type: ignore
+                self._dns_settings.dns_server_ip,
+                self._dns_settings.domain,
                 keyring={
                     dns.name.from_text("zone."):
-                        dns.tsig.Key("zone.", self._settings.tsig_key)
+                        dns.tsig.Key("zone.", self._dns_settings.tsig_key)
                 },
                 keyalgorithm=dns.tsig.default_algorithm
             )
         else:
-            zone_xfr_response = await dns.asyncquery.xfr(
-                self._settings.dns_server_ip, self._settings.domain,
+            zone_xfr_response = await dns.asyncquery.xfr(  # type: ignore
+                self._dns_settings.dns_server_ip, self._dns_settings.domain,
             )
 
         zone = dns.zone.from_xfr(zone_xfr_response)
@@ -249,7 +251,7 @@ class DNSManager(AbstractDNSManager):
             if rdata.rdtype.name in result.keys():
                 result[rdata.rdtype.name].append({
                     "record_name":
-                        name.to_text() + f".{self._settings.zone_name}",
+                        name.to_text() + f".{self._dns_settings.zone_name}",
                     "record_value": rdata.to_text(),
                     "ttl": ttl,
                 })
@@ -257,7 +259,7 @@ class DNSManager(AbstractDNSManager):
                 if rdata.rdtype.name != "SOA":
                     result[rdata.rdtype.name] = [{
                         "record_name":
-                            name.to_text() + f".{self._settings.zone_name}",
+                            name.to_text() + f".{self._dns_settings.zone_name}",
                         "record_value": rdata.to_text(),
                         "ttl": ttl,
                     }]
@@ -272,11 +274,11 @@ class DNSManager(AbstractDNSManager):
         return response
 
     async def update_record(
-        self, hostname: str, ip: str,
-        record_type: str | None, ttl: int | None,
+        self, hostname: str, ip: str | None,
+        record_type: str, ttl: int | None,
     ) -> None:
         """Update DNS record."""
-        action = dns.update.Update(self._settings.zone_name)
+        action = dns.update.Update(self._dns_settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
         await self._send(action)
@@ -286,7 +288,7 @@ class DNSManager(AbstractDNSManager):
         record_type: str,
     ) -> None:
         """Delete DNS record."""
-        action = dns.update.Update(self._settings.zone_name)
+        action = dns.update.Update(self._dns_settings.zone_name)
         action.delete(hostname, record_type, ip)
 
         await self._send(action)
@@ -352,12 +354,14 @@ async def set_dns_manager_state(
     )
 
 
-async def resolve_dns_server_ip(host: str) -> str | None:
+async def resolve_dns_server_ip(host: str) -> str:
     """Get DNS server IP from Docker network."""
     async_resolver = dns.asyncresolver.Resolver()
     dns_server_ip_resolve = await async_resolver.resolve(host)
-    if dns_server_ip_resolve is not None:
-        return dns_server_ip_resolve.rrset[0]
+    if (dns_server_ip_resolve is not None and
+            dns_server_ip_resolve.rrset is not None):
+        return dns_server_ip_resolve.rrset[0].address
+    return ""
 
 
 async def get_dns_manager_settings(
