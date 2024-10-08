@@ -241,7 +241,7 @@ class DNSManager(AbstractDNSManager):
         """Get all DNS records."""
         if (
             self._dns_settings.dns_server_ip is None or
-            self._dns_settings.domain is None
+            self._dns_settings.zone_name is None
         ):
             raise DNSConnectionError
 
