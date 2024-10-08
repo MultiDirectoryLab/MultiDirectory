@@ -270,26 +270,26 @@ services:
       - traefik.tcp.routers.kpasswd.service=kpasswd
       - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
   
-    bind_dns:
-      image: ubuntu/bind9:9.18-24.04_edge
-      container_name: bind9
-      hostname: bind9
-      restart: unless-stopped
-      volumes:
-        - dns_server_file:/opt/
-        - dns_server_config:/etc/bind/
-      tty: true
-      depends_on:
-        ldap_server:
-          condition: service_healthy
-          restart: true
-      command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
-      labels:
-        - traefik.enable=true
-        - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
-        - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
-        - traefik.tcp.routers.bind_dns.service=bind_dns
-        - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
+  bind_dns:
+    image: ubuntu/bind9:9.18-24.04_edge
+    container_name: bind9
+    hostname: bind9
+    restart: unless-stopped
+    volumes:
+      - dns_server_file:/opt/
+      - dns_server_config:/etc/bind/
+    tty: true
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+        restart: true
+    command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
+      - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
+      - traefik.tcp.routers.bind_dns.service=bind_dns
+      - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
 
 volumes:
   postgres:
