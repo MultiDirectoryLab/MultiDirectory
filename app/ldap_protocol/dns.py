@@ -3,7 +3,6 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-import asyncio
 import functools
 import re
 from abc import ABC, abstractmethod
@@ -12,15 +11,17 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any, Awaitable, Callable
 
+from dns.asyncquery import inbound_xfr as make_inbound_xfr
 from dns.asyncquery import tcp as asynctcp
 from dns.asyncresolver import Resolver as AsyncResolver
 from dns.message import Message
+from dns.message import make_query as make_dns_query
 from dns.name import from_text
-from dns.query import xfr
+from dns.rdataclass import IN
+from dns.rdatatype import AXFR
 from dns.tsig import Key as TsigKey
-from dns.tsig import default_algorithm
 from dns.update import Update
-from dns.zone import from_xfr
+from dns.zone import Zone as DNSZone
 from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -240,33 +241,27 @@ class DNSManager(AbstractDNSManager):
         """Get all DNS records."""
         if (
             self._dns_settings.dns_server_ip is None or
-            self._dns_settings.domain is None
+            self._dns_settings.zone_name is None
         ):
             raise DNSConnectionError
 
-        loop = asyncio.get_running_loop()
+        zone = from_text(self._dns_settings.zone_name)
+        zone_tm = DNSZone(zone)
+        query = make_dns_query(zone, AXFR, IN)
 
         if self._dns_settings.tsig_key is not None:
-            zone_xfr_response = await loop.run_in_executor(
-                None,
-                lambda: xfr(
-                    self._dns_settings.dns_server_ip,  # type: ignore
-                    self._dns_settings.domain,  # type: ignore
-                    keyring={
-                        from_text("zone."):
-                            TsigKey("zone.", self._dns_settings.tsig_key),
-                    },
-                    keyalgorithm=default_algorithm))
-        else:
-            zone_xfr_response = await loop.run_in_executor(
-                None, xfr,
-                self._dns_settings.dns_server_ip,
-                self._dns_settings.domain)
+            query.use_tsig(
+                keyring=TsigKey("zone.", self._dns_settings.tsig_key),
+                keyname="zone.",
+            )
 
-        zone = from_xfr(zone_xfr_response)
+        await make_inbound_xfr(
+            self._dns_settings.dns_server_ip,
+            zone_tm,
+        )
 
         result: defaultdict[str, list] = defaultdict(list)
-        for name, ttl, rdata in zone.iterate_rdatas():
+        for name, ttl, rdata in zone_tm.iterate_rdatas():
             record_type = rdata.rdtype.name
 
             if record_type == "SOA":
