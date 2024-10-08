@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Annotated
 
-import jinja2
 from annotated_types import Len
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
