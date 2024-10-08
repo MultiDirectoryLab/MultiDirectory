@@ -139,7 +139,7 @@ async def setup_dns(
             named_conf_local_part=conf_part,
         )
     except DNSAPIError as e:
-        raise HTTPException(status.HTTP_304_NOT_MODIFIED, e)
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, e)
 
     await set_dns_manager_state(session, data.dns_status)
     await session.commit()
