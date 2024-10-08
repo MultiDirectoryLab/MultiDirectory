@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Any, Callable, Coroutine, List
+from typing import Any, Awaitable, Callable
 
 import dns
 import dns.asyncquery
@@ -112,6 +112,8 @@ class DNSManagerSettings:
 
 @dataclass
 class DNSRecord:
+    """Single dns record."""
+
     record_name: str
     record_value: str
     ttl: int
@@ -119,6 +121,8 @@ class DNSRecord:
 
 @dataclass
 class DNSRecords:
+    """Grouped dns records."""
+
     record_type: str
     records: list[DNSRecord]
 
@@ -375,7 +379,7 @@ async def resolve_dns_server_ip(host: str) -> str:
 
 async def get_dns_manager_settings(
     session: AsyncSession,
-    resolve_coro: Coroutine[Any, Any, str | None],
+    resolve_coro: Awaitable[str],
 ) -> 'DNSManagerSettings':
     """Get DNS manager's settings."""
     settings_dict = {}

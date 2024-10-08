@@ -23,8 +23,9 @@ from ldap_protocol.dns import (
     DNSAPIError,
     DNSManagerSettings,
     DNSManagerState,
+    DNSRecords,
     get_dns_state,
-    set_dns_manager_state, DNSRecords,
+    set_dns_manager_state,
 )
 
 dns_router = APIRouter(
