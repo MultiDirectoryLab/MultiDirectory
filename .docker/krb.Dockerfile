@@ -13,7 +13,7 @@ RUN pip install \
     https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
 
 
-FROM python:3.12.4-slim-bookworm AS runtime
+FROM python:3.12.6-slim-bookworm AS runtime
 # kerberos server configuration
 
 ENV LANG=C.UTF-8 \
