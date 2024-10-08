@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+import asyncio
 import functools
 import re
 from abc import ABC, abstractmethod
@@ -215,19 +216,25 @@ class DNSManager(AbstractDNSManager):
                 self._dns_settings.domain is None):
             raise ConnectionError
 
+        loop = asyncio.get_running_loop()
+
         if self._dns_settings.tsig_key is not None:
-            zone_xfr_response = dns.query.xfr(
-                self._dns_settings.dns_server_ip,
-                self._dns_settings.domain,
-                keyring={
-                    dns.name.from_text("zone."):
-                        dns.tsig.Key("zone.", self._dns_settings.tsig_key),
-                },
-                keyalgorithm=dns.tsig.default_algorithm,
-            )
+            zone_xfr_response = await loop.run_in_executor(
+                None,
+                lambda: dns.query.xfr(
+                    self._dns_settings.dns_server_ip,  # type: ignore
+                    self._dns_settings.domain,  # type: ignore
+                    keyring={
+                        dns.name.from_text("zone."):
+                            dns.tsig.Key("zone.", self._dns_settings.tsig_key),
+                    },
+                    keyalgorithm=dns.tsig.default_algorithm))
         else:
-            zone_xfr_response = dns.query.xfr(
-                self._dns_settings.dns_server_ip, self._dns_settings.domain)
+            zone_xfr_response = await loop.run_in_executor(
+                None,
+                dns.query.xfr,
+                self._dns_settings.dns_server_ip,
+                self._dns_settings.domain)
 
         zone = dns.zone.from_xfr(zone_xfr_response)
 
