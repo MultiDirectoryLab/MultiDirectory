@@ -3,11 +3,13 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+from typing import Optional
 
 from dishka import AsyncContainer
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
+from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_requests.base import BaseResponse
@@ -64,3 +66,39 @@ class AccessPolicySchema(_PolicyFields, BaseModel):
 
 class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
     """AP Schema with id."""
+
+
+class DNSServiceSetupRequest(BaseModel):
+    """DNS setup request schema."""
+
+    dns_status: DNSManagerState
+    domain: str
+    dns_ip_address: Optional[str] = Field(None)
+    tsig_key: Optional[str] = Field(None)
+
+
+class DNSServiceRecordBaseRequest(BaseModel):
+    """DNS setup base schema."""
+
+    record_name: str
+    record_type: str
+
+
+class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
+    """DNS create request schema."""
+
+    record_value: str
+    ttl: Optional[int] = Field(None)
+
+
+class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
+    """DNS delete request schema."""
+
+    record_value: str
+
+
+class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
+    """DNS update request schema."""
+
+    record_value: Optional[str] = Field(None)
+    ttl: Optional[int] = Field(None)

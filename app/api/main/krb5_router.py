@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Annotated
 
-import jinja2
 from annotated_types import Len
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
@@ -37,10 +36,6 @@ from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
 
 krb5_router = APIRouter(prefix="/kerberos", tags=["KRB5 API"])
-
-TEMPLATES = jinja2.Environment(
-    loader=jinja2.FileSystemLoader('extra'),
-    enable_async=True, autoescape=True)
 
 
 @krb5_router.post(
@@ -178,8 +173,8 @@ async def setup_kdc(
     krbadmin = "cn=krbadmin,ou=users," + base_dn
     services_container = "ou=services," + base_dn
 
-    krb5_template = TEMPLATES.get_template("krb5.conf")
-    kdc_template = TEMPLATES.get_template("kdc.conf")
+    krb5_template = settings.TEMPLATES.get_template("krb5.conf")
+    kdc_template = settings.TEMPLATES.get_template("kdc.conf")
 
     kdc_config = await kdc_template.render_async(domain=domain)
 
