@@ -110,9 +110,8 @@ class TestProvider(Provider):
                 "record_type": "A",
                 "records": [
                     {
-                        "hostname":
-                        "example.com",
-                        "ip": "127.0.0.1",
+                        "record_name": "example.com",
+                        "record_value": "127.0.0.1",
                         "ttl": 3600,
                     },
                 ],
