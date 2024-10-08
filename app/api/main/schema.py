@@ -75,8 +75,20 @@ class DNSServiceSetupRequest(BaseModel):
     tsig_key: Optional[str] = Field(None)
 
 
-class DNSServiceRecordRequest(BaseModel):
+class DNSServiceRecordBaseRequest(BaseModel):
     record_name: str
     record_type: str
-    record_value: Optional[str]
+
+
+class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
+    record_value: str
+    ttl: Optional[int] = Field(None)
+
+
+class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
+    record_value: str
+
+
+class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
+    record_value: Optional[str] = Field(None)
     ttl: Optional[int] = Field(None)

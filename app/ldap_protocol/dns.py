@@ -7,7 +7,7 @@ import functools
 import re
 from abc import ABC, abstractmethod
 from enum import Enum, StrEnum
-from typing import Any, Callable
+from typing import Any, Callable, Awaitable, Coroutine
 
 import dns
 import dns.asyncquery
@@ -131,7 +131,7 @@ class AbstractDNSManager(ABC):
             named_conf_local_part: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        if zone_file is not None:
+        if zone_file is not None and named_conf_local_part is not None:
             with open(settings.DNS_ZONE_FILE, "w") as f:
                 f.write(zone_file)
 
@@ -183,13 +183,13 @@ class AbstractDNSManager(ABC):
     @abstractmethod
     async def create_record( # noqa
         self, hostname: str, ip: str,
-        record_type: str, ttl: int,
+        record_type: str, ttl: int | None,
     ) -> None: ...
 
     @abstractmethod
     async def update_record( # noqa
         self, hostname: str, ip: str,
-        record_type: str, ttl: int,
+        record_type: str | None, ttl: int | None,
     ) -> None: ...
 
     @abstractmethod
@@ -205,7 +205,7 @@ class AbstractDNSManager(ABC):
 class DNSManager(AbstractDNSManager):
     """DNS server manager."""
 
-    async def _send(self, action: dns.message.Message):
+    async def _send(self, action: dns.message.Message) -> None:
         """Send request to DNS server."""
         if self._settings.tsig_key is not None:
             action.use_tsig(
@@ -217,7 +217,7 @@ class DNSManager(AbstractDNSManager):
 
     async def create_record(
         self, hostname: str, ip: str,
-        record_type: str, ttl: int,
+        record_type: str, ttl: int | None,
     ) -> None:
         """Create DNS record."""
         action = dns.update.Update(self._settings.zone_name)
@@ -244,7 +244,7 @@ class DNSManager(AbstractDNSManager):
 
         zone = dns.zone.from_xfr(zone_xfr_response)
 
-        result = {}
+        result: dict[str, list] = {}
         for name, ttl, rdata in zone.iterate_rdatas():
             if rdata.rdtype.name in result.keys():
                 result[rdata.rdtype.name].append({
@@ -273,8 +273,8 @@ class DNSManager(AbstractDNSManager):
 
     async def update_record(
         self, hostname: str, ip: str,
-        record_type: str, ttl: int,
-    ):
+        record_type: str | None, ttl: int | None,
+    ) -> None:
         """Update DNS record."""
         action = dns.update.Update(self._settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
@@ -298,7 +298,7 @@ class StubDNSManager(AbstractDNSManager):
     @logger_wraps(is_stub=True)
     async def create_record( # noqa
         self, hostname: str, ip: str,
-        record_type: str, ttl: int,
+        record_type: str, ttl: int | None,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -352,16 +352,17 @@ async def set_dns_manager_state(
     )
 
 
-async def resolve_dns_server_ip() -> str:
+async def resolve_dns_server_ip(host: str) -> str | None:
     """Get DNS server IP from Docker network."""
     async_resolver = dns.asyncresolver.Resolver()
-    dns_server_ip_resolve = await async_resolver.resolve("bind9")
-
-    return dns_server_ip_resolve.rrset[0]
+    dns_server_ip_resolve = await async_resolver.resolve(host)
+    if dns_server_ip_resolve is not None:
+        return dns_server_ip_resolve.rrset[0]
 
 
 async def get_dns_manager_settings(
     session: AsyncSession,
+    resolve_coro: Coroutine[Any, Any, str | None],
 ) -> 'DNSManagerSettings':
     """Get DNS manager's settings."""
     settings_dict = {}
@@ -380,7 +381,7 @@ async def get_dns_manager_settings(
     dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None)
 
     if await get_dns_state(session) == DNSManagerState.SELFHOSTED:
-        dns_server_ip = await resolve_dns_server_ip()
+        dns_server_ip = await resolve_coro
 
     return DNSManagerSettings(
         zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),

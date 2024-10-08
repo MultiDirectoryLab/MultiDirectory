@@ -23,7 +23,7 @@ from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
     get_dns_manager_class,
-    get_dns_manager_settings,
+    get_dns_manager_settings, resolve_dns_server_ip,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.multifactor import (
@@ -137,12 +137,14 @@ class MainProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
     async def get_dns_mngr_settings(
             self, session_maker: sessionmaker,
+            settings: Settings,
     ) -> 'DNSManagerSettings':
         """Get DNS manager's settings."""
+        resolve_coro = resolve_dns_server_ip(settings.DNS_BIND_HOST)
         async with session_maker() as session:
-            return await get_dns_manager_settings(session)
+            return await get_dns_manager_settings(session, resolve_coro)
 
-    @provide(scope=scope.REQUEST, provides=AbstractDNSManager)
+    @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
     async def get_dns_mngr(
             self,
             settings: DNSManagerSettings,

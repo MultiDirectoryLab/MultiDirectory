@@ -3,8 +3,6 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-import socket
-
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException
@@ -13,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth import get_current_user
-from api.main.schema import DNSServiceRecordRequest, DNSServiceSetupRequest
+from api.main.schema import DNSServiceSetupRequest, DNSServiceRecordCreateRequest, DNSServiceRecordDeleteRequest, \
+    DNSServiceRecordUpdateRequest
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -35,66 +34,54 @@ dns_router = APIRouter(
 @dns_router.post('/record')
 @inject
 async def create_record(
-    data: DNSServiceRecordRequest,
+    data: DNSServiceRecordCreateRequest,
     dns_manager: FromDishka[AbstractDNSManager],
-):
+) -> None:
     """Create DNS record with given params."""
-    try:
-        await dns_manager.create_record(
-            data.record_name,
-            data.record_value,
-            data.record_type,
-            data.ttl,
-        )
-    except Exception as e:
-        raise HTTPException(500, f"{e}")
+    await dns_manager.create_record(
+        data.record_name,
+        data.record_value,
+        data.record_type,
+        data.ttl,
+    )
 
 
 @dns_router.delete('/record')
 @inject
 async def delete_single_record(
-    data: DNSServiceRecordRequest,
+    data: DNSServiceRecordDeleteRequest,
     dns_manager: FromDishka[AbstractDNSManager],
-):
+) -> None:
     """Delete DNS record with given params."""
-    try:
-        await dns_manager.delete_record(
-            data.record_name,
-            data.record_value,
-            data.record_type,
-        )
-    except Exception:
-        raise HTTPException(500, "DNS transaction failed")
+    await dns_manager.delete_record(
+        data.record_name,
+        data.record_value,
+        data.record_type,
+    )
 
 
 @dns_router.patch('/record')
 @inject
 async def update_record(
-    data: DNSServiceRecordRequest,
+    data: DNSServiceRecordUpdateRequest,
     dns_manager: FromDishka[AbstractDNSManager],
-):
+) -> None:
     """Update DNS record with given params."""
-    try:
-        await dns_manager.update_record(
-            data.record_name,
-            data.record_value,
-            data.record_type,
-            data.ttl
-        )
-    except Exception as e:
-        raise HTTPException(500, f"{e}")
+    await dns_manager.update_record(
+        data.record_name,
+        data.record_value,
+        data.record_type,
+        data.ttl,
+    )
 
 
 @dns_router.get('/record')
 @inject
 async def get_all_records(
-        dns_manager: FromDishka[AbstractDNSManager],
+    dns_manager: FromDishka[AbstractDNSManager],
 ) -> list:
     """Get all DNS records of current zone."""
-    try:
-        return await dns_manager.get_all_records()
-    except Exception as e:
-        raise HTTPException(500, str(e))
+    return await dns_manager.get_all_records()
 
 
 @dns_router.get('/status')
@@ -102,7 +89,7 @@ async def get_all_records(
 async def get_dns_status(
     session: FromDishka[AsyncSession],
     dns_settings: FromDishka[DNSManagerSettings],
-):
+) -> dict[str, str | None]:
     """Get DNS service status."""
     state = await get_dns_state(session)
     return {
@@ -119,7 +106,7 @@ async def setup_dns(
     dns_manager: FromDishka[AbstractDNSManager],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
-):
+) -> None:
     """Set up DNS service.
 
     Create zone file, get TSIG key, reload DNS server if selfhosted.
@@ -139,8 +126,6 @@ async def setup_dns(
         named_conf_local_part = await named_conf_local_part_template.render_async(
             domain=data.domain,
         )
-
-        dns_ip_address = await resolve_dns_server_ip()
 
     try:
         await dns_manager.setup(
