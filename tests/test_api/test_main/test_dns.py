@@ -1,10 +1,8 @@
 """Test DNS service."""
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from config import Settings
 from ldap_protocol.dns import AbstractDNSManager, DNSManagerState
 
 
@@ -29,11 +27,14 @@ async def test_dns_create_record(
         },
     )
 
-    dns_manager.create_record.assert_called()
-    assert dns_manager.create_record.call_args.args == (hostname, ip, record_type, int(ttl))
+    dns_manager.create_record.assert_called()  # type: ignore
+    assert (
+        dns_manager  # type: ignore
+        .create_record
+        .call_args.args
+    ) == (hostname, ip, record_type, int(ttl))
 
     assert response.status_code == status.HTTP_200_OK
-
 
 
 @pytest.mark.asyncio
@@ -56,8 +57,10 @@ async def test_dns_delete_record(
         },
     )
 
-    dns_manager.delete_record.assert_called()
-    assert dns_manager.delete_record.call_args.args == (hostname, ip, record_type)
+    dns_manager.delete_record.assert_called()  # type: ignore
+    assert (
+        dns_manager.delete_record.call_args.args  # type: ignore
+    ) == (hostname, ip, record_type)
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -84,8 +87,10 @@ async def test_dns_update_record(
         },
     )
 
-    dns_manager.update_record.assert_called()
-    assert dns_manager.update_record.call_args.args == (hostname, ip, record_type, int(ttl))
+    dns_manager.update_record.assert_called()  # type: ignore
+    assert (
+        dns_manager.update_record.call_args.args  # type: ignore
+    ) == (hostname, ip, record_type, int(ttl))
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -101,7 +106,14 @@ async def test_dns_get_all_records(
     assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
-    assert data == [{"record_type": "A", "records": [{"hostname": "example.com", "ip": "127.0.0.1", "ttl": 3600}]}]
+    assert data == [{
+        "record_type": "A",
+        "records": [{
+            "hostname": "example.com",
+            "ip": "127.0.0.1",
+            "ttl": 3600,
+        }],
+    }]
 
 
 @pytest.mark.asyncio
@@ -109,8 +121,6 @@ async def test_dns_get_all_records(
 async def test_dns_setup_selfhosted(
     http_client: AsyncClient,
     dns_manager: AbstractDNSManager,
-    settings: Settings,
-    session: AsyncSession,
 ) -> None:
     """DNS Manager setup test."""
     dns_status = DNSManagerState.SELFHOSTED
@@ -129,7 +139,7 @@ async def test_dns_setup_selfhosted(
 
     assert response.status_code == status.HTTP_200_OK
 
-    dns_manager.setup.assert_called()
+    dns_manager.setup.assert_called()  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -137,10 +147,13 @@ async def test_dns_setup_selfhosted(
 @pytest.mark.usefixtures('session')
 async def test_dns_get_status(
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """DNS Manager get status test."""
     response = await http_client.get('/dns/status')
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"dns_status": "2", "zone_name": "example.com", "dns_server_ip": "127.0.0.1"}
+    assert response.json() == {
+        "dns_status": "2",
+        "zone_name": "example.com",
+        "dns_server_ip": "127.0.0.1",
+    }
