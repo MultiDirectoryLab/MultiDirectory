@@ -7,6 +7,7 @@ services:
     container_name: multidirectory_migrations
     restart: "no"
     environment:
+      DOMAIN: md.multifactor.dev
       DEBUG: 1
       POSTGRES_USER: user
       POSTGRES_PASSWORD: test_pwd
@@ -16,13 +17,22 @@ services:
       postgres:
         condition: service_healthy
 
+  cert_check:
+    image: ghcr.io/multidirectorylab/multidirectory_test:latest
+    container_name: multidirectory_certs_check
+    restart: "no"
+    command: ./extra/generate_cert.sh
+    volumes:
+      - certs:/certs
+
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory_test:latest
     container_name: multidirectory_api
     restart: unless-stopped
-    command: uvicorn --factory web_app:create_app --host 0.0.0.0 --loop uvloop
+    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --loop uvloop
     environment:
       USE_CORE_TLS: 1
+      DOMAIN: md.multifactor.dev
       DEBUG: 1
       POSTGRES_USER: user
       POSTGRES_PASSWORD: test_pwd
@@ -32,6 +42,10 @@ services:
     depends_on:
       migrations:
         condition: service_completed_successfully
+      cert_check:
+        condition: service_completed_successfully
+    volumes:
+      - certs:/certs
     ports:
       - 8000:8000
     healthcheck:
@@ -48,9 +62,11 @@ services:
     hostname: multidirectory_ldap
     entrypoint: ./entrypoint.sh
     volumes:
+      - certs:/certs
       - ./entrypoint.sh:/app/entrypoint.sh
     environment:
       DOCKER_DEFAULT_PLATFORM: linux/arm64
+      DOMAIN: md.multifactor.dev
       DEBUG: 1
       POSTGRES_USER: user
       POSTGRES_PASSWORD: test_pwd
@@ -60,6 +76,8 @@ services:
       - 389
     depends_on:
       migrations:
+        condition: service_completed_successfully
+      cert_check:
         condition: service_completed_successfully
 
   postgres:
@@ -105,3 +123,6 @@ services:
         condition: service_started
       api_server:
         condition: service_healthy
+
+volumes:
+  certs:
