@@ -42,7 +42,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         if EMAIL_RE.fullmatch(name):
             cond = User.user_principal_name.ilike(name) | User.mail.ilike(name)
         else:
-            cond = User.sam_accout_name.ilike(name)
+            cond = User.sam_accout_name.ilike(name)  # type: ignore
 
         return await session.scalar(select(User).where(cond).options(policies))
 
