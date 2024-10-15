@@ -348,7 +348,7 @@ async def get_dns_state(
         await session.commit()
         return DNSManagerState.NOT_CONFIGURED
 
-    return state.value
+    return DNSManagerState(state.value)
 
 
 async def set_dns_manager_state(
