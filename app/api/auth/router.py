@@ -41,8 +41,7 @@ from ldap_protocol.utils.queries import (
     get_base_directories,
     set_last_logon_user,
 )
-from models import CatalogueSetting, Directory, Group
-from models import User as DBUser
+from models import CatalogueSetting, Directory, Group, User
 from security import get_password_hash
 
 from .oauth2 import (
@@ -88,7 +87,7 @@ async def login_for_access_token(
     admin_group = await session.scalar(
         select(Group)
         .join(Group.users)
-        .filter(DBUser.id == user.id, Directory.name == "domain admins"),
+        .filter(User.id == user.id, Directory.name == "domain admins"),
     )
 
     if not admin_group:
@@ -278,9 +277,9 @@ async def check_setup(session: FromDishka[AsyncSession]) -> bool:
 
     True if setup already complete, False if setup is needed.
     """
-    return await session.scalar(
-        select(exists(Directory).where(Directory.parent_id.is_(None))),
-    )
+    query = select(exists(Directory).where(Directory.parent_id.is_(None)))
+    retval = await session.scalars(query)
+    return retval.one()
 
 
 @auth_router.post(
@@ -394,9 +393,9 @@ async def first_setup(
 
             await default_pwd_policy.create_policy_settings(session, kadmin)
 
-            domain: Directory = await session.scalar(
+            domain = (await session.scalars(
                 select(Directory).filter(Directory.parent_id.is_(None)),
-            )
+            )).one()
 
             await create_access_policy(
                 name="Root Access Policy",
