@@ -106,7 +106,8 @@ async def get_check_uac(
     )
     uac = await session.scalar(query)
 
-    value = uac.value if uac is not None else "0"
+    value: str = (
+        uac.value if uac is not None and uac.value is not None else "0")
 
     def is_flag_true(flag: UserAccountControlFlag) -> bool:
         """Check given flag in current userAccountControl attribute.
