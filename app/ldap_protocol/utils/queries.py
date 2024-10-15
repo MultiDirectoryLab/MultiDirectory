@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import InstrumentedAttribute, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
 from models import Attribute, Directory, Group, NetworkPolicy, User
@@ -26,7 +26,7 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
     result = await session.execute(
         select(Directory).filter(Directory.parent_id.is_(None)),
     )
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 
 async def get_user(session: AsyncSession, name: str) -> User | None:
@@ -79,7 +79,7 @@ async def get_directories(
 
     results = await session.scalars(query)
 
-    return results.all()
+    return list(results.all())
 
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
@@ -170,7 +170,7 @@ async def check_kerberos_group(
         .exists()
     )
 
-    return await session.scalar(select(query))
+    return (await session.scalars(select(query))).one()
 
 
 async def set_last_logon_user(
@@ -201,7 +201,7 @@ def get_search_path(dn: str) -> list[str]:
 def get_path_filter(
     path: list[str],
     *,
-    column: ColumnElement | Column = Directory.path,
+    column: ColumnElement | Column | InstrumentedAttribute = Directory.path,
 ) -> ColumnElement:
     """Get filter condition for path equality.
 
@@ -215,7 +215,7 @@ def get_path_filter(
 def get_filter_from_path(
     dn: str,
     *,
-    column: Column = Directory.path,
+    column: Column | InstrumentedAttribute = Directory.path,
 ) -> ColumnElement:
     """Get filter condition for path equality from dn."""
     return get_path_filter(get_search_path(dn), column=column)
@@ -228,7 +228,7 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     >>> 'cn=groups,dc=example,dc=com'
     """
     query = select(Directory).filter(Directory.id == id_)
-    retval = await session.scalar(query)
+    retval = (await session.scalars(query)).one()
     return retval.path_dn
 
 
@@ -259,7 +259,7 @@ async def create_group(
         .filter(get_filter_from_path("cn=groups," + base_dn_list[0].path_dn))
     )
 
-    parent = await session.scalar(query)
+    parent = (await session.scalars(query)).one()
 
     dir_ = Directory(
         object_class="",
@@ -306,14 +306,12 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
     :param AsyncSession session: db
     :param int directory_id: id
     """
-    return await session.scalar(
-        select(
-            select(Attribute)
-            .where(
-                Attribute.name.ilike("objectclass"),
-                Attribute.value == "computer",
-                Attribute.directory_id == directory_id,
-            )
-            .exists(),
-        ),
+    query = select(
+        select(Attribute)
+        .where(
+            Attribute.name.ilike("objectclass"),
+            Attribute.value == "computer",
+            Attribute.directory_id == directory_id)
+        .exists(),
     )
+    return (await session.scalars(query)).one()
