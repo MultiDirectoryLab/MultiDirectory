@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from typing import Optional
+from typing import Optional, final
 
 from dishka import AsyncContainer
 from pydantic import BaseModel, Field, SecretStr
@@ -12,7 +12,6 @@ from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
-from ldap_protocol.ldap_requests.base import BaseResponse
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 
 
@@ -27,12 +26,13 @@ class SearchRequest(LDAPSearchRequest):
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
         return cast_str_filter2sql(Filter.parse(filter_).simplify())
 
+    @final
     async def handle_api(  # type: ignore
         self,
         container: AsyncContainer,
-    ) -> list[BaseResponse]:
+    ) -> list[SearchResultEntry | SearchResultDone]:
         """Get all responses."""
-        return await self._handle_api(container)
+        return await self._handle_api(container)  # type: ignore
 
 
 class SearchResponse(SearchResultDone):  # noqa: D101
