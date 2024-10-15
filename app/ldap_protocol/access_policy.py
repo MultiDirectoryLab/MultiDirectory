@@ -35,7 +35,7 @@ async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
         selectinload(AccessPolicy.directories),
     )
 
-    return (await session.scalars(query)).all()
+    return list((await session.scalars(query)).all())
 
 
 async def create_access_policy(
