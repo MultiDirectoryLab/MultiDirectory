@@ -278,7 +278,7 @@ class Directory(Base):
     @property
     def path_dn(self) -> str:
         """Get DN from path."""
-        return ",".join(reversed(self.path))  # type: ignore
+        return ",".join(reversed(self.path))
 
     def create_path(
         self,
@@ -286,7 +286,7 @@ class Directory(Base):
         dn: str = "cn",
     ) -> None:
         """Create path from a new directory."""
-        pre_path: list[str] = parent.path if parent else []  # type: ignore
+        pre_path: list[str] = parent.path if parent else []
         self.path = pre_path + [self.get_dn(dn)]
         self.depth = len(self.path)
 
