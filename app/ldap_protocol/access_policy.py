@@ -35,7 +35,7 @@ async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
         selectinload(AccessPolicy.directories),
     )
 
-    return (await session.scalars(query)).all()
+    return list((await session.scalars(query)).all())
 
 
 async def create_access_policy(
@@ -97,16 +97,12 @@ def mutate_ap(
         )
 
     elif action == "add":
-        ap_filter = AccessPolicy.can_add.is_(True) & whitelist  # type: ignore
+        ap_filter = AccessPolicy.can_add.is_(True) & whitelist
 
     elif action == "modify":
-        ap_filter = (
-            AccessPolicy.can_modify.is_(  # type: ignore
-                True) & whitelist
-        )
+        ap_filter = AccessPolicy.can_modify.is_(True) & whitelist
 
     elif action == "del":
-        ap_filter = AccessPolicy.can_delete.is_(
-            True) & whitelist  # type: ignore
+        ap_filter = AccessPolicy.can_delete.is_(True) & whitelist
 
     return query.join(Directory.access_policies, isouter=True).where(ap_filter)

@@ -34,9 +34,9 @@ from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
     AsyncSession,
+    async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import SessionTransaction
 
 from config import Settings
@@ -143,23 +143,23 @@ class TestProvider(Provider):
         """Get async engine."""
         return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
 
-    @provide(scope=Scope.APP, provides=sessionmaker)
+    @provide(scope=Scope.APP, provides=async_sessionmaker)
     def get_session_factory(
         self, engine: AsyncEngine,
-    ) -> sessionmaker:
+    ) -> async_sessionmaker:
         """Create session factory."""
-        return sessionmaker(
+        return async_sessionmaker(
             engine,
             expire_on_commit=False,
             autoflush=False,
             autocommit=False,
-            class_=AsyncSession,
         )
 
     @provide(scope=Scope.APP, cache=False, provides=AsyncSession)
     async def get_session(
-            self, engine: AsyncEngine,
-            session_factory: sessionmaker) -> AsyncIterator[AsyncSession]:
+        self, engine: AsyncEngine,
+        session_factory: async_sessionmaker,
+    ) -> AsyncIterator[AsyncSession]:
         """Get test session with a savepoint."""
         if self._cached_session:
             yield self._cached_session
@@ -316,10 +316,13 @@ async def setup_session(session: AsyncSession) -> None:
     """Get session and aquire after completion."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
-    domain: Directory = await session.scalar(
+    domain_ex = await session.execute(
         select(Directory)
         .filter(Directory.parent_id.is_(None)),
     )
+
+    domain = domain_ex.one()
+
     await create_access_policy(
         name='Root Access Policy',
         can_add=True,
