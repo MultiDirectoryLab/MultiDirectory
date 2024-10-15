@@ -52,7 +52,7 @@ async def post_save_password_actions(
     )
     await session.execute(qeury)
 
-    user.password_history.append(user.password)  # type: ignore
+    user.password_history.append(user.password)
     await session.flush()
 
 

@@ -97,16 +97,16 @@ def mutate_ap(
         )
 
     elif action == "add":
-        ap_filter = AccessPolicy.can_add.is_(True) & whitelist  # type: ignore
+        ap_filter = AccessPolicy.can_add.is_(True) & whitelist
 
     elif action == "modify":
         ap_filter = (
-            AccessPolicy.can_modify.is_(  # type: ignore
+            AccessPolicy.can_modify.is_(
                 True) & whitelist
         )
 
     elif action == "del":
         ap_filter = AccessPolicy.can_delete.is_(
-            True) & whitelist  # type: ignore
+            True) & whitelist
 
     return query.join(Directory.access_policies, isouter=True).where(ap_filter)
