@@ -28,7 +28,6 @@ from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     backref,
-    declarative_mixin,
     declared_attr,
     mapped_column,
     relationship,
@@ -300,17 +299,14 @@ class Directory(Base):
         return f"Directory({self.id}:{self.cn})"
 
 
-@declarative_mixin
 class DirectoryReferenceMixin:
     """Mixin with dir id reference."""
 
     id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
 
-    @declared_attr
-    def directory_id(cls) -> Mapped[int]:  # noqa: N805, D102
-        return mapped_column(
-            "directoryId", ForeignKey("Directory.id"), nullable=False,
-        )
+    directory_id: Mapped[Annotated[int, mapped_column(
+        "directoryId", ForeignKey("Directory.id"), nullable=False,
+    )]]
 
     @declared_attr
     def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
@@ -339,11 +335,11 @@ class User(DirectoryReferenceMixin, Base):
         "displayName", nullable=True)]]
     password: Mapped[Annotated[str, mapped_column(nullable=True)]]
 
-    samaccountname: str = synonym("sam_accout_name")
-    userprincipalname: str = synonym("user_principal_name")
-    displayname: str = synonym("display_name")
-    uid: str = synonym("sam_accout_name")
-    accountexpires: str = synonym("account_exp")
+    samaccountname: Mapped[Annotated[str, synonym("sam_accout_name")]]
+    userprincipalname: Mapped[Annotated[str, synonym("user_principal_name")]]
+    displayname: Mapped[Annotated[str, synonym("display_name")]]
+    uid: Mapped[Annotated[str, synonym("sam_accout_name")]]
+    accountexpires: Mapped[Annotated[str, synonym("account_exp")]]
 
     last_logon: Mapped[Annotated[datetime | None, mapped_column(
         "lastLogon", DateTime(timezone=True))]]
