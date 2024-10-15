@@ -22,8 +22,7 @@ from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.utils.queries import get_user
-from models import Group
-from models import User as DBUser
+from models import Group, User
 from security import verify_password
 
 ALGORITHM = "HS256"
@@ -99,7 +98,7 @@ async def authenticate_user(
     session: AsyncSession,
     username: str,
     password: str,
-) -> DBUser | None:
+) -> User | None:
     """Get user and verify password.
 
     :param AsyncSession session: sa session
@@ -179,10 +178,10 @@ async def get_user_from_token(
         raise _CREDENTIALS_EXCEPTION
 
     user = await session.scalar(
-        select(DBUser)
+        select(User)
         .options(
-            selectinload(DBUser.groups).selectinload(Group.access_policies))
-        .where(DBUser.id == user_id))
+            selectinload(User.groups).selectinload(Group.access_policies))
+        .where(User.id == user_id))
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
