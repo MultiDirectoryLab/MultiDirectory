@@ -474,7 +474,7 @@ class Attribute(DirectoryReferenceMixin, Base):
     bvalue: Mapped[
         Annotated[bytes | None, mapped_column(LargeBinary, nullable=True)]]
 
-    directory: Mapped[Directory] = relationship(
+    directory: Mapped[Directory] = relationship(  # type: ignore
         "Directory", back_populates="attributes", uselist=False,
     )
 
