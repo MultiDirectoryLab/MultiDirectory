@@ -6,84 +6,170 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from contextlib import suppress
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import Annotated, Any
 
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 from pydantic import AfterValidator
 
+from .objects import TagNumbers
 
-@dataclass
-class ASN1id:
-    """ASN1 metadata."""
 
-    string: str
-    value: Any
-
-    def __str__(self) -> str:  # noqa: D105
-        return self.string
-
-    def __repr__(self) -> str:  # noqa: D105
-        return f"[{self.string}: {repr(self.value)}]"
+class SubstringTag(IntEnum):
+    INITIAL = 0
+    ANY = 1
+    FINAL = 2
 
 
 @dataclass
 class ASN1Row:
     """Row with metadata."""
 
-    class_id: ASN1id
-    tag_id: ASN1id
+    class_id: int
+    tag_id: int
     value: Any
 
     @classmethod
     def from_tag(cls, tag: Tag, value: Any) -> "ASN1Row":
         """Create row from tag."""
-        return cls(
-            ASN1id(class_id_to_string(tag.cls), tag.cls),
-            ASN1id(tag_id_to_string(tag.nr), tag.nr),
-            value,
-        )
+        return cls(tag.cls, tag.nr, value)
 
-    def to_dict(self) -> dict:
-        """Convert the object to string."""
+    def _handle_extensible_match(self) -> str:
+        """Handle extensible match filters."""
+        oid = attribute = value = None
+        dn_attributes = False
 
-        def serialize(obj: Any) -> dict | list | str:
+        for child in self.value:
+            tag_value = child.tag_id
+            child_value = child.value
+
+            if tag_value == 1:
+                oid = child_value
+            elif tag_value == 2:
+                attribute = (child_value.decode('utf-8')
+                             if isinstance(child_value, bytes)
+                             else child_value)
+            elif tag_value == 3:
+                value = (child_value.decode('utf-8')
+                         if isinstance(child_value, bytes)
+                         else child_value)
+            elif tag_value == 4:
+                dn_attributes = bool(child_value)
+
+        match = ''
+        if attribute:
+            match += attribute
+        if oid:
+            match += f":{oid}"
+        if dn_attributes:
+            match += ":dn"
+        if value:
+            match += f":={value}"
+        else:
+            match += ":=*"
+
+        return f"({match})"
+    
+    def _handle_substring(self) -> str:
+        """Process and format substring operations for LDAP."""
+        value = (self.value.decode('utf-8')
+                 if isinstance(self.value, bytes)
+                 else str(self.value))
+        substring_tag_map = {
+            SubstringTag.INITIAL: f"{value}*",
+            SubstringTag.ANY: f"*{value}*",
+            SubstringTag.FINAL: f"*{value}",
+        }
+        try:
+            substring_tag = SubstringTag(self.tag_id)
+        except ValueError:
+            raise ValueError(
+                f'Invalid tag_id ({self.tag_id}) in substring')
+
+        return substring_tag_map[substring_tag]
+
+    def to_ldap_filter(self) -> str:
+        """
+        Convert the ASN.1 object into an LDAP filter string.
+
+        The method recursively serializes ASN.1 rows into the LDAP filter
+        format based on tag IDs and class IDs.
+        """
+        def serialize(obj: Any) -> str:
+            """
+            Serialize an ASN.1 object or list into a string.
+
+            Recursively processes ASN.1 structures to construct a valid LDAP
+            filter string based on LDAP operations such as AND, OR, and
+            substring matches.
+            """
             if isinstance(obj, ASN1Row):
-                return {
-                    "class_id": str(obj.class_id),
-                    "tag_id": str(obj.tag_id),
-                    "value": serialize(obj.value),
-                }
+                value = obj.value
+                operator = None
 
-            if isinstance(obj, list):
-                return [serialize(item) for item in obj]
+                if obj.class_id != Classes.Context.value:
+                    return serialize(value)
+                
+                if obj.tag_id in (
+                    TagNumbers.AND.value,
+                    TagNumbers.OR.value,
+                    TagNumbers.NOT.value,
+                ):
+                    subfilters = ''.join(serialize(v) for v in value)
 
-            return str(obj)
+                    if obj.tag_id == TagNumbers.AND.value:
+                        return f"(&{subfilters})"
+                    elif obj.tag_id == TagNumbers.OR.value:
+                        return f"(|{subfilters})"
+                    else:
+                        return f"(!{subfilters})"
 
-        return serialize(self)  # type: ignore
+                elif obj.tag_id == TagNumbers.PRESENT.value:
+                    return f"({serialize(value)}=*)"
 
+                elif obj.tag_id == TagNumbers.EXTENSIBLE_MATCH:
+                    return obj._handle_extensible_match()
 
-tag_id_to_string_map = {
-    Numbers.Boolean: "BOOLEAN",
-    Numbers.Integer: "INTEGER",
-    Numbers.BitString: "BIT STRING",
-    Numbers.OctetString: "OCTET STRING",
-    Numbers.Null: "NULL",
-    Numbers.ObjectIdentifier: "OBJECT",
-    Numbers.PrintableString: "PRINTABLESTRING",
-    Numbers.IA5String: "IA5STRING",
-    Numbers.UTCTime: "UTCTIME",
-    Numbers.GeneralizedTime: "GENERALIZED TIME",
-    Numbers.Enumerated: "ENUMERATED",
-    Numbers.Sequence: "SEQUENCE",
-    Numbers.Set: "SET",
-}
+                else:
+                    operator_map = {
+                        TagNumbers.EQUALITY_MATCH.value: '=',
+                        TagNumbers.SUBSTRING.value: '*=',
+                        TagNumbers.GE.value: '>=',
+                        TagNumbers.LE.value: '<=',
+                        TagNumbers.APPROX_MATCH.value: '~=',
+                    }
+                    operator = operator_map.get(obj.tag_id)
 
-class_id_to_string_map = {
-    Classes.Universal: "UNIVERSAL",
-    Classes.Application: "APPLICATION",
-    Classes.Context: "CONTEXT",
-    Classes.Private: "PRIVATE",
-}
+                    if operator is None:
+                        raise ValueError(
+                            f'Invalid tag_id ({obj.tag_id}) in context')
+
+                if isinstance(obj.value, list):
+                    if len(obj.value) == 2:
+                        attr = serialize(value[0])
+                        val = value[1]
+                        if operator == '*=':
+                            operator = '='
+                            substrings = val.value[0]._handle_substring()
+                            value_str = substrings
+                        else:
+                            value_str = serialize(val)
+
+                        return f"({attr}{operator}{value_str})"
+                    
+                    return ''.join(serialize(v) for v in obj.value)
+
+                return serialize(obj.value)
+
+            elif isinstance(obj, list):
+                return ''.join(serialize(v) for v in obj)
+
+            else:
+                return (obj.decode('utf-8')
+                        if isinstance(obj, bytes)
+                        else str(obj))
+
+        return serialize(self)
 
 
 def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
@@ -99,18 +185,6 @@ def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
     if isinstance(value, str):
         return value
     return repr(value)
-
-
-def tag_id_to_string(identifier: int) -> Numbers:
-    """Return a string representation of a ASN.1 id."""
-    return tag_id_to_string_map.get(identifier, "{:#02x}".format(identifier))
-
-
-def class_id_to_string(identifier: int) -> Classes:
-    """Return a string representation of an ASN.1 class."""
-    if identifier in class_id_to_string_map:
-        return class_id_to_string_map[identifier]
-    raise ValueError("Illegal class: {:#02x}".format(identifier))
 
 
 def asn1todict(decoder: Decoder) -> list[ASN1Row]:
