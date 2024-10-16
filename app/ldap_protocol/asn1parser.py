@@ -16,6 +16,15 @@ from .objects import TagNumbers
 
 
 class SubstringTag(IntEnum):
+    """Enum for substring tags.
+
+    ```
+    INITIAL = 0
+    ANY = 1
+    FINAL = 2
+    ```
+    """
+
     INITIAL = 0
     ANY = 1
     FINAL = 2
@@ -69,7 +78,7 @@ class ASN1Row:
             match += ":=*"
 
         return f"({match})"
-    
+
     def _handle_substring(self) -> str:
         """Process and format substring operations for LDAP."""
         value = (self.value.decode('utf-8')
@@ -103,13 +112,13 @@ class ASN1Row:
             filter string based on LDAP operations such as AND, OR, and
             substring matches.
             """
-            if isinstance(obj, ASN1Row):
+            if isinstance(obj, ASN1Row):  # noqa: R505
                 value = obj.value
                 operator = None
 
                 if obj.class_id != Classes.Context.value:
                     return serialize(value)
-                
+
                 if obj.tag_id in (
                     TagNumbers.AND.value,
                     TagNumbers.OR.value,
@@ -156,7 +165,7 @@ class ASN1Row:
                             value_str = serialize(val)
 
                         return f"({attr}{operator}{value_str})"
-                    
+
                     return ''.join(serialize(v) for v in obj.value)
 
                 return serialize(obj.value)
