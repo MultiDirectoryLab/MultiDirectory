@@ -26,7 +26,8 @@ requests: list[type[BaseRequest]] = [
     SearchRequest,
 ]
 
-protocol_id_map = {request.PROTOCOL_OP: request for request in requests}
+protocol_id_map: dict[int, BaseRequest] = {
+    request.PROTOCOL_OP: request for request in requests}  # type: ignore
 
 
 __all__ = ["protocol_id_map", "BaseRequest"]
