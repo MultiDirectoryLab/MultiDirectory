@@ -11,7 +11,7 @@ from asn1 import Classes, Decoder, Encoder, Numbers
 from loguru import logger
 from pydantic import BaseModel, Field, SerializeAsAny
 
-from .asn1parser import asn1todict
+from .asn1parser import ASN1Row, asn1todict
 from .dialogue import LDAPCodes
 from .ldap_requests import BaseRequest, protocol_id_map
 from .ldap_responses import BaseResponse, LDAPResult
@@ -82,11 +82,12 @@ class LDAPRequestMessage(LDAPMessage):
         output = asn1todict(dec)
 
         sequence = output[0]
-        if sequence.tag_id.value != Numbers.Sequence:
+        if sequence.tag_id != Numbers.Sequence:
             raise ValueError("Wrong schema")
 
-        seq_fields = sequence.value
-        message_id, protocol = seq_fields[:2]
+        seq_fields: list[ASN1Row] = sequence.value
+        message_id: ASN1Row = seq_fields[0]
+        protocol: ASN1Row = seq_fields[1]
 
         controls = []
 
@@ -105,12 +106,10 @@ class LDAPRequestMessage(LDAPMessage):
         if len(seq_fields) >= 3:
             logger.debug({"controls": seq_fields[2]})
 
-        context = protocol_id_map[protocol.tag_id.value].from_data(
-            protocol.value,
-        )
+        context = protocol_id_map[protocol.tag_id].from_data(protocol.value)
         return cls(
             messageID=message_id.value,
-            protocolOP=protocol.tag_id.value,
+            protocolOP=protocol.tag_id,
             context=context,
             controls=controls,
         )
@@ -131,8 +130,9 @@ class LDAPRequestMessage(LDAPMessage):
         try:
             sequence = output[0]
             seq_fields = sequence.value
-            message, protocol = seq_fields[:2]
-            protocol_op = protocol.tag_id.value
+            message: ASN1Row = seq_fields[0]
+            protocol: ASN1Row = seq_fields[1]
+            protocol_op = protocol.tag_id
             message_id = message.value
         except (KeyError, ValueError, IndexError):
             pass
