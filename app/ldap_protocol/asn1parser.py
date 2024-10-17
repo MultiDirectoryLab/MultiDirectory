@@ -116,36 +116,37 @@ class ASN1Row:
                 value = obj.value
                 operator = None
 
-                if obj.class_id != Classes.Context.value:
+                if obj.class_id != Classes.Context:
                     return serialize(value)
 
                 if obj.tag_id in (
-                    TagNumbers.AND.value,
-                    TagNumbers.OR.value,
-                    TagNumbers.NOT.value,
+                    TagNumbers.AND,
+                    TagNumbers.OR,
+                    TagNumbers.NOT,
                 ):
                     subfilters = ''.join(serialize(v) for v in value)
 
-                    if obj.tag_id == TagNumbers.AND.value:
+                    if obj.tag_id == TagNumbers.AND:
                         return f"(&{subfilters})"
-                    elif obj.tag_id == TagNumbers.OR.value:
+
+                    elif obj.tag_id == TagNumbers.OR:
                         return f"(|{subfilters})"
                     else:
                         return f"(!{subfilters})"
 
-                elif obj.tag_id == TagNumbers.PRESENT.value:
+                elif obj.tag_id == TagNumbers.PRESENT:
                     return f"({serialize(value)}=*)"
 
                 elif obj.tag_id == TagNumbers.EXTENSIBLE_MATCH:
                     return obj._handle_extensible_match()
 
                 else:
-                    operator_map = {
-                        TagNumbers.EQUALITY_MATCH.value: '=',
-                        TagNumbers.SUBSTRING.value: '*=',
-                        TagNumbers.GE.value: '>=',
-                        TagNumbers.LE.value: '<=',
-                        TagNumbers.APPROX_MATCH.value: '~=',
+                    operator_map: dict[int, str] = {
+                        TagNumbers.EQUALITY_MATCH: '=',
+                        TagNumbers.SUBSTRING: '*=',
+                        TagNumbers.GE: '>=',
+                        TagNumbers.LE: '<=',
+                        TagNumbers.APPROX_MATCH: '~=',
                     }
                     operator = operator_map.get(obj.tag_id)
 
