@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from config import Settings
 from ldap_protocol.access_policy import create_access_policy
+from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_responses import SearchResultEntry
@@ -143,9 +144,7 @@ async def test_bvalue_in_search_request(
         size_limit=0,
         time_limit=0,
         types_only=False,
-        filter={"class_id": {"string": "CONTEXT", "value": 128},
-                "tag_id": {"string": "0x7", "value": 7},
-                "value": "objectClass"},
+        filter=ASN1Row(class_id=128, tag_id=7, value="objectClass"),
         attributes=["*"],
     )
 

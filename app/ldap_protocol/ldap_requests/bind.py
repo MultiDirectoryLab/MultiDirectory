@@ -219,7 +219,7 @@ class BindRequest(BaseRequest):
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "BindRequest":
         """Get bind from data dict."""
-        auth = data[2].tag_id.value
+        auth = data[2].tag_id
 
         otpassword: str | None
         auth_choice: AbstractLDAPAuth

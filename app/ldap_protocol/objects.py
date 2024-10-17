@@ -4,10 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import Enum, StrEnum
+from enum import IntEnum, StrEnum
 
 
-class Scope(int, Enum):
+class Scope(IntEnum):
     """Enum for search request.
 
     ```
@@ -24,7 +24,7 @@ class Scope(int, Enum):
     SUBORDINATE_SUBTREE = 3
 
 
-class DerefAliases(int, Enum):
+class DerefAliases(IntEnum):
     """Enum for search request.
 
     ```
@@ -48,3 +48,32 @@ class LDAPMatchingRule(StrEnum):
     LDAP_MATCHING_RULE_BIT_OR = "1.2.840.113556.1.4.804"
     LDAP_MATCHING_RULE_TRANSITIVE_EVAL = "1.2.840.113556.1.4.1941"
     LDAP_MATCHING_RULE_DN_WITH_DATA = "1.2.840.113556.1.4.2253"
+
+
+class TagNumbers(IntEnum):
+    """Enum for filter tags in LDAP search.
+
+    ```
+    AND = 0
+    OR = 1
+    NOT = 2
+    EQUALITY_MATCH = 3
+    SUBSTRING = 4
+    GE = 5
+    LE = 6
+    PRESENT = 7
+    APPROX_MATCH = 8
+    EXTENSIBLE_MATCH = 9
+    ```
+    """
+
+    AND = 0
+    OR = 1
+    NOT = 2
+    EQUALITY_MATCH = 3
+    SUBSTRING = 4
+    GE = 5
+    LE = 6
+    PRESENT = 7
+    APPROX_MATCH = 8
+    EXTENSIBLE_MATCH = 9

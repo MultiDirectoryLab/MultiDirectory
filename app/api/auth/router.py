@@ -367,7 +367,7 @@ async def first_setup(
                         "loginShell": ["/bin/bash"],
                         "uidNumber": ["1000"],
                         "gidNumber": ["513"],
-                        "userAccountControl": ["0"],
+                        "userAccountControl": ["512"],
                     },
                     "objectSid": 500,
                 },
