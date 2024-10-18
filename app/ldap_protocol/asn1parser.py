@@ -138,10 +138,7 @@ class ASN1Row(Generic[T]):
 
         return substring_tag_map[substring_tag]
 
-    def serialize(
-        self,
-        obj: "ASN1Row" | list["ASN1Row"] | str | bytes | None = None,
-    ) -> str:
+    def serialize(self, obj: 'ASN1Row' | T | None = None) -> str:
         """
         Serialize an ASN.1 object or list into a string.
 
@@ -218,7 +215,11 @@ class ASN1Row(Generic[T]):
             return obj.decode('utf-8')
 
         elif isinstance(obj, str):
+            return obj
+
+        elif isinstance(obj, int) or isinstance(obj, float):
             return str(obj)
+
         else:
             raise TypeError
 
