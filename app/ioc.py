@@ -12,9 +12,9 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
+    async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
 from config import Settings
@@ -59,19 +59,15 @@ class MainProvider(Provider):
             pool_use_lifo=False,
         )
 
-    @provide(scope=Scope.APP, provides=sessionmaker)
-    def get_session_factory(self, engine: AsyncEngine) -> sessionmaker:
+    @provide(scope=Scope.APP, provides=async_sessionmaker)
+    def get_session_factory(self, engine: AsyncEngine) -> async_sessionmaker:
         """Create session factory."""
-        return sessionmaker(
-            engine,
-            expire_on_commit=False,
-            class_=AsyncSession,
-        )
+        return async_sessionmaker(engine, expire_on_commit=False)
 
     @provide(scope=Scope.REQUEST, cache=False, provides=AsyncSession)
     async def create_session(
         self,
-        async_session: sessionmaker,
+        async_session: async_sessionmaker,
     ) -> AsyncIterator[AsyncSession]:
         """Create session for request."""
         async with async_session() as session:
@@ -80,7 +76,7 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_krb_class(
-        self, session_maker: sessionmaker,
+        self, session_maker: async_sessionmaker,
     ) -> type[AbstractKadmin]:
         """Get kerberos type."""
         async with session_maker() as session:
@@ -129,7 +125,7 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_dns_mngr_class(
-        self, session_maker: sessionmaker,
+        self, session_maker: async_sessionmaker,
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
         async with session_maker() as session:
@@ -137,7 +133,7 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
     async def get_dns_mngr_settings(
-        self, session_maker: sessionmaker,
+        self, session_maker: async_sessionmaker,
         settings: Settings,
     ) -> 'DNSManagerSettings':
         """Get DNS manager's settings."""

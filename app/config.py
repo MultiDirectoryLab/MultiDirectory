@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
 
-    POSTGRES_SCHEMA: str = "postgresql+asyncpg"
+    POSTGRES_SCHEMA: str = "postgresql+psycopg"
     POSTGRES_DB: str = "postgres"
 
     POSTGRES_HOST: str = "postgres"
