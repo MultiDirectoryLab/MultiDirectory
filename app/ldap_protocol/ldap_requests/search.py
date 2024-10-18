@@ -99,10 +99,9 @@ class SearchRequest(BaseRequest):
 
     @field_serializer("filter")
     def serialize_filter(
-        self, val: ASN1Row | None, _info: Any,
-    ) -> dict | None:  # noqa
+            self, val: ASN1Row | None, _info: Any) -> str | None:
         """Serialize filter field."""
-        return val.to_dict() if isinstance(val, ASN1Row) else None
+        return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
     def from_data(  # noqa: D102

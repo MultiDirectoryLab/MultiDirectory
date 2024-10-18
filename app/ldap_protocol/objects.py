@@ -4,10 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import Enum, StrEnum
+from enum import IntEnum, StrEnum
 
 
-class Scope(int, Enum):
+class Scope(IntEnum):
     """Enum for search request.
 
     ```
@@ -24,7 +24,7 @@ class Scope(int, Enum):
     SUBORDINATE_SUBTREE = 3
 
 
-class DerefAliases(int, Enum):
+class DerefAliases(IntEnum):
     """Enum for search request.
 
     ```
