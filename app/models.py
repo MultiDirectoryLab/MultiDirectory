@@ -67,20 +67,20 @@ class CatalogueSetting(Base):
 
     __tablename__ = "Settings"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
-    name: Mapped[str] = mapped_column(nullable=False, index=True)
-    value: Mapped[str] = mapped_column(nullable=False)
+    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa
+    name: Mapped[Annotated[str, mapped_column(nullable=False, index=True)]]
+    value: Mapped[Annotated[str, mapped_column(nullable=False)]]
 
 
 class DirectoryMembership(Base):
     """Directory membership - path m2m relationship."""
 
     __tablename__ = "DirectoryMemberships"
-    group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id"), primary_key=True)
+    group_id: Mapped[Annotated[int, mapped_column(
+        ForeignKey("Groups.id"), primary_key=True)]]
 
-    directory_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id"), primary_key=True)
+    directory_id: Mapped[Annotated[int, mapped_column(
+        ForeignKey("Directory.id"), primary_key=True)]]
 
     group: Mapped["Group"] = relationship(
         "Group", uselist=False, cascade="all,delete", overlaps="group",
@@ -154,7 +154,7 @@ class Directory(Base):
 
     parent: Mapped[Optional["Directory"]] = relationship(
         lambda: Directory,
-        remote_side=id,
+        remote_side="Directory.id",
         backref=backref("directories", cascade="all,delete"),
         uselist=False,
     )
@@ -562,7 +562,8 @@ class AccessPolicy(Base):
     __tablename__ = "AccessPolicies"
 
     id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
-    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[Annotated[
+        str, mapped_column(String(255), nullable=False, unique=True)]]
 
     can_read: Mapped[nbool]
     can_add: Mapped[nbool]
