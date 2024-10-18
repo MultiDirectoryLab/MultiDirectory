@@ -23,7 +23,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import Directory, DirectoryMembership, DirectoryReferenceMixin, Group, Attribute, User
+from models import Directory, DirectoryMembership, DirectoryReferenceMixin
 
 from .base import BaseRequest
 
