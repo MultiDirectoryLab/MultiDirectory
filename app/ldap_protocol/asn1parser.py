@@ -55,13 +55,17 @@ class ASN1Row:
             if tag_value == 1:
                 oid = child_value
             elif tag_value == 2:
-                attribute = (child_value.decode('utf-8')
-                             if isinstance(child_value, bytes)
-                             else child_value)
+                attribute = (
+                    child_value.decode('utf-8')
+                    if isinstance(child_value, bytes)
+                    else child_value
+                )
             elif tag_value == 3:
-                value = (child_value.decode('utf-8')
-                         if isinstance(child_value, bytes)
-                         else child_value)
+                value = (
+                    child_value.decode('utf-8')
+                    if isinstance(child_value, bytes)
+                    else child_value
+                )
             elif tag_value == 4:
                 dn_attributes = bool(child_value)
 
@@ -81,9 +85,11 @@ class ASN1Row:
 
     def _handle_substring(self) -> str:
         """Process and format substring operations for LDAP."""
-        value = (self.value.decode('utf-8')
-                 if isinstance(self.value, bytes)
-                 else str(self.value))
+        value = (
+            self.value.decode('utf-8')
+            if isinstance(self.value, bytes)
+            else str(self.value)
+        )
         substring_tag_map = {
             SubstringTag.INITIAL: f"{value}*",
             SubstringTag.ANY: f"*{value}*",
@@ -97,6 +103,86 @@ class ASN1Row:
 
         return substring_tag_map[substring_tag]
 
+    def serialize(self, obj: Any = None) -> str:
+        """
+        Serialize an ASN.1 object or list into a string.
+
+        Recursively processes ASN.1 structures to construct a valid LDAP
+        filter string based on LDAP operations such as AND, OR, and
+        substring matches.
+        """
+        if obj is None:
+            obj = self
+
+        if isinstance(obj, ASN1Row):  # noqa: R505
+            value = obj.value
+            operator = None
+
+            if obj.class_id != Classes.Context:
+                return self.serialize(value)
+
+            if obj.tag_id in (
+                TagNumbers.AND,
+                TagNumbers.OR,
+                TagNumbers.NOT,
+            ):
+                subfilters = ''.join(self.serialize(v) for v in value)
+
+                if obj.tag_id == TagNumbers.AND:
+                    return f"(&{subfilters})"
+
+                elif obj.tag_id == TagNumbers.OR:
+                    return f"(|{subfilters})"
+                else:
+                    return f"(!{subfilters})"
+
+            elif obj.tag_id == TagNumbers.PRESENT:
+                return f"({self.serialize(value)}=*)"
+
+            elif obj.tag_id == TagNumbers.EXTENSIBLE_MATCH:
+                return obj._handle_extensible_match()
+
+            else:
+                operator_map: dict[int, str] = {
+                    TagNumbers.EQUALITY_MATCH: '=',
+                    TagNumbers.SUBSTRING: '*=',
+                    TagNumbers.GE: '>=',
+                    TagNumbers.LE: '<=',
+                    TagNumbers.APPROX_MATCH: '~=',
+                }
+                operator = operator_map.get(obj.tag_id)
+
+                if operator is None:
+                    raise ValueError(
+                        f'Invalid tag_id ({obj.tag_id}) in context')
+
+            if isinstance(obj.value, list):
+                if len(obj.value) == 2:
+                    attr = self.serialize(value[0])
+                    val = value[1]
+                    if operator == '*=':
+                        operator = '='
+                        substrings = val.value[0]._handle_substring()
+                        value_str = substrings
+                    else:
+                        value_str = self.serialize(val)
+
+                    return f"({attr}{operator}{value_str})"
+
+                return ''.join(self.serialize(v) for v in obj.value)
+
+            return self.serialize(obj.value)
+
+        elif isinstance(obj, list):
+            return ''.join(self.serialize(v) for v in obj)
+
+        else:
+            return (
+                obj.decode('utf-8')
+                if isinstance(obj, bytes)
+                else str(obj)
+            )
+
     def to_ldap_filter(self) -> str:
         """
         Convert the ASN.1 object into an LDAP filter string.
@@ -104,82 +190,7 @@ class ASN1Row:
         The method recursively serializes ASN.1 rows into the LDAP filter
         format based on tag IDs and class IDs.
         """
-        def serialize(obj: Any) -> str:
-            """
-            Serialize an ASN.1 object or list into a string.
-
-            Recursively processes ASN.1 structures to construct a valid LDAP
-            filter string based on LDAP operations such as AND, OR, and
-            substring matches.
-            """
-            if isinstance(obj, ASN1Row):  # noqa: R505
-                value = obj.value
-                operator = None
-
-                if obj.class_id != Classes.Context:
-                    return serialize(value)
-
-                if obj.tag_id in (
-                    TagNumbers.AND,
-                    TagNumbers.OR,
-                    TagNumbers.NOT,
-                ):
-                    subfilters = ''.join(serialize(v) for v in value)
-
-                    if obj.tag_id == TagNumbers.AND:
-                        return f"(&{subfilters})"
-
-                    elif obj.tag_id == TagNumbers.OR:
-                        return f"(|{subfilters})"
-                    else:
-                        return f"(!{subfilters})"
-
-                elif obj.tag_id == TagNumbers.PRESENT:
-                    return f"({serialize(value)}=*)"
-
-                elif obj.tag_id == TagNumbers.EXTENSIBLE_MATCH:
-                    return obj._handle_extensible_match()
-
-                else:
-                    operator_map: dict[int, str] = {
-                        TagNumbers.EQUALITY_MATCH: '=',
-                        TagNumbers.SUBSTRING: '*=',
-                        TagNumbers.GE: '>=',
-                        TagNumbers.LE: '<=',
-                        TagNumbers.APPROX_MATCH: '~=',
-                    }
-                    operator = operator_map.get(obj.tag_id)
-
-                    if operator is None:
-                        raise ValueError(
-                            f'Invalid tag_id ({obj.tag_id}) in context')
-
-                if isinstance(obj.value, list):
-                    if len(obj.value) == 2:
-                        attr = serialize(value[0])
-                        val = value[1]
-                        if operator == '*=':
-                            operator = '='
-                            substrings = val.value[0]._handle_substring()
-                            value_str = substrings
-                        else:
-                            value_str = serialize(val)
-
-                        return f"({attr}{operator}{value_str})"
-
-                    return ''.join(serialize(v) for v in obj.value)
-
-                return serialize(obj.value)
-
-            elif isinstance(obj, list):
-                return ''.join(serialize(v) for v in obj)
-
-            else:
-                return (obj.decode('utf-8')
-                        if isinstance(obj, bytes)
-                        else str(obj))
-
-        return serialize(self)
+        return self.serialize()
 
 
 def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
