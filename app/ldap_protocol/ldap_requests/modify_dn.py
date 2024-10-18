@@ -227,8 +227,10 @@ class ModifyDNRequest(BaseRequest):
             )
             await session.flush()
 
+            # NOTE: update relationship, don't delete row
+            await session.refresh(directory)
+
             if self.deleteoldrdn:
-                await session.refresh(directory)
                 await session.delete(directory)
                 await session.flush()
 
