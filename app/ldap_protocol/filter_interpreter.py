@@ -16,8 +16,8 @@ from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from models import Attribute, Directory, Group, User
 
-from .asn1parser import ASN1Row
-from .objects import LDAPMatchingRule, TagNumbers
+from .asn1parser import ASN1Row, TagNumbers
+from .objects import LDAPMatchingRule
 from .utils.cte import find_members_recursive_cte, get_filter_from_path
 
 MEMBERS_ATTRS = {

@@ -12,7 +12,34 @@ from typing import Annotated, Any
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 from pydantic import AfterValidator
 
-from .objects import TagNumbers
+
+class TagNumbers(IntEnum):
+    """Enum for filter tags in LDAP search.
+
+    ```
+    AND = 0
+    OR = 1
+    NOT = 2
+    EQUALITY_MATCH = 3
+    SUBSTRING = 4
+    GE = 5
+    LE = 6
+    PRESENT = 7
+    APPROX_MATCH = 8
+    EXTENSIBLE_MATCH = 9
+    ```
+    """
+
+    AND = 0
+    OR = 1
+    NOT = 2
+    EQUALITY_MATCH = 3
+    SUBSTRING = 4
+    GE = 5
+    LE = 6
+    PRESENT = 7
+    APPROX_MATCH = 8
+    EXTENSIBLE_MATCH = 9
 
 
 class SubstringTag(IntEnum):

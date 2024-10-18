@@ -48,32 +48,3 @@ class LDAPMatchingRule(StrEnum):
     LDAP_MATCHING_RULE_BIT_OR = "1.2.840.113556.1.4.804"
     LDAP_MATCHING_RULE_TRANSITIVE_EVAL = "1.2.840.113556.1.4.1941"
     LDAP_MATCHING_RULE_DN_WITH_DATA = "1.2.840.113556.1.4.2253"
-
-
-class TagNumbers(IntEnum):
-    """Enum for filter tags in LDAP search.
-
-    ```
-    AND = 0
-    OR = 1
-    NOT = 2
-    EQUALITY_MATCH = 3
-    SUBSTRING = 4
-    GE = 5
-    LE = 6
-    PRESENT = 7
-    APPROX_MATCH = 8
-    EXTENSIBLE_MATCH = 9
-    ```
-    """
-
-    AND = 0
-    OR = 1
-    NOT = 2
-    EQUALITY_MATCH = 3
-    SUBSTRING = 4
-    GE = 5
-    LE = 6
-    PRESENT = 7
-    APPROX_MATCH = 8
-    EXTENSIBLE_MATCH = 9
