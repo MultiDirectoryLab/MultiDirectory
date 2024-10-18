@@ -92,6 +92,9 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
     for attr in data['search_result'][0]['partial_attributes']:
         if attr['type'] == 'memberOf':
             assert attr['vals'][0] == new_group_dn
+            break
+    else:
+        raise Exception('Groups not found')
 
 
 @pytest.mark.asyncio
@@ -102,7 +105,33 @@ async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
     """Test API for update DN."""
     old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     new_user_dn = "cn=new_test2,ou=users,dc=md,dc=test"
+    groups_user = None
     newrdn_user, new_superior = new_user_dn.split(',', maxsplit=1)
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": old_user_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 0,
+            "time_limit": 0,
+            "types_only": False,
+            "filter": "(objectClass=*)",
+            "attributes": ['*'],
+        },
+    )
+
+    data = response.json()
+
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert old_user_dn == data['search_result'][0]['object_name']
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'memberOf':
+            groups_user = attr['vals']
+
+    assert groups_user
 
     response = await http_client.put(
         "/entry/update/dn",
@@ -136,6 +165,13 @@ async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
 
     assert data.get('resultCode') == LDAPCodes.SUCCESS
     assert new_user_dn == data['search_result'][0]['object_name']
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'memberOf':
+            assert groups_user == attr['vals']
+            break
+    else:
+        raise Exception('Groups not found')
 
 
 @pytest.mark.asyncio

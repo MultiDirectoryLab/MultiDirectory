@@ -23,7 +23,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import Directory, DirectoryReferenceMixin
+from models import Directory, DirectoryMembership, DirectoryReferenceMixin
 
 from .base import BaseRequest
 
@@ -190,10 +190,13 @@ class ModifyDNRequest(BaseRequest):
 
             await session.flush()
 
-            for model in DirectoryReferenceMixin.__subclasses__():
+            for model in [
+                *DirectoryReferenceMixin.__subclasses__(),
+                DirectoryMembership,
+            ]:
                 await session.execute(
                     update(model)
-                    .where(model.directory_id == directory.id)
+                    .where(model.directory_id == directory.id)  # type: ignore
                     .values(directory_id=new_directory.id),
                 )
 
@@ -223,6 +226,9 @@ class ModifyDNRequest(BaseRequest):
                 execution_options={"synchronize_session": "fetch"},
             )
             await session.flush()
+
+            # NOTE: update relationship, don't delete row
+            await session.refresh(directory)
 
             if self.deleteoldrdn:
                 await session.delete(directory)

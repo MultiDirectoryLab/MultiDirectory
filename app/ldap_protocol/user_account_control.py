@@ -83,6 +83,9 @@ class UserAccountControlFlag(IntFlag):
         else:
             return False
 
+        if uac_value == 0:
+            return False
+
         return False if uac_value & ~sum(flag.value for flag in cls) else True
 
 
