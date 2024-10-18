@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Generic, TypeVar
 
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 from pydantic import AfterValidator
@@ -57,16 +57,21 @@ class SubstringTag(IntEnum):
     FINAL = 2
 
 
+T = TypeVar(
+    "T", bound="ASN1Row" | list["ASN1Row"] | str | bytes | int,
+    contravariant=True)
+
+
 @dataclass
-class ASN1Row:
+class ASN1Row(Generic[T]):
     """Row with metadata."""
 
     class_id: int
     tag_id: int
-    value: Any
+    value: T
 
     @classmethod
-    def from_tag(cls, tag: Tag, value: Any) -> "ASN1Row":
+    def from_tag(cls, tag: Tag, value: T) -> "ASN1Row":
         """Create row from tag."""
         return cls(tag.cls, tag.nr, value)
 
@@ -74,6 +79,9 @@ class ASN1Row:
         """Handle extensible match filters."""
         oid = attribute = value = None
         dn_attributes = False
+
+        if not isinstance(self.value, list):
+            raise TypeError
 
         for child in self.value:
             tag_value = child.tag_id
@@ -130,7 +138,10 @@ class ASN1Row:
 
         return substring_tag_map[substring_tag]
 
-    def serialize(self, obj: Any = None) -> str:
+    def serialize(
+        self,
+        obj: "ASN1Row" | list["ASN1Row"] | str | bytes | None = None,
+    ) -> str:
         """
         Serialize an ASN.1 object or list into a string.
 
@@ -203,12 +214,13 @@ class ASN1Row:
         elif isinstance(obj, list):
             return ''.join(self.serialize(v) for v in obj)
 
+        elif isinstance(obj, bytes):
+            return obj.decode('utf-8')
+
+        elif isinstance(obj, str):
+            return str(obj)
         else:
-            return (
-                obj.decode('utf-8')
-                if isinstance(obj, bytes)
-                else str(obj)
-            )
+            raise TypeError
 
     def to_ldap_filter(self) -> str:
         """
