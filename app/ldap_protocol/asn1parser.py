@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Any, Generic, TypeVar, Union
+from typing import Annotated, Generic, TypeVar, Union
 
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 from pydantic import AfterValidator
@@ -234,18 +234,24 @@ class ASN1Row(Generic[T]):
         return self.serialize()
 
 
-def value_to_string(tag: Tag, value: Any) -> bytes | str | int:
+def value_to_string(
+    tag: Tag,
+    value: str | bytes | int | bool,
+) -> bytes | str | int:
     """Convert value to string."""
     if tag.nr == Numbers.Integer:
         with suppress(ValueError):
             return int(value)
         return value
+
     if isinstance(value, bytes):
         with suppress(UnicodeDecodeError):
             return value.decode().replace("\x00", "\\x00")
         return value
+
     if isinstance(value, str):
         return value
+
     return repr(value)
 
 
