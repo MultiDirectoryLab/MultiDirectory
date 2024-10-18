@@ -58,8 +58,9 @@ class SubstringTag(IntEnum):
 
 
 T = TypeVar(
-    "T", bound=Union["ASN1Row", list["ASN1Row"], str, bytes, int, float],
-    contravariant=True)
+    "T", contravariant=True,
+    bound=Union["ASN1Row", list["ASN1Row"], str, bytes, int, float],
+)
 
 
 @dataclass
