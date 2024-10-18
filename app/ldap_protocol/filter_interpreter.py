@@ -40,7 +40,7 @@ def _from_filter(
     attr: str,
     right: ASN1Row,
 ) -> UnaryExpression:
-    is_substring = item.tag_id == TagNumbers.SUBSTRING.value
+    is_substring = item.tag_id == TagNumbers.SUBSTRING
     col = getattr(model, attr)
 
     if is_substring:
@@ -155,7 +155,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
     left, right = item.value
     attr = left.value.lower().replace("objectcategory", "objectclass")
 
-    is_substring = item.tag_id == 4
+    is_substring = item.tag_id == TagNumbers.SUBSTRING
 
     if attr in User.search_fields:  # noqa: R505
         return _from_filter(User, item, attr, right)
