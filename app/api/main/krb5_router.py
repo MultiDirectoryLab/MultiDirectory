@@ -198,7 +198,7 @@ async def setup_kdc(
             kdc_config=kdc_config,
         )
     except KRBAPIError as err:
-        raise HTTPException(status.HTTP_304_NOT_MODIFIED, err)
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
 
     await set_state(session, KerberosState.READY)
     await session.commit()
