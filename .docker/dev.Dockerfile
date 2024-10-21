@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.6-bookworm as builder
+FROM python:3.12.6-bookworm AS builder
 
 RUN pip install poetry
 
@@ -19,7 +19,7 @@ COPY pyproject.toml poetry.lock ./
 RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --without test,linters --no-root
 
 # The runtime image, used to just run the code provided its virtual environment
-FROM python:3.12.6-slim-bookworm as runtime
+FROM python:3.12.6-slim-bookworm AS runtime
 
 WORKDIR /app
 ARG VERSION
