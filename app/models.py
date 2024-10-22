@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+from __future__ import annotations
 
 import enum
 import uuid
@@ -28,7 +29,6 @@ from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     backref,
-    declared_attr,
     mapped_column,
     relationship,
     synonym,
@@ -67,28 +67,28 @@ class CatalogueSetting(Base):
 
     __tablename__ = "Settings"
 
-    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa
-    name: Mapped[Annotated[str, mapped_column(nullable=False, index=True)]]
-    value: Mapped[Annotated[str, mapped_column(nullable=False)]]
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa
+    name: Mapped[str] = mapped_column(nullable=False, index=True)
+    value: Mapped[str] = mapped_column(nullable=False)
 
 
 class DirectoryMembership(Base):
     """Directory membership - path m2m relationship."""
 
     __tablename__ = "DirectoryMemberships"
-    group_id: Mapped[Annotated[int, mapped_column(
-        ForeignKey("Groups.id"), primary_key=True)]]
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("Groups.id"), primary_key=True)
 
-    directory_id: Mapped[Annotated[int, mapped_column(
-        ForeignKey("Directory.id"), primary_key=True)]]
+    directory_id: Mapped[int] = mapped_column(
+        ForeignKey("Directory.id"), primary_key=True)
 
-    group: Mapped["Group"] = relationship(
+    group: Mapped[Group] = relationship(
         "Group", uselist=False, cascade="all,delete", overlaps="group",
     )
-    directory: Mapped["Directory"] = relationship(
+    directory: Mapped[Directory] = relationship(
         "Directory", uselist=False, cascade="all,delete", overlaps="directory",
     )
-    member_group: Mapped["Group"] = relationship(
+    member_group: Mapped[Group] = relationship(
         "Group",
         secondary="Directory",
         primaryjoin="DirectoryMembership.directory_id == Directory.id",
@@ -143,7 +143,7 @@ class Directory(Base):
 
     __tablename__ = "Directory"
 
-    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
 
     parent_id: Mapped[int] = mapped_column(
         "parentId",
@@ -196,23 +196,23 @@ class Directory(Base):
     path: Mapped[list[str]] = mapped_column(
         postgresql.ARRAY(String), nullable=False, index=True)
 
-    attributes: Mapped[list["Attribute"]] = relationship(
+    attributes: Mapped[list[Attribute]] = relationship(
         "Attribute", cascade="all,delete",
     )
-    group: Mapped["Group"] = relationship(
+    group: Mapped[Group] = relationship(
         "Group",
         uselist=False,
         cascade="all,delete",
         overlaps="member_group",
         lazy="selectin",
     )
-    user: Mapped["User"] = relationship(
+    user: Mapped[User] = relationship(
         "User",
         uselist=False,
         cascade="all,delete",
         lazy="selectin",
     )
-    groups: Mapped[list["Group"]] = relationship(
+    groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
         primaryjoin="Directory.id == DirectoryMembership.directory_id",
@@ -221,7 +221,7 @@ class Directory(Base):
         lazy="selectin",
         overlaps="group,directory,member_group",
     )
-    access_policies: Mapped[list["AccessPolicy"]] = relationship(
+    access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
         secondary=AccessPolicyMembership.__table__,
         primaryjoin="Directory.id == AccessPolicyMembership.dir_id",
@@ -299,52 +299,46 @@ class Directory(Base):
         return f"Directory({self.id}:{self.cn})"
 
 
-class DirectoryReferenceMixin:
-    """Mixin with dir id reference."""
-
-    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
-
-    directory_id: Mapped[Annotated[int, mapped_column(
-        "directoryId", ForeignKey("Directory.id"), nullable=False,
-    )]]
-
-    @declared_attr
-    def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
-        return relationship(
-            "Directory",
-            back_populates=str(cls.__name__).lower(),  # type: ignore
-            uselist=False,
-            lazy="joined",
-        )
-
-
-class User(DirectoryReferenceMixin, Base):
+class User(Base):
     """Users data from db."""
 
     __tablename__ = "Users"
 
-    sam_accout_name: Mapped[Annotated[str, mapped_column(
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+
+    directory_id: Mapped[int] = mapped_column(
+        "directoryId", ForeignKey("Directory.id"), nullable=False,
+    )
+
+    directory: Mapped[Directory] = relationship(
+        "Directory",
+        back_populates="user",
+        uselist=False,
+        lazy="joined",
+    )
+
+    sam_accout_name: Mapped[str] = mapped_column(
         "sAMAccountName", nullable=False, unique=True,
-    )]]
-    user_principal_name: Mapped[Annotated[str, mapped_column(
+    )
+    user_principal_name: Mapped[str] = mapped_column(
         "userPrincipalName", nullable=False, unique=True,
-    )]]
+    )
 
-    mail: Mapped[Annotated[str | None, mapped_column(String(255))]]
-    display_name: Mapped[Annotated[str | None, mapped_column(
-        "displayName", nullable=True)]]
-    password: Mapped[Annotated[str, mapped_column(nullable=True)]]
+    mail: Mapped[str | None] = mapped_column(String(255))
+    display_name: Mapped[str | None] = mapped_column(
+        "displayName", nullable=True)
+    password: Mapped[str] = mapped_column(nullable=True)
 
-    samaccountname: Mapped[Annotated[str, synonym("sam_accout_name")]]
-    userprincipalname: Mapped[Annotated[str, synonym("user_principal_name")]]
-    displayname: Mapped[Annotated[str, synonym("display_name")]]
-    uid: Mapped[Annotated[str, synonym("sam_accout_name")]]
-    accountexpires: Mapped[Annotated[str, synonym("account_exp")]]
+    samaccountname: Mapped[str] = synonym("sam_accout_name")
+    userprincipalname: Mapped[str] = synonym("user_principal_name")
+    displayname: Mapped[str] = synonym("display_name")
+    uid: Mapped[str] = synonym("sam_accout_name")
+    accountexpires: Mapped[str] = synonym("account_exp")
 
-    last_logon: Mapped[Annotated[datetime | None, mapped_column(
-        "lastLogon", DateTime(timezone=True))]]
-    account_exp: Mapped[Annotated[datetime | None, mapped_column(
-        "accountExpires", DateTime(timezone=True))]]
+    last_logon: Mapped[datetime | None] = mapped_column(
+        "lastLogon", DateTime(timezone=True))
+    account_exp: Mapped[datetime | None] = mapped_column(
+        "accountExpires", DateTime(timezone=True))
 
     search_fields = {
         "mail": "mail",
@@ -355,13 +349,13 @@ class User(DirectoryReferenceMixin, Base):
         "accountexpires": "accountExpires",
     }
 
-    password_history: Mapped[Annotated[list[str], mapped_column(  # noqa TAE002
+    password_history: Mapped[list[str]] = mapped_column(  # noqa TAE002
         MutableList.as_mutable(postgresql.ARRAY(String)),
         server_default="{}",
         nullable=False,
-    )]]
+    )
 
-    groups: Mapped[list["Group"]] = relationship(
+    groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
@@ -393,53 +387,65 @@ class User(DirectoryReferenceMixin, Base):
         return True if now > user_account_exp else False
 
 
-class Group(DirectoryReferenceMixin, Base):
+class Group(Base):
     """Group params."""
 
     __tablename__ = "Groups"
 
-    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+
+    directory_id: Mapped[int] = mapped_column(
+        "directoryId", ForeignKey("Directory.id"), nullable=False,
+    )
+
+    directory: Mapped[Directory] = relationship(
+        "Directory",
+        back_populates="group",
+        uselist=False,
+        lazy="joined",
+    )
+
     search_fields: ClassVar[dict[str, str]] = {}
 
-    members: Mapped[list["Directory"]] = relationship(
+    members: Mapped[list[Directory]] = relationship(
         "Directory",
         secondary=DirectoryMembership.__table__,
         back_populates="groups",
         overlaps="group,groups,directory,member_group",
     )
 
-    parent_groups: Mapped[list["Group"]] = relationship(
+    parent_groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
         primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
-        secondaryjoin=DirectoryMembership.group_id == id,
+        secondaryjoin="DirectoryMembership.group_id == Group.id",
         overlaps="group,groups,members,directory,member_group",
     )
 
-    policies: Mapped[list["NetworkPolicy"]] = relationship(
+    policies: Mapped[list[NetworkPolicy]] = relationship(
         "NetworkPolicy",
         secondary=PolicyMembership.__table__,
-        primaryjoin=id == PolicyMembership.__table__.c.group_id,
+        primaryjoin="Group.id == PolicyMembership.group_id",
         back_populates="groups",
     )
 
-    mfa_policies: Mapped[list["NetworkPolicy"]] = relationship(
+    mfa_policies: Mapped[list[NetworkPolicy]] = relationship(
         "NetworkPolicy",
         secondary=PolicyMFAMembership.__table__,
-        primaryjoin=id == PolicyMFAMembership.__table__.c.group_id,
+        primaryjoin="Group.id == PolicyMFAMembership.group_id",
         back_populates="mfa_groups",
     )
 
-    users: Mapped[list["User"]] = relationship(
+    users: Mapped[list[User]] = relationship(
         "User",
         secondary=DirectoryMembership.__table__,
-        primaryjoin=id == DirectoryMembership.__table__.c.group_id,
-        secondaryjoin=DirectoryMembership.directory_id == User.directory_id,
+        primaryjoin="Group.id == DirectoryMembership.group_id",
+        secondaryjoin="DirectoryMembership.directory_id == User.directory_id",
         back_populates="groups",
         overlaps="directory,group,members,parent_groups,member_group,groups",
     )
 
-    access_policies: Mapped[list["AccessPolicy"]] = relationship(
+    access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
         secondary=GroupAccessPolicyMembership.__table__,
         primaryjoin="Group.id == GroupAccessPolicyMembership.group_id",
@@ -458,7 +464,7 @@ class Group(DirectoryReferenceMixin, Base):
         return f"Group({self.id}:{self.directory_id})"
 
 
-class Attribute(DirectoryReferenceMixin, Base):
+class Attribute(Base):
     """Attributes data."""
 
     __tablename__ = "Attributes"
@@ -469,10 +475,15 @@ class Attribute(DirectoryReferenceMixin, Base):
         ),
     )
 
-    name: Mapped[Annotated[str, mapped_column(nullable=False, index=True)]]
-    value: Mapped[Annotated[str | None, mapped_column(nullable=True)]]
-    bvalue: Mapped[
-        Annotated[bytes | None, mapped_column(LargeBinary, nullable=True)]]
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+
+    directory_id: Mapped[int] = mapped_column(
+        "directoryId", ForeignKey("Directory.id"), nullable=False,
+    )
+
+    name: Mapped[str] = mapped_column(nullable=False, index=True)
+    value: Mapped[str | None] = mapped_column(nullable=True)
+    bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     directory: Mapped[Directory] = relationship(  # type: ignore
         "Directory", back_populates="attributes", uselist=False,
@@ -492,7 +503,7 @@ class NetworkPolicy(Base):
 
     __tablename__ = "Policies"
 
-    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
 
     raw: Mapped[dict | list] = mapped_column(postgresql.JSON, nullable=False)
@@ -508,10 +519,10 @@ class NetworkPolicy(Base):
     priority: Mapped[int] = mapped_column(nullable=False)
 
     priority_uc = UniqueConstraint(
-        priority, name="priority_uc", deferrable=True, initially="DEFERRED",
+        "priority", name="priority_uc", deferrable=True, initially="DEFERRED",
     )
 
-    groups: Mapped[list["Group"]] = relationship(
+    groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=PolicyMembership.__table__,
         back_populates="policies",
@@ -520,7 +531,7 @@ class NetworkPolicy(Base):
         Enum(MFAFlags), server_default="DISABLED", nullable=False,
     )
 
-    mfa_groups: Mapped[list["Group"]] = relationship(
+    mfa_groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=PolicyMFAMembership.__table__,
         back_populates="mfa_policies",
@@ -532,7 +543,7 @@ class PasswordPolicy(Base):
 
     __tablename__ = "PasswordPolicies"
 
-    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
     name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -561,9 +572,8 @@ class AccessPolicy(Base):
 
     __tablename__ = "AccessPolicies"
 
-    id: Mapped[Annotated[int, mapped_column(primary_key=True)]]  # noqa: A003
-    name: Mapped[Annotated[
-        str, mapped_column(String(255), nullable=False, unique=True)]]
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
     can_read: Mapped[nbool]
     can_add: Mapped[nbool]
