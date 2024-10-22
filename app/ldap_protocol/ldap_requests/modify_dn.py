@@ -23,7 +23,12 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import Directory, DirectoryMembership, DirectoryReferenceMixin
+from models import (
+    Attribute,
+    Directory,
+    DirectoryMembership,
+    DirectoryReferenceMixin,
+)
 
 from .base import BaseRequest
 
@@ -179,6 +184,8 @@ class ModifyDNRequest(BaseRequest):
                 new_parent_dir.access_policies,
             )
 
+        old_attr_name = directory.path[-1].split('=')[0]
+
         async with session.begin_nested():
             session.add(new_directory)
             await session.flush()
@@ -186,6 +193,15 @@ class ModifyDNRequest(BaseRequest):
                 update(Directory)
                 .where(Directory.parent == directory)
                 .values(parent_id=new_directory.id),
+            )
+            await session.execute(
+                update(Attribute)
+                .where(
+                    Attribute.directory_id == directory.id,
+                    Attribute.name == old_attr_name,
+                    Attribute.value == directory.name,
+                )
+                .values(name=dn, value=name),
             )
 
             await session.flush()
@@ -230,7 +246,7 @@ class ModifyDNRequest(BaseRequest):
             # NOTE: update relationship, don't delete row
             await session.refresh(directory)
 
-            if self.deleteoldrdn:
+            if self.deleteoldrdn or dn == 'krbprincipalname':
                 await session.delete(directory)
                 await session.flush()
 
