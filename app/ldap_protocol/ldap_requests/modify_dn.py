@@ -23,7 +23,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import Directory, DirectoryMembership, DirectoryReferenceMixin
+from models import Attribute, Directory, DirectoryMembership, Group, User
 
 from .base import BaseRequest
 
@@ -190,10 +190,7 @@ class ModifyDNRequest(BaseRequest):
 
             await session.flush()
 
-            for model in [
-                *DirectoryReferenceMixin.__subclasses__(),
-                DirectoryMembership,
-            ]:
+            for model in (User, Group, Attribute, DirectoryMembership):
                 await session.execute(
                     update(model)
                     .where(model.directory_id == directory.id)  # type: ignore
