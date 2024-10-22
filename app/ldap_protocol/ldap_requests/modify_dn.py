@@ -184,8 +184,6 @@ class ModifyDNRequest(BaseRequest):
                 new_parent_dir.access_policies,
             )
 
-        old_attr_name = directory.path[-1].split('=')[0]
-
         async with session.begin_nested():
             session.add(new_directory)
             await session.flush()
@@ -194,6 +192,8 @@ class ModifyDNRequest(BaseRequest):
                 .where(Directory.parent == directory)
                 .values(parent_id=new_directory.id),
             )
+
+            old_attr_name = directory.path[-1].split('=')[0]
             await session.execute(
                 update(Attribute)
                 .where(
