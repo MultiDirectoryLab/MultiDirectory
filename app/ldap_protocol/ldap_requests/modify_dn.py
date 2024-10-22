@@ -130,11 +130,11 @@ class ModifyDNRequest(BaseRequest):
             )
             return
 
-        dn, name = self.newrdn.split("=")
+        attr_name, attr_value = self.newrdn.split("=")
 
         if self.new_superior is None:
             new_directory = Directory(
-                name=name,
+                name=attr_value,
                 object_class=directory.object_class,
                 parent_id=directory.parent_id,
                 created_at=directory.created_at,
@@ -170,7 +170,7 @@ class ModifyDNRequest(BaseRequest):
 
             new_directory = Directory(
                 object_class=directory.object_class,
-                name=name,
+                name=attr_value,
                 parent=new_parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
@@ -188,17 +188,27 @@ class ModifyDNRequest(BaseRequest):
                 .values(parent_id=new_directory.id),
             )
 
-            old_attr_name = directory.path[-1].split('=')[0]
-            await session.execute(
-                update(Attribute)
-                .where(
-                    Attribute.directory_id == directory.id,
-                    Attribute.name == old_attr_name,
-                    Attribute.value == directory.name,
-                )
-                .values(name=dn, value=name),
-            )
+            await session.flush()
 
+            if self.deleteoldrdn:
+                old_attr_name = directory.path[-1].split('=')[0]
+                await session.execute(
+                    update(Attribute)
+                    .where(
+                        Attribute.directory_id == directory.id,
+                        Attribute.name == old_attr_name,
+                        Attribute.value == directory.name,
+                    )
+                    .values(name=attr_name, value=attr_value),
+                )
+            else:
+                session.add(
+                    Attribute(
+                        name=attr_name,
+                        value=attr_value,
+                        directory=new_directory,
+                    ),
+                )
             await session.flush()
 
             for model in (User, Group, Attribute, DirectoryMembership):
@@ -238,9 +248,8 @@ class ModifyDNRequest(BaseRequest):
             # NOTE: update relationship, don't delete row
             await session.refresh(directory)
 
-            if self.deleteoldrdn or dn == 'krbprincipalname':
-                await session.delete(directory)
-                await session.flush()
+            await session.delete(directory)
+            await session.flush()
 
         await session.commit()
 
