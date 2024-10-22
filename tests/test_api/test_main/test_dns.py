@@ -137,7 +137,7 @@ async def test_dns_setup_selfhosted(
 
     assert response.status_code == status.HTTP_200_OK
 
-    dns_manager.setup.assert_called()  # type: ignore
+    dns_manager.setup.assert_called()
 
 
 @pytest.mark.asyncio
