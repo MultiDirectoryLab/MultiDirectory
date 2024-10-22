@@ -267,7 +267,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.put(
             "principal", json={"name": name, "new_name": new_name},
         )
-        if response.status_code != 200:
+        if response.status_code != 202:
             raise KRBAPIError(response.text)
 
     async def get_status(self) -> bool:  # noqa
