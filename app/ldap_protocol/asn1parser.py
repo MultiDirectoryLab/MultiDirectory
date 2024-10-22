@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Generic, TypeVar, Union
+from typing import Annotated, Generic, TypeVar
 
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 from pydantic import AfterValidator
@@ -59,7 +59,7 @@ class SubstringTag(IntEnum):
 
 T = TypeVar(
     "T", contravariant=True,
-    bound=Union["ASN1Row", list["ASN1Row"], str, bytes, int, float],
+    bound="ASN1Row | list[ASN1Row] | str | bytes | int | float",
 )
 
 
