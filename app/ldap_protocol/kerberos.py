@@ -427,7 +427,7 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
         )
         await session.commit()
         return KerberosState.NOT_CONFIGURED
-    return state.value
+    return KerberosState(state.value)
 
 
 async def set_state(session: AsyncSession, state: "KerberosState") -> None:

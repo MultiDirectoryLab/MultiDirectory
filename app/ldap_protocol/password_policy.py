@@ -52,7 +52,7 @@ async def post_save_password_actions(
     )
     await session.execute(qeury)
 
-    user.password_history.append(user.password)  # type: ignore
+    user.password_history.append(user.password)
     await session.flush()
 
 
@@ -109,7 +109,7 @@ class PasswordPolicySchema(BaseModel):
         """
         policy = await session.scalar(select(PasswordPolicy))
         if not policy:
-            policy = await cls().create_policy_settings(session, kadmin)
+            return await cls().create_policy_settings(session, kadmin)
         return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(
