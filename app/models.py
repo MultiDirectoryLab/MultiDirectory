@@ -485,7 +485,7 @@ class Attribute(Base):
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
-    directory: Mapped[Directory] = relationship(  # type: ignore
+    directory: Mapped[Directory] = relationship(
         "Directory", back_populates="attributes", uselist=False,
     )
 
