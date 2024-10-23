@@ -148,6 +148,7 @@ class Directory(Base):
     objectclass: Mapped[str] = synonym("object_class")
 
     name: Mapped[str] = mapped_column(nullable=False)
+    rdn_attr: Mapped[str] = mapped_column(nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         "whenCreated",
