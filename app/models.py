@@ -148,7 +148,6 @@ class Directory(Base):
     objectclass: Mapped[str] = synonym("object_class")
 
     name: Mapped[str] = mapped_column(nullable=False)
-    cn: Mapped[str] = synonym("name")
 
     created_at: Mapped[datetime] = mapped_column(
         "whenCreated",
@@ -229,7 +228,6 @@ class Directory(Base):
     )
 
     search_fields = {
-        "cn": "cn",
         "name": "name",
         "objectguid": "objectGUID",
         "objectsid": "objectSid",
@@ -282,11 +280,11 @@ class Directory(Base):
 
     def __str__(self) -> str:
         """Dir name."""
-        return f"Directory({self.cn})"
+        return f"Directory({self.name})"
 
     def __repr__(self) -> str:
         """Dir id and name."""
-        return f"Directory({self.id}:{self.cn})"
+        return f"Directory({self.id}:{self.name})"
 
 
 class User(Base):
