@@ -130,11 +130,11 @@ class ModifyDNRequest(BaseRequest):
             )
             return
 
-        attr_name, attr_value = self.newrdn.split("=")
+        new_attr, new_value = self.newrdn.split("=")
 
         if self.new_superior is None:
             new_directory = Directory(
-                name=attr_value,
+                name=new_value,
                 object_class=directory.object_class,
                 parent_id=directory.parent_id,
                 created_at=directory.created_at,
@@ -170,7 +170,7 @@ class ModifyDNRequest(BaseRequest):
 
             new_directory = Directory(
                 object_class=directory.object_class,
-                name=attr_value,
+                name=new_value,
                 parent=new_parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
@@ -199,13 +199,13 @@ class ModifyDNRequest(BaseRequest):
                         Attribute.name == old_attr_name,
                         Attribute.value == directory.name,
                     )
-                    .values(name=attr_name, value=attr_value),
+                    .values(name=new_attr, value=new_value),
                 )
             else:
                 session.add(
                     Attribute(
-                        name=attr_name,
-                        value=attr_value,
+                        name=new_attr,
+                        value=new_value,
                         directory=new_directory,
                     ),
                 )
