@@ -71,8 +71,7 @@ async def modify_many(
     """Bulk LDAP MODIFY entry request."""
     results = []
     for request in requests:
-        res = await request.handle_api(req.state.dishka_container)
-        results.append(res)
+        results.append(await request.handle_api(req.state.dishka_container))
 
     return results
 
