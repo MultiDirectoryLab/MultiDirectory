@@ -15,7 +15,7 @@ from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, selectinload, subqueryload
+from sqlalchemy.orm import defaultload, joinedload, subqueryload
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -363,7 +363,7 @@ class SearchRequest(BaseRequest):
 
         if self.member:
             query = query.options(
-                selectinload(Directory.group).selectinload(Group.members))
+                defaultload(Directory.group).selectinload(Group.members))
 
         return query  # noqa
 
