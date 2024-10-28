@@ -62,6 +62,19 @@ async def modify(
     return await request.handle_api(req.state.dishka_container)
 
 
+@entry_router.patch("/update_many", dependencies=[Depends(get_ldap_session)])
+@inject
+async def modify_many(
+    requests: list[ModifyRequest],
+    req: Request,
+) -> list[LDAPResult]:
+    """Bulk LDAP MODIFY entry request."""
+    results = []
+    for request in requests:
+        results.append(await request.handle_api(req.state.dishka_container))
+    return results
+
+
 @entry_router.put("/update/dn", dependencies=[Depends(get_ldap_session)])
 @inject
 async def modify_dn(
