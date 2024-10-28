@@ -74,6 +74,7 @@ async def test_bind_invalid_password_or_user(
         name="user0",
         object_class="",
         path=["cn=user0", "ou=users", "dc=md", "dc=test"],
+        rdn_attr="cn",
     )
     user = User(
         sam_accout_name="user0",
@@ -216,6 +217,7 @@ async def test_bind_disabled_user(
         name="user0",
         object_class="",
         path=["cn=user0", "ou=users", "dc=md", "dc=test"],
+        rdn_attr="cn",
     )
     user = User(
         sam_accout_name="user0",
