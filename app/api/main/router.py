@@ -72,7 +72,6 @@ async def modify_many(
     results = []
     for request in requests:
         results.append(await request.handle_api(req.state.dishka_container))
-
     return results
 
 
