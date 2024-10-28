@@ -27,6 +27,6 @@ days_left=$(( (end_date_epoch - current_date_epoch) / 86400 ))
 if [[ $days_left -le $EXPIRATION_THRESHOLD ]]; then
   echo "Certificate expires in $days_left days or has already expired. Generating a new certificate..."
   generate_certificate
-else
-  echo "Certificate is valid for another $days_left days."
-fi
+  exit 0
+
+echo "Certificate is valid for another $days_left days."
