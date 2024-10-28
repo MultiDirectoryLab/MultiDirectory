@@ -67,6 +67,77 @@ async def test_api_correct_modify(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures('adding_test_user')
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
+async def test_api_modify_many(http_client: AsyncClient) -> None:
+    """Test API for modify object attribute."""
+    entry_dn = 'cn=test,dc=md,dc=test'
+    new_value = "133632677730000000"
+    response = await http_client.patch(
+        "/entry/update_many",
+        json=[
+            {
+                "object": entry_dn,
+                "changes": [
+                    {
+                        "operation": Operation.REPLACE,
+                        "modification": {
+                            "type": "accountExpires",
+                            "vals": [new_value],
+                        },
+                    },
+                ],
+            },
+            {
+                "object": entry_dn,
+                "changes": [
+                    {
+                        "operation": Operation.REPLACE,
+                        "modification": {
+                            "type": "testing_attr",
+                            "vals": ["test1"],
+                        },
+                    },
+                ],
+            },
+        ],
+    )
+
+    data = response.json()
+
+    assert isinstance(data, list)
+    for result in data:
+        assert result.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.SUCCESS
+    assert data['search_result'][0]['object_name'] == entry_dn
+
+    for attr in data['search_result'][0]['partial_attributes']:
+        if attr['type'] == 'accountExpires':
+            assert attr['vals'][0] == new_value
+        if attr['type'] == 'testing_attr':
+            assert attr['vals'][0] == 'test1'
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('adding_test_user')
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
 async def test_api_modify_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for modify object attribute with incorrect DN."""
     response = await http_client.patch(
