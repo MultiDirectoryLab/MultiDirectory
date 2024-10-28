@@ -278,6 +278,7 @@ class Directory(Base):
         pre_path: list[str] = parent.path if parent else []
         self.path = pre_path + [self.get_dn(dn)]
         self.depth = len(self.path)
+        self.rdn_attr = dn
 
     def __str__(self) -> str:
         """Dir name."""

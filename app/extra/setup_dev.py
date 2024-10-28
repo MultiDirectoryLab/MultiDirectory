@@ -157,6 +157,7 @@ async def setup_enviroment(
     )
     domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
     domain.depth = len(domain.path)
+    domain.rdn_attr = ''
 
     async with session.begin_nested():
         session.add(domain)

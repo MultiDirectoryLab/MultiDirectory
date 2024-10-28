@@ -187,6 +187,8 @@ class AddRequest(BaseRequest):
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.keys()
+        attributes.append(Attribute(
+            name=new_dn, value=name, directory=new_dir))
 
         for attr in self.attributes:
             lname = attr.type.lower()
