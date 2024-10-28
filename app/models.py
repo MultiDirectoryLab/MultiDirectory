@@ -9,7 +9,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
-from typing import Annotated, Any, ClassVar, Literal, Optional
+from typing import Annotated, ClassVar, Literal
 
 from sqlalchemy import (
     CheckConstraint,
@@ -51,7 +51,7 @@ UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
 @compiles(UniqueConstraint, "postgresql")
 def compile_create_uc(
-    create: DDLElement, compiler: DDLCompiler, **kw: Any,
+    create: DDLElement, compiler: DDLCompiler, **kw: dict,
 ) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
@@ -152,7 +152,7 @@ class Directory(Base):
         nullable=True,
     )
 
-    parent: Mapped[Optional["Directory"]] = relationship(
+    parent: Mapped["Directory | None"] = relationship(
         lambda: Directory,
         remote_side="Directory.id",
         backref=backref("directories", cascade="all,delete"),
@@ -282,7 +282,7 @@ class Directory(Base):
 
     def create_path(
         self,
-        parent: Optional["Directory"] = None,
+        parent: "Directory | None" = None,
         dn: str = "cn",
     ) -> None:
         """Create path from a new directory."""
