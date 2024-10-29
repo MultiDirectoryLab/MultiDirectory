@@ -361,6 +361,7 @@ class User(Base):
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
+        passive_deletes="all",
         overlaps="group,groups,directory,member_group",
     )
 
@@ -442,6 +443,7 @@ class Group(Base):
         primaryjoin="Group.id == DirectoryMembership.group_id",
         secondaryjoin="DirectoryMembership.directory_id == User.directory_id",
         back_populates="groups",
+        passive_deletes="all",
         overlaps="directory,group,members,parent_groups,member_group,groups",
     )
 
