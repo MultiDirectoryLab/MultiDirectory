@@ -28,5 +28,6 @@ if [[ $days_left -le $EXPIRATION_THRESHOLD ]]; then
   echo "Certificate expires in $days_left days or has already expired. Generating a new certificate..."
   generate_certificate
   exit 0
+fi
 
 echo "Certificate is valid for another $days_left days."
