@@ -381,7 +381,7 @@ class SearchRequest(BaseRequest):
         if self.page_number is None:
             return query, 0, 0
 
-        count_q = select(func.count()).select_from(query.as_scalar())
+        count_q = select(func.count()).select_from(query.subquery())
 
         count = (await session.scalars(count_q)).one()
 
