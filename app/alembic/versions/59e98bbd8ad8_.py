@@ -336,7 +336,6 @@ def downgrade() -> None:
     op.drop_index("ix_directory_objectGUID", table_name="Directory")
     op.drop_index(op.f("ix_Directory_path"), table_name="Directory")
     op.drop_index("lw_path", table_name="Directory")
-    op.drop_index(op.f("ix_Paths_path"), table_name="Paths")
     op.drop_index(op.f("ix_Attributes_name"), table_name="Attributes")
     op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
     op.drop_index(op.f("ix_Policies_netmasks"), table_name="Policies")
