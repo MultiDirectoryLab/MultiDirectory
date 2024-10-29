@@ -53,8 +53,7 @@ async def get_creds(
     :return tuple[str, str]: api key and secret
     """
     query = select(CatalogueSetting).where(
-        CatalogueSetting.name == key_name or
-        CatalogueSetting.name == secret_name)
+        CatalogueSetting.name.in_([key_name, secret_name]))
 
     vals = await session.scalars(query)
     secrets = {s.name: s.value for s in vals.all()}
