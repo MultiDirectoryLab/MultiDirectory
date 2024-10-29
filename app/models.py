@@ -82,21 +82,6 @@ class DirectoryMembership(Base):
     directory_id: Mapped[int] = mapped_column(
         ForeignKey("Directory.id"), primary_key=True)
 
-    group: Mapped[Group] = relationship(
-        "Group", uselist=False, cascade="all,delete", overlaps="group",
-    )
-    directory: Mapped[Directory] = relationship(
-        "Directory", uselist=False, cascade="all,delete", overlaps="directory",
-    )
-    member_group: Mapped[Group] = relationship(
-        "Group",
-        secondary="Directory",
-        primaryjoin="DirectoryMembership.directory_id == Directory.id",
-        secondaryjoin="Directory.id == Group.directory_id",
-        uselist=False,
-        overlaps="directory",
-    )
-
 
 class PolicyMembership(Base):
     """Policy membership - path m2m relationship."""
@@ -203,7 +188,6 @@ class Directory(Base):
         "Group",
         uselist=False,
         cascade="all,delete",
-        overlaps="member_group",
         lazy="selectin",
     )
     user: Mapped[User] = relationship(
@@ -219,7 +203,8 @@ class Directory(Base):
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="members",
         lazy="selectin",
-        overlaps="group,directory,member_group",
+        cascade="merge",
+        overlaps="group,directory",
     )
     access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
@@ -362,7 +347,7 @@ class User(Base):
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
         passive_deletes="all",
-        overlaps="group,groups,directory,member_group",
+        overlaps="group,groups,directory",
     )
 
     def get_upn_prefix(self) -> str:
@@ -412,7 +397,7 @@ class Group(Base):
         "Directory",
         secondary=DirectoryMembership.__table__,
         back_populates="groups",
-        overlaps="group,groups,directory,member_group",
+        overlaps="group,groups,directory",
     )
 
     parent_groups: Mapped[list[Group]] = relationship(
@@ -420,7 +405,8 @@ class Group(Base):
         secondary=DirectoryMembership.__table__,
         primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
-        overlaps="group,groups,members,directory,member_group",
+        overlaps="group,groups,members,directory",
+        passive_deletes="all",
     )
 
     policies: Mapped[list[NetworkPolicy]] = relationship(
@@ -443,8 +429,8 @@ class Group(Base):
         primaryjoin="Group.id == DirectoryMembership.group_id",
         secondaryjoin="DirectoryMembership.directory_id == User.directory_id",
         back_populates="groups",
-        passive_deletes="all",
-        overlaps="directory,group,members,parent_groups,member_group,groups",
+        cascade="merge,expunge",
+        overlaps="directory,group,members,parent_groups,groups",
     )
 
     access_policies: Mapped[list[AccessPolicy]] = relationship(
