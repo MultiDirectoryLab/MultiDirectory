@@ -66,7 +66,7 @@ def downgrade() -> None:
     op.create_foreign_key('DirectoryMemberships_directory_id_fkey', 'DirectoryMemberships', 'Directory', ['directory_id'], ['id'])
 
     op.drop_constraint('AccessPolicyMemberships_policy_id_fkey', 'AccessPolicyMemberships', type_='foreignkey')
-    op.drop_constraint('AccessPolicyMemberships_policy_id_fkey', 'AccessPolicyMemberships', type_='foreignkey')
+    op.drop_constraint('AccessPolicyMemberships_dir_id_fkey', 'AccessPolicyMemberships', type_='foreignkey')
     op.create_foreign_key('AccessPolicyMemberships_dir_id_fkey', 'AccessPolicyMemberships', 'Directory', ['dir_id'], ['id'])
     op.create_foreign_key('AccessPolicyMemberships_policy_id_fkey', 'AccessPolicyMemberships', 'AccessPolicies', ['policy_id'], ['id'])
     # ### end Alembic commands ###
