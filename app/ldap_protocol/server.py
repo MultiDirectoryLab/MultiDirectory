@@ -150,28 +150,38 @@ class PoolClientHandler:
 
     @staticmethod
     def _read_acme_cert() -> tuple[str, str]:
+        acme_exc = SystemError(
+            "Let's Encrypt certificate not found. The `acme.json` "
+            "file might not have been generated or lacks certificate details. "
+            "This can also occur if the certificate failed to generate "
+            "for localhost, as Let's Encrypt only issues "
+            "certificates for public domains. "
+            "Try deleting and recreating the `acme.json` file, "
+            "or consider using a self-signed certificate "
+            "for local environments or closed networks.")
+
         if not os.path.exists("/certs/acme.json"):
-            log.critical("Cannot load SSL cert for MultiDirectory")
-            raise
+            log.critical("Cannot load ACME file for MultiDirectory")
+            raise acme_exc
 
         with open("/certs/acme.json") as certfile:
             data = json.load(certfile)
 
         try:
             domain = data["md-resolver"]["Certificates"][0]["domain"]["main"]
-        except (KeyError, IndexError):
-            log.critical("Cannot load SSL cert for MultiDirectory")
-            raise
+            cert = data["md-resolver"]["Certificates"][0]["certificate"]
+            key = data["md-resolver"]["Certificates"][0]["key"]
+        except (KeyError, IndexError) as err:
+            log.critical("Cannot load TLS cert for MultiDirectory")
+            raise acme_exc from err
 
-        log.info(f"loaded cert for {domain}")
+        else:
+            log.info(f"loaded cert for {domain}")
 
-        cert = data["md-resolver"]["Certificates"][0]["certificate"]
-        key = data["md-resolver"]["Certificates"][0]["key"]
+            cert = base64.b64decode(cert.encode("ascii")).decode()
+            key = base64.b64decode(key.encode("ascii")).decode()
 
-        cert = base64.b64decode(cert.encode("ascii")).decode()
-        key = base64.b64decode(key.encode("ascii")).decode()
-
-        return cert, key
+            return cert, key
 
     @staticmethod
     def _compute_ldap_message_size(data: bytes) -> int:
