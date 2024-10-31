@@ -92,7 +92,11 @@ def find_members_recursive_cte(dn: str) -> CTE:
             directory_hierarchy,
             directory_hierarchy.c.group_id == DirectoryMembership.group_id,
         )
-        .join(DirectoryMembership.member_group, isouter=True)
+        .join(
+            Group,
+            DirectoryMembership.directory_id == Group.directory_id,
+            isouter=True,
+        )
     )
     return directory_hierarchy.union_all(recursive_part)
 
@@ -116,7 +120,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
         FROM "DirectoryMemberships"
         JOIN anon_1 ON anon_1.directory_id =
                        "DirectoryMemberships".directory_id
-        OIN "Groups" ON "DirectoryMemberships".group_id = "Groups"."group_id"
+        JOIN "Groups" ON "DirectoryMemberships".group_id = "Groups"."group_id"
     )
     SELECT * FROM anon_1;
 
@@ -149,7 +153,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
             directory_hierarchy.c.directory_id
             == DirectoryMembership.directory_id,
         )
-        .join(DirectoryMembership.group)
+        .join(Group, DirectoryMembership.group_id == Group.id)
     )
     return directory_hierarchy.union_all(recursive_part)
 
