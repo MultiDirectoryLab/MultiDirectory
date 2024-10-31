@@ -1,4 +1,4 @@
-"""empty message
+"""Add cascade.
 
 Revision ID: 196f0d327c6a
 Revises: 59e98bbd8ad8
