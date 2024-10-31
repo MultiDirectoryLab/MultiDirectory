@@ -16,7 +16,7 @@ from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import defaultload
 
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
@@ -180,13 +180,13 @@ async def get_user_from_token(
     user = await session.scalar(
         select(User)
         .options(
-            selectinload(User.groups).selectinload(Group.access_policies))
+            defaultload(User.groups).selectinload(Group.access_policies))
         .where(User.id == user_id))
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
-    return UserSchema.from_db(
+    return await UserSchema.from_db(
         user,
         payload.get("grant_type"),
         payload.get("exp"),

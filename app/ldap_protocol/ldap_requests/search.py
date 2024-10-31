@@ -435,7 +435,7 @@ class SearchRequest(BaseRequest):
 
             if self.member_of:
                 if "group" in obj_classes or "user" in obj_classes:
-                    for group in directory.groups:
+                    for group in await directory.awaitable_attrs.groups:
                         attrs["memberOf"].append(group.directory.path_dn)
 
             if self.token_groups:
