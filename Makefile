@@ -64,3 +64,9 @@ krb_client_build:  ## build krb client service
 
 krb_client:  ## run krb client bash
 	docker run --rm --init -it --name krbclient --network multidirectory_default krbclient:runtime bash
+
+migrations:  ## generate migration file
+	docker compose run ldap_server alembic revision --autogenerate
+
+migrate:  ## upgrade db
+	docker compose run ldap_server alembic upgrade head
