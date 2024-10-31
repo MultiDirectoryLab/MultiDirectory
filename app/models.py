@@ -77,10 +77,10 @@ class DirectoryMembership(Base):
 
     __tablename__ = "DirectoryMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id"), primary_key=True)
+        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True)
 
 
 class PolicyMembership(Base):
@@ -88,9 +88,9 @@ class PolicyMembership(Base):
 
     __tablename__ = "PolicyMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id"), primary_key=True)
+        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class PolicyMFAMembership(Base):
@@ -98,9 +98,9 @@ class PolicyMFAMembership(Base):
 
     __tablename__ = "PolicyMFAMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id"), primary_key=True)
+        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class AccessPolicyMembership(Base):
@@ -108,9 +108,9 @@ class AccessPolicyMembership(Base):
 
     __tablename__ = "AccessPolicyMemberships"
     dir_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id"), primary_key=True)
+        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True)
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id"), primary_key=True)
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class GroupAccessPolicyMembership(Base):
@@ -118,9 +118,9 @@ class GroupAccessPolicyMembership(Base):
 
     __tablename__ = "GroupAccessPolicyMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id"), primary_key=True)
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class Directory(Base):
@@ -202,8 +202,10 @@ class Directory(Base):
         primaryjoin="Directory.id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="members",
-        lazy="selectin",
-        cascade="merge",
+        # lazy="selectin",
+        # passive_deletes="all",
+        cascade="all,delete",
+        passive_deletes=True,
         overlaps="group,directory",
     )
     access_policies: Mapped[list[AccessPolicy]] = relationship(
@@ -346,7 +348,10 @@ class User(Base):
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
-        passive_deletes="all",
+        lazy='selectin',
+        # passive_deletes="all",
+        cascade="all, delete",
+        passive_deletes=True,
         overlaps="group,groups,directory",
     )
 
@@ -397,6 +402,9 @@ class Group(Base):
         "Directory",
         secondary=DirectoryMembership.__table__,
         back_populates="groups",
+        # passive_deletes="all",
+        cascade="all, delete",
+        passive_deletes=True,
         overlaps="group,groups,directory",
     )
 
@@ -405,8 +413,10 @@ class Group(Base):
         secondary=DirectoryMembership.__table__,
         primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
+        # passive_deletes="all",
+        cascade="all, delete",
+        passive_deletes=True,
         overlaps="group,groups,members,directory",
-        passive_deletes="all",
     )
 
     policies: Mapped[list[NetworkPolicy]] = relationship(
@@ -429,7 +439,9 @@ class Group(Base):
         primaryjoin="Group.id == DirectoryMembership.group_id",
         secondaryjoin="DirectoryMembership.directory_id == User.directory_id",
         back_populates="groups",
-        cascade="merge,expunge",
+        # passive_deletes="all",
+        cascade="all, delete",
+        passive_deletes=True,
         overlaps="directory,group,members,parent_groups,groups",
     )
 
