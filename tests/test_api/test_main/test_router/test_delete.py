@@ -51,7 +51,7 @@ async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures('setup_session')
 @pytest.mark.usefixtures('session')
 async def test_api_delete_non_exist_object(
-        http_client: AsyncClient, ) -> None:
+        http_client: AsyncClient) -> None:
     """Test API for delete non-existen object."""
     response = await http_client.request(
         "delete",
