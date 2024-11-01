@@ -132,7 +132,7 @@ class Directory(Base):
 
     parent_id: Mapped[int] = mapped_column(
         "parentId",
-        ForeignKey("Directory.id"),
+        ForeignKey("Directory.id", ondelete="CASCADE"),
         index=True,
         nullable=True,
     )
@@ -182,19 +182,23 @@ class Directory(Base):
         postgresql.ARRAY(String), nullable=False, index=True)
 
     attributes: Mapped[list[Attribute]] = relationship(
-        "Attribute", cascade="all,delete",
+        "Attribute",
+        cascade="all",
+        passive_deletes=True,
     )
     group: Mapped[Group] = relationship(
         "Group",
         uselist=False,
-        cascade="all,delete",
+        cascade="all",
+        passive_deletes=True,
         lazy="selectin",
     )
     user: Mapped[User] = relationship(
         "User",
         uselist=False,
-        cascade="all,delete",
         lazy="selectin",
+        cascade="all",
+        passive_deletes=True,
     )
     groups: Mapped[list[Group]] = relationship(
         "Group",
@@ -202,9 +206,7 @@ class Directory(Base):
         primaryjoin="Directory.id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="members",
-        # lazy="selectin",
-        # passive_deletes="all",
-        cascade="all,delete",
+        cascade="all",
         passive_deletes=True,
         overlaps="group,directory",
     )
@@ -294,7 +296,9 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
 
     directory_id: Mapped[int] = mapped_column(
-        "directoryId", ForeignKey("Directory.id"), nullable=False,
+        "directoryId",
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
     directory: Mapped[Directory] = relationship(
@@ -349,8 +353,7 @@ class User(Base):
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
         lazy='selectin',
-        # passive_deletes="all",
-        cascade="all, delete",
+        cascade="all",
         passive_deletes=True,
         overlaps="group,groups,directory",
     )
@@ -386,7 +389,9 @@ class Group(Base):
     id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
 
     directory_id: Mapped[int] = mapped_column(
-        "directoryId", ForeignKey("Directory.id"), nullable=False,
+        "directoryId",
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
     directory: Mapped[Directory] = relationship(
@@ -402,8 +407,7 @@ class Group(Base):
         "Directory",
         secondary=DirectoryMembership.__table__,
         back_populates="groups",
-        # passive_deletes="all",
-        cascade="all, delete",
+        cascade="all",
         passive_deletes=True,
         overlaps="group,groups,directory",
     )
@@ -413,8 +417,7 @@ class Group(Base):
         secondary=DirectoryMembership.__table__,
         primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
-        # passive_deletes="all",
-        cascade="all, delete",
+        cascade="all",
         passive_deletes=True,
         overlaps="group,groups,members,directory",
     )
@@ -439,8 +442,7 @@ class Group(Base):
         primaryjoin="Group.id == DirectoryMembership.group_id",
         secondaryjoin="DirectoryMembership.directory_id == User.directory_id",
         back_populates="groups",
-        # passive_deletes="all",
-        cascade="all, delete",
+        cascade="all",
         passive_deletes=True,
         overlaps="directory,group,members,parent_groups,groups",
     )
@@ -478,7 +480,9 @@ class Attribute(Base):
     id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
 
     directory_id: Mapped[int] = mapped_column(
-        "directoryId", ForeignKey("Directory.id"), nullable=False,
+        "directoryId",
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
     name: Mapped[str] = mapped_column(nullable=False, index=True)
