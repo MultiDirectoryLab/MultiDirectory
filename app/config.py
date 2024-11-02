@@ -17,7 +17,6 @@ from pydantic import (
     PostgresDsn,
     computed_field,
     field_validator,
-    validator,
 )
 from pydantic_settings import BaseSettings
 
@@ -49,8 +48,6 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
-    POSTGRES_URI: PostgresDsn = None  # type: ignore
-
     HOSTNAME: str | None = None
 
     INSTANCE_DB_POOL_SIZE: int = 30
@@ -60,16 +57,17 @@ class Settings(BaseSettings):
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
 
-    @validator("POSTGRES_URI", pre=True, always=True)
-    def create_postgres(cls, v: str, values: dict) -> str:  # noqa: N805
+    @computed_field  # type: ignore
+    @cached_property
+    def POSTGRES_URI(self) -> PostgresDsn:  # noqa
         """Build postgres DSN."""
-        return (
-            f"{values['POSTGRES_SCHEMA']}://"
-            f"{values['POSTGRES_USER']}:"
-            f"{values['POSTGRES_PASSWORD']}@"
-            f"{values['POSTGRES_HOST']}/"
-            f"{values['POSTGRES_DB']}"
-        )
+        return PostgresDsn((
+            f"{self.POSTGRES_SCHEMA}://"
+            f"{self.POSTGRES_USER}:"
+            f"{self.POSTGRES_PASSWORD}@"
+            f"{self.POSTGRES_HOST}/"
+            f"{self.POSTGRES_DB}"
+        ))
 
     VENDOR_NAME: str = VENDOR_NAME
     VENDOR_VERSION: str = VENDOR_VERSION
