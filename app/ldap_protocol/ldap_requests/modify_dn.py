@@ -193,7 +193,7 @@ class ModifyDNRequest(BaseRequest):
             for model in (User, Group, Attribute, DirectoryMembership):
                 await session.execute(
                     update(model)
-                    .where(model.directory_id == directory.id)  # type: ignore
+                    .where(model.directory_id == directory.id)
                     .values(directory_id=new_directory.id),
                 )
 
