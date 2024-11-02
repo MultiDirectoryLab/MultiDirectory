@@ -44,11 +44,11 @@ isort = "^5.13.2"
 mypy = "^1.13.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.2.0"
 pytest-cov = "^4.1.0"
 gevent = "^23.9.1"
 coverage = "7.3.4"
-pytest-asyncio = "^0.21.1"
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -93,8 +93,6 @@ warn_unused_ignores = true
 pythonpath = ["app"]
 addopts = [
     "--cov",
-    "--cov-report=xml:coverage.xml",
-    "--cov-report=html",
     "--cov-report=term-missing:skip-covered"
 ]
 asyncio_mode = "auto"
