@@ -11,6 +11,13 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 **To Reproduce**
+
+MultiDirectory version: '....'
+Enviroment: docker compose v2
+Server OS: '....'
+Kerberos: MIT Integrated
+DNS: Bind9 Integrated
+
 Steps to reproduce the behavior:
 1. Go to '...'
 2. Click on '....'
