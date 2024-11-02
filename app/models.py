@@ -140,7 +140,7 @@ class Directory(Base):
     parent: Mapped["Directory | None"] = relationship(
         lambda: Directory,
         remote_side="Directory.id",
-        backref=backref("directories", cascade="all,delete"),
+        backref=backref("directories", cascade="all,delete", viewonly=True),
         uselist=False,
     )
 
