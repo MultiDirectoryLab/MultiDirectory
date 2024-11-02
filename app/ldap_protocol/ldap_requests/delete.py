@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
@@ -107,7 +107,7 @@ class DeleteRequest(BaseRequest):
             )
             return
 
-        await session.delete(directory)
+        await session.execute(delete(Directory).filter_by(id=directory.id))
         await session.commit()
 
         yield DeleteResponse(result_code=LDAPCodes.SUCCESS)
