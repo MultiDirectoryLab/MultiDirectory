@@ -8,7 +8,13 @@ import re
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, SecretStr, computed_field, validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    SecretStr,
+    computed_field,
+    field_validator,
+)
 
 domain_regex = "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z]{2,6}"
 domain_re = re.compile(domain_regex)
@@ -52,7 +58,7 @@ class SetupRequest(BaseModel):
     mail: EmailStr
     password: str
 
-    @validator("domain")
+    @field_validator("domain")
     def validate_domain(cls, v: str) -> str:  # noqa
         if re.match(domain_re, v) is None:
             raise ValueError("Invalid domain value")

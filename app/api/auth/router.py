@@ -225,8 +225,8 @@ def logout(response: Response) -> None:
 )
 @inject
 async def password_reset(
-    identity: Annotated[str, Body(example="admin")],
-    new_password: Annotated[str, Body(example="password")],
+    identity: Annotated[str, Body(examples=["admin"])],
+    new_password: Annotated[str, Body(examples=["password"])],
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:

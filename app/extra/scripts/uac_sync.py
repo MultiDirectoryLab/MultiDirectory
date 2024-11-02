@@ -35,7 +35,7 @@ async def disable_accounts(
             User.account_exp < func.now(),
             User.directory_id == Attribute.directory_id,
         )
-        .as_scalar()
+        .scalar_subquery()
     )
     new_value = cast(
         cast(Attribute.value, Integer).op("|")(

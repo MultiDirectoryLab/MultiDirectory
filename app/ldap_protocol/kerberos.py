@@ -459,7 +459,9 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     :param AsyncSession session: db
     """
     subquery = (
-        select(Directory.id).where(Directory.name.ilike(name)).as_scalar()
+        select(Directory.id)
+        .where(Directory.name.ilike(name))
+        .scalar_subquery()
     )
     await session.execute(
         delete(Attribute)
