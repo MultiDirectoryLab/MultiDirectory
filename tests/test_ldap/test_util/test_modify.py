@@ -104,10 +104,12 @@ async def test_ldap_membersip_user_delete(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-    directory = (await session.scalars(
+    query = (
         select(Directory)
         .options(selectinload(Directory.groups))
-        .filter(Directory.path == get_search_path(dn)))).one()
+        .filter(Directory.path == get_search_path(dn)))
+
+    directory = (await session.scalars(query)).one()
 
     assert directory.groups
 
@@ -130,7 +132,9 @@ async def test_ldap_membersip_user_delete(
         result = await proc.wait()
 
     assert result == 0
-    await session.refresh(directory)
+
+    session.expire_all()
+    directory = (await session.scalars(query)).one()
     assert not directory.groups
 
 
@@ -185,10 +189,11 @@ async def test_ldap_membersip_user_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-    directory = (await session.scalars(
+    query = (
         select(Directory)
         .options(selectinload(Directory.groups))
-        .filter(Directory.path == get_search_path(dn)))).one()
+        .filter(Directory.path == get_search_path(dn)))
+    directory = (await session.scalars(query)).one()
 
     assert directory.groups
 
@@ -237,7 +242,8 @@ async def test_ldap_membersip_user_replace(
         result = await proc.wait()
 
     assert result == 0
-    await session.refresh(directory)
+    session.expire_all()
+    directory = (await session.scalars(query)).one()
     assert directory.groups
 
 
