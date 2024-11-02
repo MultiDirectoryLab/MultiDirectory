@@ -341,8 +341,6 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_Policies_netmasks"), table_name="Policies")
     op.drop_index(op.f("ix_Directory_parentId"), table_name="Directory")
 
-    op.execute(sa.text("DROP FUNCTION array_lowercase;"))
-
     op.drop_table("PolicyMemberships")
     op.drop_table("PolicyMFAMemberships")
     op.drop_table("GroupAccessPolicyMemberships")
@@ -356,3 +354,6 @@ def downgrade() -> None:
     op.drop_table("Policies")
     op.drop_table("PasswordPolicies")
     op.drop_table("AccessPolicies")
+
+    op.execute(sa.text("DROP TYPE mfaflags"))
+    op.execute(sa.text("DROP FUNCTION array_lowercase;"))
