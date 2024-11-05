@@ -209,6 +209,7 @@ class Directory(Base):
         cascade="all",
         passive_deletes=True,
         overlaps="group,directory",
+        lazy="selectin",
     )
     access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",

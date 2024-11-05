@@ -365,6 +365,10 @@ class SearchRequest(BaseRequest):
             query = query.options(
                 defaultload(Directory.group).selectinload(Group.members))
 
+        if self.member_of or self.token_groups:
+            query = query.options(
+                defaultload(Directory.groups).selectinload(Group.directory))
+
         return query  # noqa
 
     async def paginate_query(
@@ -435,7 +439,7 @@ class SearchRequest(BaseRequest):
 
             if self.member_of:
                 if "group" in obj_classes or "user" in obj_classes:
-                    for group in await directory.awaitable_attrs.groups:
+                    for group in directory.groups:
                         attrs["memberOf"].append(group.directory.path_dn)
 
             if self.token_groups:
