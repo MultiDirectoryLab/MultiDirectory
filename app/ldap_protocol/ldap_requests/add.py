@@ -144,12 +144,13 @@ class AddRequest(BaseRequest):
             object_class="",
             name=name,
             parent=parent,
+            access_policies=parent.access_policies,
         )
 
-        new_dir.access_policies.extend(parent.access_policies)
-        await session.flush()
-
         new_dir.create_path(parent, new_dn)
+        session.add(new_dir)
+
+        await session.flush()
 
         if self.password is not None:
             validator = await PasswordPolicySchema.get_policy_settings(
@@ -170,7 +171,6 @@ class AddRequest(BaseRequest):
                 return
 
         try:
-            session.add(new_dir)
             await session.flush()
             new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
             await session.flush()
