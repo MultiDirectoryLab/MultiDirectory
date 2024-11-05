@@ -68,13 +68,11 @@ async def create_access_policy(
         can_add=can_add,
         can_modify=can_modify,
         can_delete=can_delete,
+        directories=directories.all(),
+        groups=groups_dirs,
     )
-    policy.directories.extend(directories)
-    policy.groups.extend(groups_dirs)
     session.add(policy)
     await session.flush()
-
-    await session.refresh(policy)
 
 
 def mutate_ap(
