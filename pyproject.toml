@@ -24,12 +24,12 @@ ldap3 = "^2.9.1"
 bcrypt = "4.0.1"
 jinja2 = "^3.1.4"
 uvicorn = "^0.30.0"
-dishka = "^1.2.0"
+dishka = "1.3.0"
 uvloop = "^0.19.0"
-sqlalchemy = {version = "1.4.54", extras = ["asyncio", "mypy"]}
-asyncpg = "^0.29.0"
 httpx = "^0.27.2"
 fastapi = "^0.115.0"
+sqlalchemy = {extras = ["asyncio", "mypy"], version = "^2.0.35"}
+psycopg = {extras = ["binary", "pool"], version = "^3.2.3"}
 
 [tool.poetry.group.linters.dependencies]
 flake8-pytest = "^1.4"
@@ -37,18 +37,18 @@ flake8-docstrings = "^1.6.0"
 flake8 = "5.0.4"
 flake8-awesome = "^1.3.0"
 types-pytz = "^2022.7.1.0"
-mypy = "1.10.1"
 ruff = "0.6.3"
 flake8-commas = "^4.0.0"
 flake8-isort = "^6.1.1"
 isort = "^5.13.2"
+mypy = "^1.13.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.2.0"
 pytest-cov = "^4.1.0"
 gevent = "^23.9.1"
 coverage = "7.3.4"
-pytest-asyncio = "^0.21.1"
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -93,8 +93,6 @@ warn_unused_ignores = true
 pythonpath = ["app"]
 addopts = [
     "--cov",
-    "--cov-report=xml:coverage.xml",
-    "--cov-report=html",
     "--cov-report=term-missing:skip-covered"
 ]
 asyncio_mode = "auto"

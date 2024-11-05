@@ -8,13 +8,12 @@ from typing import AsyncIterator, NewType
 
 import httpx
 from dishka import Provider, Scope, from_context, provide
-from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
+    async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
 from config import Settings
@@ -46,7 +45,7 @@ class MainProvider(Provider):
     scope = Scope.APP
     settings = from_context(provides=Settings, scope=Scope.APP)
 
-    @provide(scope=Scope.APP, provides=AsyncEngine)
+    @provide(scope=Scope.APP)
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
         return create_async_engine(
@@ -55,23 +54,23 @@ class MainProvider(Provider):
             max_overflow=settings.INSTANCE_DB_POOL_LIMIT,
             pool_timeout=settings.INSTANCE_DB_POOL_TIMEOUT,
             poolclass=FallbackAsyncAdaptedQueuePool,
+            future=True,
             pool_pre_ping=True,
             pool_use_lifo=False,
         )
 
-    @provide(scope=Scope.APP, provides=sessionmaker)
-    def get_session_factory(self, engine: AsyncEngine) -> sessionmaker:
+    @provide(scope=Scope.APP)
+    def get_session_factory(
+        self,
+        engine: AsyncEngine,
+    ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
-        return sessionmaker(
-            engine,
-            expire_on_commit=False,
-            class_=AsyncSession,
-        )
+        return async_sessionmaker(engine, expire_on_commit=False)
 
-    @provide(scope=Scope.REQUEST, cache=False, provides=AsyncSession)
+    @provide(scope=Scope.REQUEST)
     async def create_session(
         self,
-        async_session: sessionmaker,
+        async_session: async_sessionmaker[AsyncSession],
     ) -> AsyncIterator[AsyncSession]:
         """Create session for request."""
         async with async_session() as session:
@@ -80,13 +79,13 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_krb_class(
-        self, session_maker: sessionmaker,
+        self, session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractKadmin]:
         """Get kerberos type."""
         async with session_maker() as session:
             return await get_kerberos_class(session)
 
-    @provide(scope=Scope.APP, provides=KadminHTTPClient)
+    @provide(scope=Scope.APP)
     async def get_kadmin_http(
         self,
         settings: Settings,
@@ -110,12 +109,12 @@ class MainProvider(Provider):
         ) as client:
             yield KadminHTTPClient(client)
 
-    @provide(scope=Scope.REQUEST, provides=AbstractKadmin)
+    @provide(scope=Scope.REQUEST)
     async def get_kadmin(
         self,
         client: KadminHTTPClient,
         kadmin_class: type[AbstractKadmin],
-    ) -> AsyncIterator[AbstractKadmin]:
+    ) -> AbstractKadmin:
         """Get kadmin class, inherits from AbstractKadmin.
 
         :param Settings settings: app settings
@@ -123,38 +122,34 @@ class MainProvider(Provider):
         :return AsyncIterator[AbstractKadmin]: kadmin with client
         :yield Iterator[AsyncIterator[AbstractKadmin]]: kadmin
         """
-        logger.debug("Initialized kadmin {}", kadmin_class)
-        yield kadmin_class(client)
-        logger.debug("Closed kadmin {}", kadmin_class)
+        return kadmin_class(client)
 
     @provide(scope=Scope.SESSION)
     async def get_dns_mngr_class(
-        self, session_maker: sessionmaker,
+        self, session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
         async with session_maker() as session:
             return await get_dns_manager_class(session)
 
-    @provide(scope=Scope.REQUEST, provides=DNSManagerSettings)
+    @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_settings(
-        self, session_maker: sessionmaker,
+        self, session_maker: async_sessionmaker[AsyncSession],
         settings: Settings,
-    ) -> 'DNSManagerSettings':
+    ) -> DNSManagerSettings:
         """Get DNS manager's settings."""
         resolve_coro = resolve_dns_server_ip(settings.DNS_BIND_HOST)
         async with session_maker() as session:
             return await get_dns_manager_settings(session, resolve_coro)
 
-    @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
+    @provide(scope=Scope.REQUEST)
     async def get_dns_mngr(
         self,
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
     ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class."""
-        yield dns_manager_class(
-            settings=settings,
-        )
+        yield dns_manager_class(settings=settings)
 
 
 class HTTPProvider(Provider):
@@ -208,7 +203,7 @@ class MFAProvider(Provider):
 
     scope = Scope.REQUEST
 
-    @provide(provides=MFAHTTPClient)
+    @provide()
     async def get_client(self) -> AsyncIterator[MFAHTTPClient]:
         """Get async client for DI."""
         async with httpx.AsyncClient(timeout=4) as client:

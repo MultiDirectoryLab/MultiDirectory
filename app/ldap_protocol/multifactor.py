@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import asyncio
 import uuid
 from dataclasses import dataclass
 from json import JSONDecodeError
@@ -53,15 +52,19 @@ async def get_creds(
 
     :return tuple[str, str]: api key and secret
     """
-    q1 = select(CatalogueSetting).filter_by(name=key_name)
-    q2 = select(CatalogueSetting).filter_by(name=secret_name)
+    query = select(CatalogueSetting).where(
+        CatalogueSetting.name.in_([key_name, secret_name]))
 
-    key, secret = await asyncio.gather(session.scalar(q1), session.scalar(q2))
+    vals = await session.scalars(query)
+    secrets = {s.name: s.value for s in vals.all()}
+
+    key = secrets.get(key_name)
+    secret = secrets.get(secret_name)
 
     if not key or not secret:
         return None
 
-    return Creds(key.value, secret.value)
+    return Creds(key, secret)
 
 
 class MultifactorAPI:

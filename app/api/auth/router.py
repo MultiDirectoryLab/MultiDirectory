@@ -41,8 +41,7 @@ from ldap_protocol.utils.queries import (
     get_base_directories,
     set_last_logon_user,
 )
-from models import CatalogueSetting, Directory, Group
-from models import User as DBUser
+from models import CatalogueSetting, Directory, Group, User
 from security import get_password_hash
 
 from .oauth2 import (
@@ -85,13 +84,16 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    admin_group = await session.scalar(
+    query = (  # noqa: ECE001
         select(Group)
         .join(Group.users)
-        .filter(DBUser.id == user.id, Directory.name == "domain admins"),
-    )
+        .join(Group.directory)
+        .filter(User.id == user.id, Directory.name == "domain admins")
+        .exists())
 
-    if not admin_group:
+    is_part_of_admin_group = (await session.scalars(select(query))).one()
+
+    if not is_part_of_admin_group:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     uac_check = await get_check_uac(session, user.directory_id)
@@ -226,8 +228,8 @@ def logout(response: Response) -> None:
 )
 @inject
 async def password_reset(
-    identity: Annotated[str, Body(example="admin")],
-    new_password: Annotated[str, Body(example="password")],
+    identity: Annotated[str, Body(examples=["admin"])],
+    new_password: Annotated[str, Body(examples=["password"])],
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
@@ -278,9 +280,9 @@ async def check_setup(session: FromDishka[AsyncSession]) -> bool:
 
     True if setup already complete, False if setup is needed.
     """
-    return await session.scalar(
-        select(exists(Directory).where(Directory.parent_id.is_(None))),
-    )
+    query = select(exists(Directory).where(Directory.parent_id.is_(None)))
+    retval = await session.scalars(query)
+    return retval.one()
 
 
 @auth_router.post(
@@ -394,9 +396,9 @@ async def first_setup(
 
             await default_pwd_policy.create_policy_settings(session, kadmin)
 
-            domain: Directory = await session.scalar(
+            domain = (await session.scalars(
                 select(Directory).filter(Directory.parent_id.is_(None)),
-            )
+            )).one()
 
             await create_access_policy(
                 name="Root Access Policy",

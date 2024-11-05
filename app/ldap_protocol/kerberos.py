@@ -427,7 +427,7 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
         )
         await session.commit()
         return KerberosState.NOT_CONFIGURED
-    return state.value
+    return KerberosState(state.value)
 
 
 async def set_state(session: AsyncSession, state: "KerberosState") -> None:
@@ -459,7 +459,9 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     :param AsyncSession session: db
     """
     subquery = (
-        select(Directory.id).where(Directory.name.ilike(name)).as_scalar()
+        select(Directory.id)
+        .where(Directory.name.ilike(name))
+        .scalar_subquery()
     )
     await session.execute(
         delete(Attribute)

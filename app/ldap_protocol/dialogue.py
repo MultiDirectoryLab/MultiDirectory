@@ -49,7 +49,7 @@ class UserSchema:
     account_exp: datetime | None
 
     @classmethod
-    def from_db(
+    async def from_db(
         cls,
         user: User,
         access: Literal["access", "refresh", "multifactor"],
@@ -206,7 +206,7 @@ class LDAPSession:
         """Bind user to session concurrently save."""
         async with self._lock:
             if isinstance(user, User):
-                self._user = UserSchema.from_db(user, access="access")
+                self._user = await UserSchema.from_db(user, access="access")
             else:
                 self._user = user
 

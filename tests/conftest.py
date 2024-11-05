@@ -29,15 +29,14 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
-from sqlalchemy import event, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
     AsyncSession,
+    async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import SessionTransaction
 
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
@@ -143,23 +142,23 @@ class TestProvider(Provider):
         """Get async engine."""
         return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
 
-    @provide(scope=Scope.APP, provides=sessionmaker)
+    @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
     def get_session_factory(
         self, engine: AsyncEngine,
-    ) -> sessionmaker:
+    ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
-        return sessionmaker(
+        return async_sessionmaker(
             engine,
             expire_on_commit=False,
             autoflush=False,
             autocommit=False,
-            class_=AsyncSession,
         )
 
-    @provide(scope=Scope.APP, cache=False, provides=AsyncSession)
+    @provide(scope=Scope.APP, cache=False)
     async def get_session(
-            self, engine: AsyncEngine,
-            session_factory: sessionmaker) -> AsyncIterator[AsyncSession]:
+        self, engine: AsyncEngine,
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> AsyncIterator[AsyncSession]:
         """Get test session with a savepoint."""
         if self._cached_session:
             yield self._cached_session
@@ -167,18 +166,12 @@ class TestProvider(Provider):
 
         connection = await engine.connect()
         trans = await connection.begin()
-        async_session = session_factory(bind=connection)
-        nested = await connection.begin_nested()
 
-        @event.listens_for(async_session.sync_session, "after_transaction_end")
-        def end_savepoint(
-            session: AsyncSession,
-            transaction: SessionTransaction,
-        ) -> None:
-            nonlocal nested
-            if not nested.is_active:
-                nested =\
-                    connection.sync_connection.begin_nested()  # type: ignore
+        async_session = session_factory(
+            bind=connection,
+            info={"mode": "test_transaction"},
+            join_transaction_mode="create_savepoint",
+        )
 
         self._cached_session = async_session
         self._session_id = uuid.uuid4()
@@ -188,6 +181,7 @@ class TestProvider(Provider):
         self._cached_session = None
         self._session_id = None
 
+        async_session.expire_all()
         await trans.rollback()
         await async_session.close()
         await connection.close()
@@ -316,10 +310,13 @@ async def setup_session(session: AsyncSession) -> None:
     """Get session and aquire after completion."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
-    domain: Directory = await session.scalar(
+    domain_ex = await session.scalars(
         select(Directory)
         .filter(Directory.parent_id.is_(None)),
     )
+
+    domain = domain_ex.one()
+
     await create_access_policy(
         name='Root Access Policy',
         can_add=True,

@@ -23,7 +23,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import Directory, DirectoryMembership, DirectoryReferenceMixin
+from models import Attribute, Directory, DirectoryMembership, Group, User
 
 from .base import BaseRequest
 
@@ -140,9 +140,10 @@ class ModifyDNRequest(BaseRequest):
                 created_at=directory.created_at,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
+                access_policies=directory.access_policies,
             )
+            session.add(new_directory)
             new_directory.create_path(directory.parent, dn)
-            new_directory.access_policies.extend(directory.access_policies)
 
         else:
             new_sup_query = (
@@ -173,11 +174,10 @@ class ModifyDNRequest(BaseRequest):
                 parent=new_parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
+                access_policies=new_parent_dir.access_policies,
             )
+            session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
-            new_directory.access_policies.extend(
-                new_parent_dir.access_policies,
-            )
 
         async with session.begin_nested():
             session.add(new_directory)
@@ -190,13 +190,10 @@ class ModifyDNRequest(BaseRequest):
 
             await session.flush()
 
-            for model in [
-                *DirectoryReferenceMixin.__subclasses__(),
-                DirectoryMembership,
-            ]:
+            for model in (User, Group, Attribute, DirectoryMembership):
                 await session.execute(
                     update(model)
-                    .where(model.directory_id == directory.id)  # type: ignore
+                    .where(model.directory_id == directory.id)
                     .values(directory_id=new_directory.id),
                 )
 

@@ -13,7 +13,6 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_policy_password(http_client: AsyncClient) -> None:
     """Test create policy."""
     policy_data = {

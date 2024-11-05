@@ -39,7 +39,7 @@ class NetmasksMixin:
 
     @computed_field  # type: ignore
     @property
-    def complete_netmasks(self) -> IPv4IntefaceListType:
+    def complete_netmasks(self) -> list[IPv4Address | IPv4Network]:
         """Validate range or return networks range."""
         values = []
         for item in self.netmasks:

@@ -4,8 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
+from sqlalchemy.sql.expression import select
 from sqlalchemy.sql.selectable import CTE
 
 from models import Directory, DirectoryMembership, Group
@@ -76,26 +77,26 @@ def find_members_recursive_cte(dn: str) -> CTE:
     result will be as follows: user1, user2, group2, user3, group3, user4.
     """
     directory_hierarchy = (  # noqa: ECE001
-        select(
-            [Directory.id.label("directory_id"), Group.id.label("group_id")],
-        )
-        .select_from(Directory)
+        select(Directory.id.label("directory_id"), Group.id.label("group_id"))
         .join(Directory.group)
+        .select_from(Directory)
         .where(get_filter_from_path(dn))
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
         select(
-            [
-                DirectoryMembership.directory_id.label("directory_id"),
-                Group.id.label("group_id"),
-            ],
+            DirectoryMembership.directory_id.label("directory_id"),
+            Group.id.label("group_id"),
         )
         .select_from(DirectoryMembership)
         .join(
             directory_hierarchy,
             directory_hierarchy.c.group_id == DirectoryMembership.group_id,
         )
-        .join(DirectoryMembership.member_group, isouter=True)
+        .join(
+            Group,
+            DirectoryMembership.directory_id == Group.directory_id,
+            isouter=True,
+        )
     )
     return directory_hierarchy.union_all(recursive_part)
 
@@ -119,7 +120,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
         FROM "DirectoryMemberships"
         JOIN anon_1 ON anon_1.directory_id =
                        "DirectoryMemberships".directory_id
-        OIN "Groups" ON "DirectoryMemberships".group_id = "Groups"."group_id"
+        JOIN "Groups" ON "DirectoryMemberships".group_id = "Groups"."group_id"
     )
     SELECT * FROM anon_1;
 
@@ -135,7 +136,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     """
     directory_hierarchy = (  # noqa: ECE001
         select(
-            [Directory.id.label("directory_id"), Group.id.label("group_id")],
+            Directory.id.label("directory_id"), Group.id.label("group_id"),
         )
         .select_from(Directory)
         .join(Directory.group, isouter=True)
@@ -143,10 +144,8 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     ).cte(recursive=True)
     recursive_part = (  # noqa: ECE001
         select(
-            [
-                Group.directory_id.label("directory_id"),
-                Group.id.label("group_id"),
-            ],
+            Group.directory_id.label("directory_id"),
+            Group.id.label("group_id"),
         )
         .select_from(DirectoryMembership)
         .join(
@@ -154,7 +153,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
             directory_hierarchy.c.directory_id
             == DirectoryMembership.directory_id,
         )
-        .join(DirectoryMembership.group)
+        .join(Group, DirectoryMembership.group_id == Group.id)
     )
     return directory_hierarchy.union_all(recursive_part)
 
@@ -187,6 +186,9 @@ async def get_members_root_group(
         select(Directory).where(Directory.id == root_group_id),
     )
 
+    if not directory:
+        raise RuntimeError
+
     cte = find_members_recursive_cte(directory.path_dn)
     result = await session.scalars(select(cte.c.directory_id))
     directories_ids = result.all()
@@ -207,7 +209,7 @@ async def get_members_root_group(
 
     retval = await session.scalars(query)
 
-    return retval.all()
+    return list(retval.all())
 
 
 async def get_all_parent_group_directories(

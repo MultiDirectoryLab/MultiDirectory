@@ -36,7 +36,7 @@ from security import get_password_hash
 
 
 async def _get_group(name: str, session: AsyncSession) -> Group:
-    return await session.scalar(
+    retval = await session.scalars(
         select(Group)
         .join(Group.directory)
         .filter(
@@ -44,6 +44,7 @@ async def _get_group(name: str, session: AsyncSession) -> Group:
             Directory.object_class == "group",
         ),
     )
+    return retval.one()
 
 
 async def _create_dir(
@@ -58,17 +59,17 @@ async def _create_dir(
         name=data["name"],
         parent=parent,
     )
+    session.add(dir_)
+
     dir_.create_path(parent, dir_.get_dn_prefix())
 
-    async with session.begin_nested():
-        session.add(dir_)
-        await session.flush()
+    await session.flush()
 
-        dir_.object_sid = create_object_sid(
-            domain,
-            rid=data.get("objectSid", dir_.id),
-            reserved="objectSid" in data,
-        )
+    dir_.object_sid = create_object_sid(
+        domain,
+        rid=data.get("objectSid", dir_.id),
+        reserved="objectSid" in data,
+    )
 
     if dir_.object_class == "group":
         group = Group(directory=dir_)

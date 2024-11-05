@@ -53,10 +53,10 @@ async def test_ldap_root_add(
 
     assert result == 0
 
-    new_dir = await session.scalar(
+    new_dir = (await session.scalars(
         select(Directory)
         .options(subqueryload(Directory.attributes))
-        .filter(Directory.path == search_path))
+        .filter(Directory.path == search_path))).one()
 
     assert new_dir.name == "test"
 
@@ -107,10 +107,10 @@ async def test_ldap_user_add_with_group(
     membership = selectinload(Directory.user).selectinload(
         User.groups).selectinload(Group.directory)
 
-    new_dir = await session.scalar(
+    new_dir = (await session.scalars(
         select(Directory)
         .options(subqueryload(Directory.attributes), membership)
-        .filter(Directory.path == user_search_path))
+        .filter(Directory.path == user_search_path))).one()
 
     assert new_dir.name == "test"
 
@@ -121,7 +121,6 @@ async def test_ldap_user_add_with_group(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
-@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_ldap_user_add_group_with_group(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapadd on server."""
@@ -154,10 +153,10 @@ async def test_ldap_user_add_group_with_group(
     membership = selectinload(Directory.group).selectinload(
         Group.parent_groups).selectinload(Group.directory)
 
-    new_dir = await session.scalar(
+    new_dir = (await session.scalars(
         select(Directory)
         .options(membership)
-        .filter(Directory.path == child_group_search_path))
+        .filter(Directory.path == child_group_search_path))).one()
 
     assert new_dir.name == "twisted"
 

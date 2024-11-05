@@ -3,34 +3,33 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+from __future__ import annotations
 
 import enum
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Literal, Optional
+from ipaddress import IPv4Address, IPv4Network
+from typing import Annotated, ClassVar, Literal
 
 from sqlalchemy import (
-    Boolean,
     CheckConstraint,
-    Column,
     DateTime,
     Enum,
     ForeignKey,
-    Integer,
     LargeBinary,
     String,
     UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import (
+    DeclarativeBase,
     Mapped,
     backref,
-    declarative_base,
-    declarative_mixin,
-    declared_attr,
+    mapped_column,
     relationship,
     synonym,
 )
@@ -40,14 +39,19 @@ from sqlalchemy.sql.compiler import DDLCompiler
 
 DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 
-Base = declarative_base()
+
+class Base(DeclarativeBase, AsyncAttrs):
+    """Declarative base model."""
+
+
+nbool = Annotated[bool, mapped_column(nullable=False)]
 
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
 
 @compiles(UniqueConstraint, "postgresql")
 def compile_create_uc(
-    create: DDLElement, compiler: DDLCompiler, **kw: Any,
+    create: DDLElement, compiler: DDLCompiler, **kw: dict,
 ) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
@@ -63,84 +67,60 @@ class CatalogueSetting(Base):
 
     __tablename__ = "Settings"
 
-    id: Mapped[int] = Column(Integer, primary_key=True)  # noqa: A003
-    name = Column(String, nullable=False, index=True)
-    value = Column(String, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa
+    name: Mapped[str] = mapped_column(nullable=False, index=True)
+    value: Mapped[str] = mapped_column(nullable=False)
 
 
 class DirectoryMembership(Base):
     """Directory membership - path m2m relationship."""
 
     __tablename__ = "DirectoryMemberships"
-    group_id: Mapped[int] = Column(
-        Integer, ForeignKey("Groups.id"), primary_key=True,
-    )
-    directory_id: Mapped[int] = Column(
-        Integer, ForeignKey("Directory.id"), primary_key=True,
-    )
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
 
-    group: "Group" = relationship(
-        "Group", uselist=False, cascade="all,delete", overlaps="group",
-    )
-    directory: "Directory" = relationship(
-        "Directory", uselist=False, cascade="all,delete", overlaps="directory",
-    )
-    member_group: "Group" = relationship(
-        "Group",
-        secondary="Directory",
-        primaryjoin="DirectoryMembership.directory_id == Directory.id",
-        secondaryjoin="Directory.id == Group.directory_id",
-        uselist=False,
-        overlaps="directory",
-    )
+    directory_id: Mapped[int] = mapped_column(
+        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True)
 
 
 class PolicyMembership(Base):
     """Policy membership - path m2m relationship."""
 
     __tablename__ = "PolicyMemberships"
-    group_id: Mapped[int] = Column(
-        Integer, ForeignKey("Groups.id"), primary_key=True,
-    )
-    policy_id: Mapped[int] = Column(
-        Integer, ForeignKey("Policies.id"), primary_key=True,
-    )
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
+    policy_id: Mapped[int] = mapped_column(
+        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class PolicyMFAMembership(Base):
     """Policy membership - path m2m relationship."""
 
     __tablename__ = "PolicyMFAMemberships"
-    group_id: Mapped[int] = Column(
-        Integer, ForeignKey("Groups.id"), primary_key=True,
-    )
-    policy_id: Mapped[int] = Column(
-        Integer, ForeignKey("Policies.id"), primary_key=True,
-    )
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
+    policy_id: Mapped[int] = mapped_column(
+        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class AccessPolicyMembership(Base):
     """Directory - policy m2m relationship."""
 
     __tablename__ = "AccessPolicyMemberships"
-    dir_id: Mapped[int] = Column(
-        Integer, ForeignKey("Directory.id"), primary_key=True,
-    )
-    policy_id: Mapped[int] = Column(
-        Integer, ForeignKey("AccessPolicies.id"), primary_key=True,
-    )
+    dir_id: Mapped[int] = mapped_column(
+        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True)
+    policy_id: Mapped[int] = mapped_column(
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class GroupAccessPolicyMembership(Base):
     """Directory - policy m2m relationship."""
 
     __tablename__ = "GroupAccessPolicyMemberships"
-    group_id: Mapped[int] = Column(
-        Integer, ForeignKey("Groups.id"), primary_key=True,
-    )
-    policy_id: Mapped[int] = Column(
-        Integer, ForeignKey("AccessPolicies.id"), primary_key=True,
-    )
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
+    policy_id: Mapped[int] = mapped_column(
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True)
 
 
 class Directory(Base):
@@ -148,86 +128,90 @@ class Directory(Base):
 
     __tablename__ = "Directory"
 
-    id: Mapped[int] = Column(Integer, primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
 
-    parent_id: Mapped[int] = Column(
+    parent_id: Mapped[int] = mapped_column(
         "parentId",
-        Integer,
-        ForeignKey("Directory.id"),
+        ForeignKey("Directory.id", ondelete="CASCADE"),
         index=True,
         nullable=True,
     )
 
-    parent: Optional["Directory"] = relationship(
+    parent: Mapped["Directory | None"] = relationship(
         lambda: Directory,
-        remote_side=id,
-        backref=backref("directories", cascade="all,delete"),
+        remote_side="Directory.id",
+        backref=backref("directories", cascade="all,delete", viewonly=True),
         uselist=False,
     )
 
-    object_class: Mapped[str] = Column("objectClass", String, nullable=False)
+    object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
     objectclass: Mapped[str] = synonym("object_class")
 
-    name: Mapped[str] = Column(String, nullable=False)
-    cn: str = synonym("name")
+    name: Mapped[str] = mapped_column(nullable=False)
+    cn: Mapped[str] = synonym("name")
 
-    created_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
         "whenCreated",
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
-    updated_at = Column(
+    updated_at: Mapped[datetime] = mapped_column(
         "whenChanged",
         DateTime(timezone=True),
         onupdate=func.now(),
         nullable=True,
     )
-    depth = Column(Integer)
+    depth: Mapped[int]
 
-    object_sid: Mapped[str] = Column("objectSid", String)
-    objectsid: str = synonym("object_sid")
+    object_sid: Mapped[str] = mapped_column("objectSid")
+    objectsid: Mapped[str] = synonym("object_sid")
 
-    password_policy_id: Mapped[int] = Column(
-        Integer, ForeignKey("PasswordPolicies.id"), nullable=True,
-    )
+    password_policy_id: Mapped[int] = mapped_column(
+        ForeignKey("PasswordPolicies.id"), nullable=True)
 
-    object_guid: Mapped[uuid.UUID] = Column(
+    object_guid: Mapped[uuid.UUID] = mapped_column(
         "objectGUID",
         postgresql.UUID(as_uuid=True),
         default=uuid.uuid4,
         nullable=False,
     )
-    objectguid: str = synonym("object_guid")
+    objectguid: Mapped[str] = synonym("object_guid")
 
-    path = Column(postgresql.ARRAY(String), nullable=False, index=True)
+    path: Mapped[list[str]] = mapped_column(
+        postgresql.ARRAY(String), nullable=False, index=True)
 
-    attributes: list["Attribute"] = relationship(
-        "Attribute", cascade="all,delete",
+    attributes: Mapped[list[Attribute]] = relationship(
+        "Attribute",
+        cascade="all",
+        passive_deletes=True,
     )
-    group: "Group" = relationship(
+    group: Mapped[Group] = relationship(
         "Group",
         uselist=False,
-        cascade="all,delete",
-        overlaps="member_group",
+        cascade="all",
+        passive_deletes=True,
         lazy="selectin",
     )
-    user: "User" = relationship(
+    user: Mapped[User] = relationship(
         "User",
         uselist=False,
-        cascade="all,delete",
         lazy="selectin",
+        cascade="all",
+        passive_deletes=True,
     )
-    groups: list["Group"] = relationship(
+    groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
         primaryjoin="Directory.id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="members",
+        cascade="all",
+        passive_deletes=True,
+        overlaps="group,directory",
         lazy="selectin",
-        overlaps="group,directory,member_group",
     )
-    access_policies: list["AccessPolicy"] = relationship(
+    access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
         secondary=AccessPolicyMembership.__table__,
         primaryjoin="Directory.id == AccessPolicyMembership.dir_id",
@@ -284,15 +268,15 @@ class Directory(Base):
     @property
     def path_dn(self) -> str:
         """Get DN from path."""
-        return ",".join(reversed(self.path))  # type: ignore
+        return ",".join(reversed(self.path))
 
     def create_path(
         self,
-        parent: Optional["Directory"] = None,
+        parent: "Directory | None" = None,
         dn: str = "cn",
     ) -> None:
         """Create path from a new directory."""
-        pre_path: list[str] = parent.path if parent else []  # type: ignore
+        pre_path: list[str] = parent.path if parent else []
         self.path = pre_path + [self.get_dn(dn)]
         self.depth = len(self.path)
 
@@ -305,53 +289,48 @@ class Directory(Base):
         return f"Directory({self.id}:{self.cn})"
 
 
-@declarative_mixin
-class DirectoryReferenceMixin:
-    """Mixin with dir id reference."""
-
-    id: Mapped[int] = Column(Integer, primary_key=True)  # noqa: A003
-
-    @declared_attr
-    def directory_id(cls) -> Mapped[int]:  # noqa: N805, D102
-        return Column(
-            "directoryId", ForeignKey("Directory.id"), nullable=False,
-        )
-
-    @declared_attr
-    def directory(cls) -> Mapped[Directory]:  # noqa: N805, D102
-        return relationship(
-            "Directory",
-            back_populates=str(cls.__name__).lower(),  # type: ignore
-            uselist=False,
-            lazy="joined",
-        )
-
-
-class User(DirectoryReferenceMixin, Base):
+class User(Base):
     """Users data from db."""
 
     __tablename__ = "Users"
 
-    sam_accout_name: Mapped[str] = Column(
-        "sAMAccountName", String, nullable=False, unique=True,
-    )
-    user_principal_name: Mapped[str] = Column(
-        "userPrincipalName", String, nullable=False, unique=True,
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+
+    directory_id: Mapped[int] = mapped_column(
+        "directoryId",
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
-    mail: Mapped[str | None] = Column(String(255))
-    display_name: Mapped[str | None] = Column(
-        "displayName", String, nullable=True,
+    directory: Mapped[Directory] = relationship(
+        "Directory",
+        back_populates="user",
+        uselist=False,
+        lazy="joined",
     )
-    password = Column(String, nullable=True)
 
-    samaccountname: str = synonym("sam_accout_name")
-    userprincipalname: str = synonym("user_principal_name")
-    displayname: str = synonym("display_name")
-    uid: str = synonym("sam_accout_name")
-    accountexpires: str = synonym("account_exp")
-    last_logon = Column("lastLogon", DateTime(timezone=True))
-    account_exp = Column("accountExpires", DateTime(timezone=True))
+    sam_accout_name: Mapped[str] = mapped_column(
+        "sAMAccountName", nullable=False, unique=True,
+    )
+    user_principal_name: Mapped[str] = mapped_column(
+        "userPrincipalName", nullable=False, unique=True,
+    )
+
+    mail: Mapped[str | None] = mapped_column(String(255))
+    display_name: Mapped[str | None] = mapped_column(
+        "displayName", nullable=True)
+    password: Mapped[str] = mapped_column(nullable=True)
+
+    samaccountname: Mapped[str] = synonym("sam_accout_name")
+    userprincipalname: Mapped[str] = synonym("user_principal_name")
+    displayname: Mapped[str] = synonym("display_name")
+    uid: Mapped[str] = synonym("sam_accout_name")
+    accountexpires: Mapped[str] = synonym("account_exp")
+
+    last_logon: Mapped[datetime | None] = mapped_column(
+        "lastLogon", DateTime(timezone=True))
+    account_exp: Mapped[datetime | None] = mapped_column(
+        "accountExpires", DateTime(timezone=True))
 
     search_fields = {
         "mail": "mail",
@@ -362,19 +341,22 @@ class User(DirectoryReferenceMixin, Base):
         "accountexpires": "accountExpires",
     }
 
-    password_history: list[str] = Column(
+    password_history: Mapped[list[str]] = mapped_column(  # noqa TAE002
         MutableList.as_mutable(postgresql.ARRAY(String)),
         server_default="{}",
         nullable=False,
     )
 
-    groups: list["Group"] = relationship(
+    groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
-        overlaps="group,groups,directory,member_group",
+        lazy='selectin',
+        cascade="all",
+        passive_deletes=True,
+        overlaps="group,groups,directory",
     )
 
     def get_upn_prefix(self) -> str:
@@ -400,53 +382,73 @@ class User(DirectoryReferenceMixin, Base):
         return True if now > user_account_exp else False
 
 
-class Group(DirectoryReferenceMixin, Base):
+class Group(Base):
     """Group params."""
 
     __tablename__ = "Groups"
 
-    id: Mapped[int] = Column(Integer, primary_key=True)  # noqa: A003
-    search_fields: dict[str, str] = {}
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
 
-    members: list["Directory"] = relationship(
+    directory_id: Mapped[int] = mapped_column(
+        "directoryId",
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    directory: Mapped[Directory] = relationship(
+        "Directory",
+        back_populates="group",
+        uselist=False,
+        lazy="joined",
+    )
+
+    search_fields: ClassVar[dict[str, str]] = {}
+
+    members: Mapped[list[Directory]] = relationship(
         "Directory",
         secondary=DirectoryMembership.__table__,
         back_populates="groups",
-        overlaps="group,groups,directory,member_group",
+        cascade="all",
+        passive_deletes=True,
+        overlaps="group,groups,directory",
     )
 
-    parent_groups: list["Group"] = relationship(
+    parent_groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=DirectoryMembership.__table__,
         primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
-        secondaryjoin=DirectoryMembership.group_id == id,
-        overlaps="group,groups,members,directory,member_group",
+        secondaryjoin="DirectoryMembership.group_id == Group.id",
+        cascade="all",
+        passive_deletes=True,
+        overlaps="group,groups,members,directory",
     )
 
-    policies: list["NetworkPolicy"] = relationship(
+    policies: Mapped[list[NetworkPolicy]] = relationship(
         "NetworkPolicy",
         secondary=PolicyMembership.__table__,
-        primaryjoin=id == PolicyMembership.__table__.c.group_id,
+        primaryjoin="Group.id == PolicyMembership.group_id",
         back_populates="groups",
     )
 
-    mfa_policies: list["NetworkPolicy"] = relationship(
+    mfa_policies: Mapped[list[NetworkPolicy]] = relationship(
         "NetworkPolicy",
         secondary=PolicyMFAMembership.__table__,
-        primaryjoin=id == PolicyMFAMembership.__table__.c.group_id,
+        primaryjoin="Group.id == PolicyMFAMembership.group_id",
         back_populates="mfa_groups",
     )
 
-    users: list["User"] = relationship(
+    users: Mapped[list[User]] = relationship(
         "User",
         secondary=DirectoryMembership.__table__,
-        primaryjoin=id == DirectoryMembership.__table__.c.group_id,
-        secondaryjoin=DirectoryMembership.directory_id == User.directory_id,
+        primaryjoin="Group.id == DirectoryMembership.group_id",
+        secondaryjoin="DirectoryMembership.directory_id == User.directory_id",
         back_populates="groups",
-        overlaps="directory,group,members,parent_groups,member_group,groups",
+        cascade="all",
+        passive_deletes=True,
+        overlaps="directory,group,members,parent_groups,groups",
     )
 
-    access_policies: list["AccessPolicy"] = relationship(
+    access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
         secondary=GroupAccessPolicyMembership.__table__,
         primaryjoin="Group.id == GroupAccessPolicyMembership.group_id",
@@ -465,7 +467,7 @@ class Group(DirectoryReferenceMixin, Base):
         return f"Group({self.id}:{self.directory_id})"
 
 
-class Attribute(DirectoryReferenceMixin, Base):
+class Attribute(Base):
     """Attributes data."""
 
     __tablename__ = "Attributes"
@@ -476,11 +478,19 @@ class Attribute(DirectoryReferenceMixin, Base):
         ),
     )
 
-    name = Column(String, nullable=False, index=True)
-    value: Mapped[str | None] = Column(String, nullable=True)
-    bvalue: Mapped[bytes | None] = Column(LargeBinary, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
 
-    directory: Directory = relationship(
+    directory_id: Mapped[int] = mapped_column(
+        "directoryId",
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    name: Mapped[str] = mapped_column(nullable=False, index=True)
+    value: Mapped[str | None] = mapped_column(nullable=True)
+    bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+
+    directory: Mapped[Directory] = relationship(
         "Directory", back_populates="attributes", uselist=False,
     )
 
@@ -498,34 +508,35 @@ class NetworkPolicy(Base):
 
     __tablename__ = "Policies"
 
-    id: Mapped[int] = Column(Integer, primary_key=True)  # noqa: A003
-    name = Column(String, nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
 
-    raw = Column(postgresql.JSON, nullable=False)
-    netmasks = Column(
+    raw: Mapped[dict | list] = mapped_column(postgresql.JSON, nullable=False)
+    netmasks: Mapped[list[IPv4Network | IPv4Address]] = mapped_column(
         postgresql.ARRAY(postgresql.CIDR),
         nullable=False,
         unique=True,
         index=True,
     )
 
-    enabled = Column(Boolean, server_default=expression.true(), nullable=False)
-    priority = Column(Integer, nullable=False)
+    enabled: Mapped[bool] = mapped_column(
+        server_default=expression.true(), nullable=False)
+    priority: Mapped[int] = mapped_column(nullable=False)
 
     priority_uc = UniqueConstraint(
-        priority, name="priority_uc", deferrable=True, initially="DEFERRED",
+        "priority", name="priority_uc", deferrable=True, initially="DEFERRED",
     )
 
-    groups: list["Group"] = relationship(
+    groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=PolicyMembership.__table__,
         back_populates="policies",
     )
-    mfa_status: MFAFlags = Column(
+    mfa_status: Mapped[MFAFlags] = mapped_column(
         Enum(MFAFlags), server_default="DISABLED", nullable=False,
     )
 
-    mfa_groups: list["Group"] = relationship(
+    mfa_groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=PolicyMFAMembership.__table__,
         back_populates="mfa_policies",
@@ -537,28 +548,27 @@ class PasswordPolicy(Base):
 
     __tablename__ = "PasswordPolicies"
 
-    id: Mapped[int] = Column(Integer, primary_key=True)  # noqa: A003
-    name = Column(
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
         unique=True,
         server_default="Default Policy",
     )
 
-    password_history_length = Column(
-        Integer, nullable=False, server_default="4",
+    password_history_length: Mapped[int] = mapped_column(
+        nullable=False, server_default="4")
+    maximum_password_age_days: Mapped[int] = mapped_column(
+        nullable=False, server_default="0",
     )
-    maximum_password_age_days = Column(
-        Integer, nullable=False, server_default="0",
+    minimum_password_age_days: Mapped[int] = mapped_column(
+        nullable=False, server_default="0",
     )
-    minimum_password_age_days = Column(
-        Integer, nullable=False, server_default="0",
+    minimum_password_length: Mapped[int] = mapped_column(
+        nullable=False, server_default="7",
     )
-    minimum_password_length = Column(
-        Integer, nullable=False, server_default="7",
-    )
-    password_must_meet_complexity_requirements = Column(
-        Boolean, server_default=expression.true(), nullable=False,
+    password_must_meet_complexity_requirements: Mapped[bool] = mapped_column(
+        server_default=expression.true(), nullable=False,
     )
 
 
@@ -567,22 +577,22 @@ class AccessPolicy(Base):
 
     __tablename__ = "AccessPolicies"
 
-    id: Mapped[int] = Column(Integer, primary_key=True)  # noqa: A003
-    name = Column(String(255), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
-    can_read = Column(Boolean, nullable=False)
-    can_add = Column(Boolean, nullable=False)
-    can_modify = Column(Boolean, nullable=False)
-    can_delete = Column(Boolean, nullable=False)
+    can_read: Mapped[nbool]
+    can_add: Mapped[nbool]
+    can_modify: Mapped[nbool]
+    can_delete: Mapped[nbool]
 
-    directories: list[Directory] = relationship(
+    directories: Mapped[list[Directory]] = relationship(
         "Directory",
         secondary=AccessPolicyMembership.__table__,
         order_by="Directory.depth",
         back_populates="access_policies",
     )
 
-    groups: list[Group] = relationship(
+    groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=GroupAccessPolicyMembership.__table__,
         back_populates="access_policies",

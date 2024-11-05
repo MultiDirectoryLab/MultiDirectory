@@ -34,7 +34,7 @@ async def test_ldap_base_modify(
             joinedload(Directory.user))
         .filter(Directory.path == get_search_path(dn)))
 
-    directory = await session.scalar(query)
+    directory = (await session.scalars(query)).one()
 
     assert directory.user.mail == "user0@mail.com"
 
@@ -78,7 +78,7 @@ async def test_ldap_base_modify(
 
     assert result == 0
     session.expire_all()
-    directory = await session.scalar(query)
+    directory = (await session.scalars(query)).one()
 
     attributes = defaultdict(list)
 
@@ -104,10 +104,12 @@ async def test_ldap_membersip_user_delete(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-    directory = await session.scalar(
+    query = (
         select(Directory)
         .options(selectinload(Directory.groups))
         .filter(Directory.path == get_search_path(dn)))
+
+    directory = (await session.scalars(query)).one()
 
     assert directory.groups
 
@@ -130,7 +132,9 @@ async def test_ldap_membersip_user_delete(
         result = await proc.wait()
 
     assert result == 0
-    await session.refresh(directory)
+
+    session.expire_all()
+    directory = (await session.scalars(query)).one()
     assert not directory.groups
 
 
@@ -145,7 +149,7 @@ async def test_ldap_membersip_user_add(
         .options(selectinload(Directory.groups).selectinload(Group.directory))
         .filter(Directory.path == get_search_path(dn)))
 
-    directory = await session.scalar(query)
+    directory = (await session.scalars(query)).one()
 
     directory.groups.clear()
     await session.commit()
@@ -174,21 +178,21 @@ async def test_ldap_membersip_user_add(
     session.expire_all()
 
     assert result == 0
-    directory = await session.scalar(query)
+    directory = (await session.scalars(query)).one()
     assert directory.groups
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
-@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_ldap_membersip_user_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-    directory = await session.scalar(
+    query = (
         select(Directory)
         .options(selectinload(Directory.groups))
         .filter(Directory.path == get_search_path(dn)))
+    directory = (await session.scalars(query)).one()
 
     assert directory.groups
 
@@ -237,7 +241,9 @@ async def test_ldap_membersip_user_replace(
         result = await proc.wait()
 
     assert result == 0
-    await session.refresh(directory)
+    session.expire_all()
+
+    directory = (await session.scalars(query)).one()
     assert directory.groups
 
 
@@ -248,7 +254,7 @@ async def test_ldap_membersip_grp_replace(
     """Test ldapmodify on server."""
     dn = "cn=domain admins,cn=groups,dc=md,dc=test"
 
-    query = (
+    query = (  # noqa
         select(Directory)
         .options(
             selectinload(Directory.group)
@@ -259,6 +265,7 @@ async def test_ldap_membersip_grp_replace(
 
     directory = await session.scalar(query)
 
+    assert directory
     assert not directory.group.parent_groups
 
     # add new group
@@ -305,6 +312,7 @@ async def test_ldap_membersip_grp_replace(
 
     session.expire_all()
     directory = await session.scalar(query)
+    assert directory
     assert directory.group.parent_groups[0].directory.name == "twisted1"
 
 
@@ -458,6 +466,7 @@ async def test_ldap_modify_with_ap(
 
     session.expire_all()
     directory = await session.scalar(query)
+    assert directory
 
     attributes = defaultdict(list)
 
