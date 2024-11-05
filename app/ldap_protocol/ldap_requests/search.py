@@ -367,7 +367,7 @@ class SearchRequest(BaseRequest):
 
         if self.member_of or self.token_groups:
             query = query.options(
-                defaultload(Directory.groups).selectinload(Group.directory))
+                defaultload(Directory.groups).joinedload(Group.directory))
 
         return query  # noqa
 
