@@ -84,13 +84,16 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    admin_group = await session.scalar(
+    query = (  # noqa: ECE001
         select(Group)
         .join(Group.users)
-        .filter(User.id == user.id, Directory.name == "domain admins"),
-    )
+        .join(Group.directory)
+        .filter(User.id == user.id, Directory.name == "domain admins")
+        .exists())
 
-    if not admin_group:
+    is_part_of_admin_group = (await session.scalars(select(query))).one()
+
+    if not is_part_of_admin_group:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     uac_check = await get_check_uac(session, user.directory_id)

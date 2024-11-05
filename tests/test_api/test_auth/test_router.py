@@ -13,7 +13,6 @@ from ldap_protocol.kerberos import AbstractKadmin
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_first_setup_and_oauth(unbound_http_client: AsyncClient) -> None:
     """Test api first setup."""
     response = await unbound_http_client.get("/auth/setup")
