@@ -143,7 +143,7 @@ class ModifyDNRequest(BaseRequest):
                 access_policies=directory.access_policies,
             )
             session.add(new_directory)
-            new_directory.create_path(directory.parent, dn)
+            new_directory.create_path(directory.parent, new_attr)
 
         else:
             new_sup_query = (
@@ -177,7 +177,7 @@ class ModifyDNRequest(BaseRequest):
                 access_policies=new_parent_dir.access_policies,
             )
             session.add(new_directory)
-            new_directory.create_path(new_parent_dir, dn=dn)
+            new_directory.create_path(new_parent_dir, dn=new_attr)
 
         async with session.begin_nested():
             session.add(new_directory)
