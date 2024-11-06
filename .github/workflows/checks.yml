@@ -67,3 +67,23 @@ jobs:
         env:
           NEW_TAG: linter
         run: docker run $NEW_TAG mypy .
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: build tests
+        env:
+          CACHE: ghcr.io/${{ env.REPO }}_test:latest
+          TAG: tests
+        run: docker build --target=runtime -f .docker/test.Dockerfile . -t $TAG --cache-to type=gha,mode=max --cache-from $CACHE --build-arg BUILDKIT_INLINE_CACHE=1
+      - name: Run tests
+        env:
+          TAG: tests
+        run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test --exit-code-from md-test
