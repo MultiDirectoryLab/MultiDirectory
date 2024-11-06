@@ -191,8 +191,15 @@ class PasswordPolicySchema(BaseModel):
         """Validate min password change age.
 
         :param Attribute last_pwd_set: last pwd set
-        :return bool: result
+        :return bool: can change pwd
+            True - not valid, can not change
+            False - valid, can change
+
+            on minimum_password_age_days can always change.
         """
+        if self.minimum_password_age_days == 0:
+            return False
+
         password_exists = self._count_password_exists_days(last_pwd_set)
 
         if password_exists < self.minimum_password_age_days:
@@ -203,8 +210,15 @@ class PasswordPolicySchema(BaseModel):
         """Validate max password change age.
 
         :param Attribute last_pwd_set: last pwd set
-        :return bool: result
+        :return bool: is pwd expired
+            True - not valid, expired
+            False - valid, not expired
+
+            on maximum_password_age_days always valid.
         """
+        if self.maximum_password_age_days == 0:
+            return False
+
         password_exists = self._count_password_exists_days(last_pwd_set)
 
         if password_exists > self.maximum_password_age_days:
