@@ -21,6 +21,15 @@ def _type_validate_entry(entry: str) -> str:
 EMAIL_RE = re.compile(
     r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+",
 )
+
+
+def _type_validate_email(email: str) -> str:
+    if EMAIL_RE.fullmatch(email):
+        return email
+    raise ValueError(f"Invalid entry name {email}")
+
+
 ENTRY_TYPE = Annotated[str, AfterValidator(_type_validate_entry)]
+EmailStr = Annotated[str, AfterValidator(_type_validate_email)]
 ATTRIBUTE_TYPES = get_attribute_types()
 OBJECT_CLASSES = get_object_classes()
