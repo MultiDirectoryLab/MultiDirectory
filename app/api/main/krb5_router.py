@@ -13,7 +13,7 @@ from fastapi import Body, HTTPException, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
-from pydantic import EmailStr, SecretStr
+from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
@@ -30,6 +30,7 @@ from ldap_protocol.kerberos import (
     set_state,
 )
 from ldap_protocol.ldap_requests import AddRequest
+from ldap_protocol.utils.const import EmailStr
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
 from .schema import KerberosSetupRequest
