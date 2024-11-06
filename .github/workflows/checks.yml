@@ -80,10 +80,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: build tests
         env:
-          TAG: ghcr.io/${{ env.REPO }}_test:latest
-          NEW_TAG: tests
-        run: docker build --target=runtime -f .docker/test.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          CACHE: ghcr.io/${{ env.REPO }}_test:latest
+          TAG: tests
+        run: docker build --target=runtime -f .docker/test.Dockerfile . -t $TAG --cache-to type=gha,mode=max --cache-from $CACHE --build-arg BUILDKIT_INLINE_CACHE=1
       - name: Run tests
         env:
-          NEW_TAG: tests
+          TAG: tests
         run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test --exit-code-from md-test
