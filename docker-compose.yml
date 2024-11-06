@@ -296,23 +296,24 @@ services:
           memory: 6M
 
   interface:
+    container_name: multidirectory_interface
     build:
       context: ./interface
-      dockerfile: ./configurations/docker/Dockerfile
-      args:
-        DOCKER_BUILDKIT: 1
-    container_name: multidirectory_interface
-    restart: "no"
-    hostname: interface
-    env_file:
-      local.env
+      dockerfile: configurations/docker/Dockerfile.dev
+    restart: 'no'
     environment:
-      API_URL: http://md.localhost/api
+      - HUSKY=0
+      - API_URL=https://md.localhost/api
+      - NODE_ENV=development
+    ports:
+      - 9080:80
+    working_dir: /app
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.interface.rule=Host(`md.localhost`)"
-      - "traefik.http.routers.interface.entrypoints=web"
-      - "traefik.http.services.interface.loadbalancer.server.port=80"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.multidirectory-app.rule=Host(`md.localhost`)'
+      - 'traefik.http.routers.multidirectory-app.entrypoints=web'
+    command:
+      ng serve --host 0.0.0.0 --port 80 --poll 2000
 
 volumes:
   postgres:
