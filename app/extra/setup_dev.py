@@ -59,13 +59,17 @@ async def _create_dir(
         name=data["name"],
         parent=parent,
     )
-    session.add(dir_)
-
     dir_.create_path(parent, dir_.get_dn_prefix())
-    attr = Attribute(name=dir_.rdn_attr, value=dir_.name, directory=dir_)
 
     async with session.begin_nested():
-        session.add_all([dir_, attr])
+        session.add(dir_)
+        session.add(
+            Attribute(
+                name=dir_.rdn_attr,
+                value=dir_.name,
+                directory=dir_,
+            ),
+        )
         await session.flush()
 
     dir_.object_sid = create_object_sid(
