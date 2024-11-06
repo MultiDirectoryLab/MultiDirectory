@@ -8,13 +8,9 @@ import re
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import (
-    BaseModel,
-    EmailStr,
-    SecretStr,
-    computed_field,
-    field_validator,
-)
+from pydantic import BaseModel, SecretStr, computed_field, field_validator
+
+from ldap_protocol.utils.const import EmailStr
 
 domain_regex = "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z]{2,6}"
 domain_re = re.compile(domain_regex)
