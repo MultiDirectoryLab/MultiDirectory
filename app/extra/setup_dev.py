@@ -65,7 +65,7 @@ async def _create_dir(
         session.add(dir_)
         session.add(
             Attribute(
-                name=dir_.rdn_attr,
+                name=dir_.rdname,
                 value=dir_.name,
                 directory=dir_,
             ),
@@ -164,7 +164,7 @@ async def setup_enviroment(
     )
     domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
     domain.depth = len(domain.path)
-    domain.rdn_attr = ''
+    domain.rdname = ''
 
     async with session.begin_nested():
         session.add(domain)

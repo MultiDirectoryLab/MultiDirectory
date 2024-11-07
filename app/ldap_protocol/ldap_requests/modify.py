@@ -373,7 +373,7 @@ class ModifyRequest(BaseRequest):
                     directory.user.get_upn_prefix(),
                 )
 
-            if name == directory.rdn_attr:
+            if name == directory.rdname:
                 await session.execute(
                     update(Directory)
                     .filter(Directory.id == directory.id)

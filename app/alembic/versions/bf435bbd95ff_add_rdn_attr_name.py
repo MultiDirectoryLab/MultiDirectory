@@ -20,7 +20,7 @@ depends_on = None
 
 def upgrade() -> None:
     """Upgrade."""
-    op.add_column('Directory', sa.Column('rdn_attr', sa.String(length=64)))
+    op.add_column('Directory', sa.Column('rdname', sa.String(length=64)))
 
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -29,17 +29,17 @@ def upgrade() -> None:
 
     for directory in session.query(Directory):
         if directory.is_domain:
-            directory.rdn_attr = ''
+            directory.rdname = ''
             continue
 
-        rdn_attr = directory.path[-1].split('=')[0]
-        directory.rdn_attr = rdn_attr
+        rdname = directory.path[-1].split('=')[0]
+        directory.rdname = rdname
 
-        if rdn_attr == 'krbprincipalname':
+        if rdname == 'krbprincipalname':
             continue  # already exists
 
         attrs.append(Attribute(
-            name=rdn_attr,
+            name=rdname,
             value=directory.name,
             directory_id=directory.id,
         ))
@@ -47,9 +47,9 @@ def upgrade() -> None:
     session.add_all(attrs)
     session.commit()
 
-    op.alter_column('Directory', 'rdn_attr', nullable=False)
+    op.alter_column('Directory', 'rdname', nullable=False)
 
 
 def downgrade() -> None:
     """Downgrade."""
-    op.drop_column('Directory', 'rdn_attr')
+    op.drop_column('Directory', 'rdname')

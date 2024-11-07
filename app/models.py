@@ -148,7 +148,7 @@ class Directory(Base):
     objectclass: Mapped[str] = synonym("object_class")
 
     name: Mapped[str] = mapped_column(nullable=False)
-    rdn_attr: Mapped[str] = mapped_column(String(64), nullable=False)
+    rdname: Mapped[str] = mapped_column(String(64), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         "whenCreated",
@@ -278,7 +278,7 @@ class Directory(Base):
         pre_path: list[str] = parent.path if parent else []
         self.path = pre_path + [self.get_dn(dn)]
         self.depth = len(self.path)
-        self.rdn_attr = dn
+        self.rdname = dn
 
     def __str__(self) -> str:
         """Dir name."""
