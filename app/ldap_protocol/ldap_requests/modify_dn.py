@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import func, text, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -179,15 +180,43 @@ class ModifyDNRequest(BaseRequest):
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
 
-        async with session.begin_nested():
+        try:
             session.add(new_directory)
             await session.flush()
+        except IntegrityError:
+            await session.rollback()
+            yield ModifyDNResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+            return
+
+        async with session.begin_nested():
+
             await session.execute(
                 update(Directory)
                 .where(Directory.parent == directory)
                 .values(parent_id=new_directory.id),
             )
 
+            await session.flush()
+
+            if self.deleteoldrdn:
+                old_attr_name = directory.path[-1].split('=')[0]
+                await session.execute(
+                    update(Attribute)
+                    .where(
+                        Attribute.directory_id == directory.id,
+                        Attribute.name == old_attr_name,
+                        Attribute.value == directory.name,
+                    )
+                    .values(name=dn, value=name),
+                )
+            else:
+                session.add(
+                    Attribute(
+                        name=dn,
+                        value=name,
+                        directory=new_directory,
+                    ),
+                )
             await session.flush()
 
             for model in (User, Group, Attribute, DirectoryMembership):
@@ -227,9 +256,8 @@ class ModifyDNRequest(BaseRequest):
             # NOTE: update relationship, don't delete row
             await session.refresh(directory)
 
-            if self.deleteoldrdn:
-                await session.delete(directory)
-                await session.flush()
+            await session.delete(directory)
+            await session.flush()
 
         await session.commit()
 

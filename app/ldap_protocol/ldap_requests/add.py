@@ -140,18 +140,6 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
-        new_dir = Directory(
-            object_class="",
-            name=name,
-            parent=parent,
-            access_policies=parent.access_policies,
-        )
-
-        new_dir.create_path(parent, new_dn)
-        session.add(new_dir)
-
-        await session.flush()
-
         if self.password is not None:
             validator = await PasswordPolicySchema.get_policy_settings(
                 session,
@@ -171,7 +159,18 @@ class AddRequest(BaseRequest):
                 return
 
         try:
+            new_dir = Directory(
+                object_class="",
+                name=name,
+                parent=parent,
+                access_policies=parent.access_policies,
+            )
+
+            new_dir.create_path(parent, new_dn)
+            session.add(new_dir)
+
             await session.flush()
+
             new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
             await session.flush()
         except IntegrityError:
@@ -187,6 +186,8 @@ class AddRequest(BaseRequest):
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.keys()
+        attributes.append(Attribute(
+            name=new_dn, value=name, directory=new_dir))
 
         for attr in self.attributes:
             lname = attr.type.lower()

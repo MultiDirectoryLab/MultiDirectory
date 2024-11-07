@@ -59,11 +59,18 @@ async def _create_dir(
         name=data["name"],
         parent=parent,
     )
-    session.add(dir_)
-
     dir_.create_path(parent, dir_.get_dn_prefix())
 
-    await session.flush()
+    async with session.begin_nested():
+        session.add(dir_)
+        session.add(
+            Attribute(
+                name=dir_.rdname,
+                value=dir_.name,
+                directory=dir_,
+            ),
+        )
+        await session.flush()
 
     dir_.object_sid = create_object_sid(
         domain,
@@ -157,6 +164,7 @@ async def setup_enviroment(
     )
     domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
     domain.depth = len(domain.path)
+    domain.rdname = ''
 
     async with session.begin_nested():
         session.add(domain)
