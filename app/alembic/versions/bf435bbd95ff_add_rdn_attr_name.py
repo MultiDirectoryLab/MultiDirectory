@@ -20,7 +20,7 @@ depends_on = None
 
 def upgrade() -> None:
     """Upgrade."""
-    op.add_column('Directory', sa.Column('rdn_attr', sa.String()))
+    op.add_column('Directory', sa.Column('rdn_attr', sa.String(length=255)))
 
     bind = op.get_bind()
     session = Session(bind=bind)
