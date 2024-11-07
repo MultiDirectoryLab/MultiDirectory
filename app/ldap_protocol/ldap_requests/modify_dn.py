@@ -131,11 +131,11 @@ class ModifyDNRequest(BaseRequest):
             )
             return
 
-        new_attr, new_value = self.newrdn.split("=")
+        dn, name = self.newrdn.split("=")
 
         if self.new_superior is None:
             new_directory = Directory(
-                name=new_value,
+                name=name,
                 object_class=directory.object_class,
                 parent_id=directory.parent_id,
                 created_at=directory.created_at,
@@ -144,7 +144,7 @@ class ModifyDNRequest(BaseRequest):
                 access_policies=directory.access_policies,
             )
             session.add(new_directory)
-            new_directory.create_path(directory.parent, new_attr)
+            new_directory.create_path(directory.parent, dn)
 
         else:
             new_sup_query = (
@@ -171,14 +171,14 @@ class ModifyDNRequest(BaseRequest):
 
             new_directory = Directory(
                 object_class=directory.object_class,
-                name=new_value,
+                name=name,
                 parent=new_parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
                 access_policies=new_parent_dir.access_policies,
             )
             session.add(new_directory)
-            new_directory.create_path(new_parent_dir, dn=new_attr)
+            new_directory.create_path(new_parent_dir, dn=dn)
 
         try:
             session.add(new_directory)
@@ -207,13 +207,13 @@ class ModifyDNRequest(BaseRequest):
                         Attribute.name == old_attr_name,
                         Attribute.value == directory.name,
                     )
-                    .values(name=new_attr, value=new_value),
+                    .values(name=dn, value=name),
                 )
             else:
                 session.add(
                     Attribute(
-                        name=new_attr,
-                        value=new_value,
+                        name=dn,
+                        value=name,
                         directory=new_directory,
                     ),
                 )
