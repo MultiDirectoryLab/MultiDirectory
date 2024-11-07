@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import func, text, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -179,9 +180,16 @@ class ModifyDNRequest(BaseRequest):
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=new_attr)
 
-        async with session.begin_nested():
+        try:
             session.add(new_directory)
             await session.flush()
+        except IntegrityError:
+            await session.rollback()
+            yield ModifyDNResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+            return
+
+        async with session.begin_nested():
+
             await session.execute(
                 update(Directory)
                 .where(Directory.parent == directory)
