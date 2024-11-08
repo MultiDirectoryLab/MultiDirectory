@@ -339,6 +339,19 @@ async def first_setup(
                     },
                     "objectSid": 513,
                 },
+                {
+                    "name": "read only",
+                    "object_class": "group",
+                    "attributes": {
+                        "objectClass": ["top", "posixGroup"],
+                        "groupType": ["-2147483646"],
+                        "instanceType": ["4"],
+                        "sAMAccountName": ["domain users"],
+                        "sAMAccountType": ["268435456"],
+                        "gidNumber": ["514"],
+                    },
+                    "objectSid": 514,
+                },
             ],
         },
         {
@@ -408,6 +421,17 @@ async def first_setup(
                 can_delete=True,
                 grant_dn=domain.path_dn,
                 groups=["cn=domain admins,cn=groups," + domain.path_dn],
+                session=session,
+            )
+
+            await create_access_policy(
+                name="ReadOnly Access Policy",
+                can_add=False,
+                can_modify=False,
+                can_read=True,
+                can_delete=False,
+                grant_dn=domain.path_dn,
+                groups=["cn=read only,cn=groups," + domain.path_dn],
                 session=session,
             )
 
