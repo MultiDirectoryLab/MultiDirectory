@@ -340,17 +340,17 @@ async def first_setup(
                     "objectSid": 513,
                 },
                 {
-                    "name": "read only",
+                    "name": "readonly domain controllers",
                     "object_class": "group",
                     "attributes": {
                         "objectClass": ["top", "posixGroup"],
                         "groupType": ["-2147483646"],
                         "instanceType": ["4"],
-                        "sAMAccountName": ["domain users"],
+                        "sAMAccountName": ["readonly domain controllers"],
                         "sAMAccountType": ["268435456"],
-                        "gidNumber": ["514"],
+                        "gidNumber": ["521"],
                     },
-                    "objectSid": 514,
+                    "objectSid": 521,
                 },
             ],
         },
@@ -431,7 +431,10 @@ async def first_setup(
                 can_read=True,
                 can_delete=False,
                 grant_dn=domain.path_dn,
-                groups=["cn=read only,cn=groups," + domain.path_dn],
+                groups=[
+                    "cn=readonly domain controllers,cn=groups," +
+                    domain.path_dn,
+                ],
                 session=session,
             )
 
