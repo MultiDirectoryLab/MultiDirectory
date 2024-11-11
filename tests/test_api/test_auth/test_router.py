@@ -8,11 +8,9 @@ from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.queries import (
-    get_group,
-)
 from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.utils.queries import get_group
 
 
 @pytest.mark.asyncio
