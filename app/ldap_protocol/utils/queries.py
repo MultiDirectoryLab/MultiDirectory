@@ -11,12 +11,7 @@ from zoneinfo import ZoneInfo
 from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import (
-    InstrumentedAttribute,
-    defaultload,
-    joinedload,
-    selectinload,
-)
+from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
 from models import Attribute, Directory, Group, NetworkPolicy, User
@@ -108,9 +103,7 @@ async def get_group(dn: str | ENTRY_TYPE, session: AsyncSession) -> Directory:
         if dn_is_base_directory(base_directory, dn):
             raise ValueError("Cannot set memberOf with base dn")
 
-    query = select(Directory).options(
-        joinedload(Directory.group).selectinload(Group.access_policies),
-    )
+    query = select(Directory).options(defaultload(Directory.group))
 
     if validate_entry(dn):
         query = query.filter(Directory.path == get_search_path(dn))
