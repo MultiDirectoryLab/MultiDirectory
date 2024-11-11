@@ -64,7 +64,9 @@ async def test_first_setup_and_oauth(
         )
         .filter(
             Directory.path ==
-            get_search_path('cn=read only,cn=groups,dc=md,dc=test'),
+            get_search_path(
+                'cn=readonly domain controllers,cn=groups,dc=md,dc=test',
+            ),
         ),
     )
 
