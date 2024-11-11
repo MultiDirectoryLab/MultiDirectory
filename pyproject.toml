@@ -45,7 +45,7 @@ types-pytz = "^2022.7.1.0"
 
 [tool.poetry.group.test.dependencies]
 coverage = "7.3.4"
-gevent = "^23.9.1"
+gevent = "^24.10.3"
 ldap3 = "^2.9.1"
 pytest = "^8.3.3"
 pytest-asyncio = "^0.24.0"
