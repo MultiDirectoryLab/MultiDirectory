@@ -10,8 +10,8 @@ import time
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Callable
 
-import uvloop
 import uvicorn
+import uvloop
 from dishka import make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
