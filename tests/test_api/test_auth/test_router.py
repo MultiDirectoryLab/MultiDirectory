@@ -6,11 +6,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from fastapi import status
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.utils.queries import get_group
+from ldap_protocol.utils.queries import get_search_path
+from models import Directory, Group
 
 
 @pytest.mark.asyncio
@@ -54,10 +57,18 @@ async def test_first_setup_and_oauth(
     assert result["display_name"] == "test"
     assert result["dn"] == "cn=test,ou=users,dc=md,dc=test"
 
-    group_dir = await get_group(
-        'cn=read only,cn=groups,dc=md,dc=test', session)
+    group_dir = await session.scalar(
+        select(Directory)
+        .options(
+            joinedload(Directory.group).selectinload(Group.access_policies),
+        )
+        .filter(
+            Directory.path ==
+            get_search_path('cn=read only,cn=groups,dc=md,dc=test'),
+        ),
+    )
 
-    read_only_policy = group_dir.group.access_policies[0]
+    read_only_policy = group_dir.group.access_policies[0]  # type: ignore
 
     assert read_only_policy.can_read
     assert not read_only_policy.can_modify
