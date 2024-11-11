@@ -29,6 +29,7 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
+from multidirectory import create_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -54,7 +55,6 @@ from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.utils.queries import get_user
 from models import Directory
-from web_app import create_app
 
 
 class TestProvider(Provider):

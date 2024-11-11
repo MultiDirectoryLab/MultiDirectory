@@ -1,13 +1,17 @@
-"""Multidirectory api module.
+"""Main MiltiDirecory module.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import argparse
+import asyncio
 import time
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Callable
 
+import uvicorn
+import uvloop
 from dishka import make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
@@ -27,8 +31,16 @@ from api import (
 )
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import VENDOR_VERSION, Settings
-from ioc import HTTPProvider, MainProvider, MFACredsProvider, MFAProvider
+from ioc import (
+    HTTPProvider,
+    LDAPServerProvider,
+    MainProvider,
+    MFACredsProvider,
+    MFAProvider,
+)
 from ldap_protocol.dns import DNSConnectionError
+from ldap_protocol.server import PoolClientHandler
+from schedule import scheduler
 
 
 async def proc_time_header_middleware(
@@ -48,15 +60,13 @@ async def proc_time_header_middleware(
     return response
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings) -> FastAPI:
     """Create FastAPI app with dependencies overrides."""
 
     @asynccontextmanager
     async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
         await app.state.dishka_container.close()
-
-    settings = settings or Settings()
 
     app = FastAPI(
         name="MultiDirectory",
@@ -92,16 +102,79 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return app
 
 
-def create_prod_app() -> FastAPI:
+def create_prod_app(settings: Settings | None = None) -> FastAPI:
     """Create production app with container."""
-    app = create_app()
+    settings = settings or Settings()
+    app = create_app(settings)
+
     container = make_async_container(
         MainProvider(),
         MFAProvider(),
         HTTPProvider(),
         MFACredsProvider(),
-        context={Settings: Settings()},
+        context={Settings: settings},
     )
 
     setup_dishka(container, app)
     return app
+
+
+def ldap(settings: Settings) -> None:
+    """Run server."""
+
+    async def _servers(settings: Settings) -> None:
+        servers = []
+
+        for setting in (settings, settings.get_copy_4_tls()):
+            container = make_async_container(
+                LDAPServerProvider(),
+                MainProvider(),
+                MFAProvider(),
+                MFACredsProvider(),
+                context={Settings: setting},
+            )
+
+            settings = await container.get(Settings)
+            servers.append(PoolClientHandler(settings, container).start())
+
+        await asyncio.gather(*servers)
+
+    def _run() -> None:
+        uvloop.run(_servers(settings), debug=settings.DEBUG)
+
+    try:
+        import py_hot_reload
+    except ImportError:
+        _run()
+    else:
+        if settings.DEBUG:
+            py_hot_reload.run_with_reloader(_run)
+        else:
+            _run()
+
+
+if __name__ == "__main__":
+    settings = Settings()
+
+    parser = argparse.ArgumentParser(description="Run ldap or http")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--ldap', action='store_true', help="Run ldap")
+    group.add_argument('--http', action='store_true', help="Run http")
+    group.add_argument('--scheduler', action='store_true', help="Run tasks")
+
+    args = parser.parse_args()
+
+    if args.ldap:
+        ldap(settings)
+
+    elif args.http:
+        uvicorn.run(
+            "__main__:create_prod_app",
+            host=str(settings.HOST),
+            port=settings.HTTP_PORT,
+            reload=settings.DEBUG,
+            loop="uvloop",
+            factory=True,
+        )
+    elif args.scheduler:
+        scheduler(settings)

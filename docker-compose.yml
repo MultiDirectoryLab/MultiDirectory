@@ -42,7 +42,7 @@ services:
       - ./certs:/certs
     env_file:
       local.env
-    command: python -OO . --loop uvloop
+    command: python -OO multidirectory.py --ldap
     tty: true
     depends_on:
       migrations:
@@ -89,7 +89,7 @@ services:
       - dns_server_config:/DNS_server_configs/
     env_file:
       local.env
-    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --reload --loop uvloop
+    command: python multidirectory.py --http
     tty: true
     labels:
       - "traefik.enable=true"
@@ -281,7 +281,7 @@ services:
       - psync_queue:/var/spool/krb5-sync
     env_file:
       local.env
-    command: python schedule.py
+    command: python multidirectory.py --scheduler
     tty: true
     depends_on:
       migrations:

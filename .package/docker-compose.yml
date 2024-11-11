@@ -95,7 +95,7 @@ services:
     volumes:
       - ./certs:/certs
       - ./logs:/app/logs
-    command: python -OO . --loop uvloop
+    command: python -OO multidirectory.py --ldap
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -156,7 +156,7 @@ services:
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
 
-    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --port 8000 --loop uvloop
+    command: python multidirectory.py --http
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -197,7 +197,7 @@ services:
       - psync_queue:/var/spool/krb5-sync
     env_file:
       .env
-    command: python schedule.py
+    command: python multidirectory.py --scheduler
     tty: true
     depends_on:
       migrations:
