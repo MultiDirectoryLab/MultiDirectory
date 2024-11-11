@@ -97,3 +97,5 @@ def downgrade() -> None:
             await session.flush()
 
         await session.commit()
+
+    op.run_async(_delete_readonly_grp_and_plcy)
