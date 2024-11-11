@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     HOST: IPvAnyAddress = "0.0.0.0"  # type: ignore  # noqa
     PORT: int = 389
     TLS_PORT: int = 636
+    HTTP_PORT: int = 8000
     USE_CORE_TLS: bool = False
 
     TCP_PACKET_SIZE: int = 1024
