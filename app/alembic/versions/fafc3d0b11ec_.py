@@ -34,26 +34,6 @@ def upgrade() -> None:
         if not base_dn_list:
             return
 
-        has_ro_access_policy = await session.scalars(
-            exists(AccessPolicy)
-            .where(AccessPolicy.name == 'ReadOnly Access Policy'),
-        ).one()
-        if has_ro_access_policy:
-            await create_access_policy(
-                name='ReadOnly Access Policy',
-                can_add=False,
-                can_modify=False,
-                can_read=True,
-                can_delete=False,
-                grant_dn=base_dn_list[0].path_dn,
-                groups=[
-                    "cn=readonly domain controllers,cn=groups," +
-                    base_dn_list[0].path_dn,
-                ],
-                session=session,
-            )
-            await session.flush()
-
         try:
             group_dir = await session.scalars(
                 exists(Directory)
@@ -68,6 +48,25 @@ def upgrade() -> None:
         except (IntegrityError, DBAPIError):
             pass
 
+        has_ro_access_policy = await session.scalars(
+            exists(AccessPolicy)
+            .where(AccessPolicy.name == 'ReadOnly Access Policy'),
+        ).one()
+        if not has_ro_access_policy:
+            await create_access_policy(
+                name='ReadOnly Access Policy',
+                can_add=False,
+                can_modify=False,
+                can_read=True,
+                can_delete=False,
+                grant_dn=base_dn_list[0].path_dn,
+                groups=[
+                    "cn=readonly domain controllers,cn=groups," +
+                    base_dn_list[0].path_dn,
+                ],
+                session=session,
+            )
+
         await session.commit()
         await session.close()
 
@@ -80,6 +79,8 @@ def downgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
         base_dn_list = await get_base_directories(session)
+        if not base_dn_list:
+            return
 
         group_dn = "cn=readonly domain controllers,cn=groups," +\
             base_dn_list[0].path_dn
