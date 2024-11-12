@@ -80,8 +80,6 @@ def downgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
         base_dn_list = await get_base_directories(session)
-        if not base_dn_list:
-            return
 
         group_dn = "cn=readonly domain controllers,cn=groups," +\
             base_dn_list[0].path_dn
@@ -90,13 +88,11 @@ def downgrade() -> None:
             delete(AccessPolicy)
             .where(AccessPolicy.name == 'ReadOnly Access Policy'),
         )
-        await session.flush()
 
         await session.execute(
             delete(Directory)
             .where(Directory.path == get_search_path(group_dn)),
         )
-        await session.flush()
 
         await session.commit()
 
