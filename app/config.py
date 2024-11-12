@@ -20,11 +20,10 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings
 
-with open("/pyproject.toml", "rb") as f:
-    VENDOR_VERSION = tomllib.load(f)["tool"]["poetry"]["version"]
 
-
-VENDOR_NAME = "MultiFactor"
+def _get_vendor_version() -> str:
+    with open("/pyproject.toml", "rb") as f:
+        return tomllib.load(f)["tool"]["poetry"]["version"]
 
 
 class Settings(BaseSettings):
@@ -70,8 +69,8 @@ class Settings(BaseSettings):
             f"{self.POSTGRES_DB}"
         ))
 
-    VENDOR_NAME: str = VENDOR_NAME
-    VENDOR_VERSION: str = VENDOR_VERSION
+    VENDOR_NAME: str = "MultiFactor"
+    VENDOR_VERSION: str = Field(default_factory=_get_vendor_version)
     # to get a string run: `openssl rand -hex 32`
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
