@@ -6,14 +6,22 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from fastapi import status
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.utils.queries import get_search_path
+from models import Directory, Group
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-async def test_first_setup_and_oauth(unbound_http_client: AsyncClient) -> None:
+async def test_first_setup_and_oauth(
+    unbound_http_client: AsyncClient,
+    session: AsyncSession,
+) -> None:
     """Test api first setup."""
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
@@ -48,6 +56,28 @@ async def test_first_setup_and_oauth(unbound_http_client: AsyncClient) -> None:
     assert result["mail"] == "test@example.com"
     assert result["display_name"] == "test"
     assert result["dn"] == "cn=test,ou=users,dc=md,dc=test"
+
+    result = await session.scalars(
+        select(Directory)
+        .options(
+            joinedload(Directory.group).selectinload(Group.access_policies),
+        )
+        .filter(
+            Directory.path ==
+            get_search_path(
+                'cn=readonly domain controllers,cn=groups,dc=md,dc=test',
+            ),
+        ),
+    )
+    group_dir = result.one()
+    assert group_dir.group
+    assert group_dir.group.access_policies
+    read_only_policy = group_dir.group.access_policies[0]
+
+    assert read_only_policy.can_read
+    assert not read_only_policy.can_modify
+    assert not read_only_policy.can_delete
+    assert not read_only_policy.can_add
 
 
 @pytest.mark.asyncio
