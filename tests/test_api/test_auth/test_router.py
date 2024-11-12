@@ -21,7 +21,7 @@ from models import Directory, Group
 async def test_first_setup_and_oauth(
     unbound_http_client: AsyncClient,
     session: AsyncSession,
-        ) -> None:
+) -> None:
     """Test api first setup."""
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
@@ -57,7 +57,7 @@ async def test_first_setup_and_oauth(
     assert result["display_name"] == "test"
     assert result["dn"] == "cn=test,ou=users,dc=md,dc=test"
 
-    group_dir = await session.scalar(
+    result = await session.scalars(
         select(Directory)
         .options(
             joinedload(Directory.group).selectinload(Group.access_policies),
@@ -69,8 +69,8 @@ async def test_first_setup_and_oauth(
             ),
         ),
     )
-
-    read_only_policy = group_dir.group.access_policies[0]  # type: ignore
+    group_dir = result.one()
+    read_only_policy = group_dir.group.access_policies
 
     assert read_only_policy.can_read
     assert not read_only_policy.can_modify
