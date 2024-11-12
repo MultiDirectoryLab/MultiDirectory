@@ -70,7 +70,9 @@ async def test_first_setup_and_oauth(
         ),
     )
     group_dir = result.one()
-    read_only_policy = group_dir.group.access_policies
+    assert group_dir.group
+    assert group_dir.group.access_policies
+    read_only_policy = group_dir.group.access_policies[0]
 
     assert read_only_policy.can_read
     assert not read_only_policy.can_modify
