@@ -5,9 +5,9 @@ Revises: bf435bbd95ff
 Create Date: 2024-11-11 15:21:23.568233
 
 """
-import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import exists
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.access_policy import create_access_policy, get_policies
@@ -16,7 +16,7 @@ from ldap_protocol.utils.queries import (
     get_base_directories,
     get_group,
 )
-from models import Directory
+from models import AccessPolicy, Directory
 
 # revision identifiers, used by Alembic.
 revision = 'fafc3d0b11ec'
@@ -34,9 +34,11 @@ def upgrade() -> None:
         if not base_dn_list:
             return
 
-        policies = await get_policies(session)
-        policy_names = [policy.name for policy in policies]
-        if 'ReadOnly Access Policy' not in policy_names:
+        has_ro_access_policy = await session.scalars(
+            exists(AccessPolicy)
+            .where(AccessPolicy.name == 'ReadOnly Access Policy'),
+        ).one()
+        if has_ro_access_policy:
             await create_access_policy(
                 name='ReadOnly Access Policy',
                 can_add=False,
@@ -53,17 +55,17 @@ def upgrade() -> None:
             await session.flush()
 
         try:
-            group_dir = await session.scalar(
-                sa.select(Directory)
-                .options(sa.orm.selectinload(Directory.group))
-                .filter(Directory.name == 'readonly domain controllers'))
+            group_dir = await session.scalars(
+                exists(Directory)
+                .where(Directory.name == 'readonly domain controllers'),
+            ).one()
 
             if not group_dir:
                 _, group = await create_group(
                     'readonly domain controllers', 521, session)
 
             await session.flush()
-        except (IntegrityError, sa.exc.DBAPIError):
+        except (IntegrityError, DBAPIError):
             pass
 
         await session.commit()
