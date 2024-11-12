@@ -60,10 +60,7 @@ def upgrade() -> None:
                 can_read=True,
                 can_delete=False,
                 grant_dn=base_dn_list[0].path_dn,
-                groups=[
-                    "cn=readonly domain controllers,cn=groups," +
-                    base_dn_list[0].path_dn,
-                ],
+                groups=[group.directory.path_dn],
                 session=session,
             )
 
