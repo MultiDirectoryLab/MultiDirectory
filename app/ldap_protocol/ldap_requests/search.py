@@ -198,7 +198,9 @@ class SearchRequest(BaseRequest):
             "MaxValRange",
         ]
         data["supportedCapabilities"] = [
-            "1.2.840.113556.1.4.1791",  # LDAP_INTEG_OID
+            "1.2.840.113556.1.4.800",  # ACTIVE_DIRECTORY_OID
+            "1.2.840.113556.1.4.1670",  # ACTIVE_DIRECTORY_V51_OID
+            "1.2.840.113556.1.4.1791",  # ACTIVE_DIRECTORY_LDAP_INTEG_OID
         ]
 
         return data
