@@ -29,7 +29,7 @@ services:
     image: ghcr.io/multidirectorylab/multidirectory_test:latest
     container_name: multidirectory_api
     restart: unless-stopped
-    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --loop uvloop
+    command: python multidirectory.py --http
     environment:
       USE_CORE_TLS: 1
       DOMAIN: md.multifactor.dev
