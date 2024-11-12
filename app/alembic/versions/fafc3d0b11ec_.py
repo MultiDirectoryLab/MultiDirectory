@@ -6,7 +6,7 @@ Create Date: 2024-11-11 15:21:23.568233
 
 """
 from alembic import op
-from sqlalchemy import delete, exists
+from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,23 +35,26 @@ def upgrade() -> None:
             return
 
         try:
-            group_dir = await session.scalars(
-                exists(Directory)
-                .where(Directory.name == 'readonly domain controllers'),
-            ).one()
+            group_dir = (await session.scalars(
+                select(
+                    exists(Directory)
+                    .where(Directory.name == 'readonly domain controllers')),
+            )).one()
 
             if not group_dir:
-                _, group = await create_group(
+                dir_, _ = await create_group(
                     'readonly domain controllers', 521, session)
 
             await session.flush()
         except (IntegrityError, DBAPIError):
             pass
 
-        has_ro_access_policy = await session.scalars(
-            exists(AccessPolicy)
-            .where(AccessPolicy.name == 'ReadOnly Access Policy'),
-        ).one()
+        has_ro_access_policy = (await session.scalars(
+            select(
+                exists(AccessPolicy)
+                .where(AccessPolicy.name == 'ReadOnly Access Policy')),
+        )).one()
+
         if not has_ro_access_policy:
             await create_access_policy(
                 name='ReadOnly Access Policy',
@@ -60,7 +63,7 @@ def upgrade() -> None:
                 can_read=True,
                 can_delete=False,
                 grant_dn=base_dn_list[0].path_dn,
-                groups=[group.directory.path_dn],
+                groups=[dir_.path_dn],
                 session=session,
             )
 

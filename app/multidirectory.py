@@ -30,7 +30,7 @@ from api import (
     pwd_router,
 )
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
-from config import VENDOR_VERSION, Settings
+from config import Settings
 from ioc import (
     HTTPProvider,
     LDAPServerProvider,
@@ -73,7 +73,7 @@ def create_app(settings: Settings) -> FastAPI:
         title="MultiDirectory",
         debug=settings.DEBUG,
         root_path="/api",
-        version=VENDOR_VERSION,
+        version=settings.VENDOR_VERSION,
         lifespan=_lifespan,
     )
     origins = [settings.DOMAIN]

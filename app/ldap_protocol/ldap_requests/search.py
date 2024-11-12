@@ -19,7 +19,7 @@ from sqlalchemy.orm import defaultload, joinedload, subqueryload
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from config import VENDOR_NAME, VENDOR_VERSION, Settings
+from config import Settings
 from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, UserSchema
@@ -172,8 +172,8 @@ class SearchRequest(BaseRequest):
         data["serviceName"].append(domain.name)
         data["dsServiceName"].append(domain.name)
         data["LDAPServiceName"].append(domain.name)
-        data["vendorName"].append(VENDOR_NAME)
-        data["vendorVersion"].append(VENDOR_VERSION)
+        data["vendorName"].append(settings.VENDOR_NAME)
+        data["vendorVersion"].append(settings.VENDOR_VERSION)
         data["namingContexts"].append(domain.path_dn)
         data["namingContexts"].append(schema)
         data["rootDomainNamingContext"].append(domain.path_dn)
