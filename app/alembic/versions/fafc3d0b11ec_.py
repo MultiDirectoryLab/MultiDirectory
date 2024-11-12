@@ -6,15 +6,15 @@ Create Date: 2024-11-11 15:21:23.568233
 
 """
 from alembic import op
-from sqlalchemy import exists
+from sqlalchemy import delete, exists
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.access_policy import create_access_policy, get_policies
+from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,
-    get_group,
+    get_search_path,
 )
 from models import AccessPolicy, Directory
 
@@ -83,20 +83,20 @@ def downgrade() -> None:
         if not base_dn_list:
             return
 
-        policies = await get_policies(session)
-        for policy in policies:
-            if policy.name == 'ReadOnly Access Policy':
-                await session.delete(policy)
-                await session.flush()
+        group_dn = "cn=readonly domain controllers,cn=groups," +\
+            base_dn_list[0].path_dn
 
-        group_dir = await get_group(
-            "cn=readonly domain controllers,cn=groups," +
-            base_dn_list[0].path_dn,
+        await session.execute(
+            delete(AccessPolicy)
+            .where(AccessPolicy.name == 'ReadOnly Access Policy'),
         )
+        await session.flush()
 
-        if group_dir is not None:
-            await session.delete(group_dir)
-            await session.flush()
+        await session.execute(
+            delete(Directory)
+            .where(Directory.path == get_search_path(group_dn)),
+        )
+        await session.flush()
 
         await session.commit()
 
