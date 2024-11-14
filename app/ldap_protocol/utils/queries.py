@@ -273,26 +273,22 @@ async def create_group(
     session.add_all([dir_, group])
     await session.flush()
 
-    dir_.object_sid = create_object_sid(base_dn_list[0], dir_.id)
+    dir_.object_sid = create_object_sid(
+        base_dn_list[0], sid if sid else dir_.id)
 
     await session.flush()
 
     attributes: dict[str, list[str]] = {
-        "objectClass": ["top", "posixGroup"],
+        "objectClass": ["top", "posixGroup", "group"],
         "groupType": ["-2147483646"],
         "instanceType": ["4"],
-        "sAMAccountName": ["domain users"],
+        "sAMAccountName": [dir_.name],
         "sAMAccountType": ["268435456"],
     }
 
     for name, attr in attributes.items():
         for val in attr:
             session.add(Attribute(name=name, value=val, directory=dir_))
-
-    if sid is not None:
-        session.add(
-            Attribute(name="objectSid", value=str(sid), directory=dir_),
-        )
 
     await session.flush()
     await session.refresh(dir_)
