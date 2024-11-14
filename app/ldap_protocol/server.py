@@ -164,14 +164,14 @@ class PoolClientHandler:
             log.critical("Cannot load ACME file for MultiDirectory")
             raise acme_exc
 
-        with open("/certs/acme.json") as certfile:
-            data = json.load(certfile)
-
         try:
+            with open("/certs/acme.json") as certfile:
+                data = json.load(certfile)
+
             domain = data["md-resolver"]["Certificates"][0]["domain"]["main"]
             cert = data["md-resolver"]["Certificates"][0]["certificate"]
             key = data["md-resolver"]["Certificates"][0]["key"]
-        except (KeyError, IndexError) as err:
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as err:
             log.critical("Cannot load TLS cert for MultiDirectory")
             raise acme_exc from err
 
