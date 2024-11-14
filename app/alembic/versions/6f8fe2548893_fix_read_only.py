@@ -36,11 +36,22 @@ def upgrade() -> None:
         .where(
             Attribute.name == 'sAMAccountName',
             Attribute.directory == read_only_dir,
+            Attribute.value == 'domain users',
         )
         .values({'value': 'readonly domain controllers'}),
     )
-    session.add(Attribute(
-        name='objectClass', value='group', directory=read_only_dir))
+
+    attr_object_class = session.scalar(
+        select(Attribute)
+        .where(
+            Attribute.name == 'objectClass',
+            Attribute.directory == read_only_dir,
+            Attribute.value == 'group',
+        ),
+    )
+    if not attr_object_class:
+        session.add(Attribute(
+            name='objectClass', value='group', directory=read_only_dir))
 
     domain_sid = '-'.join(read_only_dir.object_sid.split('-')[:-1])
     read_only_dir.object_sid = domain_sid + '-521'
