@@ -62,7 +62,7 @@ class SetupRequest(BaseModel):
 
 
 class MFACreateRequest(BaseModel):
-    """Crete MFA creds request."""
+    """Create MFA creds request."""
 
     mfa_key: str
     mfa_secret: str
