@@ -290,6 +290,8 @@ async def create_group(
         for val in attr:
             session.add(Attribute(name=name, value=val, directory=dir_))
 
+    session.add(Attribute(name=dir_.rdname, value=dir_.name, directory=dir_))
+
     await session.flush()
     await session.refresh(dir_)
     await session.refresh(group)
