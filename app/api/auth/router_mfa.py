@@ -80,11 +80,7 @@ async def setup_mfa(
     return True
 
 
-@mfa_router.delete(
-    "/keys",
-    status_code=status.HTTP_200_OK,
-    dependencies=[Depends(get_current_user)],
-)
+@mfa_router.delete("/keys", dependencies=[Depends(get_current_user)])
 @inject
 async def remove_mfa(session: FromDishka[AsyncSession]) -> None:
     """Remove mfa credentials."""
