@@ -86,9 +86,7 @@ async def setup_mfa(
     dependencies=[Depends(get_current_user)],
 )
 @inject
-async def remove_mfa(
-    session: FromDishka[AsyncSession],
-) -> bool:
+async def remove_mfa(session: FromDishka[AsyncSession]) -> None:
     """Remove mfa credentials.
     \f
     :return bool: status
@@ -99,8 +97,6 @@ async def remove_mfa(
         ),
     )
     await session.commit()
-
-    return True
 
 
 @mfa_router.post("/get", dependencies=[Depends(get_current_user)])

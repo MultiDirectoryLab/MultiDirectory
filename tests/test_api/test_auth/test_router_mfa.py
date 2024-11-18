@@ -39,7 +39,6 @@ async def test_set_and_remove_mfa(
 
     response = await http_client.delete("/multifactor/keys")
 
-    assert response.json() is True
     assert response.status_code == 200
 
     assert not await session.scalar(select(CatalogueSetting).filter_by(
