@@ -54,6 +54,12 @@ def upgrade() -> None:
         session.add(Attribute(
             name='objectClass', value='group', directory=read_only_dir))
         session.add(Attribute(
+            name=read_only_dir.rdname,
+            value=read_only_dir.name,
+            directory=read_only_dir,
+            ),
+        )
+        session.add(Attribute(
             name='gidNumber',
             value=str(create_integer_hash(read_only_dir.name)),
             directory=read_only_dir,
