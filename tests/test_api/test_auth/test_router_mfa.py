@@ -16,7 +16,7 @@ from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-async def test_set_mfa(
+async def test_set_and_remove_mfa(
         http_client: httpx.AsyncClient,
         session: AsyncSession) -> None:
     """Set mfa."""
@@ -35,6 +35,15 @@ async def test_set_mfa(
     assert await session.scalar(select(CatalogueSetting).filter_by(
         name="mfa_key", value="123"))
     assert await session.scalar(select(CatalogueSetting).filter_by(
+        name="mfa_secret", value="123"))
+
+    response = await http_client.delete("/multifactor/keys")
+
+    assert response.status_code == 200
+
+    assert not await session.scalar(select(CatalogueSetting).filter_by(
+        name="mfa_key", value="123"))
+    assert not await session.scalar(select(CatalogueSetting).filter_by(
         name="mfa_secret", value="123"))
 
 
