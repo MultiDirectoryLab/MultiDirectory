@@ -17,7 +17,12 @@ from sqlalchemy.sql.expression import ColumnElement
 from models import Attribute, Directory, Group, NetworkPolicy, User
 
 from .const import EMAIL_RE, ENTRY_TYPE
-from .helpers import create_object_sid, dn_is_base_directory, validate_entry
+from .helpers import (
+    create_integer_hash,
+    create_object_sid,
+    dn_is_base_directory,
+    validate_entry,
+)
 
 
 @cache
@@ -283,14 +288,14 @@ async def create_group(
         "groupType": ["-2147483646"],
         "instanceType": ["4"],
         "sAMAccountName": [dir_.name],
+        dir_.rdname: [dir_.name],
         "sAMAccountType": ["268435456"],
+        "gidNumber": [str(create_integer_hash(dir_.name))],
     }
 
     for name, attr in attributes.items():
         for val in attr:
             session.add(Attribute(name=name, value=val, directory=dir_))
-
-    session.add(Attribute(name=dir_.rdname, value=dir_.name, directory=dir_))
 
     await session.flush()
     await session.refresh(dir_)

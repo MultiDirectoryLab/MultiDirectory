@@ -9,6 +9,7 @@ from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from ldap_protocol.utils.helpers import create_integer_hash
 from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
@@ -38,7 +39,7 @@ def upgrade() -> None:
             Attribute.directory == read_only_dir,
             Attribute.value == 'domain users',
         )
-        .values({'value': 'readonly domain controllers'}),
+        .values({'value': read_only_dir.name}),
     )
 
     attr_object_class = session.scalar(
@@ -52,6 +53,12 @@ def upgrade() -> None:
     if not attr_object_class:
         session.add(Attribute(
             name='objectClass', value='group', directory=read_only_dir))
+        session.add(Attribute(
+            name='gidNumber',
+            value=str(create_integer_hash(read_only_dir.name)),
+            directory=read_only_dir,
+            ),
+        )
 
     domain_sid = '-'.join(read_only_dir.object_sid.split('-')[:-1])
     read_only_dir.object_sid = domain_sid + '-521'
