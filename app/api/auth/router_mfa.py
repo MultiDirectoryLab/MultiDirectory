@@ -80,6 +80,29 @@ async def setup_mfa(
     return True
 
 
+@mfa_router.delete(
+    "/keys",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_user)],
+)
+@inject
+async def remove_mfa(
+    session: FromDishka[AsyncSession],
+) -> bool:
+    """Remove mfa credentials.
+    \f
+    :return bool: status
+    """
+    await session.execute(
+        delete(CatalogueSetting).filter(
+            CatalogueSetting.name.in_(["mfa_key", "mfa_secret"]),
+        ),
+    )
+    await session.commit()
+
+    return True
+
+
 @mfa_router.post("/get", dependencies=[Depends(get_current_user)])
 @inject
 async def get_mfa(
