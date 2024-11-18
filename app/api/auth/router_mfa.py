@@ -87,14 +87,10 @@ async def setup_mfa(
 )
 @inject
 async def remove_mfa(session: FromDishka[AsyncSession]) -> None:
-    """Remove mfa credentials.
-    \f
-    :return bool: status
-    """
+    """Remove mfa credentials."""
     await session.execute(
-        delete(CatalogueSetting).filter(
-            CatalogueSetting.name.in_(["mfa_key", "mfa_secret"]),
-        ),
+        delete(CatalogueSetting)
+        .filter(CatalogueSetting.name.in_(["mfa_key", "mfa_secret"])),
     )
     await session.commit()
 
