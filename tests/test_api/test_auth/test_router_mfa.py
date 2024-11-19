@@ -37,7 +37,7 @@ async def test_set_and_remove_mfa(
     assert await session.scalar(select(CatalogueSetting).filter_by(
         name="mfa_secret", value="123"))
 
-    response = await http_client.delete("/multifactor/keys")
+    response = await http_client.delete("/multifactor/keys?scope=http")
 
     assert response.status_code == 200
 
