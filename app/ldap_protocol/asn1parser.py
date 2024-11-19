@@ -92,13 +92,13 @@ class ASN1Row(Generic[T]):
                 oid = child_value
             elif tag_value == 2:
                 attribute = (
-                    child_value.decode('utf-8')
+                    child_value.decode(errors='replace')
                     if isinstance(child_value, bytes)
                     else child_value
                 )
             elif tag_value == 3:
                 value = (
-                    child_value.decode('utf-8')
+                    child_value.decode(errors='replace')
                     if isinstance(child_value, bytes)
                     else child_value
                 )
@@ -122,7 +122,7 @@ class ASN1Row(Generic[T]):
     def _handle_substring(self) -> str:
         """Process and format substring operations for LDAP."""
         value = (
-            self.value.decode('utf-8')
+            self.value.decode(errors='replace')
             if isinstance(self.value, bytes)
             else str(self.value)
         )
@@ -213,7 +213,7 @@ class ASN1Row(Generic[T]):
             return ''.join(self.serialize(v) for v in obj)
 
         elif isinstance(obj, bytes):
-            return obj.decode('utf-8')
+            return obj.decode(errors='replace')
 
         elif isinstance(obj, str):
             return obj
