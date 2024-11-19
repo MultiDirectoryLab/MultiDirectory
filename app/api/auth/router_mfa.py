@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
-from typing import Annotated
+from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
@@ -82,11 +82,19 @@ async def setup_mfa(
 
 @mfa_router.delete("/keys", dependencies=[Depends(get_current_user)])
 @inject
-async def remove_mfa(session: FromDishka[AsyncSession]) -> None:
+async def remove_mfa(
+    session: FromDishka[AsyncSession],
+    scope: Literal["ldap", "http"],
+) -> None:
     """Remove mfa credentials."""
+    if scope == 'http':
+        keys = ["mfa_key", "mfa_secret"]
+    else:
+        keys = ["mfa_key_ldap", "mfa_secret_ldap"]
+
     await session.execute(
         delete(CatalogueSetting)
-        .filter(CatalogueSetting.name.in_(["mfa_key", "mfa_secret"])),
+        .filter(CatalogueSetting.name.in_(keys)),
     )
     await session.commit()
 
