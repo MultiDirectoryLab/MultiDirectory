@@ -11,10 +11,10 @@ RUN set -eux; \
 
 RUN touch /etc/krb5.conf && echo """\
 [libdefaults]\n\
-    default_realm = MD.MULTIFACTOR.DEV\n\
+    default_realm = MD.LOCALHOST\n\
     noaddresses = TRUE\n\
 [realms]\n\
-    MD.MULTIFACTOR.DEV = {\n\
+    MD.LOCALHOST = {\n\
         kdc = kerberos:88\n\
         admin_server = kerberos:749\n\
         default_domain = kerberos\n\
