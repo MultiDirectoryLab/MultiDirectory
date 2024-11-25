@@ -42,7 +42,6 @@ async def add_network_policy(
     session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
     """Add policy.
-
     \f
     :param Policy policy: policy to add
     :raises HTTPException: 422 invalid group DN
@@ -108,7 +107,6 @@ async def get_list_network_policies(
     session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
     """Get network.
-
     \f
     :return list[PolicyResponse]: all policies
     """
@@ -155,7 +153,6 @@ async def delete_network_policy(
     session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
     """Delete policy.
-
     \f
     :param int policy_id: id
     :param User user: requires login
@@ -225,7 +222,6 @@ async def update_network_policy(
     session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
     """Update network policy.
-
     \f
     :param PolicyUpdate policy: update request
     :raises HTTPException: 404 policy not found
