@@ -14,6 +14,7 @@ from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     Enum,
@@ -958,3 +959,13 @@ class AccessPolicy(Base):
         secondary=GroupAccessPolicyMembership.__table__,
         back_populates="access_policies",
     )
+
+
+class AuditPolicy(Base):
+    """Audit policy."""
+
+    __tablename__ = "AuditPolicies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    trigger: Mapped[dict] = mapped_column(JSON, nullable=False)
