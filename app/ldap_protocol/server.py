@@ -353,17 +353,19 @@ class PoolClientHandler:
 
         while True:
             try:
-                message = await ldap_session.queue.get()
+                message: LDAPRequestMessage = await ldap_session.queue.get()
                 self.req_log(addr, message)
 
                 async with container(scope=Scope.REQUEST) as request_container:
                     # NOTE: Automatically provides requested arguments
-                    handler = await resolve_deps(
+                    kwargs = await resolve_deps(
                         func=message.context.handle,
                         container=request_container,
                     )
+                    handler = message.context.handle(**kwargs)
 
                     async for response in message.create_response(handler):
+                        ...
                         self.rsp_log(addr, response)
 
                         data = await self._wrap_response(

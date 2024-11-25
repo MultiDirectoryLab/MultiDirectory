@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC
-from typing import AsyncGenerator, Callable
+from typing import AsyncGenerator
 
 from asn1 import Classes, Decoder, Encoder, Numbers
 from loguru import logger
@@ -149,13 +149,13 @@ class LDAPRequestMessage(LDAPMessage):
 
     async def create_response(
         self,
-        handler: Callable[..., AsyncGenerator[BaseResponse, None]],
+        handler: AsyncGenerator[BaseResponse, None],
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 
         :yield LDAPResponseMessage: create response for context.
         """
-        async for response in handler():
+        async for response in handler:
             yield LDAPResponseMessage(
                 messageID=self.message_id,
                 protocolOP=response.PROTOCOL_OP,
