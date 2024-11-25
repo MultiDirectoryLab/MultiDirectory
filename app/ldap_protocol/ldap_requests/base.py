@@ -66,7 +66,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        handler = await resolve_deps(func=self.handle, container=container)
+        kwargs = await resolve_deps(func=self.handle, container=container)
         ldap_session = await container.get(LDAPSession)
         settings = await container.get(Settings)
 
@@ -77,7 +77,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
-        responses = [response async for response in handler()]
+        responses = [response async for response in self.handle(**kwargs)]
 
         if settings.DEBUG:
             for response in responses:
