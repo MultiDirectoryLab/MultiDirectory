@@ -68,7 +68,29 @@ async def get_creds(
 
 
 class MultifactorAPI:
-    """Multifactor integration."""
+    """Multifactor authentication integration.
+
+    LDAP and HTTP manager for multifactor authentication.
+
+    Methods:
+    - `__init__(key, secret, client, settings)`: Initializes the object with
+      the required credentials and bound HTTP client from di.
+    - `ldap_validate_mfa(username, password)`: Validates MFA for a user. If the
+      password is not provided, sends a push notification and waits for user
+      approval with a timeout of 60 seconds.
+    - `get_create_mfa(username)`: Retrieves or creates an MFA token for the
+      specified user.
+    - `refresh_token()`: Refreshes the authentication token using the refresh
+      endpoint.
+
+    Attributes:
+    - `MultifactorError`: Exception class for MFA-related errors.
+    - `AUTH_URL_USERS`: Endpoint URL for user authentication requests.
+    - `AUTH_URL_ADMIN`: Endpoint URL for admin authentication requests.
+    - `REFRESH_URL`: Endpoint URL for token refresh.
+    - `client`: Asynchronous HTTP client for making requests.
+    - `settings`: Configuration settings for the MFA service.
+    """
 
     MultifactorError = _MultifactorError
 
@@ -88,10 +110,10 @@ class MultifactorAPI:
     ):
         """Set creds and web client.
 
-        :param str key: _description_
-        :param str secret: _description_
-        :param httpx.AsyncClient client: _description_
-        :param Settings settings: _description_
+        :param str key: mfa key
+        :param str secret: mfa secret
+        :param httpx.AsyncClient client: client for making queries (activated)
+        :param Settings settings: app settings
         """
         self.client = client
         self.settings = settings
@@ -105,6 +127,11 @@ class MultifactorAPI:
     async def ldap_validate_mfa(
             self, username: str, password: str | None) -> bool:
         """Validate multifactor.
+
+        If pwd not passed, use "m" for querying push request from mfa,
+        it will send push request to user's app and long poll for response,
+        timeout is 60 seconds.
+        "m" key-character is used to mark push request in multifactor API.
 
         :param str username: un
         :param str password: pwd
