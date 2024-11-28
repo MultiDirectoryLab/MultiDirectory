@@ -8,13 +8,15 @@ from sqlalchemy import Integer, String, cast, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, select
 
+from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.utils.queries import add_lock_and_expire_attributes
 from models import Attribute, User
 
 
 async def disable_accounts(
-    session: AsyncSession, kadmin: AbstractKadmin,
+    session: AsyncSession, kadmin: AbstractKadmin, settings: Settings,
 ) -> None:
     """Update userAccountControl attr.
 
@@ -68,5 +70,11 @@ async def disable_accounts(
 
     async for user in users:
         await kadmin.lock_principal(user.get_upn_prefix())
+
+        await add_lock_and_expire_attributes(
+            session,
+            user.directory,
+            settings.TIMEZONE,
+        )
 
     await session.commit()
