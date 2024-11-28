@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
+import time
 from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
@@ -318,3 +318,31 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
         .exists(),
     )
     return (await session.scalars(query)).one()
+
+
+async def add_lock_and_expire_attributes(
+    session: AsyncSession,
+    directory: Directory,
+    tz: ZoneInfo,
+) -> None:
+    """Add `nsAccountLock` and `shadowExpire` attributes to the directory.
+
+    :param AsyncSession session: db
+    :param Directory directory: directory
+    :param ZoneInfo tz: timezone info
+    """
+    ns_account_lock_attr = Attribute(
+        name="nsAccountLock",
+        value="true",
+        directory=directory,
+    )
+    session.add(ns_account_lock_attr)
+
+    now_with_tz = datetime.now(tz=tz)
+    absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
+    shadow_expire_attr = Attribute(
+        name="shadowExpire",
+        value=str(absolute_date),
+        directory=directory,
+    )
+    session.add(shadow_expire_attr)
