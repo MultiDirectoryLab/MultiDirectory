@@ -3,6 +3,8 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+from typing import Any, Dict
+
 import pytest
 from fastapi import status
 from httpx import AsyncClient
@@ -14,6 +16,34 @@ from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
+
+
+async def apply_user_account_control(
+    http_client: AsyncClient, user_dn: str, user_account_control_value: str,
+) -> Dict[str, Any]:
+    """Apply userAccountControl value and return response data.
+
+    :param AsyncClient http_client: client
+    :param str user_dn: distinguished name of the user
+    :param str user_account_control_value: new value to set for the
+        `userAccountControl` attribute.
+    """
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": user_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": [user_account_control_value],
+                    },
+                },
+            ],
+        },
+    )
+    return response.json()
 
 
 @pytest.mark.asyncio
@@ -228,3 +258,102 @@ async def test_auth_disabled_user(
     )
 
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('session')
+async def test_block_user_with_new_attributes(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Block user and verify nsAccountLock and shadowExpires attributes."""
+    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+
+    data = await apply_user_account_control(
+        http_client, user_dn, "514",
+    )
+
+    kadmin.lock_principal.assert_called()  # type: ignore
+
+    assert isinstance(data, dict)
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": user_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.SUCCESS
+    assert data['search_result'][0]['object_name'] == user_dn
+
+    attrs = {
+        attr['type']: attr['vals'][0]
+        for attr in data['search_result'][0]['partial_attributes']
+    }
+    assert attrs.get('nsAccountLock') == 'true'
+    assert attrs.get('shadowExpire').isdigit()
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('session')
+async def test_unblock_user_and_remove_new_attributes(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Block and unblock user and verify removal attributes."""
+    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+
+    data = await apply_user_account_control(
+        http_client, user_dn, "514",
+    )
+
+    kadmin.lock_principal.assert_called()  # type: ignore
+
+    assert isinstance(data, dict)
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    data = await apply_user_account_control(
+        http_client, user_dn, "512",
+    )
+
+    assert isinstance(data, dict)
+    assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": user_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+
+    assert data['resultCode'] == LDAPCodes.SUCCESS
+    assert data['search_result'][0]['object_name'] == user_dn
+
+    attrs = {
+        attr['type']: attr['vals'][0]
+        for attr in data['search_result'][0]['partial_attributes']
+    }
+    assert 'nsAccountLock' not in attrs
+    assert 'shadowExpire' not in attrs
