@@ -53,7 +53,7 @@ pytest-cov = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
 py-hot-reload = "^1.0.6"
-watchdog = "4.0.2"
+watchdog = "6.0.0"
 
 [build-system]
 requires = ["poetry-core"]
