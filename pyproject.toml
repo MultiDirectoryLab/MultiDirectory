@@ -8,7 +8,7 @@ packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "3.12.6"
-alembic = "^1.12.1"
+alembic = "^1.14.0"
 asn1 = "^2.7.1"
 asyncstdlib = "^3.10.6"
 bcrypt = "4.0.1"
