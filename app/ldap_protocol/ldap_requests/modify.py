@@ -36,6 +36,7 @@ from ldap_protocol.utils.helpers import (
     is_dn_in_base_directory,
 )
 from ldap_protocol.utils.queries import (
+    add_lock_and_expire_attributes,
     get_base_directories,
     get_directories,
     get_filter_from_path,
@@ -358,6 +359,12 @@ class ModifyRequest(BaseRequest):
                         directory.user.get_upn_prefix(),
                     )
 
+                    await add_lock_and_expire_attributes(
+                        session,
+                        directory,
+                        settings.TIMEZONE,
+                    )
+
                 elif (
                     not bool(
                         uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
@@ -366,6 +373,22 @@ class ModifyRequest(BaseRequest):
                 ):
                     await unlock_principal(
                         directory.user.user_principal_name, session,
+                    )
+
+                    await session.execute(
+                        delete(Attribute)
+                        .filter(
+                            Attribute.name == "nsAccountLock",
+                            Attribute.directory == directory,
+                        ),
+                    )
+
+                    await session.execute(
+                        delete(Attribute)
+                        .filter(
+                            Attribute.name == "shadowExpire",
+                            Attribute.directory == directory,
+                        ),
                     )
 
             if name == "pwdlastset" and value == "0" and directory.user:

@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
+import time
 from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
@@ -318,3 +318,46 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
         .exists(),
     )
     return (await session.scalars(query)).one()
+
+
+async def add_lock_and_expire_attributes(
+    session: AsyncSession,
+    directory: Directory,
+    tz: ZoneInfo,
+) -> None:
+    """Add `nsAccountLock` and `shadowExpire` attributes to the directory.
+
+    :param AsyncSession session: db
+    :param Directory directory: directory
+    :param ZoneInfo tz: timezone info
+    """
+    now_with_tz = datetime.now(tz=tz)
+    absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
+    session.add_all([
+        Attribute(
+            name="nsAccountLock",
+            value="true",
+            directory=directory,
+        ),
+        Attribute(
+            name="shadowExpire",
+            value=str(absolute_date),
+            directory=directory,
+        ),
+    ])
+
+
+async def get_principal_directory(
+    session: AsyncSession, principal_name: str,
+) -> Directory | None:
+    """Fetch the principal's directory by principal name.
+
+    :param AsyncSession session: db session
+    :param str principal_name: the principal name to search for
+    :return Directory | None: the principal's directory
+    """
+    return await session.scalar(
+        select(Directory)
+        .where(Directory.name == principal_name)
+        .options(selectinload(Directory.attributes)),
+    )
