@@ -333,17 +333,18 @@ async def add_lock_and_expire_attributes(
     """
     now_with_tz = datetime.now(tz=tz)
     absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
-    ns_account_lock_attr = Attribute(
-        name="nsAccountLock",
-        value="true",
-        directory=directory,
-    )
-    shadow_expire_attr = Attribute(
-        name="shadowExpire",
-        value=str(absolute_date),
-        directory=directory,
-    )
-    session.add_all([shadow_expire_attr, ns_account_lock_attr])
+    session.add_all([
+        Attribute(
+            name="nsAccountLock",
+            value="true",
+            directory=directory,
+        ),
+        Attribute(
+            name="shadowExpire",
+            value=str(absolute_date),
+            directory=directory,
+        ),
+    ])
 
 
 async def get_principal_directory(
@@ -355,10 +356,8 @@ async def get_principal_directory(
     :param str principal_name: the principal name to search for
     :return Directory | None: the principal's directory
     """
-    return (
-        await session.scalar(
+    return await session.scalar(
             select(Directory)
             .where(Directory.name == principal_name)
             .options(selectinload(Directory.attributes)),
-        )
     )
