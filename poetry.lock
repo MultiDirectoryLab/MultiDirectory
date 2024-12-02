@@ -408,13 +408,13 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "dishka"
-version = "1.3.0"
+version = "1.4.2"
 description = "Cute DI framework with scopes and agreeable API"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "dishka-1.3.0-py3-none-any.whl", hash = "sha256:37d534f9d4cb60df1f3ea19a193d60242a509433abb3d94dbefe62b38804ff7a"},
-    {file = "dishka-1.3.0.tar.gz", hash = "sha256:07c12cf87517f86d55e113701a4ceb816af4f46ae97929b395d92a0e4b9d6aec"},
+    {file = "dishka-1.4.2-py3-none-any.whl", hash = "sha256:5a59c6bf5ac9f34b3e698093207ddb871c13a0721eeb3948eb29011aee61f69c"},
+    {file = "dishka-1.4.2.tar.gz", hash = "sha256:fe1e7b2d0df4306b39650cf4c05485aa79ce1fc31507d1f73300dec3c64b2397"},
 ]
 
 [[package]]
@@ -2475,4 +2475,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12.6"
-content-hash = "b6102a19294c560f52d33bd20e4e4542f9fc4d2854c9eb6b1be7be3210a9cd37"
+content-hash = "de1f0c4cac8f89f5c0f87ee7348e426af23971dc2ede0fe314c7ab8bc989a4ff"
