@@ -357,7 +357,7 @@ async def get_principal_directory(
     :return Directory | None: the principal's directory
     """
     return await session.scalar(
-            select(Directory)
-            .where(Directory.name == principal_name)
-            .options(selectinload(Directory.attributes)),
+        select(Directory)
+        .where(Directory.name == principal_name)
+        .options(selectinload(Directory.attributes)),
     )
