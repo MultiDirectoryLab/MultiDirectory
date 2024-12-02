@@ -346,3 +346,21 @@ async def add_lock_and_expire_attributes(
         directory=directory,
     )
     session.add(shadow_expire_attr)
+
+
+async def get_principal_directory(
+    session: AsyncSession, principal_name: str,
+) -> Directory | None:
+    """Fetch the principal's directory by principal name.
+
+    :param AsyncSession session: db session
+    :param str principal_name: the principal name to search for
+    :return Directory | None: the principal's directory
+    """
+    return (
+        await session.execute(
+                select(Directory)
+                .where(Directory.name == principal_name)
+                .options(selectinload(Directory.attributes)),
+            )
+    ).scalar()

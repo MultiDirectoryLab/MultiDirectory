@@ -9,6 +9,7 @@ from loguru import logger
 
 from config import Settings
 from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
+from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
 from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
@@ -18,6 +19,7 @@ task_type: TypeAlias = Callable[..., Coroutine]
 _TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),
     (disable_accounts, 600.0),
+    (principal_block_sync, 10.0),
 }
 
 
