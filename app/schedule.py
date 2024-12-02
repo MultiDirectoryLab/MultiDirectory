@@ -19,7 +19,7 @@ task_type: TypeAlias = Callable[..., Coroutine]
 _TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),
     (disable_accounts, 600.0),
-    (principal_block_sync, 10.0),
+    (principal_block_sync, 60.0),
 }
 
 

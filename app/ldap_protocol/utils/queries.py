@@ -331,21 +331,19 @@ async def add_lock_and_expire_attributes(
     :param Directory directory: directory
     :param ZoneInfo tz: timezone info
     """
+    now_with_tz = datetime.now(tz=tz)
+    absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
     ns_account_lock_attr = Attribute(
         name="nsAccountLock",
         value="true",
         directory=directory,
     )
-    session.add(ns_account_lock_attr)
-
-    now_with_tz = datetime.now(tz=tz)
-    absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
     shadow_expire_attr = Attribute(
         name="shadowExpire",
         value=str(absolute_date),
         directory=directory,
     )
-    session.add(shadow_expire_attr)
+    session.add_all([shadow_expire_attr, ns_account_lock_attr])
 
 
 async def get_principal_directory(
@@ -358,9 +356,9 @@ async def get_principal_directory(
     :return Directory | None: the principal's directory
     """
     return (
-        await session.execute(
-                select(Directory)
-                .where(Directory.name == principal_name)
-                .options(selectinload(Directory.attributes)),
-            )
-    ).scalar()
+        await session.scalar(
+            select(Directory)
+            .where(Directory.name == principal_name)
+            .options(selectinload(Directory.attributes)),
+        )
+    )

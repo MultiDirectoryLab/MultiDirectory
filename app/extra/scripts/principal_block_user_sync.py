@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Integer, String, cast, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,13 +26,7 @@ async def principal_block_sync(
     session: AsyncSession, settings: Settings,
 ) -> None:
     """Synchronize principal and user account blocking."""
-    users = (
-        await session.execute(
-            select(User),
-        )
-    ).scalars().all()
-
-    for user in users:
+    for user in await session.scalars(select(User)):
 
         uac_check = await get_check_uac(session, user.directory_id)
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
@@ -94,11 +87,11 @@ async def principal_block_sync(
         await session.commit()
 
 
-def find_krb_exp_attr(directory: Directory) -> Optional[Attribute]:
+def find_krb_exp_attr(directory: Directory) -> Attribute | None:
     """Find krbprincipalexpiration attribute in directory.
 
     :param Directory directory: the directory object
-    :return Optional[Atrribute]: the attribute with
+    :return Atrribute | None: the attribute with
         the name 'krbprincipalexpiration', or None if not found.
     """
     for attr in directory.attributes:

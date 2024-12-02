@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from fastapi import status
@@ -20,7 +20,7 @@ from models import Directory, Group
 
 async def apply_user_account_control(
     http_client: AsyncClient, user_dn: str, user_account_control_value: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Apply userAccountControl value and return response data.
 
     :param AsyncClient http_client: client
