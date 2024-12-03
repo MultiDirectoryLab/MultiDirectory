@@ -15,7 +15,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models import Attribute, Directory, Group, User
+from ldap_protocol.objects import AuditEventType, AuditOperation
+from ldap_protocol.user_account_control import UserAccountControlFlag
+from models import (
+    Attribute,
+    AuditPolicy,
+    Directory,
+    Group,
+   
+    User,
+)
 
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
@@ -341,3 +350,192 @@ async def get_principal_directory(
         .where(Directory.name == principal_name)
         .options(selectinload(Directory.attributes)),
     )
+
+
+async def add_audit_pocilies(session: AsyncSession) -> None:
+    """Add audit policies."""
+    policies = []
+
+    for object_class in ["user", "group", "computer", "ou"]:
+        for line, status in {"ok": True, "fail": False}.items():
+            policies.extend([
+                AuditPolicy(
+                    name=f'create_{object_class}_{line}',
+                    actions=[AuditEventType.API_ADD, AuditEventType.LDAP_ADD],
+                    operation_success=status,
+                    condition_attributes=[{
+                        "attribute": "objectClass",
+                        "value": f"{object_class}",
+                    }],
+                ),
+                AuditPolicy(
+                    name=f'modify_{object_class}_{line}',
+                    actions=[
+                        AuditEventType.API_MODIFY,
+                        AuditEventType.LDAP_MODIFY,
+                    ],
+                    operation_success=status,
+                    condition_attributes=[{
+                        "attribute": "objectClass",
+                        "value": f"{object_class}",
+                    }],
+                ),
+                AuditPolicy(
+                    name=f'delete_{object_class}_{line}',
+                    actions=[
+                        AuditEventType.API_DELETE,
+                        AuditEventType.LDAP_DELETE,
+                    ],
+                    operation_success=status,
+                    condition_attributes=[{
+                        "attribute": "objectClass",
+                        "value": f"{object_class}",
+                    }],
+                ),
+            ])
+
+            if object_class == "user":
+                policies.extend([
+                    AuditPolicy(
+                        name=f'{object_class}_password_modify_{line}',
+                        actions=[
+                            AuditEventType.API_EXTEND,
+                            AuditEventType.LDAP_EXTEND,
+                            AuditEventType.LDAP_MODIFY,
+                        ],
+                        operation_success=status,
+                        condition_attributes=[
+                            {
+                                "attribute": "objectClass",
+                                "value": object_class,
+                            },
+                        ],
+                        change_attributes=[
+                            {
+                                "attribute": "userPassword",
+                                "operation": None,
+                                "result": True,
+                                "value": None,
+                            },
+                            {
+                                "attribute": "unicodePwd",
+                                "operation": None,
+                                "result": True,
+                                "value": None,
+                            },
+                        ],
+                    ),
+                ])
+
+            if object_class == "user" or object_class == "computer":
+                policies.extend([
+                    AuditPolicy(
+                        name=f'{object_class}_enable_{line}',
+                        actions=[
+                            AuditEventType.API_MODIFY,
+                            AuditEventType.LDAP_MODIFY,
+                        ],
+                        operation_success=status,
+                        condition_attributes=[
+                            {
+                                "attribute": "objectClass",
+                                "value": object_class,
+                            },
+                        ],
+                        change_attributes=[
+                            {
+                                "attribute": "userAccountControl",
+                                "operation": AuditOperation.BITWISE_AND,
+                                "result": True,
+                                "value": UserAccountControlFlag.ACCOUNTDISABLE,
+                            },
+                        ],
+                    ),
+                    AuditPolicy(
+                        name=f'{object_class}_disable_{line}',
+                        actions=[
+                            AuditEventType.API_MODIFY,
+                            AuditEventType.LDAP_MODIFY,
+                        ],
+                        operation_success=status,
+                        condition_attributes=[
+                            {
+                                "attribute": "objectClass",
+                                "value": object_class,
+                            },
+                        ],
+                        change_attributes=[
+                            {
+                                "attribute": "userAccountControl",
+                                "operation": AuditOperation.BITWISE_AND,
+                                "result": False,
+                                "value": UserAccountControlFlag.ACCOUNTDISABLE,
+                            },
+                        ],
+                    ),
+                ])
+
+            if object_class == "group":
+                policies.extend([
+                    AuditPolicy(
+                        name=f'{object_class}_add_member_{line}',
+                        actions=[
+                            AuditEventType.API_MODIFY,
+                            AuditEventType.LDAP_MODIFY,
+                        ],
+                        operation_success=status,
+                        condition_attributes=[
+                            {
+                                "attribute": "objectClass",
+                                "value": object_class,
+                            },
+                        ],
+                        change_attributes=[
+                            {
+                                "attribute": "member",
+                                "operation": AuditOperation.GREATER_THAN,
+                                "result": True,
+                                "value": None,
+                            },
+                        ],
+                    ),
+                    AuditPolicy(
+                        name=f'{object_class}_remove_member_{line}',
+                        actions=[
+                            AuditEventType.API_MODIFY,
+                            AuditEventType.LDAP_MODIFY,
+                        ],
+                        operation_success=status,
+                        condition_attributes=[
+                            {
+                                "attribute": "objectClass",
+                                "value": object_class,
+                            },
+                        ],
+                        change_attributes=[
+                            {
+                                "attribute": "member",
+                                "operation": AuditOperation.LESS_THAN,
+                                "result": True,
+                                "value": None,
+                            },
+                        ],
+                    ),
+                ])
+
+    policies.extend([
+        AuditPolicy(
+            name='auth_ok',
+            actions=[AuditEventType.API_AUTH, AuditEventType.LDAP_AUTH],
+            operation_success=True,
+            condition_attributes=[],
+        ),
+        AuditPolicy(
+            name='auth_fail',
+            actions=[AuditEventType.API_AUTH, AuditEventType.LDAP_AUTH],
+            operation_success=False,
+            condition_attributes=[],
+        ),
+    ])
+
+    session.add_all(policies)
