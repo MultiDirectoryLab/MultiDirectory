@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.objects import ProtocolOp
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
@@ -38,7 +39,7 @@ class DeleteRequest(BaseRequest):
     DelRequest ::= [APPLICATION 10] LDAPDN
     """
 
-    PROTOCOL_OP: ClassVar[int] = 10
+    PROTOCOL_OP: ClassVar[int] = ProtocolOp.DELETE_REQUEST
 
     entry: str
 

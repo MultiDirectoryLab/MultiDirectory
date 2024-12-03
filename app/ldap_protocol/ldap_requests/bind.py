@@ -32,6 +32,7 @@ from ldap_protocol.policies.network_policy import (
     is_user_group_valid,
 )
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
+from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -48,7 +49,7 @@ from .base import BaseRequest
 class BindRequest(BaseRequest):
     """Bind request fields mapping."""
 
-    PROTOCOL_OP: ClassVar[int] = 0x0
+    PROTOCOL_OP: ClassVar[int] = ProtocolOp.BIND_REQUEST
 
     version: int
     name: str
@@ -228,7 +229,7 @@ class BindRequest(BaseRequest):
 class UnbindRequest(BaseRequest):
     """Remove user from ldap_session."""
 
-    PROTOCOL_OP: ClassVar[int] = 2
+    PROTOCOL_OP: ClassVar[int] = ProtocolOp.UNBIND_REQUEST
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003

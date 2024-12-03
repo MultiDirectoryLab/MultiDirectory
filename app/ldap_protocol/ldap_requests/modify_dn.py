@@ -13,8 +13,8 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.objects import ProtocolOp
+from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
@@ -68,7 +68,7 @@ class ModifyDNRequest(BaseRequest):
         >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
-    PROTOCOL_OP: ClassVar[int] = 12
+    PROTOCOL_OP: ClassVar[int] = ProtocolOp.MODIFY_DN_REQUEST
 
     entry: str
     newrdn: str
