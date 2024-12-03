@@ -34,6 +34,7 @@ from ldap_protocol.policies.password_policy import (
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
+from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
@@ -99,7 +100,7 @@ class ModifyRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = 6
+    PROTOCOL_OP: ClassVar[int] = ProtocolOp.MODIFY_REQUEST
 
     object: str
     changes: list[Changes]

@@ -17,7 +17,7 @@ from config import Settings
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
-from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
@@ -278,7 +278,7 @@ class ExtendedRequest(BaseRequest):
         requestValue     [1] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = 23
+    PROTOCOL_OP: ClassVar[int] = ProtocolOp.EXTENDED_REQUEST
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 
