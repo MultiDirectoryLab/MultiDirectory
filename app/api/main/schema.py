@@ -14,6 +14,7 @@ from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
+from ldap_protocol.objects import AuditEventType, AuditOperation
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -104,3 +105,41 @@ class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
 
     record_value: str | None = Field(None)
     ttl: int | None = Field(None)
+
+
+class ConditionAttributesTrigger(BaseModel):
+    """Attribute model for audit policy trigger."""
+
+    attribute: str
+    value: str
+
+
+class ChangeAttributesTrigger(BaseModel):
+    """Attribute model for audit policy trigger."""
+
+    attribute: str
+    operation: None | AuditOperation
+    result: bool
+    value: None | str | int
+
+
+class AuditPolicyRequest(BaseModel):
+    """Audit policy schema with optional id."""
+
+    id: None | int  # noqa: A003
+    name: str
+    actions: list[AuditEventType]
+    operation_success: bool
+    condition_attributes: list[ConditionAttributesTrigger]
+    change_attributes: list[ChangeAttributesTrigger]
+
+
+class AuditPolicySchema(BaseModel):
+    """Audit policy schema."""
+
+    id: int  # noqa: A003
+    name: str
+    actions: list[AuditEventType]
+    operation_success: bool
+    condition_attributes: list[ConditionAttributesTrigger]
+    change_attributes: list[ChangeAttributesTrigger]
