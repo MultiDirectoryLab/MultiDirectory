@@ -36,6 +36,9 @@ sqlalchemy = {extras = ["asyncio", "mypy"], version = "^2.0.35"}
 uvicorn = "^0.34.2"
 uvloop = "^0.21.0"
 websockets = "^15.0"
+gssapi = "^1.9.0"
+backoff = "^2.2.1"
+redis = "^5.2.0"
 
 [tool.poetry.group.linters.dependencies]
 mypy = "^1.13.0"
