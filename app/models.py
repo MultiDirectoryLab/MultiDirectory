@@ -968,4 +968,11 @@ class AuditPolicy(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    trigger: Mapped[dict] = mapped_column(JSON, nullable=False)
+    actions: Mapped[list[str]] = mapped_column(
+        postgresql.ARRAY(String), nullable=False)
+    condition_attributes: Mapped[list[dict]] = mapped_column(
+        JSON, nullable=False)
+    change_attributes: Mapped[list[dict]] = mapped_column(JSON)
+    operation_success: Mapped[nbool]
+    is_enabled: Mapped[bool] = mapped_column(
+        nullable=False, server_default=expression.true())
