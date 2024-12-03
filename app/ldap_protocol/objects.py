@@ -91,3 +91,49 @@ class AuditEventType(StrEnum):
     API_MODIFY = "api_modify"
     API_MODIFY_DN = "api_modify_dn"
     API_EXTEND = "api_extend"
+
+
+class AuditOperation(StrEnum):
+    """
+    Enum for representing common operations.
+
+    Attributes:
+        GREATER_THAN: Represents the 'greater than' operation ('>')
+        LESS_THAN: Represents the 'less than' operation ('<')
+        NOT: Represents the 'not' operation ('!')
+        BITWISE_AND: Represents the 'bitwise and' operation ('&')
+    """
+
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    NOT = "!"
+    BITWISE_AND = "&"
+
+
+class ProtocolOp(IntEnum):
+    """
+    Enum for LDAP protocol operations.
+
+    Attributes:
+        BIND_REQUEST: Represents the BindRequest operation (0)
+        UNBIND_REQUEST: Represents the UnbindRequest operation (1)
+        SEARCH_REQUEST: Represents the SearchRequest operation (3)
+        MODIFY_REQUEST: Represents the ModifyRequest operation (6)
+        ADD_REQUEST: Represents the AddRequest operation (8)
+        DELETE_REQUEST: Represents the DelRequest operation (10)
+        MODIFY_DN_REQUEST: Represents the ModifyDNRequest operation (12)
+        COMPARE_REQUEST: Represents the CompareRequest operation (14)
+        ABANDON_REQUEST: Represents the AbandonRequest operation (16)
+        EXTENDED_REQUEST: Represents the ExtendedRequest operation (23)
+    """
+
+    BIND_REQUEST = 0
+    UNBIND_REQUEST = 1
+    SEARCH_REQUEST = 3
+    MODIFY_REQUEST = 6
+    ADD_REQUEST = 8
+    DELETE_REQUEST = 10
+    MODIFY_DN_REQUEST = 12
+    COMPARE_REQUEST = 14
+    ABANDON_REQUEST = 16
+    EXTENDED_REQUEST = 23
