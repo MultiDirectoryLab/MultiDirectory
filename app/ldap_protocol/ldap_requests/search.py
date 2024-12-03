@@ -224,6 +224,7 @@ class SearchRequest(BaseRequest):
         session: AsyncSession,
         ldap_session: LDAPSession,
         settings: Settings,
+        for_api: bool = False,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry,
         None,
@@ -234,7 +235,12 @@ class SearchRequest(BaseRequest):
         Entry -> Reference (optional) -> Done
         """
         async with ldap_session.lock() as user:
-            async for response in self.get_result(user, session, settings):
+            async for response in self.get_result(
+                user,
+                session,
+                settings,
+                for_api,
+            ):
                 yield response
 
     async def get_result(
@@ -242,6 +248,7 @@ class SearchRequest(BaseRequest):
         user: UserSchema | None,
         session: AsyncSession,
         settings: Settings,
+        for_api: bool,
     ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
@@ -283,7 +290,7 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self.paginate_query(query, session)
 
-        async for response in self.tree_view(query, session):
+        async for response in self.tree_view(query, session, for_api):
             yield response
 
         yield SearchResultDone(
@@ -404,10 +411,8 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
-    async def tree_view(  # noqa: C901
-        self,
-        query: Select,
-        session: AsyncSession,
+    async def tree_view(
+        self, query: Select, session: AsyncSession, for_api: bool,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
@@ -530,9 +535,13 @@ class SearchRequest(BaseRequest):
             for attr in directory_fields:
                 attribute = getattr(directory, attr)
                 if attr == "objectsid":
-                    attribute = string_to_sid(attribute)
+                    if not for_api:
+                        attribute = string_to_sid(attribute)
+
                 elif attr == "objectguid":
-                    attribute = attribute.bytes_le
+                    if not for_api:
+                        attribute = attribute.bytes_le
+
                 attrs[directory.search_fields[attr]].append(attribute)
 
             yield SearchResultEntry(
