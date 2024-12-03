@@ -310,6 +310,22 @@ services:
         reservations:
           cpus: '0.1'
           memory: 6M
+  
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_port=6379
+      - DFLY_maxmemory=5.00GiB
+    expose:
+      - 6379
+    volumes:
+      - dragonflydata:/data
+    command: >
+      --dbfilename=dump
+      --dir=/data
+      --snapshot_cron="* * * * *"
 
   interface:
     container_name: multidirectory_interface
