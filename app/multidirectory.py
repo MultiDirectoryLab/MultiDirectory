@@ -8,7 +8,6 @@ import argparse
 import asyncio
 import time
 from contextlib import asynccontextmanager
-from ipaddress import IPv4Address
 from typing import AsyncIterator, Callable
 
 import uvicorn
@@ -31,6 +30,7 @@ from api import (
     network_router,
     pwd_router,
 )
+from api.auth.utils import get_ip_address_from_request
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import Settings
 from ioc import (
@@ -73,19 +73,15 @@ async def proc_ip_address_middleware(
     :param Callable call_next: The next middleware or route handler.
     :return Response: The response object.
     """
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        client_ip = forwarded_for.split(",")[0]
-    else:
-        if request.client is None:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST)
-        client_ip = request.client.host
+    ip = get_ip_address_from_request(request)
+    if ip is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     container = request.app.state.dishka_container
     async with container(scope=Scope.REQUEST) as ctnr:
         session = await ctnr.get(AsyncSession)
         policy = await find_policy_by_ip(
-            ip=IPv4Address(client_ip),
+            ip=ip,
             session=session,
         )
         if policy is None:

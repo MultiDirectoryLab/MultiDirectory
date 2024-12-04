@@ -10,7 +10,7 @@ from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, ScalarResult, func, or_, select, update
+from sqlalchemy import Column, ScalarResult, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
@@ -47,15 +47,43 @@ async def get_network_policies(
     """
     return await session.scalars(
         select(NetworkPolicy)
-        .filter_by(enabled=True),
+        .filter_by(enabled=True)
+        .options(selectinload(NetworkPolicy.groups)),
     )
+
+
+async def get_user_network_policy(
+    ip: IPv4Address,
+    user: User,
+    session: AsyncSession,
+) -> ScalarResult[NetworkPolicy]:
+    """
+    Get the highest priority network policy for user and ip.
+
+    :param User user: user object
+    :param AsyncSession session: db session
+    :return NetworkPolicy | None: a NetworkPolicy object
+    """
+    user_group_ids = [group.id for group in user.groups]
+
+    query = ( # noqa
+        select(NetworkPolicy)
+        .filter_by(enabled=True)
+        .options(selectinload(NetworkPolicy.groups))
+        .filter(NetworkPolicy.groups.any(Group.id.in_(user_group_ids)))
+        .filter(text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
+        .order_by(NetworkPolicy.priority.asc())
+        .limit(1)
+    )
+
+    return await session.scalar(query)
 
 
 async def find_policy_by_ip(
     ip: IPv4Address,
     session: AsyncSession,
 ) -> NetworkPolicy | None:
-    """Find and return the the highest priority network policy matching the \
+    """Find and return the highest priority network policy matching the \
     given IP address.
 
     :param IPv4Address ip: The IP address to search
