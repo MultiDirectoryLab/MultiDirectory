@@ -17,6 +17,8 @@ from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
 from ldap_protocol.utils.queries import get_groups
+from ldap_protocol.utils.queries import \
+    get_network_policies as get_network_policies_query
 from models import Group, NetworkPolicy
 
 from .schema import (
@@ -76,6 +78,8 @@ async def add_network_policy(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists",
         )
+    else:
+        get_network_policies_query.cache_clear()
 
     await session.refresh(new_policy)
 
@@ -172,6 +176,7 @@ async def delete_network_policy(
             ),
         )
         await session.commit()
+    get_network_policies_query.cache_clear()
 
     return RedirectResponse(
         request.url_for("policy"),
@@ -207,6 +212,7 @@ async def switch_network_policy(
 
     policy.enabled = not policy.enabled
     await session.commit()
+    get_network_policies_query.cache_clear()
     return True
 
 
@@ -273,6 +279,8 @@ async def update_network_policy(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Entry already exists",
         )
+    else:
+        get_network_policies_query.cache_clear()
 
     return PolicyResponse(
         id=selected_policy.id,

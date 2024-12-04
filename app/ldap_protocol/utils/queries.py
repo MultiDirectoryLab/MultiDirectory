@@ -5,11 +5,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import time
 from datetime import datetime
+from ipaddress import IPv4Address, IPv4Network
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, func, or_, select, update
+from sqlalchemy import Column, ScalarResult, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
@@ -32,6 +33,50 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
         select(Directory).filter(Directory.parent_id.is_(None)),
     )
     return list(result.scalars().all())
+
+
+@cache
+async def get_network_policies(
+    session: AsyncSession,
+) -> ScalarResult[NetworkPolicy]:
+    """
+    Get enabled network policies.
+
+    :param AsyncSession session: db session
+    :return list[NetworkPolicy]: A list of enabled NetworkPolicy objects
+    """
+    return await session.scalars(
+        select(NetworkPolicy)
+        .filter_by(enabled=True),
+    )
+
+
+async def find_policy_by_ip(
+    ip: IPv4Address,
+    session: AsyncSession,
+) -> NetworkPolicy | None:
+    """Find and return the the highest priority network policy matching the \
+    given IP address.
+
+    :param IPv4Address ip: The IP address to search
+    :param AsyncSession session: db session
+    :return NetworkPolicy | None: The first matching policy by priority,
+        or None if no matching policy is found
+    """
+    policies = await get_network_policies(session)
+
+    matching_policies = [
+        policy for policy in policies
+        if any(
+            (isinstance(netmask, IPv4Network) and ip in netmask) or
+            (isinstance(netmask, IPv4Address) and ip == netmask)
+            for netmask in policy.netmasks
+        )
+    ]
+
+    matching_policies.sort(key=lambda p: p.priority)
+
+    return matching_policies[0] if matching_policies else None
 
 
 async def get_user(session: AsyncSession, name: str) -> User | None:

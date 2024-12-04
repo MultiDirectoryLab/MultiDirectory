@@ -8,16 +8,18 @@ import argparse
 import asyncio
 import time
 from contextlib import asynccontextmanager
+from ipaddress import IPv4Address
 from typing import AsyncIterator, Callable
 
 import uvicorn
 import uvloop
-from dishka import make_async_container
+from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import exc as sa_exc
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api import (
     access_policy_router,
@@ -40,6 +42,7 @@ from ioc import (
 )
 from ldap_protocol.dns import DNSConnectionError
 from ldap_protocol.server import PoolClientHandler
+from ldap_protocol.utils.queries import find_policy_by_ip
 from schedule import scheduler
 
 
@@ -58,6 +61,37 @@ async def proc_time_header_middleware(
     process_time = time.perf_counter() - start_time
     response.headers["X-Process-Time"] = "{:.4f}".format(process_time)
     return response
+
+
+async def proc_ip_address_middleware(
+    request: Request,
+    call_next: Callable,
+) -> Response:
+    """Check if IP address in policies.
+
+    :param Request request: The incoming request object.
+    :param Callable call_next: The next middleware or route handler.
+    :return Response: The response object.
+    """
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0]
+    else:
+        if request.client is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST)
+        client_ip = request.client.host
+
+    container = request.app.state.dishka_container
+    async with container(scope=Scope.REQUEST) as ctnr:
+        session = await ctnr.get(AsyncSession)
+        policy = await find_policy_by_ip(
+            ip=IPv4Address(client_ip),
+            session=session,
+        )
+        if policy is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    return await call_next(request)
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -95,6 +129,7 @@ def create_app(settings: Settings) -> FastAPI:
     if settings.DEBUG:
         app.middleware("http")(proc_time_header_middleware)
 
+    app.middleware("http")(proc_ip_address_middleware)
     app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
     app.add_exception_handler(DNSException, handle_dns_error)
