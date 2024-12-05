@@ -50,7 +50,7 @@ def upgrade() -> None:
         "loginShell": "/bin/false",
         "uidNumber": "800",
         "homeDirectory": "/home/krbadmin",
-    }:
+    }.items():
         session.execute(
             sa.update(Attribute)
             .where(
