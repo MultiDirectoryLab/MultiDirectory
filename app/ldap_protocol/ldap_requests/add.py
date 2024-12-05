@@ -185,7 +185,7 @@ class AddRequest(BaseRequest):
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
-        user_fields = User.search_fields.keys()
+        user_fields = User.search_fields.keys() | User.fields.keys()
         attributes.append(Attribute(
             name=new_dn, value=name, directory=new_dir))
 
