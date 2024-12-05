@@ -340,6 +340,9 @@ class User(Base):
         "displayname": "displayName",
         "uid": "uid",
         "accountexpires": "accountExpires",
+        "loginshell": "loginShell",
+        "uidnumber": "uidNumber",
+        "homedirectory": "homeDirectory",
     }
 
     password_history: Mapped[list[str]] = mapped_column(  # noqa TAE002
