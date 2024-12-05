@@ -265,27 +265,22 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-            attributes.append(
-                Attribute(
-                    name="uidNumber",
-                    value=str(create_integer_hash(user.sam_accout_name)),
-                    directory=new_dir,
-                ),
-            )
+            for attr, value in {  # type: ignore
+                "loginShell": "/bin/bash",
+                "uidNumber": str(create_integer_hash(user.sam_accout_name)),
+                "homeDirectory": f"/home/{user.sam_accout_name}",
+            }.items():
+                if attr in user_attributes:
+                    value = user_attributes[attr]  # type: ignore
+                    del user_attributes[attr]  # type: ignore
 
-            attributes.append(
-                Attribute(
-                    name="homeDirectory",
-                    value=f"/home/{user.sam_accout_name}",
-                    directory=new_dir,
-                ),
-            )
-
-            attributes.append(
-                Attribute(
-                    name="loginShell", value="/bin/bash", directory=new_dir,
-                ),
-            )
+                attributes.append(
+                    Attribute(
+                        name=attr,
+                        value=value,
+                        directory=new_dir,
+                    ),
+                )
 
             attributes.append(
                 Attribute(
