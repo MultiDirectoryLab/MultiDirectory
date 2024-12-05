@@ -340,6 +340,9 @@ class User(Base):
         "displayname": "displayName",
         "uid": "uid",
         "accountexpires": "accountExpires",
+    }
+
+    fields = {
         "loginshell": "loginShell",
         "uidnumber": "uidNumber",
         "homedirectory": "homeDirectory",
