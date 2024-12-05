@@ -46,20 +46,21 @@ def upgrade() -> None:
 
     krb_admin_dir = session.query(Directory).filter_by(name='krbadmin').first()
 
-    for attr, new_value in {
-        "loginShell": "/bin/false",
-        "uidNumber": "800",
-        "homeDirectory": "/home/krbadmin",
-    }.items():
-        session.execute(
-            sa.update(Attribute)
-            .where(
-                Attribute.name == attr,
-                Attribute.directory_id == krb_admin_dir.id,
-                Attribute.value == new_value,
+    if krb_admin_dir:
+        for attr, new_value in {
+            "loginShell": "/bin/false",
+            "uidNumber": "800",
+            "homeDirectory": "/home/krbadmin",
+        }.items():
+            session.execute(
+                sa.update(Attribute)
+                .where(
+                    Attribute.name == attr,
+                    Attribute.directory_id == krb_admin_dir.id,
+                    Attribute.value == new_value,
+                )
+                .values(value=new_value),
             )
-            .values(value=new_value),
-        )
 
     session.add_all(attrs)
     session.commit()
