@@ -57,6 +57,7 @@ async def add_network_policy(
         priority=policy.priority,
         raw=policy.model_dump(mode="json")["netmasks"],
         mfa_status=policy.mfa_status,
+        protocols=policy.protocols,
     )
     group_dns = []
     mfa_group_dns = []
@@ -93,6 +94,7 @@ async def add_network_policy(
         groups=group_dns,
         mfa_status=new_policy.mfa_status,
         mfa_groups=mfa_group_dns,
+        protocols=new_policy.protocols,
     )
 
 
@@ -127,6 +129,7 @@ async def get_network_policies(
             mfa_groups=(
                 group.directory.path_dn for group in policy.mfa_groups
             ),
+            protocols=policy.protocols,
         )
         for policy in await session.scalars(
             select(NetworkPolicy)
@@ -272,6 +275,9 @@ async def update_network_policy(
     elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
         selected_policy.mfa_groups.clear()
 
+    if request.protocols is not None:
+        selected_policy.protocols = request.protocols
+
     try:
         await session.commit()
     except IntegrityError:
@@ -292,6 +298,7 @@ async def update_network_policy(
         groups=request.groups or [],
         mfa_status=selected_policy.mfa_status,
         mfa_groups=request.mfa_groups or [],
+        protocols=selected_policy.protocols,
     )
 
 
