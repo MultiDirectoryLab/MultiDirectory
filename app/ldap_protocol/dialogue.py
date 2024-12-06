@@ -243,9 +243,11 @@ class LDAPSession:
         query = (  # noqa
             select(NetworkPolicy)
             .filter_by(enabled=True)
-            .filter(NetworkPolicy.protocols.contains([PolicyProtocol.LDAP]))
             .options(selectinload(NetworkPolicy.groups))
-            .filter(text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
+            .filter(
+                text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip),
+                NetworkPolicy.protocols.contains([PolicyProtocol.LDAP]),
+            )
             .order_by(NetworkPolicy.priority.asc())
             .limit(1)
         )

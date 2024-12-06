@@ -10,7 +10,7 @@ from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, ScalarResult, func, or_, select, text, update
+from sqlalchemy import Column, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
@@ -45,18 +45,18 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
 @cache
 async def get_network_policies(
     session: AsyncSession,
-) -> ScalarResult[NetworkPolicy]:
+) -> list[NetworkPolicy]:
     """
     Get enabled network policies.
 
     :param AsyncSession session: db session
     :return list[NetworkPolicy]: A list of enabled NetworkPolicy objects
     """
-    return await session.scalars(
+    result = await session.scalars(
         select(NetworkPolicy)
-        .filter_by(enabled=True)
-        .options(selectinload(NetworkPolicy.groups)),
+        .filter_by(enabled=True),
     )
+    return list(result.all())
 
 
 async def get_user_network_policy(
@@ -64,7 +64,7 @@ async def get_user_network_policy(
     user: User,
     protocol: PolicyProtocol,
     session: AsyncSession,
-) -> ScalarResult[NetworkPolicy]:
+) -> NetworkPolicy | None:
     """
     Get the highest priority network policy for user, ip and protocol.
 
