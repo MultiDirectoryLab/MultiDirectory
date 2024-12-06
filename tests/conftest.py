@@ -9,8 +9,8 @@ import uuid
 import weakref
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
-from unittest.mock import AsyncMock, Mock
+from typing import AsyncGenerator, AsyncIterator, Callable, Generator, Iterator
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import ldap3
@@ -28,7 +28,7 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from multidirectory import create_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
@@ -383,6 +383,14 @@ def ldap_client(settings: Settings) -> ldap3.Connection:
         ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"))
 
 
+async def mock_proc_ip_address_middleware(
+    request: Request,
+    call_next: Callable,
+) -> Response:
+    """Mock middleware."""
+    return await call_next(request)
+
+
 @pytest_asyncio.fixture(scope="function")
 async def app(
     settings: Settings,
@@ -390,9 +398,13 @@ async def app(
 ) -> AsyncIterator[FastAPI]:
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
-        app = create_app(settings)
-        setup_dishka(container, app)
-        yield app
+        with patch(
+            "multidirectory.proc_ip_address_middleware",
+            mock_proc_ip_address_middleware,
+        ):
+            app = create_app(settings)
+            setup_dishka(container, app)
+            yield app
 
 
 @pytest_asyncio.fixture(scope="function")
