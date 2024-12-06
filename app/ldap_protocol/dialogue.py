@@ -17,7 +17,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models import NetworkPolicy, User
+from models import NetworkPolicy, PolicyProtocol, User
 
 if TYPE_CHECKING:
     from .messages import LDAPRequestMessage
@@ -243,6 +243,7 @@ class LDAPSession:
         query = (  # noqa
             select(NetworkPolicy)
             .filter_by(enabled=True)
+            .filter(NetworkPolicy.protocols.contains([PolicyProtocol.LDAP]))
             .options(selectinload(NetworkPolicy.groups))
             .filter(text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
             .order_by(NetworkPolicy.priority.asc())
