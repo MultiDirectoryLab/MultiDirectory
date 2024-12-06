@@ -42,7 +42,7 @@ from ldap_protocol.utils.queries import (
     get_user_network_policy,
     set_last_logon_user,
 )
-from models import CatalogueSetting, Directory, Group, User
+from models import CatalogueSetting, Directory, Group, PolicyProtocol, User
 from security import get_password_hash
 
 from .oauth2 import (
@@ -108,10 +108,15 @@ async def login_for_access_token(
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     ip = get_ip_address_from_request(request)
-    if ip is None:
+    if not ip:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    network_policy = await get_user_network_policy(ip, user, session)
+    network_policy = await get_user_network_policy(
+        ip,
+        user,
+        PolicyProtocol.WebAdminAPI,
+        session,
+    )
 
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)

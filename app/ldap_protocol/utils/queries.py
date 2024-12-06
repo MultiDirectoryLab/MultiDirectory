@@ -15,7 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models import Attribute, Directory, Group, NetworkPolicy, User
+from models import (
+    Attribute,
+    Directory,
+    Group,
+    NetworkPolicy,
+    PolicyProtocol,
+    User,
+)
 
 from .const import EMAIL_RE, ENTRY_TYPE
 from .helpers import (
@@ -55,12 +62,14 @@ async def get_network_policies(
 async def get_user_network_policy(
     ip: IPv4Address,
     user: User,
+    protocol: PolicyProtocol,
     session: AsyncSession,
 ) -> ScalarResult[NetworkPolicy]:
     """
-    Get the highest priority network policy for user and ip.
+    Get the highest priority network policy for user, ip and protocol.
 
     :param User user: user object
+    :param PolicyProtocol protocol: policy protocol
     :param AsyncSession session: db session
     :return NetworkPolicy | None: a NetworkPolicy object
     """
@@ -70,8 +79,13 @@ async def get_user_network_policy(
         select(NetworkPolicy)
         .filter_by(enabled=True)
         .options(selectinload(NetworkPolicy.groups))
-        .filter(NetworkPolicy.groups.any(Group.id.in_(user_group_ids)))
+        .filter(
+            or_(
+                NetworkPolicy.groups == None, # noqa
+                NetworkPolicy.groups.any(Group.id.in_(user_group_ids))),
+            )
         .filter(text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
+        .filter(NetworkPolicy.protocols.contains([protocol]))
         .order_by(NetworkPolicy.priority.asc())
         .limit(1)
     )
