@@ -15,7 +15,7 @@ import uvloop
 from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import exc as sa_exc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,9 +73,18 @@ async def proc_ip_address_middleware(
     :param Callable call_next: The next middleware or route handler.
     :return Response: The response object.
     """
+    excluded_paths = {
+        "/auth/me",
+        "/auth/setup",
+        "/auth/token/refresh",
+    }
+
+    if request.url.path in excluded_paths:
+        return await call_next(request)
+
     ip = get_ip_address_from_request(request)
     if ip is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
 
     container = request.app.state.dishka_container
     async with container(scope=Scope.REQUEST) as ctnr:
@@ -85,7 +94,7 @@ async def proc_ip_address_middleware(
             session=session,
         )
         if policy is None:
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
+            return Response(status_code=status.HTTP_403_FORBIDDEN)
 
     return await call_next(request)
 
