@@ -503,6 +503,14 @@ class MFAFlags(int, enum.Enum):
     WHITELIST = 2
 
 
+class PolicyProtocol(int, enum.Enum):
+    """Network policy protocol."""
+
+    WebAdminAPI = 0
+    LDAP = 1
+    Kerberos = 2
+
+
 class NetworkPolicy(Base):
     """Network policy data."""
 
@@ -534,6 +542,11 @@ class NetworkPolicy(Base):
     )
     mfa_status: Mapped[MFAFlags] = mapped_column(
         Enum(MFAFlags), server_default="DISABLED", nullable=False,
+    )
+
+    protocols: Mapped[list[PolicyProtocol]] = mapped_column(
+        postgresql.ARRAY(Enum(PolicyProtocol)),
+        nullable=False,
     )
 
     mfa_groups: Mapped[list[Group]] = relationship(
