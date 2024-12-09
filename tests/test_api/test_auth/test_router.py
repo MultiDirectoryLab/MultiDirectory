@@ -311,8 +311,10 @@ async def test_block_user_with_new_attributes(
         attr["type"]: attr["vals"][0]
         for attr in data["search_result"][0]["partial_attributes"]
     }
+    shadow_expire = attrs.get("shadowExpire")
     assert attrs.get("nsAccountLock") == "true"
-    assert attrs.get("shadowExpire").isdigit()
+    assert isinstance(shadow_expire, str)
+    assert shadow_expire.isdigit()
 
 
 @pytest.mark.asyncio
