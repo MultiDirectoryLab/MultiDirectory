@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+from typing import Any
 
 import pytest
 from fastapi import status
@@ -15,6 +16,34 @@ from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
+
+
+async def apply_user_account_control(
+    http_client: AsyncClient, user_dn: str, user_account_control_value: str,
+) -> dict[str, Any]:
+    """Apply userAccountControl value and return response data.
+
+    :param AsyncClient http_client: client
+    :param str user_dn: distinguished name of the user
+    :param str user_account_control_value: new value to set for the
+        `userAccountControl` attribute.
+    """
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": user_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": [user_account_control_value],
+                    },
+                },
+            ],
+        },
+    )
+    return response.json()
 
 
 @pytest.mark.asyncio
@@ -281,22 +310,7 @@ async def test_lock_and_unlock_user(
     assert isinstance(shadow_expire, str)
     assert shadow_expire.isdigit()
 
-    response = await http_client.patch(
-        "/entry/update",
-        json={
-            "object": user_dn,
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "userAccountControl",
-                        "vals": ["512"],
-                    },
-                },
-            ],
-        },
-    )
-    data = response.json()
+    data = await apply_user_account_control(http_client, user_dn, "512")
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
