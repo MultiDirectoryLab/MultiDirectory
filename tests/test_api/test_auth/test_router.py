@@ -78,7 +78,7 @@ async def test_first_setup_and_oauth(
     assert response.json() is True
 
     auth = await unbound_http_client.post(
-        "auth/token/get", data={"username": "test", "password": "Password123"}
+        "auth/token/get", data={"username": "test", "password": "Password123"},
     )
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["access_token", "refresh_token"]
