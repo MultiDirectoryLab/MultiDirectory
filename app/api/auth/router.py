@@ -39,9 +39,10 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
     get_base_directories,
+    get_user_network_policy,
     set_last_logon_user,
 )
-from models import CatalogueSetting, Directory, Group, User
+from models import CatalogueSetting, Directory, Group, PolicyProtocol, User
 from security import get_password_hash
 
 from .oauth2 import (
@@ -53,6 +54,7 @@ from .oauth2 import (
     get_user_from_token,
 )
 from .schema import REFRESH_PATH, OAuth2Form, SetupRequest
+from .utils import get_ip_from_request
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -63,6 +65,7 @@ async def login_for_access_token(
     form: Annotated[OAuth2Form, Depends()],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
+    request: Request,
     response: Response,
 ) -> None:
     """Get refresh and access token on login.
@@ -102,6 +105,20 @@ async def login_for_access_token(
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if user.is_expired():
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    ip = get_ip_from_request(request)
+    if not ip:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    network_policy = await get_user_network_policy(
+        ip,
+        user,
+        PolicyProtocol.WebAdminAPI,
+        session,
+    )
+
+    if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     mfa_enabled = await session.scalar(
