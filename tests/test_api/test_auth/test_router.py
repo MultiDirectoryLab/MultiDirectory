@@ -29,7 +29,7 @@ async def apply_user_account_control(
         `userAccountControl` attribute.
     """
     response = await http_client.patch(
-        "entry/update",
+        "/entry/update",
         json={
             "object": user_dn,
             "changes": [
