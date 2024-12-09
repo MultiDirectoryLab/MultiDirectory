@@ -54,7 +54,7 @@ from .oauth2 import (
     get_user_from_token,
 )
 from .schema import REFRESH_PATH, OAuth2Form, SetupRequest
-from .utils import get_ip_address_from_request
+from .utils import get_ip_from_request
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -107,7 +107,7 @@ async def login_for_access_token(
     if user.is_expired():
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    ip = get_ip_address_from_request(request)
+    ip = get_ip_from_request(request)
     if not ip:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 

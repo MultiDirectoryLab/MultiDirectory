@@ -40,7 +40,7 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     for policy in session.query(NetworkPolicy):
-        policy.protocols = ['WebAdminAPI', 'LDAP']
+        policy.protocols = ['WebAdminAPI', 'LDAP', 'Kerberos']
 
     session.commit()
 

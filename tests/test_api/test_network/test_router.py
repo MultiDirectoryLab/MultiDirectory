@@ -46,7 +46,7 @@ async def test_add_policy(
         "netmasks": raw_netmasks,
         "priority": 2,
         'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-        'protocols': [0, 1],
+        'protocols': [0, 1, 2],
     })
 
     assert raw_response.status_code == 201
@@ -69,7 +69,7 @@ async def test_add_policy(
             'priority': 1,
             'mfa_groups': [],
             'mfa_status': 0,
-            'protocols': [0, 1],
+            'protocols': [0, 1, 2],
         },
         {
             'enabled': True,
@@ -80,7 +80,7 @@ async def test_add_policy(
             'priority': 2,
             'mfa_groups': [],
             'mfa_status': 0,
-            'protocols': [0, 1],
+            'protocols': [0, 1, 2],
         },
     ]
 
@@ -105,7 +105,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             'mfa_groups': [],
             'mfa_status': 0,
             'groups': [],
-            'protocols': [0, 1],
+            'protocols': [0, 1, 2],
         },
     ]
 
@@ -131,7 +131,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
         'mfa_groups': [],
         'mfa_status': 0,
         'priority': 1,
-        'protocols': [0, 1],
+        'protocols': [0, 1, 2],
     }
 
     response = await http_client.get("/policy")
@@ -150,7 +150,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             'mfa_status': 0,
             'priority': 1,
             'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-            'protocols': [0, 1],
+            'protocols': [0, 1, 2],
         },
     ]
 
@@ -167,7 +167,11 @@ async def test_delete_policy(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=2,
-        protocols=[PolicyProtocol.WebAdminAPI, PolicyProtocol.LDAP],
+        protocols=[
+            PolicyProtocol.WebAdminAPI,
+            PolicyProtocol.LDAP,
+            PolicyProtocol.Kerberos,
+        ],
     ))
     await session.commit()
 
@@ -187,7 +191,7 @@ async def test_delete_policy(
         'mfa_groups': [],
         'mfa_status': 0,
         'priority': 1,
-        'protocols': [0, 1],
+        'protocols': [0, 1, 2],
     }
 
     response = await http_client.delete(
@@ -219,7 +223,11 @@ async def test_switch_policy(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=2,
-        protocols=[PolicyProtocol.WebAdminAPI, PolicyProtocol.LDAP],
+        protocols=[
+            PolicyProtocol.WebAdminAPI,
+            PolicyProtocol.LDAP,
+            PolicyProtocol.Kerberos,
+        ],
     ))
     await session.commit()
 
@@ -239,7 +247,7 @@ async def test_switch_policy(
         'mfa_groups': [],
         'mfa_status': 0,
         'priority': 1,
-        'protocols': [0, 1],
+        'protocols': [0, 1, 2],
     }
 
     response = await http_client.patch(
@@ -302,7 +310,7 @@ async def test_swap(http_client: AsyncClient) -> None:
             ],
             "priority": 2,
             'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-            'protocols': [0, 1],
+            'protocols': [0, 1, 2],
         },
     )
 

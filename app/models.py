@@ -8,6 +8,7 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime, timezone
+from enum import IntEnum
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -503,7 +504,7 @@ class MFAFlags(int, enum.Enum):
     WHITELIST = 2
 
 
-class PolicyProtocol(int, enum.Enum):
+class PolicyProtocol(IntEnum):
     """Network policy protocol."""
 
     WebAdminAPI = 0

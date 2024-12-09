@@ -38,7 +38,11 @@ async def test_specific_policy_ok(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=1,
-        protocols=[PolicyProtocol.WebAdminAPI, PolicyProtocol.LDAP],
+        protocols=[
+            PolicyProtocol.WebAdminAPI,
+            PolicyProtocol.LDAP,
+            PolicyProtocol.Kerberos,
+        ],
     ))
     await session.commit()
     policy = await ldap_session._get_policy(

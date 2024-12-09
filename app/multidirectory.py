@@ -30,7 +30,7 @@ from api import (
     network_router,
     pwd_router,
 )
-from api.auth.utils import get_ip_address_from_request
+from api.auth.utils import get_ip_from_request
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import Settings
 from ioc import (
@@ -82,7 +82,7 @@ async def proc_ip_address_middleware(
     if request.url.path in excluded_paths:
         return await call_next(request)
 
-    ip = get_ip_address_from_request(request)
+    ip = get_ip_from_request(request)
     if ip is None:
         return Response(status_code=status.HTTP_403_FORBIDDEN)
 

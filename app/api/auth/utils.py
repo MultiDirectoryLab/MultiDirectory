@@ -9,7 +9,7 @@ from ipaddress import IPv4Address
 from fastapi import Request
 
 
-def get_ip_address_from_request(request: Request) -> IPv4Address | None:
+def get_ip_from_request(request: Request) -> IPv4Address | None:
     """Get IP address from request.
 
     :param Request request: The incoming request object.

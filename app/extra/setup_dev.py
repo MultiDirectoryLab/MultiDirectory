@@ -175,7 +175,11 @@ async def setup_enviroment(
                 netmasks=["0.0.0.0/0"],
                 raw=["0.0.0.0/0"],
                 priority=1,
-                protocols=[PolicyProtocol.WebAdminAPI, PolicyProtocol.LDAP],
+                protocols=[
+                    PolicyProtocol.WebAdminAPI,
+                    PolicyProtocol.LDAP,
+                    PolicyProtocol.Kerberos,
+                ],
             ),
         )
         session.add_all(list(get_domain_object_class(domain)))
