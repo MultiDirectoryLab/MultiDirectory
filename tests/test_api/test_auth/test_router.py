@@ -78,7 +78,7 @@ async def test_first_setup_and_oauth(
     assert response.json() is True
 
     auth = await unbound_http_client.post(
-        "auth/token/get", data={"username": "test", "password": "Password123"}
+        "auth/token/get", data={"username": "test", "password": "Password123"},
     )
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["access_token", "refresh_token"]
@@ -269,18 +269,15 @@ async def test_auth_disabled_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_block_user_with_new_attributes(
+async def test_lock_and_unlock_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
+    session: AsyncSession,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
 
-    data = await apply_user_account_control(
-        http_client,
-        user_dn,
-        "514",
-    )
+    data = await apply_user_account_control(http_client, user_dn, "514")
 
     kadmin.lock_principal.assert_called()  # type: ignore
 
@@ -311,25 +308,12 @@ async def test_block_user_with_new_attributes(
         attr["type"]: attr["vals"][0]
         for attr in data["search_result"][0]["partial_attributes"]
     }
+    shadow_expire = attrs.get("shadowExpire")
     assert attrs.get("nsAccountLock") == "true"
-    assert attrs.get("shadowExpire").isdigit()
+    assert isinstance(shadow_expire, str)
+    assert shadow_expire.isdigit()
 
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_unblock_user_and_remove_new_attributes(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-    session: AsyncSession,
-) -> None:
-    """Block and unblock user and verify removal attributes."""
-    user_dn = "cn=user0,ou=users,dc=md,dc=test"
-
-    data = await apply_user_account_control(
-        http_client,
-        user_dn,
-        "514",
-    )
+    data = await apply_user_account_control(http_client, user_dn, "514")
 
     kadmin.lock_principal.assert_called()  # type: ignore
 
