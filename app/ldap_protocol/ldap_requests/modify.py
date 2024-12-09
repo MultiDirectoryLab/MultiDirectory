@@ -274,8 +274,8 @@ class ModifyRequest(BaseRequest):
                     )
 
         if attrs:
-            del_query = delete(Attribute).where(
-                Attribute.directory_id == directory.id, or_(*attrs),
+            del_query = delete(Attribute).filter(
+                Attribute.directory == directory, or_(*attrs),
             )
 
             await session.execute(del_query)
@@ -377,17 +377,17 @@ class ModifyRequest(BaseRequest):
 
                     await session.execute(
                         delete(Attribute)
-                        .where(
+                        .filter(
                             Attribute.name == "nsAccountLock",
-                            Attribute.directory_id == directory.id,
+                            Attribute.directory == directory,
                         ),
                     )
 
                     await session.execute(
                         delete(Attribute)
-                        .where(
+                        .filter(
                             Attribute.name == "shadowExpire",
-                            Attribute.directory_id == directory.id,
+                            Attribute.directory == directory,
                         ),
                     )
 
