@@ -15,7 +15,7 @@ from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import defaultload, joinedload, subqueryload
+from sqlalchemy.orm import defaultload, joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -315,7 +315,7 @@ class SearchRequest(BaseRequest):
             .join(User, isouter=True)
             .join(Directory.attributes, isouter=True)
             .options(
-                subqueryload(Directory.attributes),
+                selectinload(Directory.attributes),
                 joinedload(Directory.user),
                 joinedload(Directory.group),
             )
