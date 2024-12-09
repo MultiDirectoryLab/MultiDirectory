@@ -275,7 +275,8 @@ class ModifyRequest(BaseRequest):
 
         if attrs:
             del_query = delete(Attribute).filter(
-                Attribute.directory == directory, or_(*attrs),
+                Attribute.directory == directory,
+                attrs[0] if len(attrs) == 1 else or_(*attrs),
             )
 
             await session.execute(del_query)
