@@ -344,6 +344,9 @@ async def test_unblock_user_and_remove_new_attributes(
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
+    import time
+    time.sleep(10)
+
     response = await http_client.post(
         "entry/search",
         json={
