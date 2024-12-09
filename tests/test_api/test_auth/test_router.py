@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any
-
 import pytest
 from fastapi import status
 from httpx import AsyncClient
@@ -17,36 +15,6 @@ from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
-
-
-async def apply_user_account_control(
-    http_client: AsyncClient,
-    user_dn: str,
-    user_account_control_value: str,
-) -> dict[str, Any]:
-    """Apply userAccountControl value and return response data.
-
-    :param AsyncClient http_client: client
-    :param str user_dn: distinguished name of the user
-    :param str user_account_control_value: new value to set for the
-        `userAccountControl` attribute.
-    """
-    response = await http_client.patch(
-        "/entry/update",
-        json={
-            "object": user_dn,
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "userAccountControl",
-                        "vals": [user_account_control_value],
-                    },
-                },
-            ],
-        },
-    )
-    return response.json()
 
 
 @pytest.mark.asyncio
@@ -269,18 +237,29 @@ async def test_auth_disabled_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_block_user_with_new_attributes(
+async def test_lock_and_unlock_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
 
-    data = await apply_user_account_control(
-        http_client,
-        user_dn,
-        "514",
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": user_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["514"],
+                    },
+                },
+            ],
+        },
     )
+    data = response.json()
 
     kadmin.lock_principal.assert_called()  # type: ignore
 
@@ -316,32 +295,22 @@ async def test_block_user_with_new_attributes(
     assert isinstance(shadow_expire, str)
     assert shadow_expire.isdigit()
 
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_unblock_user_and_remove_new_attributes(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
-    """Block and unblock user and verify removal attributes."""
-    user_dn = "cn=user0,ou=users,dc=md,dc=test"
-
-    data = await apply_user_account_control(
-        http_client,
-        user_dn,
-        "514",
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": user_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["512"],
+                    },
+                },
+            ],
+        },
     )
-
-    kadmin.lock_principal.assert_called()  # type: ignore
-
-    assert isinstance(data, dict)
-    assert data.get("resultCode") == LDAPCodes.SUCCESS
-
-    data = await apply_user_account_control(
-        http_client,
-        user_dn,
-        "512",
-    )
+    data = response.json()
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
@@ -370,5 +339,6 @@ async def test_unblock_user_and_remove_new_attributes(
         attr["type"]: attr["vals"][0]
         for attr in data["search_result"][0]["partial_attributes"]
     }
+
     assert "nsAccountLock" not in attrs
     assert "shadowExpire" not in attrs
