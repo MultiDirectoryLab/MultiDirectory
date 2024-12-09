@@ -341,6 +341,12 @@ class User(Base):
         "accountexpires": "accountExpires",
     }
 
+    fields = {
+        "loginshell": "loginShell",
+        "uidnumber": "uidNumber",
+        "homedirectory": "homeDirectory",
+    }
+
     password_history: Mapped[list[str]] = mapped_column(  # noqa TAE002
         MutableList.as_mutable(postgresql.ARRAY(String)),
         server_default="{}",
