@@ -42,7 +42,7 @@ from ldap_protocol.utils.queries import (
     get_user_network_policy,
     set_last_logon_user,
 )
-from models import Directory, Group, PolicyProtocol, User
+from models import Directory, Group, MFAFlags, PolicyProtocol, User
 from security import get_password_hash
 
 from .oauth2 import (
@@ -65,7 +65,7 @@ async def login_for_access_token(
     form: Annotated[OAuth2Form, Depends()],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
-    mfa_http_creds: FromDishka[MFA_HTTP_Creds],
+    mfa: FromDishka[MultifactorAPI],
     request: Request,
     response: Response,
 ) -> None:
@@ -122,7 +122,15 @@ async def login_for_access_token(
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if mfa_http_creds:
+    if mfa and network_policy.mfa_status in (
+        MFAFlags.ENABLED, MFAFlags.WHITELIST,
+    ):
+        if (
+            network_policy.mfa_status == MFAFlags.WHITELIST
+            and not network_policy.mfa_groups
+        ):
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
+
         raise HTTPException(
             status.HTTP_426_UPGRADE_REQUIRED,
             detail="Requires MFA connect",

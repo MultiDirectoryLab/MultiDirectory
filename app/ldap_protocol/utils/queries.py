@@ -78,11 +78,19 @@ async def get_user_network_policy(
     query = ( # noqa
         select(NetworkPolicy)
         .filter_by(enabled=True)
-        .options(selectinload(NetworkPolicy.groups))
+        .options(
+            selectinload(NetworkPolicy.groups),
+            selectinload(NetworkPolicy.mfa_groups),
+        )
         .filter(
             or_(
                 NetworkPolicy.groups == None, # noqa
                 NetworkPolicy.groups.any(Group.id.in_(user_group_ids))),
+            )
+        .filter(
+            or_(
+                NetworkPolicy.mfa_groups == None, # noqa
+                NetworkPolicy.mfa_groups.any(Group.id.in_(user_group_ids))),
             )
         .filter(text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
         .filter(NetworkPolicy.protocols.contains([protocol]))
