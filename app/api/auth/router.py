@@ -39,9 +39,10 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
     get_base_directories,
+    get_user_network_policy,
     set_last_logon_user,
 )
-from models import CatalogueSetting, Directory, Group, User
+from models import Directory, Group, MFAFlags, PolicyProtocol, User
 from security import get_password_hash
 
 from .oauth2 import (
@@ -53,6 +54,7 @@ from .oauth2 import (
     get_user_from_token,
 )
 from .schema import REFRESH_PATH, OAuth2Form, SetupRequest
+from .utils import get_ip_from_request
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -63,6 +65,8 @@ async def login_for_access_token(
     form: Annotated[OAuth2Form, Depends()],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
+    mfa: FromDishka[MultifactorAPI],
+    request: Request,
     response: Response,
 ) -> None:
     """Get refresh and access token on login.
@@ -104,13 +108,29 @@ async def login_for_access_token(
     if user.is_expired():
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    mfa_enabled = await session.scalar(
-        select(CatalogueSetting).filter(
-            CatalogueSetting.name.in_(["mfa_key", "mfa_secret"]),
-        ),
+    ip = get_ip_from_request(request)
+    if not ip:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    network_policy = await get_user_network_policy(
+        ip,
+        user,
+        PolicyProtocol.WebAdminAPI,
+        session,
     )
 
-    if mfa_enabled:
+    if network_policy is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    if mfa and network_policy.mfa_status in (
+        MFAFlags.ENABLED, MFAFlags.WHITELIST,
+    ):
+        if (
+            network_policy.mfa_status == MFAFlags.WHITELIST
+            and not network_policy.mfa_groups
+        ):
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
+
         raise HTTPException(
             status.HTTP_426_UPGRADE_REQUIRED,
             detail="Requires MFA connect",

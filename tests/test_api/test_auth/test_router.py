@@ -311,6 +311,7 @@ async def test_block_user_with_new_attributes(
 async def test_unblock_user_and_remove_new_attributes(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
+    session: AsyncSession,
 ) -> None:
     """Block and unblock user and verify removal attributes."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -330,6 +331,10 @@ async def test_unblock_user_and_remove_new_attributes(
 
     assert isinstance(data, dict)
     assert data.get('resultCode') == LDAPCodes.SUCCESS
+
+    dir_ = await session.scalar(
+        select(Directory).filter(Directory.name == "user0"))
+    session.expire(dir_)
 
     response = await http_client.post(
         "entry/search",

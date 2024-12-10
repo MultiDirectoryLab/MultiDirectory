@@ -8,6 +8,7 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime, timezone
+from enum import IntEnum
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -503,6 +504,14 @@ class MFAFlags(int, enum.Enum):
     WHITELIST = 2
 
 
+class PolicyProtocol(IntEnum):
+    """Network policy protocol."""
+
+    WebAdminAPI = 0
+    LDAP = 1
+    Kerberos = 2
+
+
 class NetworkPolicy(Base):
     """Network policy data."""
 
@@ -534,6 +543,11 @@ class NetworkPolicy(Base):
     )
     mfa_status: Mapped[MFAFlags] = mapped_column(
         Enum(MFAFlags), server_default="DISABLED", nullable=False,
+    )
+
+    protocols: Mapped[list[PolicyProtocol]] = mapped_column(
+        postgresql.ARRAY(Enum(PolicyProtocol)),
+        nullable=False,
     )
 
     mfa_groups: Mapped[list[Group]] = relationship(

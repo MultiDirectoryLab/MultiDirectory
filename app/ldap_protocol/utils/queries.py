@@ -5,16 +5,24 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import time
 from datetime import datetime
+from ipaddress import IPv4Address, IPv4Network
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, func, or_, select, update
+from sqlalchemy import Column, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models import Attribute, Directory, Group, NetworkPolicy, User
+from models import (
+    Attribute,
+    Directory,
+    Group,
+    NetworkPolicy,
+    PolicyProtocol,
+    User,
+)
 
 from .const import EMAIL_RE, ENTRY_TYPE
 from .helpers import (
@@ -32,6 +40,93 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
         select(Directory).filter(Directory.parent_id.is_(None)),
     )
     return list(result.scalars().all())
+
+
+@cache
+async def get_network_policies(
+    session: AsyncSession,
+) -> list[NetworkPolicy]:
+    """
+    Get enabled network policies.
+
+    :param AsyncSession session: db session
+    :return list[NetworkPolicy]: A list of enabled NetworkPolicy objects
+    """
+    result = await session.scalars(
+        select(NetworkPolicy)
+        .filter_by(enabled=True),
+    )
+    return list(result.all())
+
+
+async def get_user_network_policy(
+    ip: IPv4Address,
+    user: User,
+    protocol: PolicyProtocol,
+    session: AsyncSession,
+) -> NetworkPolicy | None:
+    """
+    Get the highest priority network policy for user, ip and protocol.
+
+    :param User user: user object
+    :param PolicyProtocol protocol: policy protocol
+    :param AsyncSession session: db session
+    :return NetworkPolicy | None: a NetworkPolicy object
+    """
+    user_group_ids = [group.id for group in user.groups]
+
+    query = ( # noqa
+        select(NetworkPolicy)
+        .filter_by(enabled=True)
+        .options(
+            selectinload(NetworkPolicy.groups),
+            selectinload(NetworkPolicy.mfa_groups),
+        )
+        .filter(
+            or_(
+                NetworkPolicy.groups == None, # noqa
+                NetworkPolicy.groups.any(Group.id.in_(user_group_ids))),
+            )
+        .filter(
+            or_(
+                NetworkPolicy.mfa_groups == None, # noqa
+                NetworkPolicy.mfa_groups.any(Group.id.in_(user_group_ids))),
+            )
+        .filter(text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip))
+        .filter(NetworkPolicy.protocols.contains([protocol]))
+        .order_by(NetworkPolicy.priority.asc())
+        .limit(1)
+    )
+
+    return await session.scalar(query)
+
+
+async def find_policy_by_ip(
+    ip: IPv4Address,
+    session: AsyncSession,
+) -> NetworkPolicy | None:
+    """Find and return the highest priority network policy matching the \
+    given IP address.
+
+    :param IPv4Address ip: The IP address to search
+    :param AsyncSession session: db session
+    :return NetworkPolicy | None: The first matching policy by priority,
+        or None if no matching policy is found
+    """
+    policies = await get_network_policies(session)
+
+    matching_policies = [
+        policy for policy in policies
+        if any(
+            (isinstance(netmask, IPv4Network) and ip in netmask) or
+            (isinstance(netmask, IPv4Address) and ip == netmask)
+            for netmask in policy.netmasks
+        )
+    ]
+
+    matching_policies.sort(key=lambda p: p.priority)
+
+    return matching_policies[0] if matching_policies else None
 
 
 async def get_user(session: AsyncSession, name: str) -> User | None:

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
-from ldap_protocol.utils.queries import get_groups
+from ldap_protocol.utils.queries import get_groups, get_network_policies
 from models import Group, NetworkPolicy
 
 from .schema import (
@@ -55,6 +55,7 @@ async def add_network_policy(
         priority=policy.priority,
         raw=policy.model_dump(mode="json")["netmasks"],
         mfa_status=policy.mfa_status,
+        protocols=policy.protocols,
     )
     group_dns = []
     mfa_group_dns = []
@@ -76,6 +77,8 @@ async def add_network_policy(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists",
         )
+    else:
+        get_network_policies.cache_clear()
 
     await session.refresh(new_policy)
 
@@ -89,6 +92,7 @@ async def add_network_policy(
         groups=group_dns,
         mfa_status=new_policy.mfa_status,
         mfa_groups=mfa_group_dns,
+        protocols=new_policy.protocols,
     )
 
 
@@ -96,7 +100,7 @@ async def add_network_policy(
     "", name="policy", dependencies=[Depends(get_current_user)],
 )
 @inject
-async def get_network_policies(
+async def get_list_network_policies(
     session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
     """Get network.
@@ -123,6 +127,7 @@ async def get_network_policies(
             mfa_groups=(
                 group.directory.path_dn for group in policy.mfa_groups
             ),
+            protocols=policy.protocols,
         )
         for policy in await session.scalars(
             select(NetworkPolicy)
@@ -172,6 +177,7 @@ async def delete_network_policy(
             ),
         )
         await session.commit()
+    get_network_policies.cache_clear()
 
     return RedirectResponse(
         request.url_for("policy"),
@@ -207,6 +213,7 @@ async def switch_network_policy(
 
     policy.enabled = not policy.enabled
     await session.commit()
+    get_network_policies.cache_clear()
     return True
 
 
@@ -266,6 +273,9 @@ async def update_network_policy(
     elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
         selected_policy.mfa_groups.clear()
 
+    if request.protocols is not None:
+        selected_policy.protocols = request.protocols
+
     try:
         await session.commit()
     except IntegrityError:
@@ -273,6 +283,8 @@ async def update_network_policy(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Entry already exists",
         )
+    else:
+        get_network_policies.cache_clear()
 
     return PolicyResponse(
         id=selected_policy.id,
@@ -284,6 +296,7 @@ async def update_network_policy(
         groups=request.groups or [],
         mfa_status=selected_policy.mfa_status,
         mfa_groups=request.mfa_groups or [],
+        protocols=selected_policy.protocols,
     )
 
 
