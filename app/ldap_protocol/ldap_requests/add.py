@@ -295,7 +295,7 @@ class AddRequest(BaseRequest):
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
 
-        elif is_computer:
+        elif is_computer and "useraccountcontrol" not in self.attr_names:
             attributes.append(
                 Attribute(
                     name="userAccountControl",
@@ -306,7 +306,7 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        if is_user or is_group:
+        if (is_user or is_group) and 'gidnumber' not in self.attr_names:
             reverse_d_name = new_dir.name[::-1]
             value = (
                 "513"
