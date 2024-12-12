@@ -47,7 +47,7 @@ async def apply_user_account_control(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_first_setup_and_oauth(
     unbound_http_client: AsyncClient,
     session: AsyncSession,
@@ -57,24 +57,28 @@ async def test_first_setup_and_oauth(
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is False
 
-    response = await unbound_http_client.post("/auth/setup", json={
-        "domain": "md.test",
-        "username": "test",
-        "user_principal_name": "test",
-        "display_name": "test",
-        "mail": "test@example.com",
-        "password": "Password123",
-    })
+    response = await unbound_http_client.post(
+        "/auth/setup",
+        json={
+            "domain": "md.test",
+            "username": "test",
+            "user_principal_name": "test",
+            "display_name": "test",
+            "mail": "test@example.com",
+            "password": "Password123",
+        },
+    )
     assert response.status_code == status.HTTP_200_OK
 
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
 
-    auth = await unbound_http_client.post("auth/token/get", data={
-        "username": "test", "password": "Password123"})
+    auth = await unbound_http_client.post(
+        "auth/token/get", data={"username": "test", "password": "Password123"},
+    )
     assert auth.status_code == 200
-    assert list(auth.cookies.keys()) == ['access_token', 'refresh_token']
+    assert list(auth.cookies.keys()) == ["access_token", "refresh_token"]
 
     response = await unbound_http_client.get("auth/me")
     assert response.status_code == status.HTTP_200_OK
@@ -93,9 +97,9 @@ async def test_first_setup_and_oauth(
             joinedload(Directory.group).selectinload(Group.access_policies),
         )
         .filter(
-            Directory.path ==
-            get_search_path(
-                'cn=readonly domain controllers,cn=groups,dc=md,dc=test',
+            Directory.path
+            == get_search_path(
+                "cn=readonly domain controllers,cn=groups,dc=md,dc=test",
             ),
         ),
     )
@@ -111,7 +115,7 @@ async def test_first_setup_and_oauth(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
     """Update password and check userAccountControl attr."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -132,7 +136,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
         },
     )
 
-    assert response.json().get('resultCode') == LDAPCodes.SUCCESS
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.patch(
         "auth/user/password",
@@ -162,19 +166,19 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
 
     data = response.json()
 
-    assert data['resultCode'] == LDAPCodes.SUCCESS
-    assert data['search_result'][0]['object_name'] == user_dn
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == user_dn
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'userAccountControl':
-            assert attr['vals'][0] == '512'
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "userAccountControl":
+            assert attr["vals"][0] == "512"
             break
     else:
-        raise Exception('UserAccountControl not found')
+        raise Exception("UserAccountControl not found")
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_update_password(http_client: AsyncClient) -> None:
     """Update policy."""
     response = await http_client.patch(
@@ -205,13 +209,13 @@ async def test_update_password(http_client: AsyncClient) -> None:
         },
     )
     assert new_auth.status_code == status.HTTP_200_OK
-    token = new_auth.cookies.get('access_token')
+    token = new_auth.cookies.get("access_token")
     assert token
-    assert 'bearer' in token.lower()
+    assert "bearer" in token.lower()
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_auth_disabled_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
@@ -247,7 +251,7 @@ async def test_auth_disabled_user(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "auth/token/get",
@@ -261,22 +265,21 @@ async def test_auth_disabled_user(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
-async def test_block_user_with_new_attributes(
+@pytest.mark.usefixtures("session")
+async def test_lock_and_unlock_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
+    session: AsyncSession,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
 
-    data = await apply_user_account_control(
-        http_client, user_dn, "514",
-    )
+    data = await apply_user_account_control(http_client, user_dn, "514")
 
     kadmin.lock_principal.assert_called()  # type: ignore
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -295,42 +298,22 @@ async def test_block_user_with_new_attributes(
 
     data = response.json()
 
-    assert data['resultCode'] == LDAPCodes.SUCCESS
-    assert data['search_result'][0]['object_name'] == user_dn
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == user_dn
 
     attrs = {
-        attr['type']: attr['vals'][0]
-        for attr in data['search_result'][0]['partial_attributes']
+        attr["type"]: attr["vals"][0]
+        for attr in data["search_result"][0]["partial_attributes"]
     }
-    assert attrs.get('nsAccountLock') == 'true'
-    assert attrs.get('shadowExpire').isdigit()
+    shadow_expire = attrs.get("shadowExpire")
+    assert attrs.get("nsAccountLock") == "true"
+    assert isinstance(shadow_expire, str)
+    assert shadow_expire.isdigit()
 
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
-async def test_unblock_user_and_remove_new_attributes(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-    session: AsyncSession,
-) -> None:
-    """Block and unblock user and verify removal attributes."""
-    user_dn = "cn=user0,ou=users,dc=md,dc=test"
-
-    data = await apply_user_account_control(
-        http_client, user_dn, "514",
-    )
-
-    kadmin.lock_principal.assert_called()  # type: ignore
+    data = await apply_user_account_control(http_client, user_dn, "512")
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
-
-    data = await apply_user_account_control(
-        http_client, user_dn, "512",
-    )
-
-    assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     dir_ = await session.scalar(
         select(Directory).filter(Directory.name == "user0"))
@@ -353,12 +336,13 @@ async def test_unblock_user_and_remove_new_attributes(
 
     data = response.json()
 
-    assert data['resultCode'] == LDAPCodes.SUCCESS
-    assert data['search_result'][0]['object_name'] == user_dn
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == user_dn
 
     attrs = {
-        attr['type']: attr['vals'][0]
-        for attr in data['search_result'][0]['partial_attributes']
+        attr["type"]: attr["vals"][0]
+        for attr in data["search_result"][0]["partial_attributes"]
     }
-    assert 'nsAccountLock' not in attrs
-    assert 'shadowExpire' not in attrs
+
+    assert "nsAccountLock" not in attrs
+    assert "shadowExpire" not in attrs

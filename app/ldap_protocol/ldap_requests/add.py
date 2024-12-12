@@ -185,7 +185,7 @@ class AddRequest(BaseRequest):
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
-        user_fields = User.search_fields.keys()
+        user_fields = User.search_fields.keys() | User.fields.keys()
         attributes.append(Attribute(
             name=new_dn, value=name, directory=new_dir))
 
@@ -265,27 +265,22 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-            attributes.append(
-                Attribute(
-                    name="uidNumber",
-                    value=str(create_integer_hash(user.sam_accout_name)),
-                    directory=new_dir,
-                ),
-            )
+            for attr, value in {  # type: ignore
+                "loginShell": "/bin/bash",
+                "uidNumber": str(create_integer_hash(user.sam_accout_name)),
+                "homeDirectory": f"/home/{user.sam_accout_name}",
+            }.items():
+                if attr in user_attributes:
+                    value = user_attributes[attr]  # type: ignore
+                    del user_attributes[attr]  # type: ignore
 
-            attributes.append(
-                Attribute(
-                    name="homeDirectory",
-                    value=f"/home/{user.sam_accout_name}",
-                    directory=new_dir,
-                ),
-            )
-
-            attributes.append(
-                Attribute(
-                    name="loginShell", value="/bin/bash", directory=new_dir,
-                ),
-            )
+                attributes.append(
+                    Attribute(
+                        name=attr,
+                        value=value,
+                        directory=new_dir,
+                    ),
+                )
 
             attributes.append(
                 Attribute(
@@ -300,7 +295,7 @@ class AddRequest(BaseRequest):
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
 
-        elif is_computer:
+        elif is_computer and "useraccountcontrol" not in self.attr_names:
             attributes.append(
                 Attribute(
                     name="userAccountControl",
@@ -311,7 +306,7 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        if is_user or is_group:
+        if (is_user or is_group) and 'gidnumber' not in self.attr_names:
             reverse_d_name = new_dir.name[::-1]
             value = (
                 "513"

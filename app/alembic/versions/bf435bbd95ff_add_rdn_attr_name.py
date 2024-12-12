@@ -1,7 +1,7 @@
-"""Add rdn attr name.
+"""Add RDN Attribute Naming and Resolve Duplication in KrbAdmin.
 
 Revision ID: bf435bbd95ff
-Revises: 59e98bbd8ad8
+Revises: 196f0d327c6a
 Create Date: 2024-10-23 10:46:24.419163
 
 """
@@ -52,4 +52,21 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
+    bind = op.get_bind()
+    session = Session(bind=bind)
+
+    for directory in session.query(Directory):
+        if directory.is_domain:
+            directory.rdname = ''
+            continue
+
+        session.execute(
+            sa.delete(Attribute)
+            .where(
+                Attribute.name == directory.rdname,
+                Attribute.name != 'krbprincipalname',
+                Attribute.directory_id == directory.id,
+            ),
+        )
+
     op.drop_column('Directory', 'rdname')
