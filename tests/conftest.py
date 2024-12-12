@@ -29,7 +29,7 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
-from multidirectory import create_app
+from multidirectory import create_basic_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -402,7 +402,7 @@ async def app(
             "multidirectory.proc_ip_address_middleware",
             mock_proc_ip_address_middleware,
         ):
-            app = create_app(settings)
+            app = create_basic_app(settings)
             setup_dishka(container, app)
             yield app
 
