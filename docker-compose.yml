@@ -274,12 +274,9 @@ services:
       - traefik.tcp.routers.kadmind.service=kadmind
       - traefik.tcp.services.kadmind.loadbalancer.server.port=749
 
-  mfa_proxy:
-    build:
-      context: .
-      dockerfile: ./.docker/mfa.Dockerfile
-    image: mfa_proxy
-    container_name: mfa_proxy
+  shadow_api:
+    image: multidirectory
+    container_name: shadow_api
     restart: unless-stopped
     tty: true
     depends_on:
@@ -288,9 +285,7 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-    working_dir: /server
-    command: uvicorn --factory mfa_proxy_server:create_app
-             --host 0.0.0.0 --reload
+    command: python multidirectory.py --shadow
 
   maintence:
     image: multidirectory
