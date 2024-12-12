@@ -28,8 +28,8 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from fastapi import FastAPI
-from multidirectory import create_app
+from fastapi import FastAPI, Request, Response
+from multidirectory import create_basic_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
