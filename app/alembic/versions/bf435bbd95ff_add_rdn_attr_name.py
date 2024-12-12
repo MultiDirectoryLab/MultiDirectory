@@ -1,7 +1,7 @@
 """Add RDN Attribute Naming and Resolve Duplication in KrbAdmin.
 
 Revision ID: bf435bbd95ff
-Revises: 59e98bbd8ad8
+Revises: 196f0d327c6a
 Create Date: 2024-10-23 10:46:24.419163
 
 """
@@ -43,24 +43,6 @@ def upgrade() -> None:
             value=directory.name,
             directory_id=directory.id,
         ))
-
-    krb_admin_dir = session.query(Directory).filter_by(name='krbadmin').first()
-
-    if krb_admin_dir:
-        for attr, new_value in {
-            "loginShell": "/bin/false",
-            "uidNumber": "800",
-            "homeDirectory": "/home/krbadmin",
-        }.items():
-            session.execute(
-                sa.update(Attribute)
-                .where(
-                    Attribute.name == attr,
-                    Attribute.directory_id == krb_admin_dir.id,
-                    Attribute.value == new_value,
-                )
-                .values(value=new_value),
-            )
 
     session.add_all(attrs)
     session.commit()
