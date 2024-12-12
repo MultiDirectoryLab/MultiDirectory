@@ -99,14 +99,14 @@ async def proc_ip_address_middleware(
     return await call_next(request)
 
 
-def create_app(settings: Settings) -> FastAPI:
-    """Create FastAPI app with dependencies overrides."""
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    await app.state.dishka_container.close()
 
-    @asynccontextmanager
-    async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
-        yield
-        await app.state.dishka_container.close()
 
+def create_basic_app(settings: Settings) -> FastAPI:
+    """Create basic FastAPI app with dependencies overrides."""
     app = FastAPI(
         name="MultiDirectory",
         title="MultiDirectory",
@@ -142,10 +142,33 @@ def create_app(settings: Settings) -> FastAPI:
     return app
 
 
-def create_prod_app(settings: Settings | None = None) -> FastAPI:
+def create_shadow_app(settings: Settings) -> FastAPI:
+    """Create shadow FastAPI app for shadow."""
+    app = FastAPI(
+        name="Shadow",
+        title="Shadow",
+        debug=settings.DEBUG,
+        root_path="/api",
+        version=settings.VENDOR_VERSION,
+        lifespan=_lifespan,
+    )
+    app.include_router(auth_router)
+
+    app.middleware("http")(proc_ip_address_middleware)
+    return app
+
+
+def create_prod_app(
+    is_basic: bool = True,
+    settings: Settings | None = None,
+) -> FastAPI:
     """Create production app with container."""
     settings = settings or Settings()
-    app = create_app(settings)
+
+    if is_basic:
+        app = create_basic_app(settings)
+    else:
+        app = create_shadow_app(settings)
 
     container = make_async_container(
         MainProvider(),
@@ -200,12 +223,23 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--ldap', action='store_true', help="Run ldap")
     group.add_argument('--http', action='store_true', help="Run http")
+    group.add_argument('--shadow', action='store_true', help="Run http")
     group.add_argument('--scheduler', action='store_true', help="Run tasks")
 
     args = parser.parse_args()
 
     if args.ldap:
         ldap(settings)
+
+    elif args.shadow:
+        uvicorn.run(
+            create_prod_app(is_basic=False),
+            host=str(settings.HOST),
+            port=settings.HTTP_PORT,
+            reload=settings.DEBUG,
+            loop="uvloop",
+            factory=True,
+        )
 
     elif args.http:
         uvicorn.run(
