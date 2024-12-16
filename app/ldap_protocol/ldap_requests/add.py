@@ -192,6 +192,8 @@ class AddRequest(BaseRequest):
         for attr in self.attributes:
             lname = attr.type.lower()
 
+            # NOTE: Does not create a duplicate if the user has sent the rdn
+            # in the attributes
             if lname == new_dir.rdname:
                 continue
 
