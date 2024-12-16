@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import time
 from contextlib import asynccontextmanager
+from functools import partial
 from typing import AsyncIterator, Callable
 
 import uvicorn
@@ -29,6 +30,7 @@ from api import (
     network_router,
     pwd_router,
     session_router,
+    shadow_router,
 )
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import Settings
@@ -70,7 +72,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     await app.state.dishka_container.close()
 
 
-def create_basic_app(settings: Settings) -> FastAPI:
+def _create_basic_app(settings: Settings) -> FastAPI:
     """Create basic FastAPI app with dependencies overrides."""
     app = FastAPI(
         name="MultiDirectory",
@@ -107,34 +109,26 @@ def create_basic_app(settings: Settings) -> FastAPI:
     return app
 
 
-def create_shadow_app(settings: Settings) -> FastAPI:
+def _create_shadow_app(settings: Settings) -> FastAPI:
     """Create shadow FastAPI app for shadow."""
     app = FastAPI(
-        name="Shadow",
-        title="Shadow",
+        name="Shadow API",
+        title="Internal API",
         debug=settings.DEBUG,
-        root_path="/api",
         version=settings.VENDOR_VERSION,
         lifespan=_lifespan,
     )
-    app.include_router(auth_router)
-
-    app.middleware("http")(proc_ip_address_middleware)
+    app.include_router(shadow_router)
     return app
 
 
 def create_prod_app(
-    is_basic: bool = True,
+    factory: Callable[[Settings], FastAPI] = _create_basic_app,
     settings: Settings | None = None,
 ) -> FastAPI:
     """Create production app with container."""
     settings = settings or Settings()
-
-    if is_basic:
-        app = create_basic_app(settings)
-    else:
-        app = create_shadow_app(settings)
-
+    app = factory(settings)
     container = make_async_container(
         MainProvider(),
         MFAProvider(),
@@ -145,6 +139,9 @@ def create_prod_app(
 
     setup_dishka(container, app)
     return app
+
+
+create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 
 
 def ldap(settings: Settings) -> None:
@@ -198,7 +195,7 @@ if __name__ == "__main__":
 
     elif args.shadow:
         uvicorn.run(
-            create_prod_app(is_basic=False),
+            "__main__:create_shadow_app",
             host=str(settings.HOST),
             port=settings.HTTP_PORT,
             reload=settings.DEBUG,
