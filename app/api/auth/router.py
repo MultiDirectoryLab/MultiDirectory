@@ -28,6 +28,7 @@ from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MultifactorAPI
+from ldap_protocol.network_policy import get_user_network_policy
 from ldap_protocol.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -39,7 +40,6 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
     get_base_directories,
-    get_user_network_policy,
     set_last_logon_user,
 )
 from models import Directory, Group, MFAFlags, User

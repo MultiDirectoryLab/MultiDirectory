@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, AsyncIterator, Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.queries import build_policy_query
+from ldap_protocol.network_policy import build_policy_query
 from models import NetworkPolicy, User
 
 if TYPE_CHECKING:
