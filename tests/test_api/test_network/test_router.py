@@ -46,6 +46,9 @@ async def test_add_policy(
         "netmasks": raw_netmasks,
         "priority": 2,
         'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
+        'is_http': True,
+        'is_ldap': True,
+        'is_kerberos': True,
     })
 
     assert raw_response.status_code == 201
