@@ -18,11 +18,8 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_responses import SearchResultEntry
-from ldap_protocol.utils.queries import (
-    get_group,
-    get_groups,
-    is_user_group_valid,
-)
+from ldap_protocol.network_policy import is_user_group_valid
+from ldap_protocol.utils.queries import get_group, get_groups
 from models import User
 from tests.conftest import TestCreds
 
