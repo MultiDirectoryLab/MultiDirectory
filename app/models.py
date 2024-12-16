@@ -543,11 +543,11 @@ class NetworkPolicy(Base):
     )
 
     is_ldap: Mapped[bool] = mapped_column(
-        server_default=expression.false(), nullable=False)
+        server_default=expression.true(), nullable=False)
     is_http: Mapped[bool] = mapped_column(
-        server_default=expression.false(), nullable=False)
+        server_default=expression.true(), nullable=False)
     is_kerberos: Mapped[bool] = mapped_column(
-        server_default=expression.false(), nullable=False)
+        server_default=expression.true(), nullable=False)
 
     mfa_groups: Mapped[list[Group]] = relationship(
         "Group",

@@ -174,9 +174,6 @@ async def setup_enviroment(
                 netmasks=["0.0.0.0/0"],
                 raw=["0.0.0.0/0"],
                 priority=1,
-                is_http=True,
-                is_ldap=True,
-                is_kerberos=True,
             ),
         )
         session.add_all(list(get_domain_object_class(domain)))

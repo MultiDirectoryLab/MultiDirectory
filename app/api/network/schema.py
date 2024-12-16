@@ -103,9 +103,9 @@ class Policy(BaseModel, NetmasksMixin):
     groups: list[str] = []
     mfa_status: MFAFlags = MFAFlags.DISABLED
     mfa_groups: list[str] = []
-    is_http: bool
-    is_ldap: bool
-    is_kerberos: bool
+    is_http: bool = True
+    is_ldap: bool = True
+    is_kerberos: bool = True
 
 
 class PolicyResponse(BaseModel):

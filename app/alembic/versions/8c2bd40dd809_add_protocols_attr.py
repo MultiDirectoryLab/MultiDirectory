@@ -26,7 +26,7 @@ def upgrade() -> None:
             sa.Column(
                 protocol_field,
                 sa.Boolean(),
-                server_default=sa.text('false'),
+                server_default=sa.text('true'),
             ),
         )
 
