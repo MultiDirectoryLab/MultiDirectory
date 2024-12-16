@@ -383,14 +383,6 @@ def ldap_client(settings: Settings) -> ldap3.Connection:
         ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"))
 
 
-async def mock_proc_ip_address_middleware(
-    request: Request,
-    call_next: Callable,
-) -> Response:
-    """Mock middleware."""
-    return await call_next(request)
-
-
 @pytest_asyncio.fixture(scope="function")
 async def app(
     settings: Settings,
@@ -398,13 +390,9 @@ async def app(
 ) -> AsyncIterator[FastAPI]:
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
-        with patch(
-            "multidirectory.proc_ip_address_middleware",
-            mock_proc_ip_address_middleware,
-        ):
-            app = create_app(settings)
-            setup_dishka(container, app)
-            yield app
+        app = create_app(settings)
+        setup_dishka(container, app)
+        yield app
 
 
 @pytest_asyncio.fixture(scope="function")
