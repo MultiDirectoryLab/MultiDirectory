@@ -14,7 +14,7 @@ from ldap_protocol.utils.queries import (
     get_user,
     is_user_group_valid,
 )
-from models import NetworkPolicy, PolicyProtocol
+from models import NetworkPolicy
 
 
 @pytest.mark.asyncio
@@ -38,11 +38,9 @@ async def test_specific_policy_ok(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=1,
-        protocols=[
-            PolicyProtocol.WebAdminAPI,
-            PolicyProtocol.LDAP,
-            PolicyProtocol.Kerberos,
-        ],
+        is_http=True,
+        is_ldap=True,
+        is_kerberos=True,
     ))
     await session.commit()
     policy = await ldap_session._get_policy(
