@@ -191,6 +191,10 @@ class AddRequest(BaseRequest):
 
         for attr in self.attributes:
             lname = attr.type.lower()
+
+            if lname == new_dir.rdname:
+                continue
+
             for value in attr.vals:
                 if lname in Directory.ro_fields or lname in (
                     "userpassword",
