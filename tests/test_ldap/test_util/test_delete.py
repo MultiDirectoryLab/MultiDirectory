@@ -12,8 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPCodes
+from ldap_protocol.policies.access_policy import create_access_policy
 from models import Directory
 from tests.conftest import TestCreds
 

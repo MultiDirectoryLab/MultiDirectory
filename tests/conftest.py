@@ -42,7 +42,6 @@ from sqlalchemy.ext.asyncio import (
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider
-from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -52,6 +51,7 @@ from ldap_protocol.dns import (
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.utils.queries import get_user
 from models import Directory

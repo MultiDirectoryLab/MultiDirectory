@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from ldap_protocol.access_policy import get_policies
+from ldap_protocol.policies.access_policy import get_policies
 
 from .schema import MaterialAccessPolicySchema
 

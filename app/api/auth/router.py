@@ -24,12 +24,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from extra.setup_dev import setup_enviroment
-from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MultifactorAPI
-from ldap_protocol.network_policy import get_user_network_policy
-from ldap_protocol.password_policy import (
+from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )

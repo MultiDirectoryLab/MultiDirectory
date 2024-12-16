@@ -14,10 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
 
 from config import Settings
-from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests import AddRequest
+from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group, User
 from tests.conftest import TestCreds

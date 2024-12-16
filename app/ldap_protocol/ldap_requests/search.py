@@ -20,7 +20,6 @@ from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import Settings
-from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession, UserSchema
 from ldap_protocol.filter_interpreter import cast_filter2sql
@@ -32,6 +31,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.objects import DerefAliases, Scope
+from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.const import ATTRIBUTE_TYPES, OBJECT_CLASSES
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (

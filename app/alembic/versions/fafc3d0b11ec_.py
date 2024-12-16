@@ -10,7 +10,7 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.access_policy import create_access_policy
+from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,

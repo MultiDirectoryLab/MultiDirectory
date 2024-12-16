@@ -18,8 +18,8 @@ from ldap_protocol.kerberos import AbstractKadmin
 from models import Attribute, PasswordPolicy, User
 from security import verify_password
 
-from .user_account_control import UserAccountControlFlag
-from .utils.helpers import ft_now, ft_to_dt
+from ..user_account_control import UserAccountControlFlag
+from ..utils.helpers import ft_now, ft_to_dt
 
 with open("extra/common_pwds.txt") as f:
     _COMMON_PASSWORDS = set(f.read().split("\n"))
