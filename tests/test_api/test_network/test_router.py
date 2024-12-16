@@ -46,9 +46,6 @@ async def test_add_policy(
         "netmasks": raw_netmasks,
         "priority": 2,
         'groups': ['cn=domain admins,cn=groups,dc=md,dc=test'],
-        'is_http': True,
-        'is_ldap': True,
-        'is_kerberos': True,
     })
 
     assert raw_response.status_code == 201
@@ -179,9 +176,6 @@ async def test_delete_policy(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=2,
-        is_http=True,
-        is_ldap=True,
-        is_kerberos=True,
     ))
     await session.commit()
 
@@ -235,9 +229,6 @@ async def test_switch_policy(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=2,
-        is_http=True,
-        is_ldap=True,
-        is_kerberos=True,
     ))
     await session.commit()
 

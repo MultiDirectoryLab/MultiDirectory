@@ -35,9 +35,6 @@ async def test_specific_policy_ok(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=1,
-        is_http=True,
-        is_ldap=True,
-        is_kerberos=True,
     ))
     await session.commit()
     policy = await ldap_session._get_policy(
