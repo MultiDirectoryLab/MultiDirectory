@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import time
 from datetime import datetime
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Address
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
@@ -40,23 +40,6 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
         select(Directory).filter(Directory.parent_id.is_(None)),
     )
     return list(result.scalars().all())
-
-
-@cache
-async def get_network_policies(
-    session: AsyncSession,
-) -> list[NetworkPolicy]:
-    """
-    Get enabled network policies.
-
-    :param AsyncSession session: db session
-    :return list[NetworkPolicy]: A list of enabled NetworkPolicy objects
-    """
-    result = await session.scalars(
-        select(NetworkPolicy)
-        .filter_by(enabled=True),
-    )
-    return list(result.all())
 
 
 async def get_user_network_policy(
@@ -99,34 +82,6 @@ async def get_user_network_policy(
     )
 
     return await session.scalar(query)
-
-
-async def find_policy_by_ip(
-    ip: IPv4Address,
-    session: AsyncSession,
-) -> NetworkPolicy | None:
-    """Find and return the highest priority network policy matching the \
-    given IP address.
-
-    :param IPv4Address ip: The IP address to search
-    :param AsyncSession session: db session
-    :return NetworkPolicy | None: The first matching policy by priority,
-        or None if no matching policy is found
-    """
-    policies = await get_network_policies(session)
-
-    matching_policies = [
-        policy for policy in policies
-        if any(
-            (isinstance(netmask, IPv4Network) and ip in netmask) or
-            (isinstance(netmask, IPv4Address) and ip == netmask)
-            for netmask in policy.netmasks
-        )
-    ]
-
-    matching_policies.sort(key=lambda p: p.priority)
-
-    return matching_policies[0] if matching_policies else None
 
 
 async def get_user(session: AsyncSession, name: str) -> User | None:
