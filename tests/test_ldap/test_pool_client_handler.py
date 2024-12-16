@@ -9,12 +9,9 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.utils.queries import (
-    get_group,
-    get_user,
-    is_user_group_valid,
-)
-from models import NetworkPolicy, PolicyProtocol
+from ldap_protocol.policies.network_policy import is_user_group_valid
+from ldap_protocol.utils.queries import get_group, get_user
+from models import NetworkPolicy
 
 
 @pytest.mark.asyncio
@@ -38,11 +35,6 @@ async def test_specific_policy_ok(
         raw=['127.100.10.5/32'],
         enabled=True,
         priority=1,
-        protocols=[
-            PolicyProtocol.WebAdminAPI,
-            PolicyProtocol.LDAP,
-            PolicyProtocol.Kerberos,
-        ],
     ))
     await session.commit()
     policy = await ldap_session._get_policy(

@@ -19,7 +19,7 @@ from pydantic import (
 )
 
 from ldap_protocol.utils.helpers import validate_entry
-from models import MFAFlags, PolicyProtocol
+from models import MFAFlags
 
 
 class IPRange(BaseModel):
@@ -103,7 +103,9 @@ class Policy(BaseModel, NetmasksMixin):
     groups: list[str] = []
     mfa_status: MFAFlags = MFAFlags.DISABLED
     mfa_groups: list[str] = []
-    protocols: list[PolicyProtocol]
+    is_http: bool
+    is_ldap: bool
+    is_kerberos: bool
 
 
 class PolicyResponse(BaseModel):
@@ -120,7 +122,9 @@ class PolicyResponse(BaseModel):
     groups: list[str] = []
     mfa_status: MFAFlags
     mfa_groups: list[str] = []
-    protocols: list[PolicyProtocol]
+    is_http: bool
+    is_ldap: bool
+    is_kerberos: bool
 
 
 class PolicyUpdate(BaseModel, NetmasksMixin):
@@ -132,7 +136,9 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     groups: list[str] | None = None
     mfa_status: MFAFlags | None = None
     mfa_groups: list[str] | None = None
-    protocols: list[PolicyProtocol] | None = None
+    is_http: bool | None = None
+    is_ldap: bool | None = None
+    is_kerberos: bool | None = None
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> Self:

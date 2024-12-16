@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
 from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.password_policy import PasswordPolicySchema
+from ldap_protocol.policies.password_policy import PasswordPolicySchema
 
 pwd_router = APIRouter(
     prefix="/password-policy",

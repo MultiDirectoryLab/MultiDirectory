@@ -20,7 +20,6 @@ from starlette.background import BackgroundTask
 from api.auth import get_current_user
 from api.auth.oauth2 import authenticate_user
 from config import Settings
-from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import (
     AbstractKadmin,
@@ -30,6 +29,7 @@ from ldap_protocol.kerberos import (
     set_state,
 )
 from ldap_protocol.ldap_requests import AddRequest
+from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.const import EmailStr
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 

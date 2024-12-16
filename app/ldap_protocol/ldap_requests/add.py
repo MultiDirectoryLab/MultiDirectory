@@ -13,7 +13,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.access_policy import mutate_ap
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -22,7 +21,8 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
-from ldap_protocol.password_policy import PasswordPolicySchema
+from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -191,6 +191,12 @@ class AddRequest(BaseRequest):
 
         for attr in self.attributes:
             lname = attr.type.lower()
+
+            # NOTE: Do not create a duplicate if the user has sent the rdn
+            # in the attributes
+            if lname == new_dir.rdname:
+                continue
+
             for value in attr.vals:
                 if lname in Directory.ro_fields or lname in (
                     "userpassword",

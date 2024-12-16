@@ -42,7 +42,6 @@ from sqlalchemy.ext.asyncio import (
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider
-from ldap_protocol.access_policy import create_access_policy
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -52,6 +51,7 @@ from ldap_protocol.dns import (
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.utils.queries import get_user
 from models import Directory
@@ -383,14 +383,6 @@ def ldap_client(settings: Settings) -> ldap3.Connection:
         ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"))
 
 
-async def mock_proc_ip_address_middleware(
-    request: Request,
-    call_next: Callable,
-) -> Response:
-    """Mock middleware."""
-    return await call_next(request)
-
-
 @pytest_asyncio.fixture(scope="function")
 async def app(
     settings: Settings,
@@ -398,13 +390,9 @@ async def app(
 ) -> AsyncIterator[FastAPI]:
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
-        with patch(
-            "multidirectory.proc_ip_address_middleware",
-            mock_proc_ip_address_middleware,
-        ):
-            app = create_app(settings)
-            setup_dishka(container, app)
-            yield app
+        app = create_app(settings)
+        setup_dishka(container, app)
+        yield app
 
 
 @pytest_asyncio.fixture(scope="function")

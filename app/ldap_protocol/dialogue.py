@@ -13,11 +13,10 @@ from enum import IntEnum
 from ipaddress import IPv4Address, ip_address
 from typing import TYPE_CHECKING, AsyncIterator, Literal
 
-from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from models import NetworkPolicy, PolicyProtocol, User
+from ldap_protocol.policies.network_policy import build_policy_query
+from models import NetworkPolicy, User
 
 if TYPE_CHECKING:
     from .messages import LDAPRequestMessage
@@ -240,17 +239,7 @@ class LDAPSession:
     async def _get_policy(
         ip: IPv4Address, session: AsyncSession,
     ) -> NetworkPolicy | None:
-        query = (  # noqa
-            select(NetworkPolicy)
-            .filter_by(enabled=True)
-            .options(selectinload(NetworkPolicy.groups))
-            .filter(
-                text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip),
-                NetworkPolicy.protocols.contains([PolicyProtocol.LDAP]),
-            )
-            .order_by(NetworkPolicy.priority.asc())
-            .limit(1)
-        )
+        query = build_policy_query(ip, "is_ldap")
         return await session.scalar(query)
 
     async def validate_conn(

@@ -21,7 +21,7 @@ from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
 )
-from ldap_protocol.password_policy import (
+from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
