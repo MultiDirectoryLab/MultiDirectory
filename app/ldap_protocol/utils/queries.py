@@ -13,7 +13,7 @@ from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
-from sqlalchemy.sql.expression import ColumnElement
+from sqlalchemy.sql.expression import ColumnElement, Select
 
 from models import (
     Attribute,
@@ -42,6 +42,49 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
     return list(result.scalars().all())
 
 
+def build_policy_query(
+    ip: IPv4Address,
+    protocol: PolicyProtocol,
+    user_group_ids: list[int] | None = None,
+) -> Select:
+    """
+    Build a base query for network policies with optional group filtering.
+
+    :param IPv4Address ip: IP address to filter
+    :param PolicyProtocol protocol: Protocol to filter
+    :param list[int] | None user_group_ids: List of user group IDs, optional
+    :return: Select query
+    """
+    query = ( # noqa
+        select(NetworkPolicy)
+        .filter_by(enabled=True)
+        .options(
+            selectinload(NetworkPolicy.groups),
+            selectinload(NetworkPolicy.mfa_groups),
+        )
+        .filter(
+            text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip),
+            NetworkPolicy.protocols.contains([protocol]),
+        )
+        .order_by(NetworkPolicy.priority.asc())
+        .limit(1)
+    )
+
+    if user_group_ids is not None:
+        return query.filter(
+            or_(
+                NetworkPolicy.groups == None,  # noqa
+                NetworkPolicy.groups.any(Group.id.in_(user_group_ids)),
+            ),
+            or_(
+                NetworkPolicy.mfa_groups == None,  # noqa
+                NetworkPolicy.mfa_groups.any(Group.id.in_(user_group_ids)),
+            ),
+        )
+
+    return query
+
+
 async def get_user_network_policy(
     ip: IPv4Address,
     user: User,
@@ -58,28 +101,7 @@ async def get_user_network_policy(
     """
     user_group_ids = [group.id for group in user.groups]
 
-    query = ( # noqa
-        select(NetworkPolicy)
-        .filter_by(enabled=True)
-        .options(
-            selectinload(NetworkPolicy.groups),
-            selectinload(NetworkPolicy.mfa_groups),
-        )
-        .filter(
-            or_(
-                NetworkPolicy.groups == None, # noqa
-                NetworkPolicy.groups.any(Group.id.in_(user_group_ids)),
-            ),
-            or_(
-                NetworkPolicy.mfa_groups == None, # noqa
-                NetworkPolicy.mfa_groups.any(Group.id.in_(user_group_ids)),
-            ),
-            text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip),
-        )
-        .filter(NetworkPolicy.protocols.contains([protocol]))
-        .order_by(NetworkPolicy.priority.asc())
-        .limit(1)
-    )
+    query = build_policy_query(ip, protocol, user_group_ids)
 
     return await session.scalar(query)
 
