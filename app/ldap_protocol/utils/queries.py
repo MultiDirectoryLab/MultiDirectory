@@ -6,23 +6,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import time
 from datetime import datetime
 from ipaddress import IPv4Address
-from typing import Iterator
+from typing import Iterator, Literal
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
-from sqlalchemy.sql.expression import ColumnElement, Select
+from sqlalchemy.sql.expression import ColumnElement, Select, true
 
-from models import (
-    Attribute,
-    Directory,
-    Group,
-    NetworkPolicy,
-    PolicyProtocol,
-    User,
-)
+from models import Attribute, Directory, Group, NetworkPolicy, User
 
 from .const import EMAIL_RE, ENTRY_TYPE
 from .helpers import (
@@ -44,17 +37,19 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
 
 def build_policy_query(
     ip: IPv4Address,
-    protocol: PolicyProtocol,
+    protocol_field_name: Literal["is_http", "is_ldap", "is_kerberos"],
     user_group_ids: list[int] | None = None,
 ) -> Select:
     """
     Build a base query for network policies with optional group filtering.
 
     :param IPv4Address ip: IP address to filter
-    :param PolicyProtocol protocol: Protocol to filter
+    :param Literal["is_http", "is_ldap", "is_kerberos"] protocol_field_name
+        protocol: Protocol to filter
     :param list[int] | None user_group_ids: List of user group IDs, optional
     :return: Select query
     """
+    protocol_field = getattr(NetworkPolicy, protocol_field_name)
     query = ( # noqa
         select(NetworkPolicy)
         .filter_by(enabled=True)
@@ -64,7 +59,7 @@ def build_policy_query(
         )
         .filter(
             text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip),
-            NetworkPolicy.protocols.contains([protocol]),
+            protocol_field == true(),
         )
         .order_by(NetworkPolicy.priority.asc())
         .limit(1)
@@ -88,20 +83,18 @@ def build_policy_query(
 async def get_user_network_policy(
     ip: IPv4Address,
     user: User,
-    protocol: PolicyProtocol,
     session: AsyncSession,
 ) -> NetworkPolicy | None:
     """
     Get the highest priority network policy for user, ip and protocol.
 
     :param User user: user object
-    :param PolicyProtocol protocol: policy protocol
     :param AsyncSession session: db session
     :return NetworkPolicy | None: a NetworkPolicy object
     """
     user_group_ids = [group.id for group in user.groups]
 
-    query = build_policy_query(ip, protocol, user_group_ids)
+    query = build_policy_query(ip, "is_http", user_group_ids)
 
     return await session.scalar(query)
 

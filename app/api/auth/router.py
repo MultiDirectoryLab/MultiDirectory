@@ -42,7 +42,7 @@ from ldap_protocol.utils.queries import (
     get_user_network_policy,
     set_last_logon_user,
 )
-from models import Directory, Group, MFAFlags, PolicyProtocol, User
+from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
 from .oauth2 import (
@@ -115,7 +115,6 @@ async def login_for_access_token(
     network_policy = await get_user_network_policy(
         ip,
         user,
-        PolicyProtocol.WebAdminAPI,
         session,
     )
 

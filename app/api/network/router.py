@@ -55,7 +55,9 @@ async def add_network_policy(
         priority=policy.priority,
         raw=policy.model_dump(mode="json")["netmasks"],
         mfa_status=policy.mfa_status,
-        protocols=policy.protocols,
+        is_http=policy.is_http,
+        is_ldap=policy.is_ldap,
+        is_kerberos=policy.is_kerberos,
     )
     group_dns = []
     mfa_group_dns = []
@@ -90,7 +92,9 @@ async def add_network_policy(
         groups=group_dns,
         mfa_status=new_policy.mfa_status,
         mfa_groups=mfa_group_dns,
-        protocols=new_policy.protocols,
+        is_http=new_policy.is_http,
+        is_ldap=new_policy.is_ldap,
+        is_kerberos=new_policy.is_kerberos,
     )
 
 
@@ -125,7 +129,9 @@ async def get_list_network_policies(
             mfa_groups=(
                 group.directory.path_dn for group in policy.mfa_groups
             ),
-            protocols=policy.protocols,
+            is_http=policy.is_http,
+            is_ldap=policy.is_ldap,
+            is_kerberos=policy.is_kerberos,
         )
         for policy in await session.scalars(
             select(NetworkPolicy)
@@ -269,8 +275,14 @@ async def update_network_policy(
     elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
         selected_policy.mfa_groups.clear()
 
-    if request.protocols is not None:
-        selected_policy.protocols = request.protocols
+    if request.is_http is not None:
+        selected_policy.is_http = request.is_http
+
+    if request.is_ldap is not None:
+        selected_policy.is_ldap = request.is_ldap
+
+    if request.is_kerberos is not None:
+        selected_policy.is_kerberos = request.is_kerberos
 
     try:
         await session.commit()
@@ -290,7 +302,9 @@ async def update_network_policy(
         groups=request.groups or [],
         mfa_status=selected_policy.mfa_status,
         mfa_groups=request.mfa_groups or [],
-        protocols=selected_policy.protocols,
+        is_http=selected_policy.is_http,
+        is_ldap=selected_policy.is_ldap,
+        is_kerberos=selected_policy.is_kerberos,
     )
 
 
