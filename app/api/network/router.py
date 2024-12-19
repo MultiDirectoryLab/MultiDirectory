@@ -58,6 +58,8 @@ async def add_network_policy(
         is_http=policy.is_http,
         is_ldap=policy.is_ldap,
         is_kerberos=policy.is_kerberos,
+        bypass_no_connection=policy.bypass_no_connection,
+        bypass_service_failure=policy.bypass_service_failure,
     )
     group_dns = []
     mfa_group_dns = []
@@ -95,6 +97,8 @@ async def add_network_policy(
         is_http=new_policy.is_http,
         is_ldap=new_policy.is_ldap,
         is_kerberos=new_policy.is_kerberos,
+        bypass_no_connection=new_policy.bypass_no_connection,
+        bypass_service_failure=new_policy.bypass_service_failure,
     )
 
 
@@ -132,6 +136,8 @@ async def get_list_network_policies(
             is_http=policy.is_http,
             is_ldap=policy.is_ldap,
             is_kerberos=policy.is_kerberos,
+            bypass_no_connection=policy.bypass_no_connection,
+            bypass_service_failure=policy.bypass_service_failure,
         )
         for policy in await session.scalars(
             select(NetworkPolicy)
@@ -284,6 +290,12 @@ async def update_network_policy(
     if request.is_kerberos is not None:
         selected_policy.is_kerberos = request.is_kerberos
 
+    if request.bypass_no_connection is not None:
+        selected_policy.bypass_no_connection = request.bypass_no_connection
+
+    if request.bypass_service_failure is not None:
+        selected_policy.bypass_service_failure = request.bypass_service_failure
+
     try:
         await session.commit()
     except IntegrityError:
@@ -305,6 +317,8 @@ async def update_network_policy(
         is_http=selected_policy.is_http,
         is_ldap=selected_policy.is_ldap,
         is_kerberos=selected_policy.is_kerberos,
+        bypass_no_connection=selected_policy.bypass_no_connection,
+        bypass_service_failure=selected_policy.bypass_service_failure,
     )
 
 
