@@ -28,7 +28,7 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from multidirectory import _create_basic_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
@@ -397,7 +397,7 @@ async def app(
 ) -> AsyncIterator[FastAPI]:
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
-        app = create_app(settings)
+        app = _create_basic_app(settings)
         setup_dishka(container, app)
         yield app
 
