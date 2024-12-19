@@ -26,7 +26,11 @@ from config import Settings
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
-from ldap_protocol.multifactor import MFA_HTTP_Creds, MultifactorAPI
+from ldap_protocol.multifactor import (
+    MFA_HTTP_Creds,
+    MultifactorAPI,
+    get_bypass,
+)
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.policies.password_policy import (
@@ -121,9 +125,18 @@ async def login_for_access_token(
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if mfa and network_policy.mfa_status in (
-        MFAFlags.ENABLED, MFAFlags.WHITELIST,
+    bypass, bypass_block = await get_bypass(network_policy, session)
+
+    if (
+        mfa
+        and network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
+        and not bypass
     ):
+        if bypass_block:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="Bypass block",
+            )
         if (
             network_policy.mfa_status == MFAFlags.WHITELIST
             and not network_policy.mfa_groups
@@ -194,7 +207,7 @@ async def renew_tokens(
         if not mfa:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-        access_token = await mfa.refresh_token(token)
+        access_token = await mfa.refresh_token(token, session)
 
         response.set_cookie(
             key="refresh_token",

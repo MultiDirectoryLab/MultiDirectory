@@ -555,6 +555,11 @@ class NetworkPolicy(Base):
         back_populates="mfa_policies",
     )
 
+    bypass_no_connection: Mapped[bool] = mapped_column(
+        server_default=expression.true(), nullable=False)
+    bypass_service_failure: Mapped[bool] = mapped_column(
+        server_default=expression.true(), nullable=False)
+
 
 class PasswordPolicy(Base):
     """Password policy."""

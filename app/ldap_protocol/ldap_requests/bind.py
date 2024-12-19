@@ -18,7 +18,11 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
-from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.multifactor import (
+    LDAPMultiFactorAPI,
+    MultifactorAPI,
+    get_bypass,
+)
 from ldap_protocol.policies.network_policy import is_user_group_valid
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import (
@@ -264,6 +268,7 @@ class BindRequest(BaseRequest):
         api: MultifactorAPI | None,
         identity: str,
         otp: str | None,
+        session: AsyncSession,
     ) -> bool:
         """Check mfa api.
 
@@ -276,7 +281,7 @@ class BindRequest(BaseRequest):
             return False
 
         try:
-            return await api.ldap_validate_mfa(identity, otp)
+            return await api.ldap_validate_mfa(identity, otp, session)
         except MultifactorAPI.MultifactorError:
             return False
 
@@ -330,9 +335,16 @@ class BindRequest(BaseRequest):
             return
 
         if policy := getattr(ldap_session, "policy", None):  # type: ignore
-            if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
-                check_group = True
+            bypass, bypass_block = await get_bypass(policy, session)
+            if (
+                policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
+                and not bypass
+            ):
+                if bypass_block:
+                    yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
+                    return
 
+                check_group = True
                 if policy.mfa_status == MFAFlags.WHITELIST:
                     check_group = await session.scalar(
                         select(
@@ -348,6 +360,7 @@ class BindRequest(BaseRequest):
                         mfa,
                         user.user_principal_name,
                         self.authentication_choice.otpassword,
+                        session=session,
                     )
 
                     if mfa_status is False:
