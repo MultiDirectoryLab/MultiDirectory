@@ -62,9 +62,6 @@ async def proc_time_header_middleware(
     return response
 
 
-def create_app(settings: Settings) -> FastAPI:
-    """Create FastAPI app with dependencies overrides."""
-
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
