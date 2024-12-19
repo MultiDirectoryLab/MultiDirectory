@@ -9,8 +9,8 @@ import uuid
 import weakref
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import AsyncGenerator, AsyncIterator, Callable, Generator, Iterator
-from unittest.mock import AsyncMock, Mock, patch
+from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import ldap3
@@ -28,7 +28,7 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from multidirectory import create_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
