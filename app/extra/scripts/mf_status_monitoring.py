@@ -28,7 +28,6 @@ async def ping_multifactor(
     :param MultifactorAPI mfa: multifactor api
     """
     interval = await get_mfa_check_interval(session)
-    logger.info(f"interval: {interval}")
 
     if not mfa:
         await asyncio.sleep(interval - TASK_INTERVAL)
