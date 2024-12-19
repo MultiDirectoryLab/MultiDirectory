@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from functools import partial
 from tempfile import gettempdir
 from types import TracebackType
 from typing import Annotated, AsyncIterator, Protocol, Self
@@ -213,6 +214,13 @@ class KAdminLocalManager(AbstractKRBManager):
             self.pool,
             princ.commit,
         )
+
+        if password:
+            # NOTE: add preauth, attributes == krbticketflags
+            await self.loop.run_in_executor(
+                self.pool,
+                partial(princ.modify, attributes=128),
+            )
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
         principal = await self.loop.run_in_executor(

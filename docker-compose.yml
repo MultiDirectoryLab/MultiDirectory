@@ -272,6 +272,23 @@ services:
       - traefik.tcp.routers.kadmind.service=kadmind
       - traefik.tcp.services.kadmind.loadbalancer.server.port=749
 
+  shadow_api:
+    image: multidirectory
+    container_name: shadow_api
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      ldap_server:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: python multidirectory.py --shadow
+
   maintence:
     image: multidirectory
     container_name: md_maintence
