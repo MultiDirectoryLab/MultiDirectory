@@ -290,8 +290,6 @@ services:
     env_file:
       local.env
     command: python multidirectory.py --shadow
-    ports:
-      - 8001:8000
 
   maintence:
     image: multidirectory
