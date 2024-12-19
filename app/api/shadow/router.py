@@ -13,8 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.multifactor import LDAPMultiFactorAPI
-from ldap_protocol.utils.queries import get_user_network_policy
-from models import MFAFlags, PolicyProtocol, User
+from ldap_protocol.policies.network_policy import get_user_network_policy
+from models import MFAFlags, User
 
 shadow_router = APIRouter()
 
@@ -46,11 +46,13 @@ async def proxy_request(
     network_policy = await get_user_network_policy(
         ip,
         user,
-        PolicyProtocol.Kerberos,
         session,
     )
 
     if network_policy is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    if not network_policy.is_kerberos:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if not mfa:  # noqa: R505
