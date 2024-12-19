@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import asyncio
 
-from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.multifactor import (
