@@ -32,7 +32,10 @@ from ldap_protocol.multifactor import (
     get_bypass,
 )
 from ldap_protocol.policies.access_policy import create_access_policy
-from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.policies.network_policy import (
+    check_mfa_group,
+    get_user_network_policy,
+)
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -139,7 +142,8 @@ async def login_for_access_token(
             )
         if (
             network_policy.mfa_status == MFAFlags.WHITELIST
-            and not network_policy.mfa_groups
+            and network_policy.mfa_groups != []
+            and not await check_mfa_group(network_policy, user, session)
         ):
             raise HTTPException(status.HTTP_403_FORBIDDEN)
 

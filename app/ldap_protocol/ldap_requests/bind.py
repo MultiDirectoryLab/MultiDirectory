@@ -10,7 +10,6 @@ from typing import AsyncGenerator, ClassVar
 
 import httpx
 from pydantic import BaseModel, Field, SecretStr
-from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -23,7 +22,10 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_bypass,
 )
-from ldap_protocol.policies.network_policy import is_user_group_valid
+from ldap_protocol.policies.network_policy import (
+    check_mfa_group,
+    is_user_group_valid,
+)
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
@@ -34,7 +36,7 @@ from ldap_protocol.utils.queries import (
     get_user,
     set_last_logon_user,
 )
-from models import Group, MFAFlags, User
+from models import MFAFlags, User
 from security import verify_password
 
 from .base import BaseRequest
@@ -346,14 +348,7 @@ class BindRequest(BaseRequest):
 
                 check_group = True
                 if policy.mfa_status == MFAFlags.WHITELIST:
-                    check_group = await session.scalar(
-                        select(
-                            exists().where(  # type: ignore
-                                Group.mfa_policies.contains(policy),
-                                Group.users.contains(user),
-                            ),
-                        ),
-                    )
+                    check_group = await check_mfa_group(policy, user, session)
 
                 if check_group:
                     mfa_status = await self.check_mfa(
