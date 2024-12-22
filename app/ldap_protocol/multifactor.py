@@ -156,30 +156,23 @@ async def get_bypass(
     :return bool: True if bypass is allowed, False otherwise
     """
     mfa_state = await get_mfa_status(session)
-    bypass = (
-        (
-            network_policy.bypass_no_connection
-            and mfa_state == MFAStatus.UNAVAILABLE
-        )
-        |
-        (mfa_state == MFAStatus.MISCONFIGURED)
-        |
-        (
-            network_policy.bypass_service_failure
-            and mfa_state == MFAStatus.FAULTED
-        )
-    )
-    bypass_block = (
-        (
-            not network_policy.bypass_no_connection
-            and mfa_state == MFAStatus.UNAVAILABLE
-        )
-        |
-        (
-            not network_policy.bypass_service_failure
-            and mfa_state == MFAStatus.FAULTED
-        )
-    )
+    bypass = any([
+        network_policy.bypass_no_connection
+        and mfa_state == MFAStatus.UNAVAILABLE,
+
+        mfa_state == MFAStatus.MISCONFIGURED,
+
+        network_policy.bypass_service_failure
+        and mfa_state == MFAStatus.FAULTED,
+    ])
+
+    bypass_block = any([
+        not network_policy.bypass_no_connection
+        and mfa_state == MFAStatus.UNAVAILABLE,
+
+        not network_policy.bypass_service_failure
+        and mfa_state == MFAStatus.FAULTED,
+    ])
     return bypass, bypass_block
 
 
