@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import Depends, Form, HTTPException, Request, status
+from fastapi import Body, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
@@ -248,8 +248,12 @@ async def get_last_status(
 @mfa_router.put("/interval")
 @inject
 async def update_status_check_interval(
-    interval: Annotated[int, Form(
-        ge=50, le=3600, description="Interval in seconds")],
+    interval: Annotated[int, Body(
+        embed=True,
+        ge=50,
+        le=3600,
+        description="Interval in seconds",
+    )],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Update the status check interval.
