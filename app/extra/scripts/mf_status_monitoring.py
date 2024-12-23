@@ -32,7 +32,10 @@ async def ping_multifactor(
         await asyncio.sleep(interval - TASK_INTERVAL)
         return
 
+    new_status = MFAStatus.AVAILABLE
     if not await mfa.ping():
-        await update_mfa_status(session, MFAStatus.UNAVAILABLE)
+        new_status = MFAStatus.UNAVAILABLE
+
+    await update_mfa_status(session, new_status)
 
     await asyncio.sleep(interval - TASK_INTERVAL)
