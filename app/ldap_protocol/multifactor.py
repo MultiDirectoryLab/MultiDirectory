@@ -148,15 +148,18 @@ async def get_mfa_check_interval(
 async def get_bypass_status(
     network_policy: NetworkPolicy,
     session: AsyncSession,
-) -> tuple[bool, bool]:
-    """Get bypass and bypass_block status.
+) -> bool | None:
+    """Get bypass status and None if it is not use.
 
     :param NetworkPolicy network_policy: Network policy settings
     :param AsyncSession session: Database session
-    :return bool: True if bypass is allowed, False otherwise
+    :return bool | None: True if bypass is allowed, False otherwise
     """
     mfa_state = await get_mfa_status(session)
-    bypass = any([
+    if mfa_state == MFAStatus.AVAILABLE:
+        return None
+
+    return any([
         network_policy.bypass_no_connection
         and mfa_state == MFAStatus.UNAVAILABLE,
 
@@ -165,15 +168,6 @@ async def get_bypass_status(
         network_policy.bypass_service_failure
         and mfa_state == MFAStatus.FAULTED,
     ])
-
-    bypass_block = any([
-        not network_policy.bypass_no_connection
-        and mfa_state == MFAStatus.UNAVAILABLE,
-
-        not network_policy.bypass_service_failure
-        and mfa_state == MFAStatus.FAULTED,
-    ])
-    return bypass, bypass_block
 
 
 class MultifactorAPI:

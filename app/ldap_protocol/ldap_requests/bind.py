@@ -337,12 +337,12 @@ class BindRequest(BaseRequest):
             return
 
         if policy := getattr(ldap_session, "policy", None):  # type: ignore
-            bypass, bypass_block = await get_bypass_status(policy, session)
+            bypass = await get_bypass_status(policy, session)
             if (
                 policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
-                and not bypass
+                and bypass in (False, None)
             ):
-                if bypass_block:
+                if bypass is False:
                     yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
                     return
 

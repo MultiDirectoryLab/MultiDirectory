@@ -128,14 +128,14 @@ async def login_for_access_token(
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    bypass, bypass_block = await get_bypass_status(network_policy, session)
+    bypass = await get_bypass_status(network_policy, session)
 
     if (
         mfa
         and network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
-        and not bypass
+        and bypass in (False, None)
     ):
-        if bypass_block:
+        if bypass is False:
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 detail="Bypass block",
