@@ -145,7 +145,7 @@ async def get_mfa_check_interval(
     return int(interval.value)
 
 
-async def get_bypass(
+async def get_bypass_status(
     network_policy: NetworkPolicy,
     session: AsyncSession,
 ) -> tuple[bool, bool]:

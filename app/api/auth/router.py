@@ -29,7 +29,7 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import (
     MFA_HTTP_Creds,
     MultifactorAPI,
-    get_bypass,
+    get_bypass_status,
 )
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
@@ -128,7 +128,7 @@ async def login_for_access_token(
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    bypass, bypass_block = await get_bypass(network_policy, session)
+    bypass, bypass_block = await get_bypass_status(network_policy, session)
 
     if (
         mfa

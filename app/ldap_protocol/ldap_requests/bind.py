@@ -20,7 +20,7 @@ from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import (
     LDAPMultiFactorAPI,
     MultifactorAPI,
-    get_bypass,
+    get_bypass_status,
 )
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
@@ -337,7 +337,7 @@ class BindRequest(BaseRequest):
             return
 
         if policy := getattr(ldap_session, "policy", None):  # type: ignore
-            bypass, bypass_block = await get_bypass(policy, session)
+            bypass, bypass_block = await get_bypass_status(policy, session)
             if (
                 policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
                 and not bypass
