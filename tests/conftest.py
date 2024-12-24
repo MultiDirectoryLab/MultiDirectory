@@ -459,3 +459,15 @@ async def dns_manager(container: AsyncContainer)\
     """Get DI DNS manager."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AbstractDNSManager)
+
+
+@pytest_asyncio.fixture
+async def mfa_api(settings: Settings)\
+        -> MultifactorAPI:
+    """Get MFA API."""
+    return MultifactorAPI(  # noqa: S106
+        key="test",
+        secret="test",
+        client=httpx.AsyncClient(timeout=4),
+        settings=settings,
+    )
