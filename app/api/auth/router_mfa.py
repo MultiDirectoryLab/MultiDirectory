@@ -10,26 +10,22 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import Body, Depends, Form, HTTPException, Request, status
+from fastapi import Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from jose.exceptions import JWKError
 from loguru import logger
-from sqlalchemy import delete, update
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
 from config import Settings
 from ldap_protocol.multifactor import (
-    MFA_CHECK_INTERVAL_NAME,
     Creds,
     MFA_HTTP_Creds,
     MFA_LDAP_Creds,
-    MFAStatus,
     MultifactorAPI,
-    get_mfa_check_interval,
-    get_mfa_status,
 )
 from models import CatalogueSetting
 from models import User as DBUser
@@ -220,7 +216,6 @@ async def two_factor_protocol(
             user.user_principal_name,
             url.components.geturl(),
             user.id,
-            session,
         )
     except MultifactorAPI.MultifactorError:
         logger.critical(f"API error {traceback.format_exc()}")
@@ -230,52 +225,3 @@ async def two_factor_protocol(
         )
 
     return MFAChallengeResponse(status="pending", message=redirect_url)
-
-
-@mfa_router.get("/last_status")
-@inject
-async def get_last_status(
-    session: FromDishka[AsyncSession],
-) -> MFAStatus:
-    """Get the last Multifactor status.
-    \f
-    :param Annotated[AsyncSession, Depends session: db session
-    :return MFStatus: last status
-    """
-    return await get_mfa_status(session)
-
-
-@mfa_router.put("/interval")
-@inject
-async def update_status_check_interval(
-    interval: Annotated[int, Body(
-        embed=True,
-        ge=50,
-        le=3600,
-        description="Interval in seconds",
-    )],
-    session: FromDishka[AsyncSession],
-) -> None:
-    """Update the status check interval.
-    \f
-    :param Annotated[int, Form] interval: interval in seconds
-    :param Annotated[AsyncSession, Depends session: db session
-    """
-    await session.execute(
-        update(CatalogueSetting)
-        .values({"value": str(interval)})
-        .where(CatalogueSetting.name == MFA_CHECK_INTERVAL_NAME),
-    )
-
-
-@mfa_router.get("/interval")
-@inject
-async def get_status_check_interval(
-    session: FromDishka[AsyncSession],
-) -> int:
-    """Get the status check interval.
-    \f
-    :param Annotated[AsyncSession, Depends session: db session
-    :return int: interval in seconds
-    """
-    return await get_mfa_check_interval(session)
