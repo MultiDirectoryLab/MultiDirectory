@@ -46,8 +46,7 @@ def scheduler(settings: Settings) -> None:
     """Sript entrypoint."""
     async def runner(settings: Settings) -> None:
         container = make_async_container(
-            MainProvider(),
-            context={Settings: settings},
+            MainProvider(), context={Settings: settings},
         )
 
         async with asyncio.TaskGroup() as tg:
