@@ -139,6 +139,7 @@ class MultifactorAPI:
 
         :param str username: un
         :param str password: pwd
+        :param NetworkPolicy policy: policy
         :raises MultifactorError: connect timeout
         :raises MultifactorError: invalid json
         :raises MultifactorError: Invalid status
@@ -158,8 +159,6 @@ class MultifactorAPI:
                 },
                 timeout=httpx.Timeout(40.0, connect=30.0),
             )
-
-            log_mfa.info(f"mfa status code: {response.status_code}")
         except httpx.ConnectTimeout as err:
             if policy.bypass_no_connection:
                 return True
