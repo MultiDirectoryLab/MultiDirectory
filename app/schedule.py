@@ -9,10 +9,9 @@ from loguru import logger
 
 from config import Settings
 from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
-from extra.scripts.mf_status_monitoring import TASK_INTERVAL, ping_multifactor
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
-from ioc import MainProvider, MFACredsProvider, MFAProvider
+from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
 
 task_type: TypeAlias = Callable[..., Coroutine]
@@ -21,7 +20,6 @@ _TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),
     (disable_accounts, 600.0),
     (principal_block_sync, 60.0),
-    (ping_multifactor, TASK_INTERVAL),
 }
 
 
@@ -49,8 +47,6 @@ def scheduler(settings: Settings) -> None:
     async def runner(settings: Settings) -> None:
         container = make_async_container(
             MainProvider(),
-            MFAProvider(),
-            MFACredsProvider(),
             context={Settings: settings},
         )
 
