@@ -237,6 +237,7 @@ class MultifactorAPI:
             raise self.MultifactorError("API Timeout") from err
 
         if response.status_code == 401:
+            # Unconditional bypass
             return self.settings.MD_ROOT_URI
 
         if response.status_code != 200:
