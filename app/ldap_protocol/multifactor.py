@@ -157,7 +157,7 @@ class MultifactorAPI:
                     "passCode": passcode,
                     "GroupPolicyPreset": {},
                 },
-                timeout=httpx.Timeout(40.0, connect=30.0),
+                timeout=httpx.Timeout(60.0, connect=20.0),
             )
         except httpx.ConnectTimeout as err:
             if policy.bypass_no_connection:
