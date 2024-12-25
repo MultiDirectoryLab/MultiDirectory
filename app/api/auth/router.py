@@ -128,17 +128,15 @@ async def login_for_access_token(
         mfa
         and network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
     ):
-        if (
-            network_policy.mfa_status == MFAFlags.WHITELIST
-            and network_policy.mfa_groups != []
-            and not await check_mfa_group(network_policy, user, session)
-        ):
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
+        check_group = True
+        if (network_policy.mfa_status == MFAFlags.WHITELIST):
+            check_group = await check_mfa_group(network_policy, user, session)
 
-        raise HTTPException(
-            status.HTTP_426_UPGRADE_REQUIRED,
-            detail="Requires MFA connect",
-        )
+        if check_group:
+            raise HTTPException(
+                status.HTTP_426_UPGRADE_REQUIRED,
+                detail="Requires MFA connect",
+            )
 
     access_token = create_token(  # noqa: S106
         uid=user.id,
