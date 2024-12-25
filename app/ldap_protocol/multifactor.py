@@ -157,7 +157,10 @@ class MultifactorAPI:
                     "passCode": passcode,
                     "GroupPolicyPreset": {},
                 },
-                timeout=httpx.Timeout(60.0, connect=20.0),
+                timeout=httpx.Timeout(
+                    self.settings.MFA_READ_TIMEOUT_SECONDS,
+                    connect=self.settings.MFA_CONNECT_TIMEOUT_SECONDS,
+                ),
             )
         except httpx.ConnectTimeout as err:
             if policy.bypass_no_connection:
@@ -198,6 +201,7 @@ class MultifactorAPI:
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(
         self, username: str, callback_url: str, uid: int,
+        policy: NetworkPolicy,
     ) -> str:
         """Create mfa link.
 
@@ -227,13 +231,26 @@ class MultifactorAPI:
                 headers=self._generate_trace_id_header(),
                 json=data,
             )
+        except httpx.TimeoutException as err:
+            if policy.bypass_no_connection:
+                return self.settings.MD_ROOT_URI
+            raise self.MultifactorError("API Timeout") from err
 
+        if response.status_code == 401:
+            return self.settings.MD_ROOT_URI
+
+        if response.status_code != 200:
+            if policy.bypass_service_failure:
+                return self.settings.MD_ROOT_URI
+            raise self.MultifactorError("Status error")
+
+        try:
             response_data = response.json()
-            log_mfa.info(response_data)
-            return response_data["model"]["url"]
+        except JSONDecodeError as err:
+            raise self.MultifactorError("Invalid json") from err
 
-        except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
-            raise self.MultifactorError(f"MFA API error: {err}") from err
+        log_mfa.info(response_data)
+        return response_data["model"]["url"]
 
     async def refresh_token(self, token: str) -> str:
         """Refresh mfa token.
