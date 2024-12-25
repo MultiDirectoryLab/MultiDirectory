@@ -28,17 +28,11 @@ async def proxy_request(
     session: FromDishka[AsyncSession],
 ) -> bool:
     """Proxy request to mfa."""
-    for _ in range(3):
-        user = await session.scalar(
-            select(User)
-            .filter(User.sam_accout_name == principal),
-        )
+    query = select(User).filter(User.user_principal_name.ilike(principal))
 
-        if user:
-            break
+    user = await session.scalar(query)
 
-        principal = principal[:-1]
-    else:
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
