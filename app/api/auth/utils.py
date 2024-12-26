@@ -41,8 +41,7 @@ async def create_and_set_tokens(
     settings: Settings,
     response: Response,
 ) -> None:
-    """
-    Create and set access and refresh tokens.
+    """Create and set access and refresh tokens.
 
     Update the user's last logon time and set the appropriate cookies
     in the response.

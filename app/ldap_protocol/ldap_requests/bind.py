@@ -333,9 +333,7 @@ class BindRequest(BaseRequest):
             return
 
         if policy := getattr(ldap_session, "policy", None):  # type: ignore
-            if (
-                policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
-            ):
+            if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
 
                 check_group = True
                 if policy.mfa_status == MFAFlags.WHITELIST:

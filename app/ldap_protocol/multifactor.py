@@ -134,7 +134,7 @@ class MultifactorAPI:
 
         If pwd not passed, use "m" for querying push request from mfa,
         it will send push request to user's app and long poll for response,
-        timeout is 40 seconds.
+        timeout is 60 seconds.
         "m" key-character is used to mark push request in multifactor API.
 
         :param str username: un
@@ -158,7 +158,7 @@ class MultifactorAPI:
                     "GroupPolicyPreset": {},
                 },
                 timeout=httpx.Timeout(
-                    self.settings.MFA_READ_TIMEOUT_SECONDS,
+                    self.settings.MFA_LDAP_READ_TIMEOUT_SECONDS,
                     connect=self.settings.MFA_CONNECT_TIMEOUT_SECONDS,
                 ),
             )

@@ -112,18 +112,13 @@ async def login_for_access_token(
     if not ip:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    network_policy = await get_user_network_policy(
-        ip,
-        user,
-        session,
-    )
+    network_policy = await get_user_network_policy(ip, user, session)
 
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if (
-        mfa
-        and network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
+    if mfa and network_policy.mfa_status in (
+        MFAFlags.ENABLED, MFAFlags.WHITELIST,
     ):
         check_group = True
         if (network_policy.mfa_status == MFAFlags.WHITELIST):

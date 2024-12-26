@@ -462,8 +462,7 @@ async def dns_manager(container: AsyncContainer)\
 
 
 @pytest_asyncio.fixture
-async def mfa_api(settings: Settings)\
-        -> MultifactorAPI:
+async def mfa_api(settings: Settings) -> MultifactorAPI:
     """Get MFA API."""
     return MultifactorAPI(  # noqa: S106
         key="test",
