@@ -232,18 +232,20 @@ class MultifactorAPI:
                 json=data,
             )
         except httpx.TimeoutException as err:
+            message = "API Timeout"
             if policy.bypass_no_connection:
-                return self.settings.MD_ROOT_URI
-            raise self.MultifactorError("API Timeout") from err
+                message = "Bypass"
+            raise self.MultifactorError(message) from err
 
         if response.status_code == 401:
             # Unconditional bypass
-            return self.settings.MD_ROOT_URI
+            raise self.MultifactorError("Bypass")
 
         if response.status_code != 200:
+            message = "Status error"
             if policy.bypass_service_failure:
-                return self.settings.MD_ROOT_URI
-            raise self.MultifactorError("Status error")
+                message = "Bypass"
+            raise self.MultifactorError(message)
 
         try:
             response_data = response.json()

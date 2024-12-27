@@ -93,8 +93,6 @@ class Settings(BaseSettings):
         enable_async=True, autoescape=True,
     )
 
-    MD_ROOT_URI: str = "http://md.localhost"
-
     DNS_BIND_HOST: str = 'bind_dns'
     DNS_TSIG_KEY: str = '/DNS_server_file/zone.key'
     DNS_ZONE_FILE: str = '/DNS_server_file/db.zone'

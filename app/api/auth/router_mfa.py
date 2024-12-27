@@ -230,11 +230,11 @@ async def two_factor_protocol(
             network_policy,
         )
 
-        # Bypass
-        if redirect_url == settings.MD_ROOT_URI:
+    except MultifactorAPI.MultifactorError as err:
+        if str(err) == "Bypass":
             await create_and_set_tokens(user, session, settings, response)
+            return MFAChallengeResponse(status="bypass", message="")
 
-    except MultifactorAPI.MultifactorError:
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
             status.HTTP_406_NOT_ACCEPTABLE,
