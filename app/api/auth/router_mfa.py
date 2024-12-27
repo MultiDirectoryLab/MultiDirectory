@@ -29,10 +29,7 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from ldap_protocol.policies.network_policy import (
-    check_bypass,
-    get_user_network_policy,
-)
+from ldap_protocol.policies.network_policy import get_user_network_policy
 from models import CatalogueSetting
 from models import User as DBUser
 
@@ -232,9 +229,14 @@ async def two_factor_protocol(
             url.components.geturl(),
             user.id,
         )
-    except (MultifactorAPI.MultifactorError, httpx.TimeoutException) as err:
-        bypass = check_bypass(network_policy, err)
-        if bypass:
+    except httpx.TimeoutException:
+        if network_policy.bypass_no_connection:
+            await create_and_set_tokens(user, session, settings, response)
+            return MFAChallengeResponse(status="bypass", message="")
+    except MultifactorAPI.MultifactorError as err:
+        if err.status_code and (
+            err.status_code == 401 or network_policy.bypass_service_failure
+        ):
             await create_and_set_tokens(user, session, settings, response)
             return MFAChallengeResponse(status="bypass", message="")
 
