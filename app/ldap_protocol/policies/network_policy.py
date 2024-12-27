@@ -132,7 +132,11 @@ def check_bypass(
     network_policy: NetworkPolicy,
     err: Exception,
 ) -> bool:
-    """Check bypass."""
+    """Check bypass.
+
+    :param NetworkPolicy network_policy: network policy object
+    :param Exception err: exception
+    """
     if isinstance(err, httpx.TimeoutException):
         if network_policy.bypass_no_connection:
             return True

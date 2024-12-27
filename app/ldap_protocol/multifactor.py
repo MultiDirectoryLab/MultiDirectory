@@ -212,7 +212,8 @@ class MultifactorAPI:
         :param str callback_url: callback uri to send token
         :param int uid: user id
         :raises httpx.TimeoutException: on timeout
-        :raises self.MultifactorError: on invalid json, Key or timeout
+        :raises self.MultifactorError: on invalid json, Key or error status
+            code
         :return str: url to open in new page
         """
         data = {
