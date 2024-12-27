@@ -43,6 +43,10 @@ class _MultifactorError(Exception):
     """MFA exc."""
 
 
+class _BypassError(_MultifactorError):
+    """Bypass exc."""
+
+
 async def get_creds(
     session: AsyncSession,
     key_name: str,
@@ -93,6 +97,7 @@ class MultifactorAPI:
     """
 
     MultifactorError = _MultifactorError
+    BypassError = _BypassError
 
     AUTH_URL_USERS = "/access/requests/md"
     AUTH_URL_ADMIN = "/access/requests"
@@ -232,20 +237,18 @@ class MultifactorAPI:
                 json=data,
             )
         except httpx.TimeoutException as err:
-            message = "API Timeout"
             if policy.bypass_no_connection:
-                message = "Bypass"
-            raise self.MultifactorError(message) from err
+                raise self.BypassError() from err
+            raise self.MultifactorError("API Timeout") from err
 
         if response.status_code == 401:
             # Unconditional bypass
-            raise self.MultifactorError("Bypass")
+            raise self.BypassError()
 
         if response.status_code != 200:
-            message = "Status error"
             if policy.bypass_service_failure:
-                message = "Bypass"
-            raise self.MultifactorError(message)
+                raise self.BypassError()
+            raise self.MultifactorError("Status error")
 
         try:
             response_data = response.json()
