@@ -42,9 +42,9 @@ log_mfa.add(
 class _MultifactorError(Exception):
     """MFA exc."""
 
-
-class _BypassError(_MultifactorError):
-    """Bypass exc."""
+    def __init__(self, message: str, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 async def get_creds(
@@ -97,7 +97,6 @@ class MultifactorAPI:
     """
 
     MultifactorError = _MultifactorError
-    BypassError = _BypassError
 
     AUTH_URL_USERS = "/access/requests/md"
     AUTH_URL_ADMIN = "/access/requests"
@@ -206,13 +205,13 @@ class MultifactorAPI:
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(
         self, username: str, callback_url: str, uid: int,
-        policy: NetworkPolicy,
     ) -> str:
         """Create mfa link.
 
         :param str username: un
         :param str callback_url: callback uri to send token
         :param int uid: user id
+        :raises httpx.TimeoutException: on timeout
         :raises self.MultifactorError: on invalid json, Key or timeout
         :return str: url to open in new page
         """
@@ -227,36 +226,27 @@ class MultifactorAPI:
                 "target": "_self",
             },
         }
-        try:
-            log_mfa.debug(data)
+        log_mfa.debug(data)
 
-            response = await self.client.post(
-                self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
-                auth=self.auth,
-                headers=self._generate_trace_id_header(),
-                json=data,
-            )
-        except httpx.TimeoutException as err:
-            if policy.bypass_no_connection:
-                raise self.BypassError() from err
-            raise self.MultifactorError("API Timeout") from err
-
-        if response.status_code == 401:
-            # Unconditional bypass
-            raise self.BypassError()
+        response = await self.client.post(
+            self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
+            auth=self.auth,
+            headers=self._generate_trace_id_header(),
+            json=data,
+        )
 
         if response.status_code != 200:
-            if policy.bypass_service_failure:
-                raise self.BypassError()
-            raise self.MultifactorError("Status error")
+            raise self.MultifactorError(
+                "Status error",
+                status_code=response.status_code,
+            )
 
         try:
             response_data = response.json()
-        except JSONDecodeError as err:
-            raise self.MultifactorError("Invalid json") from err
-
-        log_mfa.info(response_data)
-        return response_data["model"]["url"]
+            log_mfa.info(response_data)
+            return response_data["model"]["url"]
+        except (JSONDecodeError, KeyError) as err:
+            raise self.MultifactorError(f"MFA API error: {err}") from err
 
     async def refresh_token(self, token: str) -> str:
         """Refresh mfa token.

@@ -8,6 +8,7 @@ import operator
 import traceback
 from typing import Annotated, Literal
 
+import httpx
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import Depends, Form, HTTPException, Request, Response, status
@@ -28,7 +29,10 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.policies.network_policy import (
+    check_bypass,
+    get_user_network_policy,
+)
 from models import CatalogueSetting
 from models import User as DBUser
 
@@ -227,14 +231,13 @@ async def two_factor_protocol(
             user.user_principal_name,
             url.components.geturl(),
             user.id,
-            network_policy,
         )
+    except (MultifactorAPI.MultifactorError, httpx.TimeoutException) as err:
+        bypass = check_bypass(network_policy, err)
+        if bypass:
+            await create_and_set_tokens(user, session, settings, response)
+            return MFAChallengeResponse(status="bypass", message="")
 
-    except MultifactorAPI.BypassError:
-        await create_and_set_tokens(user, session, settings, response)
-        return MFAChallengeResponse(status="bypass", message="")
-
-    except MultifactorAPI.MultifactorError:
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
             status.HTTP_406_NOT_ACCEPTABLE,

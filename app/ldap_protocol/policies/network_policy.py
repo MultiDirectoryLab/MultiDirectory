@@ -6,11 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address
 from typing import Literal
 
+import httpx
 from sqlalchemy import exists, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, true
 
+from ldap_protocol.multifactor import MultifactorAPI
 from models import Group, NetworkPolicy, User
 
 
@@ -124,3 +126,19 @@ async def is_user_group_valid(
 
     group = await session.scalar(query)
     return bool(group)
+
+
+def check_bypass(
+    network_policy: NetworkPolicy,
+    err: Exception,
+) -> bool:
+    """Check bypass."""
+    if isinstance(err, httpx.TimeoutException):
+        if network_policy.bypass_no_connection:
+            return True
+    if isinstance(err, MultifactorAPI.MultifactorError):
+        if err.status_code and (
+            err.status_code == 401 or network_policy.bypass_service_failure
+        ):
+            return True
+    return False
