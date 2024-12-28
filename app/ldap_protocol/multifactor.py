@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from models import CatalogueSetting, NetworkPolicy
+from models import CatalogueSetting
 
 
 @dataclass(frozen=True)
@@ -138,7 +138,6 @@ class MultifactorAPI:
         self,
         username: str,
         password: str | None,
-        policy: NetworkPolicy,
     ) -> bool:
         """Validate multifactor.
 
@@ -173,22 +172,16 @@ class MultifactorAPI:
                 ),
             )
         except httpx.ConnectTimeout as err:
-            if policy.bypass_no_connection:
-                return True
-            raise self.MultifactorError("API ConnectTimeout") from err
+            raise self.MFAConnectError("API Timeout") from err
         except httpx.ReadTimeout:
             # Push was not approved
             log_mfa.debug("MFA ReadTimeout")
             return False
 
         if response.status_code == 401:
-            # Unconditional bypass
-            log_mfa.debug("MFA not authorized: 401")
-            return True
+            raise self.MFAMissconfiguredError("API Key or Secret is invalid")
 
         if response.status_code != 200:
-            if policy.bypass_service_failure:
-                return True
             raise self.MultifactorError("Status error")
 
         try:

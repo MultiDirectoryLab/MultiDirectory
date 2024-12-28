@@ -279,8 +279,16 @@ class BindRequest(BaseRequest):
             return False
 
         try:
-            return await api.ldap_validate_mfa(identity, otp, policy)
+            return await api.ldap_validate_mfa(identity, otp)
+        except MultifactorAPI.MFAConnectError:
+            if policy.bypass_no_connection:
+                return True
+            return False
+        except MultifactorAPI.MFAMissconfiguredError:
+            return True
         except MultifactorAPI.MultifactorError:
+            if policy.bypass_service_failure:
+                return True
             return False
 
     async def handle(
