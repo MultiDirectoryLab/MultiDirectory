@@ -4,11 +4,8 @@ from unittest.mock import patch
 
 import httpx
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.multifactor import MultifactorAPI, _MultifactorError
-from models import NetworkPolicy
+from ldap_protocol.multifactor import MultifactorAPI
 
 
 @pytest.mark.asyncio
@@ -16,85 +13,55 @@ from models import NetworkPolicy
 @pytest.mark.parametrize(
     (
         "mock_post_side_effect",
-        "policy_bypass_no_connection",
-        "policy_bypass_service_failure",
         "expected_result",
         "expected_exception",
     ),
     [
-        # 1. httpx.ConnectTimeout, bypass_no_connection=True => True
+        # 1. httpx.ConnectTimeout => raise MFAConnectError
         (
-            httpx.ConnectTimeout("Connection timed out"), True, False, True,
-            None,
+            httpx.ConnectTimeout("Connection timed out"), True,
+            MultifactorAPI.MFAConnectError,
         ),
 
-        # 2. httpx.ConnectTimeout, bypass_no_connection=False =>
-        # raise MultifactorError
+        # 2. httpx.ReadTimeout => False
+        (httpx.ReadTimeout("Read timed out"), False, None),
+
+        # 3. status_code=401 => raise MFAMissconfiguredError
         (
-            httpx.ConnectTimeout("Connection timed out"), False, False, None,
-            _MultifactorError,
+            httpx.Response(status_code=401), True,
+            MultifactorAPI.MFAMissconfiguredError,
         ),
 
-        # 3. httpx.ReadTimeout => False
-        (httpx.ReadTimeout("Read timed out"), False, False, False, None),
-
-        # 4. status_code=401 => True
-        (
-            httpx.Response(status_code=401),
-            False, False, True, None,
-        ),
-
-        # 5. status_code=500, bypass_service_failure=True => True
+        # 4. status_code=500 => raise MultifactorError
         (
             httpx.Response(status_code=500, json={"detail": "Server Error"}),
-            False, True, True, None,
+            True, MultifactorAPI.MultifactorError,
         ),
 
-        # 6. status_code=500, bypass_service_failure=False =>
-        # raise MultifactorError
-        (
-            httpx.Response(status_code=500, json={"detail": "Server Error"}),
-            False, False, None, _MultifactorError,
-        ),
-
-        # 7. status_code=200, 'model.status' != "Granted" => False
+        # 5. status_code=200, 'model.status' != "Granted" => False
         (
             httpx.Response(
                 status_code=200,
                 json={"model": {"status": "Denied"}},
-            ),
-            False, False, False, None,
+            ), False, None,
         ),
 
-        # 8. status_code=200, 'model.status' == "Granted" => True
+        # 6. status_code=200, 'model.status' == "Granted" => True
         (
             httpx.Response(
                 status_code=200,
                 json={"model": {"status": "Granted"}},
-            ),
-            False, False, True, None,
+            ), True, None,
         ),
     ],
 )
 async def test_ldap_validate_mfa(
     mock_post_side_effect,
-    policy_bypass_no_connection,
-    policy_bypass_service_failure,
     expected_result,
     expected_exception,
     mfa_api: MultifactorAPI,
-    session: AsyncSession,
-    setup_session: None,
 ):
     """Test the LDAP validate MFA function with various scenarios."""
-    policy = await session.scalar(
-        select(NetworkPolicy)
-        .limit(1),
-    )
-
-    policy.bypass_no_connection = policy_bypass_no_connection
-    policy.bypass_service_failure = policy_bypass_service_failure
-    await session.commit()
 
     async def handler(request: httpx.Request) -> httpx.Response:
         if isinstance(mock_post_side_effect, httpx.Response):
@@ -117,9 +84,9 @@ async def test_ldap_validate_mfa(
 
         if expected_exception:
             with pytest.raises(expected_exception):
-                await mfa_api.ldap_validate_mfa("user", "password", policy)
+                await mfa_api.ldap_validate_mfa("user", "password")
         else:
             result = await mfa_api.ldap_validate_mfa(
-                "user", "password", policy,
+                "user", "password",
             )
             assert result == expected_result
