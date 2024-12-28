@@ -42,9 +42,13 @@ log_mfa.add(
 class _MultifactorError(Exception):
     """MFA exc."""
 
-    def __init__(self, message: str, status_code: int | None = None) -> None:
-        super().__init__(message)
-        self.status_code = status_code
+
+class _MFAConnectError(Exception):
+    """MFA connect error."""
+
+
+class _MFAMissconfiguredError(Exception):
+    """MFA missconfigured error."""
 
 
 async def get_creds(
@@ -97,6 +101,8 @@ class MultifactorAPI:
     """
 
     MultifactorError = _MultifactorError
+    MFAConnectError = _MFAConnectError
+    MFAMissconfiguredError = _MFAMissconfiguredError
 
     AUTH_URL_USERS = "/access/requests/md"
     AUTH_URL_ADMIN = "/access/requests"
@@ -228,19 +234,21 @@ class MultifactorAPI:
             },
         }
         log_mfa.debug(data)
+        try:
+            response = await self.client.post(
+                self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
+                auth=self.auth,
+                headers=self._generate_trace_id_header(),
+                json=data,
+            )
+        except httpx.TimeoutException as err:
+            raise self.MFAConnectError("API Timeout") from err
 
-        response = await self.client.post(
-            self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
-            auth=self.auth,
-            headers=self._generate_trace_id_header(),
-            json=data,
-        )
+        if response.status_code == 401:
+            raise self.MFAMissconfiguredError("API Key or Secret is invalid")
 
         if response.status_code != 200:
-            raise self.MultifactorError(
-                "Status error",
-                status_code=response.status_code,
-            )
+            raise self.MultifactorError("Status error")
 
         try:
             response_data = response.json()
