@@ -335,11 +335,11 @@ class BindRequest(BaseRequest):
         if policy := getattr(ldap_session, "policy", None):  # type: ignore
             if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
 
-                check_group = True
+                request_2fa = True
                 if policy.mfa_status == MFAFlags.WHITELIST:
-                    check_group = await check_mfa_group(policy, user, session)
+                    request_2fa = await check_mfa_group(policy, user, session)
 
-                if check_group:
+                if request_2fa:
                     mfa_status = await self.check_mfa(
                         mfa,
                         user.user_principal_name,

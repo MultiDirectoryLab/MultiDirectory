@@ -120,11 +120,11 @@ async def login_for_access_token(
     if mfa and network_policy.mfa_status in (
         MFAFlags.ENABLED, MFAFlags.WHITELIST,
     ):
-        check_group = True
+        request_2fa = True
         if (network_policy.mfa_status == MFAFlags.WHITELIST):
-            check_group = await check_mfa_group(network_policy, user, session)
+            request_2fa = await check_mfa_group(network_policy, user, session)
 
-        if check_group:
+        if request_2fa:
             raise HTTPException(
                 status.HTTP_426_UPGRADE_REQUIRED,
                 detail="Requires MFA connect",
