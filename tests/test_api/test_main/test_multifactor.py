@@ -19,22 +19,25 @@ from ldap_protocol.multifactor import MultifactorAPI
     [
         # 1. httpx.ConnectTimeout => raise MFAConnectError
         (
-            httpx.ConnectTimeout("Connection timed out"), True,
-            MultifactorAPI.MFAConnectError,
+            httpx.ConnectTimeout("Connection timed out"),
+            True, MultifactorAPI.MFAConnectError,
         ),
 
         # 2. httpx.ReadTimeout => False
-        (httpx.ReadTimeout("Read timed out"), False, None),
+        (
+            httpx.ReadTimeout("Read timed out"),
+            False, None,
+        ),
 
         # 3. status_code=401 => raise MFAMissconfiguredError
         (
-            httpx.Response(status_code=401), True,
-            MultifactorAPI.MFAMissconfiguredError,
+            httpx.Response(status_code=401),
+            True, MultifactorAPI.MFAMissconfiguredError,
         ),
 
         # 4. status_code=500 => raise MultifactorError
         (
-            httpx.Response(status_code=500, json={"detail": "Server Error"}),
+            httpx.Response(status_code=500),
             True, MultifactorAPI.MultifactorError,
         ),
 
@@ -70,12 +73,7 @@ async def test_ldap_validate_mfa(
     else:
         async_client.post = AsyncMock(return_value=mock_post_side_effect)
 
-    mfa_api = MultifactorAPI(  # noqa: S106
-        key="test",
-        secret="test",
-        client=async_client,
-        settings=settings,
-    )
+    mfa_api = MultifactorAPI("test", "test", async_client, settings)
 
     if expected_exception:
         with pytest.raises(expected_exception):
