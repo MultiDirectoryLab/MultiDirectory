@@ -201,7 +201,7 @@ class MFACredsProvider(Provider):
 class MFAProvider(Provider):
     """MFA creds and api provider."""
 
-    scope = Scope.REQUEST
+    scope = Scope.APP
 
     @provide()
     async def get_client(
@@ -210,6 +210,7 @@ class MFAProvider(Provider):
         """Get async client for DI."""
         async with httpx.AsyncClient(
             timeout=settings.MFA_CONNECT_TIMEOUT_SECONDS,
+            limits=httpx.Limits(max_connections=50, keepalive_expiry=15),
         ) as client:
             yield MFAHTTPClient(client)
 
