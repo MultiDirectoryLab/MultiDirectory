@@ -203,10 +203,18 @@ class MFAProvider(Provider):
 
     scope = Scope.REQUEST
 
-    @provide()
-    async def get_client(self) -> AsyncIterator[MFAHTTPClient]:
+    @provide(scope=Scope.APP)
+    async def get_client(
+        self, settings: Settings,
+    ) -> AsyncIterator[MFAHTTPClient]:
         """Get async client for DI."""
-        async with httpx.AsyncClient(timeout=4) as client:
+        async with httpx.AsyncClient(
+            timeout=settings.MFA_CONNECT_TIMEOUT_SECONDS,
+            limits=httpx.Limits(
+                max_connections=settings.MFA_MAX_CONN,
+                keepalive_expiry=settings.MFA_MAX_KEEPALIVE,
+            ),
+        ) as client:
             yield MFAHTTPClient(client)
 
     @provide(provides=MultifactorAPI)

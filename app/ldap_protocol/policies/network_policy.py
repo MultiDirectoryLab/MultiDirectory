@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address
 from typing import Literal
 
-from sqlalchemy import or_, select, text
+from sqlalchemy import exists, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, true
@@ -50,13 +50,31 @@ def build_policy_query(
                 NetworkPolicy.groups == None,  # noqa
                 NetworkPolicy.groups.any(Group.id.in_(user_group_ids)),
             ),
-            or_(
-                NetworkPolicy.mfa_groups == None,  # noqa
-                NetworkPolicy.mfa_groups.any(Group.id.in_(user_group_ids)),
-            ),
         )
 
     return query
+
+
+async def check_mfa_group(
+    policy: NetworkPolicy,
+    user: User,
+    session: AsyncSession,
+) -> bool:
+    """Check if user is in a group with MFA policy.
+
+    :param NetworkPolicy policy: policy object
+    :param User user: user object
+    :param AsyncSession session: db session
+    :return bool: status
+    """
+    return await session.scalar(
+        select(
+            exists().where(  # type: ignore
+                Group.mfa_policies.contains(policy),
+                Group.users.contains(user),
+            ),
+        ),
+    )
 
 
 async def get_user_network_policy(

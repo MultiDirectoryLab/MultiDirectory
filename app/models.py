@@ -45,6 +45,9 @@ class Base(DeclarativeBase, AsyncAttrs):
 
 
 nbool = Annotated[bool, mapped_column(nullable=False)]
+tbool = Annotated[
+    bool, mapped_column(server_default=expression.true(), nullable=False),
+]
 
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
@@ -525,8 +528,7 @@ class NetworkPolicy(Base):
         index=True,
     )
 
-    enabled: Mapped[bool] = mapped_column(
-        server_default=expression.true(), nullable=False)
+    enabled: Mapped[tbool]
     priority: Mapped[int] = mapped_column(nullable=False)
 
     priority_uc = UniqueConstraint(
@@ -542,18 +544,18 @@ class NetworkPolicy(Base):
         Enum(MFAFlags), server_default="DISABLED", nullable=False,
     )
 
-    is_ldap: Mapped[bool] = mapped_column(
-        server_default=expression.true(), nullable=False)
-    is_http: Mapped[bool] = mapped_column(
-        server_default=expression.true(), nullable=False)
-    is_kerberos: Mapped[bool] = mapped_column(
-        server_default=expression.true(), nullable=False)
+    is_ldap: Mapped[tbool]
+    is_http: Mapped[tbool]
+    is_kerberos: Mapped[tbool]
 
     mfa_groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary=PolicyMFAMembership.__table__,
         back_populates="mfa_policies",
     )
+
+    bypass_no_connection: Mapped[tbool]
+    bypass_service_failure: Mapped[tbool]
 
 
 class PasswordPolicy(Base):
@@ -580,9 +582,7 @@ class PasswordPolicy(Base):
     minimum_password_length: Mapped[int] = mapped_column(
         nullable=False, server_default="7",
     )
-    password_must_meet_complexity_requirements: Mapped[bool] = mapped_column(
-        server_default=expression.true(), nullable=False,
-    )
+    password_must_meet_complexity_requirements: Mapped[tbool]
 
 
 class AccessPolicy(Base):

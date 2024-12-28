@@ -28,7 +28,10 @@ from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
-from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.policies.network_policy import (
+    check_mfa_group,
+    get_user_network_policy,
+)
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -38,10 +41,7 @@ from ldap_protocol.user_account_control import (
     get_check_uac,
 )
 from ldap_protocol.utils.helpers import ft_now
-from ldap_protocol.utils.queries import (
-    get_base_directories,
-    set_last_logon_user,
-)
+from ldap_protocol.utils.queries import get_base_directories
 from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
@@ -54,7 +54,7 @@ from .oauth2 import (
     get_user_from_token,
 )
 from .schema import REFRESH_PATH, OAuth2Form, SetupRequest
-from .utils import get_ip_from_request
+from .utils import create_and_set_tokens, get_ip_from_request
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -112,11 +112,7 @@ async def login_for_access_token(
     if not ip:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    network_policy = await get_user_network_policy(
-        ip,
-        user,
-        session,
-    )
+    network_policy = await get_user_network_policy(ip, user, session)
 
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
@@ -124,45 +120,17 @@ async def login_for_access_token(
     if mfa and network_policy.mfa_status in (
         MFAFlags.ENABLED, MFAFlags.WHITELIST,
     ):
-        if (
-            network_policy.mfa_status == MFAFlags.WHITELIST
-            and not network_policy.mfa_groups
-        ):
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
+        request_2fa = True
+        if (network_policy.mfa_status == MFAFlags.WHITELIST):
+            request_2fa = await check_mfa_group(network_policy, user, session)
 
-        raise HTTPException(
-            status.HTTP_426_UPGRADE_REQUIRED,
-            detail="Requires MFA connect",
-        )
+        if request_2fa:
+            raise HTTPException(
+                status.HTTP_426_UPGRADE_REQUIRED,
+                detail="Requires MFA connect",
+            )
 
-    access_token = create_token(  # noqa: S106
-        uid=user.id,
-        secret=settings.SECRET_KEY,
-        expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        grant_type="access",
-        extra_data={"uuid": secrets.token_urlsafe(8)},
-    )
-
-    refresh_token = create_token(  # noqa: S106
-        uid=user.id,
-        secret=settings.SECRET_KEY,
-        expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        grant_type="refresh",
-        extra_data={"uuid": secrets.token_urlsafe(8)},
-    )
-
-    await set_last_logon_user(user, session, settings.TIMEZONE)
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=f"Bearer {refresh_token}",
-        httponly=True,
-        path=REFRESH_PATH,
-    )
+    await create_and_set_tokens(user, session, settings, response)
 
 
 @auth_router.post("/token/refresh", response_class=Response)

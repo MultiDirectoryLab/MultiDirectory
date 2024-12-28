@@ -10,7 +10,6 @@ from typing import AsyncGenerator, ClassVar
 
 import httpx
 from pydantic import BaseModel, Field, SecretStr
-from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -19,7 +18,10 @@ from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
-from ldap_protocol.policies.network_policy import is_user_group_valid
+from ldap_protocol.policies.network_policy import (
+    check_mfa_group,
+    is_user_group_valid,
+)
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
@@ -30,7 +32,7 @@ from ldap_protocol.utils.queries import (
     get_user,
     set_last_logon_user,
 )
-from models import Group, MFAFlags, User
+from models import MFAFlags, NetworkPolicy, User
 from security import verify_password
 
 from .base import BaseRequest
@@ -264,6 +266,7 @@ class BindRequest(BaseRequest):
         api: MultifactorAPI | None,
         identity: str,
         otp: str | None,
+        policy: NetworkPolicy,
     ) -> bool:
         """Check mfa api.
 
@@ -277,7 +280,15 @@ class BindRequest(BaseRequest):
 
         try:
             return await api.ldap_validate_mfa(identity, otp)
+        except MultifactorAPI.MFAConnectError:
+            if policy.bypass_no_connection:
+                return True
+            return False
+        except MultifactorAPI.MFAMissconfiguredError:
+            return True
         except MultifactorAPI.MultifactorError:
+            if policy.bypass_service_failure:
+                return True
             return False
 
     async def handle(
@@ -331,23 +342,17 @@ class BindRequest(BaseRequest):
 
         if policy := getattr(ldap_session, "policy", None):  # type: ignore
             if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
-                check_group = True
 
+                request_2fa = True
                 if policy.mfa_status == MFAFlags.WHITELIST:
-                    check_group = await session.scalar(
-                        select(
-                            exists().where(  # type: ignore
-                                Group.mfa_policies.contains(policy),
-                                Group.users.contains(user),
-                            ),
-                        ),
-                    )
+                    request_2fa = await check_mfa_group(policy, user, session)
 
-                if check_group:
+                if request_2fa:
                     mfa_status = await self.check_mfa(
                         mfa,
                         user.user_principal_name,
                         self.authentication_choice.otpassword,
+                        policy,
                     )
 
                     if mfa_status is False:

@@ -76,7 +76,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14
 
-    MFA_TIMEOUT_SECONDS: int = 60
+    MFA_LDAP_READ_TIMEOUT_SECONDS: int = 60
+    MFA_CONNECT_TIMEOUT_SECONDS: int = 4
+    MFA_MAX_CONN: int = 50
+    MFA_MAX_KEEPALIVE: int = 15
     MFA_TOKEN_LEEWAY: int = 15
     MFA_API_SOURCE: Literal["dev", "ru"] = "ru"
 

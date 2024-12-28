@@ -106,6 +106,8 @@ class Policy(BaseModel, NetmasksMixin):
     is_http: bool
     is_ldap: bool
     is_kerberos: bool
+    bypass_no_connection: bool
+    bypass_service_failure: bool
 
 
 class PolicyResponse(BaseModel):
@@ -125,6 +127,8 @@ class PolicyResponse(BaseModel):
     is_http: bool
     is_ldap: bool
     is_kerberos: bool
+    bypass_no_connection: bool
+    bypass_service_failure: bool
 
 
 class PolicyUpdate(BaseModel, NetmasksMixin):
@@ -139,6 +143,8 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     is_http: bool | None = None
     is_ldap: bool | None = None
     is_kerberos: bool | None = None
+    bypass_no_connection: bool | None = None
+    bypass_service_failure: bool | None = None
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> Self:

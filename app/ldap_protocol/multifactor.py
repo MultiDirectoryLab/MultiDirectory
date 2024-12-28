@@ -43,6 +43,14 @@ class _MultifactorError(Exception):
     """MFA exc."""
 
 
+class _MFAConnectError(Exception):
+    """MFA connect error."""
+
+
+class _MFAMissconfiguredError(Exception):
+    """MFA missconfigured error."""
+
+
 async def get_creds(
     session: AsyncSession,
     key_name: str,
@@ -93,6 +101,8 @@ class MultifactorAPI:
     """
 
     MultifactorError = _MultifactorError
+    MFAConnectError = _MFAConnectError
+    MFAMissconfiguredError = _MFAMissconfiguredError
 
     AUTH_URL_USERS = "/access/requests/md"
     AUTH_URL_ADMIN = "/access/requests"
@@ -125,7 +135,10 @@ class MultifactorAPI:
 
     @log_mfa.catch(reraise=True)
     async def ldap_validate_mfa(
-            self, username: str, password: str | None) -> bool:
+        self,
+        username: str,
+        password: str | None,
+    ) -> bool:
         """Validate multifactor.
 
         If pwd not passed, use "m" for querying push request from mfa,
@@ -135,6 +148,7 @@ class MultifactorAPI:
 
         :param str username: un
         :param str password: pwd
+        :param NetworkPolicy policy: policy
         :raises MultifactorError: connect timeout
         :raises MultifactorError: invalid json
         :raises MultifactorError: Invalid status
@@ -152,24 +166,36 @@ class MultifactorAPI:
                     "passCode": passcode,
                     "GroupPolicyPreset": {},
                 },
-                timeout=60,
-            )
-
-            data = response.json()
-            log_mfa.info(
-                {
-                    "response": data,
-                    "req_content": response.request.content.decode(),
-                    "req_headers": response.request.headers,
-                },
+                timeout=httpx.Timeout(
+                    self.settings.MFA_LDAP_READ_TIMEOUT_SECONDS,
+                    connect=self.settings.MFA_CONNECT_TIMEOUT_SECONDS,
+                ),
             )
         except httpx.ConnectTimeout as err:
-            raise self.MultifactorError("API Timeout") from err
-        except JSONDecodeError as err:
-            raise self.MultifactorError("Invalid json") from err
+            raise self.MFAConnectError("API Timeout") from err
+        except httpx.ReadTimeout:
+            # Push was not approved
+            log_mfa.debug("MFA ReadTimeout")
+            return False
+
+        if response.status_code == 401:
+            raise self.MFAMissconfiguredError("API Key or Secret is invalid")
 
         if response.status_code != 200:
             raise self.MultifactorError("Status error")
+
+        try:
+            data = response.json()
+        except JSONDecodeError as err:
+            raise self.MultifactorError("Invalid json") from err
+
+        log_mfa.info(
+            {
+                "response": data,
+                "req_content": response.request.content.decode(),
+                "req_headers": response.request.headers,
+            },
+        )
 
         if data.get("model", {}).get("status") != "Granted":
             return False
@@ -184,7 +210,9 @@ class MultifactorAPI:
         :param str username: un
         :param str callback_url: callback uri to send token
         :param int uid: user id
-        :raises self.MultifactorError: on invalid json, Key or timeout
+        :raises httpx.TimeoutException: on timeout
+        :raises self.MultifactorError: on invalid json, Key or error status
+            code
         :return str: url to open in new page
         """
         data = {
@@ -198,21 +226,28 @@ class MultifactorAPI:
                 "target": "_self",
             },
         }
+        log_mfa.debug(data)
         try:
-            log_mfa.debug(data)
-
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.AUTH_URL_ADMIN,
                 auth=self.auth,
                 headers=self._generate_trace_id_header(),
                 json=data,
             )
+        except httpx.TimeoutException as err:
+            raise self.MFAConnectError("API Timeout") from err
 
+        if response.status_code == 401:
+            raise self.MFAMissconfiguredError("API Key or Secret is invalid")
+
+        if response.status_code != 200:
+            raise self.MultifactorError("Status error")
+
+        try:
             response_data = response.json()
             log_mfa.info(response_data)
             return response_data["model"]["url"]
-
-        except (httpx.TimeoutException, JSONDecodeError, KeyError) as err:
+        except (JSONDecodeError, KeyError) as err:
             raise self.MultifactorError(f"MFA API error: {err}") from err
 
     async def refresh_token(self, token: str) -> str:

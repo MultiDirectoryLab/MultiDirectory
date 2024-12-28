@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import Depends, Form, HTTPException, Request, status
+from fastapi import Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
@@ -20,6 +20,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
+from api.auth.utils import create_and_set_tokens, get_ip_from_request
 from config import Settings
 from ldap_protocol.multifactor import (
     Creds,
@@ -27,6 +28,7 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
+from ldap_protocol.policies.network_policy import get_user_network_policy
 from models import CatalogueSetting
 from models import User as DBUser
 
@@ -180,6 +182,7 @@ async def two_factor_protocol(
     session: FromDishka[AsyncSession],
     api: FromDishka[MultifactorAPI],
     settings: FromDishka[Settings],
+    response: Response,
 ) -> MFAChallengeResponse:
     """Authenticate with two factor app.
     \f
@@ -207,6 +210,14 @@ async def two_factor_protocol(
             "Invalid credentials",
         )
 
+    ip = get_ip_from_request(request)
+    if not ip:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    network_policy = await get_user_network_policy(ip, user, session)
+    if network_policy is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
     try:
         url = request.url_for("callback_mfa")
         if settings.USE_CORE_TLS:
@@ -217,7 +228,24 @@ async def two_factor_protocol(
             url.components.geturl(),
             user.id,
         )
+    except MultifactorAPI.MFAConnectError:
+        if network_policy.bypass_no_connection:
+            await create_and_set_tokens(user, session, settings, response)
+            return MFAChallengeResponse(status="bypass", message="")
+
+        logger.critical(f"API error {traceback.format_exc()}")
+        raise HTTPException(
+            status.HTTP_406_NOT_ACCEPTABLE,
+            "Multifactor error",
+        )
+    except MultifactorAPI.MFAMissconfiguredError:
+        await create_and_set_tokens(user, session, settings, response)
+        return MFAChallengeResponse(status="bypass", message="")
     except MultifactorAPI.MultifactorError:
+        if network_policy.bypass_service_failure:
+            await create_and_set_tokens(user, session, settings, response)
+            return MFAChallengeResponse(status="bypass", message="")
+
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
             status.HTTP_406_NOT_ACCEPTABLE,

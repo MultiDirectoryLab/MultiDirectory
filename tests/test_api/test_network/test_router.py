@@ -49,6 +49,8 @@ async def test_add_policy(
         'is_http': True,
         'is_ldap': True,
         'is_kerberos': True,
+        'bypass_no_connection': True,
+        'bypass_service_failure': True,
     })
 
     assert raw_response.status_code == 201
@@ -74,6 +76,8 @@ async def test_add_policy(
             'is_http': True,
             'is_ldap': True,
             'is_kerberos': True,
+            'bypass_no_connection': True,
+            'bypass_service_failure': True,
         },
         {
             'enabled': True,
@@ -87,6 +91,8 @@ async def test_add_policy(
             'is_http': True,
             'is_ldap': True,
             'is_kerberos': True,
+            'bypass_no_connection': True,
+            'bypass_service_failure': True,
         },
     ]
 
@@ -114,6 +120,8 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             'is_http': True,
             'is_ldap': True,
             'is_kerberos': True,
+            'bypass_no_connection': True,
+            'bypass_service_failure': True,
         },
     ]
 
@@ -142,6 +150,8 @@ async def test_update_policy(http_client: AsyncClient) -> None:
         'is_http': True,
         'is_ldap': True,
         'is_kerberos': True,
+        'bypass_no_connection': True,
+        'bypass_service_failure': True,
     }
 
     response = await http_client.get("/policy")
@@ -163,6 +173,8 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             'is_http': True,
             'is_ldap': True,
             'is_kerberos': True,
+            'bypass_no_connection': True,
+            'bypass_service_failure': True,
         },
     ]
 
@@ -201,6 +213,8 @@ async def test_delete_policy(
         'is_http': True,
         'is_ldap': True,
         'is_kerberos': True,
+        'bypass_no_connection': True,
+        'bypass_service_failure': True,
     }
 
     response = await http_client.delete(
@@ -254,6 +268,8 @@ async def test_switch_policy(
         'is_http': True,
         'is_ldap': True,
         'is_kerberos': True,
+        'bypass_no_connection': True,
+        'bypass_service_failure': True,
     }
 
     response = await http_client.patch(
@@ -319,6 +335,8 @@ async def test_swap(http_client: AsyncClient) -> None:
             'is_http': True,
             'is_ldap': True,
             'is_kerberos': True,
+            'bypass_no_connection': True,
+            'bypass_service_failure': True,
         },
     )
 
