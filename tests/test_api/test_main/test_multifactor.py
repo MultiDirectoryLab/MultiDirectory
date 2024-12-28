@@ -1,6 +1,6 @@
 """Test MultifactorAPI."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -43,6 +43,7 @@ from ldap_protocol.multifactor import MultifactorAPI
             httpx.Response(
                 status_code=200,
                 json={"model": {"status": "Denied"}},
+                request=httpx.Request("POST", ""),
             ), False, None,
         ),
 
@@ -51,6 +52,7 @@ from ldap_protocol.multifactor import MultifactorAPI
             httpx.Response(
                 status_code=200,
                 json={"model": {"status": "Granted"}},
+                request=httpx.Request("POST", ""),
             ), True, None,
         ),
     ],
@@ -59,34 +61,27 @@ async def test_ldap_validate_mfa(
     mock_post_side_effect,
     expected_result,
     expected_exception,
-    mfa_api: MultifactorAPI,
+    settings,
 ):
     """Test the LDAP validate MFA function with various scenarios."""
+    async_client = Mock()
+    if isinstance(mock_post_side_effect, Exception):
+        async_client.post = AsyncMock(side_effect=mock_post_side_effect)
+    else:
+        async_client.post = AsyncMock(return_value=mock_post_side_effect)
 
-    async def handler(request: httpx.Request) -> httpx.Response:
-        if isinstance(mock_post_side_effect, httpx.Response):
-            return mock_post_side_effect
-        raise mock_post_side_effect
+    mfa_api = MultifactorAPI(  # noqa: S106
+        key="test",
+        secret="test",
+        client=async_client,
+        settings=settings,
+    )
 
-    with patch.object(
-        mfa_api.settings.__class__, 'MFA_API_URI',
-        'http://mocked.api.multifactor.ru',
-    ):
-
-        assert mfa_api.settings.MFA_API_URI == \
-            'http://mocked.api.multifactor.ru'
-
-        mocked_client = httpx.AsyncClient(
-            timeout=4,
-            transport=httpx.MockTransport(handler),
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            await mfa_api.ldap_validate_mfa("user", "password")
+    else:
+        result = await mfa_api.ldap_validate_mfa(
+            "user", "password",
         )
-        mfa_api.client = mocked_client
-
-        if expected_exception:
-            with pytest.raises(expected_exception):
-                await mfa_api.ldap_validate_mfa("user", "password")
-        else:
-            result = await mfa_api.ldap_validate_mfa(
-                "user", "password",
-            )
-            assert result == expected_result
+        assert result == expected_result
