@@ -40,7 +40,7 @@ flake8-isort = "^6.1.1"
 flake8-pytest = "^1.4"
 isort = "^5.13.2"
 mypy = "^1.13.0"
-ruff = "0.7.3"
+ruff = "0.8.6"
 types-pytz = "^2022.7.1.0"
 
 [tool.poetry.group.test.dependencies]
