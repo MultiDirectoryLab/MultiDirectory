@@ -3,9 +3,6 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
-import uuid
-
 import pytest
 from httpx import AsyncClient
 
@@ -172,17 +169,15 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     )
     data = raw_response.json()
 
-    hex_guid = None
-    entry_dn = data["search_result"][3]["object_name"]
+    object_guid = None
+    entry_dn = data['search_result'][3]['object_name']
 
-    for attr in data["search_result"][3]["partial_attributes"]:
-        if attr["type"] == "objectGUID":
-            hex_guid = attr["vals"][0]
+    for attr in data['search_result'][3]['partial_attributes']:
+        if attr['type'] == 'objectGUID':
+            object_guid = attr['vals'][0]
             break
 
-    assert hex_guid is not None, "objectGUID attribute is missing"
-
-    object_guid = str(uuid.UUID(bytes_le=bytes(bytearray.fromhex(hex_guid))))
+    assert object_guid is not None, 'objectGUID attribute is missing'
 
     raw_response = await http_client.post(
         "entry/search",
