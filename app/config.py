@@ -66,9 +66,17 @@ class Settings(BaseModel):
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
 
+    REDIS_SCHEMA: str = "redis"
+    REDIS_DB: str = "0"
+
+    REDIS_HOST: str
+    REDIS_PORT: str = "6379"
+    REDIS_USER: str | None = None
+    REDIS_PASSWORD: str | None = None
+
     @computed_field  # type: ignore
     @cached_property
-    def POSTGRES_URI(self) -> PostgresDsn:  # noqa
+    def POSTGRES_URI(self) -> PostgresDsn:  # noqa: N802
         """Build postgres DSN."""
         return PostgresDsn(
             f"{self.POSTGRES_SCHEMA}://"
@@ -76,6 +84,19 @@ class Settings(BaseModel):
             f"{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}/"
             f"{self.POSTGRES_DB}"
+        )
+
+    @computed_field  # type: ignore
+    @cached_property
+    def REDIS_URI(self) -> str:  # noqa: N802
+        """Build redis URL."""
+        return (
+            f"{self.REDIS_SCHEMA}://"
+            f"{self.REDIS_USER if self.REDIS_USER else ''}:"
+            f"{self.REDIS_PASSWORD if self.REDIS_PASSWORD else ''}@"
+            f"{self.REDIS_HOST}:"
+            f"{self.REDIS_PORT}/"
+            f"{self.REDIS_DB}"
         )
 
     VENDOR_NAME: ClassVar[str] = "MultiFactor"
