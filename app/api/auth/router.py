@@ -34,11 +34,8 @@ from ldap_protocol.user_account_control import (
     get_check_uac,
 )
 from ldap_protocol.utils.helpers import ft_now
-from ldap_protocol.utils.queries import (
-    get_base_directories,
-    set_last_logon_user,
-)
-from models import CatalogueSetting, Directory, Group, User
+from ldap_protocol.utils.queries import get_base_directories
+from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
 from .oauth2 import authenticate_user, get_current_user, get_user
