@@ -20,7 +20,6 @@ async def resolve_deps(func: T, container: AsyncContainer) -> dict[str, Any]:
     """
     hints = get_type_hints(func)
     del hints["return"]
-    del hints["for_api"]
     kwargs = {}
 
     for arg_name, hint in hints.items():
