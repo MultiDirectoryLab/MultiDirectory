@@ -35,7 +35,6 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
-    add_audit_pocilies,
     get_base_directories,
     set_last_logon_user,
 )
@@ -392,7 +391,7 @@ async def first_setup(
                 ],
                 session=session,
             )
-            await add_audit_pocilies(session)
+            # await add_audit_pocilies(session)
             await session.commit()
 
         except IntegrityError:

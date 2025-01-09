@@ -27,12 +27,12 @@ from ldap_protocol.ldap_requests.bind_methods import (
 )
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
 )
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
-from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
