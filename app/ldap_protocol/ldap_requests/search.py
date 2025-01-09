@@ -234,6 +234,8 @@ class SearchRequest(BaseRequest):
         ldap_session: LDAPSession,
         settings: Settings,
         for_api: bool = False,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry,
         None,

@@ -89,6 +89,8 @@ class ModifyDNRequest(BaseRequest):
         self,
         ldap_session: LDAPSession,
         session: AsyncSession,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:
