@@ -253,7 +253,7 @@ async def test_bind_invalid_password_or_user(
 
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(bind.handle, container)
-        result = await anext(bind.handle(**kwargs))  # type: ignore
+        result = await anext(bind.handle(**kwargs))
 
     assert result == bad_response
     assert ldap_session.user is None
@@ -265,7 +265,7 @@ async def test_bind_invalid_password_or_user(
     )
 
     kwargs = await resolve_deps(bind.handle, container)
-    result = await anext(bind.handle(**kwargs))  # type: ignore
+    result = await anext(bind.handle(**kwargs))
 
     assert result == bad_response
     assert ldap_session.user is None
@@ -285,7 +285,7 @@ async def test_anonymous_bind(
     )
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(bind.handle, container)
-        result = await anext(bind.handle(**kwargs))  # type: ignore
+        result = await anext(bind.handle(**kwargs))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ldap_session.user is None
 
@@ -376,7 +376,7 @@ async def test_bind_disabled_user(
 
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(bind.handle, container)
-        result = await anext(bind.handle(**kwargs))  # type: ignore
+        result = await anext(bind.handle(**kwargs))
 
     assert result == bad_response
     assert ldap_session.user is None
