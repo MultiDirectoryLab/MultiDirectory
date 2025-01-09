@@ -99,7 +99,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
         """Create model from data, WhoAmIRequestValue data is empty."""
         return cls()
 
-    async def handle(
+    async def handle(  # type: ignore
         self,
         ldap_session: LDAPSession,
         _: AsyncSession,
