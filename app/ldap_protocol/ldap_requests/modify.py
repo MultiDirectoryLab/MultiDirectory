@@ -120,6 +120,8 @@ class ModifyRequest(BaseRequest):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:

@@ -51,6 +51,8 @@ class DeleteRequest(BaseRequest):
         session: AsyncSession,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
         if not ldap_session.user:

@@ -50,6 +50,8 @@ class BaseExtendedValue(ABC, BaseModel):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
+        *args: tuple,
+        **kwargs: dict,
     ) -> BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
@@ -103,6 +105,8 @@ class WhoAmIRequestValue(BaseExtendedValue):
         _: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
+        *args: tuple,
+        **kwargs: dict,
     ) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
@@ -133,6 +137,8 @@ class StartTLSRequestValue(BaseExtendedValue):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
+        *args: tuple,
+        **kwargs: dict,
     ) -> StartTLSResponse:
         """Update password of current or selected user."""
         if settings.USE_CORE_TLS:
@@ -187,6 +193,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
+        *args: tuple,
+        **kwargs: dict,
     ) -> PasswdModifyResponse:
         """Update password of current or selected user."""
         if not settings.USE_CORE_TLS:
@@ -288,6 +296,8 @@ class ExtendedRequest(BaseRequest):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
         try:
