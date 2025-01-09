@@ -67,7 +67,7 @@ from ldap_protocol.multifactor import MultifactorAPI
 async def test_ldap_validate_mfa(
     mock_post_side_effect: httpx.Response,
     expected_result: bool,
-    expected_exception: type[BaseException] | None,
+    expected_exception: BaseException | None,
     settings: Settings,
 ) -> None:
     """Test the LDAP validate MFA function with various scenarios."""
