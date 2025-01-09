@@ -25,6 +25,7 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
+from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -32,7 +33,6 @@ from ldap_protocol.policies.password_policy import (
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
-from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,

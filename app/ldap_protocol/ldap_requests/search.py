@@ -31,7 +31,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
-from ldap_protocol.objects import DerefAliases, Scope, ProtocolOp
+from ldap_protocol.objects import DerefAliases, ProtocolOp, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.const import ATTRIBUTE_TYPES, OBJECT_CLASSES
 from ldap_protocol.utils.cte import get_all_parent_group_directories
