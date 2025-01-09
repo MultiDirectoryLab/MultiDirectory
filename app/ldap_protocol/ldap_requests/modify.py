@@ -8,14 +8,16 @@ from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
+from config import Settings
 from loguru import logger
+from models import Attribute, Directory, Group, User
 from pydantic import BaseModel
+from security import get_password_hash
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
@@ -26,6 +28,7 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -34,7 +37,6 @@ from ldap_protocol.policies.password_policy import (
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
-from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
@@ -48,8 +50,6 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
-from models import Attribute, Directory, Group, User
-from security import get_password_hash
 
 from .base import BaseRequest
 
@@ -116,10 +116,7 @@ class ModifyRequest(BaseRequest):
                     operation=Operation(int(change.value[0].value)),
                     modification=PartialAttribute(
                         type=change.value[1].value[0].value,
-                        vals=[
-                            attr.value
-                            for attr in change.value[1].value[1].value
-                        ],
+                        vals=[attr.value for attr in change.value[1].value[1].value],
                     ),
                 ),
             )
@@ -154,6 +151,8 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         entity_type_dao: EntityTypeDAO,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
@@ -365,9 +364,7 @@ class ModifyRequest(BaseRequest):
 
         if name == "memberof":
             groups = [
-                _directory.group
-                for _directory in directories
-                if _directory.group
+                _directory.group for _directory in directories if _directory.group
             ]
             new_groups = list(set(groups) - set(directory.groups))
             directories = [new_group.directory for new_group in new_groups]
@@ -389,11 +386,7 @@ class ModifyRequest(BaseRequest):
 
         if name == "memberof":
             directory.groups.extend(
-                [
-                    _directory.group
-                    for _directory in directories
-                    if _directory.group
-                ],
+                [_directory.group for _directory in directories if _directory.group],
             )
         else:
             directory.group.members.extend(directories)
@@ -545,9 +538,7 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                validator = await PasswordPolicySchema.get_policy_settings(
-                    session
-                )
+                validator = await PasswordPolicySchema.get_policy_settings(session)
 
                 p_last_set = await validator.get_pwd_last_set(
                     session,

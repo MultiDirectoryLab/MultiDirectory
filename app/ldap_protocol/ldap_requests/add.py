@@ -98,6 +98,8 @@ class AddRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
