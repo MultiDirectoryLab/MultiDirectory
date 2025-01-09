@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.dialogue import LDAPCodes, LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -21,6 +20,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
     get_base_directories,
