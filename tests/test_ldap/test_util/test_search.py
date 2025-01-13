@@ -165,7 +165,7 @@ async def test_ldap_search_access_control_denied(
 ) -> None:
     """Test ldapsearch on server.
 
-    Default user can read only himself.
+    Default user can read himself and parent containers.
     """
     proc = await asyncio.create_subprocess_exec(
         'ldapsearch',
@@ -183,7 +183,11 @@ async def test_ldap_search_access_control_denied(
     dn_list = [d for d in data if d.startswith('dn:')]
 
     assert result == 0
-    assert dn_list == ["dn: cn=user_non_admin,ou=users,dc=md,dc=test"]
+    assert dn_list == [
+        "dn: dc=md,dc=test",
+        "dn: ou=users,dc=md,dc=test",
+        "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+    ]
 
     await create_access_policy(
         name='Groups Read Access Policy',
@@ -214,6 +218,8 @@ async def test_ldap_search_access_control_denied(
 
     assert result == 0
     assert sorted(dn_list) == sorted([
+        'dn: dc=md,dc=test',
+        'dn: ou=users,dc=md,dc=test',
         'dn: cn=groups,dc=md,dc=test',
         'dn: cn=domain admins,cn=groups,dc=md,dc=test',
         'dn: cn=developers,cn=groups,dc=md,dc=test',

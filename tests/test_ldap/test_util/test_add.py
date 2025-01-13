@@ -210,7 +210,7 @@ async def test_ldap_add_access_control(
 
             return await proc.wait()
 
-    assert await try_add() == LDAPCodes.NO_SUCH_OBJECT
+    assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
     await create_access_policy(
         name='DOMAIN Read Access Policy',
