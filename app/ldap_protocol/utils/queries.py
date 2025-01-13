@@ -9,7 +9,18 @@ from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
-from sqlalchemy import Column, func, or_, select, update
+from sqlalchemy import (
+    ARRAY,
+    Column,
+    String,
+    TextClause,
+    bindparam,
+    func,
+    or_,
+    select,
+    text,
+    update,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
@@ -185,6 +196,19 @@ def get_path_filter(
     :return ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
+
+
+def get_upper_tree_elem(
+    path: list[str],
+) -> TextClause:
+    """Get text clause for upper tree element for a given path.
+
+    :param list[str] path: dn
+    :return TextClause: text clause
+    """
+    return text(
+        "(:path)[1:\"Directory\".\"depth\"]",
+    ).bindparams(bindparam("path", value=path, type_=ARRAY(String)))
 
 
 def get_filter_from_path(

@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal, TypeVar
 
-from sqlalchemy import ARRAY, String, bindparam, select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, and_, or_
@@ -17,6 +17,7 @@ from ldap_protocol.utils.queries import (
     get_groups,
     get_path_filter,
     get_search_path,
+    get_upper_tree_elem,
 )
 from models import AccessPolicy, Directory, Group
 
@@ -93,10 +94,7 @@ def mutate_ap(
         ap_filter = or_(
             and_(AccessPolicy.can_read.is_(True), whitelist),
             Directory.id == user.directory_id,
-            Directory.path == text("(:user_path)[1:\"Directory\".\"depth\"]")
-            .bindparams(
-                bindparam("user_path", value=user_path, type_=ARRAY(String)),
-            ),
+            Directory.path == get_upper_tree_elem(user_path),
         )
 
     elif action == "add":
