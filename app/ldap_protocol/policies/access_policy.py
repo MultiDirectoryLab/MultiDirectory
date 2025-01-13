@@ -89,10 +89,18 @@ def mutate_ap(
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 
     if action == "read":
-        ap_filter = or_(
+        base_filter = [
             and_(AccessPolicy.can_read.is_(True), whitelist),
             Directory.id == user.directory_id,
+        ]
+
+        # NOTE: Allow to show parent directories
+        user_search_path = get_search_path(user.dn)
+        base_filter.extend(
+            get_path_filter(user_search_path[:i])
+            for i in range(1, len(user_search_path))
         )
+        ap_filter = or_(*base_filter)
 
     elif action == "add":
         ap_filter = AccessPolicy.can_add.is_(True) & whitelist
