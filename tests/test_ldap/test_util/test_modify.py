@@ -436,7 +436,7 @@ async def test_ldap_modify_with_ap(
 
             return await proc.wait()
 
-    assert await try_modify() == LDAPCodes.NO_SUCH_OBJECT
+    assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
     await create_access_policy(
         name='TEST read Access Policy',

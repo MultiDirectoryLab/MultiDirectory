@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import httpx
 import pytest
 
+from config import Settings
 from ldap_protocol.multifactor import MultifactorAPI
 
 
@@ -61,11 +62,11 @@ from ldap_protocol.multifactor import MultifactorAPI
     ],
 )
 async def test_ldap_validate_mfa(
-    mock_post_side_effect,
-    expected_result,
-    expected_exception,
-    settings,
-):
+    mock_post_side_effect: httpx.Response,
+    expected_result: bool,
+    expected_exception: Exception | None,
+    settings: Settings,
+) -> None:
     """Test the LDAP validate MFA function with various scenarios."""
     async_client = Mock()
     if isinstance(mock_post_side_effect, Exception):
@@ -76,7 +77,7 @@ async def test_ldap_validate_mfa(
     mfa_api = MultifactorAPI("test", "test", async_client, settings)
 
     if expected_exception:
-        with pytest.raises(expected_exception):
+        with pytest.raises(expected_exception):  # type: ignore
             await mfa_api.ldap_validate_mfa("user", "password")
     else:
         result = await mfa_api.ldap_validate_mfa(
