@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal, TypeVar
 
-from sqlalchemy import select
+from sqlalchemy import ARRAY, String, bindparam, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, and_, or_
@@ -89,18 +89,15 @@ def mutate_ap(
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 
     if action == "read":
-        base_filter = [
+        user_path = get_search_path(user.dn)
+        ap_filter = or_(
             and_(AccessPolicy.can_read.is_(True), whitelist),
             Directory.id == user.directory_id,
-        ]
-
-        # NOTE: Allow to show parent directories
-        user_search_path = get_search_path(user.dn)
-        base_filter.extend(
-            get_path_filter(user_search_path[:i])
-            for i in range(1, len(user_search_path))
+            Directory.path == text("(:user_path)[1:\"Directory\".\"depth\"]")
+            .bindparams(
+                bindparam("user_path", value=user_path, type_=ARRAY(String)),
+            ),
         )
-        ap_filter = or_(*base_filter)
 
     elif action == "add":
         ap_filter = AccessPolicy.can_add.is_(True) & whitelist
