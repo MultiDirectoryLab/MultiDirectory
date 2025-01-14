@@ -239,7 +239,7 @@ def value_to_string(
     value: str | bytes | int | bool,
 ) -> bytes | str | int:
     """Convert value to string."""
-    if tag.nr == Numbers.Integer:
+    if tag.nr == Numbers.Integer and tag.cls != Classes.Context:
         with suppress(ValueError):
             return int(value)
         return value
