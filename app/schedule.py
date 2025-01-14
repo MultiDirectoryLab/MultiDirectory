@@ -1,4 +1,8 @@
-"""Simple scheduler for tasks."""
+"""Simple scheduler for tasks.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import asyncio
 from typing import Callable, Coroutine
