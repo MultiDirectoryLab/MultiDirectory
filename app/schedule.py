@@ -54,8 +54,7 @@ async def _schedule(
 
 
 def scheduler(settings: Settings) -> None:
-    """Sript entrypoint."""
-
+    """Script entrypoint."""
     async def runner(settings: Settings) -> None:
         container = make_async_container(
             MainProvider(),
