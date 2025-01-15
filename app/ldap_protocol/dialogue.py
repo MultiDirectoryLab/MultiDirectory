@@ -5,16 +5,21 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import hashlib
+import hmac
+import json
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import datetime
-from enum import IntEnum
+from datetime import datetime, timezone
 from ipaddress import IPv4Address, ip_address
-from typing import TYPE_CHECKING, AsyncIterator, Literal
+from secrets import token_hex
+from typing import TYPE_CHECKING, AsyncIterator, Self
 
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.policies.network_policy import build_policy_query
 from models import NetworkPolicy, User
 
@@ -22,19 +27,12 @@ if TYPE_CHECKING:
     from .messages import LDAPRequestMessage
 
 
-class Operation(IntEnum):
-    """Changes enum for modify request."""
-
-    ADD = 0
-    DELETE = 1
-    REPLACE = 2
-
-
 @dataclass
 class UserSchema:
     """User model, alias for db user."""
 
     id: int  # noqa: A003
+    session_id: str
     sam_accout_name: str
     user_principal_name: str
     mail: str | None
@@ -43,26 +41,22 @@ class UserSchema:
     dn: str
 
     access_policies_ids: list[int]
-    access_type: Literal["access", "refresh", "multifactor"]
-    exp: int
     account_exp: datetime | None
 
     @classmethod
     async def from_db(
         cls,
         user: User,
-        access: Literal["access", "refresh", "multifactor"],
-        exp: int = 0,
+        session_id: str,
     ) -> "UserSchema":
         """Create model from db model."""
         return cls(
             id=user.id,
+            session_id=session_id.split(".")[0],
             sam_accout_name=user.sam_accout_name,
             user_principal_name=user.user_principal_name,
             mail=user.mail,
             display_name=user.display_name,
-            access_type=access,
-            exp=exp,
             directory_id=user.directory_id,
             dn=user.directory.path_dn,
             access_policies_ids=[
@@ -72,105 +66,6 @@ class UserSchema:
             ],
             account_exp=user.account_exp,
         )
-
-
-class LDAPCodes(IntEnum):
-    """LDAP protocol codes mapping.
-
-    SUCCESS = 0
-    OPERATIONS_ERROR = 1
-    PROTOCOL_ERROR = 2
-    TIME_LIMIT_EXCEEDED = 3
-    SIZE_LIMIT_EXCEEDED = 4
-    COMPARE_FALSE = 5
-    COMPARE_TRUE = 6
-    AUTH_METHOD_NOT_SUPPORTED = 7
-    STRONGER_AUTH_REQUIRED = 8
-    # -- 9 reserved --
-    REFERRAL = 10
-    ADMIN_LIMIT_EXCEEDED = 11
-    UNAVAILABLE_CRITICAL_EXTENSION = 12
-    CONFIDENTIALITY_REQUIRED = 13
-    SASL_BIND_IN_PROGRESS = 14
-    NO_SUCH_ATTRIBUTE = 16
-    UNDEFINED_ATTRIBUTE_TYPE = 17
-    INAPPROPRIATE_MATCHING = 18
-    CONSTRAINT_VIOLATION = 19
-    ATTRIBUTE_OR_VALUE_EXISTS = 20
-    INVALID_ATTRIBUTE_SYNTAX = 21
-    # -- 22-31 unused --
-    NO_SUCH_OBJECT = 32
-    ALIAS_PROBLEM = 33
-    INVALID_DN_SYNTAX = 34
-    # -- 35 reserved for undefined isLeaf --
-    ALIAS_DEREFERENCING_PROBLEM = 36
-    # -- 37-47 unused --
-    INAPPROPRIATE_AUTHENTICATION = 48
-    INVALID_CREDENTIALS = 49
-    INSUFFICIENT_ACCESS_RIGHTS = 50
-    BUSY = 51
-    UNAVAILABLE = 52
-    UNWILLING_TO_PERFORM = 53
-    LOOP_DETECT = 54
-    # -- 55-63 unused --
-    NAMING_VIOLATION = 64
-    OBJECT_CLASS_VIOLATION = 65
-    NOT_ALLOWED_ON_NON_LEAF = 66
-    NOT_ALLOWED_ON_RDN = 67
-    ENTRY_ALREADY_EXISTS = 68
-    OBJECT_CLASS_MODS_PROHIBITED = 69
-    # -- 70 reserved for CLDAP --
-    AFFECTS_MULTIPLE_DS_AS = 71
-    # -- 72-79 unused --
-    OTHER = 80
-    """
-
-    SUCCESS = 0
-    OPERATIONS_ERROR = 1
-    PROTOCOL_ERROR = 2
-    TIME_LIMIT_EXCEEDED = 3
-    SIZE_LIMIT_EXCEEDED = 4
-    COMPARE_FALSE = 5
-    COMPARE_TRUE = 6
-    AUTH_METHOD_NOT_SUPPORTED = 7
-    STRONGER_AUTH_REQUIRED = 8
-    # -- 9 reserved --
-    REFERRAL = 10
-    ADMIN_LIMIT_EXCEEDED = 11
-    UNAVAILABLE_CRITICAL_EXTENSION = 12
-    CONFIDENTIALITY_REQUIRED = 13
-    SASL_BIND_IN_PROGRESS = 14
-    NO_SUCH_ATTRIBUTE = 16
-    UNDEFINED_ATTRIBUTE_TYPE = 17
-    INAPPROPRIATE_MATCHING = 18
-    CONSTRAINT_VIOLATION = 19
-    ATTRIBUTE_OR_VALUE_EXISTS = 20
-    INVALID_ATTRIBUTE_SYNTAX = 21
-    # -- 22-31 unused --
-    NO_SUCH_OBJECT = 32
-    ALIAS_PROBLEM = 33
-    INVALID_DN_SYNTAX = 34
-    # -- 35 reserved for undefined isLeaf --
-    ALIAS_DEREFERENCING_PROBLEM = 36
-    # -- 37-47 unused --
-    INAPPROPRIATE_AUTHENTICATION = 48
-    INVALID_CREDENTIALS = 49
-    INSUFFICIENT_ACCESS_RIGHTS = 50
-    BUSY = 51
-    UNAVAILABLE = 52
-    UNWILLING_TO_PERFORM = 53
-    LOOP_DETECT = 54
-    # -- 55-63 unused --
-    NAMING_VIOLATION = 64
-    OBJECT_CLASS_VIOLATION = 65
-    NOT_ALLOWED_ON_NON_LEAF = 66
-    NOT_ALLOWED_ON_RDN = 67
-    ENTRY_ALREADY_EXISTS = 68
-    OBJECT_CLASS_MODS_PROHIBITED = 69
-    # -- 70 reserved for CLDAP --
-    AFFECTS_MULTIPLE_DS_AS = 71
-    # -- 72-79 unused --
-    OTHER = 80
 
 
 class LDAPSession:
@@ -205,7 +100,7 @@ class LDAPSession:
         """Bind user to session concurrently save."""
         async with self._lock:
             if isinstance(user, User):
-                self._user = await UserSchema.from_db(user, access="access")
+                self._user = await UserSchema.from_db(user, '')
             else:
                 self._user = user
 
@@ -252,3 +147,190 @@ class LDAPSession:
             return
 
         raise PermissionError
+
+
+class WebSession:
+    """Web session for user."""
+
+    id: str  # noqa: A003
+    user: UserSchema
+
+
+class SessionStorage:
+    """Session storage for Session."""
+
+    def __init__(self, storage: Redis, key_length: int, key_ttl: int) -> None:
+        """Initialize the storage.
+
+        :param Redis storage:
+            The Redis/DragonflyDB instance to use for storage.
+        :param int key_length: The length of the keys to generate.
+        :param int key_ttl: The time-to-live for keys in seconds.
+        """
+        self.storage = storage
+        self.key_length = key_length
+        self.key_ttl = key_ttl
+
+    async def get(self, key: str) -> dict:
+        """Retrieve data associated with the given key from storage.
+
+        :param str key: The key to look up in the storage.
+        :return dict: The data associated with the key,
+            or an empty dictionary if the key is not found.
+        """
+        data = await self.storage.get(key)
+        if data is None:
+            raise KeyError
+        return json.loads(data)
+
+    def generate_key(self) -> str:
+        """Generate a new key for storing data in the storage.
+
+        :return str: A new key.
+        """
+        return token_hex(self.key_length)
+
+    async def get_n_rows(self, offset: int, limit: int) -> dict[str, dict]:
+        """Retrieve a batch of data from storage.
+
+        :param int offset: The offset to start retrieving rows from.
+        :param int limit: The limit of rows to retrieve.
+        :return dict[str, dict]:
+            A list of key-data pairs for the retrieved rows.
+        """
+        batch: dict[str, dict] = {}
+
+        cursor, keys = await self.storage.scan(cursor=offset, count=limit)
+
+        if cursor == 0:
+            return batch
+
+        async for key in keys:
+            data = await self.storage.get(key)
+            if data is not None:
+                batch[key] = json.loads(data)
+        return batch
+
+    async def set_data(self, key: str, data: dict, expire: int | None) -> None:
+        """Store data associated with the given key in storage.
+
+        :param str key: The key to store the data under.
+        :param dict data: The data to store.
+        """
+        await self.storage.set(key, json.dumps(data), ex=expire)
+
+    async def delete(self, keys: list[str]) -> None:
+        """Delete data associated with the given key from storage.
+
+        :param str key: The key to delete from the storage.
+        """
+        await self.storage.delete(*keys)
+
+    async def get_user_data(self, user: UserSchema) -> dict:
+        """Get user data from storage.
+
+        :param UserSchema user: The user to get data for.
+        :return dict: The data associated with the user.
+        """
+        return await self.get(user.session_id)
+
+    def get_id_hash(self, user_id: int) -> str:
+        """Get user id hash."""
+        return hashlib.blake2b(
+            str(user_id).encode(), digest_size=16).hexdigest()
+
+    async def set_user_data(self, user: UserSchema, data: dict) -> None:
+        """Set user data in storage.
+
+        :param UserSchema user: The user to set data for.
+        :param dict data: The data to set for the user.
+        """
+        data['issued'] = datetime.now(timezone.utc)
+        await self.storage.set(user.session_id, json.dumps(data))
+        await self.storage.append(
+            self.get_id_hash(user.id), f"{user.session_id};")
+
+    async def get_user_sessions(self, user: UserSchema) -> list[str]:
+        """Get user sessions."""
+        keys = await self.storage.get(self.get_id_hash(user.id))
+        return keys.split(b";")
+
+    async def clear_user_sessions(self, user: UserSchema) -> None:
+        """Clear user sessions."""
+        keys = await self.get_user_sessions(user)
+        await self.delete(keys)
+        await self.storage.delete(self.get_id_hash(user.id))
+
+    async def update_user_data(self, user: UserSchema, data: dict) -> None:
+        """Set user data in storage.
+
+        :param UserSchema user: The user to set data for.
+        :param dict data: The data to set for the user.
+        """
+        dbdata = await self.get(user.session_id)
+        await self.storage.set(user.session_id, json.dumps(dbdata | data))
+
+    @staticmethod
+    def _sign(session_id: str, settings: Settings) -> str:
+        """Sign session id."""
+        return hmac.new(
+            settings.SECRET_KEY.encode(),
+            session_id.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+    async def create_session(
+        self: Self,
+        uid: int,
+        settings: Settings,
+        *,
+        extra_data: dict | None = None,
+    ) -> str:
+        """Create jwt token.
+
+        :param int uid: user id
+        :param dict data: data dict
+        :param str secret: secret key
+        :param int expires_minutes: exire time in minutes
+        :param Literal[refresh, access] grant_type: grant type flag
+        :return str: jwt token
+        """
+        if extra_data is None:
+            extra_data = {}
+
+        session_id = self.generate_key()
+        signature = self._sign(session_id, settings)
+
+        data = {"id": uid, "sign": signature} | extra_data
+        await self.set_data(
+            session_id, data, settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        return f"{session_id}.{signature}"
+
+    async def get_user_id(
+        self: Self,
+        settings: Settings,
+        session_key: str,
+    ) -> int:
+        """Get user from storage.
+
+        :param Settings settings: app settings
+        :raises KeyError: missing key
+        :return int: user id from storage
+        """
+        try:
+            session_id, signature = session_key.split(".")
+        except ValueError:
+            raise KeyError
+
+        data = await self.get(session_id)
+
+        if data is None or data.get("sign") != signature:
+            raise KeyError
+
+        expected_signature = self._sign(session_id, settings)
+        user_id = data.get("id")
+
+        if signature != expected_signature or user_id is None:
+            raise KeyError
+
+        return user_id
