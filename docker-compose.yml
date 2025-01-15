@@ -315,6 +315,44 @@ services:
     command:
       ng serve --host 0.0.0.0 --port 80 --poll 2000
 
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    container_name: dragonfly
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_port=6379
+      - DFLY_maxmemory=5.00GiB
+    expose:
+      - 6379
+    volumes:
+      - dragonflydata:/data
+    command: >
+      --dbfilename=dump
+      --dir=/data
+      --snapshot_cron="* * * * *"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.df.rule=Host(`df.localhost`)"
+      - "traefik.http.routers.df.entrypoints=web"
+      - "traefik.http.services.df.loadbalancer.server.port=6379"
+      - "traefik.http.routers.df.service=df"
+
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: ghcr.io/joeferner/redis-commander:latest
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:dragonfly:6379
+    user: redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rc.rule=Host(`rc.localhost`)"
+      - "traefik.http.routers.rc.entrypoints=web"
+      - "traefik.http.services.rc.loadbalancer.server.port=8081"
+      - "traefik.http.routers.rc.service=rc"
+
 volumes:
   postgres:
   pgadmin:
@@ -324,3 +362,4 @@ volumes:
   psync_queue:
   dns_server_file:
   dns_server_config:
+  dragonflydata:
