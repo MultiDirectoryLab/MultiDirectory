@@ -149,13 +149,6 @@ class LDAPSession:
         raise PermissionError
 
 
-class WebSession:
-    """Web session for user."""
-
-    id: str  # noqa: A003
-    user: UserSchema
-
-
 class SessionStorage:
     """Session storage for Session."""
 
@@ -239,17 +232,6 @@ class SessionStorage:
         return hashlib.blake2b(
             str(user_id).encode(), digest_size=16).hexdigest()
 
-    async def set_user_data(self, user: UserSchema, data: dict) -> None:
-        """Set user data in storage.
-
-        :param UserSchema user: The user to set data for.
-        :param dict data: The data to set for the user.
-        """
-        data['issued'] = datetime.now(timezone.utc)
-        await self.storage.set(user.session_id, json.dumps(data))
-        await self.storage.append(
-            self.get_id_hash(user.id), f"{user.session_id};")
-
     async def get_user_sessions(self, user: UserSchema) -> list[str]:
         """Get user sessions."""
         keys = await self.storage.get(self.get_id_hash(user.id))
@@ -302,8 +284,11 @@ class SessionStorage:
         signature = self._sign(session_id, settings)
 
         data = {"id": uid, "sign": signature} | extra_data
-        await self.set_data(
-            session_id, data, settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        data['issued'] = datetime.now(timezone.utc).isoformat()
+
+        await self.storage.set(session_id, json.dumps(data), ex=self.key_ttl)
+        await self.storage.append(self.get_id_hash(uid), f"{session_id};")
+
         return f"{session_id}.{signature}"
 
     async def get_user_id(
@@ -319,18 +304,18 @@ class SessionStorage:
         """
         try:
             session_id, signature = session_key.split(".")
-        except ValueError:
-            raise KeyError
+        except (ValueError, AttributeError):
+            raise KeyError('Invalid payload key')
 
         data = await self.get(session_id)
 
         if data is None or data.get("sign") != signature:
-            raise KeyError
+            raise KeyError('Invalid signature')
 
         expected_signature = self._sign(session_id, settings)
         user_id = data.get("id")
 
         if signature != expected_signature or user_id is None:
-            raise KeyError
+            raise KeyError('Invalid signature')
 
         return user_id
