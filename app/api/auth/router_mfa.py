@@ -20,8 +20,9 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from api.auth.utils import create_and_set_tokens, get_ip_from_request
+from api.auth.utils import create_and_set_session_key, get_ip_from_request
 from config import Settings
+from ldap_protocol.dialogue import SessionStorage
 from ldap_protocol.multifactor import (
     Creds,
     MFA_HTTP_Creds,
@@ -34,7 +35,6 @@ from models import User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (
-    REFRESH_PATH,
     MFAChallengeResponse,
     MFACreateRequest,
     MFAGetResponse,
@@ -130,6 +130,8 @@ async def callback_mfa(
     access_token: Annotated[str, Form(
         alias="accessToken", validation_alias="accessToken")],
     session: FromDishka[AsyncSession],
+    storage: FromDishka[SessionStorage],
+    settings: FromDishka[Settings],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
 ) -> RedirectResponse:
     """Disassemble mfa token and send it to websocket.
@@ -156,21 +158,13 @@ async def callback_mfa(
         return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
 
     user_id: int = int(payload.get("uid"))
-    if user_id is None or not await session.get(DBUser, user_id):
+    user = await session.get(DBUser, user_id)
+    if user_id is None or not user:
         return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-        path=REFRESH_PATH,
-    )
+    await create_and_set_session_key(
+        user, session, settings, response, storage)
     return response
 
 
@@ -182,6 +176,7 @@ async def two_factor_protocol(
     session: FromDishka[AsyncSession],
     api: FromDishka[MultifactorAPI],
     settings: FromDishka[Settings],
+    storage: FromDishka[SessionStorage],
     response: Response,
 ) -> MFAChallengeResponse:
     """Authenticate with two factor app.
@@ -230,7 +225,8 @@ async def two_factor_protocol(
         )
     except MultifactorAPI.MFAConnectError:
         if network_policy.bypass_no_connection:
-            await create_and_set_tokens(user, session, settings, response)
+            await create_and_set_session_key(
+                user, session, settings, response, storage)
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")
@@ -238,12 +234,10 @@ async def two_factor_protocol(
             status.HTTP_406_NOT_ACCEPTABLE,
             "Multifactor error",
         )
-    except MultifactorAPI.MFAMissconfiguredError:
-        await create_and_set_tokens(user, session, settings, response)
-        return MFAChallengeResponse(status="bypass", message="")
     except MultifactorAPI.MultifactorError:
         if network_policy.bypass_service_failure:
-            await create_and_set_tokens(user, session, settings, response)
+            await create_and_set_session_key(
+                user, session, settings, response, storage)
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")
