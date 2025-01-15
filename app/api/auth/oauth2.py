@@ -4,8 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from datetime import datetime, timedelta
-from typing import Annotated, Literal
+from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
@@ -13,14 +12,12 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import OAuth2
 from fastapi.security.utils import get_authorization_scheme_param
-from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
 from config import Settings
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.multifactor import MFA_HTTP_Creds
+from ldap_protocol.dialogue import SessionStorage, UserSchema
 from ldap_protocol.utils.queries import get_user
 from models import Group, User
 from security import verify_password
@@ -31,7 +28,6 @@ ALGORITHM = "HS256"
 def get_token(
     request: Request,
     auto_error: bool = True,
-    type_: Literal["access_token", "refresh_token"] = "access_token",
 ) -> str | None:
     """Get token from cookies.
 
@@ -42,7 +38,7 @@ def get_token(
     :raises HTTPException: 401
     :return str | None: parsed token
     """
-    authorization: str = request.cookies.get(type_, "")
+    authorization: str = request.cookies.get("id", "")
 
     scheme, param = get_authorization_scheme_param(authorization)
     if not authorization or scheme.lower() != "bearer":
@@ -79,8 +75,27 @@ class OAuth2PasswordBearerWithCookie(OAuth2):
         )
 
     async def __call__(self, request: Request) -> str | None:
-        """Accept access token from httpOnly Cookie."""
-        return get_token(request, self.auto_error)
+        """Accept access token from httpOnly Cookie.
+
+        :param Request request: request
+        :param bool auto_error: raise 401 or not, defaults to True
+        :param Literal[access_token, refresh_token]
+            type_: token type choice, defaults to 'access_token'
+        :raises HTTPException: 401
+        :return str | None: parsed token
+        """
+        authorization: str = request.cookies.get("id", "")
+
+        scheme, param = get_authorization_scheme_param(authorization)
+        if not authorization or scheme.lower() != "bearer":
+            if self.auto_error:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not authenticated",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return None
+        return param
 
 
 oauth2 = OAuth2PasswordBearerWithCookie(
@@ -115,67 +130,17 @@ async def authenticate_user(
     return user
 
 
-def create_token(
-    uid: int,
-    secret: str,
-    expires_minutes: int,
-    grant_type: Literal["refresh", "access"],
-    *,
-    extra_data: dict | None = None,
-) -> str:
-    """Create jwt token.
-
-    :param int uid: user id
-    :param dict data: data dict
-    :param str secret: secret key
-    :param int expires_minutes: exire time in minutes
-    :param Literal[refresh, access] grant_type: grant type flag
-    :return str: jwt token
-    """
-    if not extra_data:
-        extra_data = {}
-
-    to_encode = extra_data.copy()
-    to_encode["uid"] = uid
-    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
-    to_encode.update({"exp": expire, "grant_type": grant_type})
-    return jwt.encode(to_encode, secret)
-
-
-async def get_user_from_token(
-    settings: Settings,
-    session: AsyncSession,
-    token: str,
-    mfa_creds: MFA_HTTP_Creds,
+@inject
+async def get_current_user(  # noqa: D103
+    settings: FromDishka[Settings],
+    session: FromDishka[AsyncSession],
+    session_storage: FromDishka[SessionStorage],
+    session_key: Annotated[str, Depends(oauth2)],
 ) -> UserSchema:
-    """Get user from jwt.
-
-    :param Settings settings: app settings
-    :param AsyncSession session: sa session
-    :param str token: oauth2 obj
-    :raises _CREDENTIALS_EXCEPTION: 401
-    :return User: user for api response
-    """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=ALGORITHM)
-    except (JWTError, AttributeError):
-        if not mfa_creds:
-            raise _CREDENTIALS_EXCEPTION
-
-        try:  # retry with mfa secret
-            payload = jwt.decode(
-                token,
-                mfa_creds.secret,
-                audience=mfa_creds.key,
-                algorithms=ALGORITHM,
-            )
-        except (JWTError, AttributeError):
-            raise _CREDENTIALS_EXCEPTION
-
-    user_id: int = int(payload.get("uid"))
-
-    if user_id is None:
-        raise _CREDENTIALS_EXCEPTION
+        user_id = await session_storage.get_user_id(settings, session_key)
+    except KeyError as err:
+        raise _CREDENTIALS_EXCEPTION from err
 
     user = await session.scalar(
         select(User)
@@ -186,30 +151,4 @@ async def get_user_from_token(
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
-    return await UserSchema.from_db(
-        user,
-        payload.get("grant_type"),
-        payload.get("exp"),
-    )
-
-
-@inject
-async def get_current_user(  # noqa: D103
-    settings: FromDishka[Settings],
-    session: FromDishka[AsyncSession],
-    token: Annotated[str, Depends(oauth2)],
-    mfa_creds: FromDishka[MFA_HTTP_Creds],
-) -> UserSchema:
-    user = await get_user_from_token(settings, session, token, mfa_creds)
-
-    if user.access_type not in ("access", "multifactor"):
-        raise _CREDENTIALS_EXCEPTION
-
-    if (
-        user.access_type == "multifactor"
-        and user.exp - settings.MFA_TOKEN_LEEWAY
-        < (datetime.utcnow().timestamp())
-    ):
-        raise _CREDENTIALS_EXCEPTION
-
-    return user
+    return await UserSchema.from_db(user, session_key)
