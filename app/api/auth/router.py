@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from extra.setup_dev import setup_enviroment
-from ldap_protocol.dialogue import UserSchema
+from ldap_protocol.dialogue import SessionStorage, UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
@@ -141,6 +141,7 @@ async def renew_tokens(
     settings: FromDishka[Settings],
     response: Response,
     session: FromDishka[AsyncSession],
+    session_storage: FromDishka[SessionStorage],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
 ) -> None:
     """Grant new access token with refresh token.
@@ -176,7 +177,7 @@ async def renew_tokens(
             uid=user.id,
             secret=settings.SECRET_KEY,
             expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-            grant_type="access",
+            session_storage=session_storage,
             extra_data={"uuid": secrets.token_urlsafe(8)},
         )
     else:
