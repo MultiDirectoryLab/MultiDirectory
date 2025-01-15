@@ -15,7 +15,6 @@ from ldap_protocol.utils.const import EmailStr
 _domain_re = re.compile(
     "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z-]{2,63}$",
 )
-REFRESH_PATH = "/api/auth/token/refresh"
 
 
 class Login(BaseModel):
