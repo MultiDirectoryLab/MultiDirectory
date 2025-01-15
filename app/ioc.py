@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncIterator, NewType
 
 import httpx
+import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -17,7 +18,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
 from config import Settings
-from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.dialogue import LDAPSession, SessionStorage
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
@@ -35,6 +36,7 @@ from ldap_protocol.multifactor import (
     get_creds,
 )
 
+SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 
@@ -150,6 +152,22 @@ class MainProvider(Provider):
     ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings)
+
+    @provide(scope=Scope.APP)
+    async def get_redis_for_sessions(
+            self, settings: Settings) -> AsyncIterator[SessionStorageClient]:
+        """Get redis connection."""
+        client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
+        yield SessionStorageClient(client)
+        await client.aclose()
+
+    @provide(scope=Scope.APP)
+    async def get_session_storage(
+        self, client: SessionStorageClient,
+        settings: Settings,
+    ) -> SessionStorage:
+        """Get session storage."""
+        return SessionStorage(client, settings.SESSION_KEY_LENGTH)
 
 
 class HTTPProvider(Provider):
