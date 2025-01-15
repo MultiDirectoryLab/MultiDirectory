@@ -158,6 +158,10 @@ class MainProvider(Provider):
             self, settings: Settings) -> AsyncIterator[SessionStorageClient]:
         """Get redis connection."""
         client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
         yield SessionStorageClient(client)
         await client.aclose()
 
@@ -167,7 +171,10 @@ class MainProvider(Provider):
         settings: Settings,
     ) -> SessionStorage:
         """Get session storage."""
-        return SessionStorage(client, settings.SESSION_KEY_LENGTH)
+        return SessionStorage(
+            client,
+            settings.SESSION_KEY_LENGTH,
+            settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
 
 class HTTPProvider(Provider):
