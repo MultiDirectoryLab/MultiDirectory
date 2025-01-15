@@ -13,8 +13,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
 

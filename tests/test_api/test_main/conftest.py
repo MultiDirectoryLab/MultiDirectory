@@ -9,13 +9,14 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.dns import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
     DNS_MANAGER_ZONE_NAME,
     DNSManagerState,
 )
+from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_requests.modify import Operation
 from models import CatalogueSetting
 
 

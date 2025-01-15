@@ -7,7 +7,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from ldap_protocol.dialogue import LDAPCodes
+from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.user_account_control import UserAccountControlFlag
 
 
