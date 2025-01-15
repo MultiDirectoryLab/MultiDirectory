@@ -15,6 +15,7 @@ from pydantic import (
     HttpUrl,
     IPvAnyAddress,
     PostgresDsn,
+    RedisDsn,
     computed_field,
     field_validator,
 )
@@ -47,6 +48,10 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+
+    KV_URL: RedisDsn = RedisDsn("redis://kvdb:6379/0")
+    SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://kvdb:6379/1")
+    SESSION_KEY_LENGTH: int = 16
 
     HOSTNAME: str | None = None
 
