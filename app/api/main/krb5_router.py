@@ -231,7 +231,7 @@ async def ktadd(
     return StreamingResponse(
         response.aiter_bytes(),
         media_type="application/txt",
-        headers={"Content-Disposition": 'attachment; filename="md.keytab"'},
+        headers={"Content-Disposition": 'attachment; filename="krb5.keytab"'},
         background=BackgroundTask(response.aclose),
     )
 
