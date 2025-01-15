@@ -197,7 +197,7 @@ async def test_ktadd(
     assert response.status_code == status.HTTP_200_OK
     assert response.content == b'test_string'
     assert response.headers[
-        'Content-Disposition'] == 'attachment; filename="md.keytab"'
+        'Content-Disposition'] == 'attachment; filename="krb5.keytab"'
     assert response.headers['content-type'] == 'application/txt'
 
 
