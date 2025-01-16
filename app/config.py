@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     VENDOR_VERSION: str = Field(default_factory=_get_vendor_version)
     # to get a string run: `openssl rand -hex 32`
     SECRET_KEY: str
-    SESSION_KEY_EXPIRE_SECONDS: int = 3600
+    SESSION_KEY_EXPIRE_SECONDS: int = 60 * 60 * 8
 
     MFA_LDAP_READ_TIMEOUT_SECONDS: int = 60
     MFA_CONNECT_TIMEOUT_SECONDS: int = 4
