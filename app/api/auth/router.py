@@ -143,9 +143,15 @@ async def users_me(
 
 
 @auth_router.delete("/token/refresh", response_class=Response)
-def logout(response: Response) -> None:
+async def logout(
+    response: Response,
+    storage: FromDishka[SessionStorage],
+    user: Annotated[UserSchema, Depends(get_current_user)]
+) -> None:
     """Delete token cookies."""
     response.delete_cookie("id", httponly=True)
+    await storage.delete_user_session(user)
+
 
 
 @auth_router.patch(

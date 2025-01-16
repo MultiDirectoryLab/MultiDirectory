@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, ip_address
 from secrets import token_hex
-from typing import TYPE_CHECKING, AsyncIterator, Self
+from typing import TYPE_CHECKING, AsyncIterator, Iterable, Self
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -212,7 +212,7 @@ class SessionStorage:
         """
         await self.storage.set(key, json.dumps(data), ex=expire)
 
-    async def delete(self, keys: list[str]) -> None:
+    async def delete(self, keys: Iterable[str]) -> None:
         """Delete data associated with the given key from storage.
 
         :param str key: The key to delete from the storage.
@@ -232,16 +232,27 @@ class SessionStorage:
         return hashlib.blake2b(
             str(user_id).encode(), digest_size=16).hexdigest()
 
-    async def get_user_sessions(self, user: UserSchema) -> list[str]:
+    async def get_user_sessions(self, user: UserSchema) -> set[str]:
         """Get user sessions."""
         keys = await self.storage.get(self.get_id_hash(user.id))
-        return keys.split(b";")
+        return set(keys.split(b";"))
 
     async def clear_user_sessions(self, user: UserSchema) -> None:
         """Clear user sessions."""
         keys = await self.get_user_sessions(user)
         await self.delete(keys)
         await self.storage.delete(self.get_id_hash(user.id))
+
+    async def delete_user_session(self, user: UserSchema) -> None:
+        """Delete user session."""
+        keys = await self.get_user_sessions(user)
+        keys.remove(user.session_id)
+
+        await self.storage.set(
+            self.get_id_hash(user.id),
+            ";".join(keys),
+            keepttl=True,
+        )
 
     async def update_user_data(self, user: UserSchema, data: dict) -> None:
         """Set user data in storage.
