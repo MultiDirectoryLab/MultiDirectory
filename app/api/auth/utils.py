@@ -50,10 +50,11 @@ async def create_and_set_session_key(
     :param Response response: fastapi response object
     """
     await set_last_logon_user(user, session, settings.TIMEZONE)
+    key = await storage.create_session(user.id, settings)
 
     response.set_cookie(
         key="id",
-        value=await storage.create_session(user.id, settings),
+        value=key,
         httponly=True,
         expires=storage.key_ttl,
     )
