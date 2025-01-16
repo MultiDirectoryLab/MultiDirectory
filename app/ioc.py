@@ -174,7 +174,7 @@ class MainProvider(Provider):
         return SessionStorage(
             client,
             settings.SESSION_KEY_LENGTH,
-            settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+            settings.SESSION_KEY_EXPIRE_SECONDS)
 
 
 class HTTPProvider(Provider):
