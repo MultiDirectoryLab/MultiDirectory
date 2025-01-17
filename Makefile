@@ -22,7 +22,7 @@ launch:  ## run standalone app without tty container
 	docker compose run bash -c "alembic upgrade head && python ."
 
 recreate:  ## re-run migration
-	docker exec -it multidirectory bash -c\
+	docker exec -it multidirectory_api bash -c\
 		"alembic downgrade -1; alembic upgrade head; python -m extra.setup_dev"
 
 deploy:  ## deploy ready-to-use
