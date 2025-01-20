@@ -21,6 +21,16 @@ launch:  ## run standalone app without tty container
 	docker compose down;
 	docker compose run bash -c "alembic upgrade head && python ."
 
+recreate:  ## re-run migration
+	docker exec -it multidirectory_api bash -c\
+		"alembic downgrade -1; alembic upgrade head;"
+
+deploy:  ## deploy ready-to-use
+	make build
+	docker compose down; docker compose up -d
+	make recreate
+	make up
+
 down:  ## shutdown services
 	docker compose -f docker-compose.test.yml down --remove-orphans
 	docker compose down --remove-orphans
