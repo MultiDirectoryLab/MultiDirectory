@@ -40,8 +40,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from config import Settings
-from extra import TEST_DATA
-from extra.setup_dev import setup_enviroment
+from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
