@@ -1,7 +1,7 @@
 """Add preauth principals.
 
 Revision ID: dafg3a4b22ab
-Revises: bv546ccd35fa
+Revises: f68a134a3685
 Create Date: 2024-12-20 16:28:24.419163
 
 """
@@ -13,7 +13,7 @@ from models import Attribute, User
 
 # revision identifiers, used by Alembic.
 revision = 'dafg3a4b22ab'
-down_revision = 'bv546ccd35fa'
+down_revision = 'f68a134a3685'
 branch_labels = None
 depends_on = None
 
