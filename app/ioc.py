@@ -194,9 +194,9 @@ class LDAPServerProvider(Provider):
     scope = Scope.SESSION
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
-    async def get_session(self) -> LDAPSession:
+    async def get_session(self, storage: SessionStorage) -> LDAPSession:
         """Create ldap session."""
-        return LDAPSession()
+        return LDAPSession(storage=storage)
 
 
 class MFACredsProvider(Provider):
