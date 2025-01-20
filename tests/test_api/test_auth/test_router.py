@@ -89,7 +89,7 @@ async def test_first_setup_and_oauth(
     assert result["user_principal_name"] == "test"
     assert result["mail"] == "test@example.com-test"
     assert result["display_name"] == "test"
-    assert result["dn"] == "cn=test,ou=users,dc=md,dc=test"
+    assert result["dn"] == "cn=test,ou=users,dc=md,dc=test-localhost"
 
     result = await session.scalars(
         select(Directory)
@@ -99,7 +99,7 @@ async def test_first_setup_and_oauth(
         .filter(
             Directory.path
             == get_search_path(
-                "cn=readonly domain controllers,cn=groups,dc=md,dc=test",
+                "cn=readonly domain controllers,cn=groups,dc=md,dc=test-localhost",
             ),
         ),
     )
