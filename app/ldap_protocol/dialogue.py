@@ -12,9 +12,9 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from ipaddress import IPv4Address, ip_address
+from ipaddress import IPv4Address, IPv6Address, ip_address
 from secrets import token_hex
-from typing import TYPE_CHECKING, AsyncIterator, Iterable, Self
+from typing import TYPE_CHECKING, AsyncIterator, Iterable, NoReturn, Self
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,15 +71,19 @@ class UserSchema:
 class LDAPSession:
     """LDAPSession for one client handling."""
 
-    ip: IPv4Address
+    ip: IPv4Address | IPv6Address
     policy: NetworkPolicy | None
 
-    def __init__(self, *, user: UserSchema | None = None) -> None:
+    def __init__(
+        self, *, user: UserSchema | None = None,
+        storage: "SessionStorage" | None = None,
+    ) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
         self._user: UserSchema | None = user
         self.queue: asyncio.Queue["LDAPRequestMessage"] = asyncio.Queue()
         self.id = uuid.uuid4()
+        self.storage = storage
 
     def __str__(self) -> str:
         """Session with id."""
@@ -125,10 +129,13 @@ class LDAPSession:
         """Get client address."""
         return ":".join(map(str, writer.get_extra_info("peername")))
 
-    async def get_ip(self, writer: asyncio.StreamWriter) -> IPv4Address:
+    async def get_ip(
+            self, writer: asyncio.StreamWriter) -> IPv4Address | IPv6Address:
         """Get ip addr from writer."""
         addr = self.get_address(writer)
-        return ip_address(addr.split(":")[0])  # type: ignore
+        ip = ip_address(addr.split(":")[0])
+        self.ip = ip
+        return ip
 
     @staticmethod
     async def _get_policy(
@@ -138,15 +145,54 @@ class LDAPSession:
         return await session.scalar(query)
 
     async def validate_conn(
-        self, ip: IPv4Address, session: AsyncSession,
+        self, ip: IPv4Address | IPv6Address, session: AsyncSession,
     ) -> None:
         """Validate network policies."""
-        policy = await self._get_policy(ip, session)
+        policy = await self._get_policy(ip, session)  # type: ignore
         if policy is not None:
             self.policy = policy
+            await self.bind_session()
             return
 
         raise PermissionError
+
+    @property
+    def key(self) -> str:
+        """Get key."""
+        return f"ldap:{self.id}"
+
+    async def bind_session(self) -> None:
+        """Bind session to storage."""
+        if self.storage is None or self.user is None:
+            return
+
+        await self.storage.set_data(
+            self.key,
+            self.user.__dict__ | {"ip": str(self.ip)},
+            expire=None,
+        )
+        await self.storage.append_session(
+            self.storage.get_id_hash(self.user.id),
+            self.key,
+        )
+
+    async def disconnect(self) -> None:
+        """Disconnect session."""
+        if self.storage is None or self.user is None:
+            return  # type: ignore
+
+        await self.storage.delete([self.key])
+        await self.storage.delete_user_session(self.user)
+
+    async def ensure_session_exists(self) -> NoReturn:
+        """Ensure session exists in storage."""
+        if self.storage is None:
+            raise AttributeError("Storage is not set")
+
+        while True:
+            if not await self.storage.check_session(self.key):
+                raise ConnectionAbortedError("Session missing in storage")
+            await asyncio.sleep(30)
 
 
 class SessionStorage:
@@ -160,7 +206,7 @@ class SessionStorage:
         :param int key_length: The length of the keys to generate.
         :param int key_ttl: The time-to-live for keys in seconds.
         """
-        self.storage = storage
+        self._storage = storage
         self.key_length = key_length
         self.key_ttl = key_ttl
 
@@ -171,7 +217,7 @@ class SessionStorage:
         :return dict: The data associated with the key,
             or an empty dictionary if the key is not found.
         """
-        data = await self.storage.get(key)
+        data = await self._storage.get(key)
         if data is None:
             raise KeyError
         return json.loads(data)
@@ -193,13 +239,13 @@ class SessionStorage:
         """
         batch: dict[str, dict] = {}
 
-        cursor, keys = await self.storage.scan(cursor=offset, count=limit)
+        cursor, keys = await self._storage.scan(cursor=offset, count=limit)
 
         if cursor == 0:
             return batch
 
         async for key in keys:
-            data = await self.storage.get(key)
+            data = await self._storage.get(key)
             if data is not None:
                 batch[key] = json.loads(data)
         return batch
@@ -210,14 +256,14 @@ class SessionStorage:
         :param str key: The key to store the data under.
         :param dict data: The data to store.
         """
-        await self.storage.set(key, json.dumps(data), ex=expire)
+        await self._storage.set(key, json.dumps(data), ex=expire)
 
     async def delete(self, keys: Iterable[str]) -> None:
         """Delete data associated with the given key from storage.
 
         :param str key: The key to delete from the storage.
         """
-        await self.storage.delete(*keys)
+        await self._storage.delete(*keys)
 
     async def get_user_data(self, user: UserSchema) -> dict:
         """Get user data from storage.
@@ -234,21 +280,21 @@ class SessionStorage:
 
     async def get_user_sessions(self, user: UserSchema) -> set[str]:
         """Get user sessions."""
-        keys = await self.storage.get(self.get_id_hash(user.id))
+        keys = await self._storage.get(self.get_id_hash(user.id))
         return set(keys.split(b";"))
 
     async def clear_user_sessions(self, user: UserSchema) -> None:
         """Clear user sessions."""
         keys = await self.get_user_sessions(user)
         await self.delete(keys)
-        await self.storage.delete(self.get_id_hash(user.id))
+        await self._storage.delete(self.get_id_hash(user.id))
 
     async def delete_user_session(self, user: UserSchema) -> None:
         """Delete user session."""
         keys = await self.get_user_sessions(user)
         keys.remove(user.session_id)
 
-        await self.storage.set(
+        await self._storage.set(
             self.get_id_hash(user.id),
             ";".join(keys),
             keepttl=True,
@@ -261,7 +307,7 @@ class SessionStorage:
         :param dict data: The data to set for the user.
         """
         dbdata = await self.get(user.session_id)
-        await self.storage.set(user.session_id, json.dumps(dbdata | data))
+        await self._storage.set(user.session_id, json.dumps(dbdata | data))
 
     @staticmethod
     def _sign(session_id: str, settings: Settings) -> str:
@@ -297,10 +343,14 @@ class SessionStorage:
         data = {"id": uid, "sign": signature} | extra_data
         data['issued'] = datetime.now(timezone.utc).isoformat()
 
-        await self.storage.set(session_id, json.dumps(data), ex=self.key_ttl)
-        await self.storage.append(self.get_id_hash(uid), f"{session_id};")
+        await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
+        await self.append_session(self.get_id_hash(uid), session_id)
 
         return f"{session_id}.{signature}"
+
+    async def append_session(self, key: str, session_id: str) -> None:
+        """Append session to user sessions."""
+        await self._storage.append(key, f"{session_id};")
 
     async def get_user_id(
         self: Self,
@@ -330,3 +380,7 @@ class SessionStorage:
             raise KeyError('Invalid signature')
 
         return user_id
+
+    async def check_session(self, session_id: str) -> bool:
+        """Check session."""
+        return await self._storage.exists(session_id)
