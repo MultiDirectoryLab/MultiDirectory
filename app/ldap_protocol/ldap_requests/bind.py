@@ -8,7 +8,10 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
+import gssapi
+import gssapi.raw
 import httpx
+from loguru import logger
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +33,7 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.queries import (
     check_kerberos_group,
+    get_base_directories,
     get_user,
     set_last_logon_user,
 )
@@ -199,8 +203,65 @@ class SaslPLAINAuthentication(SaslAuthentication):
         return await get_user(session, self.username)  # type: ignore
 
 
+class SaslGSSAPIAuthentication(SaslAuthentication):
+    """Sasl GSSAPI auth form."""
+
+    mechanism: ClassVar[SASLMethod] = SASLMethod.GSSAPI
+    ticket: bytes
+    serverSaslCreds: bytes = b""
+
+    def is_valid(self, user: User | None) -> bool:
+        """Check if GSSAPI token is valid.
+
+        :param User | None user: indb user
+        :return bool: status
+        """
+        return True
+
+    def is_anonymous(self) -> bool:
+        """Check if auth is anonymous.
+
+        :return bool: status
+        """
+        return False
+
+    @classmethod
+    def from_data(cls, data: list[ASN1Row]) -> 'SaslPLAINAuthentication':
+        """Get auth from data."""
+        logger.debug("Create GSSAPI")
+        return cls(
+            ticket=data[1].value,
+            password="",
+        )
+
+    async def get_user(self, session: AsyncSession, _: str) -> User:
+        """Get user."""
+        logger.debug("GSSAPI IN GET USER")
+        keytab_path = '/certs/krb5.keytab'
+        base_dn = "MD.LOCALHOST"
+        logger.debug(f"base dn = {base_dn}")
+        server_name = gssapi.Name(f"ldap/{base_dn}@{base_dn}")
+        server_creds = gssapi.Credentials(
+            name=server_name,
+            usage="accept",
+            store={"keytab": keytab_path},
+        )
+        server_ctx = gssapi.SecurityContext(creds=server_creds)
+        output_token = server_ctx.step(self.ticket)
+        logger.debug(f"output token = {output_token}")
+
+        if server_ctx.complete:
+            logger.debug("GSSAPI AUTHENTICATED")
+            username = server_ctx.initiator_name.display_as(
+                gssapi.NameType.krb5_nt_principal_name).split('@')[0]
+            logger.debug(f"username = {username}")
+            return await get_user(session, username)  # type: ignore
+        return None  # type: ignore
+
+
 sasl_mechanism: list[type[SaslAuthentication]] = [
     SaslPLAINAuthentication,
+    SaslGSSAPIAuthentication,
 ]
 
 sasl_mechanism_map: dict[SASLMethod, type[SaslAuthentication]] = {
