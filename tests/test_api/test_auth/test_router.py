@@ -60,7 +60,7 @@ async def test_first_setup_and_oauth(
     response = await unbound_http_client.post(
         "/auth/setup",
         json={
-            "domain": "md.test",
+            "domain": "md.test-localhost",
             "username": "test",
             "user_principal_name": "test",
             "display_name": "test",
