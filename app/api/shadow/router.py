@@ -9,10 +9,11 @@ from typing import Annotated
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, Body, HTTPException, status
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.multifactor import LDAPMultiFactorAPI
+from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from models import MFAFlags, User
 
@@ -60,7 +61,17 @@ async def proxy_request(
         ):
             return True
 
-        return await mfa.ldap_validate_mfa(user.user_principal_name, None)
+        try:
+            return await mfa.ldap_validate_mfa(user.user_principal_name, None)
+        except MultifactorAPI.MFAConnectError:
+            logger.error("MFA connect error")
+            return True if network_policy.bypass_no_connection else False
+        except MultifactorAPI.MFAMissconfiguredError:
+            logger.error("MFA missconfigured error")
+            return True  # TODO: add network_policy.bypass_missconfigured
+        except MultifactorAPI.MultifactorError:
+            logger.error("MFA service failure")
+            return True if network_policy.bypass_service_failure else False
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
