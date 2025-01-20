@@ -48,6 +48,9 @@ nbool = Annotated[bool, mapped_column(nullable=False)]
 tbool = Annotated[
     bool, mapped_column(server_default=expression.true(), nullable=False),
 ]
+fbool = Annotated[
+    bool, mapped_column(server_default=expression.false(), nullable=False),
+]
 
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
@@ -554,8 +557,8 @@ class NetworkPolicy(Base):
         back_populates="mfa_policies",
     )
 
-    bypass_no_connection: Mapped[tbool]
-    bypass_service_failure: Mapped[tbool]
+    bypass_no_connection: Mapped[fbool]
+    bypass_service_failure: Mapped[fbool]
 
 
 class PasswordPolicy(Base):

@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column(
             'bypass_no_connection',
             sa.Boolean(),
-            server_default=sa.text('true'),
+            server_default=sa.text('false'),
             nullable=False,
         ),
     )
@@ -31,7 +31,7 @@ def upgrade() -> None:
         sa.Column(
             'bypass_service_failure',
             sa.Boolean(),
-            server_default=sa.text('true'),
+            server_default=sa.text('false'),
             nullable=False,
         ),
     )
