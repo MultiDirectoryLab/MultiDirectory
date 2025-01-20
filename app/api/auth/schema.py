@@ -12,8 +12,8 @@ from pydantic import BaseModel, SecretStr, computed_field, field_validator
 
 from ldap_protocol.utils.const import EmailStr
 
-domain_regex = "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z]{2,6}"
-domain_re = re.compile(domain_regex)
+_domain_regex = "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z-]{2,63}"
+_domain_re = re.compile(_domain_regex)
 REFRESH_PATH = "/api/auth/token/refresh"
 
 
@@ -56,9 +56,9 @@ class SetupRequest(BaseModel):
 
     @field_validator("domain")
     def validate_domain(cls, v: str) -> str:  # noqa
-        if re.match(domain_re, v) is None:
+        if re.match(_domain_re, v) is None:
             raise ValueError("Invalid domain value")
-        return v.lower().replace("http://", "").replace("https://", "")
+        return v.lower()
 
 
 class MFACreateRequest(BaseModel):
