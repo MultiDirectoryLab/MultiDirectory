@@ -105,7 +105,8 @@ class LDAPSession:
         """Bind user to session concurrently save."""
         async with self._lock:
             if isinstance(user, User):
-                self._user = await UserSchema.from_db(user, '')
+                self._user = await UserSchema.from_db(user, self.key)
+                await self.bind_session()
             else:
                 self._user = user
 
@@ -179,7 +180,11 @@ class LDAPSession:
 
     async def disconnect(self) -> None:
         """Disconnect session."""
-        if self.storage is None or self.user is None:
+        if (
+            self.storage is None or
+            self.user is None or
+            not self.user.session_id
+        ):
             return  # type: ignore
 
         await self.storage.delete([self.key])
@@ -303,6 +308,8 @@ class SessionStorage:
         :return dict: user sessions contents
         """
         keys = await self._get_user_keys(user)
+        if not keys:
+            return {}
         data = await self._storage.mget(*keys)
         return {k: json.loads(v) for k, v in zip(keys, data) if v is not None}
 
