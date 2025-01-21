@@ -62,16 +62,20 @@ async def proxy_request(
             return True
 
         try:
-            return await mfa.ldap_validate_mfa(user.user_principal_name, None)
+            if await mfa.ldap_validate_mfa(user.user_principal_name, None):
+                return True
+
         except MultifactorAPI.MFAConnectError:
             logger.error("MFA connect error")
-            return True if network_policy.bypass_no_connection else False
+            if network_policy.bypass_no_connection:
+                return True
         except MultifactorAPI.MFAMissconfiguredError:
             logger.error("MFA missconfigured error")
             return True  # TODO: add network_policy.bypass_missconfigured
         except MultifactorAPI.MultifactorError:
             logger.error("MFA service failure")
-            return True if network_policy.bypass_service_failure else False
+            if network_policy.bypass_service_failure:
+                return True
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
