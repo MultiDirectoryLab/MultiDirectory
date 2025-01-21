@@ -4,11 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated
-
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import Cookie, HTTPException, status
+from fastapi import HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
@@ -54,10 +52,12 @@ async def get_current_user(  # noqa: D103
     settings: FromDishka[Settings],
     session: FromDishka[AsyncSession],
     session_storage: FromDishka[SessionStorage],
-    id: Annotated[str, Cookie()] = "",  # noqa: A002
+    request: Request,
 ) -> UserSchema:
+    session_id = request.cookies.get("id", "")
+
     try:
-        user_id = await session_storage.get_user_id(settings, id)
+        user_id = await session_storage.get_user_id(settings, session_id)
     except KeyError as err:
         raise _CREDENTIALS_EXCEPTION from err
 
@@ -70,4 +70,4 @@ async def get_current_user(  # noqa: D103
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
-    return await UserSchema.from_db(user, id)
+    return await UserSchema.from_db(user, session_id)
