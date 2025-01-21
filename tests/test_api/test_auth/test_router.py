@@ -9,16 +9,15 @@ from typing import Any
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
-
 from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+
 from tests.test_api.test_auth.typing import AuthSetupRequestDataType
-from tests.test_api.test_auth.testcases import invalid_domain_test_cases
 
 
 async def apply_user_account_control(
@@ -118,6 +117,42 @@ async def test_first_setup_and_oauth(
     assert not read_only_policy.can_modify
     assert not read_only_policy.can_delete
     assert not read_only_policy.can_add
+
+
+invalid_domain_test_cases: list[AuthSetupRequestDataType] = [
+    {
+        "domain": "https://md.test-localhost",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+    {
+        "domain": "http://md.test-localhost",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+    {
+        "domain": "test-localhost",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+    {
+        "domain": "md.test-localhost!",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+]
 
 
 @pytest.mark.asyncio
