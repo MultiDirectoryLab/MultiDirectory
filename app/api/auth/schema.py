@@ -5,10 +5,17 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
+from datetime import datetime
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, SecretStr, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SecretStr,
+    computed_field,
+    field_validator,
+)
 
 from ldap_protocol.utils.const import EmailStr
 
@@ -99,3 +106,9 @@ class MFAChallengeResponse(BaseModel):
 
     status: str
     message: str
+
+
+class SessionContentSchema(BaseModel):
+    id: int  # noqa: A003
+    sign: str = Field(description="Session signature")
+    issued: datetime

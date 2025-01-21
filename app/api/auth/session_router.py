@@ -1,16 +1,19 @@
 """Session router for handling user sessions."""
 
 from dishka import FromDishka
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
 from ldap_protocol.dialogue import SessionStorage
 
 from .oauth2 import get_current_user
+from .schema import SessionContentSchema
 
 session_router = APIRouter(
     prefix="/session",
     tags=["Session"],
+    route_class=DishkaRoute,
     dependencies=[Depends(get_current_user)],
 )
 
@@ -19,10 +22,9 @@ session_router = APIRouter(
 async def get_user_session(
     user_id: int,
     storage: FromDishka[SessionStorage],
-) -> dict[str, dict[str, str]]:
+) -> dict[str, SessionContentSchema]:
     """Get current logged in user data."""
-    keys = await storage.get_user_sessions(user_id)
-    return {key: await storage.get(key) for key in keys}
+    return await storage.get_user_sessions(user_id)  # type: ignore
 
 
 @session_router.delete("/{user_id}")
