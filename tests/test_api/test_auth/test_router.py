@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from typing import Any
 
 import pytest
@@ -16,10 +17,14 @@ from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
+from tests.test_api.test_auth.typing import AuthSetupRequestDataType
+from tests.test_api.test_auth.testcases import invalid_domain_test_cases
 
 
 async def apply_user_account_control(
-    http_client: AsyncClient, user_dn: str, user_account_control_value: str,
+    http_client: AsyncClient,
+    user_dn: str,
+    user_account_control_value: str,
 ) -> dict[str, Any]:
     """Apply userAccountControl value and return response data.
 
@@ -75,9 +80,10 @@ async def test_first_setup_and_oauth(
     assert response.json() is True
 
     auth = await unbound_http_client.post(
-        "auth/token/get", data={"username": "test", "password": "Password123"},
+        "auth/token/get",
+        data={"username": "test", "password": "Password123"},
     )
-    assert auth.status_code == 200
+    assert auth.status_code == status.HTTP_200_OK
     assert list(auth.cookies.keys()) == ["access_token", "refresh_token"]
 
     response = await unbound_http_client.get("auth/me")
@@ -112,6 +118,30 @@ async def test_first_setup_and_oauth(
     assert not read_only_policy.can_modify
     assert not read_only_policy.can_delete
     assert not read_only_policy.can_add
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("test_case", invalid_domain_test_cases)
+async def test_first_setup_with_invalid_domain(
+    unbound_http_client: AsyncClient,
+    session: AsyncSession,
+    test_case: AuthSetupRequestDataType,
+) -> None:
+    """Test api first setup with invalid domain."""
+    response = await unbound_http_client.get("/auth/setup")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() is False
+
+    response = await unbound_http_client.post(
+        "/auth/setup",
+        json=test_case,
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    response = await unbound_http_client.get("/auth/setup")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() is False
 
 
 @pytest.mark.asyncio
@@ -316,7 +346,8 @@ async def test_lock_and_unlock_user(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     dir_ = await session.scalar(
-        select(Directory).filter(Directory.name == "user0"))
+        select(Directory).filter(Directory.name == "user0")
+    )
     session.expire(dir_)
 
     response = await http_client.post(
