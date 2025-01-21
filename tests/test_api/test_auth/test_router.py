@@ -346,7 +346,7 @@ async def test_lock_and_unlock_user(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     dir_ = await session.scalar(
-        select(Directory).filter(Directory.name == "user0")
+        select(Directory).filter(Directory.name == "user0"),
     )
     session.expire(dir_)
 
