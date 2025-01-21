@@ -186,14 +186,21 @@ class LDAPSession:
         await self.storage.delete_user_session(self.user)
 
     async def ensure_session_exists(self) -> NoReturn:
-        """Ensure session exists in storage."""
+        """Ensure session exists in storage.
+
+        Does nothing if anonymous, wait 30s and if user bound, check it.
+        """
         if self.storage is None:
             raise AttributeError("Storage is not set")
 
         while True:
+            await asyncio.sleep(30)
+
+            if not self.user:
+                continue
+
             if not await self.storage.check_session(self.key):
                 raise ConnectionAbortedError("Session missing in storage")
-            await asyncio.sleep(30)
 
 
 class SessionStorage:
@@ -279,24 +286,36 @@ class SessionStorage:
         return hashlib.blake2b(
             str(user_id).encode(), digest_size=16).hexdigest()
 
-    async def get_user_sessions(self, user: UserSchema | int) -> set[str]:
+    async def _get_user_keys(self, user: UserSchema | int) -> set[str]:
         """Get user sessions."""
-        if isinstance(user, UserSchema):
-            uid = user.id
-
+        uid = user.id if isinstance(user, UserSchema) else user
         keys = await self._storage.get(self.get_id_hash(uid))
+
+        if keys is None:
+            return set()
+
         return set(keys.split(b";"))
+
+    async def get_user_sessions(self, user: UserSchema | int) -> dict:
+        """Get user sessions.
+
+        :param UserSchema | int user: user id or user
+        :return dict: user sessions contents
+        """
+        keys = await self._get_user_keys(user)
+        data = await self._storage.mget(*keys)
+        return {k: json.loads(v) for k, v in zip(keys, data) if v is not None}
 
     async def clear_user_sessions(self, user: UserSchema | int) -> None:
         """Clear user sessions."""
-        keys = await self.get_user_sessions(user)
+        keys = await self._get_user_keys(user)
         await self.delete(keys)
         uid = user if isinstance(user, int) else user.id
         await self._storage.delete(self.get_id_hash(uid))
 
     async def delete_user_session(self, user: UserSchema) -> None:
         """Delete user session."""
-        keys = await self.get_user_sessions(user)
+        keys = await self._get_user_keys(user)
         keys.remove(user.session_id)
 
         await self._storage.set(
