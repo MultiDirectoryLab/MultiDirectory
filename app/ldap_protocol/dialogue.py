@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+from __future__ import annotations
 
 import asyncio
 import hashlib
@@ -76,7 +77,7 @@ class LDAPSession:
 
     def __init__(
         self, *, user: UserSchema | None = None,
-        storage: "SessionStorage" | None = None,
+        storage: SessionStorage | None = None,
     ) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
@@ -278,16 +279,20 @@ class SessionStorage:
         return hashlib.blake2b(
             str(user_id).encode(), digest_size=16).hexdigest()
 
-    async def get_user_sessions(self, user: UserSchema) -> set[str]:
+    async def get_user_sessions(self, user: UserSchema | int) -> set[str]:
         """Get user sessions."""
-        keys = await self._storage.get(self.get_id_hash(user.id))
+        if isinstance(user, UserSchema):
+            uid = user.id
+
+        keys = await self._storage.get(self.get_id_hash(uid))
         return set(keys.split(b";"))
 
-    async def clear_user_sessions(self, user: UserSchema) -> None:
+    async def clear_user_sessions(self, user: UserSchema | int) -> None:
         """Clear user sessions."""
         keys = await self.get_user_sessions(user)
         await self.delete(keys)
-        await self._storage.delete(self.get_id_hash(user.id))
+        uid = user if isinstance(user, int) else user.id
+        await self._storage.delete(self.get_id_hash(uid))
 
     async def delete_user_session(self, user: UserSchema) -> None:
         """Delete user session."""
