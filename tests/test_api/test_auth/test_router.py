@@ -103,7 +103,8 @@ async def test_first_setup_and_oauth(
         .filter(
             Directory.path
             == get_search_path(
-                "cn=readonly domain controllers,cn=groups,dc=md,dc=test-localhost",
+                "cn=readonly domain controllers,"
+                "cn=groups,dc=md,dc=test-localhost",
             ),
         ),
     )
@@ -119,6 +120,8 @@ async def test_first_setup_and_oauth(
 
 
 class AuthSetupRequestDataType(TypedDict):
+    """Dataset for testing authentication setup."""
+
     domain: str
     username: str
     user_principal_name: str
