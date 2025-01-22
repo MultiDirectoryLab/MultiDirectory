@@ -4,20 +4,19 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any
+from typing import Any, TypedDict
 
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from ldap_protocol.dialogue import LDAPCodes, Operation
-from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from tests.test_api.test_auth.typing import AuthSetupRequestDataType
+from ldap_protocol.dialogue import LDAPCodes, Operation
+from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.utils.queries import get_search_path
+from models import Directory, Group
 
 
 async def apply_user_account_control(
@@ -117,6 +116,15 @@ async def test_first_setup_and_oauth(
     assert not read_only_policy.can_modify
     assert not read_only_policy.can_delete
     assert not read_only_policy.can_add
+
+
+class AuthSetupRequestDataType(TypedDict):
+    domain: str
+    username: str
+    user_principal_name: str
+    display_name: str
+    mail: str
+    password: str
 
 
 invalid_domain_test_cases: list[AuthSetupRequestDataType] = [
