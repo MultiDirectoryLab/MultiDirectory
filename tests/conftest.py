@@ -53,6 +53,7 @@ from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
+from ldap_protocol.session_storage import MemSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
 from models import Directory
 
@@ -207,6 +208,11 @@ class TestProvider(Provider):
         mfa.ldap_validate_mfa = AsyncMock()
         mfa.get_create_mfa = AsyncMock(return_value="example.com")
         return mfa
+
+    @provide(scope=Scope.APP)
+    async def get_session_storage(self) -> SessionStorage:
+        """Get session storage."""
+        return MemSessionStorage(16)
 
 
 @dataclass
@@ -427,7 +433,7 @@ async def http_client(
         "username": creds.un, "password": creds.pw})
 
     assert response.status_code == 200
-    assert unbound_http_client.cookies.get('access_token')
+    assert unbound_http_client.cookies.get('id')
 
     return unbound_http_client
 

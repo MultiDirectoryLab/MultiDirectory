@@ -5,7 +5,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
-from ldap_protocol.dialogue import SessionStorage
+from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
 from .schema import SessionContentSchema

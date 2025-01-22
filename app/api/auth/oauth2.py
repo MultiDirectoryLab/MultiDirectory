@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
 from config import Settings
-from ldap_protocol.dialogue import SessionStorage, UserSchema
+from ldap_protocol.dialogue import UserSchema
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_user
 from models import Group, User
 from security import verify_password

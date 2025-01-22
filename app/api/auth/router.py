@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from extra.setup_dev import setup_enviroment
-from ldap_protocol.dialogue import SessionStorage, UserSchema
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
@@ -35,6 +35,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,

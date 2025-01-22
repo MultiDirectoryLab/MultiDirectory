@@ -22,7 +22,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth import get_current_user
 from api.auth.utils import create_and_set_session_key, get_ip_from_request
 from config import Settings
-from ldap_protocol.dialogue import SessionStorage
 from ldap_protocol.multifactor import (
     Creds,
     MFA_HTTP_Creds,
@@ -30,6 +29,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
 )
 from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting
 from models import User as DBUser
 

@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
 from config import Settings
-from ldap_protocol.dialogue import LDAPSession, SessionStorage
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
@@ -35,6 +35,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -171,7 +172,7 @@ class MainProvider(Provider):
         settings: Settings,
     ) -> SessionStorage:
         """Get session storage."""
-        return SessionStorage(
+        return RedisSessionStorage(
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS)

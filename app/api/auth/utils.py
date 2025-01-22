@@ -10,7 +10,7 @@ from fastapi import Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.dialogue import SessionStorage
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import set_last_logon_user
 from models import User
 
