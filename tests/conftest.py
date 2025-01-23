@@ -187,10 +187,11 @@ class TestProvider(Provider):
         await async_session.close()
         await connection.close()
 
-    @provide(scope=Scope.SESSION, provides=LDAPSession)
-    async def get_ldap_session(self) -> AsyncIterator[LDAPSession]:
+    @provide(scope=Scope.SESSION)
+    async def get_ldap_session(
+            self, storage: SessionStorage) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        yield LDAPSession()
+        yield LDAPSession(storage=storage)
         return
 
     @provide(scope=Scope.REQUEST, provides=MultifactorAPI)
@@ -212,7 +213,7 @@ class TestProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_session_storage(self) -> SessionStorage:
         """Get session storage."""
-        return MemSessionStorage(16)
+        return MemSessionStorage()
 
 
 @dataclass

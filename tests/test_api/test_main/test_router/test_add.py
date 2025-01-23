@@ -346,7 +346,7 @@ async def test_api_add_user_inccorect_uac(
 async def test_api_add_non_auth_user(unbound_http_client: AsyncClient) -> None:
     """Test API add for unauthorized user."""
     unbound_http_client.cookies.set(
-        'access_token', "Bearer 09e67421-2f92-8ddc-494108a6e04f")
+        'id', "09e67421-2f92-8ddc-494108a6e04f")
     response = await unbound_http_client.post(
         "/entry/add",
         json={

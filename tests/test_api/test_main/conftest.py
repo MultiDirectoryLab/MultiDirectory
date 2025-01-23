@@ -130,7 +130,7 @@ async def adding_test_user(
             },
         )
 
-        assert auth.cookies.get("access_token")
+        assert auth.cookies.get("id")
 
 
 @pytest_asyncio.fixture(scope='function')

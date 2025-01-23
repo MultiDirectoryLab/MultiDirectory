@@ -82,8 +82,8 @@ async def test_first_setup_and_oauth(
         "auth/token/get",
         data={"username": "test", "password": "Password123"},
     )
-    assert auth.status_code == status.HTTP_200_OK
-    assert list(auth.cookies.keys()) == ["access_token", "refresh_token"]
+    assert auth.status_code == 200
+    assert list(auth.cookies.keys()) == ["id"]
 
     response = await unbound_http_client.get("auth/me")
     assert response.status_code == status.HTTP_200_OK
@@ -286,9 +286,8 @@ async def test_update_password(http_client: AsyncClient) -> None:
         },
     )
     assert new_auth.status_code == status.HTTP_200_OK
-    token = new_auth.cookies.get("access_token")
+    token = new_auth.cookies.get("id")
     assert token
-    assert "bearer" in token.lower()
 
 
 @pytest.mark.asyncio
