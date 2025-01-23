@@ -3,7 +3,8 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from typing import Any
+
+from typing import Any, TypedDict
 
 import pytest
 from fastapi import status
@@ -19,7 +20,9 @@ from models import Directory, Group
 
 
 async def apply_user_account_control(
-    http_client: AsyncClient, user_dn: str, user_account_control_value: str,
+    http_client: AsyncClient,
+    user_dn: str,
+    user_account_control_value: str,
 ) -> dict[str, Any]:
     """Apply userAccountControl value and return response data.
 
@@ -60,7 +63,7 @@ async def test_first_setup_and_oauth(
     response = await unbound_http_client.post(
         "/auth/setup",
         json={
-            "domain": "md.test",
+            "domain": "md.test-localhost",
             "username": "test",
             "user_principal_name": "test",
             "display_name": "test",
@@ -75,9 +78,10 @@ async def test_first_setup_and_oauth(
     assert response.json() is True
 
     auth = await unbound_http_client.post(
-        "auth/token/get", data={"username": "test", "password": "Password123"},
+        "auth/token/get",
+        data={"username": "test", "password": "Password123"},
     )
-    assert auth.status_code == 200
+    assert auth.status_code == status.HTTP_200_OK
     assert list(auth.cookies.keys()) == ["access_token", "refresh_token"]
 
     response = await unbound_http_client.get("auth/me")
@@ -89,7 +93,7 @@ async def test_first_setup_and_oauth(
     assert result["user_principal_name"] == "test"
     assert result["mail"] == "test@example.com-test"
     assert result["display_name"] == "test"
-    assert result["dn"] == "cn=test,ou=users,dc=md,dc=test"
+    assert result["dn"] == "cn=test,ou=users,dc=md,dc=test-localhost"
 
     result = await session.scalars(
         select(Directory)
@@ -99,7 +103,8 @@ async def test_first_setup_and_oauth(
         .filter(
             Directory.path
             == get_search_path(
-                "cn=readonly domain controllers,cn=groups,dc=md,dc=test",
+                "cn=readonly domain controllers,"
+                "cn=groups,dc=md,dc=test-localhost",
             ),
         ),
     )
@@ -112,6 +117,77 @@ async def test_first_setup_and_oauth(
     assert not read_only_policy.can_modify
     assert not read_only_policy.can_delete
     assert not read_only_policy.can_add
+
+
+class AuthSetupRequestDataType(TypedDict):
+    """Dataset for testing authentication setup."""
+
+    domain: str
+    username: str
+    user_principal_name: str
+    display_name: str
+    mail: str
+    password: str
+
+
+invalid_domain_test_cases: list[AuthSetupRequestDataType] = [
+    {
+        "domain": "https://md.test-localhost",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+    {
+        "domain": "http://md.test-localhost",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+    {
+        "domain": "test-localhost",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+    {
+        "domain": "md.test-localhost!",
+        "username": "test",
+        "user_principal_name": "test",
+        "display_name": "test",
+        "mail": "test@example.com-test",
+        "password": "Password123",
+    },
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("test_case", invalid_domain_test_cases)
+async def test_first_setup_with_invalid_domain(
+    unbound_http_client: AsyncClient,
+    session: AsyncSession,
+    test_case: AuthSetupRequestDataType,
+) -> None:
+    """Test api first setup with invalid domain."""
+    response = await unbound_http_client.get("/auth/setup")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() is False
+
+    response = await unbound_http_client.post(
+        "/auth/setup",
+        json=test_case,
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    response = await unbound_http_client.get("/auth/setup")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() is False
 
 
 @pytest.mark.asyncio
@@ -316,7 +392,8 @@ async def test_lock_and_unlock_user(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     dir_ = await session.scalar(
-        select(Directory).filter(Directory.name == "user0"))
+        select(Directory).filter(Directory.name == "user0"),
+    )
     session.expire(dir_)
 
     response = await http_client.post(
