@@ -275,6 +275,8 @@ class RedisSessionStorage(SessionStorage):
 class MemSessionStorage(SessionStorage):
     """Test session storage."""
 
+    key_ttl: int = 3600
+
     def __init__(self) -> None:
         """Initialize the storage."""
         self._sessions: dict[str, dict[str, str]] = {}
@@ -391,4 +393,4 @@ class MemSessionStorage(SessionStorage):
         :param dict data: any data
         """
         self._sessions[key] = data
-        self._session_batch[key].append(self._get_id_hash(uid))
+        self._session_batch[self._get_id_hash(uid)].append(key)
