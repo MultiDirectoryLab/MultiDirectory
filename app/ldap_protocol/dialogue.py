@@ -159,9 +159,12 @@ class LDAPSession:
         """Get key."""
         return f"ldap:{self.id}"
 
+    def _bound_ip(self) -> bool:
+        return hasattr(self, "ip")
+
     async def bind_session(self) -> None:
         """Bind session to storage."""
-        if self.storage is None or self.user is None:
+        if self.storage is None or self.user is None or not self._bound_ip():
             return
 
         await self.storage.create_ldap_session(
@@ -169,11 +172,7 @@ class LDAPSession:
 
     async def disconnect(self) -> None:
         """Disconnect session."""
-        if (
-            self.storage is None or
-            self.user is None or
-            not self.user.session_id
-        ):
+        if self.storage is None or self.user is None:
             return  # type: ignore
 
         await self.storage.delete_user_session(self.key)
