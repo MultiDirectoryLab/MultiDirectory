@@ -152,7 +152,7 @@ async def logout(
 ) -> None:
     """Delete token cookies."""
     response.delete_cookie("id", httponly=True)
-    await storage.delete_user_session(user)
+    await storage.delete_user_session(user.session_id)
 
 
 
