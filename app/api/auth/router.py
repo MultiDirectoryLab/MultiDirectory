@@ -155,7 +155,6 @@ async def logout(
     await storage.delete_user_session(user.session_id)
 
 
-
 @auth_router.patch(
     "/user/password",
     status_code=200,

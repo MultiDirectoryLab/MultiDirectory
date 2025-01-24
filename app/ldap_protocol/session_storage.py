@@ -20,6 +20,7 @@ class SessionStorage(ABC):
     """Abstract session storage class."""
 
     key_length: int = 16
+    key_ttl: int
 
     @abstractmethod
     async def get(self, key: str) -> dict:

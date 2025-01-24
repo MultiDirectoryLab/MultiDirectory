@@ -292,12 +292,12 @@ async def _migrations(
 
     async with engine.begin() as conn:
         config.attributes["connection"] = conn
-        await conn.run_sync(upgrade)
+        await conn.run_sync(upgrade)  # type: ignore
 
     yield
 
     async with engine.begin() as conn:
-        await conn.run_sync(downgrade)
+        await conn.run_sync(downgrade)  # type: ignore
 
 
 @pytest_asyncio.fixture(scope="function")

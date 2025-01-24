@@ -28,7 +28,7 @@ async def adding_test_user(
 ) -> None:
     """Test add user like keycloak."""
     test_user_dn = "cn=test,dc=md,dc=test"
-    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'
+    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'  # noqa
     response = await http_client.post(
         "/entry/add",
         json={
