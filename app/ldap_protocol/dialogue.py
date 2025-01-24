@@ -167,6 +167,7 @@ class LDAPSession:
         if self.storage is None or self.user is None or not self._bound_ip():
             return
 
+        await self.storage.delete_user_session(self.key)
         await self.storage.create_ldap_session(
             self.user.id, self.key, {"id": self.user.id, "ip": str(self.ip)})
 
