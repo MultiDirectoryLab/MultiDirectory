@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address, ip_address
 
-from fastapi import Request, Response
+from fastapi import HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -15,7 +15,7 @@ from ldap_protocol.utils.queries import set_last_logon_user
 from models import User
 
 
-def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address | None:
+def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
     """Get IP address from request.
 
     :param Request request: The incoming request object.
@@ -26,7 +26,7 @@ def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address | None:
         client_ip = forwarded_for.split(",")[0]
     else:
         if request.client is None:
-            return None
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
         client_ip = request.client.host
 
     return ip_address(client_ip)
