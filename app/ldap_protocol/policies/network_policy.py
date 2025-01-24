@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv6Address
 from typing import Literal
 
 from sqlalchemy import exists, or_, select, text
@@ -15,7 +15,7 @@ from models import Group, NetworkPolicy, User
 
 
 def build_policy_query(
-    ip: IPv4Address,
+    ip: IPv4Address | IPv6Address,
     protocol_field_name: Literal["is_http", "is_ldap", "is_kerberos"],
     user_group_ids: list[int] | None = None,
 ) -> Select:
@@ -78,7 +78,7 @@ async def check_mfa_group(
 
 
 async def get_user_network_policy(
-    ip: IPv4Address,
+    ip: IPv4Address | IPv6Address,
     user: User,
     session: AsyncSession,
 ) -> NetworkPolicy | None:
