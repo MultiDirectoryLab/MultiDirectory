@@ -176,7 +176,7 @@ class LDAPSession:
         if self.storage is None or self.user is None:
             return
 
-        await self.storage.delete_user_session(self.key)
+        await self.storage.delete_user_session(f"ldap:{self.key}")
 
     async def ensure_session_exists(self) -> NoReturn:
         """Ensure session exists in storage.
