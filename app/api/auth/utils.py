@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv6Address, ip_address
 
 from fastapi import Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,7 @@ from ldap_protocol.utils.queries import set_last_logon_user
 from models import User
 
 
-def get_ip_from_request(request: Request) -> IPv4Address | None:
+def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address | None:
     """Get IP address from request.
 
     :param Request request: The incoming request object.
@@ -29,7 +29,7 @@ def get_ip_from_request(request: Request) -> IPv4Address | None:
             return None
         client_ip = request.client.host
 
-    return IPv4Address(client_ip)
+    return ip_address(client_ip)
 
 
 async def create_and_set_session_key(
@@ -38,6 +38,7 @@ async def create_and_set_session_key(
     settings: Settings,
     response: Response,
     storage: SessionStorage,
+    ip: IPv4Address | IPv6Address,
 ) -> None:
     """Create and set access and refresh tokens.
 
@@ -50,7 +51,11 @@ async def create_and_set_session_key(
     :param Response response: fastapi response object
     """
     await set_last_logon_user(user, session, settings.TIMEZONE)
-    key = await storage.create_session(user.id, settings)
+    key = await storage.create_session(
+        user.id,
+        settings,
+        extra_data={"ip": str(ip)},
+    )
 
     response.set_cookie(
         key="id",

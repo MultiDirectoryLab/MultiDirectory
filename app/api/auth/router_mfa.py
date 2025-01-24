@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
+from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal
 
 from dishka import FromDishka
@@ -133,6 +134,7 @@ async def callback_mfa(
     storage: FromDishka[SessionStorage],
     settings: FromDishka[Settings],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> RedirectResponse:
     """Disassemble mfa token and send it to websocket.
 
@@ -164,7 +166,7 @@ async def callback_mfa(
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
     await create_and_set_session_key(
-        user, session, settings, response, storage)
+        user, session, settings, response, storage, ip)
     return response
 
 
@@ -178,6 +180,7 @@ async def two_factor_protocol(
     settings: FromDishka[Settings],
     storage: FromDishka[SessionStorage],
     response: Response,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> MFAChallengeResponse:
     """Authenticate with two factor app.
     \f
@@ -226,7 +229,7 @@ async def two_factor_protocol(
     except MultifactorAPI.MFAConnectError:
         if network_policy.bypass_no_connection:
             await create_and_set_session_key(
-                user, session, settings, response, storage)
+                user, session, settings, response, storage, ip)
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")
@@ -237,7 +240,7 @@ async def two_factor_protocol(
     except MultifactorAPI.MultifactorError:
         if network_policy.bypass_service_failure:
             await create_and_set_session_key(
-                user, session, settings, response, storage)
+                user, session, settings, response, storage, ip)
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")

@@ -24,7 +24,7 @@ async def get_user_session(
     storage: FromDishka[SessionStorage],
 ) -> dict[str, SessionContentSchema]:
     """Get current logged in user data."""
-    return await storage.get_user_sessions(user_id)  # type: ignore
+    return await storage.get_user_sessions(user_id)
 
 
 @session_router.delete("/{user_id}")
