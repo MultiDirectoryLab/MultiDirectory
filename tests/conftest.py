@@ -210,7 +210,7 @@ class TestProvider(Provider):
         mfa.get_create_mfa = AsyncMock(return_value="example.com")
         return mfa
 
-    @provide(scope=Scope.APP)
+    @provide(scope=Scope.RUNTIME)
     async def get_session_storage(self) -> SessionStorage:
         """Get session storage."""
         return MemSessionStorage()
