@@ -353,7 +353,11 @@ class MemSessionStorage(SessionStorage):
 
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session."""
-        data = self._sessions[session_id]
+        try:
+            data = self._sessions[session_id]
+        except KeyError:
+            return
+
         tmp = data.get("id")
 
         if tmp is None:
@@ -409,5 +413,7 @@ class MemSessionStorage(SessionStorage):
         :param str key: session key
         :param dict data: any data
         """
+        data['issued'] = datetime.now(timezone.utc).isoformat()
+
         self._sessions[key] = data
         self._session_batch[self._get_id_hash(uid)].append(key)
