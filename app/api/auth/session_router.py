@@ -28,9 +28,18 @@ async def get_user_session(
 
 
 @session_router.delete("/{user_id}")
-async def delete_user_session(
+async def delete_user_sessions(
     user_id: int,
     storage: FromDishka[SessionStorage],
 ) -> None:
     """Delete current logged in user data."""
     await storage.clear_user_sessions(user_id)
+
+
+@session_router.delete("/{session_id}")
+async def delete_session(
+    session_id: str,
+    storage: FromDishka[SessionStorage],
+) -> None:
+    """Delete current logged in user data."""
+    await storage.delete_user_session(session_id)
