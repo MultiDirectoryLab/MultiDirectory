@@ -15,6 +15,7 @@ services:
       - "--entrypoints.kdc.address=:88"
       - "--entrypoints.ldaps.address=:636"
       - "--entrypoints.kadmind.address=:749"
+      - "--entrypoints.kpasswd.address=:464"
       - "--entrypoints.bind_dns.address=:53"
     ports:
       - "80:80"
@@ -23,6 +24,7 @@ services:
       - "636:636"
       - "88:88"
       - "749:749"
+      - "464:464"
       - "530:53"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -238,17 +240,14 @@ services:
       - kdc:/etc
     image: krb5md
     tty: true
-    command: /usr/sbin/krb5kdc -n -w 4
+    command: krb5kdc -n -w 4
+    ports:
+      - "88:88"
+      - "88:88/udp"
     depends_on:
       ldap_server:
         condition: service_healthy
         restart: true
-    labels:
-      - traefik.enable=true
-      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
-      - traefik.tcp.routers.kdc.entrypoints=kdc
-      - traefik.tcp.routers.kdc.service=kdc
-      - traefik.tcp.services.kdc.loadbalancer.server.port=88
 
   kadmind:
     container_name: kadmind
@@ -273,6 +272,11 @@ services:
       - traefik.tcp.routers.kadmind.entrypoints=kadmind
       - traefik.tcp.routers.kadmind.service=kadmind
       - traefik.tcp.services.kadmind.loadbalancer.server.port=749
+
+      - traefik.tcp.routers.kpasswd.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kpasswd.entrypoints=kpasswd
+      - traefik.tcp.routers.kpasswd.service=kpasswd
+      - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
 
   shadow_api:
     image: multidirectory

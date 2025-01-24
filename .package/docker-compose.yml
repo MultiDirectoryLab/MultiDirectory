@@ -225,12 +225,9 @@ services:
     depends_on:
       - ldap_server
     command: krb5kdc -n -w 4
-    labels:
-      - traefik.enable=true
-      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
-      - traefik.tcp.routers.kdc.entrypoints=kdc
-      - traefik.tcp.routers.kdc.service=kdc
-      - traefik.tcp.services.kdc.loadbalancer.server.port=88
+    ports:
+      - "88:88"
+      - "88:88/udp"
 
   kadmin_api:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
