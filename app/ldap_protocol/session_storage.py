@@ -187,7 +187,7 @@ class RedisSessionStorage(SessionStorage):
         if keys is None:
             return set()
 
-        return set(keys.split(b";"))
+        return set(keys.decode().split(";"))
 
     async def get_user_sessions(self, uid: int) -> dict:
         """Get user sessions.
@@ -199,7 +199,17 @@ class RedisSessionStorage(SessionStorage):
         if not keys:
             return {}
         data = await self._storage.mget(*keys)
-        return {k: json.loads(v) for k, v in zip(keys, data) if v is not None}
+
+        retval = {}
+
+        for k, v in zip(keys, data):
+            if v is not None:
+                tmp = json.loads(v)
+                if k.startswith("ldap"):
+                    tmp["protocol"] = "ldap"
+                retval[k] = tmp
+
+        return retval
 
     async def clear_user_sessions(self, uid: int) -> None:
         """Clear user sessions."""
@@ -273,8 +283,10 @@ class RedisSessionStorage(SessionStorage):
         :param str key: session key
         :param dict data: any data
         """
+        data['issued'] = datetime.now(timezone.utc).isoformat()
+
         await self._storage.set(key, json.dumps(data), ex=None)
-        await self._storage.append(self._get_id_hash(uid), key)
+        await self._storage.append(self._get_id_hash(uid), f"{key};")
 
 
 class MemSessionStorage(SessionStorage):
