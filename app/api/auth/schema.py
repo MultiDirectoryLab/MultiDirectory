@@ -7,11 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import re
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
+from typing import Literal
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     SecretStr,
     computed_field,
@@ -112,7 +114,10 @@ class MFAChallengeResponse(BaseModel):
 class SessionContentSchema(BaseModel):
     """Session content schema."""
 
+    model_config = ConfigDict(extra='allow')
+
     id: int  # noqa: A003
-    sign: str = Field(description="Session signature")
+    sign: str = Field("", description="Session signature")
     issued: datetime
     ip: IPv4Address | IPv6Address
+    protocol: Literal["ldap", "http"] = "http"
