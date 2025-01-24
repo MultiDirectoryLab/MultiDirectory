@@ -353,14 +353,13 @@ class MemSessionStorage(SessionStorage):
 
     async def clear_user_sessions(self, user_id: int) -> None:
         """Clear user sessions."""
-        uid = str(user_id)
         keys = await self._get_user_keys(user_id)
 
         for key in keys:
             if key in self._sessions:
                 del self._sessions[key]
 
-        del self._session_batch[uid]
+        del self._session_batch[self._get_id_hash(user_id)]
 
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session."""
