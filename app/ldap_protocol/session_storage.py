@@ -124,6 +124,23 @@ class SessionStorage(ABC):
 
         return user_id
 
+    def _generate_session_data(
+        self: Self,
+        uid: int,
+        settings: Settings,
+        extra_data: dict | None,
+    ) -> tuple[str, str, dict]:
+        """Set data."""
+        if extra_data is None:
+            extra_data = {}
+
+        session_id = self._generate_key()
+        signature = self._sign(session_id, settings)
+
+        data = {"id": uid, "sign": signature} | extra_data
+        data["issued"] = datetime.now(timezone.utc).isoformat()
+        return session_id, signature, data
+
     @abstractmethod
     async def check_session(self, session_id: str) -> bool:
         """Check session.
@@ -257,14 +274,8 @@ class RedisSessionStorage(SessionStorage):
         :param Literal[refresh, access] grant_type: grant type flag
         :return str: jwt token
         """
-        if extra_data is None:
-            extra_data = {}
-
-        session_id = self._generate_key()
-        signature = self._sign(session_id, settings)
-
-        data = {"id": uid, "sign": signature} | extra_data
-        data["issued"] = datetime.now(timezone.utc).isoformat()
+        session_id, signature, data = self._generate_session_data(
+            uid, settings, extra_data)
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
         await self._storage.append(self._get_id_hash(uid), f"{session_id};")
@@ -387,14 +398,8 @@ class MemSessionStorage(SessionStorage):
         :param Literal[refresh, access] grant_type: grant type flag
         :return str: jwt token
         """
-        if extra_data is None:
-            extra_data = {}
-
-        session_id = self._generate_key()
-        signature = self._sign(session_id, settings)
-
-        data = {"id": uid, "sign": signature} | extra_data
-        data["issued"] = datetime.now(timezone.utc).isoformat()
+        session_id, signature, data = self._generate_session_data(
+            uid, settings, extra_data)
 
         self._sessions[session_id] = data
         self._session_batch[self._get_id_hash(uid)].append(session_id)
