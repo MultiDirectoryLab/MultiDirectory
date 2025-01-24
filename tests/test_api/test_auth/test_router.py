@@ -67,7 +67,7 @@ async def test_first_setup_and_oauth(
             "username": "test",
             "user_principal_name": "test",
             "display_name": "test",
-            "mail": "test@example.com-test",
+            "mail": "test@md.example-345.ru",
             "password": "Password123",
         },
     )
@@ -91,7 +91,7 @@ async def test_first_setup_and_oauth(
 
     assert result["sam_accout_name"] == "test"
     assert result["user_principal_name"] == "test"
-    assert result["mail"] == "test@example.com-test"
+    assert result["mail"] == "test@md.example-345.ru"
     assert result["display_name"] == "test"
     assert result["dn"] == "cn=test,ou=users,dc=md,dc=test-localhost"
 
