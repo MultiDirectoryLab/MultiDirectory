@@ -173,7 +173,7 @@ class LDAPSession:
     async def disconnect(self) -> None:
         """Disconnect session."""
         if self.storage is None or self.user is None:
-            return  # type: ignore
+            return
 
         await self.storage.delete_user_session(self.key)
 
