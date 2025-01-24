@@ -209,7 +209,11 @@ class RedisSessionStorage(SessionStorage):
 
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session."""
-        data = await self.get(session_id)
+        try:
+            data = await self.get(session_id)
+        except KeyError:
+            return
+
         uid = data.get("id")
 
         if uid is None:
@@ -270,7 +274,7 @@ class RedisSessionStorage(SessionStorage):
         :param dict data: any data
         """
         await self._storage.set(key, json.dumps(data), ex=None)
-        await self._storage.append(key, self._get_id_hash(uid))
+        await self._storage.append(self._get_id_hash(uid), key)
 
 
 class MemSessionStorage(SessionStorage):
