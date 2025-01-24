@@ -109,18 +109,18 @@ class SessionStorage(ABC):
         try:
             session_id, signature = session_key.split(".")
         except (ValueError, AttributeError):
-            raise KeyError('Invalid payload key')
+            raise KeyError("Invalid payload key")
 
         data = await self.get(session_id)
 
         if data is None or data.get("sign") != signature:
-            raise KeyError('Invalid signature')
+            raise KeyError("Invalid signature")
 
         expected_signature = self._sign(session_id, settings)
         user_id = data.get("id")
 
         if signature != expected_signature or user_id is None:
-            raise KeyError('Invalid signature')
+            raise KeyError("Invalid signature")
 
         return user_id
 
@@ -227,7 +227,7 @@ class RedisSessionStorage(SessionStorage):
         uid = data.get("id")
 
         if uid is None:
-            raise KeyError('Invalid session id')
+            raise KeyError("Invalid session id")
 
         uid = int(uid)
 
@@ -264,7 +264,7 @@ class RedisSessionStorage(SessionStorage):
         signature = self._sign(session_id, settings)
 
         data = {"id": uid, "sign": signature} | extra_data
-        data['issued'] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(timezone.utc).isoformat()
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
         await self._storage.append(self._get_id_hash(uid), f"{session_id};")
@@ -283,7 +283,7 @@ class RedisSessionStorage(SessionStorage):
         :param str key: session key
         :param dict data: any data
         """
-        data['issued'] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(timezone.utc).isoformat()
 
         await self._storage.set(key, json.dumps(data), ex=None)
         await self._storage.append(self._get_id_hash(uid), f"{key};")
@@ -361,7 +361,7 @@ class MemSessionStorage(SessionStorage):
         tmp = data.get("id")
 
         if tmp is None:
-            raise KeyError('Invalid session id')
+            raise KeyError("Invalid session id")
 
         uid = int(tmp)
 
@@ -394,7 +394,7 @@ class MemSessionStorage(SessionStorage):
         signature = self._sign(session_id, settings)
 
         data = {"id": uid, "sign": signature} | extra_data
-        data['issued'] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(timezone.utc).isoformat()
 
         self._sessions[session_id] = data
         self._session_batch[self._get_id_hash(uid)].append(session_id)
@@ -413,7 +413,7 @@ class MemSessionStorage(SessionStorage):
         :param str key: session key
         :param dict data: any data
         """
-        data['issued'] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(timezone.utc).isoformat()
 
         self._sessions[key] = data
         self._session_batch[self._get_id_hash(uid)].append(key)
