@@ -208,10 +208,6 @@ async def two_factor_protocol(
             "Invalid credentials",
         )
 
-    ip = get_ip_from_request(request)
-    if not ip:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
     network_policy = await get_user_network_policy(ip, user, session)
     if network_policy is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN)

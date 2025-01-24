@@ -4,19 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import (
-    APIRouter,
-    Body,
-    Depends,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,8 +53,8 @@ async def login(
     settings: FromDishka[Settings],
     mfa: FromDishka[MultifactorAPI],
     storage: FromDishka[SessionStorage],
-    request: Request,
     response: Response,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> None:
     """Get refresh and access token on login.
 
@@ -102,7 +95,6 @@ async def login(
     if user.is_expired():
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    ip = get_ip_from_request(request)
     if not ip:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
