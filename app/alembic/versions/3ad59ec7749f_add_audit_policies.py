@@ -22,6 +22,13 @@ def upgrade() -> None:
     """Upgrade."""
     async def _create_audit_policies(connection) -> None:
         session = AsyncSession(bind=connection)
+
+        result = await session.execute(
+            sa.text('SELECT id FROM "Directory"'))
+
+        if not result.scalar_one_or_none():
+            return
+
         await add_audit_pocilies(session)
         await session.commit()
 
