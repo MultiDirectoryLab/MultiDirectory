@@ -27,7 +27,7 @@ from ldap_protocol.ldap_requests.bind_methods import (
 )
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
-from ldap_protocol.objects import ProtocolOp
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
@@ -49,7 +49,7 @@ from .base import BaseRequest
 class BindRequest(BaseRequest):
     """Bind request fields mapping."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.BIND_REQUEST
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.BIND
 
     version: int
     name: str
@@ -219,7 +219,7 @@ class BindRequest(BaseRequest):
             await kadmin.add_principal(
                 user.get_upn_prefix(),
                 self.authentication_choice.password.get_secret_value(),
-                0.1,
+                1,
             )
 
         await ldap_session.set_user(user)
@@ -231,7 +231,7 @@ class BindRequest(BaseRequest):
 class UnbindRequest(BaseRequest):
     """Remove user from ldap_session."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.UNBIND_REQUEST
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.UNBIND
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
