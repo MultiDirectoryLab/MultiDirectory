@@ -15,16 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from ldap_protocol.objects import AuditEventType, AuditOperation
+from ldap_protocol.objects import AuditOperation, OperationEvent
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models import (
-    Attribute,
-    AuditPolicy,
-    Directory,
-    Group,
-   
-    User,
-)
+from models import Attribute, AuditPolicy, Directory, Group, User
 
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
@@ -361,7 +354,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
             policies.extend([
                 AuditPolicy(
                     name=f'create_{object_class}_{line}',
-                    actions=[AuditEventType.API_ADD, AuditEventType.LDAP_ADD],
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.ADD,
                     operation_success=status,
                     condition_attributes=[{
                         "attribute": "objectClass",
@@ -370,10 +365,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                 ),
                 AuditPolicy(
                     name=f'modify_{object_class}_{line}',
-                    actions=[
-                        AuditEventType.API_MODIFY,
-                        AuditEventType.LDAP_MODIFY,
-                    ],
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
                     operation_success=status,
                     condition_attributes=[{
                         "attribute": "objectClass",
@@ -382,10 +376,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                 ),
                 AuditPolicy(
                     name=f'delete_{object_class}_{line}',
-                    actions=[
-                        AuditEventType.API_DELETE,
-                        AuditEventType.LDAP_DELETE,
-                    ],
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.DELETE,
                     operation_success=status,
                     condition_attributes=[{
                         "attribute": "objectClass",
@@ -398,11 +391,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                 policies.extend([
                     AuditPolicy(
                         name=f'{object_class}_password_modify_{line}',
-                        actions=[
-                            AuditEventType.API_EXTEND,
-                            AuditEventType.LDAP_EXTEND,
-                            AuditEventType.LDAP_MODIFY,
-                        ],
+                        is_ldap=True,
+                        is_http=True,
+                        operation_code=OperationEvent.MODIFY,  # FIXME
                         operation_success=status,
                         condition_attributes=[
                             {
@@ -431,10 +422,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                 policies.extend([
                     AuditPolicy(
                         name=f'{object_class}_enable_{line}',
-                        actions=[
-                            AuditEventType.API_MODIFY,
-                            AuditEventType.LDAP_MODIFY,
-                        ],
+                        is_ldap=True,
+                        is_http=True,
+                        operation_code=OperationEvent.MODIFY,
                         operation_success=status,
                         condition_attributes=[
                             {
@@ -453,10 +443,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     ),
                     AuditPolicy(
                         name=f'{object_class}_disable_{line}',
-                        actions=[
-                            AuditEventType.API_MODIFY,
-                            AuditEventType.LDAP_MODIFY,
-                        ],
+                        is_ldap=True,
+                        is_http=True,
+                        operation_code=OperationEvent.MODIFY,
                         operation_success=status,
                         condition_attributes=[
                             {
@@ -479,10 +468,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                 policies.extend([
                     AuditPolicy(
                         name=f'{object_class}_add_member_{line}',
-                        actions=[
-                            AuditEventType.API_MODIFY,
-                            AuditEventType.LDAP_MODIFY,
-                        ],
+                        is_ldap=True,
+                        is_http=True,
+                        operation_code=OperationEvent.MODIFY,
                         operation_success=status,
                         condition_attributes=[
                             {
@@ -501,10 +489,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     ),
                     AuditPolicy(
                         name=f'{object_class}_remove_member_{line}',
-                        actions=[
-                            AuditEventType.API_MODIFY,
-                            AuditEventType.LDAP_MODIFY,
-                        ],
+                        is_ldap=True,
+                        is_http=True,
+                        operation_code=OperationEvent.MODIFY,
                         operation_success=status,
                         condition_attributes=[
                             {
@@ -526,13 +513,17 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
     policies.extend([
         AuditPolicy(
             name='auth_ok',
-            actions=[AuditEventType.API_AUTH, AuditEventType.LDAP_AUTH],
+            is_ldap=True,
+            is_http=True,
+            operation_code=OperationEvent.BIND,
             operation_success=True,
             condition_attributes=[],
         ),
         AuditPolicy(
             name='auth_fail',
-            actions=[AuditEventType.API_AUTH, AuditEventType.LDAP_AUTH],
+            is_ldap=True,
+            is_http=True,
+            operation_code=OperationEvent.BIND,
             operation_success=False,
             condition_attributes=[],
         ),

@@ -75,7 +75,6 @@ class AuditOperation(StrEnum):
     BITWISE_AND = "&"
 
 
-@unique
 class ProtocolRequests(IntEnum):
     """
     Enum for LDAP requests.
@@ -135,3 +134,19 @@ class ProtocolResponse(IntEnum):
     EXTENDED = 24
     INTERMEDIATE = 25
     SEARCH_RESULT_REFERENCE = 19
+
+
+@unique
+class OperationEvent(IntEnum):
+    """Enum for operation events. Includes all LDAP requests."""
+
+    BIND = ProtocolRequests.BIND.value
+    UNBIND = ProtocolRequests.UNBIND.value
+    SEARCH = ProtocolRequests.SEARCH.value
+    MODIFY = ProtocolRequests.MODIFY.value
+    ADD = ProtocolRequests.ADD.value
+    DELETE = ProtocolRequests.DELETE.value
+    MODIFY_DN = ProtocolRequests.MODIFY_DN.value
+    COMPARE = ProtocolRequests.COMPARE.value
+    ABANDON = ProtocolRequests.ABANDON.value
+    EXTENDED = ProtocolRequests.EXTENDED.value
