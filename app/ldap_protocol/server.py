@@ -119,6 +119,7 @@ class PoolClientHandler:
                 await asyncio.gather(
                     self._handle_request(reader, writer, session_scope),
                     self._handle_responses(writer, session_scope),
+                    ldap_session.ensure_session_exists(),
                 )
 
             except RuntimeError:
@@ -128,6 +129,8 @@ class PoolClientHandler:
 
             finally:
                 await session_scope.close()
+                await ldap_session.disconnect()
+
                 with suppress(RuntimeError):
                     await ldap_session.queue.join()
                     writer.close()

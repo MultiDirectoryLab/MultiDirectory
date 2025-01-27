@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
@@ -16,12 +17,13 @@ from sqlalchemy.orm import selectinload
 
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, LDAPSession, Operation
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
     AbstractKadmin,
     KRBAPIError,
     unlock_principal,
 )
+from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
@@ -47,6 +49,14 @@ from models import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
+
+
+class Operation(IntEnum):
+    """Changes enum for modify request."""
+
+    ADD = 0
+    DELETE = 1
+    REPLACE = 2
 
 
 class Changes(BaseModel):
