@@ -14,7 +14,7 @@ from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
-from ldap_protocol.objects import AuditEventType, AuditOperation
+from ldap_protocol.objects import AuditOperation, OperationEvent
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -128,7 +128,9 @@ class AuditPolicyRequest(BaseModel):
 
     id: None | int  # noqa: A003
     name: str
-    actions: list[AuditEventType]
+    is_ldap: bool
+    is_http: bool
+    operation_code: OperationEvent
     operation_success: bool
     condition_attributes: list[ConditionAttributesTrigger]
     change_attributes: list[ChangeAttributesTrigger]
@@ -139,7 +141,9 @@ class AuditPolicySchema(BaseModel):
 
     id: int  # noqa: A003
     name: str
-    actions: list[AuditEventType]
+    is_ldap: bool
+    is_http: bool
+    operation_code: OperationEvent
     operation_success: bool
     condition_attributes: list[ConditionAttributesTrigger]
     change_attributes: list[ChangeAttributesTrigger]
