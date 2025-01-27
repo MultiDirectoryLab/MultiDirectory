@@ -2,10 +2,12 @@
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.utils.queries import get_user
 
 from .oauth2 import get_current_user
 from .schema import SessionContentSchema
@@ -18,22 +20,30 @@ session_router = APIRouter(
 )
 
 
-@session_router.get("/{user_id}")
+@session_router.get("/{upn}")
 async def get_user_session(
-    user_id: int,
+    upn: str,
     storage: FromDishka[SessionStorage],
+    session: FromDishka[AsyncSession],
 ) -> dict[str, SessionContentSchema]:
     """Get current logged in user data."""
-    return await storage.get_user_sessions(user_id)
+    user = await get_user(session, upn)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+    return await storage.get_user_sessions(user.id)
 
 
-@session_router.delete("/{user_id}")
+@session_router.delete("/{upn}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_sessions(
-    user_id: int,
+    upn: str,
     storage: FromDishka[SessionStorage],
+    session: FromDishka[AsyncSession],
 ) -> None:
     """Delete current logged in user data."""
-    await storage.clear_user_sessions(user_id)
+    user = await get_user(session, upn)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+    await storage.clear_user_sessions(user.id)
 
 
 @session_router.delete("/{session_id}")
