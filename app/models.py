@@ -968,8 +968,9 @@ class AuditPolicy(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    actions: Mapped[list[str]] = mapped_column(
-        postgresql.ARRAY(String), nullable=False)
+    is_ldap: Mapped[tbool]
+    is_http: Mapped[tbool]
+    operation_code: Mapped[int]
     condition_attributes: Mapped[list[dict]] = mapped_column(
         JSON, nullable=False)
     change_attributes: Mapped[list[dict]] = mapped_column(JSON)
