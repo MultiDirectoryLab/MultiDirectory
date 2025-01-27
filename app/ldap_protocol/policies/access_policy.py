@@ -21,11 +21,11 @@ from ldap_protocol.utils.queries import (
 from models import AccessPolicy, Directory, Group
 
 T = TypeVar("T", bound=Select)
-__all__ = ["get_policies", "create_access_policy", "mutate_ap"]
+__all__ = ["get_access_policies", "create_access_policy", "mutate_ap"]
 
 
-async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
-    """Get policies.
+async def get_access_policies(session: AsyncSession) -> list[AccessPolicy]:
+    """Get all access policies.
 
     :param AsyncSession session: db
     :return list[AccessPolicy]: result
@@ -36,6 +36,21 @@ async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
     )
 
     return list((await session.scalars(query)).all())
+
+
+async def get_access_policy(id: int, session: AsyncSession) -> AccessPolicy:  # noqa A003
+    """Get single Access Policy.
+
+    :param id int: Access Policy's id
+    :param AsyncSession session: db
+    :return AccessPolicy: result
+    """
+    query = select(AccessPolicy).where(AccessPolicy.id == id).options(
+        selectinload(AccessPolicy.groups).selectinload(Group.directory),
+        selectinload(AccessPolicy.directories),
+    )
+    result = await session.scalars(query)
+    return result.one()
 
 
 async def create_access_policy(
@@ -110,3 +125,7 @@ def mutate_ap(
         ap_filter = AccessPolicy.can_delete.is_(True) & whitelist
 
     return query.join(Directory.access_policies, isouter=True).where(ap_filter)
+
+
+async def delete_access_policy(id: int, session: AsyncSession) -> None: # noqa A003
+    pass

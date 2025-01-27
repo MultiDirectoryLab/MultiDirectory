@@ -68,6 +68,34 @@ class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
     """AP Schema with id."""
 
 
+class AccessPolicyCreateSchema(BaseModel):
+    """AP Schema w/o id."""
+
+    name: str
+    can_read: bool
+    can_add: bool
+    can_modify: bool
+    can_delete: bool
+    grant_dn: str
+    groups: list[str]
+
+
+class AccessPolicyModifySchema(_MaterialFields, BaseModel):
+    """AP Schema with id."""
+
+    name: str
+    can_read: bool
+    can_add: bool
+    can_modify: bool
+    can_delete: bool
+    grant_dn: str
+    groups: list[str]
+
+
+class AccessPolicyDeleteSchema(_MaterialFields, BaseModel):
+    """AP Schema with id."""
+
+
 class DNSServiceSetupRequest(BaseModel):
     """DNS setup request schema."""
 
