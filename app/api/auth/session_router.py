@@ -13,7 +13,7 @@ from .oauth2 import get_current_user
 from .schema import SessionContentSchema
 
 session_router = APIRouter(
-    prefix="/session",
+    prefix="/sessions",
     tags=["Session"],
     route_class=DishkaRoute,
     dependencies=[Depends(get_current_user)],
@@ -46,7 +46,8 @@ async def delete_user_sessions(
     await storage.clear_user_sessions(user.id)
 
 
-@session_router.delete("/{session_id}")
+@session_router.delete(
+    "/session/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_session(
     session_id: str,
     storage: FromDishka[SessionStorage],
