@@ -14,7 +14,7 @@ from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny, field_validator
 from ldap_protocol.asn1parser import LDAPOID
 
 from .dialogue import LDAPCodes
-from .objects import ProtocolOp
+from .objects import ProtocolResponse
 
 type_map = {
     bool: Numbers.Boolean,
@@ -75,7 +75,7 @@ class BindResponse(LDAPResult, BaseResponse):
         serverSaslCreds    [7] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.BIND_RESPONSE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.BIND
     server_sasl_creds: bytes | None = Field(None, alias="serverSaslCreds")
 
     def to_asn1(self, enc: Encoder) -> None:
@@ -138,7 +138,7 @@ class SearchResultEntry(BaseResponse):
     SearchResultDone ::= [APPLICATION 5] LDAPResult
     """
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.SEARCH_RESULT_ENTRY
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_ENTRY
 
     object_name: str
     partial_attributes: list[PartialAttribute]
@@ -164,7 +164,7 @@ class SearchResultEntry(BaseResponse):
 class SearchResultDone(LDAPResult, BaseResponse):
     """LDAP result."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.SEARCH_RESULT_DONE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_DONE
     # API fields
     total_pages: int = 0
     total_objects: int = 0
@@ -190,7 +190,7 @@ INVALID_ACCESS_RESPONSE = {
 class SearchResultReference(BaseResponse):
     """List of uris."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.SEARCH_RESULT_REFERENCE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_REFERENCE
 
     values: list[AnyUrl]
 
@@ -198,25 +198,25 @@ class SearchResultReference(BaseResponse):
 class ModifyResponse(LDAPResult, BaseResponse):
     """Modify response."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.MODIFY_RESPONSE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.MODIFY
 
 
 class AddResponse(LDAPResult, BaseResponse):
     """Modify response."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.ADD_RESPONSE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.ADD
 
 
 class DeleteResponse(LDAPResult, BaseResponse):
     """Delete response."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.DELETE_RESPONSE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.DELETE
 
 
 class ModifyDNResponse(LDAPResult, BaseResponse):
     """Delete response."""
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.MODIFY_DN_RESPONSE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.MODIFY_DN
 
 
 class BaseExtendedResponseValue(ABC, BaseEncoder):
@@ -236,7 +236,7 @@ class ExtendedResponse(LDAPResult, BaseResponse):
         responseValue    [11] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.EXTENDED_RESPONSE
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.EXTENDED
     response_name: LDAPOID
     response_value: SerializeAsAny[BaseExtendedResponseValue] | None
 
