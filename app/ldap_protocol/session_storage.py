@@ -322,8 +322,7 @@ class MemSessionStorage(SessionStorage):
     async def delete(self, keys: Iterable[str]) -> None:
         """Delete session data."""
         for key in keys:
-            if key in self._sessions:
-                del self._sessions[key]
+            del self._sessions[key]
 
     async def _get_user_keys(self, uid: int) -> set[str]:
         """Get user sessions."""
