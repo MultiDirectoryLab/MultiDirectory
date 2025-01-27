@@ -94,14 +94,14 @@ async def test_session_creation_ldap_bind_unbind(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_session_api(
+async def test_session_api_get(
     creds: TestCreds,
     http_client: AsyncClient,
     storage: SessionStorage,
     session: AsyncSession,
 ) -> None:
     """Test session api."""
-    response = await http_client.get(f"session/{creds.un}")
+    response = await http_client.get(f"sessions/{creds.un}")
 
     assert response.status_code == 200
     user = await get_user(session, creds.un)
@@ -116,9 +116,56 @@ async def test_session_api(
         assert storage_data[k]["issued"][:-6] == data["issued"][:-1]
         assert storage_data[k]["sign"] == data["sign"]
 
-    response = await http_client.get(f"session/{creds.un}123")
+    response = await http_client.get(f"sessions/{creds.un}123")
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found."
 
-    response = await http_client.delete(f"session/{creds.un}")
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_session_api_delete(
+    creds: TestCreds,
+    http_client: AsyncClient,
+    storage: SessionStorage,
+    session: AsyncSession,
+) -> None:
+    """Test session api delete."""
+    user = await get_user(session, creds.un)
+    assert user
+
+    storage_data = await storage.get_user_sessions(user.id)
+    assert len(storage_data) == 1
+
+    response = await http_client.delete(f"sessions/{creds.un}123")
+    assert response.status_code == 404
+
+    response = await http_client.delete(f"sessions/{creds.un}")
     assert response.status_code == 204
+
+    storage_data = await storage.get_user_sessions(user.id)
+    assert len(storage_data) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_session_api_delete_detail(
+    creds: TestCreds,
+    http_client: AsyncClient,
+    storage: SessionStorage,
+    session: AsyncSession,
+) -> None:
+    """Test session api delete detail."""
+    user = await get_user(session, creds.un)
+    assert user
+
+    response = await http_client.get(f"sessions/{creds.un}")
+    assert response.status_code == 200
+
+    session_id = list(response.json().keys())[0]
+
+    assert len(await storage.get_user_sessions(user.id)) == 1
+
+    response = await http_client.delete(f"sessions/session/{session_id}")
+    assert response.status_code == 204
+
+    assert len(await storage.get_user_sessions(user.id)) == 0
