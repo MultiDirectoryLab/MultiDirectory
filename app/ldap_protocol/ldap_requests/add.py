@@ -25,7 +25,7 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.objects import ProtocolOp
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -64,7 +64,7 @@ class AddRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.ADD_REQUEST
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
 
     entry: str = Field(..., description="Any `DistinguishedName`")
     attributes: list[PartialAttribute]
