@@ -58,41 +58,6 @@ class LDAPMatchingRule(StrEnum):
     LDAP_MATCHING_RULE_DN_WITH_DATA = "1.2.840.113556.1.4.2253"
 
 
-class AuditEventType(StrEnum):
-    """Enum for audit event type.
-
-    ```
-    LDAP_ADD = "ldap_add"
-    LDAP_AUTH = "ldap_auth"
-    LDAP_DELETE = "ldap_delete"
-    LDAP_MODIFY = "ldap_modify"
-    LDAP_MODIFY_DN = "ldap_modify_dn"
-    LDAP_EXTEND = "ldap_extend"
-
-    API_AUTH = "api_auth"
-    API_ADD = "api_add"
-    API_DELETE = "api_delete"
-    API_MODIFY = "api_modify"
-    API_MODIFY_DN = "api_modify_dn"
-    API_EXTEND = "api_extend"
-    ```
-    """
-
-    LDAP_ADD = "ldap_add"
-    LDAP_AUTH = "ldap_auth"
-    LDAP_DELETE = "ldap_delete"
-    LDAP_MODIFY = "ldap_modify"
-    LDAP_MODIFY_DN = "ldap_modify_dn"
-    LDAP_EXTEND = "ldap_extend"
-
-    API_AUTH = "api_auth"
-    API_ADD = "api_add"
-    API_DELETE = "api_delete"
-    API_MODIFY = "api_modify"
-    API_MODIFY_DN = "api_modify_dn"
-    API_EXTEND = "api_extend"
-
-
 class AuditOperation(StrEnum):
     """
     Enum for representing common operations.
@@ -111,54 +76,62 @@ class AuditOperation(StrEnum):
 
 
 @unique
-class ProtocolOp(IntEnum):
+class ProtocolRequests(IntEnum):
     """
-    Enum for LDAP protocol operations.
+    Enum for LDAP requests.
 
     Attributes:
-        BIND_REQUEST: Represents the BindRequest operation (0)
-        BIND_RESPONSE: Represents the BindResponse operation (1)
-        UNBIND_REQUEST: Represents the UnbindRequest operation (2)
-        SEARCH_REQUEST: Represents the SearchRequest operation (3)
-        SEARCH_RESULT_ENTRY: Represents the SearchResultEntry operation (4)
-        SEARCH_RESULT_DONE: Represents the SearchResultDone operation (5)
-        MODIFY_REQUEST: Represents the ModifyRequest operation (6)
-        MODIFY_RESPONSE: Represents the ModifyResponse operation (7)
-        ADD_REQUEST: Represents the AddRequest operation (8)
-        ADD_RESPONSE: Represents the AddResponse operation (9)
-        DELETE_REQUEST: Represents the DelRequest operation (10)
-        DELETE_RESPONSE: Represents the DelResponse operation (11)
-        MODIFY_DN_REQUEST: Represents the ModifyDNRequest operation (12)
-        MODIFY_DN_RESPONSE: Represents the ModifyDNResponse operation (13)
-        COMPARE_REQUEST: Represents the CompareRequest operation (14)
-        COMPARE_RESPONSE: Represents the CompareResponse operation (15)
-        ABANDON_REQUEST: Represents the AbandonRequest operation (16)
-        SEARCH_RESULT_REFERENCE: Represents the SearchResultReference operation
-                                 (19)
-        EXTENDED_REQUEST: Represents the ExtendedRequest operation (23)
-        EXTENDED_RESPONSE: Represents the ExtendedResponse operation (24)
-        INTERMEDIATE_RESPONSE: Represents the IntermediateResponse operation
-                               (25)
+        BIND: Represents the BindRequest operation (0)
+        UNBIND: Represents the UnbindRequest operation (2)
+        SEARCH: Represents the SearchRequest operation (3)
+        MODIFY: Represents the ModifyRequest operation (6)
+        ADD: Represents the AddRequest operation (8)
+        DELETE: Represents the DelRequest operation (10)
+        COMPARE: Represents the CompareRequest operation (14)
+        ABANDON: Represents the AbandonRequest operation (16)
+        EXTENDED: Represents the ExtendedRequest operation (23)
+        MODIFY_DN: Represents the ModifyDNRequest operation (12)
     """
 
-    BIND_REQUEST = 0
-    BIND_RESPONSE = 1
-    UNBIND_REQUEST = 2
-    SEARCH_REQUEST = 3
+    BIND = 0
+    UNBIND = 2
+    SEARCH = 3
+    MODIFY = 6
+    ADD = 8
+    DELETE = 10
+    MODIFY_DN = 12
+    COMPARE = 14
+    ABANDON = 16
+    EXTENDED = 23
+
+
+@unique
+class ProtocolResponse(IntEnum):
+    """
+    Enum for LDAP resposnes.
+
+    Attributes:
+        BIND: Represents the BindResponse operation (1)
+        SEARCH_RES: Represents the SearchResultEntry operation (4)
+        SEARCH_RE: Represents the SearchResultDone operation (5)
+        MODIFY: Represents the ModifyResponse operation (7)
+        ADD: Represents the AddResponse operation (9)
+        DELETE: Represents the DelResponse operation (11)
+        MODIFY_DN: Represents the ModifyDNResponse operation (13)
+        COMPARE: Represents the CompareResponse operation (15)
+        SEARCH_RESULT_: Represents the SearchResultReference operation (19)
+        EXTENDED: Represents the ExtendedResponse operation (24)
+        INTERMEDIATE: Represents the IntermediateResponse operation (25)
+    """
+
+    BIND = 1
     SEARCH_RESULT_ENTRY = 4
     SEARCH_RESULT_DONE = 5
-    MODIFY_REQUEST = 6
-    MODIFY_RESPONSE = 7
-    ADD_REQUEST = 8
-    ADD_RESPONSE = 9
-    DELETE_REQUEST = 10
-    DELETE_RESPONSE = 11
-    MODIFY_DN_REQUEST = 12
-    MODIFY_DN_RESPONSE = 13
-    COMPARE_REQUEST = 14
-    COMPARE_RESPONSE = 15
-    ABANDON_REQUEST = 16
+    MODIFY = 7
+    ADD = 9
+    DELETE = 11
+    MODIFY_DN = 13
+    COMPARE = 15
+    EXTENDED = 24
+    INTERMEDIATE = 25
     SEARCH_RESULT_REFERENCE = 19
-    EXTENDED_REQUEST = 23
-    EXTENDED_RESPONSE = 24
-    INTERMEDIATE_RESPONSE = 25
