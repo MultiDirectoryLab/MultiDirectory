@@ -108,6 +108,8 @@ class LDAPSession:
 
     async def delete_user(self) -> None:
         """Unbind user from session concurrently save."""
+        await self.disconnect()
+
         async with self._lock:
             self._user = None
 
@@ -175,8 +177,7 @@ class LDAPSession:
         """Disconnect session."""
         if self.storage is None or self.user is None:
             return
-
-        await self.storage.delete_user_session(f"ldap:{self.key}")
+        await self.storage.delete_user_session(self.key)
 
     async def ensure_session_exists(self) -> NoReturn:
         """Ensure session exists in storage.
