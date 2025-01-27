@@ -21,7 +21,7 @@ from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
 )
-from ldap_protocol.objects import ProtocolOp
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -286,7 +286,7 @@ class ExtendedRequest(BaseRequest):
         requestValue     [1] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.EXTENDED_REQUEST
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.EXTENDED
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 

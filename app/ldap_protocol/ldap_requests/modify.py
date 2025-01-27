@@ -28,7 +28,7 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.objects import ProtocolOp
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -100,7 +100,7 @@ class ModifyRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.MODIFY_REQUEST
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY
 
     object: str
     changes: list[Changes]

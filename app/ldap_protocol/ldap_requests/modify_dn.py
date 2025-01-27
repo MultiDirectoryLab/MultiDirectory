@@ -18,8 +18,8 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.access_policy import mutate_ap
-from ldap_protocol.objects import ProtocolOp
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_path_filter,
@@ -68,7 +68,7 @@ class ModifyDNRequest(BaseRequest):
         >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
-    PROTOCOL_OP: ClassVar[int] = ProtocolOp.MODIFY_DN_REQUEST
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY_DN
 
     entry: str
     newrdn: str
