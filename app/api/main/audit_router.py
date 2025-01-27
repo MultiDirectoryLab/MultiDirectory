@@ -34,7 +34,9 @@ async def get_audit_policies(
         AuditPolicySchema(
             id=model.id,
             name=model.name,
-            actions=model.actions,
+            is_ldap=model.is_ldap,
+            is_http=model.is_http,
+            operation_code=model.operation_code,
             operation_success=model.operation_success,
             condition_attributes=model.condition_attributes,
             change_attributes=model.change_attributes,
@@ -62,7 +64,9 @@ async def add_audit_policy(
     new_policy = AuditPolicy(
         id=policy.id,
         name=policy.name,
-        actions=policy.actions,
+        is_ldap=policy.is_ldap,
+        is_http=policy.is_http,
+        operation_code=policy.operation_code,
         operation_success=policy.operation_success,
         condition_attributes=policy.condition_attributes,
         change_attributes=policy.change_attributes,
@@ -78,7 +82,9 @@ async def add_audit_policy(
     return AuditPolicySchema(
         id=new_policy.id,
         name=new_policy.name,
-        actions=new_policy.actions,
+        is_ldap=new_policy.is_ldap,
+        is_http=new_policy.is_http,
+        operation_code=new_policy.operation_code,
         operation_success=new_policy.operation_success,
         condition_attributes=new_policy.condition_attributes,
         change_attributes=new_policy.change_attributes,
