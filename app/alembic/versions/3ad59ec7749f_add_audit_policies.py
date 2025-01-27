@@ -7,7 +7,6 @@ Create Date: 2024-11-25 10:25:11.367772
 """
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.utils.queries import add_audit_pocilies
@@ -30,7 +29,9 @@ def upgrade() -> None:
         'AuditPolicies',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column("actions", postgresql.ARRAY(sa.String()), nullable=False),
+        sa.Column('is_ldap', sa.Boolean(), nullable=False),
+        sa.Column('is_http', sa.Boolean(), nullable=False),
+        sa.Column('operation_code', sa.Integer(), nullable=False),
         sa.Column('condition_attributes', sa.JSON(), nullable=False),
         sa.Column('change_attributes', sa.JSON()),
         sa.Column("operation_success", sa.Boolean(), nullable=False),
