@@ -34,7 +34,10 @@ from ldap_protocol.user_account_control import (
     get_check_uac,
 )
 from ldap_protocol.utils.helpers import ft_now
-from ldap_protocol.utils.queries import get_base_directories
+from ldap_protocol.utils.queries import (
+    add_audit_pocilies,
+    get_base_directories,
+)
 from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
@@ -388,7 +391,7 @@ async def first_setup(
                 ],
                 session=session,
             )
-            # await add_audit_pocilies(session)
+            await add_audit_pocilies(session)
             await session.commit()
 
         except IntegrityError:
