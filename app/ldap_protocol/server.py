@@ -320,23 +320,19 @@ class PoolClientHandler:
                             and response.context.PROTOCOL_OP != 1
                             and ldap_session.gssapi_security_context
                         ):
-                            if ldap_session.gssapi_security_layer == 2:
-                                wrap_data = ldap_session.gssapi_security_context.wrap(
-                                    data,
-                                    encrypt=False,
+                            if ldap_session.gssapi_security_layer in (2, 4):
+                                encrypt = (
+                                    ldap_session.gssapi_security_layer == 4
                                 )
-                                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
-                                data = sasl_buffer_length + wrap_data.message
-                                logger.debug(len(data))
+                                wrap_data = (
+                                    ldap_session.gssapi_security_context.wrap(
+                                        data,
+                                        encrypt=encrypt,
+                                    )
+                                )
 
-                            if ldap_session.gssapi_security_layer == 4:
-                                wrap_data = ldap_session.gssapi_security_context.wrap(
-                                    data,
-                                    encrypt=True,
-                                )
-                                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
-                                data = sasl_buffer_length + wrap_data.message
-                                logger.debug(len(data))
+                            sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")  # noqa
+                            data = sasl_buffer_length + wrap_data.message
 
                         writer.write(data)
                         await writer.drain()
