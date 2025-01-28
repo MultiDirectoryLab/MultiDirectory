@@ -234,6 +234,17 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """
         return False
 
+    @classmethod
+    def from_data(cls, data: list[ASN1Row]) -> "SaslGSSAPIAuthentication":
+        """Get auth from data.
+
+        :param list[ASN1Row] data: data
+        :return SaslGSSAPIAuthentication
+        """
+        return cls(
+            ticket=data[1].value if len(data) > 1 else b"",
+        )
+
     async def _init_security_context(
         self,
         session: AsyncSession,
@@ -265,16 +276,68 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             creds=server_creds,
         )
 
-    @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "SaslGSSAPIAuthentication":
-        """Get auth from data.
+    def _handle_ticket(
+        self, server_ctx: gssapi.SecurityContext,
+    ) -> GSSAPIAuthStatus:
+        """Handle the ticket and make gssapi step.
 
-        :param list[ASN1Row] data: data
-        :return SaslGSSAPIAuthentication
+        :param gssapi.SecurityContext server_ctx: GSSAPI security context
+        :return GSSAPIAuthStatus: status
         """
-        return cls(
-            ticket=data[1].value if len(data) > 1 else b"",
+        try:
+            out_token = server_ctx.step(self.ticket)
+            self.server_sasl_creds = out_token
+            return GSSAPIAuthStatus.SEND_TO_CLIENT
+        except gssapi.exceptions.GSSError:
+            return GSSAPIAuthStatus.ERROR
+
+    def _handle_last_client_message(
+        self,
+        server_ctx: gssapi.SecurityContext,
+        ldap_session: LDAPSession,
+        settings: Settings,
+    ) -> GSSAPIAuthStatus:
+        """Handle the last client message.
+
+        :param gssapi.SecurityContext server_ctx: GSSAPI security context
+        :param LDAPSession ldap_session: ldap session
+        :param Settings settings: settings
+        :return GSSAPIAuthStatus: status
+        """
+        try:
+            unwrap_message = server_ctx.unwrap(self.ticket)
+            if len(unwrap_message.message) == 4:
+                client_security_layer = int.from_bytes(
+                    unwrap_message.message[:1],
+                )
+                if client_security_layer & settings.GSSAPI_SUPPORTED_SECURITY_LAYERS:  # noqa
+                    ldap_session.gssapi_authenticated = True
+                    ldap_session.gssapi_security_layer = client_security_layer
+                    return GSSAPIAuthStatus.COMPLETE
+            return GSSAPIAuthStatus.ERROR
+        except gssapi.exceptions.GSSError:
+            return GSSAPIAuthStatus.ERROR
+
+    def _generate_final_message(
+        self, server_ctx: gssapi.SecurityContext, settings: Settings,
+    ) -> bytes:
+        """Generate final wrap message.
+
+        :param gssapi.SecurityContext server_ctx: gssapi context
+        :param Settings settings: settings
+        :return bytes: message
+        """
+        max_size = settings.GSSAPI_MAX_OUTPUT_TOKEN_SIZE
+        if settings.GSSAPI_SUPPORTED_SECURITY_LAYERS == 1:
+            max_size = 0
+
+        message = (
+            settings.GSSAPI_SUPPORTED_SECURITY_LAYERS.to_bytes() +
+            max_size.to_bytes(length=3)
         )
+
+        wrap_message = server_ctx.wrap(message, encrypt=False)
+        return wrap_message.message
 
     async def step(
         self,
@@ -293,49 +356,20 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         server_ctx = ldap_session.gssapi_security_context
         if server_ctx is None:
-            raise ValueError("GSSAPI security context is not initialized")
-
-        # Check if the last message is the last message from the client
-        is_last_client_message = False
-        try:
-            unwrap_message = server_ctx.unwrap(self.ticket)
-            if len(unwrap_message.message) == 4:
-                is_last_client_message = True
-        except gssapi.exceptions.ParameterReadError:
-            unwrap_message = None
-        except gssapi.exceptions.GSSError:
             return GSSAPIAuthStatus.ERROR
 
-        if is_last_client_message and server_ctx.complete:
-            if not unwrap_message:
-                return GSSAPIAuthStatus.ERROR
-            client_security_layer = int.from_bytes(unwrap_message.message[:1])
-            ldap_session.gssapi_authenticated = True
-            ldap_session.gssapi_security_layer = client_security_layer
-            return GSSAPIAuthStatus.COMPLETE
-
-        if self.ticket != b"":
-            out_token = server_ctx.step(self.ticket)
-            if out_token is None:
-                self.server_sasl_creds = b""
-            self.server_sasl_creds = out_token
+        if self.ticket == b"":
+            self.server_sasl_creds = self._generate_final_message(
+                server_ctx, settings,
+            )
             return GSSAPIAuthStatus.SEND_TO_CLIENT
 
-        if not is_last_client_message:
-            max_size = settings.GSSAPI_MAX_OUTPUT_TOKEN_SIZE
-            if settings.GSSAPI_SUPPORTED_SECURITY_LAYERS == 1:
-                max_size = 0
-
-            message = (
-                settings.GSSAPI_SUPPORTED_SECURITY_LAYERS.to_bytes() +
-                max_size.to_bytes(length=3)
+        if server_ctx.complete:
+            return self._handle_last_client_message(
+                server_ctx, ldap_session, settings,
             )
 
-            wrap_message = server_ctx.wrap(message, encrypt=False)
-            self.server_sasl_creds = wrap_message.message
-            return GSSAPIAuthStatus.SEND_TO_CLIENT
-
-        return GSSAPIAuthStatus.ERROR
+        return self._handle_ticket(server_ctx)
 
     async def get_user(
         self,
