@@ -9,6 +9,7 @@ from typing import AsyncIterator, NewType
 import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
+from redis_client import RedisClient
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -194,6 +195,11 @@ class MainProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    @provide(scope=Scope.APP)
+    async def get_events_redis_client(self, settings: Settings) -> RedisClient:
+        """Get events redis client."""
+        return RedisClient(settings.EVENT_REDIRECT_URI)
 
 
 class HTTPProvider(Provider):
