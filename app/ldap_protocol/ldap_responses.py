@@ -65,7 +65,12 @@ class BaseResponse(ABC, BaseEncoder):
 
 
 class BindResponse(LDAPResult, BaseResponse):
-    """Bind response."""
+    """Bind response. Desctription in rfc4511 4.2.2.
+
+    BindResponse ::= [APPLICATION 1] SEQUENCE {
+        COMPONENTS OF LDAPResult,
+        serverSaslCreds    [7] OCTET STRING OPTIONAL }
+    """
 
     PROTOCOL_OP: ClassVar[int] = 1
     server_sasl_creds: bytes | None = Field(None, alias="serverSaslCreds")
