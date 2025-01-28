@@ -13,6 +13,7 @@ from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import TYPE_CHECKING, AsyncIterator, NoReturn
 
+import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.policies.network_policy import build_policy_query
@@ -70,6 +71,9 @@ class LDAPSession:
 
     ip: IPv4Address | IPv6Address
     policy: NetworkPolicy | None
+    gssapi_authenticated: bool = False
+    gssapi_security_context: gssapi.SecurityContext | None = None
+    gssapi_security_layer: int = 1
 
     def __init__(
         self, *, user: UserSchema | None = None,

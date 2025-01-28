@@ -9,9 +9,9 @@ from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
 import gssapi
+import gssapi.exceptions
 import gssapi.raw
 import httpx
-from loguru import logger
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,6 +58,14 @@ class SASLMethod(StrEnum):
     UNBOUNDID_TOTP = "UNBOUNDID-TOTP"
     UNBOUNDID_DELIVERED_OTP = "UNBOUNDID-DELIVERED-OTP"
     UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
+
+
+class GSSAPIAuthStatus(StrEnum):
+    """GSSAPI auth status."""
+
+    SEND_TO_CLIENT = "SEND_TO_CLIENT"
+    COMPLETE = "COMPLETE"
+    ERROR = "ERROR"
 
 
 class LDAPBindErrors(StrEnum):
@@ -157,7 +165,7 @@ class SaslAuthentication(AbstractLDAPAuth):
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
+    def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
         """Get auth from data."""
 
 
@@ -207,8 +215,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     """Sasl GSSAPI auth form."""
 
     mechanism: ClassVar[SASLMethod] = SASLMethod.GSSAPI
-    ticket: bytes
-    serverSaslCreds: bytes = b""
+    password: SecretStr = Field(default=SecretStr(""))
+    server_sasl_creds: bytes = b""
+    ticket: bytes = b""
 
     def is_valid(self, user: User | None) -> bool:
         """Check if GSSAPI token is valid.
@@ -225,38 +234,121 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """
         return False
 
-    @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> 'SaslPLAINAuthentication':
-        """Get auth from data."""
-        logger.debug("Create GSSAPI")
-        return cls(
-            ticket=data[1].value,
-            password="",
+    async def _init_security_context(
+        self,
+        session: AsyncSession,
+        ldap_session: LDAPSession,
+        settings: Settings,
+    ) -> None:
+        """Init security context.
+
+        :param AsyncSession session: db session
+        :param LDAPSession ldap_session: ldap session
+        :param Settings settings: settings
+        """
+        base_dn_list = await get_base_directories(session)
+        base_dn = base_dn_list[0].name
+
+        server_name = gssapi.Name(
+            f"ldap/{base_dn}@{base_dn.upper()}",
+            gssapi.NameType.krb5_nt_principal_name,
         )
 
-    async def get_user(self, session: AsyncSession, _: str) -> User:
-        """Get user."""
-        logger.debug("GSSAPI IN GET USER")
-        keytab_path = '/certs/krb5.keytab'
-        base_dn = "MD.LOCALHOST"
-        logger.debug(f"base dn = {base_dn}")
-        server_name = gssapi.Name(f"ldap/{base_dn}@{base_dn}")
         server_creds = gssapi.Credentials(
             name=server_name,
             usage="accept",
-            store={"keytab": keytab_path},
+            store={"keytab": settings.KRB5_KEYTAB},
+            mechs=[gssapi.MechType.kerberos],
         )
-        server_ctx = gssapi.SecurityContext(creds=server_creds)
-        output_token = server_ctx.step(self.ticket)
-        logger.debug(f"output token = {output_token}")
 
-        if server_ctx.complete:
-            logger.debug("GSSAPI AUTHENTICATED")
-            username = server_ctx.initiator_name.display_as(
-                gssapi.NameType.krb5_nt_principal_name).split('@')[0]
-            logger.debug(f"username = {username}")
-            return await get_user(session, username)  # type: ignore
-        return None  # type: ignore
+        ldap_session.gssapi_security_context = gssapi.SecurityContext(
+            creds=server_creds,
+        )
+
+    @classmethod
+    def from_data(cls, data: list[ASN1Row]) -> "SaslGSSAPIAuthentication":
+        """Get auth from data.
+
+        :param list[ASN1Row] data: data
+        :return SaslGSSAPIAuthentication
+        """
+        return cls(
+            ticket=data[1].value if len(data) > 1 else b"",
+        )
+
+    async def step(
+        self,
+        session: AsyncSession,
+        ldap_session: LDAPSession,
+        settings: Settings,
+    ) -> GSSAPIAuthStatus:
+        """GSSAPI step.
+
+        :param AsyncSession session: db session
+        :param LDAPSession ldap_session: ldap session
+        :param Settings settings: settings
+        """
+        if not ldap_session.gssapi_security_context:
+            await self._init_security_context(session, ldap_session, settings)
+
+        server_ctx = ldap_session.gssapi_security_context
+        if server_ctx is None:
+            raise ValueError("GSSAPI security context is not initialized")
+
+        # Check if the last message is the last message from the client
+        is_last_client_message = False
+        try:
+            unwrap_message = server_ctx.unwrap(self.ticket)
+            if len(unwrap_message.message) == 4:
+                is_last_client_message = True
+        except gssapi.exceptions.ParameterReadError:
+            unwrap_message = None
+        except gssapi.exceptions.GSSError:
+            return GSSAPIAuthStatus.ERROR
+
+        if is_last_client_message and server_ctx.complete:
+            if not unwrap_message:
+                return GSSAPIAuthStatus.ERROR
+            client_security_layer = int.from_bytes(unwrap_message.message[:1])
+            ldap_session.gssapi_authenticated = True
+            ldap_session.gssapi_security_layer = client_security_layer
+            return GSSAPIAuthStatus.COMPLETE
+
+        if self.ticket != b"":
+            out_token = server_ctx.step(self.ticket)
+            if out_token is None:
+                self.server_sasl_creds = b""
+            self.server_sasl_creds = out_token
+            return GSSAPIAuthStatus.SEND_TO_CLIENT
+
+        if not is_last_client_message:
+            max_size = settings.GSSAPI_MAX_OUTPUT_TOKEN_SIZE
+            if settings.GSSAPI_SUPPORTED_SECURITY_LAYERS == 1:
+                max_size = 0
+
+            message = (
+                settings.GSSAPI_SUPPORTED_SECURITY_LAYERS.to_bytes() +
+                max_size.to_bytes(length=3)
+            )
+
+            wrap_message = server_ctx.wrap(message, encrypt=False)
+            self.server_sasl_creds = wrap_message.message
+            return GSSAPIAuthStatus.SEND_TO_CLIENT
+
+        return GSSAPIAuthStatus.ERROR
+
+    async def get_user(
+        self,
+        ctx: gssapi.SecurityContext,  # type: ignore
+        session: AsyncSession,  # type: ignore
+    ) -> User:
+        """Get user.
+
+        :param gssapi.SecurityContext ctx: gssapi context
+        :param AsyncSession session: db session
+        """
+        username = str(ctx.initiator_name).split('@')[0]
+        return await get_user(session, username)  # type: ignore
 
 
 sasl_mechanism: list[type[SaslAuthentication]] = [
@@ -366,7 +458,37 @@ class BindRequest(BaseRequest):
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        user = await self.authentication_choice.get_user(session, self.name)
+        if isinstance(self.authentication_choice, SaslGSSAPIAuthentication):
+            action = await self.authentication_choice.step(
+                session,
+                ldap_session,
+                settings,
+            )
+
+            if action == GSSAPIAuthStatus.SEND_TO_CLIENT:
+                yield BindResponse(
+                    result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+                    server_sasl_creds=(
+                        self.authentication_choice.server_sasl_creds
+                    ),
+                )
+                return
+            if (
+                action == GSSAPIAuthStatus.ERROR or
+                not ldap_session.gssapi_security_context
+            ):
+                yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
+                return
+
+            user = await self.authentication_choice.get_user(
+                ldap_session.gssapi_security_context,
+                session,
+            )
+
+        else:
+            user = await self.authentication_choice.get_user(
+                session, self.name,
+            )
 
         if not user or not self.authentication_choice.is_valid(user):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)

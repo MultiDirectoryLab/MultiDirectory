@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Annotated, ClassVar
 
 import annotated_types
-from asn1 import Encoder, Numbers
+from asn1 import Classes, Encoder, Numbers
 from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny, field_validator
 
 from ldap_protocol.asn1parser import LDAPOID
@@ -68,6 +68,20 @@ class BindResponse(LDAPResult, BaseResponse):
     """Bind response."""
 
     PROTOCOL_OP: ClassVar[int] = 1
+    server_sasl_creds: bytes | None = Field(None, alias="serverSaslCreds")
+
+    def to_asn1(self, enc: Encoder) -> None:
+        """Serialize flat structure to bytes, write to encoder buffer."""
+        enc.write(self.result_code, type_map[type(self.result_code)])
+        enc.write(self.matched_dn, type_map[type(self.matched_dn)])
+        enc.write(self.error_message, type_map[type(self.error_message)])
+
+        if self.server_sasl_creds:
+            enc.write(
+                self.server_sasl_creds,
+                cls=Classes.Context,
+                nr=7,
+            )
 
 
 class PartialAttribute(BaseModel):

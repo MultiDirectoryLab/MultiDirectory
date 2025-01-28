@@ -231,13 +231,33 @@ class PoolClientHandler:
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
-        ldap_session = await container.get(LDAPSession)
-
+        ldap_session: LDAPSession = await container.get(LDAPSession)
         while True:
             data = await self.recieve(reader)
 
             if not data:
                 raise ConnectionAbortedError("Connection terminated by client")
+
+            if ldap_session.gssapi_authenticated:
+                if ldap_session.gssapi_security_layer in (2, 4):
+                    sasl_buffer_length = int.from_bytes(data[:4], "big")
+                    sasl_buffer = data[4:]
+
+                    if len(sasl_buffer) != sasl_buffer_length:
+                        raise ConnectionAbortedError(
+                            "SASL buffer length mismatch",
+                        )
+
+                    if not ldap_session.gssapi_security_context:
+                        raise ConnectionAbortedError(
+                            "GSSAPI security context not found",
+                        )
+
+                    unwrap_data = ldap_session.gssapi_security_context.unwrap(
+                        sasl_buffer,
+                    )
+                    message = unwrap_data.message
+                    data = message
 
             try:
                 request = LDAPRequestMessage.from_bytes(data)
@@ -276,7 +296,7 @@ class PoolClientHandler:
         self, writer: asyncio.StreamWriter, container: AsyncContainer,
     ) -> None:
         """Get message from queue and handle it."""
-        ldap_session = await container.get(LDAPSession)
+        ldap_session: LDAPSession = await container.get(LDAPSession)
         addr = str(await ldap_session.get_ip(writer))
 
         while True:
@@ -293,7 +313,32 @@ class PoolClientHandler:
 
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
-                        writer.write(response.encode())
+
+                        data = response.encode()
+                        if (
+                            ldap_session.gssapi_authenticated
+                            and response.context.PROTOCOL_OP != 1
+                            and ldap_session.gssapi_security_context
+                        ):
+                            if ldap_session.gssapi_security_layer == 2:
+                                wrap_data = ldap_session.gssapi_security_context.wrap(
+                                    data,
+                                    encrypt=False,
+                                )
+                                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
+                                data = sasl_buffer_length + wrap_data.message
+                                logger.debug(len(data))
+
+                            if ldap_session.gssapi_security_layer == 4:
+                                wrap_data = ldap_session.gssapi_security_context.wrap(
+                                    data,
+                                    encrypt=True,
+                                )
+                                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
+                                data = sasl_buffer_length + wrap_data.message
+                                logger.debug(len(data))
+
+                        writer.write(data)
                         await writer.drain()
 
                 ldap_session.queue.task_done()
