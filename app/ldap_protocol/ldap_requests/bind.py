@@ -212,7 +212,30 @@ class SaslPLAINAuthentication(SaslAuthentication):
 
 
 class SaslGSSAPIAuthentication(SaslAuthentication):
-    """Sasl GSSAPI auth form."""
+    """Sasl GSSAPI auth form.
+
+    Full GSSAPI authentication flow. Describe in rfc4752:
+
+    1. Context Initialization Phase:
+    - The server acquires credentials from keytab using ldap/{REALM}
+        principal
+    - Creates security context with default kerberos mechanisms
+    - Stores context in LDAP session
+
+    2. Intermediate Requests:
+    - The client sends kerberos AP-REQ token
+    - The server processes token
+    - Сontinues until context is established
+    - The client sends empty token
+
+    3. Final Handshake:
+    - The server wraps and sends the message:
+        * First octet: bitmask of supported security layers
+        * Next 3 octets: max output size the server is able to recieve
+    - The client sends wrapped message with:
+        * First octet: bitmask of selected security layer
+        * Next 3 octets: client maximum buffer size
+    """
 
     mechanism: ClassVar[SASLMethod] = SASLMethod.GSSAPI
     password: SecretStr = Field(default=SecretStr(""))
