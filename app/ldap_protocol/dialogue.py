@@ -179,9 +179,10 @@ class LDAPSession:
 
     ip: IPv4Address
     policy: NetworkPolicy | None
+
     gssapi_authenticated: bool = False
     gssapi_security_context: gssapi.SecurityContext | None = None
-    gssapi_security_layer: int = 1
+    gssapi_security_layer: int
 
     def __init__(self, *, user: UserSchema | None = None) -> None:
         """Set lock."""
