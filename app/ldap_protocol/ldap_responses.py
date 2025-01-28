@@ -65,7 +65,7 @@ class BaseResponse(ABC, BaseEncoder):
 
 
 class BindResponse(LDAPResult, BaseResponse):
-    """Bind response. Desctription in rfc4511 4.2.2.
+    """Bind response. Description in rfc4511 4.2.2.
 
     BindResponse ::= [APPLICATION 1] SEQUENCE {
         COMPONENTS OF LDAPResult,
