@@ -314,6 +314,17 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         except gssapi.exceptions.GSSError:
             return GSSAPIAuthStatus.ERROR
 
+    def _validate_security_layer(
+        self, client_layer: int, settings: Settings,
+    ) -> bool:
+        """Validate security layer.
+
+        :param int client_layer: client security layer
+        :return bool: validate result
+        """
+        supported = settings.GSSAPI_SUPPORTED_SECURITY_LAYERS
+        return (client_layer & supported) == client_layer
+
     def _handle_last_client_message(
         self,
         server_ctx: gssapi.SecurityContext,
@@ -333,7 +344,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
                 client_security_layer = int.from_bytes(
                     unwrap_message.message[:1],
                 )
-                if client_security_layer & settings.GSSAPI_SUPPORTED_SECURITY_LAYERS:  # noqa
+                if self._validate_security_layer(
+                    client_security_layer, settings,
+                ):
                     ldap_session.gssapi_authenticated = True
                     ldap_session.gssapi_security_layer = client_security_layer
                     return GSSAPIAuthStatus.COMPLETE
