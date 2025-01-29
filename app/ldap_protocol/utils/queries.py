@@ -59,6 +59,17 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     )
 
 
+async def get_user_by_upn(session: AsyncSession, upn: str) -> User | None:
+    """Get user by upn.
+
+    :param AsyncSession session: db
+    :param str upn: user principal name
+    :return User | None: user
+    """
+    return await session.scalar(
+        select(User).where(User.user_principal_name.ilike(upn)))
+
+
 async def get_directories(
     dn_list: list[ENTRY_TYPE],
     session: AsyncSession,

@@ -7,7 +7,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import get_user
+from ldap_protocol.utils.queries import get_user_by_upn
 
 from .oauth2 import get_current_user
 from .schema import SessionContentSchema
@@ -27,7 +27,7 @@ async def get_user_session(
     session: FromDishka[AsyncSession],
 ) -> dict[str, SessionContentSchema]:
     """Get current logged in user data."""
-    user = await get_user(session, upn)
+    user = await get_user_by_upn(session, upn)
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
     return await storage.get_user_sessions(user.id)
@@ -40,7 +40,7 @@ async def delete_user_sessions(
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete current logged in user data."""
-    user = await get_user(session, upn)
+    user = await get_user_by_upn(session, upn)
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
     await storage.clear_user_sessions(user.id)
