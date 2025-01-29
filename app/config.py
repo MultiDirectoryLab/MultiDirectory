@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     # 2 Integrity protection.
     # 4 Confidentiality protection.
     GSSAPI_SUPPORTED_SECURITY_LAYERS: int = 1 | 2 | 4
-    GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 65536
+    GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
     @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
