@@ -8,7 +8,7 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
@@ -42,11 +42,10 @@ from .oauth2 import authenticate_user, get_current_user, get_user
 from .schema import OAuth2Form, SetupRequest
 from .utils import create_and_set_session_key, get_ip_from_request
 
-auth_router = APIRouter(prefix="/auth", tags=["Auth"])
+auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
 
-@auth_router.post("/token/get")
-@inject
+@auth_router.post("/")
 async def login(
     form: Annotated[OAuth2Form, Depends()],
     session: FromDishka[AsyncSession],
@@ -122,11 +121,6 @@ async def login(
     )
 
 
-@auth_router.post("/token/refresh", response_class=Response)
-def renew_stub() -> None:
-    """Stub for refresh."""
-
-
 @auth_router.get("/me")
 async def users_me(
     user: Annotated[UserSchema, Depends(get_current_user)],
@@ -135,8 +129,7 @@ async def users_me(
     return user
 
 
-@auth_router.delete("/token/refresh", response_class=Response)
-@inject
+@auth_router.delete("/", response_class=Response)
 async def logout(
     response: Response,
     storage: FromDishka[SessionStorage],
@@ -152,7 +145,6 @@ async def logout(
     status_code=200,
     dependencies=[Depends(get_current_user)],
 )
-@inject
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
@@ -200,7 +192,6 @@ async def password_reset(
 
 
 @auth_router.get("/setup")
-@inject
 async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     """Check if initial setup needed.
 
@@ -216,7 +207,6 @@ async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     status_code=status.HTTP_200_OK,
     responses={423: {"detail": "Locked"}},
 )
-@inject
 async def first_setup(
     request: SetupRequest,
     session: FromDishka[AsyncSession],
