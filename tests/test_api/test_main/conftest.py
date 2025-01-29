@@ -123,7 +123,7 @@ async def adding_test_user(
             base_url="http://test") as client:
 
         auth = await client.post(
-            "auth/token/get",
+            "auth/",
             data={
                 "username": "new_user@md.test",
                 "password": "P@ssw0rd",

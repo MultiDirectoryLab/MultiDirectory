@@ -34,7 +34,7 @@ async def test_session_creation(
     assert not await storage.get_user_sessions(user.id)
 
     response = await unbound_http_client.post(
-        "auth/token/get",
+        "auth/",
         data={"username": creds.un, "password": creds.pw},
     )
 

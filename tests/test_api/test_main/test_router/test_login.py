@@ -43,7 +43,7 @@ async def test_api_auth_after_change_account_exp(
         },
     )
     auth = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": 'new_user@md.test',
             "password": 'P@ssw0rd',
@@ -67,7 +67,7 @@ async def test_api_auth_after_change_account_exp(
         },
     )
     auth = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": 'new_user@md.test',
             "password": 'P@ssw0rd',
@@ -82,17 +82,13 @@ async def test_refresh_and_logout_flow(
         creds: TestCreds) -> None:
     """Test login, refresh and logout cookie flow."""
     await unbound_http_client.post(
-        "auth/token/get",
+        "auth/",
         data={"username": creds.un, "password": creds.pw})
 
     old_token = unbound_http_client.cookies.get('id')
 
     assert old_token
 
-    response = await unbound_http_client.post("/api/auth/token/refresh")
-    assert response.status_code == 200
-    assert old_token != response.cookies.get('id')
-
-    await unbound_http_client.delete("auth/token/refresh")
+    await unbound_http_client.delete("auth/")
 
     assert not unbound_http_client.cookies

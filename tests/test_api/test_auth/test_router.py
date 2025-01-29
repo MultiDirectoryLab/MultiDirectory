@@ -79,7 +79,7 @@ async def test_first_setup_and_oauth(
     assert response.json() is True
 
     auth = await unbound_http_client.post(
-        "auth/token/get",
+        "auth/",
         data={"username": "test", "password": "Password123"},
     )
     assert auth.status_code == 200
@@ -270,7 +270,7 @@ async def test_update_password(http_client: AsyncClient) -> None:
     assert response.json() is None
 
     new_auth = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": "user0",
             "password": "password",
@@ -279,7 +279,7 @@ async def test_update_password(http_client: AsyncClient) -> None:
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
     new_auth = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": "user0",
             "password": "Password123",
@@ -298,7 +298,7 @@ async def test_auth_disabled_user(
 ) -> None:
     """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
     response = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": "user0",
             "password": "password",
@@ -330,7 +330,7 @@ async def test_auth_disabled_user(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": "user0",
             "password": "password",
