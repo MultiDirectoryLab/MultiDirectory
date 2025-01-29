@@ -320,6 +320,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Validate security layer.
 
         :param int client_layer: client security layer
+        :param Settings settings: settings
         :return bool: validate result
         """
         supported = settings.GSSAPI_SUPPORTED_SECURITY_LAYERS
