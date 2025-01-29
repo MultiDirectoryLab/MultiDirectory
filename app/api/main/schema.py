@@ -47,11 +47,12 @@ class KerberosSetupRequest(BaseModel):
     stash_password: SecretStr
 
 
-class _PolicyFields:
+class _AccessPolicyFields:
     name: str
     can_read: bool
     can_add: bool
     can_modify: bool
+    can_delete: bool
     directories: list[str]
     groups: list[str]
 
@@ -60,24 +61,16 @@ class _MaterialFields:
     id: int  # noqa: A003
 
 
-class AccessPolicySchema(_PolicyFields, BaseModel):
+class AccessPolicySchema(_AccessPolicyFields, BaseModel):
     """AP Schema w/o id."""
 
 
-class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
+class MaterialAccessPolicySchema(
+    _AccessPolicyFields,
+    _MaterialFields,
+    BaseModel,
+):
     """AP Schema with id."""
-
-
-class AccessPolicyCreateSchema(BaseModel):
-    """AP Schema w/o id."""
-
-    name: str
-    can_read: bool
-    can_add: bool
-    can_modify: bool
-    can_delete: bool
-    grant_dn: str
-    groups: list[str]
 
 
 class AccessPolicyModifySchema(_MaterialFields, BaseModel):
@@ -88,7 +81,6 @@ class AccessPolicyModifySchema(_MaterialFields, BaseModel):
     can_add: bool
     can_modify: bool
     can_delete: bool
-    grant_dn: str
     groups: list[str]
 
 

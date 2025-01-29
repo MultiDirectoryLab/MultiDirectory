@@ -18,10 +18,17 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AccessPolicy, Directory, Group
+from models import AccessPolicy, Directory, Group, GroupAccessPolicyMembership
 
 T = TypeVar("T", bound=Select)
-__all__ = ["get_access_policies", "create_access_policy", "mutate_ap"]
+__all__ = [
+    "get_access_policies",
+    "get_access_policy",
+    "create_access_policy",
+    "mutate_ap",
+    "delete_access_policy",
+    "attach_access_policy_to_group",
+]
 
 
 async def get_access_policies(session: AsyncSession) -> list[AccessPolicy]:
@@ -62,12 +69,8 @@ async def create_access_policy(
     grant_dn: ENTRY_TYPE,
     groups: list[ENTRY_TYPE],
     session: AsyncSession,
-) -> None:
-    """Get policies.
-
-    :param ENTRY_TYPE grant_dn: main dn
-    :param AsyncSession session: session
-    """
+) -> AccessPolicy:
+    """Create Access Policy."""
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
         column=Directory.path[1:len(path)],
@@ -77,7 +80,7 @@ async def create_access_policy(
     directories = await session.scalars(select(Directory).where(dir_filter))
     groups_dirs = await get_groups(groups, session)
 
-    policy = AccessPolicy(
+    access_policy = AccessPolicy(
         name=name,
         can_read=can_read,
         can_add=can_add,
@@ -86,8 +89,29 @@ async def create_access_policy(
         directories=directories.all(),
         groups=groups_dirs,
     )
-    session.add(policy)
+    session.add(access_policy)
     await session.flush()
+    return access_policy
+
+
+def calc_diff_access_policy(
+    ap1: AccessPolicy,
+    ap2: AccessPolicy,
+) -> dict[str, bool]:
+    """Calculate difference between two Access Policies."""
+    return {
+        key: True
+        for key in [
+            "name",
+            "can_read",
+            "can_add",
+            "can_modify",
+            "can_delete",
+            "directories",
+            "groups",
+        ]
+        if getattr(ap1, key) != getattr(ap2, key)
+    }
 
 
 def mutate_ap(
@@ -127,5 +151,26 @@ def mutate_ap(
     return query.join(Directory.access_policies, isouter=True).where(ap_filter)
 
 
-async def delete_access_policy(id: int, session: AsyncSession) -> None: # noqa A003
-    pass
+async def delete_access_policy(
+    access_policy_id: int,
+    session: AsyncSession,
+) -> None: # noqa A003
+    """Delete Access Policy."""
+    access_policy = await session.get(AccessPolicy, access_policy_id)
+    await session.delete(access_policy)
+    await session.commit()
+
+
+async def attach_access_policy_to_group(
+    access_policy_id: int,
+    group_id: int,
+    session: AsyncSession,
+) -> None:
+    """Attach Access Policy to Group."""
+    session.add(
+        GroupAccessPolicyMembership(
+            policy_id=access_policy_id,
+            group_id=group_id,
+        ),
+    )
+    await session.commit()
