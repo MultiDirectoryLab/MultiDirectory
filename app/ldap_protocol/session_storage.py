@@ -69,7 +69,7 @@ class SessionStorage(ABC):
         ).hexdigest()
 
     def _get_id_hash(self, user_id: int) -> str:
-        return hashlib.blake2b(
+        return "keys:" + hashlib.blake2b(
             str(user_id).encode(), digest_size=16).hexdigest()
 
     def _generate_key(self) -> str:
@@ -282,7 +282,8 @@ class RedisSessionStorage(SessionStorage):
         session_id, signature, data = self._generate_session_data(
             uid, settings, extra_data)
 
-        await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
+        await self._storage.set(
+            session_id, json.dumps(data), ex=self.key_ttl)
         await self._storage.append(self._get_id_hash(uid), f"{session_id};")
 
         return f"{session_id}.{signature}"
