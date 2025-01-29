@@ -249,13 +249,18 @@ class RedisSessionStorage(SessionStorage):
         uid = int(uid)
 
         keys = await self._get_user_keys(uid)
-        keys.remove(session_id)
 
-        await self._storage.set(
-            self._get_id_hash(uid),
-            ";".join(keys),
-            keepttl=True,
-        )
+        try:
+            keys.remove(session_id)
+        except KeyError:
+            pass
+        else:
+            await self._storage.set(
+                self._get_id_hash(uid),
+                ";".join(keys),
+                keepttl=True,
+            )
+
         await self.delete([session_id])
 
     async def create_session(
@@ -375,7 +380,10 @@ class MemSessionStorage(SessionStorage):
         uid = int(tmp)
 
         keys = await self._get_user_keys(uid)
-        keys.remove(session_id)
+        try:
+            keys.remove(session_id)
+        except KeyError:
+            pass
 
         self._session_batch[self._get_id_hash(uid)] = list(keys)
         await self.delete([session_id])
