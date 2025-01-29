@@ -324,13 +324,13 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         supported = settings.GSSAPI_SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer
 
-    def _handle_last_client_message(
+    def _handle_final_client_message(
         self,
         server_ctx: gssapi.SecurityContext,
         ldap_session: LDAPSession,
         settings: Settings,
     ) -> GSSAPIAuthStatus:
-        """Handle the last client message.
+        """Handle final client message.
 
         :param gssapi.SecurityContext server_ctx: GSSAPI security context
         :param LDAPSession ldap_session: ldap session
@@ -400,7 +400,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             return GSSAPIAuthStatus.SEND_TO_CLIENT
 
         if server_ctx.complete:
-            return self._handle_last_client_message(
+            return self._handle_final_client_message(
                 server_ctx, ldap_session, settings,
             )
 
