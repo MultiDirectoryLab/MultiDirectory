@@ -9,8 +9,6 @@ from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
 import gssapi
-import gssapi.exceptions
-import gssapi.raw
 import httpx
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
