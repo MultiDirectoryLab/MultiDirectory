@@ -344,7 +344,7 @@ services:
     image: ghcr.io/joeferner/redis-commander:latest
     restart: always
     environment:
-      - REDIS_HOSTS=local:dragonfly:6379
+      - REDIS_HOSTS=sessions:dragonfly:6379:1
     user: redis
     labels:
       - "traefik.enable=true"
