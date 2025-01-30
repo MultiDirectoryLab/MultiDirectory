@@ -21,8 +21,9 @@ from sqlalchemy.sql.expression import Select
 
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPCodes, LDAPSession, UserSchema
+from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.filter_interpreter import cast_filter2sql
+from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     PartialAttribute,

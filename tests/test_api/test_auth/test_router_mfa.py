@@ -4,12 +4,15 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from datetime import datetime, timedelta
+
 import httpx
 import pytest
+from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.oauth2 import authenticate_user, create_token
+from api.auth.oauth2 import authenticate_user
 from config import Settings
 from models import CatalogueSetting
 from tests.conftest import TestCreds
@@ -74,17 +77,15 @@ async def test_connect_mfa(
 
     assert user
 
-    token = create_token(
-        user.id,
-        settings.SECRET_KEY,
-        settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        grant_type='multifactor',  # type: ignore
-        extra_data={'aud': '123'})
+    exp = datetime.now() + timedelta(minutes=5)
+
+    token = jwt.encode(
+        {'aud': '123', "uid": user.id, "exp": exp},
+        settings.SECRET_KEY)
 
     response = await http_client.post(
         '/multifactor/create',
         data={'accessToken': token}, follow_redirects=False)
 
     assert response.status_code == 302
-    assert response.cookies.get('access_token') == f'"Bearer {token}"'
-    assert response.cookies.get('refresh_token') == f'"Bearer {token}"'
+    assert response.cookies.get('id')

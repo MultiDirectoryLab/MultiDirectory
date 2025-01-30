@@ -4,21 +4,18 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import secrets
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv6Address, ip_address
 
-from fastapi import Request, Response
+from fastapi import HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import set_last_logon_user
 from models import User
 
-from .oauth2 import create_token
-from .schema import REFRESH_PATH
 
-
-def get_ip_from_request(request: Request) -> IPv4Address | None:
+def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
     """Get IP address from request.
 
     :param Request request: The incoming request object.
@@ -29,17 +26,19 @@ def get_ip_from_request(request: Request) -> IPv4Address | None:
         client_ip = forwarded_for.split(",")[0]
     else:
         if request.client is None:
-            return None
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
         client_ip = request.client.host
 
-    return IPv4Address(client_ip)
+    return ip_address(client_ip)
 
 
-async def create_and_set_tokens(
+async def create_and_set_session_key(
     user: User,
     session: AsyncSession,
     settings: Settings,
     response: Response,
+    storage: SessionStorage,
+    ip: IPv4Address | IPv6Address,
 ) -> None:
     """Create and set access and refresh tokens.
 
@@ -51,31 +50,16 @@ async def create_and_set_tokens(
     :param Settings settings: app settings
     :param Response response: fastapi response object
     """
-    access_token = create_token(  # noqa: S106
-        uid=user.id,
-        secret=settings.SECRET_KEY,
-        expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        grant_type="access",
-        extra_data={"uuid": secrets.token_urlsafe(8)},
-    )
-    refresh_token = create_token(  # noqa: S106
-        uid=user.id,
-        secret=settings.SECRET_KEY,
-        expires_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        grant_type="refresh",
-        extra_data={"uuid": secrets.token_urlsafe(8)},
-    )
-
     await set_last_logon_user(user, session, settings.TIMEZONE)
+    key = await storage.create_session(
+        user.id,
+        settings,
+        extra_data={"ip": str(ip)},
+    )
 
     response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
+        key="id",
+        value=key,
         httponly=True,
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=f"Bearer {refresh_token}",
-        httponly=True,
-        path=REFRESH_PATH,
+        expires=storage.key_ttl,
     )

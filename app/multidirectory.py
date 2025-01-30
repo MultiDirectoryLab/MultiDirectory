@@ -28,6 +28,7 @@ from api import (
     mfa_router,
     network_router,
     pwd_router,
+    session_router,
 )
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import Settings
@@ -84,6 +85,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(pwd_router)
     app.include_router(krb5_router)
     app.include_router(dns_router)
+    app.include_router(session_router)
     app.include_router(access_policy_router)
     app.add_middleware(
         CORSMiddleware,

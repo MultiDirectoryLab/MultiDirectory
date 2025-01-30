@@ -5,17 +5,26 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
+from datetime import datetime
+from ipaddress import IPv4Address, IPv6Address
+from typing import Literal
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, SecretStr, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    computed_field,
+    field_validator,
+)
 
 from ldap_protocol.utils.const import EmailStr
 
 _domain_re = re.compile(
     "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z-]{2,63}$",
 )
-REFRESH_PATH = "/api/auth/token/refresh"
 
 
 class Login(BaseModel):
@@ -100,3 +109,15 @@ class MFAChallengeResponse(BaseModel):
 
     status: str
     message: str
+
+
+class SessionContentSchema(BaseModel):
+    """Session content schema."""
+
+    model_config = ConfigDict(extra='allow')
+
+    id: int  # noqa: A003
+    sign: str = Field("", description="Session signature")
+    issued: datetime
+    ip: IPv4Address | IPv6Address
+    protocol: Literal["ldap", "http"] = "http"
