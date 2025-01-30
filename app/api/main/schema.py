@@ -19,7 +19,8 @@ class SearchRequest(LDAPSearchRequest):
     """Search request for web api."""
 
     filter: str = Field(  # noqa: A003
-        ..., examples=["(objectClass=*)"])  # type: ignore
+        ..., examples=["(objectClass=*)"],  # type: ignore
+    )
 
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""
@@ -47,6 +48,10 @@ class KerberosSetupRequest(BaseModel):
     stash_password: SecretStr
 
 
+class _MaterialFields:
+    id: int  # noqa: A003
+
+
 class _AccessPolicyFields:
     name: str
     can_read: bool
@@ -55,10 +60,6 @@ class _AccessPolicyFields:
     can_delete: bool
     directories: list[str]
     groups: list[str]
-
-
-class _MaterialFields:
-    id: int  # noqa: A003
 
 
 class AccessPolicySchema(_AccessPolicyFields, BaseModel):
@@ -82,10 +83,6 @@ class AccessPolicyModifySchema(_MaterialFields, BaseModel):
     can_modify: bool
     can_delete: bool
     groups: list[str]
-
-
-class AccessPolicyDeleteSchema(_MaterialFields, BaseModel):
-    """AP Schema with id."""
 
 
 class DNSServiceSetupRequest(BaseModel):

@@ -1,16 +1,18 @@
-"""Access policy manager.
+"""
+Access policy manager.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Literal, TypeVar
+from typing import Literal, Optional, TypeVar
 
 from sqlalchemy import ARRAY, String, bindparam, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, and_, or_
 
+from app.api.main import schema as schemas
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.utils.const import ENTRY_TYPE
 from ldap_protocol.utils.queries import (
@@ -31,10 +33,38 @@ __all__ = [
 ]
 
 
+def compare_two_access_policies(
+    ap_exist: AccessPolicy,
+    ap_changed: schemas.AccessPolicyModifySchema,
+) -> dict[str, Literal[True]]:
+    """
+    Calculate difference between two Access Policies.
+
+    :param AccessPolicy ap_exist: existing Access Policy
+    :param AccessPolicyModifySchema ap_changed: changed Access Policy
+
+    :return dict[str, Literal[True]]: result
+    """
+    return {
+        key: True
+        for key in [
+            "name",
+            "can_read",
+            "can_add",
+            "can_modify",
+            "can_delete",
+            "directories",
+            "groups",
+        ]
+        if getattr(ap_exist, key) != getattr(ap_changed, key)
+    }
+
+
 async def get_access_policies(session: AsyncSession) -> list[AccessPolicy]:
     """Get all access policies.
 
     :param AsyncSession session: db
+
     :return list[AccessPolicy]: result
     """
     query = select(AccessPolicy).options(
@@ -50,6 +80,7 @@ async def get_access_policy(id: int, session: AsyncSession) -> AccessPolicy:  # 
 
     :param id int: Access Policy's id
     :param AsyncSession session: db
+
     :return AccessPolicy: result
     """
     query = select(AccessPolicy).where(AccessPolicy.id == id).options(
@@ -66,18 +97,36 @@ async def create_access_policy(
     can_add: bool,
     can_modify: bool,
     can_delete: bool,
-    grant_dn: ENTRY_TYPE,
     groups: list[ENTRY_TYPE],
     session: AsyncSession,
+    grant_dn: Optional[ENTRY_TYPE] = None,
 ) -> AccessPolicy:
-    """Create Access Policy."""
-    path = get_search_path(grant_dn)
-    dir_filter = get_path_filter(
-        column=Directory.path[1:len(path)],
-        path=path,
-    )
+    """
+    Create Access Policy.
 
-    directories = await session.scalars(select(Directory).where(dir_filter))
+    :param str name: name
+    :param bool can_read: read permission
+    :param bool can_add: add permission
+    :param bool can_modify: modify permission
+    :param bool can_delete: delete permission
+    :param list[ENTRY_TYPE] groups: groups
+    :param AsyncSession session: db
+    :param Optional[ENTRY_TYPE] grant_dn: grant_dn
+
+    :return AccessPolicy: result
+    """
+    if grant_dn:
+        path = get_search_path(grant_dn)
+        dir_filter = get_path_filter(
+            column=Directory.path[1:len(path)],
+            path=path,
+        )
+
+        directories = await session.scalars(
+            select(Directory).where(dir_filter),
+        )
+        directories_ = directories.all()  # TODO FIXME сделай тут
+
     groups_dirs = await get_groups(groups, session)
 
     access_policy = AccessPolicy(
@@ -86,7 +135,7 @@ async def create_access_policy(
         can_add=can_add,
         can_modify=can_modify,
         can_delete=can_delete,
-        directories=directories.all(),
+        directories=directories_,
         groups=groups_dirs,
     )
     session.add(access_policy)
@@ -94,35 +143,18 @@ async def create_access_policy(
     return access_policy
 
 
-def calc_diff_access_policy(
-    ap1: AccessPolicy,
-    ap2: AccessPolicy,
-) -> dict[str, bool]:
-    """Calculate difference between two Access Policies."""
-    return {
-        key: True
-        for key in [
-            "name",
-            "can_read",
-            "can_add",
-            "can_modify",
-            "can_delete",
-            "directories",
-            "groups",
-        ]
-        if getattr(ap1, key) != getattr(ap2, key)
-    }
-
-
 def mutate_ap(
     query: T,
     user: UserSchema,
     action: Literal["add", "read", "modify", "del"] = "read",
 ) -> T:
-    """Modify query with read rule filter, joins acess policies.
+    """
+    Modify query with read rule filter, joins acess policies.
 
     :param T query: select(Directory)
     :param UserSchema user: user data
+    :param Literal["add", "read", "modify", "del"] action: action
+
     :return T: select(Directory).join(Directory.access_policies)
     """
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
@@ -155,7 +187,14 @@ async def delete_access_policy(
     access_policy_id: int,
     session: AsyncSession,
 ) -> None: # noqa A003
-    """Delete Access Policy."""
+    """
+    Delete Access Policy.
+
+    :param int access_policy_id: Access Policy's id
+    :param AsyncSession session: db
+
+    :return None: None
+    """
     access_policy = await session.get(AccessPolicy, access_policy_id)
     await session.delete(access_policy)
     await session.commit()
@@ -166,7 +205,15 @@ async def attach_access_policy_to_group(
     group_id: int,
     session: AsyncSession,
 ) -> None:
-    """Attach Access Policy to Group."""
+    """
+    Attach Access Policy to Group.
+
+    :param int access_policy_id: Access Policy's id
+    :param int group_id: Group's id
+    :param AsyncSession session: db
+
+    :return None: None
+    """
     session.add(
         GroupAccessPolicyMembership(
             policy_id=access_policy_id,

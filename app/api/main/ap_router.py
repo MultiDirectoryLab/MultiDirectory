@@ -5,6 +5,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Optional
+
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,22 +17,23 @@ from ldap_protocol.policies import access_policy as ap_api
 from . import schema as schemas
 
 access_policy_router = APIRouter(
-    prefix="/access_policy", tags=["Access Policy"],
+    prefix="/access_policy",
+    dependencies=[Depends(get_current_user)],
+    tags=["Access Policy"],
 )
 
 
 @access_policy_router.post(
     "",
-    dependencies=[Depends(get_current_user)],
-    response_model=schemas.MaterialAccessPolicySchema,
+    response_model=schemas.AccessPolicySchema,
     status_code=status.HTTP_201_CREATED,
 )
 @inject
 async def create_access_policy_(
-    access_policy_data: schemas.MaterialAccessPolicySchema,
-    grant_dn: str,
+    access_policy_data: schemas.AccessPolicySchema,
     session: FromDishka[AsyncSession],
-) -> schemas.MaterialAccessPolicySchema:
+    grant_dn: Optional[str] = None,  # это опциональная вещь должна быть
+) -> schemas.AccessPolicySchema:
     """
     Create a new Access Policy.
 
@@ -39,7 +42,7 @@ async def create_access_policy_(
     :param str grant_dn: TODO FIXME 4enyxa
     :param FromDishka[AsyncSession] session: db session
 
-    :return MaterialAccessPolicySchema: Created Access Policy data
+    :return AccessPolicySchema: Created Access Policy data
     """
     access_policy = await ap_api.create_access_policy(
         name=access_policy_data.name,
@@ -52,8 +55,7 @@ async def create_access_policy_(
         session=session,
     )
     await session.commit()
-    return schemas.MaterialAccessPolicySchema(
-        id=access_policy.id,
+    return schemas.AccessPolicySchema(
         name=access_policy.name,
         can_read=access_policy.can_read,
         can_add=access_policy.can_add,
@@ -65,8 +67,7 @@ async def create_access_policy_(
 
 
 @access_policy_router.post(
-    "",
-    dependencies=[Depends(get_current_user)],
+    "/clone",
     response_model=schemas.MaterialAccessPolicySchema,
     status_code=status.HTTP_201_CREATED,
 )
@@ -121,7 +122,6 @@ async def clone_access_policy_(
 
 @access_policy_router.get(
     "/{access_policy_id}",
-    dependencies=[Depends(get_current_user)],
     response_model=schemas.MaterialAccessPolicySchema,
     status_code=status.HTTP_200_OK,
 )
@@ -153,7 +153,6 @@ async def get_access_policy_(
 
 @access_policy_router.get(
     "",
-    dependencies=[Depends(get_current_user)],
     response_model=list[schemas.MaterialAccessPolicySchema],
     status_code=status.HTTP_200_OK,
 )
@@ -184,7 +183,6 @@ async def get_access_policies_(
 
 @access_policy_router.patch(
     "/{access_policy_id}",
-    dependencies=[Depends(get_current_user)],
     response_model=schemas.MaterialAccessPolicySchema,
     status_code=status.HTTP_200_OK,
 )
@@ -214,17 +212,26 @@ async def modify_access_policy_(
             "Access Policy not found",
         )
 
+    if not ap_api.compare_two_access_policies(
+        access_policy,
+        access_policy_changed,
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "No changes",
+        )
+
     access_policy.name = access_policy_changed.name
     access_policy.can_read = access_policy_changed.can_read
     access_policy.can_add = access_policy_changed.can_add
     access_policy.can_modify = access_policy_changed.can_modify
     access_policy.can_delete = access_policy_changed.can_delete
-    access_policy.directories = [
-        d.path_dn for d in access_policy_changed.directories
-    ]
-    access_policy.groups = [
-        g.directory.path_dn for g in access_policy_changed.groups  # TODO FIXME
-    ]
+    # access_policy.directories = [  # TODO FIXME это лишнее
+    #     d.path_dn for d in access_policy_changed.directories
+    # ]
+    # access_policy.groups = [  # TODO FIXME это возможно тоже лишнее
+    #     g.directory.path_dn for g in access_policy_changed.groups  # TODO FIXME
+    # ]
 
     return schemas.MaterialAccessPolicySchema(
         id=access_policy.id,
@@ -239,76 +246,60 @@ async def modify_access_policy_(
 
 
 @access_policy_router.delete(
-    "/{access_policy_id}",
-    dependencies=[Depends(get_current_user)],
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-@inject
-async def delete_access_policy_(
-    access_policy_id: int,
-    session: FromDishka[AsyncSession],
-) -> None:
-    """
-    Delete Access Policy by id.
-
-    :param int access_policy_id: ID of the Access Policy to delete
-    :param FromDishka[AsyncSession] session: db session
-
-    :return None
-    """
-    await ap_api.delete_access_policy(access_policy_id, session)
-
-
-@access_policy_router.delete(
     "/bulk",
-    dependencies=[Depends(get_current_user)],
     status_code=status.HTTP_204_NO_CONTENT,
 )
 @inject
 async def delete_access_policies_(
-    access_policies_data: list[schemas.AccessPolicyDeleteSchema],
+    access_policy_ids: list[int],
     session: FromDishka[AsyncSession],
 ) -> None:
     """
     Delete Access Policies by ids.
 
-    :param list[AccessPolicyDeleteSchema] access_policies_data: List of
-    Access Policies to delete
+    :param list[int] access_policy_ids: List of Access Policies id to delete
     :param FromDishka[AsyncSession] session: db session
 
     :return None
     """
-    if not access_policies_data:
+    if not access_policy_ids:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Access Policies not found",
         )
 
-    for access_policy in access_policies_data:
-        await ap_api.delete_access_policy(access_policy.id, session)
+    for access_policy_id in access_policy_ids:
+        await ap_api.delete_access_policy(access_policy_id, session)
 
 
 @access_policy_router.post(
     "/attach",
-    dependencies=[Depends(get_current_user)],
     status_code=status.HTTP_201_CREATED,
 )
 @inject
 async def attach_access_policy_to_group_(
     access_policy_id: int,
-    group_id: int,
+    group_ids: list[str],
     session: FromDishka[AsyncSession],
 ) -> None:
     """
     Attach Access Policy to Group.
 
     :param int access_policy_id: ID of the Access Policy to attach
+    :param list[str] group_ids: Search string for group
     :param FromDishka[AsyncSession] session: db session
 
     :return None
     """
+    if not group_ids:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Groups not found",
+        )
+
+    # TODO FIXME group_ids = [список из str]
     await ap_api.attach_access_policy_to_group(
         access_policy_id,
-        group_id,
+        group_ids,
         session,
     )
