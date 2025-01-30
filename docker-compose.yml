@@ -40,7 +40,7 @@ services:
     volumes:
       - ./app:/app
       - ./certs:/certs
-      - kdc:/kdc
+      - ldap_keytab:/LDAP_keytab/
     env_file:
       local.env
     command: python -OO multidirectory.py --ldap
@@ -88,6 +88,7 @@ services:
       - ./certs:/certs
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
+      - ldap_keytab:/LDAP_keytab/
     env_file:
       local.env
     command: python multidirectory.py --http
@@ -354,4 +355,5 @@ volumes:
   psync_queue:
   dns_server_file:
   dns_server_config:
+  ldap_keytab:
   dragonflydata:

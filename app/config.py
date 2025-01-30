@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     KRB5_CONFIG_SERVER: HttpUrl = "https://kadmin_api:8000"  # type: ignore
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
-    KRB5_KEYTAB: str = "/kdc/krb5.keytab"
+    KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/krb5.keytab"
 
     TEMPLATES: jinja2.Environment = jinja2.Environment(
         loader=jinja2.FileSystemLoader('extra/templates'),

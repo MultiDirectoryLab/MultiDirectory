@@ -289,7 +289,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         server_creds = gssapi.Credentials(
             name=server_name,
             usage="accept",
-            store={"keytab": settings.KRB5_KEYTAB},
+            store={"keytab": settings.KRB5_LDAP_KEYTAB},
             mechs=[gssapi.MechType.kerberos],
         )
 
@@ -387,7 +387,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param Settings settings: settings
         """
         if not ldap_session.gssapi_security_context:
-            await self._init_security_context(session, ldap_session, settings)
+            await self._init_security_context(
+                session, ldap_session, settings,
+            )
 
         server_ctx = ldap_session.gssapi_security_context
         if server_ctx is None:
