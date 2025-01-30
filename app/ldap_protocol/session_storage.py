@@ -204,7 +204,7 @@ class RedisSessionStorage(SessionStorage):
         if keys is None:
             return set()
 
-        return set(keys.decode().split(";"))
+        return set(filter(None, keys.decode().split(";")))
 
     async def get_user_sessions(self, uid: int) -> dict:
         """Get user sessions.
@@ -249,7 +249,6 @@ class RedisSessionStorage(SessionStorage):
         uid = int(uid)
 
         keys = await self._get_user_keys(uid)
-
         try:
             keys.remove(session_id)
         except KeyError:
