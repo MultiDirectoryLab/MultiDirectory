@@ -197,6 +197,7 @@ async def setup_kdc(
             stash_password=data.stash_password.get_secret_value(),
             krb5_config=krb5_config,
             kdc_config=kdc_config,
+            ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
     except KRBAPIError as err:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))

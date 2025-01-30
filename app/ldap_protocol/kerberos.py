@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import asyncio
 from abc import ABC, abstractmethod
 from enum import StrEnum
 from functools import wraps
@@ -73,6 +74,50 @@ def logger_wraps(is_stub: bool = False) -> Callable:
     return wrapper
 
 
+async def delayed_ldap_principal_setup(
+    client: httpx.AsyncClient,
+    ldap_principal_name: str,
+    ldap_keytab_path: str,
+) -> None:
+    """Delay setup of ldap principal.
+
+    :param httpx.AsyncClient client: httpx
+    :param str ldap_principal_name: ldap principal name
+    :param str ldap_keytab_path: ldap keytab path
+    """
+    while True:
+        response = await client.get(
+            "setup/status",
+        )
+        setup_status = response.json()
+
+        if setup_status:
+            response = await client.post(
+                "/principal",
+                json={
+                    "name": ldap_principal_name,
+                },
+            )
+            if response.status_code != 201:
+                log.error(f"Error creating ldap principal: {response.text}")
+                break
+
+            response = await client.post(
+                "/principal/ktadd",
+                json=[ldap_principal_name],
+            )
+            if response.status_code != 200:
+                log.error(f"Error getting keytab: {response.text}")
+                break
+
+            with open(ldap_keytab_path, "wb") as f:
+                f.write(response.read())
+
+            break
+
+        await asyncio.sleep(1)
+
+
 class KerberosState(StrEnum):
     """KRB state enum."""
 
@@ -104,6 +149,7 @@ class AbstractKadmin(ABC):
         stash_password: str,
         krb5_config: str,
         kdc_config: str,
+        ldap_keytab_path: str,
     ) -> None:
         """Request Setup."""
         log.info("Setting up configs")
@@ -151,6 +197,12 @@ class AbstractKadmin(ABC):
 
         if response.status_code != 201:
             raise KRBAPIError(response.text)
+
+        asyncio.create_task(delayed_ldap_principal_setup(
+            self.client,
+            f"ldap/{domain}",
+            ldap_keytab_path=ldap_keytab_path,
+        ))
 
     @abstractmethod
     async def add_principal(  # noqa
