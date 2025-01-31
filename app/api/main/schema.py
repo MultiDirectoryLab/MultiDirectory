@@ -58,7 +58,7 @@ class _AccessPolicyFields:
     can_add: bool
     can_modify: bool
     can_delete: bool
-    directories: list[str]
+    # directories: list[str]
     groups: list[str]
 
 
