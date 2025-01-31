@@ -10,59 +10,45 @@ from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-test_access_policies_sets = [
-    {
-        "name": "policy_1",
-        "can_read": True,
-        "can_add": False,
-        "can_modify": False,
-        "can_delete": False,
-        "groups": ["cn=group1,ou=groups,dc=md,dc=test-localhost"],
-    },
-    {
-        "name": "policy_2",
-        "can_read": False,
-        "can_add": True,
-        "can_modify": True,
-        "can_delete": False,
-        "groups": ["cn=group2,ou=groups,dc=md,dc=test-localhost"],
-    },
-]
-
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize("policy", test_access_policies_sets)
 async def test_create_access_policy(
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient,
     session: AsyncSession,
-    policy: dict,
 ) -> None:
     """Test creating a new access policy."""
-    response = await unbound_http_client.post(
+    response = await http_client.post(
         "/access_policy",
-        json=policy,
+        json={
+            "name": "Policy_1",
+            "can_read": True,
+            "can_add": False,
+            "can_modify": False,
+            "can_delete": False,
+            "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+        },
     )
     assert response.status_code == status.HTTP_201_CREATED
 
     data = response.json()
-    assert data["name"] == policy["name"]
-    assert data["can_read"] == policy["can_read"]
-    assert data["can_add"] == policy["can_add"]
-    assert data["can_modify"] == policy["can_modify"]
-    assert data["can_delete"] == policy["can_delete"]
-    assert data["groups"] == policy["groups"]
+    assert data["name"] == "Policy_1"
+    assert data["can_read"] is True
+    assert data["can_add"] is False
+    assert data["can_modify"] is False
+    assert data["can_delete"] is False
+    assert data["groups"] == ["cn=domain admins,cn=groups,dc=md,dc=test"]
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_clone_access_policy(
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient,
     session: AsyncSession,
 ) -> None:
     """Test cloning an existing access policy."""
     # First, create an access policy to clone
-    response_1 = await unbound_http_client.post(
+    response_1 = await http_client.post(
         "/access_policy",
         json={
             "name": "original_access_policy",
@@ -77,7 +63,7 @@ async def test_clone_access_policy(
     original_ap = response_1.json()  # TODO FIXME это не должно быть здесь, наружу вынеси
 
     # Second, clone the created access policy
-    response_2 = await unbound_http_client.post(
+    response_2 = await http_client.post(
         "/access_policy/clone",
         json={
             "access_policy_id": original_ap["id"],
@@ -119,18 +105,18 @@ test_access_policies_sets = [
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("policy", test_access_policies_sets)
 async def test_get_access_policy(
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient,
     session: AsyncSession,
     policy: dict,
 ) -> None:
     """Test retrieving an existing access policy."""
     # First, create an access policy to retrieve
-    create_response = await unbound_http_client.post("/access_policy", json=policy)
+    create_response = await http_client.post("/access_policy", json=policy)
     assert create_response.status_code == status.HTTP_201_CREATED
     created_policy = create_response.json()
 
     # Now, retrieve the created access policy
-    get_response = await unbound_http_client.get(f"/access_policy/{created_policy['id']}")
+    get_response = await http_client.get(f"/access_policy/{created_policy['id']}")
     assert get_response.status_code == status.HTTP_200_OK
 
     retrieved_policy = get_response.json()
@@ -186,18 +172,18 @@ test_access_policies_sets = [
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("policies", test_access_policies_sets)
 async def test_get_access_policies(
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient,
     session: AsyncSession,
     policies: list,
 ) -> None:
     """Test retrieving all access policies."""
     # Create access policies
     for policy in policies:
-        response = await unbound_http_client.post("/access_policy", json=policy)
+        response = await http_client.post("/access_policy", json=policy)
         assert response.status_code == status.HTTP_201_CREATED
 
     # Retrieve all access policies
-    get_response = await unbound_http_client.get("/access_policy")
+    get_response = await http_client.get("/access_policy")
     assert get_response.status_code == status.HTTP_200_OK
 
     retrieved_policies = get_response.json()
@@ -235,17 +221,17 @@ modified_access_policy = {
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_modify_access_policy(
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient,
     session: AsyncSession,
 ) -> None:
     """Test modifying an existing access policy."""
     # First, create an access policy to modify
-    create_response = await unbound_http_client.post("/access_policy", json=test_access_policy)
+    create_response = await http_client.post("/access_policy", json=test_access_policy)
     assert create_response.status_code == status.HTTP_201_CREATED
     created_policy = create_response.json()
 
     # Now, modify the created access policy
-    modify_response = await unbound_http_client.patch(
+    modify_response = await http_client.patch(
         f"/access_policy/{created_policy['id']}",
         json=modified_access_policy,
     )
@@ -284,25 +270,25 @@ test_access_policies_to_delete = [
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("policy", test_access_policies_to_delete)
 async def test_delete_access_policies(
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient,
     session: AsyncSession,
     policy: dict,
 ) -> None:
     """Test deleting multiple access policies."""
     # Create access policy to delete
-    response = await unbound_http_client.post("/access_policy", json=policy)
+    response = await http_client.post("/access_policy", json=policy)
     assert response.status_code == status.HTTP_201_CREATED
     policy_id = response.json()["id"]
 
     # Delete the created access policy
-    delete_response = await unbound_http_client.delete(
+    delete_response = await http_client.delete(
         "/access_policy/bulk",
         json={"access_policy_ids": [policy_id]},
     )
     assert delete_response.status_code == status.HTTP_204_NO_CONTENT
 
     # Verify the access policy has been deleted
-    get_response = await unbound_http_client.get(f"/access_policy/{policy_id}")
+    get_response = await http_client.get(f"/access_policy/{policy_id}")
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -330,18 +316,18 @@ test_access_policy = [
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("policy", test_access_policies_to_delete)
 async def test_attach_access_policy_to_group(
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient,
     session: AsyncSession,
     policy: dict,
 ) -> None:
     """Test attaching an access policy to a group."""
     # First, create an access policy to attach
-    create_response = await unbound_http_client.post("/access_policy", json=policy)
+    create_response = await http_client.post("/access_policy", json=policy)
     assert create_response.status_code == status.HTTP_201_CREATED
     created_policy = create_response.json()
 
     # Attach the created access policy to groups
-    attach_response = await unbound_http_client.post(
+    attach_response = await http_client.post(
         "/access_policy/attach",
         json={
             "access_policy_id": created_policy["id"],
