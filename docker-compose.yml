@@ -281,6 +281,7 @@ services:
       - ./certs:/certs
       - ./app:/app
       - psync_queue:/var/spool/krb5-sync
+      - ldap_keytab:/LDAP_keytab/
     env_file:
       local.env
     command: python multidirectory.py --scheduler
