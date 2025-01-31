@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from copy import copy
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import pytest
 from fastapi import status
@@ -13,7 +14,7 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-async def test_policy_password(http_client: AsyncClient) -> None:
+async def test_policy_password(http_client: AsyncClient, session: AsyncSession,) -> None:
     """Test create policy."""
     policy_data = {
         "name": "Default domain password policy",

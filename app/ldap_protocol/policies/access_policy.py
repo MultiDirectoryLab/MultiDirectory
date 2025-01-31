@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, and_, or_
 
-from app.api.main import schema as schemas
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.utils.const import ENTRY_TYPE
 from ldap_protocol.utils.queries import (
@@ -35,13 +34,13 @@ __all__ = [
 
 def compare_two_access_policies(
     ap_exist: AccessPolicy,
-    ap_changed: schemas.AccessPolicyModifySchema,
+    ap_changed,  # TODO FIXME
 ) -> dict[str, Literal[True]]:
     """
     Calculate difference between two Access Policies.
 
     :param AccessPolicy ap_exist: existing Access Policy
-    :param AccessPolicyModifySchema ap_changed: changed Access Policy
+    # :param AccessPolicyModifySchema ap_changed: changed Access Policy
 
     :return dict[str, Literal[True]]: result
     """
