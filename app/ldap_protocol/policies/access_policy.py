@@ -29,7 +29,7 @@ __all__ = [
     "create_access_policy",
     "mutate_ap",
     "delete_access_policy",
-    "attach_access_policy_to_group",
+    "attach_access_policy_to_groups",
 ]
 
 
@@ -48,13 +48,10 @@ def compare_two_access_policies(
     return {
         key: True
         for key in [
-            "name",
             "can_read",
             "can_add",
             "can_modify",
             "can_delete",
-            "directories",
-            "groups",
         ]
         if getattr(ap_exist, key) != getattr(ap_changed, key)
     }
@@ -75,7 +72,7 @@ async def get_access_policies(session: AsyncSession) -> list[AccessPolicy]:
     return list((await session.scalars(query)).all())
 
 
-async def get_access_policy(id: int, session: AsyncSession) -> AccessPolicy:  # noqa A003
+async def get_access_policy(name: str, session: AsyncSession) -> AccessPolicy:  # noqa A003
     """Get single Access Policy.
 
     :param id int: Access Policy's id
@@ -83,7 +80,7 @@ async def get_access_policy(id: int, session: AsyncSession) -> AccessPolicy:  # 
 
     :return AccessPolicy: result
     """
-    query = select(AccessPolicy).where(AccessPolicy.id == id).options(
+    query = select(AccessPolicy).where(AccessPolicy.name == name).options(
         selectinload(AccessPolicy.groups).selectinload(Group.directory),
         selectinload(AccessPolicy.directories),
     )
@@ -200,24 +197,25 @@ async def delete_access_policy(
     await session.commit()
 
 
-async def attach_access_policy_to_group(
+async def attach_access_policy_to_groups(
     access_policy_id: int,
-    group_id: int,
+    group_ids: list[int],
     session: AsyncSession,
 ) -> None:
     """
     Attach Access Policy to Group.
 
     :param int access_policy_id: Access Policy's id
-    :param int group_id: Group's id
+    :param int group_ids: Group's id
     :param AsyncSession session: db
 
     :return None: None
     """
-    session.add(
-        GroupAccessPolicyMembership(
-            policy_id=access_policy_id,
-            group_id=group_id,
-        ),
-    )
+    for group_id in group_ids:
+        session.add(
+            GroupAccessPolicyMembership(
+                policy_id=access_policy_id,
+                group_id=group_id,
+            ),
+        )
     await session.commit()

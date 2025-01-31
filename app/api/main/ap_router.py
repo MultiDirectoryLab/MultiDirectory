@@ -5,7 +5,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Optional
 
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -32,14 +31,12 @@ access_policy_router = APIRouter(
 async def create_access_policy_(
     access_policy_data: schemas.AccessPolicySchema,
     session: FromDishka[AsyncSession],
-    grant_dn: Optional[str] = None,  # это опциональная вещь должна быть
 ) -> schemas.AccessPolicySchema:
     """
     Create a new Access Policy.
 
     :param AccessPolicyCreateSchema policy_data: Data for creating
     a new access policy
-    :param str grant_dn: TODO FIXME 4enyxa
     :param FromDishka[AsyncSession] session: db session
 
     :return AccessPolicySchema: Created Access Policy data
@@ -50,7 +47,6 @@ async def create_access_policy_(
         can_add=access_policy_data.can_add,
         can_modify=access_policy_data.can_modify,
         can_delete=access_policy_data.can_delete,
-        grant_dn=grant_dn,
         groups=access_policy_data.groups,
         session=session,
     )
@@ -73,43 +69,46 @@ async def create_access_policy_(
 )
 @inject
 async def clone_access_policy_(
-    access_policy_id: int,
-    grant_dn: str,
+    donor_access_policy_name: str,
+    access_policy_name: str,
     session: FromDishka[AsyncSession],
 ) -> schemas.MaterialAccessPolicySchema:
     """
-    Create a new Access Policy by exists Access Policy.
+    Create a new Access Policy by exists Access Policy. New Access Policy name
+    must be unique.
 
-    :param int access_policy_id: ID of the Access Policy to clone
-    :param str grant_dn: TODO FIXME 4enyxa
+    :param str access_policy_name: Name of the Access Policy to clone
     :param FromDishka[AsyncSession] session: db session
 
     :return MaterialAccessPolicySchema: Created Access Policy data
     """
+    if donor_access_policy_name == access_policy_name:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Access Policy names must be unique",
+        )
+
     donor_access_policy = await ap_api.get_access_policy(
-        access_policy_id,
+        donor_access_policy_name,
         session,
     )
-
     if not donor_access_policy:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
-            "Access Policy not found",
+            "Donor Access Policy not found",
         )
 
     access_policy = await ap_api.create_access_policy(
-        name=donor_access_policy.name,
+        name=access_policy_name,
         can_read=donor_access_policy.can_read,
         can_add=donor_access_policy.can_add,
         can_modify=donor_access_policy.can_modify,
         can_delete=donor_access_policy.can_delete,
-        grant_dn=grant_dn,  # TODO FIXME
         groups=[g.directory.path_dn for g in donor_access_policy.groups],  # TODO FIXME
         session=session,
     )
 
     return schemas.MaterialAccessPolicySchema(
-        id=access_policy.id,
         name=access_policy.name,
         can_read=access_policy.can_read,
         can_add=access_policy.can_add,
@@ -121,31 +120,36 @@ async def clone_access_policy_(
 
 
 @access_policy_router.get(
-    "/{access_policy_id}",
+    "/{access_policy_name}",
     response_model=schemas.MaterialAccessPolicySchema,
     status_code=status.HTTP_200_OK,
 )
 @inject
 async def get_access_policy_(
-    access_policy_id: int,  # noqa A003
+    access_policy_name: str,
     session: FromDishka[AsyncSession],
 ) -> schemas.MaterialAccessPolicySchema:
     """
-    Get a single Access Policy by ID.
+    Get a single Access Policy by name.
 
-    :param int access_policy_id: ID of the Access Policy to get
+    :param str access_policy_name: Name of the Access Policy to get
     :param FromDishka[AsyncSession] session: db session
 
     :return MaterialAccessPolicySchema: Access Policy data
     """
-    access_policy = await ap_api.get_access_policy(access_policy_id, session)
+    access_policy = await ap_api.get_access_policy(access_policy_name, session)
+    if not access_policy:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Access Policy not found",
+        )
 
     return schemas.MaterialAccessPolicySchema(
-        id=access_policy.id,
         name=access_policy.name,
         can_read=access_policy.can_read,
         can_add=access_policy.can_add,
         can_modify=access_policy.can_modify,
+        can_delete=access_policy.can_delete,
         directories=[d.path_dn for d in access_policy.directories],
         groups=[g.directory.path_dn for g in access_policy.groups],
     )
@@ -169,11 +173,11 @@ async def get_access_policies_(
     access_policies = await ap_api.get_access_policies(session)
     return [
         schemas.MaterialAccessPolicySchema(
-            id=access_policy.id,
             name=access_policy.name,
             can_read=access_policy.can_read,
             can_add=access_policy.can_add,
             can_modify=access_policy.can_modify,
+            can_delete=access_policy.can_delete,
             directories=(d.path_dn for d in access_policy.directories),
             groups=(g.directory.path_dn for g in access_policy.groups),
         )
@@ -182,30 +186,29 @@ async def get_access_policies_(
 
 
 @access_policy_router.patch(
-    "/{access_policy_id}",
+    "/{access_policy_name}",
     response_model=schemas.MaterialAccessPolicySchema,
     status_code=status.HTTP_200_OK,
 )
 @inject
 async def modify_access_policy_(
-    access_policy_id: int,
-    access_policy_changed: schemas.AccessPolicyModifySchema,
+    access_policy_name: str,
+    access_policy_changes: schemas.AccessPolicyModifySchema,
     session: FromDishka[AsyncSession],
 ) -> schemas.MaterialAccessPolicySchema:
     """
     Modify Access Policy.
 
-    :param int access_policy_id: ID of the Access Policy to modify
-    :param AccessPolicyModifySchema access_policy_changed: Data for modifying
+    :param str access_policy_name: Name of the Access Policy to modify
+    :param AccessPolicyModifySchema access_policy_changes: Data for modifying
     :param FromDishka[AsyncSession] session: db session
 
     :return MaterialAccessPolicySchema: Created Access Policy data
     """
     access_policy = await ap_api.get_access_policy(
-        access_policy_id,
+        access_policy_name,
         session,
     )
-
     if not access_policy:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
@@ -214,27 +217,19 @@ async def modify_access_policy_(
 
     if not ap_api.compare_two_access_policies(
         access_policy,
-        access_policy_changed,
+        access_policy_changes,
     ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "No changes",
+            "",
         )
 
-    access_policy.name = access_policy_changed.name
-    access_policy.can_read = access_policy_changed.can_read
-    access_policy.can_add = access_policy_changed.can_add
-    access_policy.can_modify = access_policy_changed.can_modify
-    access_policy.can_delete = access_policy_changed.can_delete
-    # access_policy.directories = [  # TODO FIXME это лишнее
-    #     d.path_dn for d in access_policy_changed.directories
-    # ]
-    # access_policy.groups = [  # TODO FIXME это возможно тоже лишнее
-    #     g.directory.path_dn for g in access_policy_changed.groups  # TODO FIXME
-    # ]
+    access_policy.can_read = access_policy_changes.can_read
+    access_policy.can_add = access_policy_changes.can_add
+    access_policy.can_modify = access_policy_changes.can_modify
+    access_policy.can_delete = access_policy_changes.can_delete
 
     return schemas.MaterialAccessPolicySchema(
-        id=access_policy.id,
         name=access_policy.name,
         can_read=access_policy.can_read,
         can_add=access_policy.can_add,
@@ -251,25 +246,25 @@ async def modify_access_policy_(
 )
 @inject
 async def delete_access_policies_(
-    access_policy_ids: list[int],
+    access_policy_names: list[int],
     session: FromDishka[AsyncSession],
 ) -> None:
     """
-    Delete Access Policies by ids.
+    Delete Access Policies by names.
 
-    :param list[int] access_policy_ids: List of Access Policies id to delete
+    :param list[int] access_policy_names: List of Access Policies names
     :param FromDishka[AsyncSession] session: db session
 
     :return None
     """
-    if not access_policy_ids:
+    if not access_policy_names:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Access Policies not found",
         )
 
-    for access_policy_id in access_policy_ids:
-        await ap_api.delete_access_policy(access_policy_id, session)
+    for access_policy_name in access_policy_names:
+        await ap_api.delete_access_policy(access_policy_name, session)
 
 
 @access_policy_router.post(
@@ -278,28 +273,35 @@ async def delete_access_policies_(
 )
 @inject
 async def attach_access_policy_to_group_(
-    access_policy_id: int,
-    group_ids: list[str],
+    access_policy_name: str,
+    group_ids: list[str],  # TODO FIXME у групп нет айдишников
     session: FromDishka[AsyncSession],
 ) -> None:
     """
     Attach Access Policy to Group.
 
-    :param int access_policy_id: ID of the Access Policy to attach
+    :param str access_policy_name: Name of the Access Policy
     :param list[str] group_ids: Search string for group
     :param FromDishka[AsyncSession] session: db session
 
     :return None
     """
-    if not group_ids:
+    if not group_ids:  # TODO FIXME у групп нет айдишников
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Groups not found",
         )
 
+    access_policy = await ap_api.get_access_policy(access_policy_name, session)
+    if not access_policy:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Access Policy not found",
+        )
+
     # TODO FIXME group_ids = [список из str]
-    await ap_api.attach_access_policy_to_group(
-        access_policy_id,
-        group_ids,
-        session,
+    await ap_api.attach_access_policy_to_groups(
+        access_policy_id=access_policy.id,
+        group_ids=group_ids,  # TODO FIXME у групп нет айдишников
+        session=session,
     )

@@ -77,7 +77,6 @@ class MaterialAccessPolicySchema(
 class AccessPolicyModifySchema(_MaterialFields, BaseModel):
     """AP Schema with id."""
 
-    name: str
     can_read: bool
     can_add: bool
     can_modify: bool
