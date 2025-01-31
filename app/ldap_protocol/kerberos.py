@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import asyncio
 from abc import ABC, abstractmethod
 from enum import StrEnum
 from functools import wraps
@@ -73,6 +74,50 @@ def logger_wraps(is_stub: bool = False) -> Callable:
     return wrapper
 
 
+async def delayed_ldap_principal_setup(
+    client: httpx.AsyncClient,
+    ldap_principal_name: str,
+    ldap_keytab_path: str,
+) -> None:
+    """Delay setup of ldap principal.
+
+    :param httpx.AsyncClient client: httpx
+    :param str ldap_principal_name: ldap principal name
+    :param str ldap_keytab_path: ldap keytab path
+    """
+    while True:
+        response = await client.get(
+            "setup/status",
+        )
+        setup_status = response.json()
+
+        if setup_status:
+            response = await client.post(
+                "/principal",
+                json={
+                    "name": ldap_principal_name,
+                },
+            )
+            if response.status_code != 201:
+                log.error(f"Error creating ldap principal: {response.text}")
+                break
+
+            response = await client.post(
+                "/principal/ktadd",
+                json=[ldap_principal_name],
+            )
+            if response.status_code != 200:
+                log.error(f"Error getting keytab: {response.text}")
+                break
+
+            with open(ldap_keytab_path, "wb") as f:
+                f.write(response.read())
+
+            break
+
+        await asyncio.sleep(1)
+
+
 class KerberosState(StrEnum):
     """KRB state enum."""
 
@@ -104,6 +149,7 @@ class AbstractKadmin(ABC):
         stash_password: str,
         krb5_config: str,
         kdc_config: str,
+        ldap_keytab_path: str,
     ) -> None:
         """Request Setup."""
         log.info("Setting up configs")
@@ -152,6 +198,12 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+        asyncio.create_task(delayed_ldap_principal_setup(
+            self.client,
+            f"ldap/{domain}",
+            ldap_keytab_path=ldap_keytab_path,
+        ))
+
     @abstractmethod
     async def add_principal(  # noqa
         self, name: str, password: str | None, timeout: int | float = 1,
@@ -180,7 +232,7 @@ class AbstractKadmin(ABC):
         return False
 
     @abstractmethod
-    async def ktadd(self, names: list[str]) -> httpx.Response: ...  # noqa
+    async def ktadd(self, names: list[str], stream: bool = True) -> httpx.Response: ...  # noqa
 
     @abstractmethod
     async def create_or_update_policy(  # noqa
@@ -225,7 +277,7 @@ class KerberosMDAPIClient(AbstractKadmin):
     @logger_wraps()
     async def get_principal(self, name: str) -> dict:
         """Get request."""
-        response = await self.client.post("principal", data={"name": name})
+        response = await self.client.get("principal", params={"name": name})
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
@@ -274,9 +326,12 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.get("/setup/status")
         return response.json()
 
-    async def ktadd(self, names: list[str]) -> httpx.Response:
+    async def ktadd(
+        self, names: list[str], stream: bool = True,
+    ) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
+        :param bool stream: stream
         :param list[str] names: principals
         :return httpx.Response: stream
         """
@@ -284,7 +339,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             "POST", "/principal/ktadd", json=names,
         )
 
-        response = await self.client.send(request, stream=True)
+        response = await self.client.send(request, stream=stream)
         if response.status_code == 404:
             raise KRBAPIError("Principal not found")
 
@@ -389,7 +444,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
         ...
 
     @logger_wraps(is_stub=True)
-    async def ktadd(self, names: list[str]) -> NoReturn:  # noqa
+    async def ktadd(self, names: list[str], stream: bool) -> NoReturn:  # noqa
         raise KRBAPIError
 
     @logger_wraps(is_stub=True)
