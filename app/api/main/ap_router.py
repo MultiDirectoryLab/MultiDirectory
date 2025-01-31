@@ -69,7 +69,7 @@ async def create_access_policy_(
         can_modify=access_policy.can_modify,
         can_delete=access_policy.can_delete,
         # directories=[d.path_dn for d in access_policy.directories],
-        # groups=[g.directory.path_dn for g in access_policy.groups],
+        groups=[g.directory.path_dn for g in access_policy.groups],
     )
 
 
