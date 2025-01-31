@@ -8,6 +8,7 @@ from dishka import AsyncContainer, Scope, make_async_container
 from loguru import logger
 
 from config import Settings
+from extra.scripts.check_ldap_principal import check_ldap_principal
 from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
@@ -20,6 +21,7 @@ _TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),
     (disable_accounts, 600.0),
     (principal_block_sync, 60.0),
+    (check_ldap_principal, 10800.0),
 }
 
 

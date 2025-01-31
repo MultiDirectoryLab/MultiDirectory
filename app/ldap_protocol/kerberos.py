@@ -232,7 +232,7 @@ class AbstractKadmin(ABC):
         return False
 
     @abstractmethod
-    async def ktadd(self, names: list[str]) -> httpx.Response: ...  # noqa
+    async def ktadd(self, names: list[str], stream: bool = True) -> httpx.Response: ...  # noqa
 
     @abstractmethod
     async def create_or_update_policy(  # noqa
@@ -277,7 +277,7 @@ class KerberosMDAPIClient(AbstractKadmin):
     @logger_wraps()
     async def get_principal(self, name: str) -> dict:
         """Get request."""
-        response = await self.client.post("principal", data={"name": name})
+        response = await self.client.get("principal", params={"name": name})
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
@@ -326,9 +326,12 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.get("/setup/status")
         return response.json()
 
-    async def ktadd(self, names: list[str]) -> httpx.Response:
+    async def ktadd(
+        self, names: list[str], stream: bool = True,
+    ) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
+        :param bool stream: stream
         :param list[str] names: principals
         :return httpx.Response: stream
         """
@@ -336,7 +339,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             "POST", "/principal/ktadd", json=names,
         )
 
-        response = await self.client.send(request, stream=True)
+        response = await self.client.send(request, stream=stream)
         if response.status_code == 404:
             raise KRBAPIError("Principal not found")
 
@@ -441,7 +444,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
         ...
 
     @logger_wraps(is_stub=True)
-    async def ktadd(self, names: list[str]) -> NoReturn:  # noqa
+    async def ktadd(self, names: list[str], stream: bool) -> NoReturn:  # noqa
         raise KRBAPIError
 
     @logger_wraps(is_stub=True)
