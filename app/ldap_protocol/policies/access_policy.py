@@ -74,7 +74,7 @@ async def get_access_policies(session: AsyncSession) -> list[AccessPolicy]:
 async def get_access_policy(name: str, session: AsyncSession) -> AccessPolicy:  # noqa A003
     """Get single Access Policy.
 
-    :param id int: Access Policy's id
+    :param name str: Access Policy's name
     :param AsyncSession session: db
 
     :return AccessPolicy: result
@@ -111,6 +111,7 @@ async def create_access_policy(
 
     :return AccessPolicy: result
     """
+    directories_ = []
     if grant_dn:
         path = get_search_path(grant_dn)
         dir_filter = get_path_filter(

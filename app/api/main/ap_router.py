@@ -83,7 +83,7 @@ async def clone_access_policy_(
     donor_access_policy_name: str,
     access_policy_name: str,
     session: FromDishka[AsyncSession],
-) -> MaterialAccessPolicySchema:
+) -> AccessPolicySchema:
     """
     Create a new Access Policy by exists Access Policy. New Access Policy name
     must be unique.
@@ -91,7 +91,7 @@ async def clone_access_policy_(
     :param str access_policy_name: Name of the Access Policy to clone
     :param FromDishka[AsyncSession] session: db session
 
-    :return MaterialAccessPolicySchema: Created Access Policy data
+    :return AccessPolicySchema: Created Access Policy data
     """
     if donor_access_policy_name == access_policy_name:
         raise HTTPException(
@@ -115,18 +115,17 @@ async def clone_access_policy_(
         can_add=donor_access_policy.can_add,
         can_modify=donor_access_policy.can_modify,
         can_delete=donor_access_policy.can_delete,
-        groups=[g.directory.path_dn for g in donor_access_policy.groups],  # TODO FIXME
+        groups=[],  # TODO FIXME
         session=session,
     )
 
-    return MaterialAccessPolicySchema(
+    return AccessPolicySchema(
         name=access_policy.name,
         can_read=access_policy.can_read,
         can_add=access_policy.can_add,
         can_modify=access_policy.can_modify,
         can_delete=access_policy.can_delete,
-        directories=[d.path_dn for d in access_policy.directories],
-        groups=[g.directory.path_dn for g in access_policy.groups],
+        groups=[],  # TODO FIXME
     )
 
 
@@ -155,14 +154,14 @@ async def get_access_policy_(
             "Access Policy not found",
         )
 
-    return MaterialAccessPolicySchema(
+    return AccessPolicySchema(
         name=access_policy.name,
         can_read=access_policy.can_read,
         can_add=access_policy.can_add,
         can_modify=access_policy.can_modify,
         can_delete=access_policy.can_delete,
-        directories=[d.path_dn for d in access_policy.directories],
-        groups=[g.directory.path_dn for g in access_policy.groups],
+        # directories=[d.path_dn for d in access_policy.directories],
+        groups=[],  # TODO FIXME
     )
 
 
