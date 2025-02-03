@@ -27,7 +27,7 @@ async def proxy_request(
     ip: Annotated[IPv4Address, Body(embed=True)],
     mfa: FromDishka[LDAPMultiFactorAPI],
     session: FromDishka[AsyncSession],
-) -> bool:
+) -> None:
     """Proxy request to mfa."""
     query = select(User).filter(User.user_principal_name.ilike(principal))
 
@@ -51,31 +51,31 @@ async def proxy_request(
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if not mfa:  # noqa: R505
-        return True
+        return
     elif network_policy.mfa_status == MFAFlags.DISABLED:
-        return True
+        return
     elif network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
         if (
             network_policy.mfa_status == MFAFlags.WHITELIST
             and not network_policy.mfa_groups
         ):
-            return True
+            return
 
         try:
             if await mfa.ldap_validate_mfa(user.user_principal_name, None):
-                return True
+                return
 
         except MultifactorAPI.MFAConnectError:
             logger.error("MFA connect error")
             if network_policy.bypass_no_connection:
-                return True
+                return
         except MultifactorAPI.MFAMissconfiguredError:
             logger.error("MFA missconfigured error")
-            return True  # TODO: add network_policy.bypass_missconfigured
+            return  # TODO: add network_policy.bypass_missconfigured
         except MultifactorAPI.MultifactorError:
             logger.error("MFA service failure")
             if network_policy.bypass_service_failure:
-                return True
+                return
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
