@@ -12,7 +12,6 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.ldap.address=:389"
-      - "--entrypoints.kdc.address=:88"
       - "--entrypoints.ldaps.address=:636"
       - "--entrypoints.kadmind.address=:749"
       - "--entrypoints.kpasswd.address=:464"
@@ -22,7 +21,6 @@ services:
       - "8080:8080"
       - "389:389"
       - "636:636"
-      - "88:88"
       - "749:749"
       - "464:464"
       - "530:53"
@@ -155,8 +153,8 @@ services:
       PGDATA: /data/postgres
     volumes:
        - postgres:/data/postgres
-    expose:
-      - 5432
+    ports:
+      - 5432:5432
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
