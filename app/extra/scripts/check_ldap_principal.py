@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import os
 
 import httpx
 from loguru import logger
@@ -21,16 +20,41 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.utils.queries import get_base_directories
 
 
+async def save_ldap_keytab(
+    kadmin: AbstractKadmin,
+    settings: Settings,
+    ldap_principal_name: str,
+) -> None:
+    """Save ldap keytab.
+
+    :param AbstractKadmin kadmin: kadmin
+    :param Settings settings: settings
+    :param str ldap_principal_name: ldap principal name
+    """
+    try:
+        response = await kadmin.ktadd([ldap_principal_name], False)
+        with open(settings.KRB5_LDAP_KEYTAB, "wb") as f:
+            f.write(response.read())
+    except KRBAPIError:
+        logger.error("Cannot get keytab for ldap service")
+
+
 async def check_ldap_principal(
     kadmin: AbstractKadmin,
     session: AsyncSession,
     settings: Settings,
 ) -> None:
-    """Check ldap principal and keytab existence."""
+    """Check ldap principal and keytab existence.
+
+    :param AbstractKadmin kadmin: kadmin
+    :param AsyncSession session: db
+    :param Settings settings: settings
+    """
     logger.info("Checking ldap principal and keytab existence.")
 
     domains = await get_base_directories(session)
     if not domains:
+        logger.error("Cannot get base directory")
         return
 
     domain = domains[0].name
@@ -61,21 +85,4 @@ async def check_ldap_principal(
             logger.error("Cannot add principal for ldap service")
             return
 
-        try:
-            response = await kadmin.ktadd([ldap_principal_name], False)
-            with open(settings.KRB5_LDAP_KEYTAB, "wb") as f:
-                f.write(response.read())
-        except KRBAPIError:
-            logger.error("Cannot get keytab for ldap service")
-            return
-
-    if not os.path.exists(settings.KRB5_LDAP_KEYTAB):
-        try:
-            response = await kadmin.ktadd([ldap_principal_name], False)
-            with open(settings.KRB5_LDAP_KEYTAB, "wb") as f:
-                f.write(response.read())
-        except KRBAPIError:
-            logger.error("Cannot get keytab for ldap service")
-            return
-
-    logger.info("Ldap principal and keytab are ready")
+    await save_ldap_keytab(kadmin, settings, ldap_principal_name)
