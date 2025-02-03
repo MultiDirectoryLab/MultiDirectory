@@ -74,50 +74,6 @@ def logger_wraps(is_stub: bool = False) -> Callable:
     return wrapper
 
 
-async def delayed_ldap_principal_setup(
-    client: httpx.AsyncClient,
-    ldap_principal_name: str,
-    ldap_keytab_path: str,
-) -> None:
-    """Delay setup of ldap principal.
-
-    :param httpx.AsyncClient client: httpx
-    :param str ldap_principal_name: ldap principal name
-    :param str ldap_keytab_path: ldap keytab path
-    """
-    while True:
-        response = await client.get(
-            "setup/status",
-        )
-        setup_status = response.json()
-
-        if setup_status:
-            response = await client.post(
-                "/principal",
-                json={
-                    "name": ldap_principal_name,
-                },
-            )
-            if response.status_code != 201:
-                log.error(f"Error creating ldap principal: {response.text}")
-                break
-
-            response = await client.post(
-                "/principal/ktadd",
-                json=[ldap_principal_name],
-            )
-            if response.status_code != 200:
-                log.error(f"Error getting keytab: {response.text}")
-                break
-
-            with open(ldap_keytab_path, "wb") as f:
-                f.write(response.read())
-
-            break
-
-        await asyncio.sleep(1)
-
-
 class KerberosState(StrEnum):
     """KRB state enum."""
 
@@ -198,7 +154,7 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
-        asyncio.create_task(delayed_ldap_principal_setup(
+        asyncio.create_task(ldap_principal_setup(
             self.client,
             f"ldap/{domain}",
             ldap_keytab_path=ldap_keytab_path,
@@ -526,3 +482,56 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
         )
         .execution_options(synchronize_session=False),
     )
+
+
+async def ldap_principal_setup(
+    kadmin_client: httpx.AsyncClient,
+    ldap_principal_name: str,
+    ldap_keytab_path: str,
+) -> None:
+    """Delay setup of ldap principal.
+
+    :param httpx.AsyncClient client: httpx
+    :param str ldap_principal_name: ldap principal name
+    :param str ldap_keytab_path: ldap keytab path
+    """
+    for _ in range(30):
+        try:
+            response = await kadmin_client.get(
+                "/setup/status",
+            )
+            setup_status = response.json()
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            await asyncio.sleep(1)
+            continue
+
+        if setup_status:
+
+            response = await kadmin_client.get("principal", params={
+                "name": ldap_principal_name,
+            })
+            if response.status_code == 200:
+                break
+
+            response = await kadmin_client.post(
+                "/principal",
+                json={
+                    "name": ldap_principal_name,
+                },
+            )
+            if response.status_code != 201:
+                log.error(f"Error creating ldap principal: {response.text}")
+                break
+
+            response = await kadmin_client.post(
+                "/principal/ktadd",
+                json=[ldap_principal_name],
+            )
+            if response.status_code != 200:
+                log.error(f"Error getting keytab: {response.text}")
+                break
+
+            with open(ldap_keytab_path, "wb") as f:
+                f.write(response.read())
+
+            break
