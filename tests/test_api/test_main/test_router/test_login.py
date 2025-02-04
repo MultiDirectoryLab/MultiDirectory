@@ -7,7 +7,7 @@ import httpx
 import pytest
 from fastapi import status
 
-from ldap_protocol.dialogue import Operation
+from ldap_protocol.ldap_requests.modify import Operation
 from tests.conftest import TestCreds
 
 
@@ -43,7 +43,7 @@ async def test_api_auth_after_change_account_exp(
         },
     )
     auth = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": 'new_user@md.test',
             "password": 'P@ssw0rd',
@@ -67,13 +67,13 @@ async def test_api_auth_after_change_account_exp(
         },
     )
     auth = await http_client.post(
-        "auth/token/get",
+        "auth/",
         data={
             "username": 'new_user@md.test',
             "password": 'P@ssw0rd',
         })
 
-    assert auth.cookies.get('access_token')
+    assert auth.cookies.get('id')
 
 
 @pytest.mark.usefixtures('setup_session')
@@ -82,19 +82,13 @@ async def test_refresh_and_logout_flow(
         creds: TestCreds) -> None:
     """Test login, refresh and logout cookie flow."""
     await unbound_http_client.post(
-        "auth/token/get",
+        "auth/",
         data={"username": creds.un, "password": creds.pw})
 
-    refresh_token = unbound_http_client.cookies.get('refresh_token')
-    old_token = unbound_http_client.cookies.get('access_token')
+    old_token = unbound_http_client.cookies.get('id')
 
     assert old_token
-    assert refresh_token
 
-    response = await unbound_http_client.post("/api/auth/token/refresh")
-    assert response.status_code == 200
-    assert old_token != response.cookies.get('access_token')
-
-    await unbound_http_client.delete("auth/token/refresh")
+    await unbound_http_client.delete("auth/")
 
     assert not unbound_http_client.cookies

@@ -12,7 +12,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, SerializeAsAny
 
 from .asn1parser import ASN1Row, asn1todict
-from .dialogue import LDAPCodes
+from .ldap_codes import LDAPCodes
 from .ldap_requests import BaseRequest, protocol_id_map
 from .ldap_responses import BaseResponse, LDAPResult
 from .utils.helpers import get_class_name

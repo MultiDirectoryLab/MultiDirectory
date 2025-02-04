@@ -15,6 +15,7 @@ from pydantic import (
     HttpUrl,
     IPvAnyAddress,
     PostgresDsn,
+    RedisDsn,
     computed_field,
     field_validator,
 )
@@ -48,6 +49,10 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
+    KV_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/0")
+    SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/1")
+    SESSION_KEY_LENGTH: int = 16
+
     HOSTNAME: str | None = None
 
     INSTANCE_DB_POOL_SIZE: int = 30
@@ -73,8 +78,7 @@ class Settings(BaseSettings):
     VENDOR_VERSION: str = Field(default_factory=_get_vendor_version)
     # to get a string run: `openssl rand -hex 32`
     SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
-    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14
+    SESSION_KEY_EXPIRE_SECONDS: int = 60 * 60 * 8
 
     MFA_LDAP_READ_TIMEOUT_SECONDS: int = 60
     MFA_CONNECT_TIMEOUT_SECONDS: int = 4

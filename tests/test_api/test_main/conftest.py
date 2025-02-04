@@ -9,13 +9,14 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.dialogue import LDAPCodes, Operation
 from ldap_protocol.dns import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
     DNS_MANAGER_ZONE_NAME,
     DNSManagerState,
 )
+from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_requests.modify import Operation
 from models import CatalogueSetting
 
 
@@ -27,7 +28,7 @@ async def adding_test_user(
 ) -> None:
     """Test add user like keycloak."""
     test_user_dn = "cn=test,dc=md,dc=test"
-    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'
+    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'  # noqa
     response = await http_client.post(
         "/entry/add",
         json={
@@ -122,14 +123,14 @@ async def adding_test_user(
             base_url="http://test") as client:
 
         auth = await client.post(
-            "auth/token/get",
+            "auth/",
             data={
                 "username": "new_user@md.test",
                 "password": "P@ssw0rd",
             },
         )
 
-        assert auth.cookies.get("access_token")
+        assert auth.cookies.get("id")
 
 
 @pytest_asyncio.fixture(scope='function')

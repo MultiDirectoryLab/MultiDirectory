@@ -4,20 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import secrets
+from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
-from fastapi import (
-    APIRouter,
-    Body,
-    Depends,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +18,7 @@ from config import Settings
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
-from ldap_protocol.multifactor import MFA_HTTP_Creds, MultifactorAPI
+from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
@@ -36,6 +28,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -45,29 +38,22 @@ from ldap_protocol.utils.queries import get_base_directories
 from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
-from .oauth2 import (
-    authenticate_user,
-    create_token,
-    get_current_user,
-    get_token,
-    get_user,
-    get_user_from_token,
-)
-from .schema import REFRESH_PATH, OAuth2Form, SetupRequest
-from .utils import create_and_set_tokens, get_ip_from_request
+from .oauth2 import authenticate_user, get_current_user, get_user
+from .schema import OAuth2Form, SetupRequest
+from .utils import create_and_set_session_key, get_ip_from_request
 
-auth_router = APIRouter(prefix="/auth", tags=["Auth"])
+auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
 
-@auth_router.post("/token/get")
-@inject
-async def login_for_access_token(
+@auth_router.post("/")
+async def login(
     form: Annotated[OAuth2Form, Depends()],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
     mfa: FromDishka[MultifactorAPI],
-    request: Request,
+    storage: FromDishka[SessionStorage],
     response: Response,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> None:
     """Get refresh and access token on login.
 
@@ -108,7 +94,6 @@ async def login_for_access_token(
     if user.is_expired():
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    ip = get_ip_from_request(request)
     if not ip:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
@@ -130,62 +115,9 @@ async def login_for_access_token(
                 detail="Requires MFA connect",
             )
 
-    await create_and_set_tokens(user, session, settings, response)
-
-
-@auth_router.post("/token/refresh", response_class=Response)
-@inject
-async def renew_tokens(
-    request: Request,
-    mfa: FromDishka[MultifactorAPI],
-    settings: FromDishka[Settings],
-    response: Response,
-    session: FromDishka[AsyncSession],
-    mfa_creds: FromDishka[MFA_HTTP_Creds],
-) -> None:
-    """Grant new access token with refresh token.
-
-    - **Authorization**: requires refresh bearer token in headers:
-
-    `Authorization: Bearer refresh_token`
-
-    \f
-    :param User user: current user from refresh token
-    :param Settings settings: app settings
-    :param str token: refresh token
-    :return Token: refresh and access token
-    """
-    token: str = get_token(request, type_="refresh_token")  # type: ignore
-    user = await get_user_from_token(settings, session, token, mfa_creds)
-
-    if user.access_type == "multifactor":
-        if not mfa:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-        access_token = await mfa.refresh_token(token)
-
-        response.set_cookie(
-            key="refresh_token",
-            value=f"Bearer {access_token}",
-            httponly=True,
-            path=REFRESH_PATH,
-        )
-
-    elif user.access_type == "refresh":
-        access_token = create_token(  # noqa: S106
-            uid=user.id,
-            secret=settings.SECRET_KEY,
-            expires_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-            grant_type="access",
-            extra_data={"uuid": secrets.token_urlsafe(8)},
-        )
-    else:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
-
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
+    await create_and_set_session_key(
+        user, session, settings,
+        response, storage, ip,
     )
 
 
@@ -197,15 +129,15 @@ async def users_me(
     return user
 
 
-@auth_router.delete("/token/refresh", response_class=Response)
-def logout(response: Response) -> None:
+@auth_router.delete("/", response_class=Response)
+async def logout(
+    response: Response,
+    storage: FromDishka[SessionStorage],
+    user: Annotated[UserSchema, Depends(get_current_user)],
+) -> None:
     """Delete token cookies."""
-    response.delete_cookie("access_token", httponly=True)
-    response.delete_cookie(
-        "refresh_token",
-        path="/api/auth/token/refresh",
-        httponly=True,
-    )
+    response.delete_cookie("id", httponly=True)
+    await storage.delete_user_session(user.session_id)
 
 
 @auth_router.patch(
@@ -213,7 +145,6 @@ def logout(response: Response) -> None:
     status_code=200,
     dependencies=[Depends(get_current_user)],
 )
-@inject
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
@@ -261,7 +192,6 @@ async def password_reset(
 
 
 @auth_router.get("/setup")
-@inject
 async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     """Check if initial setup needed.
 
@@ -277,7 +207,6 @@ async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     status_code=status.HTTP_200_OK,
     responses={423: {"detail": "Locked"}},
 )
-@inject
 async def first_setup(
     request: SetupRequest,
     session: FromDishka[AsyncSession],

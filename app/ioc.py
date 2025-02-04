@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncIterator, NewType
 
 import httpx
+import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -34,7 +35,9 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
+SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 
@@ -151,6 +154,29 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings)
 
+    @provide(scope=Scope.APP)
+    async def get_redis_for_sessions(
+            self, settings: Settings) -> AsyncIterator[SessionStorageClient]:
+        """Get redis connection."""
+        client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        yield SessionStorageClient(client)
+        await client.aclose()
+
+    @provide(scope=Scope.APP)
+    async def get_session_storage(
+        self, client: SessionStorageClient,
+        settings: Settings,
+    ) -> SessionStorage:
+        """Get session storage."""
+        return RedisSessionStorage(
+            client,
+            settings.SESSION_KEY_LENGTH,
+            settings.SESSION_KEY_EXPIRE_SECONDS)
+
 
 class HTTPProvider(Provider):
     """HTTP LDAP session."""
@@ -169,9 +195,9 @@ class LDAPServerProvider(Provider):
     scope = Scope.SESSION
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
-    async def get_session(self) -> LDAPSession:
+    async def get_session(self, storage: SessionStorage) -> LDAPSession:
         """Create ldap session."""
-        return LDAPSession()
+        return LDAPSession(storage=storage)
 
 
 class MFACredsProvider(Provider):
