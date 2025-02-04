@@ -293,9 +293,26 @@ services:
       - traefik.tcp.routers.bind_dns.service=bind_dns
       - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
 
+  dragonfly_mem:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    container_name: dragonfly
+    volumes:
+      - dragonflydata:/data
+    expose:
+      - 6379
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 6GiB
+        reservations:
+          cpus: '0.75'
+          memory: 1.5GiB
+
 volumes:
   postgres:
   kdc:
   psync_queue:
   dns_server_file:
   dns_server_config:
+  dragonflydata:

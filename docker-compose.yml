@@ -318,25 +318,16 @@ services:
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly
-    ulimits:
-      memlock: -1
-    environment:
-      - DFLY_port=6379
-      - DFLY_maxmemory=5.00GiB
     expose:
       - 6379
-    volumes:
-      - dragonflydata:/data
-    command: >
-      --dbfilename=dump
-      --dir=/data
-      --snapshot_cron="* * * * *"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.df.rule=Host(`df.localhost`)"
-      - "traefik.http.routers.df.entrypoints=web"
-      - "traefik.http.services.df.loadbalancer.server.port=6379"
-      - "traefik.http.routers.df.service=df"
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 6GiB
+        reservations:
+          cpus: '0.75'
+          memory: 1.5GiB
 
   redis-commander:
     container_name: redis-commander
