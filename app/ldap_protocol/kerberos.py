@@ -154,11 +154,11 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
-        asyncio.create_task(ldap_principal_setup(
+        await ldap_principal_setup(
             self.client,
             f"ldap/{domain}",
             ldap_keytab_path=ldap_keytab_path,
-        ))
+        )
 
     @abstractmethod
     async def add_principal(  # noqa
