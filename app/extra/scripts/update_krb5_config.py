@@ -3,9 +3,8 @@
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-import asyncio
-
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
@@ -18,17 +17,9 @@ async def update_krb5_config(
     settings: Settings,
 ) -> None:
     """Update kerberos config."""
-    # NOTE: wait for kdc to be ready
-    for _ in range(30):
-        try:
-            is_ok = await kadmin.get_status()
-
-            if is_ok:
-                break
-        except Exception:  # noqa: S112
-            continue
-        finally:
-            await asyncio.sleep(1)
+    if not (await kadmin.get_status()):
+        logger.error("kadmin_api is not running")
+        return
 
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
