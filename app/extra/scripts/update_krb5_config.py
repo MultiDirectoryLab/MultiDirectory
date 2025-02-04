@@ -3,8 +3,8 @@
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
