@@ -49,8 +49,11 @@ async def check_ldap_principal(
         logger.info("Kerberos server is not ready")
         return
 
-    await ldap_principal_setup(
-        kadmin.client,
-        ldap_principal_name,
-        settings.KRB5_LDAP_KEYTAB,
-    )
+    status = await kadmin.get_status(wait_for_positive=True)
+
+    if status:
+        await ldap_principal_setup(
+            kadmin.client,
+            ldap_principal_name,
+            settings.KRB5_LDAP_KEYTAB,
+        )

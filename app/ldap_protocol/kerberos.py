@@ -4,12 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import asyncio
 from abc import ABC, abstractmethod
 from enum import StrEnum
 from functools import wraps
 from typing import Any, Callable, NoReturn
 
+import backoff
 import httpx
 from loguru import logger as loguru_logger
 from sqlalchemy import delete, select, update
@@ -154,11 +154,13 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
-        await ldap_principal_setup(
-            self.client,
-            f"ldap/{domain}",
-            ldap_keytab_path=ldap_keytab_path,
-        )
+        status = await self.get_status(wait_for_positive=True)
+        if status:
+            await ldap_principal_setup(
+                self.client,
+                f"ldap/{domain}",
+                ldap_keytab_path=ldap_keytab_path,
+            )
 
     @abstractmethod
     async def add_principal(  # noqa
@@ -184,8 +186,24 @@ class AbstractKadmin(ABC):
     @abstractmethod
     async def rename_princ(self, name: str, new_name: str) -> None: ...  # noqa
 
-    async def get_status(self) -> bool:  # noqa
-        return False
+    @backoff.on_exception(
+        backoff.constant,
+        (httpx.ConnectError, httpx.ConnectTimeout, ValueError),
+        jitter=None,
+        raise_on_giveup=False,
+        max_tries=30,
+    )
+    async def get_status(self, wait_for_positive: bool = False) -> bool | None:  # noqa
+        """Get status of setup.
+
+        :param bool wait_for_positive: wait for positive status
+        :return bool | None: status or None if max tries achieved
+        """
+        response = await self.client.get("/setup/status")
+        status = response.json()
+        if wait_for_positive and not status:
+            raise ValueError
+        return status
 
     @abstractmethod
     async def ktadd(self, names: list[str], stream: bool = True) -> httpx.Response: ...  # noqa
@@ -278,9 +296,13 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 202:
             raise KRBAPIError(response.text)
 
-    async def get_status(self) -> bool:  # noqa
-        response = await self.client.get("/setup/status")
-        return response.json()
+    async def get_status(self, wait_for_positive: bool = False) -> bool | None:  # noqa
+        """Get status of setup.
+
+        :param bool wait_for_positive: wait for positive status
+        :return bool: status
+        """
+        return await super().get_status(wait_for_positive=wait_for_positive)
 
     async def ktadd(
         self, names: list[str], stream: bool = True,
@@ -495,40 +517,26 @@ async def ldap_principal_setup(
     :param str ldap_principal_name: ldap principal name
     :param str ldap_keytab_path: ldap keytab path
     """
-    for _ in range(30):
-        try:
-            response = await kadmin_client.get(
-                "/setup/status",
-            )
-            setup_status = response.json()
-        except (httpx.ConnectError, httpx.ConnectTimeout):
-            await asyncio.sleep(1)
-            continue
+    response = await kadmin_client.get("/principal", params={
+        "name": ldap_principal_name,
+    })
+    if response.status_code == 200:
+        return
 
-        if setup_status:
+    response = await kadmin_client.post("/principal", json={
+        "name": ldap_principal_name,
+    })
+    if response.status_code != 201:
+        log.error(f"Error creating ldap principal: {response.text}")
+        return
 
-            response = await kadmin_client.get("principal", params={
-                "name": ldap_principal_name,
-            })
-            if response.status_code == 200:
-                break
+    response = await kadmin_client.post(
+        "/principal/ktadd",
+        json=[ldap_principal_name],
+    )
+    if response.status_code != 200:
+        log.error(f"Error getting keytab: {response.text}")
+        return
 
-            response = await kadmin_client.post("/principal", json={
-                "name": ldap_principal_name,
-            })
-            if response.status_code != 201:
-                log.error(f"Error creating ldap principal: {response.text}")
-                break
-
-            response = await kadmin_client.post(
-                "/principal/ktadd",
-                json=[ldap_principal_name],
-            )
-            if response.status_code != 200:
-                log.error(f"Error getting keytab: {response.text}")
-                break
-
-            with open(ldap_keytab_path, "wb") as f:
-                f.write(response.read())
-
-            break
+    with open(ldap_keytab_path, "wb") as f:
+        f.write(response.read())
