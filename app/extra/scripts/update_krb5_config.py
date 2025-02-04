@@ -17,7 +17,7 @@ async def update_krb5_config(
     settings: Settings,
 ) -> None:
     """Update kerberos config."""
-    if not (await kadmin.get_status()):
+    if not (await kadmin.get_status(wait_for_positive=True)):
         logger.error("kadmin_api is not running")
         return
 
