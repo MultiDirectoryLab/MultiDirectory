@@ -513,12 +513,9 @@ async def ldap_principal_setup(
             if response.status_code == 200:
                 break
 
-            response = await kadmin_client.post(
-                "/principal",
-                json={
-                    "name": ldap_principal_name,
-                },
-            )
+            response = await kadmin_client.post("/principal", json={
+                "name": ldap_principal_name,
+            })
             if response.status_code != 201:
                 log.error(f"Error creating ldap principal: {response.text}")
                 break
