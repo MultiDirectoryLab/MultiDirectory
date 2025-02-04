@@ -13,7 +13,7 @@ import httpx
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
+from config import GSSAPISL, Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -313,7 +313,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             return GSSAPIAuthStatus.ERROR
 
     def _validate_security_layer(
-        self, client_layer: int, settings: Settings,
+        self, client_layer: GSSAPISL, settings: Settings,
     ) -> bool:
         """Validate security layer.
 
@@ -340,8 +340,10 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         try:
             unwrap_message = server_ctx.unwrap(self.ticket)
             if len(unwrap_message.message) == 4:
-                client_security_layer = int.from_bytes(
-                    unwrap_message.message[:1],
+                client_security_layer = GSSAPISL(
+                    int.from_bytes(
+                        unwrap_message.message[:1],
+                    ),
                 )
                 if self._validate_security_layer(
                     client_security_layer, settings,
@@ -363,7 +365,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :return bytes: message
         """
         max_size = settings.GSSAPI_MAX_OUTPUT_TOKEN_SIZE
-        if settings.GSSAPI_SUPPORTED_SECURITY_LAYERS == 1:
+        if settings.GSSAPI_SUPPORTED_SECURITY_LAYERS == GSSAPISL.NO_SECURITY:
             max_size = 0
 
         message = (

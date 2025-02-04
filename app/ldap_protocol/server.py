@@ -22,7 +22,7 @@ from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
+from config import GSSAPISL, Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
@@ -239,7 +239,10 @@ class PoolClientHandler:
                 raise ConnectionAbortedError("Connection terminated by client")
 
             if ldap_session.gssapi_authenticated:
-                if ldap_session.gssapi_security_layer in (2, 4):
+                if ldap_session.gssapi_security_layer in (
+                    GSSAPISL.INTEGRITY_PROTECTION,
+                    GSSAPISL.CONFIDENTIALITY,
+                ):
                     sasl_buffer_length = int.from_bytes(data[:4], "big")
                     sasl_buffer = data[4:]
 
@@ -320,7 +323,10 @@ class PoolClientHandler:
                             and response.context.PROTOCOL_OP != 1
                             and ldap_session.gssapi_security_context
                         ):
-                            if ldap_session.gssapi_security_layer in (2, 4):
+                            if ldap_session.gssapi_security_layer in (
+                                GSSAPISL.INTEGRITY_PROTECTION,
+                                GSSAPISL.CONFIDENTIALITY,
+                            ):
                                 encrypt = (
                                     ldap_session.gssapi_security_layer == 4
                                 )

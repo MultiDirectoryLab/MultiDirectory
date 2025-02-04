@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, AsyncIterator, NoReturn
 import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import GSSAPISL
 from ldap_protocol.policies.network_policy import build_policy_query
 from models import NetworkPolicy, User
 
@@ -74,7 +75,7 @@ class LDAPSession:
 
     gssapi_authenticated: bool = False
     gssapi_security_context: gssapi.SecurityContext | None = None
-    gssapi_security_layer: int
+    gssapi_security_layer: GSSAPISL
 
     def __init__(
         self, *, user: UserSchema | None = None,
