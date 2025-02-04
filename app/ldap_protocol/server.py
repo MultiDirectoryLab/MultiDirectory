@@ -239,28 +239,7 @@ class PoolClientHandler:
                 raise ConnectionAbortedError("Connection terminated by client")
 
             if ldap_session.gssapi_authenticated:
-                if ldap_session.gssapi_security_layer in (
-                    GSSAPISL.INTEGRITY_PROTECTION,
-                    GSSAPISL.CONFIDENTIALITY,
-                ):
-                    sasl_buffer_length = int.from_bytes(data[:4], "big")
-                    sasl_buffer = data[4:]
-
-                    if len(sasl_buffer) != sasl_buffer_length:
-                        raise ConnectionAbortedError(
-                            "SASL buffer length mismatch",
-                        )
-
-                    if not ldap_session.gssapi_security_context:
-                        raise ConnectionAbortedError(
-                            "GSSAPI security context not found",
-                        )
-
-                    unwrap_data = ldap_session.gssapi_security_context.unwrap(
-                        sasl_buffer,
-                    )
-                    message = unwrap_data.message
-                    data = message
+                data = await self._unwrap_request(data, ldap_session)
 
             try:
                 request = LDAPRequestMessage.from_bytes(data)
@@ -276,6 +255,43 @@ class PoolClientHandler:
 
             else:
                 await ldap_session.queue.put(request)
+
+    async def _unwrap_request(
+        self,
+        data: bytes,
+        ldap_session: LDAPSession,
+    ) -> bytes:
+        """Unwrap request with GSSAPI security layer if needed.
+
+        :param bytes data: request data
+        :param LDAPSession ldap_session: session
+        :return bytes: unwrapped data
+        """
+        if ldap_session.gssapi_security_layer in (
+            GSSAPISL.INTEGRITY_PROTECTION,
+            GSSAPISL.CONFIDENTIALITY,
+        ):
+            sasl_buffer_length = int.from_bytes(data[:4], "big")
+            sasl_buffer = data[4:]
+
+            if len(sasl_buffer) != sasl_buffer_length:
+                raise ConnectionAbortedError(
+                    "SASL buffer length mismatch",
+                )
+
+            if not ldap_session.gssapi_security_context:
+                raise ConnectionAbortedError(
+                    "GSSAPI security context not found",
+                )
+
+            unwrap_data = ldap_session.gssapi_security_context.unwrap(
+                sasl_buffer,
+            )
+            message = unwrap_data.message
+            data = message
+            return data
+
+        return data
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
@@ -317,28 +333,11 @@ class PoolClientHandler:
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
 
-                        data = response.encode()
-                        if (
-                            ldap_session.gssapi_authenticated
-                            and response.context.PROTOCOL_OP != 1
-                            and ldap_session.gssapi_security_context
-                        ):
-                            if ldap_session.gssapi_security_layer in (
-                                GSSAPISL.INTEGRITY_PROTECTION,
-                                GSSAPISL.CONFIDENTIALITY,
-                            ):
-                                encrypt = (
-                                    ldap_session.gssapi_security_layer == 4
-                                )
-                                wrap_data = (
-                                    ldap_session.gssapi_security_context.wrap(
-                                        data,
-                                        encrypt=encrypt,
-                                    )
-                                )
-
-                            sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")  # noqa
-                            data = sasl_buffer_length + wrap_data.message
+                        data = await self._wrap_response(
+                            response.encode(),
+                            ldap_session,
+                            response.context.PROTOCOL_OP,
+                        )
 
                         writer.write(data)
                         await writer.drain()
@@ -346,6 +345,42 @@ class PoolClientHandler:
                 ldap_session.queue.task_done()
             except Exception as err:
                 raise RuntimeError(err) from err
+
+    async def _wrap_response(
+        self, data: bytes, ldap_session: LDAPSession, protocol_op: int,
+    ) -> bytes:
+        """Wrap response with GSSAPI security layer if needed.
+
+        :param bytes data: response data
+        :param LDAPSession ldap_session: session
+        :param int protocol_op: protocol operation
+        :return bytes: wrapped data
+        """
+        if (
+            ldap_session.gssapi_authenticated
+            and protocol_op != 1
+            and ldap_session.gssapi_security_context
+        ):
+            if ldap_session.gssapi_security_layer in (
+                GSSAPISL.INTEGRITY_PROTECTION,
+                GSSAPISL.CONFIDENTIALITY,
+            ):
+                encrypt = (
+                    ldap_session.gssapi_security_layer == (
+                        GSSAPISL.CONFIDENTIALITY
+                    )
+                )
+                wrap_data = (
+                    ldap_session.gssapi_security_context.wrap(
+                        data,
+                        encrypt=encrypt,
+                    )
+                )
+                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")  # noqa
+
+                return sasl_buffer_length + wrap_data.message
+
+        return data
 
     async def _handle_responses(
         self,
