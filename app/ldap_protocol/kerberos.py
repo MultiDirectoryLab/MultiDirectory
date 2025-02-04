@@ -237,7 +237,7 @@ class AbstractKadmin(ABC):
         raise_on_giveup=False,
         max_tries=30,
     )
-    async def get_status(self, wait_for_positive: bool = False) -> bool | None:  # noqa
+    async def get_status(self, wait_for_positive: bool = False) -> bool | None:
         """Get status of setup.
 
         :param bool wait_for_positive: wait for positive status
