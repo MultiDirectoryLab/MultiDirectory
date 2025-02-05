@@ -7,7 +7,6 @@ import ipaddress
 import struct
 import uuid
 from collections import defaultdict
-from dataclasses import dataclass
 from enum import IntEnum, IntFlag
 from typing import Any
 
@@ -68,60 +67,6 @@ class NetLogonNtVersionFlag(IntFlag):
     NETLOGON_NT_VERSION_IP = 0x20000000
     NETLOGON_NT_VERSION_LOCAL = 0x40000000
     NETLOGON_NT_VERSION_GC = 0x80000000
-
-
-@dataclass
-class BaseNetLogonResponse:
-    """Base NetLogon attributes for all response types."""
-
-    OperationCode: int
-    NtVersion: int
-    LmNtToken: int = 0xFFFF
-    Lm20Token: int = 0xFFFF
-
-
-@dataclass
-class NetLogonNT40Response(BaseNetLogonResponse):
-    """NetLogon NT 4.0 response attributes."""
-
-    UnicodeLogonServer: str = ""
-    UnicodeNameSercer: str = ""
-    UnicodeDomainName: str = ""
-
-
-@dataclass
-class NetLogonSAMLogonResponse(BaseNetLogonResponse):
-    """NetLogon SAM logon response attributes."""
-
-    UnicodeLogonServer: str = ""
-    UnicodeUserName: str = ""
-    UnicodeDomainName: str = ""
-    DomainGuid: uuid.UUID = uuid.UUID(int=0)
-    SiteGuid: uuid.UUID = uuid.UUID(int=0)
-    DnsForestName: str = ""
-    DnsDomainName: str = ""
-    DnsHostName: str = ""
-    DcIpAddress: str = ""
-    Flags: int = 0x00000000
-
-
-@dataclass
-class NetLogonSAMLogonResponseEx(BaseNetLogonResponse):
-    """NetLogon SAM logon response extended attributes."""
-
-    Flags: int = 0x00000000
-    DomainGuid: uuid.UUID = uuid.UUID(int=0)
-    DnsForestName: str = ""
-    DnsDomainName: str = ""
-    DnsHostName: str = ""
-    NetbiosDomainName: str = ""
-    NetbiosComputerName: str = ""
-    UserName: str = ""
-    DcSiteName: str = ""
-    ClientSiteName: str = ""
-    DcSockAddrSize: int = 0
-    SockAddr: str = ""
-    NextClosestSiteName: str = ""
 
 
 class NetLogonAttributeFilter:
@@ -202,11 +147,16 @@ class NetLogonAttributeFilter:
                 info["has_user"] = False
             else:
                 if aac and (
-                    uac_check(UserAccountControlFlag.TEMP_DUPLICATE_ACCOUNT) or
-                    uac_check(UserAccountControlFlag.NORMAL_ACCOUNT) or
-                    uac_check(UserAccountControlFlag.INTERDOMAIN_TRUST_ACCOUNT) or
-                    uac_check(UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT) or
-                    uac_check(UserAccountControlFlag.SERVER_TRUST_ACCOUNT)
+                    uac_check(
+                        UserAccountControlFlag.TEMP_DUPLICATE_ACCOUNT) or
+                    uac_check(
+                        UserAccountControlFlag.NORMAL_ACCOUNT) or
+                    uac_check(
+                        UserAccountControlFlag.INTERDOMAIN_TRUST_ACCOUNT) or
+                    uac_check(
+                        UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT) or
+                    uac_check(
+                        UserAccountControlFlag.SERVER_TRUST_ACCOUNT)
                 ):
                     info["has_user"] = False
                 else:
@@ -353,15 +303,15 @@ class NetLogonAttributeHandler:
         else:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
 
-        ds_flags = DSFlag.DS_PDC_FLAG |\
-            DSFlag.DS_GC_FLAG |\
-            DSFlag.DS_LDAP_FLAG |\
-            DSFlag.DS_DS_FLAG |\
-            DSFlag.DS_KDC_FLAG |\
-            DSFlag.DS_TIMESERV_FLAG |\
-            DSFlag.DS_CLOSEST_FLAG |\
-            DSFlag.DS_WRITABLE_FLAG |\
-            DSFlag.DS_GOOD_TIMESERV_FLAG
+        ds_flags = 0
+        for flag in [
+            DSFlag.DS_PDC_FLAG, DSFlag.DS_GC_FLAG,
+            DSFlag.DS_LDAP_FLAG, DSFlag.DS_DS_FLAG,
+            DSFlag.DS_KDC_FLAG, DSFlag.DS_TIMESERV_FLAG,
+            DSFlag.DS_CLOSEST_FLAG, DSFlag.DS_WRITABLE_FLAG,
+            DSFlag.DS_GOOD_TIMESERV_FLAG,
+        ]:
+            ds_flags |= flag
 
         return cls._pack_value(
             (
