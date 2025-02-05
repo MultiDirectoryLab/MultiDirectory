@@ -156,10 +156,9 @@ class AbstractKadmin(ABC):
 
         status = await self.get_status(wait_for_positive=True)
         if status:
-            await ldap_principal_setup(
-                self.client,
+            await self.ldap_principal_setup(
                 f"ldap/{domain}",
-                ldap_keytab_path=ldap_keytab_path,
+                ldap_keytab_path,
             )
 
     @abstractmethod
@@ -222,6 +221,36 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def force_princ_pw_change(self, name: str) -> None: ...  # noqa
+
+    async def ldap_principal_setup(self, name: str, path: str) -> None:
+        """LDAP principal setup.
+
+        :param str ldap_principal_name: ldap principal name
+        :param str ldap_keytab_path: ldap keytab path
+        """
+        response = await self.client.get("/principal", params={
+            "name": name,
+        })
+        if response.status_code == 200:
+            return
+
+        response = await self.client.post("/principal", json={
+            "name": name,
+        })
+        if response.status_code != 201:
+            log.error(f"Error creating ldap principal: {response.text}")
+            return
+
+        response = await self.client.post(
+            "/principal/ktadd",
+            json=[name],
+        )
+        if response.status_code != 200:
+            log.error(f"Error getting keytab: {response.text}")
+            return
+
+        with open(path, "wb") as f:
+            f.write(response.read())
 
 
 class KerberosMDAPIClient(AbstractKadmin):
@@ -375,6 +404,15 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
+    async def ldap_principal_setup(self, name: str, path: str) -> None:
+        """LDAP principal setup.
+
+        :param httpx.AsyncClient client: httpx
+        :param str ldap_principal_name: ldap principal name
+        :param str ldap_keytab_path: ldap keytab path
+        """
+        return await super().ldap_principal_setup(name, path)
+
 
 class StubKadminMDADPIClient(AbstractKadmin):
     """Stub client for non set up dirs."""
@@ -501,39 +539,3 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
         )
         .execution_options(synchronize_session=False),
     )
-
-
-async def ldap_principal_setup(
-    kadmin_client: httpx.AsyncClient,
-    ldap_principal_name: str,
-    ldap_keytab_path: str,
-) -> None:
-    """Delay setup of ldap principal.
-
-    :param httpx.AsyncClient client: httpx
-    :param str ldap_principal_name: ldap principal name
-    :param str ldap_keytab_path: ldap keytab path
-    """
-    response = await kadmin_client.get("/principal", params={
-        "name": ldap_principal_name,
-    })
-    if response.status_code == 200:
-        return
-
-    response = await kadmin_client.post("/principal", json={
-        "name": ldap_principal_name,
-    })
-    if response.status_code != 201:
-        log.error(f"Error creating ldap principal: {response.text}")
-        return
-
-    response = await kadmin_client.post(
-        "/principal/ktadd",
-        json=[ldap_principal_name],
-    )
-    if response.status_code != 200:
-        log.error(f"Error getting keytab: {response.text}")
-        return
-
-    with open(ldap_keytab_path, "wb") as f:
-        f.write(response.read())

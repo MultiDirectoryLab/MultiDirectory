@@ -14,7 +14,6 @@ from ldap_protocol.kerberos import (
     AbstractKadmin,
     KerberosState,
     get_krb_server_state,
-    ldap_principal_setup,
 )
 from ldap_protocol.utils.queries import get_base_directories
 
@@ -52,8 +51,7 @@ async def check_ldap_principal(
     status = await kadmin.get_status(wait_for_positive=True)
 
     if status:
-        await ldap_principal_setup(
-            kadmin.client,
+        await kadmin.ldap_principal_setup(
             ldap_principal_name,
             settings.KRB5_LDAP_KEYTAB,
         )
