@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import ipaddress
 import struct
 import uuid
+import socket
 from collections import defaultdict
 from enum import IntEnum, IntFlag
 from typing import Any
@@ -314,6 +315,7 @@ class NetLogonAttributeHandler:
             ds_flags |= flag
 
         domain_guid = uuid.UUID(root_dse["domainGuid"][0])
+        netbios_name = socket.gethostname()
 
         return cls._pack_value(
             (
@@ -323,8 +325,8 @@ class NetLogonAttributeHandler:
                 (root_dse["dnsForestName"][0], "utf-8"),
                 (root_dse["dnsDomainName"][0], "utf-8"),
                 (root_dse["dnsHostName"][0], "utf-8"),
-                (root_dse["dnsDomainName"][0], "utf-8"),
-                (root_dse["dnsDomainName"][0], "utf-8"),
+                (netbios_name, "utf-8"),
+                (netbios_name, "utf-8"),
                 (info["user"], "utf-8"),
                 (info["site"], "utf-8"),
                 (info["site"], "utf-8"),
