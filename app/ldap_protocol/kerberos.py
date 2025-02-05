@@ -325,14 +325,6 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 202:
             raise KRBAPIError(response.text)
 
-    async def get_status(self, wait_for_positive: bool = False) -> bool | None:  # noqa
-        """Get status of setup.
-
-        :param bool wait_for_positive: wait for positive status
-        :return bool: status
-        """
-        return await super().get_status(wait_for_positive=wait_for_positive)
-
     async def ktadd(self, names: list[str]) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
@@ -403,15 +395,6 @@ class KerberosMDAPIClient(AbstractKadmin):
 
         if response.status_code != 200:
             raise KRBAPIError(response.text)
-
-    async def ldap_principal_setup(self, name: str, path: str) -> None:
-        """LDAP principal setup.
-
-        :param httpx.AsyncClient client: httpx
-        :param str ldap_principal_name: ldap principal name
-        :param str ldap_keytab_path: ldap keytab path
-        """
-        return await super().ldap_principal_setup(name, path)
 
 
 class StubKadminMDADPIClient(AbstractKadmin):
