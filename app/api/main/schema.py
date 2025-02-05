@@ -21,6 +21,10 @@ class SearchRequest(LDAPSearchRequest):
 
     filter: str = Field(..., examples=["(objectClass=*)"])  # type: ignore
 
+    async def check_netlogon_filter(self) -> bool:
+        """Check if search request is for netLogon."""
+        return False
+
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
