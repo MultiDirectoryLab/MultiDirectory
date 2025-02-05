@@ -22,9 +22,10 @@ from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import GSSAPISL, Settings
+from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 
 log = logger.bind(name="ldap")

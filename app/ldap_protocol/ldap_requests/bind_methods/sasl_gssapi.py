@@ -4,20 +4,34 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from typing import ClassVar
 
 import gssapi
 from pydantic import Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import GSSAPISL, Settings
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import User
 
 from .base import SaslAuthentication, SASLMethod
+
+
+class GSSAPISL(IntEnum):
+    """GSSAPI security layers, described in in RFC4752 section 3.3."""
+
+    NO_SECURITY = 1
+    INTEGRITY_PROTECTION = 2
+    CONFIDENTIALITY = 4
+
+    SUPPORTED_SECURITY_LAYERS = (
+        NO_SECURITY
+        | INTEGRITY_PROTECTION
+        | CONFIDENTIALITY
+    )
 
 
 class GSSAPIAuthStatus(StrEnum):
@@ -140,7 +154,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param Settings settings: settings
         :return bool: validate result
         """
-        supported = settings.GSSAPI_SUPPORTED_SECURITY_LAYERS
+        supported = GSSAPISL.SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer
 
     def _handle_final_client_message(
@@ -184,11 +198,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :return bytes: message
         """
         max_size = settings.GSSAPI_MAX_OUTPUT_TOKEN_SIZE
-        if settings.GSSAPI_SUPPORTED_SECURITY_LAYERS == GSSAPISL.NO_SECURITY:
-            max_size = 0
+        if GSSAPISL.SUPPORTED_SECURITY_LAYERS == GSSAPISL.NO_SECURITY:
+            max_size = 0  # type: ignore
 
         message = (
-            settings.GSSAPI_SUPPORTED_SECURITY_LAYERS.to_bytes() +
+            GSSAPISL.SUPPORTED_SECURITY_LAYERS.to_bytes() +
             max_size.to_bytes(length=3)
         )
 

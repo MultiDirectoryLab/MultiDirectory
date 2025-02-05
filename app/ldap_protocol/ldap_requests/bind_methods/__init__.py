@@ -11,7 +11,7 @@ from .base import (
     SASLMethod,
     get_bad_response,
 )
-from .sasl_gssapi import GSSAPIAuthStatus, SaslGSSAPIAuthentication
+from .sasl_gssapi import GSSAPISL, GSSAPIAuthStatus, SaslGSSAPIAuthentication
 from .sasl_plain import SaslPLAINAuthentication
 from .simple import SimpleAuthentication
 
@@ -34,5 +34,6 @@ __all__ = [
     "SaslPLAINAuthentication",
     "SimpleAuthentication",
     "GSSAPIAuthStatus",
+    "GSSAPISL",
     "LDAPBindErrors",
 ]

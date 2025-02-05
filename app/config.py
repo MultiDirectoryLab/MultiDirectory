@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import tomllib
-from enum import IntEnum
 from functools import cached_property
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -26,14 +25,6 @@ from pydantic_settings import BaseSettings
 def _get_vendor_version() -> str:
     with open("/pyproject.toml", "rb") as f:
         return tomllib.load(f)["tool"]["poetry"]["version"]
-
-
-class GSSAPISL(IntEnum):
-    """GSSAPI security layers, described in in RFC4752 section 3.3."""
-
-    NO_SECURITY = 1
-    INTEGRITY_PROTECTION = 2
-    CONFIDENTIALITY = 4
 
 
 class Settings(BaseSettings):
@@ -115,11 +106,6 @@ class Settings(BaseSettings):
     DNS_SERVER_NAMED_CONF: str = '/DNS_server_configs/named.conf'
     DNS_SERVER_NAMED_CONF_LOCAL: str = '/DNS_server_configs/named.conf.local'
 
-    GSSAPI_SUPPORTED_SECURITY_LAYERS: int = (
-        GSSAPISL.NO_SECURITY
-        | GSSAPISL.INTEGRITY_PROTECTION
-        | GSSAPISL.CONFIDENTIALITY
-    )
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
     @field_validator("TIMEZONE", mode="before")
