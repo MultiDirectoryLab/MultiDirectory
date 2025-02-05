@@ -3,9 +3,9 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+import ipaddress
 import struct
 import uuid
-import ipaddress
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum, IntFlag
@@ -159,7 +159,7 @@ class NetLogonAttributeFilter:
         root_dse: defaultdict[str, list[str]],
     ) -> dict[str, Any]:
         """Get info from filter."""
-        info = {}
+        info: dict[str, Any] = {}
         filter_obj = await cls._parse_filter(expr)
 
         if filter_obj.domainguid is not None:
@@ -318,7 +318,7 @@ class NetLogonAttributeHandler:
             op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
         else:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
-        
+
         return cls._pack_value(
             (
                 (op_code, "<H"),
@@ -402,7 +402,7 @@ class NetLogonAttributeHandler:
                 (root_dse["serverName"], "unicode"),
                 (info["user"], "unicode"),
                 (root_dse["dnsHostName"][0], "unicode"),
-                (NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1, "<I",),
+                (NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1, "<I"),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
             ),
