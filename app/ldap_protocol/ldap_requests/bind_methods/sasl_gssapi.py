@@ -221,7 +221,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         session: AsyncSession,
         ldap_session: LDAPSession,
         settings: Settings,
-    ) -> GSSAPIAuthStatus:
+    ) -> BindResponse | None:
         """GSSAPI step.
 
         :param AsyncSession session: db session
@@ -235,20 +235,34 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         server_ctx = ldap_session.gssapi_security_context
         if server_ctx is None:
-            return GSSAPIAuthStatus.ERROR
+            return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
         if self.ticket == b"":
             self.server_sasl_creds = self._generate_final_message(
                 server_ctx, settings,
             )
-            return GSSAPIAuthStatus.SEND_TO_CLIENT
-
-        if server_ctx.complete:
-            return self._handle_final_client_message(
-                server_ctx, ldap_session, settings,
+            return BindResponse(
+                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+                server_sasl_creds=self.server_sasl_creds,
             )
 
-        return self._handle_ticket(server_ctx)
+        if server_ctx.complete:
+            status = self._handle_final_client_message(
+                server_ctx, ldap_session, settings,
+            )
+            if status == GSSAPIAuthStatus.COMPLETE:
+                return None
+
+            return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
+
+        status = self._handle_ticket(server_ctx)
+
+        if status == GSSAPIAuthStatus.SEND_TO_CLIENT:
+            return BindResponse(
+                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+                server_sasl_creds=self.server_sasl_creds,
+            )
+        return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
     async def get_user(
         self,
@@ -262,36 +276,3 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """
         username = str(ctx.initiator_name).split('@')[0]
         return await get_user(session, username)  # type: ignore
-
-    async def process_step(
-        self,
-        session: AsyncSession,
-        ldap_session: LDAPSession,
-        settings: Settings,
-    ) -> tuple[BindResponse | None, User | None]:
-        """Process GSSAPI authentication step and return response and user.
-
-        :param AsyncSession session: db session
-        :param LDAPSession ldap_session: ldap session
-        :param Settings settings: settings
-        :return tuple[BindResponse | None, User | None]: response and user
-        """
-        action = await self.step(session, ldap_session, settings)
-
-        if action == GSSAPIAuthStatus.SEND_TO_CLIENT:
-            return BindResponse(
-                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-                server_sasl_creds=self.server_sasl_creds,
-            ), None
-
-        if (
-            action == GSSAPIAuthStatus.ERROR or
-            not ldap_session.gssapi_security_context
-        ):
-            return get_bad_response(LDAPBindErrors.LOGON_FAILURE), None
-
-        user = await self.get_user(
-            ldap_session.gssapi_security_context,
-            session,
-        )
-        return None, user

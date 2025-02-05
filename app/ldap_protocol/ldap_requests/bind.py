@@ -142,7 +142,7 @@ class BindRequest(BaseRequest):
             return
 
         if isinstance(self.authentication_choice, SaslGSSAPIAuthentication):
-            response, user = await self.authentication_choice.process_step(
+            response = await self.authentication_choice.step(
                 session,
                 ldap_session,
                 settings,
@@ -152,9 +152,10 @@ class BindRequest(BaseRequest):
                 yield response
                 return
 
-            if user is None:
-                yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
-                return
+            user = await self.authentication_choice.get_user(
+                ldap_session.gssapi_security_context,  # type: ignore
+                session,
+            )
         else:
             user = await self.authentication_choice.get_user(
                 session, self.name,
