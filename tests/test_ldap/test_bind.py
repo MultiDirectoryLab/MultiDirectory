@@ -6,10 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from asyncio import BaseEventLoop
 from functools import partial
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import gssapi
-import gssapi.exceptions
 import pytest
 from dishka import AsyncContainer, Scope
 from ldap3 import PLAIN, SASL, Connection
@@ -23,8 +22,8 @@ from ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
     LDAPCodes,
-    SimpleAuthentication,
     SaslGSSAPIAuthentication,
+    SimpleAuthentication,
     UnbindRequest,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -68,7 +67,46 @@ async def test_bind_ok_and_unbind(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_bind_gssapi_missing_credentials(
+async def test_gssapi_bind_in_progress(
+    creds: TestCreds,
+    container: AsyncContainer,
+) -> None:
+    """Test first step gssapi bind."""
+    mock_security_context = Mock(spec=gssapi.SecurityContext)
+    mock_security_context.step.return_value = b"response_ticket"
+    mock_security_context.complete = False
+
+    async def mock_init_security_context(
+        session: AsyncSession,
+        ldap_session: LDAPSession,
+        settings: Settings,
+    ) -> None:
+        ldap_session.gssapi_security_context = mock_security_context
+
+    auth_choice = SaslGSSAPIAuthentication(ticket=b"ticket")
+    auth_choice._init_security_context = (  # type: ignore
+        mock_init_security_context
+    )
+
+    bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=auth_choice,
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(bind.handle, container)
+        result = await anext(handler())  # type: ignore
+        assert result == BindResponse(
+            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+            serverSaslCreds=b"response_ticket",
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_gssapi_bind_missing_credentials(
     creds: TestCreds,
     container: AsyncContainer,
 ) -> None:
