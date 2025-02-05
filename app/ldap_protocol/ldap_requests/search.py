@@ -177,6 +177,9 @@ class SearchRequest(BaseRequest):
             return data
 
         data["dnsHostName"].append(domain.name)
+        data["dnsForestName"].append(domain.name)
+        data["dnsDomainName"].append(domain.name)
+        data["domainGuid"].append(str(domain.object_guid))
         data["serverName"].append(domain.name)
         data["serviceName"].append(domain.name)
         data["dsServiceName"].append(domain.name)

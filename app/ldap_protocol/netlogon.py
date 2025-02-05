@@ -313,11 +313,13 @@ class NetLogonAttributeHandler:
         ]:
             ds_flags |= flag
 
+        domain_guid = uuid.UUID(root_dse["domainGuid"][0])
+
         return cls._pack_value(
             (
                 (op_code, "<H"),
                 (ds_flags, "<I"),
-                (info["domain_guid"], "uuid"),
+                (domain_guid, "uuid"),
                 (root_dse["dnsForestName"][0], "utf-8"),
                 (root_dse["dnsDomainName"][0], "utf-8"),
                 (root_dse["dnsHostName"][0], "utf-8"),
