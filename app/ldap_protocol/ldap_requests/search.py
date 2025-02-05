@@ -31,6 +31,10 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
+from ldap_protocol.netlogon import (
+    NetLogonAttributeFilter,
+    NetLogonAttributeHandler,
+)
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.const import ATTRIBUTE_TYPES, OBJECT_CLASSES
@@ -257,7 +261,20 @@ class SearchRequest(BaseRequest):
             return
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
-            if is_schema:
+            if NetLogonAttributeFilter.is_netlogon_filter(self.filter):
+                root_dse = await self.get_root_dse(session, settings)
+                net_logon = await NetLogonAttributeHandler.get_netlogon_attr(
+                    session,
+                    self.filter, 
+                    root_dse,
+                )
+                yield SearchResultEntry(
+                    object_name="",
+                    partial_attributes=[
+                        PartialAttribute(type="NetLogon", vals=net_logon),
+                    ],
+                )
+            elif is_schema:
                 yield self._get_subschema()
             elif is_root_dse:
                 attrs = await self.get_root_dse(session, settings)
