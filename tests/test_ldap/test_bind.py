@@ -8,6 +8,8 @@ from asyncio import BaseEventLoop
 from functools import partial
 from unittest.mock import AsyncMock
 
+import gssapi
+import gssapi.exceptions
 import pytest
 from dishka import AsyncContainer, Scope
 from ldap3 import PLAIN, SASL, Connection
@@ -22,6 +24,7 @@ from ldap_protocol.ldap_requests.bind import (
     BindResponse,
     LDAPCodes,
     SimpleAuthentication,
+    SaslGSSAPIAuthentication,
     UnbindRequest,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -60,6 +63,26 @@ async def test_bind_ok_and_unbind(
     with pytest.raises(StopAsyncIteration):
         await anext(UnbindRequest().handle(ldap_session))
     assert ldap_session.user is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_bind_gssapi_missing_credentials(
+    creds: TestCreds,
+    container: AsyncContainer,
+) -> None:
+    """Test gssapi bind with missing credentials."""
+    bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=SaslGSSAPIAuthentication(),
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(bind.handle, container)
+        with pytest.raises(gssapi.exceptions.MissingCredentialsError):
+            await anext(handler())  # type: ignore
 
 
 @pytest.mark.asyncio
