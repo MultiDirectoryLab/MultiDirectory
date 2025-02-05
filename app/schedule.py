@@ -21,7 +21,7 @@ _TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),
     (disable_accounts, 600.0),
     (principal_block_sync, 60.0),
-    (check_ldap_principal, 10800.0),
+    (check_ldap_principal, -1),
 }
 
 
@@ -41,6 +41,11 @@ async def _schedule(
         async with container(scope=Scope.REQUEST) as ctnr:
             handler = await resolve_deps(func=task, container=ctnr)
             await handler()
+
+        # NOTE: one-time tasks
+        if wait < 0:
+            break
+
         await asyncio.sleep(wait)
 
 
