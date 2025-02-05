@@ -17,7 +17,6 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.bind_methods import (
     AbstractLDAPAuth,
-    GSSAPIAuthStatus,
     LDAPBindErrors,
     SaslAuthentication,
     SaslGSSAPIAuthentication,
@@ -143,32 +142,19 @@ class BindRequest(BaseRequest):
             return
 
         if isinstance(self.authentication_choice, SaslGSSAPIAuthentication):
-            action = await self.authentication_choice.step(
+            response, user = await self.authentication_choice.process_step(
                 session,
                 ldap_session,
                 settings,
             )
 
-            if action == GSSAPIAuthStatus.SEND_TO_CLIENT:
-                yield BindResponse(
-                    result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-                    server_sasl_creds=(
-                        self.authentication_choice.server_sasl_creds
-                    ),
-                )
+            if response:
+                yield response
                 return
-            if (
-                action == GSSAPIAuthStatus.ERROR or
-                not ldap_session.gssapi_security_context
-            ):
+
+            if user is None:
                 yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
                 return
-
-            user = await self.authentication_choice.get_user(
-                ldap_session.gssapi_security_context,
-                session,
-            )
-
         else:
             user = await self.authentication_choice.get_user(
                 session, self.name,

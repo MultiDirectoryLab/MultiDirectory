@@ -14,10 +14,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_responses import BindResponse
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import User
 
-from .base import SaslAuthentication, SASLMethod
+from .base import (
+    LDAPBindErrors,
+    SaslAuthentication,
+    SASLMethod,
+    get_bad_response,
+)
 
 
 class GSSAPISL(IntEnum):
@@ -255,3 +262,36 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """
         username = str(ctx.initiator_name).split('@')[0]
         return await get_user(session, username)  # type: ignore
+
+    async def process_step(
+        self,
+        session: AsyncSession,
+        ldap_session: LDAPSession,
+        settings: Settings,
+    ) -> tuple[BindResponse | None, User | None]:
+        """Process GSSAPI authentication step and return response and user.
+
+        :param AsyncSession session: db session
+        :param LDAPSession ldap_session: ldap session
+        :param Settings settings: settings
+        :return tuple[BindResponse | None, User | None]: response and user
+        """
+        action = await self.step(session, ldap_session, settings)
+
+        if action == GSSAPIAuthStatus.SEND_TO_CLIENT:
+            return BindResponse(
+                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+                server_sasl_creds=self.server_sasl_creds,
+            ), None
+
+        if (
+            action == GSSAPIAuthStatus.ERROR or
+            not ldap_session.gssapi_security_context
+        ):
+            return get_bad_response(LDAPBindErrors.LOGON_FAILURE), None
+
+        user = await self.get_user(
+            ldap_session.gssapi_security_context,
+            session,
+        )
+        return None, user
