@@ -174,7 +174,7 @@ class NetLogonAttributeFilter:
         """Parse NetLogon filter."""
         obj = cls()
 
-        async for item in expr.value:
+        for item in expr.value:
             attr, value = item.value
 
             if hasattr(obj, attr.value.lower()):
