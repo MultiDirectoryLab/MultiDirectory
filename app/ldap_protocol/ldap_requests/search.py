@@ -261,11 +261,12 @@ class SearchRequest(BaseRequest):
             return
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
-            if NetLogonAttributeFilter.is_netlogon_filter(self.filter):
+            if await NetLogonAttributeFilter.is_netlogon_filter(self.filter):
+                logger.warning("Netlogon filter")
                 root_dse = await self.get_root_dse(session, settings)
                 net_logon = await NetLogonAttributeHandler.get_netlogon_attr(
                     session,
-                    self.filter, 
+                    self.filter,
                     root_dse,
                 )
                 yield SearchResultEntry(
