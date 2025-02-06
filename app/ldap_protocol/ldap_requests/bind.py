@@ -4,12 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abc import ABC, abstractmethod
-from enum import StrEnum
 from typing import AsyncGenerator, ClassVar
 
 import httpx
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -17,6 +15,15 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_requests.bind_methods import (
+    AbstractLDAPAuth,
+    LDAPBindErrors,
+    SaslAuthentication,
+    SaslGSSAPIAuthentication,
+    SimpleAuthentication,
+    get_bad_response,
+    sasl_mechanism_map,
+)
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.network_policy import (
@@ -30,182 +37,11 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.queries import (
     check_kerberos_group,
-    get_user,
     set_last_logon_user,
 )
 from models import MFAFlags, NetworkPolicy, User
-from security import verify_password
 
 from .base import BaseRequest
-
-
-class SASLMethod(StrEnum):
-    """SASL choices."""
-
-    PLAIN = "PLAIN"
-    EXTERNAL = "EXTERNAL"
-    GSSAPI = "GSSAPI"
-    CRAM_MD5 = "CRAM-MD5"
-    DIGEST_MD5 = "DIGEST-MD5"
-    SCRAM_SHA_1 = "SCRAM-SHA-1"
-    SCRAM_SHA_256 = "SCRAM-SHA-256"
-    OAUTHBEARER = "OAUTHBEARER"
-    UNBOUNDID_CERTIFICATE_PLUS_PASSWORD = "UNBOUNDID-CERTIFICATE-PLUS-PASSWORD"  # noqa
-    UNBOUNDID_TOTP = "UNBOUNDID-TOTP"
-    UNBOUNDID_DELIVERED_OTP = "UNBOUNDID-DELIVERED-OTP"
-    UNBOUNDID_YUBIKEY_OTP = "UNBOUNDID-YUBIKEY-OTP"
-
-
-class LDAPBindErrors(StrEnum):
-    """LDAP Bind errors."""
-
-    NO_SUCH_USER = "525"
-    LOGON_FAILURE = "52e"
-    INVALID_LOGON_HOURS = "530"
-    INVALID_WORKSTATION = "531"
-    PASSWORD_EXPIRED = "532"  # noqa
-    ACCOUNT_DISABLED = "533"
-    ACCOUNT_EXPIRED = "701"
-    PASSWORD_MUST_CHANGE = "773"  # noqa
-    ACCOUNT_LOCKED_OUT = "775"
-
-    def __str__(self) -> str:  # noqa
-        return (
-            "80090308: LdapErr: DSID-0C09030B, "
-            "comment: AcceptSecurityContext error, "
-            f"data {self.value}, v893"
-        )
-
-
-def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
-    """Generate BindResponse object with an invalid credentials error.
-
-    :param LDAPBindErrors error_message: Error message to include in the
-                                         response
-    :return BindResponse: A response object with the result code set to
-                          INVALID_CREDENTIALS, an empty matchedDN, and the
-                          provided error message
-    """
-    return BindResponse(
-        result_code=LDAPCodes.INVALID_CREDENTIALS,
-        matchedDN="",
-        errorMessage=str(error_message),
-    )
-
-
-class AbstractLDAPAuth(ABC, BaseModel):
-    """Auth base class."""
-
-    otpassword: str | None = Field(None, max_length=6, min_length=6)
-    password: SecretStr
-
-    @property
-    @abstractmethod
-    def METHOD_ID(self) -> int:  # noqa: N802, D102
-        """Abstract method id."""
-
-    @abstractmethod
-    def is_valid(self, user: User) -> bool:
-        """Validate state."""
-
-    @abstractmethod
-    def is_anonymous(self) -> bool:
-        """Return true if anonymous."""
-
-    @abstractmethod
-    async def get_user(self, session: AsyncSession, username: str) -> User:
-        """Get user."""
-
-
-class SimpleAuthentication(AbstractLDAPAuth):
-    """Simple auth form."""
-
-    METHOD_ID: ClassVar[int] = 0
-
-    def is_valid(self, user: User | None) -> bool:
-        """Check if pwd is valid for user.
-
-        :param User | None user: indb user
-        :return bool: status
-        """
-        password = getattr(user, "password", None)
-        if password is not None:
-            return verify_password(self.password.get_secret_value(), password)
-        return False
-
-    def is_anonymous(self) -> bool:
-        """Check if auth is anonymous.
-
-        :return bool: status
-        """
-        return not self.password
-
-    async def get_user(self, session: AsyncSession, username: str) -> User:
-        """Get user."""
-        return await get_user(session, username)  # type: ignore
-
-
-class SaslAuthentication(AbstractLDAPAuth):
-    """Sasl auth form."""
-
-    METHOD_ID: ClassVar[int] = 3
-    mechanism: ClassVar[SASLMethod]
-
-    @classmethod
-    @abstractmethod
-    def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
-        """Get auth from data."""
-
-
-class SaslPLAINAuthentication(SaslAuthentication):
-    """Sasl plain auth form."""
-
-    mechanism: ClassVar[SASLMethod] = SASLMethod.PLAIN
-    credentials: bytes
-    username: str | None = None
-
-    def is_valid(self, user: User | None) -> bool:
-        """Check if pwd is valid for user.
-
-        :param User | None user: indb user
-        :return bool: status
-        """
-        password = getattr(user, "password", None)
-        if password is not None:
-            return verify_password(
-                self.password.get_secret_value(), password,
-            )
-        return False
-
-    def is_anonymous(self) -> bool:
-        """Check if auth is anonymous.
-
-        :return bool: status
-        """
-        return False
-
-    @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
-        """Get auth from data."""
-        _, username, password = data[1].value.split("\\x00")
-        return cls(
-            credentials=data[1].value,
-            username=username,
-            password=password,
-        )
-
-    async def get_user(self, session: AsyncSession, _: str) -> User:
-        """Get user."""
-        return await get_user(session, self.username)  # type: ignore
-
-
-sasl_mechanism: list[type[SaslAuthentication]] = [
-    SaslPLAINAuthentication,
-]
-
-sasl_mechanism_map: dict[SASLMethod, type[SaslAuthentication]] = {
-    request.mechanism: request for request in sasl_mechanism
-}
 
 
 class BindRequest(BaseRequest):
@@ -304,6 +140,15 @@ class BindRequest(BaseRequest):
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
+
+        if isinstance(self.authentication_choice, SaslGSSAPIAuthentication):
+            if response := await self.authentication_choice.step(
+                session,
+                ldap_session,
+                settings,
+            ):
+                yield response
+                return
 
         user = await self.authentication_choice.get_user(session, self.name)
 

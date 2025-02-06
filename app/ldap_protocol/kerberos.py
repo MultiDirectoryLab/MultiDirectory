@@ -9,6 +9,7 @@ from enum import StrEnum
 from functools import wraps
 from typing import Any, Callable, NoReturn
 
+import backoff
 import httpx
 from loguru import logger as loguru_logger
 from sqlalchemy import delete, select, update
@@ -104,6 +105,7 @@ class AbstractKadmin(ABC):
         stash_password: str,
         krb5_config: str,
         kdc_config: str,
+        ldap_keytab_path: str,
     ) -> None:
         """Request Setup."""
         log.info("Setting up configs")
@@ -152,6 +154,13 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+        status = await self.get_status(wait_for_positive=True)
+        if status:
+            await self.ldap_principal_setup(
+                f"ldap/{domain}",
+                ldap_keytab_path,
+            )
+
     @abstractmethod
     async def add_principal(  # noqa
         self, name: str, password: str | None, timeout: int | float = 1,
@@ -176,8 +185,24 @@ class AbstractKadmin(ABC):
     @abstractmethod
     async def rename_princ(self, name: str, new_name: str) -> None: ...  # noqa
 
-    async def get_status(self) -> bool:  # noqa
-        return False
+    @backoff.on_exception(
+        backoff.constant,
+        (httpx.ConnectError, httpx.ConnectTimeout, ValueError),
+        jitter=None,
+        raise_on_giveup=False,
+        max_tries=30,
+    )
+    async def get_status(self, wait_for_positive: bool = False) -> bool | None:  # noqa
+        """Get status of setup.
+
+        :param bool wait_for_positive: wait for positive status
+        :return bool | None: status or None if max tries achieved
+        """
+        response = await self.client.get("/setup/status")
+        status = response.json()
+        if wait_for_positive and not status:
+            raise ValueError
+        return status
 
     @abstractmethod
     async def ktadd(self, names: list[str]) -> httpx.Response: ...  # noqa
@@ -196,6 +221,32 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def force_princ_pw_change(self, name: str) -> None: ...  # noqa
+
+    async def ldap_principal_setup(self, name: str, path: str) -> None:
+        """LDAP principal setup.
+
+        :param str ldap_principal_name: ldap principal name
+        :param str ldap_keytab_path: ldap keytab path
+        """
+        response = await self.client.get("/principal", params={"name": name})
+        if response.status_code == 200:
+            return
+
+        response = await self.client.post("/principal", json={"name": name})
+        if response.status_code != 201:
+            log.error(f"Error creating ldap principal: {response.text}")
+            return
+
+        response = await self.client.post(
+            "/principal/ktadd",
+            json=[name],
+        )
+        if response.status_code != 200:
+            log.error(f"Error getting keytab: {response.text}")
+            return
+
+        with open(path, "wb") as f:
+            f.write(response.read())
 
 
 class KerberosMDAPIClient(AbstractKadmin):
@@ -225,7 +276,7 @@ class KerberosMDAPIClient(AbstractKadmin):
     @logger_wraps()
     async def get_principal(self, name: str) -> dict:
         """Get request."""
-        response = await self.client.post("principal", data={"name": name})
+        response = await self.client.get("principal", params={"name": name})
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
@@ -269,10 +320,6 @@ class KerberosMDAPIClient(AbstractKadmin):
         )
         if response.status_code != 202:
             raise KRBAPIError(response.text)
-
-    async def get_status(self) -> bool:  # noqa
-        response = await self.client.get("/setup/status")
-        return response.json()
 
     async def ktadd(self, names: list[str]) -> httpx.Response:
         """Ktadd build request for stream and return response.

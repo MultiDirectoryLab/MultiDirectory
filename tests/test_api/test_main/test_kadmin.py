@@ -145,6 +145,7 @@ async def test_setup_call(
         'services_dn': 'ou=services,dc=md,dc=test',
         'krbadmin_dn': 'cn=krbadmin,ou=users,dc=md,dc=test',
         'krbadmin_password': 'Password123',
+        'ldap_keytab_path': '/LDAP_keytab/ldap.keytab',
         'admin_password': creds.pw,
         'stash_password': 'Password123',
     }

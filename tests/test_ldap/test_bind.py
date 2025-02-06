@@ -6,8 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from asyncio import BaseEventLoop
 from functools import partial
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
+import gssapi
 import pytest
 from dishka import AsyncContainer, Scope
 from ldap3 import PLAIN, SASL, Connection
@@ -21,6 +22,7 @@ from ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
     LDAPCodes,
+    SaslGSSAPIAuthentication,
     SimpleAuthentication,
     UnbindRequest,
 )
@@ -60,6 +62,149 @@ async def test_bind_ok_and_unbind(
     with pytest.raises(StopAsyncIteration):
         await anext(UnbindRequest().handle(ldap_session))
     assert ldap_session.user is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_gssapi_bind_in_progress(
+    creds: TestCreds,
+    container: AsyncContainer,
+) -> None:
+    """Test first step gssapi bind."""
+    mock_security_context = Mock(spec=gssapi.SecurityContext)
+    mock_security_context.step.return_value = b"response_ticket"
+    mock_security_context.complete = False
+
+    async def mock_init_security_context(
+        session: AsyncSession,
+        settings: Settings,
+    ) -> None:
+        auth_choice._ldap_session.gssapi_security_context = (
+            mock_security_context
+        )
+
+    auth_choice = SaslGSSAPIAuthentication(ticket=b"ticket")
+    auth_choice._init_security_context = (  # type: ignore
+        mock_init_security_context
+    )
+
+    bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=auth_choice,
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(bind.handle, container)
+        result = await anext(handler())  # type: ignore
+        assert result == BindResponse(
+            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+            serverSaslCreds=b"response_ticket",
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_gssapi_bind_missing_credentials(
+    creds: TestCreds,
+    container: AsyncContainer,
+) -> None:
+    """Test gssapi bind with missing credentials."""
+    bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=SaslGSSAPIAuthentication(),
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(bind.handle, container)
+        with pytest.raises(gssapi.exceptions.MissingCredentialsError):
+            await anext(handler())  # type: ignore
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_gssapi_bind_ok(
+    creds: TestCreds,
+    container: AsyncContainer,
+) -> None:
+    """Test gssapi bind ok."""
+    mock_security_context = Mock(spec=gssapi.SecurityContext)
+    mock_security_context.step.return_value = b"server_ticket"
+    mock_security_context.complete = False
+    mock_security_context.initiator_name = f"{creds.un}@domain"
+    mock_security_context.wrap.return_value = (
+        gssapi.raw.named_tuples.WrapResult(
+            message=b"\x01\x00\x04\x00",
+            encrypted=False,
+        )
+    )
+    mock_security_context.unwrap.return_value = (
+        gssapi.raw.named_tuples.UnwrapResult(
+            message=b"\x01\x00\x04\x00",
+            encrypted=False,
+            qop=0,
+        )
+    )
+
+    async def mock_init_security_context(
+        session: AsyncSession,
+        settings: Settings,
+    ) -> None:
+        auth_choice._ldap_session.gssapi_security_context = (
+            mock_security_context
+        )
+
+    auth_choice = SaslGSSAPIAuthentication(ticket=b"client_ticket")
+    auth_choice._init_security_context = (  # type: ignore
+        mock_init_security_context
+    )
+
+    first_bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=auth_choice,
+    )
+
+    second_bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=SaslGSSAPIAuthentication(),
+    )
+
+    third_bind = MutePolicyBindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=SaslGSSAPIAuthentication(
+            ticket=b"wrap_client_request",
+        ),
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        handler = await resolve_deps(first_bind.handle, container)
+        result = await anext(handler())  # type: ignore
+        assert result == BindResponse(
+            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+            serverSaslCreds=b"server_ticket",
+        )
+
+        mock_security_context.complete = True
+
+        handler = await resolve_deps(second_bind.handle, container)
+        result = await anext(handler())  # type: ignore
+        assert result == BindResponse(
+            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+            serverSaslCreds=b"\x01\x00\x04\x00",
+        )
+
+        handler = await resolve_deps(third_bind.handle, container)
+        result = await anext(handler())  # type: ignore
+        assert result == BindResponse(
+            result_code=LDAPCodes.SUCCESS,
+        )
 
 
 @pytest.mark.asyncio

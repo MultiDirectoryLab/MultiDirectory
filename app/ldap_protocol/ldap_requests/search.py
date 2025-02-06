@@ -183,7 +183,7 @@ class SearchRequest(BaseRequest):
         data["currentTime"].append(get_generalized_now(settings.TIMEZONE))
         data["subschemaSubentry"].append(schema)
         data["schemaNamingContext"].append(schema)
-        data["supportedSASLMechanisms"] = ["ANONYMOUS", "PLAIN"]
+        data["supportedSASLMechanisms"] = ["ANONYMOUS", "PLAIN", "GSSAPI"]
         data["highestCommittedUSN"].append("126991")
         data["supportedExtension"] = [
             "1.3.6.1.4.1.4203.1.11.3",  # whoami

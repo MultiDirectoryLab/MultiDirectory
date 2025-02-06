@@ -93,6 +93,7 @@ class Settings(BaseSettings):
     KRB5_CONFIG_SERVER: HttpUrl = "https://kadmin_api:8000"  # type: ignore
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
+    KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/ldap.keytab"
 
     TEMPLATES: jinja2.Environment = jinja2.Environment(
         loader=jinja2.FileSystemLoader('extra/templates'),
@@ -104,6 +105,8 @@ class Settings(BaseSettings):
     DNS_ZONE_FILE: str = '/DNS_server_file/db.zone'
     DNS_SERVER_NAMED_CONF: str = '/DNS_server_configs/named.conf'
     DNS_SERVER_NAMED_CONF_LOCAL: str = '/DNS_server_configs/named.conf.local'
+
+    GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
     @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805

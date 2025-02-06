@@ -95,6 +95,7 @@ services:
     volumes:
       - ./certs:/certs
       - ./logs:/app/logs
+      - ldap_keytab:/LDAP_keytab/
     command: python -OO multidirectory.py --ldap
     depends_on:
       migrations:
@@ -141,6 +142,7 @@ services:
       - ./certs:/certs
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
+      - ldap_keytab:/LDAP_keytab/
     hostname: api_server
     environment:
       USE_CORE_TLS: 1
@@ -195,6 +197,7 @@ services:
     volumes:
       - ./certs:/certs
       - psync_queue:/var/spool/krb5-sync
+      - ldap_keytab:/LDAP_keytab/
     env_file:
       .env
     command: python multidirectory.py --scheduler
@@ -316,3 +319,4 @@ volumes:
   dns_server_file:
   dns_server_config:
   dragonflydata:
+  ldap_keytab:
