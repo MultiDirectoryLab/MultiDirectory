@@ -187,7 +187,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
-      - keyfile:/etc/krb5.d/
       - .kerberos/:/server/
       - kdc:/etc
     tty: true
@@ -234,7 +233,6 @@ services:
     hostname: kerberos
     restart: unless-stopped
     volumes:
-      - keyfile:/etc/krb5.d/
       - kdc:/etc
     image: krb5md
     tty: true
@@ -252,7 +250,6 @@ services:
     restart: unless-stopped
     hostname: kerberos
     volumes:
-      - keyfile:/etc/krb5.d/
       - kdc:/etc
       - psync_queue:/var/spool/krb5-sync
     image: krb5md
@@ -370,7 +367,6 @@ volumes:
   postgres:
   pgadmin:
   wireshark:
-  keyfile:
   kdc:
   psync_queue:
   dns_server_file:
