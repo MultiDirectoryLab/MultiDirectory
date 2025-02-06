@@ -79,12 +79,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     password: SecretStr = Field(default=SecretStr(""))
     server_sasl_creds: bytes = b""
     ticket: bytes = b""
-    ldap_session: LDAPSession | None = None
-
-    class Config:
-        """Pydantic config."""
-
-        arbitrary_types_allowed = True
+    _ldap_session: LDAPSession
 
     def is_valid(self, user: User | None) -> bool:
         """Check if GSSAPI token is valid.
@@ -115,13 +110,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     async def _init_security_context(
         self,
         session: AsyncSession,
-        ldap_session: LDAPSession,
         settings: Settings,
     ) -> None:
         """Init security context.
 
         :param AsyncSession session: db session
-        :param LDAPSession ldap_session: ldap session
         :param Settings settings: settings
         """
         base_dn_list = await get_base_directories(session)
@@ -139,7 +132,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             mechs=[gssapi.MechType.kerberos],
         )
 
-        ldap_session.gssapi_security_context = gssapi.SecurityContext(
+        self._ldap_session.gssapi_security_context = gssapi.SecurityContext(
             creds=server_creds,
         )
 
@@ -173,13 +166,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     def _handle_final_client_message(
         self,
         server_ctx: gssapi.SecurityContext,
-        ldap_session: LDAPSession,
         settings: Settings,
     ) -> GSSAPIAuthStatus:
         """Handle final client message.
 
         :param gssapi.SecurityContext server_ctx: GSSAPI security context
-        :param LDAPSession ldap_session: ldap session
         :param Settings settings: settings
         :return GSSAPIAuthStatus: status
         """
@@ -194,8 +185,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
                 if self._validate_security_layer(
                     client_security_layer, settings,
                 ):
-                    ldap_session.gssapi_authenticated = True
-                    ldap_session.gssapi_security_layer = client_security_layer
+                    self._ldap_session.gssapi_authenticated = True
+                    self._ldap_session.gssapi_security_layer = \
+                        client_security_layer
                     return GSSAPIAuthStatus.COMPLETE
             return GSSAPIAuthStatus.ERROR
         except gssapi.exceptions.GSSError:
@@ -234,12 +226,14 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param LDAPSession ldap_session: ldap session
         :param Settings settings: settings
         """
-        if not ldap_session.gssapi_security_context:
+        self._ldap_session = ldap_session
+
+        if not self._ldap_session.gssapi_security_context:
             await self._init_security_context(
-                session, ldap_session, settings,
+                session, settings,
             )
 
-        server_ctx = ldap_session.gssapi_security_context
+        server_ctx = self._ldap_session.gssapi_security_context
         if server_ctx is None:
             return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
@@ -254,7 +248,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         if server_ctx.complete:
             status = self._handle_final_client_message(
-                server_ctx, ldap_session, settings,
+                server_ctx, settings,
             )
             if status == GSSAPIAuthStatus.COMPLETE:
                 return None
@@ -280,12 +274,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param gssapi.SecurityContext ctx: gssapi context
         :param AsyncSession session: db session
         """
-        if not self.ldap_session:
-            return None
-
-        ctx = self.ldap_session.gssapi_security_context
+        ctx = self._ldap_session.gssapi_security_context
         if not ctx:
             return None
 
         username = str(ctx.initiator_name).split('@')[0]
-        return await get_user(session, username)  # type: ignore
+        return await get_user(session, username)

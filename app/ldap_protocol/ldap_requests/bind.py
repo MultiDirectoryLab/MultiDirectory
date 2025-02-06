@@ -152,8 +152,6 @@ class BindRequest(BaseRequest):
                 yield response
                 return
 
-            self.authentication_choice.ldap_session = ldap_session
-
         user = await self.authentication_choice.get_user(
             session, self.name,
         )
