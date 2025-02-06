@@ -10,7 +10,6 @@ from typing import ClassVar
 import gssapi
 from pydantic import Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
 
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
@@ -162,7 +161,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param Settings settings: settings
         :return bool: validate result
         """
-        logger.debug(f"Client security layer: {client_layer}")
         supported = GSSAPISL.SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer
 
@@ -181,9 +179,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """
         try:
             unwrap_message = server_ctx.unwrap(self.ticket)
-            logger.debug(f"Unwrap message: {unwrap_message}")
             if len(unwrap_message.message) == 4:
-                logger.debug(f"Unwrap message: {unwrap_message.message}")
                 client_security_layer = GSSAPISL(
                     int.from_bytes(
                         unwrap_message.message[:1],
@@ -278,6 +274,5 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param gssapi.SecurityContext ctx: gssapi context
         :param AsyncSession session: db session
         """
-        logger.debug(f"Initiator name: {ctx.initiator_name}")
         username = str(ctx.initiator_name).split('@')[0]
         return await get_user(session, username)  # type: ignore
