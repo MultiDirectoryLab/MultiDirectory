@@ -13,7 +13,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.asn1parser import ASN1Row, value_to_string
+from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -181,7 +181,7 @@ class NetLogonAttributeFilter:
             if hasattr(obj, attr.value.lower()):
                 obj.__setattr__(
                     attr.value.lower(),
-                    value_to_string(attr, value),
+                    value,
                 )
 
         return obj
@@ -204,6 +204,15 @@ class NetLogonAttributeHandler:
             root_dse,
         )
 
+    @staticmethod
+    def _convert_little_endian_string_to_int(value: str) -> int:
+        """Convert little-endian string to int."""
+        return int.from_bytes(
+            value.encode().decode("unicode_escape").encode(),
+            byteorder="little",
+            signed=False,
+        )
+
     @classmethod
     async def _get_netlogon_packed_value(
         cls,
@@ -218,15 +227,15 @@ class NetLogonAttributeHandler:
             root_dse,
         )
         if bool(
-            int(info["ntver"]) &
+            cls._convert_little_endian_string_to_int(info["ntver"]) &
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
         ) or bool(
-            int(info["ntver"]) &
+            cls._convert_little_endian_string_to_int(info["ntver"]) &
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
         ):
             return await cls._get_netlogon_response_5_ex(info, root_dse)
         elif bool(
-            int(info["ntver"]) &
+            cls._convert_little_endian_string_to_int(info["ntver"]) &
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
         ):
             return await cls._get_netlogon_response_5(
