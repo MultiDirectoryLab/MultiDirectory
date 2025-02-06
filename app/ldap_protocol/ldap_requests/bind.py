@@ -152,14 +152,11 @@ class BindRequest(BaseRequest):
                 yield response
                 return
 
-            user = await self.authentication_choice.get_user(
-                ldap_session.gssapi_security_context,  # type: ignore
-                session,
-            )
-        else:
-            user = await self.authentication_choice.get_user(
-                session, self.name,
-            )
+            self.authentication_choice.ldap_session = ldap_session
+
+        user = await self.authentication_choice.get_user(
+            session, self.name,
+        )
 
         if not user or not self.authentication_choice.is_valid(user):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)

@@ -79,6 +79,12 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     password: SecretStr = Field(default=SecretStr(""))
     server_sasl_creds: bytes = b""
     ticket: bytes = b""
+    ldap_session: LDAPSession | None = None
+
+    class Config:
+        """Pydantic config."""
+
+        arbitrary_types_allowed = True
 
     def is_valid(self, user: User | None) -> bool:
         """Check if GSSAPI token is valid.
@@ -264,15 +270,22 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             )
         return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
-    async def get_user(
+    async def get_user(  # type: ignore
         self,
-        ctx: gssapi.SecurityContext,  # type: ignore
-        session: AsyncSession,  # type: ignore
-    ) -> User:
+        session: AsyncSession,
+        name: str,
+    ) -> User | None:
         """Get user.
 
         :param gssapi.SecurityContext ctx: gssapi context
         :param AsyncSession session: db session
         """
+        if not self.ldap_session:
+            return None
+
+        ctx = self.ldap_session.gssapi_security_context
+        if not ctx:
+            return None
+
         username = str(ctx.initiator_name).split('@')[0]
         return await get_user(session, username)  # type: ignore
