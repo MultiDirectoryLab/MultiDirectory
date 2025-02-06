@@ -142,13 +142,11 @@ class BindRequest(BaseRequest):
             return
 
         if isinstance(self.authentication_choice, SaslGSSAPIAuthentication):
-            response = await self.authentication_choice.step(
+            if response := await self.authentication_choice.step(
                 session,
                 ldap_session,
                 settings,
-            )
-
-            if response:
+            ):
                 yield response
                 return
 
