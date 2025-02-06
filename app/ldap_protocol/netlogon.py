@@ -13,7 +13,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.asn1parser import ASN1Row
+from ldap_protocol.asn1parser import ASN1Row, value_to_string
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -179,7 +179,10 @@ class NetLogonAttributeFilter:
             attr, value = item.value
 
             if hasattr(obj, attr.value.lower()):
-                obj.__setattr__(attr.value.lower(), value.value)
+                obj.__setattr__(
+                    attr.value.lower(),
+                    value_to_string(attr, value),
+                )
 
         return obj
 
