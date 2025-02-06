@@ -5,8 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest_asyncio
-from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.dns import (
@@ -22,8 +21,8 @@ from models import CatalogueSetting
 
 @pytest_asyncio.fixture(scope="function")
 async def adding_test_user(
-    app: FastAPI,
     http_client: AsyncClient,
+    unbound_http_client: AsyncClient,
     _force_override_tls: None,
 ) -> None:
     """Test add user like keycloak."""
@@ -117,20 +116,15 @@ async def adding_test_user(
     data = response.json()
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
-    async with AsyncClient(
-            transport=ASGITransport(app=app, root_path='/api'),
-            timeout=3,
-            base_url="http://test") as client:
+    auth = await unbound_http_client.post(
+        "auth/",
+        data={
+            "username": "new_user@md.test",
+            "password": "P@ssw0rd",
+        },
+    )
 
-        auth = await client.post(
-            "auth/",
-            data={
-                "username": "new_user@md.test",
-                "password": "P@ssw0rd",
-            },
-        )
-
-        assert auth.cookies.get("id")
+    assert auth.cookies.get("id")
 
 
 @pytest_asyncio.fixture(scope='function')
