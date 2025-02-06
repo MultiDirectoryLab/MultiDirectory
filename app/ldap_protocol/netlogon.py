@@ -4,9 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 import ipaddress
+import socket
 import struct
 import uuid
-import socket
 from collections import defaultdict
 from enum import IntEnum, IntFlag
 from typing import Any
@@ -181,7 +181,7 @@ class NetLogonAttributeFilter:
             if hasattr(obj, attr.value.lower()):
                 obj.__setattr__(
                     attr.value.lower(),
-                    value,
+                    value.value,
                 )
 
         return obj
@@ -234,7 +234,8 @@ class NetLogonAttributeHandler:
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
         ):
             return await cls._get_netlogon_response_5_ex(info, root_dse)
-        elif bool(
+
+        if bool(
             cls._convert_little_endian_string_to_int(info["ntver"]) &
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
         ):
@@ -242,8 +243,8 @@ class NetLogonAttributeHandler:
                 info,
                 root_dse,
             )
-        else:
-            return await cls._get_netlogon_response_nt40(info, root_dse)
+
+        return await cls._get_netlogon_response_nt40(info, root_dse)
 
     @classmethod
     def _pack_value(cls, values: tuple) -> bytes:
