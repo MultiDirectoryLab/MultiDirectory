@@ -228,15 +228,11 @@ class AbstractKadmin(ABC):
         :param str ldap_principal_name: ldap principal name
         :param str ldap_keytab_path: ldap keytab path
         """
-        response = await self.client.get("/principal", params={
-            "name": name,
-        })
+        response = await self.client.get("/principal", params={"name": name})
         if response.status_code == 200:
             return
 
-        response = await self.client.post("/principal", json={
-            "name": name,
-        })
+        response = await self.client.post("/principal", json={"name": name})
         if response.status_code != 201:
             log.error(f"Error creating ldap principal: {response.text}")
             return
