@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from loguru import logger
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -160,6 +161,8 @@ class BindRequest(BaseRequest):
             user = await self.authentication_choice.get_user(
                 session, self.name,
             )
+
+        logger.debug("User: %s", user)
 
         if not user or not self.authentication_choice.is_valid(user):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
