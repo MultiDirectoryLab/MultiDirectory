@@ -94,6 +94,7 @@ class NetLogonAttributeFilter:
                 attr, _ = item.value
                 if attr.value.lower() == "ntver":
                     has_ntver = True
+                    break
 
         return has_ntver
 
@@ -178,7 +179,7 @@ class NetLogonAttributeFilter:
             attr, value = item.value
 
             if hasattr(obj, attr.value.lower()):
-                obj.__setattr__(attr.value.lower(), value)
+                obj.__setattr__(attr.value.lower(), value.value)
 
         return obj
 
@@ -214,15 +215,15 @@ class NetLogonAttributeHandler:
             root_dse,
         )
         if bool(
-            info["ntver"] &
+            int(info["ntver"]) &
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
         ) or bool(
-            info["ntver"] &
+            int(info["ntver"]) &
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
         ):
             return await cls._get_netlogon_response_5_ex(info, root_dse)
         elif bool(
-            info["ntver"] &
+            int(info["ntver"]) &
             NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
         ):
             return await cls._get_netlogon_response_5(
