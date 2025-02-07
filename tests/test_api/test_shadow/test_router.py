@@ -20,7 +20,7 @@ from .conftest import ProxyRequestModel
 async def test_shadow_api_non_existent_user(http_client: AsyncClient) -> None:
     """Test shadow api with non-existent user."""
     response = await http_client.post(
-        "/get/push/principal",
+        "/shadow/get/push/principal",
         json=ProxyRequestModel(
             principal='non-existent_user',
             ip='127.0.0.1',
@@ -41,7 +41,7 @@ async def test_shadow_api_without_network_policies(
     await session.execute(delete(NetworkPolicy))
 
     response = await http_client.post(
-        "/get/push/principal",
+        "/shadow/get/push/principal",
         json=adding_mfa_user_and_group,
     )
 
@@ -62,7 +62,7 @@ async def test_shadow_api_without_kerberos_protocol(
     )
 
     response = await http_client.post(
-        "/get/push/principal",
+        "/shadow/get/push/principal",
         json=adding_mfa_user_and_group,
     )
 
@@ -77,7 +77,7 @@ async def test_shadow_api_with_disable_mfa(
 ) -> None:
     """Test shadow api with disable mfa."""
     response = await http_client.post(
-        "/get/push/principal",
+        "/shadow/get/push/principal",
         json=adding_mfa_user_and_group,
     )
 
@@ -98,7 +98,7 @@ async def test_shadow_api_whitelist_without_user_group(
     )
 
     response = await http_client.post(
-        "/get/push/principal",
+        "/shadow/get/push/principal",
         json=adding_mfa_user_and_group,
     )
 
@@ -119,7 +119,7 @@ async def test_shadow_api_enable_mfa(
     )
 
     response = await http_client.post(
-        "/get/push/principal",
+        "/shadow/get/push/principal",
         json=adding_mfa_user_and_group,
     )
 
