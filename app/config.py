@@ -143,6 +143,4 @@ class Settings(BaseSettings):
 
     def check_certs_exist(self) -> bool:
         """Check if certs exist."""
-        if os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY):
-            return True
-        return False
+        return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)
