@@ -20,7 +20,7 @@ from models import MFAFlags, User
 shadow_router = APIRouter()
 
 
-@shadow_router.post("/mfa")
+@shadow_router.post("/mfa/push")
 @inject
 async def proxy_request(
     principal: Annotated[str, Body(embed=True)],
