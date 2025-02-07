@@ -79,7 +79,6 @@ class PoolClientHandler:
                     cert_name = self.settings.SSL_CERT
                     key_name = self.settings.SSL_KEY
                     log.success("Found existing cert and key, loading...")
-
                 else:
                     cert, key = self._read_acme_cert()
                     certfile.write(cert)
