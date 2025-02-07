@@ -75,13 +75,10 @@ class PoolClientHandler:
                 NamedTemporaryFile("w+") as certfile,
                 NamedTemporaryFile("w+") as keyfile,
             ):
-                if os.path.exists("/certs/cert.pem") and os.path.exists(
-                    "/certs/privkey.pem",
-                ):
+                if self.settings.check_certs_exist():
                     cert_name = self.settings.SSL_CERT
                     key_name = self.settings.SSL_KEY
                     log.success("Found existing cert and key, loading...")
-
                 else:
                     cert, key = self._read_acme_cert()
                     certfile.write(cert)

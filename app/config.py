@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import os
 import tomllib
 from functools import cached_property
 from typing import Literal
@@ -139,3 +140,7 @@ class Settings(BaseSettings):
         tls_settings.USE_CORE_TLS = True
         tls_settings.PORT = tls_settings.TLS_PORT
         return tls_settings
+
+    def check_certs_exist(self) -> bool:
+        """Check if certs exist."""
+        return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)

@@ -229,9 +229,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         self._ldap_session = ldap_session
 
         if not self._ldap_session.gssapi_security_context:
-            await self._init_security_context(
-                session, settings,
-            )
+            await self._init_security_context(session, settings)
 
         server_ctx = self._ldap_session.gssapi_security_context
         if server_ctx is None:
