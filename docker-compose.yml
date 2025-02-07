@@ -12,17 +12,17 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.ldap.address=:389"
-      - "--entrypoints.kdc.address=:88"
       - "--entrypoints.ldaps.address=:636"
       - "--entrypoints.kadmind.address=:749"
+      - "--entrypoints.kpasswd.address=:464"
       - "--entrypoints.bind_dns.address=:53"
     ports:
       - "80:80"
       - "8080:8080"
       - "389:389"
       - "636:636"
-      - "88:88"
       - "749:749"
+      - "464:464"
       - "530:53"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -153,8 +153,8 @@ services:
       PGDATA: /data/postgres
     volumes:
        - postgres:/data/postgres
-    expose:
-      - 5432
+    ports:
+      - 5432:5432
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
@@ -187,7 +187,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
-      - keyfile:/etc/krb5.d/
       - .kerberos/:/server/
       - kdc:/etc
     tty: true
@@ -234,28 +233,23 @@ services:
     hostname: kerberos
     restart: unless-stopped
     volumes:
-      - keyfile:/etc/krb5.d/
       - kdc:/etc
     image: krb5md
     tty: true
-    command: /usr/sbin/krb5kdc -n -w 4
+    command: krb5kdc -n -w 4
+    ports:
+      - "88:88"
+      - "88:88/udp"
     depends_on:
       ldap_server:
         condition: service_healthy
         restart: true
-    labels:
-      - traefik.enable=true
-      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
-      - traefik.tcp.routers.kdc.entrypoints=kdc
-      - traefik.tcp.routers.kdc.service=kdc
-      - traefik.tcp.services.kdc.loadbalancer.server.port=88
 
   kadmind:
     container_name: kadmind
     restart: unless-stopped
     hostname: kerberos
     volumes:
-      - keyfile:/etc/krb5.d/
       - kdc:/etc
       - psync_queue:/var/spool/krb5-sync
     image: krb5md
@@ -273,6 +267,28 @@ services:
       - traefik.tcp.routers.kadmind.entrypoints=kadmind
       - traefik.tcp.routers.kadmind.service=kadmind
       - traefik.tcp.services.kadmind.loadbalancer.server.port=749
+
+      - traefik.tcp.routers.kpasswd.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kpasswd.entrypoints=kpasswd
+      - traefik.tcp.routers.kpasswd.service=kpasswd
+      - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
+
+  shadow_api:
+    image: multidirectory
+    container_name: shadow_api
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      ldap_server:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: python multidirectory.py --shadow
 
   maintence:
     image: multidirectory
@@ -351,7 +367,6 @@ volumes:
   postgres:
   pgadmin:
   wireshark:
-  keyfile:
   kdc:
   psync_queue:
   dns_server_file:

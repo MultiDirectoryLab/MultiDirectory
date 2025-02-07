@@ -3,7 +3,6 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
 from abc import ABC, abstractmethod
 from enum import StrEnum
 from functools import wraps
@@ -94,18 +93,10 @@ class AbstractKadmin(ABC):
         """
         self.client = client
 
-    async def setup(
+    async def setup_configs(
         self,
-        domain: str,
-        admin_dn: str,
-        services_dn: str,
-        krbadmin_dn: str,
-        krbadmin_password: str,
-        admin_password: str,
-        stash_password: str,
         krb5_config: str,
         kdc_config: str,
-        ldap_keytab_path: str,
     ) -> None:
         """Request Setup."""
         log.info("Setting up configs")
@@ -120,6 +111,16 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+    async def setup_stash(
+        self, domain: str,
+        admin_dn: str,
+        services_dn: str,
+        krbadmin_dn: str,
+        krbadmin_password: str,
+        admin_password: str,
+        stash_password: str,
+    ) -> None:
+        """Set up stash."""
         log.info("Setting up stash")
         response = await self.client.post(
             "/setup/stash",
@@ -137,6 +138,16 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+    async def setup_subtree(
+        self, domain: str,
+        admin_dn: str,
+        services_dn: str,
+        krbadmin_dn: str,
+        krbadmin_password: str,
+        admin_password: str,
+        stash_password: str,
+    ) -> None:
+        """Set up subtree."""
         log.info("Setting up subtree")
         response = await self.client.post(
             "/setup/subtree",
@@ -153,6 +164,40 @@ class AbstractKadmin(ABC):
 
         if response.status_code != 201:
             raise KRBAPIError(response.text)
+
+    async def setup(
+        self,
+        domain: str,
+        admin_dn: str,
+        services_dn: str,
+        krbadmin_dn: str,
+        krbadmin_password: str,
+        admin_password: str,
+        stash_password: str,
+        krb5_config: str,
+        kdc_config: str,
+        ldap_keytab_path: str,
+    ) -> None:
+        """Request Setup."""
+        await self.setup_configs(krb5_config, kdc_config)
+        await self.setup_stash(
+            domain,
+            admin_dn,
+            services_dn,
+            krbadmin_dn,
+            krbadmin_password,
+            admin_password,
+            stash_password,
+        )
+        await self.setup_subtree(
+            domain,
+            admin_dn,
+            services_dn,
+            krbadmin_dn,
+            krbadmin_password,
+            admin_password,
+            stash_password,
+        )
 
         status = await self.get_status(wait_for_positive=True)
         if status:
@@ -192,7 +237,7 @@ class AbstractKadmin(ABC):
         raise_on_giveup=False,
         max_tries=30,
     )
-    async def get_status(self, wait_for_positive: bool = False) -> bool | None:  # noqa
+    async def get_status(self, wait_for_positive: bool = False) -> bool | None:
         """Get status of setup.
 
         :param bool wait_for_positive: wait for positive status

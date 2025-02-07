@@ -25,7 +25,6 @@ from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
 from models import (
     Attribute,
-    CatalogueSetting,
     Directory,
     DirectoryMembership,
     Group,
@@ -148,12 +147,8 @@ async def setup_enviroment(
     session: AsyncSession, *, data: list, dn: str = "multifactor.dev",
 ) -> None:
     """Create directories and users for enviroment."""
-    cat_result = await session.execute(
-        select(CatalogueSetting).filter(
-            CatalogueSetting.name == "defaultNamingContext",
-        ),
-    )
-    if cat_result.scalar():
+    cat_result = await session.execute(select(Directory))
+    if cat_result.scalar_one_or_none():
         logger.warning("dev data already set up")
         return
 

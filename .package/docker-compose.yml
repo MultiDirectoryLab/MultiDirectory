@@ -224,13 +224,10 @@ services:
     tty: true
     depends_on:
       - ldap_server
-    command: /usr/sbin/krb5kdc -n -w 4
-    labels:
-      - traefik.enable=true
-      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
-      - traefik.tcp.routers.kdc.entrypoints=kdc
-      - traefik.tcp.routers.kdc.service=kdc
-      - traefik.tcp.services.kdc.loadbalancer.server.port=88
+    command: krb5kdc -n -w 4
+    ports:
+      - "88:88"
+      - "88:88/udp"
 
   kadmin_api:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
@@ -311,6 +308,16 @@ services:
         reservations:
           cpus: '0.75'
           memory: 1.5GiB
+
+  shadow_api:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: shadow_api
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    command: python multidirectory.py --shadow
 
 volumes:
   postgres:

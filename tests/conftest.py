@@ -29,7 +29,7 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
-from multidirectory import create_app
+from multidirectory import _create_basic_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -39,6 +39,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from api import shadow_router
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider
@@ -397,7 +398,8 @@ async def app(
 ) -> AsyncIterator[FastAPI]:
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
-        app = create_app(settings)
+        app = _create_basic_app(settings)
+        app.include_router(shadow_router, prefix='/shadow')
         setup_dishka(container, app)
         yield app
 
