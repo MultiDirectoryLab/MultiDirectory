@@ -254,7 +254,16 @@ class NetLogonAttributeHandler:
             if value[0] is None:
                 continue
             if value[1] in ["utf-8", "unicode"]:
-                packed_value += cls._pack_string(value[0], value[1])
+                packed_string = cls._pack_string(value[0], value[1])
+                if len(value[1]) > 0:
+                    packed_string += struct.pack("<B", 0)
+                    if packed_string in packed_value:
+                        packed_value += cls._get_pointer(
+                            packed_string,
+                            packed_value,
+                        )
+                    else:
+                        packed_value += packed_string
             elif value[1] == "uuid":
                 packed_value += value[0].bytes_le
             elif value[1] is None:
@@ -263,6 +272,12 @@ class NetLogonAttributeHandler:
                 packed_value += struct.pack(value[1], value[0])
 
         return packed_value
+
+    @classmethod
+    def _get_pointer(cls, packed_string: bytes, packed_value: bytes) -> bytes:
+        """Get pointer, reference RFC 1035 section 4.1.4."""
+        pointer = packed_value.find(packed_string)
+        return struct.pack(">H", 0xC000 | pointer)
 
     @classmethod
     def _pack_string(cls, value: str, string_type: str) -> bytes:
@@ -314,9 +329,9 @@ class NetLogonAttributeHandler:
     ) -> bytes:
         """Get NetLogon response for extended version 5."""
         if info["user"] and not info["has_user"]:
-            op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
+            op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN_EX
         else:
-            op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
+            op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE_EX
 
         ds_flags = 0
         for flag in [
@@ -334,6 +349,7 @@ class NetLogonAttributeHandler:
         return cls._pack_value(
             (
                 (op_code, "<H"),
+                (0, "<H"),
                 (ds_flags, "<I"),
                 (domain_guid, "uuid"),
                 (root_dse["dnsForestName"][0], "utf-8"),

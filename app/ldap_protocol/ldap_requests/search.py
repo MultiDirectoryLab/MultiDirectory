@@ -279,7 +279,7 @@ class SearchRequest(BaseRequest):
                 yield SearchResultEntry(
                     object_name="",
                     partial_attributes=[
-                        PartialAttribute(type="NetLogon", vals=net_logon),
+                        PartialAttribute(type="NetLogon", vals=[net_logon]),
                     ],
                 )
             elif is_schema:
