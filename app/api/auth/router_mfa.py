@@ -233,6 +233,12 @@ async def two_factor_protocol(
             status.HTTP_406_NOT_ACCEPTABLE,
             "Multifactor error",
         )
+
+    except MultifactorAPI.MFAMissconfiguredError:
+        await create_and_set_session_key(
+            user, session, settings, response, storage, ip)
+        return MFAChallengeResponse(status="bypass", message="")
+
     except MultifactorAPI.MultifactorError:
         if network_policy.bypass_service_failure:
             await create_and_set_session_key(
