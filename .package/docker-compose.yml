@@ -28,7 +28,6 @@ services:
       - "--entrypoints.ldap.address=:389"
       - "--entrypoints.ldaps.address=:636"
 
-      - "--entrypoints.kdc.address=:88"
       - "--entrypoints.kadmind.address=:749"
       - "--entrypoints.kpasswd.address=:464"
 
@@ -41,7 +40,6 @@ services:
     ports:
       - "53:53"
       - "80:80"
-      - "88:88"
       - "389:389"
       - "443:443"
       - "464:464"
