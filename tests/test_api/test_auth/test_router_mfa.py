@@ -13,7 +13,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.oauth2 import authenticate_user
-from config import Settings
 from models import CatalogueSetting
 from tests.conftest import TestCreds
 
@@ -55,12 +54,11 @@ async def test_set_and_remove_mfa(
 async def test_connect_mfa(
     http_client: httpx.AsyncClient,
     session: AsyncSession,
-    settings: Settings,
     creds: TestCreds,
 ) -> None:
     """Test websocket mfa."""
     session.add(
-        CatalogueSetting(name='mfa_secret', value=settings.SECRET_KEY),
+        CatalogueSetting(name='mfa_secret', value='123'),
     )
     session.add(CatalogueSetting(name='mfa_key', value='123'))
     await session.commit()
@@ -79,9 +77,7 @@ async def test_connect_mfa(
 
     exp = datetime.now() + timedelta(minutes=5)
 
-    token = jwt.encode(
-        {'aud': '123', "uid": user.id, "exp": exp},
-        settings.SECRET_KEY)
+    token = jwt.encode({'aud': '123', "uid": user.id, "exp": exp}, '123')
 
     response = await http_client.post(
         '/multifactor/create',
