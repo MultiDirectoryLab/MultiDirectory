@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import HTTPException, Request, status
 from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
@@ -28,15 +28,15 @@ from .schema import (
 )
 from .utils import check_policy_count
 
-network_router = APIRouter(prefix="/policy", tags=["Network policy"])
-
-
-@network_router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
+network_router = APIRouter(
+    prefix="/policy",
+    tags=["Network policy"],
+    route_class=DishkaRoute,
     dependencies=[Depends(get_current_user)],
 )
-@inject
+
+
+@network_router.post("", status_code=status.HTTP_201_CREATED)
 async def add_network_policy(
     policy: Policy,
     session: FromDishka[AsyncSession],
@@ -102,10 +102,7 @@ async def add_network_policy(
     )
 
 
-@network_router.get(
-    "", name="policy", dependencies=[Depends(get_current_user)],
-)
-@inject
+@network_router.get("", name="policy")
 async def get_list_network_policies(
     session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
@@ -150,10 +147,7 @@ async def get_list_network_policies(
 @network_router.delete(
     "/{policy_id}",
     response_class=RedirectResponse,
-    status_code=status.HTTP_303_SEE_OTHER,
-    dependencies=[Depends(get_current_user)],
-)
-@inject
+    status_code=status.HTTP_303_SEE_OTHER)
 async def delete_network_policy(
     policy_id: int,
     request: Request,
@@ -195,8 +189,7 @@ async def delete_network_policy(
     )  # type: ignore
 
 
-@network_router.patch("/{policy_id}", dependencies=[Depends(get_current_user)])
-@inject
+@network_router.patch("/{policy_id}")
 async def switch_network_policy(
     policy_id: int,
     session: FromDishka[AsyncSession],
@@ -225,8 +218,7 @@ async def switch_network_policy(
     return True
 
 
-@network_router.put("", dependencies=[Depends(get_current_user)])
-@inject
+@network_router.put("")
 async def update_network_policy(
     request: PolicyUpdate,
     session: FromDishka[AsyncSession],
@@ -322,8 +314,7 @@ async def update_network_policy(
     )
 
 
-@network_router.post("/swap", dependencies=[Depends(get_current_user)])
-@inject
+@network_router.post("/swap")
 async def swap_network_policy(
     swap: SwapRequest,
     session: FromDishka[AsyncSession],

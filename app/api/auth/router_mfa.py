@@ -10,7 +10,7 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
@@ -42,7 +42,11 @@ from .schema import (
     OAuth2Form,
 )
 
-mfa_router = APIRouter(prefix="/multifactor", tags=["Multifactor"])
+mfa_router = APIRouter(
+    prefix="/multifactor",
+    tags=["Multifactor"],
+    route_class=DishkaRoute,
+)
 
 
 @mfa_router.post(
@@ -50,16 +54,14 @@ mfa_router = APIRouter(prefix="/multifactor", tags=["Multifactor"])
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(get_current_user)],
 )
-@inject
 async def setup_mfa(
     mfa: MFACreateRequest,
     session: FromDishka[AsyncSession],
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
     \f
-    :param str mfa_key: multifactor key
-    :param Annotated[bool, Body is_ldap_scope: _description_, defaults to True
-    :param str mfa_secret: multifactor api secret
+    :param MFACreateRequest mfa: MuliFactor credentials
+    :param FromDishka[AsyncSession] session: db
     :return bool: status
     """  # noqa: D301
     async with session.begin_nested():
@@ -84,7 +86,6 @@ async def setup_mfa(
 
 
 @mfa_router.delete("/keys", dependencies=[Depends(get_current_user)])
-@inject
 async def remove_mfa(
     session: FromDishka[AsyncSession],
     scope: Literal["ldap", "http"],
@@ -103,7 +104,6 @@ async def remove_mfa(
 
 
 @mfa_router.post("/get", dependencies=[Depends(get_current_user)])
-@inject
 async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
@@ -126,7 +126,6 @@ async def get_mfa(
 
 
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
-@inject
 async def callback_mfa(
     access_token: Annotated[str, Form(
         alias="accessToken", validation_alias="accessToken")],
@@ -136,14 +135,19 @@ async def callback_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> RedirectResponse:
-    """Disassemble mfa token and send it to websocket.
+    """Disassemble mfa token and send redirect.
 
     Callback endpoint for MFA.
     \f
-    :param Annotated[str, Form access_token: access token from multifactor
-    :param str | None mfa_secret: multifactor secret from settings
-    :raises HTTPException: 404
-    :return dict: status
+    :param FromDishka[AsyncSession] session: db
+    :param FromDishka[SessionStorage] storage: session storage
+    :param FromDishka[Settings] settings: app settings
+    :param FromDishka[MFA_HTTP_Creds] mfa_creds:
+        creds for multifactor (http app)
+    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
+    :param Annotated[str, Form access_token: token from multifactor callback
+    :raises HTTPException: if mfa not set up
+    :return RedirectResponse: on bypass or success
     """  # noqa: D301
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -171,7 +175,6 @@ async def callback_mfa(
 
 
 @mfa_router.post("/connect", response_model=MFAChallengeResponse)
-@inject
 async def two_factor_protocol(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
@@ -182,18 +185,23 @@ async def two_factor_protocol(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> MFAChallengeResponse:
-    """Authenticate with two factor app.
+    """Initiate two factor protocol with app.
     \f
-    :param Annotated[OAuth2Form, Depends form: login form
-    :param Request request: request
-    :param Annotated[AsyncSession, Depends session: db session
-    :param Annotated[MultifactorAPI, Depends api: mfa api
+    :param Annotated[OAuth2Form, Depends form: password form
+    :param Request request: FastAPI request
+    :param FromDishka[AsyncSession] session: db
+    :param FromDishka[MultifactorAPI] api: wrapper for MFA DAO
+    :param FromDishka[Settings] settings: app settings
+    :param FromDishka[SessionStorage] storage: redis storage
+    :param Response response: FastAPI response
+    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
     :raises HTTPException: Missing API credentials
     :raises HTTPException: Invalid credentials
+    :raises HTTPException: network policy violation
     :raises HTTPException: Multifactor error
     :return MFAChallengeResponse:
         {'status': 'pending', 'message': https://example.com}
-    """  # noqa: D301
+    """
     if not api:
         raise HTTPException(
             status.HTTP_428_PRECONDITION_REQUIRED,

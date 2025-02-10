@@ -55,15 +55,28 @@ async def login(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> None:
-    """Get refresh and access token on login.
+    """Create session to cookies and storage.
 
     - **username**: username formats:
     `DN`, `userPrincipalName`, `saMAccountName`
+    - **password**: password
 
     \f
-    :param OAuth2PasswordRequestForm: password form
-    :raises HTTPException: in invalid user
-    :return Token: refresh and access token
+    :param Annotated[OAuth2Form, Depends form: login form
+    :param FromDishka[AsyncSession] session: db
+    :param FromDishka[Settings] settings: app settings
+    :param FromDishka[MultifactorAPI] mfa: mfa api wrapper
+    :param FromDishka[SessionStorage] storage: session storage
+    :param Response response: FastAPI response
+    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
+    :raises HTTPException: 401 if incorrect username or password
+    :raises HTTPException: 403 if user not part of domain admins
+    :raises HTTPException: 403 if user account is disabled
+    :raises HTTPException: 403 if user account is expired
+    :raises HTTPException: 403 if ip is not provided
+    :raises HTTPException: 403 if user not part of network policy
+    :raises HTTPException: 426 if mfa required
+    :return None: None
     """  # noqa: D205, D301
     user = await authenticate_user(session, form.username, form.password)
 
@@ -157,8 +170,14 @@ async def password_reset(
     `userPrincipalName`, `saMAccountName` or `DN`
     - **new_password**: password to set
     \f
+    :param FromDishka[AsyncSession] session: db
+    :param FromDishka[AbstractKadmin] kadmin: kadmin api
+    :param Annotated[str, Body identity: reset target user
+    :param Annotated[str, Body new_password: new password for user
     :raises HTTPException: 404 if user not found
-    :return bool: status
+    :raises HTTPException: 422 if password not valid
+    :raises HTTPException: 424 if kerberos password update failed
+    :return None: None
     """
     user = await get_user(session, identity)
 
