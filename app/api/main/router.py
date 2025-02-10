@@ -23,10 +23,11 @@ entry_router = APIRouter(
     prefix="/entry",
     tags=["LDAP API"],
     route_class=DishkaRoute,
+    dependencies=[Depends(get_ldap_session)],
 )
 
 
-@entry_router.post("/search", dependencies=[Depends(get_ldap_session)])
+@entry_router.post("/search")
 async def search(
     request: SearchRequest,
     req: Request,
@@ -45,7 +46,7 @@ async def search(
     )
 
 
-@entry_router.post("/add", dependencies=[Depends(get_ldap_session)])
+@entry_router.post("/add")
 async def add(
     request: AddRequest,
     req: Request,
@@ -54,7 +55,7 @@ async def add(
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.patch("/update", dependencies=[Depends(get_ldap_session)])
+@entry_router.patch("/update")
 async def modify(
     request: ModifyRequest,
     req: Request,
@@ -63,7 +64,7 @@ async def modify(
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.patch("/update_many", dependencies=[Depends(get_ldap_session)])
+@entry_router.patch("/update_many")
 async def modify_many(
     requests: list[ModifyRequest],
     req: Request,
@@ -75,7 +76,7 @@ async def modify_many(
     return results
 
 
-@entry_router.put("/update/dn", dependencies=[Depends(get_ldap_session)])
+@entry_router.put("/update/dn")
 async def modify_dn(
     request: ModifyDNRequest,
     req: Request,
@@ -84,7 +85,7 @@ async def modify_dn(
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.delete("/delete", dependencies=[Depends(get_ldap_session)])
+@entry_router.delete("/delete")
 async def delete(
     request: DeleteRequest,
     req: Request,
