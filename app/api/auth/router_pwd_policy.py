@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,11 +17,11 @@ pwd_router = APIRouter(
     prefix="/password-policy",
     dependencies=[Depends(get_current_user)],
     tags=["Password policy"],
+    route_class=DishkaRoute,
 )
 
 
 @pwd_router.post("", status_code=status.HTTP_201_CREATED)
-@inject
 async def create_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
@@ -32,7 +32,6 @@ async def create_policy(
 
 
 @pwd_router.get("")
-@inject
 async def get_policy(
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
@@ -42,7 +41,6 @@ async def get_policy(
 
 
 @pwd_router.put("")
-@inject
 async def update_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
@@ -54,7 +52,6 @@ async def update_policy(
 
 
 @pwd_router.delete("")
-@inject
 async def reset_policy(
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],

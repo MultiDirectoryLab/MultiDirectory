@@ -8,7 +8,7 @@ from typing import Annotated
 
 from annotated_types import Len
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Body, HTTPException, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
@@ -36,7 +36,11 @@ from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
 
-krb5_router = APIRouter(prefix="/kerberos", tags=["KRB5 API"])
+krb5_router = APIRouter(
+    prefix="/kerberos",
+    tags=["KRB5 API"],
+    route_class=DishkaRoute,
+)
 
 
 @krb5_router.post(
@@ -44,7 +48,6 @@ krb5_router = APIRouter(prefix="/kerberos", tags=["KRB5 API"])
     response_class=Response,
     dependencies=[Depends(get_current_user)],
 )
-@inject
 async def setup_krb_catalogue(
     session: FromDishka[AsyncSession],
     mail: Annotated[EmailStr, Body()],
@@ -135,7 +138,6 @@ async def setup_krb_catalogue(
 
 
 @krb5_router.post("/setup", response_class=Response)
-@inject
 async def setup_kdc(
     data: KerberosSetupRequest,
     user: Annotated[UserSchema, Depends(get_current_user)],
@@ -214,7 +216,6 @@ LIMITED_LIST = Annotated[
 
 
 @krb5_router.post("/ktadd", dependencies=[Depends(get_current_user)])
-@inject
 async def ktadd(
     kadmin: FromDishka[AbstractKadmin],
     names: Annotated[LIMITED_LIST, Body()],
@@ -238,7 +239,6 @@ async def ktadd(
 
 
 @krb5_router.get("/status", dependencies=[Depends(get_current_user)])
-@inject
 async def get_krb_status(
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
@@ -262,7 +262,6 @@ async def get_krb_status(
 
 
 @krb5_router.post("/principal/add", dependencies=[Depends(get_current_user)])
-@inject
 async def add_principal(
     primary: Annotated[LIMITED_STR, Body()],
     instance: Annotated[LIMITED_STR, Body()],
@@ -281,9 +280,7 @@ async def add_principal(
 
 
 @krb5_router.patch(
-    "/principal/rename", dependencies=[Depends(get_current_user)],
-)
-@inject
+    "/principal/rename", dependencies=[Depends(get_current_user)])
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
     principal_new_name: Annotated[LIMITED_STR, Body()],
@@ -303,10 +300,7 @@ async def rename_principal(
 
 
 @krb5_router.patch(
-    "/principal/reset",
-    dependencies=[Depends(get_current_user)],
-)
-@inject
+    "/principal/reset", dependencies=[Depends(get_current_user)])
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
     new_password: Annotated[LIMITED_STR, Body()],
@@ -326,9 +320,7 @@ async def reset_principal_pw(
 
 
 @krb5_router.delete(
-    "/principal/delete", dependencies=[Depends(get_current_user)],
-)
-@inject
+    "/principal/delete", dependencies=[Depends(get_current_user)])
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
     kadmin: FromDishka[AbstractKadmin],
