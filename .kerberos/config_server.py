@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import logging
 import os
+import shutil
 import uuid
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
@@ -499,6 +500,21 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
         f.write(f"*/admin@{schema.domain.upper()}        *\n")
 
     await create_update_default_policy(0, 1, 2, 2)
+
+
+@setup_router.post("/reset")
+async def reset_setup() -> None:
+    """Reset setup."""
+    krb5_conf = "/etc/krb5.conf"
+    krb5_conf_example = "/usr/local/share/examples/krb5/krb5.conf"
+    stash_file = "/etc/krb5.d/stash.keyfile"
+
+    if os.path.exists(krb5_conf):
+        os.remove(krb5_conf)
+        shutil.copy(krb5_conf_example, krb5_conf)
+
+    if os.path.exists(stash_file):
+        os.remove(stash_file)
 
 
 @principal_router.post("", response_class=Response, status_code=201)
