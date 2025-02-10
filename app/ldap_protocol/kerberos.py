@@ -237,7 +237,12 @@ class AbstractKadmin(ABC):
 
     @backoff.on_exception(
         backoff.constant,
-        (httpx.ConnectError, httpx.ConnectTimeout, ValueError),
+        (
+            httpx.ConnectError,
+            httpx.ConnectTimeout,
+            httpx.RemoteProtocolError,
+            ValueError,
+        ),
         jitter=None,
         raise_on_giveup=False,
         max_tries=30,
