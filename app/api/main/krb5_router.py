@@ -14,6 +14,7 @@ from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
@@ -31,7 +32,12 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.const import EmailStr
-from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
+from ldap_protocol.utils.queries import (
+    get_base_directories,
+    get_dn_by_id,
+    get_filter_from_path,
+)
+from models import AccessPolicy, Directory
 
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
@@ -62,12 +68,37 @@ async def setup_krb_catalogue(
     :param Annotated[SecretStr, Body krbadmin_password: pw
     :raises HTTPException: on conflict
     """
+    kerberos_policy_name = "Kerberos Access Policy"
+
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
 
     krbadmin = "cn=krbadmin,ou=users," + base_dn
     services_container = "ou=services," + base_dn
     krbgroup = "cn=krbadmin,cn=groups," + base_dn
+
+    directories = await session.scalars(
+        select(Directory).where(
+            or_(
+                get_filter_from_path(krbadmin),
+                get_filter_from_path(services_container),
+                get_filter_from_path(krbgroup),
+            ),
+        ),
+    )
+    krb_state = await get_krb_server_state(session)
+
+    if directories and krb_state != KerberosState.READY:
+        await session.execute(
+            delete(Directory)
+            .where(Directory.id.in_(
+                [directory.id for directory in directories])),
+        )
+        await session.execute(
+            delete(AccessPolicy)
+            .where(AccessPolicy.name == kerberos_policy_name),
+        )
+        await session.commit()
 
     group = AddRequest.from_dict(
         krbgroup,
@@ -125,7 +156,7 @@ async def setup_krb_catalogue(
             raise HTTPException(status.HTTP_409_CONFLICT)
 
         await create_access_policy(
-            name="Kerberos Access Policy",
+            name=kerberos_policy_name,
             can_add=True,
             can_modify=True,
             can_read=True,
@@ -202,6 +233,7 @@ async def setup_kdc(
             ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
     except KRBAPIError as err:
+        await kadmin.reset_setup()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
 
     await set_state(session, KerberosState.READY)
