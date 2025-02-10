@@ -165,6 +165,11 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+    async def reset_setup(self) -> None:
+        """Reset setup."""
+        log.info("Setup reset")
+        await self.client.post("/setup/reset")
+
     async def setup(
         self,
         domain: str,
@@ -503,7 +508,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
 
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
-    """Get or create server state."""
+    """Get kerberos server state."""
     state = await session.scalar(
         select(CatalogueSetting).filter(
             CatalogueSetting.name == KERBEROS_STATE_NAME,
@@ -511,24 +516,39 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
     )
 
     if state is None:
-        session.add(
-            CatalogueSetting(
-                name=KERBEROS_STATE_NAME,
-                value=KerberosState.NOT_CONFIGURED,
-            ),
-        )
-        await session.commit()
         return KerberosState.NOT_CONFIGURED
     return KerberosState(state.value)
 
 
 async def set_state(session: AsyncSession, state: "KerberosState") -> None:
-    """Set server state in database."""
-    await session.execute(
-        update(CatalogueSetting)
-        .values({"value": state})
+    """
+    Set the server state in the database.
+
+    This function updates the server state in the database by either adding
+    a new entry, updating an existing entry, or deleting and re-adding the
+    entry if there are multiple entries found.
+    """
+    results = await session.scalars(
+        select(CatalogueSetting)
         .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
     )
+    states = results.all()
+
+    if not states:
+        session.add(CatalogueSetting(name=KERBEROS_STATE_NAME, value=state))
+    elif len(states) > 1:
+        await session.execute(
+            delete(CatalogueSetting).where(
+                CatalogueSetting.name == KERBEROS_STATE_NAME,
+            ),
+        )
+        session.add(CatalogueSetting(name=KERBEROS_STATE_NAME, value=state))
+    else:
+        await session.execute(
+            update(CatalogueSetting)
+            .where(CatalogueSetting.name == KERBEROS_STATE_NAME)
+            .values(value=state),
+        )
 
 
 async def get_kerberos_class(
