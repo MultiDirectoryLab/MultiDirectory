@@ -254,11 +254,9 @@ class RedisSessionStorage(SessionStorage):
         except KeyError:
             pass
         else:
-            kstr = ";".join(keys) + (";" if len(keys) == 1 else "")
-
             await self._storage.set(
                 self._get_id_hash(uid),
-                kstr,
+                ";".join(keys) + ";",
                 keepttl=True,
             )
 
