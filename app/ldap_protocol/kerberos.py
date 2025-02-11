@@ -533,27 +533,21 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     a new entry, updating an existing entry, or deleting and re-adding the
     entry if there are multiple entries found.
     """
-    results = await session.scalars(
+    results = await session.execute(
         select(CatalogueSetting)
         .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
     )
-    states = results.all()
+    kerberos_state = results.scalar_one_or_none()
 
-    if not states:
+    if not kerberos_state:
         session.add(CatalogueSetting(name=KERBEROS_STATE_NAME, value=state))
-    elif len(states) > 1:
-        await session.execute(
-            delete(CatalogueSetting).where(
-                CatalogueSetting.name == KERBEROS_STATE_NAME,
-            ),
-        )
-        session.add(CatalogueSetting(name=KERBEROS_STATE_NAME, value=state))
-    else:
-        await session.execute(
-            update(CatalogueSetting)
-            .where(CatalogueSetting.name == KERBEROS_STATE_NAME)
-            .values(value=state),
-        )
+        return
+
+    await session.execute(
+        update(CatalogueSetting)
+        .where(CatalogueSetting.name == KERBEROS_STATE_NAME)
+        .values(value=state),
+    )
 
 
 async def get_kerberos_class(
