@@ -58,7 +58,7 @@ async def get_current_user(  # noqa: D103
 ) -> UserSchema:
     """Get current user.
 
-    This function fetches the user id associated with the session stored in the
+    Fetches the user id associated with the session stored in the
     request's cookies, verifies the session, and returns the user schema.
     Makes a rekey of the session if necessary.
 
