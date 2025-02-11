@@ -51,15 +51,16 @@ def upgrade() -> None:
         .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
     )
 
-    session.execute(
-        sa.delete(CatalogueSetting)
-        .where(
-            CatalogueSetting.name == KERBEROS_STATE_NAME,
-            CatalogueSetting.id != settings.id,
-        ),
-    )
+    if settings:
+        session.execute(
+            sa.delete(CatalogueSetting)
+            .where(
+                CatalogueSetting.name == KERBEROS_STATE_NAME,
+                CatalogueSetting.id != settings.id,
+            ),
+        )
 
-    session.commit()
+        session.commit()
 
     # NOTE: Set unique constraint on Settings.name
     op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
