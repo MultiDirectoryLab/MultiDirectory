@@ -165,23 +165,12 @@ async def setup_kdc(
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[LDAPSession, Depends ldap_session: ldap session
     """
-    if not await authenticate_user(
-        session,
-        user.user_principal_name,
-        data.admin_password.get_secret_value(),
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Incorrect password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
     domain: str = base_dn_list[0].name
 
     krbadmin = "cn=krbadmin,ou=users," + base_dn
-    krbgroup = "cn=krbadmin,ou=group," + base_dn
+    krbgroup = "cn=krbadmin,cn=groups," + base_dn
     services_container = "ou=services," + base_dn
 
     krb5_template = settings.TEMPLATES.get_template("krb5.conf")
@@ -197,6 +186,13 @@ async def setup_kdc(
     )
 
     try:
+        if not await authenticate_user(
+            session,
+            user.user_principal_name,
+            data.admin_password.get_secret_value(),
+        ):
+            raise KRBAPIError("Incorrect password")
+
         await kadmin.setup(
             domain=domain,
             admin_dn=await get_dn_by_id(user.directory_id, session),
@@ -209,7 +205,7 @@ async def setup_kdc(
             kdc_config=kdc_config,
             ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
-    except KRBAPIError as err:
+    except (KRBAPIError, HTTPException) as err:
         directories = await session.scalars(
             select(Directory).where(
                 or_(
