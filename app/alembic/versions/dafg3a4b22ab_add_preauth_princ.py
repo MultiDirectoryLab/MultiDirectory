@@ -46,19 +46,23 @@ def upgrade() -> None:
                 directory_id=attr_principal.directory_id,
             ))
 
-    settings = session.scalars(
+    # NOTE: Remove duplicate Kerberos state settings and keep the latest one
+    settings = session.scalar(
         sa.select(CatalogueSetting)
         .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
-    ).all()
+    )
 
-    if not settings:
-        pass
-    elif len(settings) > 1:
-        for setting in settings[:-1]:
-            session.delete(setting)
+    session.execute(
+        sa.delete(CatalogueSetting)
+        .where(
+            CatalogueSetting.name == KERBEROS_STATE_NAME,
+            CatalogueSetting.id != settings.id,
+        ),
+    )
 
     session.commit()
 
+    # NOTE: Set unique constraint on Settings.name
     op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
 
     op.create_index(
