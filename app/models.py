@@ -560,6 +560,10 @@ class NetworkPolicy(Base):
     bypass_no_connection: Mapped[fbool]
     bypass_service_failure: Mapped[fbool]
 
+    session_rekey_interval: Mapped[int] = mapped_column(
+        nullable=False, server_default="30",
+    )
+
 
 class PasswordPolicy(Base):
     """Password policy."""

@@ -51,6 +51,7 @@ async def test_add_policy(
         'is_kerberos': True,
         'bypass_no_connection': False,
         'bypass_service_failure': False,
+        'session_rekey_interval': 30,
     })
 
     assert raw_response.status_code == 201
@@ -78,6 +79,7 @@ async def test_add_policy(
             'is_kerberos': True,
             'bypass_no_connection': False,
             'bypass_service_failure': False,
+            'session_rekey_interval': 30,
         },
         {
             'enabled': True,
@@ -93,6 +95,7 @@ async def test_add_policy(
             'is_kerberos': True,
             'bypass_no_connection': False,
             'bypass_service_failure': False,
+            'session_rekey_interval': 30,
         },
     ]
 
@@ -122,6 +125,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             'is_kerberos': True,
             'bypass_no_connection': False,
             'bypass_service_failure': False,
+            'session_rekey_interval': 30,
         },
     ]
 
@@ -152,6 +156,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
         'is_kerberos': True,
         'bypass_no_connection': False,
         'bypass_service_failure': False,
+        'session_rekey_interval': 30,
     }
 
     response = await http_client.get("/policy")
@@ -175,6 +180,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             'is_kerberos': True,
             'bypass_no_connection': False,
             'bypass_service_failure': False,
+            'session_rekey_interval': 30,
         },
     ]
 
@@ -187,8 +193,8 @@ async def test_delete_policy(
     """Delete policy."""
     session.add(NetworkPolicy(
         name='Local policy',
-        netmasks=[IPv4Network('127.100.10.5/32')],
-        raw=['127.100.10.5/32'],
+        netmasks=[IPv4Network('127.0.0.1/32')],
+        raw=['127.0.0.1/32'],
         enabled=True,
         priority=2,
     ))
@@ -215,6 +221,7 @@ async def test_delete_policy(
         'is_kerberos': True,
         'bypass_no_connection': False,
         'bypass_service_failure': False,
+        'session_rekey_interval': 30,
     }
 
     response = await http_client.delete(
@@ -242,8 +249,8 @@ async def test_switch_policy(
     """Switch policy."""
     session.add(NetworkPolicy(
         name='Local policy',
-        netmasks=[IPv4Network('127.100.10.5/32')],
-        raw=['127.100.10.5/32'],
+        netmasks=[IPv4Network('127.0.0.1/32')],
+        raw=['127.0.0.1/32'],
         enabled=True,
         priority=2,
     ))
@@ -270,6 +277,7 @@ async def test_switch_policy(
         'is_kerberos': True,
         'bypass_no_connection': False,
         'bypass_service_failure': False,
+        'session_rekey_interval': 30,
     }
 
     response = await http_client.patch(
@@ -337,6 +345,7 @@ async def test_swap(http_client: AsyncClient) -> None:
             'is_kerberos': True,
             'bypass_no_connection': False,
             'bypass_service_failure': False,
+            'session_rekey_interval': 30,
         },
     )
 
