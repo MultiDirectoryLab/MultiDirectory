@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
 from models import Attribute, CatalogueSetting, User
 
-
 # revision identifiers, used by Alembic.
 revision = 'dafg3a4b22ab'
 down_revision = 'f68a134a3685'
