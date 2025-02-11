@@ -14,7 +14,7 @@ from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
-from sqlalchemy import delete
+from sqlalchemy import delete, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
@@ -205,17 +205,24 @@ async def setup_kdc(
             kdc_config=kdc_config,
             ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
-    except (KRBAPIError, HTTPException) as err:
-        await session.execute(
-            delete(Directory)
+    except KRBAPIError as err:
+        direstories = (await session.scalars(
+            select(Directory)
             .where(
-                Directory.path.in_([
+                or_(
                     get_filter_from_path(krbadmin),
                     get_filter_from_path(services_container),
                     get_filter_from_path(krbgroup),
-                ]),
+                ),
             ),
-        )
+        )).all()
+
+        if direstories:
+            await session.execute(
+                delete(Directory)
+                .where(Directory.id.in_(
+                    [directory.id for directory in direstories])),
+            )
         await session.execute(
             delete(AccessPolicy)
             .where(AccessPolicy.name == KERBEROS_POLICY_NAME),
