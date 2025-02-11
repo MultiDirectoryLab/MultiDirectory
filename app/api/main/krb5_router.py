@@ -47,6 +47,7 @@ krb5_router = APIRouter(
     tags=["KRB5 API"],
     route_class=DishkaRoute,
 )
+KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 
 
 @krb5_router.post(
@@ -68,37 +69,12 @@ async def setup_krb_catalogue(
     :param Annotated[SecretStr, Body krbadmin_password: pw
     :raises HTTPException: on conflict
     """
-    kerberos_policy_name = "Kerberos Access Policy"
-
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
 
     krbadmin = "cn=krbadmin,ou=users," + base_dn
     services_container = "ou=services," + base_dn
     krbgroup = "cn=krbadmin,cn=groups," + base_dn
-
-    directories = await session.scalars(
-        select(Directory).where(
-            or_(
-                get_filter_from_path(krbadmin),
-                get_filter_from_path(services_container),
-                get_filter_from_path(krbgroup),
-            ),
-        ),
-    )
-    krb_state = await get_krb_server_state(session)
-
-    if directories and krb_state != KerberosState.READY:
-        await session.execute(
-            delete(Directory)
-            .where(Directory.id.in_(
-                [directory.id for directory in directories])),
-        )
-        await session.execute(
-            delete(AccessPolicy)
-            .where(AccessPolicy.name == kerberos_policy_name),
-        )
-        await session.commit()
 
     group = AddRequest.from_dict(
         krbgroup,
@@ -156,7 +132,7 @@ async def setup_krb_catalogue(
             raise HTTPException(status.HTTP_409_CONFLICT)
 
         await create_access_policy(
-            name=kerberos_policy_name,
+            name=KERBEROS_POLICY_NAME,
             can_add=True,
             can_modify=True,
             can_read=True,
@@ -205,6 +181,7 @@ async def setup_kdc(
     domain: str = base_dn_list[0].name
 
     krbadmin = "cn=krbadmin,ou=users," + base_dn
+    krbgroup = "cn=krbadmin,ou=group," + base_dn
     services_container = "ou=services," + base_dn
 
     krb5_template = settings.TEMPLATES.get_template("krb5.conf")
@@ -233,11 +210,30 @@ async def setup_kdc(
             ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
     except KRBAPIError as err:
+        directories = await session.scalars(
+            select(Directory).where(
+                or_(
+                    get_filter_from_path(krbadmin),
+                    get_filter_from_path(services_container),
+                    get_filter_from_path(krbgroup),
+                ),
+            ),
+        )
+        await session.execute(
+            delete(Directory)
+            .where(Directory.id.in_(
+                [directory.id for directory in directories])),
+        )
+        await session.execute(
+            delete(AccessPolicy)
+            .where(AccessPolicy.name == KERBEROS_POLICY_NAME),
+        )
         await kadmin.reset_setup()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
-
-    await set_state(session, KerberosState.READY)
-    await session.commit()
+    else:
+        await set_state(session, KerberosState.READY)
+    finally:
+        await session.commit()
 
 
 LIMITED_STR = Annotated[str, Len(min_length=1, max_length=8100)]
