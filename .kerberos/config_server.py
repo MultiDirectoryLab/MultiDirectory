@@ -34,6 +34,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
+KRB5_CONF_PATH = "/etc/krb5.conf"
+KRB5_CONF_EXAMPLE_PATH = "/usr/local/share/examples/krb5/krb5.conf"
+STASH_FILE_PATH = "/etc/krb5.d/stash.keyfile"
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -437,7 +441,7 @@ async def run_setup_stash(schema: ConfigSchema) -> None:
         schema.admin_dn,
         "stashsrvpw",
         "-f",
-        "/etc/krb5.d/stash.keyfile",
+        STASH_FILE_PATH,
         schema.krbadmin_dn,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
@@ -505,16 +509,12 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
 @setup_router.post("/reset")
 async def reset_setup() -> None:
     """Reset setup."""
-    krb5_conf = "/etc/krb5.conf"
-    krb5_conf_example = "/usr/local/share/examples/krb5/krb5.conf"
-    stash_file = "/etc/krb5.d/stash.keyfile"
+    if os.path.exists(KRB5_CONF_PATH):
+        os.remove(KRB5_CONF_PATH)
+        shutil.copy(KRB5_CONF_EXAMPLE_PATH, KRB5_CONF_PATH)
 
-    if os.path.exists(krb5_conf):
-        os.remove(krb5_conf)
-        shutil.copy(krb5_conf_example, krb5_conf)
-
-    if os.path.exists(stash_file):
-        os.remove(stash_file)
+    if os.path.exists(STASH_FILE_PATH):
+        os.remove(STASH_FILE_PATH)
 
 
 @principal_router.post("", response_class=Response, status_code=201)
