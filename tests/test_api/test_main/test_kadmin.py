@@ -13,14 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import (
-    KERBEROS_STATE_NAME,
-    AbstractKadmin,
-    KerberosState,
-    KRBAPIError,
-)
+from ldap_protocol.kerberos import AbstractKadmin, KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
-from models import CatalogueSetting
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
@@ -99,10 +93,7 @@ async def test_tree_creation(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('session')
-async def test_tree_collision(
-    http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_tree_collision(http_client: AsyncClient) -> None:
     """Test tree collision double creation."""
     response = await http_client.post('/kerberos/setup/tree', json={
         "mail": '777@example.com',
@@ -110,12 +101,6 @@ async def test_tree_collision(
     })
 
     assert response.status_code == status.HTTP_200_OK
-
-    session.add(CatalogueSetting(
-        name=KERBEROS_STATE_NAME,
-        value=KerberosState.READY,
-    ))
-    await session.commit()
 
     response = await http_client.post('/kerberos/setup/tree', json={
         "mail": '777@example.com',
