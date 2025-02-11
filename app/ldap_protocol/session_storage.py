@@ -170,8 +170,6 @@ class SessionStorage(ABC):
         :return bool: True if rekey is needed
         """
         data = await self.get(session_id)
-        if data is None:
-            raise KeyError("Invalid session id")
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
         return (
@@ -337,8 +335,6 @@ class RedisSessionStorage(SessionStorage):
         :return str: jwt token
         """
         data = await self.get(session_id)
-        if data is None:
-            raise KeyError("Invalid session id")
 
         tmp = data.get("id")
         if tmp is None:
@@ -495,8 +491,6 @@ class MemSessionStorage(SessionStorage):
         :return str: jwt token
         """
         data = await self.get(session_id)
-        if data is None:
-            raise KeyError("Invalid session id")
 
         tmp = data.get("id")
         if tmp is None:
