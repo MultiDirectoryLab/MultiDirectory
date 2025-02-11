@@ -346,7 +346,7 @@ class RedisSessionStorage(SessionStorage):
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
         return (
-            (datetime.now(timezone.utc) - issued).seconds > rekey_interval * 60
+            (datetime.now(timezone.utc) - issued).seconds > rekey_interval
         )
 
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
@@ -520,7 +520,7 @@ class MemSessionStorage(SessionStorage):
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
         return (
-            (datetime.now(timezone.utc) - issued).seconds > rekey_interval * 60
+            (datetime.now(timezone.utc) - issued).seconds > rekey_interval
         )
 
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
