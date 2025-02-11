@@ -75,6 +75,8 @@ services:
     expose:
       - 389
     depends_on:
+      dragonfly:
+        condition: service_started
       migrations:
         condition: service_completed_successfully
       cert_check:
@@ -113,6 +115,20 @@ services:
       timeout: 15s
       retries: 10
       start_period: 3s
+
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    container_name: dragonfly
+    expose:
+      - 6379
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GiB
+        reservations:
+          cpus: '0.75'
+          memory: 0.5GiB
 
   connect:
     image: ghcr.io/multidirectorylab/multidirectory:latest
