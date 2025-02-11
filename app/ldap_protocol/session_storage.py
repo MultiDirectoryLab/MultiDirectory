@@ -79,6 +79,14 @@ class SessionStorage(ABC):
         """
         return token_hex(self.key_length)
 
+    def _get_lock_key(self, session_id: str) -> str:
+        """Get lock key.
+
+        :param str session_id: session id
+        :return str: lock key
+        """
+        return f"lock:{session_id}"
+
     @abstractmethod
     async def create_session(
         self: Self,
@@ -162,6 +170,7 @@ class SessionStorage(ABC):
         :param dict data: data, defaults to None
         """
 
+    @abstractmethod
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
 
@@ -169,12 +178,6 @@ class SessionStorage(ABC):
         :param int rekey_interval: rekey interval in minutes
         :return bool: True if rekey is needed
         """
-        data = await self.get(session_id)
-
-        issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
-        return (
-            (datetime.now(timezone.utc) - issued).seconds > rekey_interval * 60
-        )
 
     @abstractmethod
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
@@ -327,6 +330,25 @@ class RedisSessionStorage(SessionStorage):
         await self._storage.set(key, json.dumps(data), ex=None)
         await self._storage.append(self._get_id_hash(uid), f"{key};")
 
+    async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
+        """Check rekey.
+
+        :param str session_id: session id
+        :param int rekey_interval: rekey interval in minutes
+        :return bool: True if rekey is needed
+        """
+        lock = self._storage.lock(self._get_lock_key(session_id))
+
+        if await lock.locked():
+            return False
+
+        data = await self.get(session_id)
+
+        issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
+        return (
+            (datetime.now(timezone.utc) - issued).seconds > rekey_interval * 60
+        )
+
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
 
@@ -334,29 +356,36 @@ class RedisSessionStorage(SessionStorage):
         :param Settings settings: app settings
         :return str: jwt token
         """
-        data = await self.get(session_id)
+        lock = self._storage.lock(
+            self._get_lock_key(session_id), blocking_timeout=5)
+        try:
+            await lock.acquire()
 
-        tmp = data.get("id")
-        if tmp is None:
-            raise KeyError("Invalid session id")
-        uid = int(tmp)
+            data = await self.get(session_id)
 
-        ttl = await self._storage.ttl(session_id)
-        extra_data = data.copy()
-        extra_data.pop("sign", None)
+            tmp = data.get("id")
+            if tmp is None:
+                raise KeyError("Invalid session id")
+            uid = int(tmp)
 
-        new_session_id, new_signature, new_data = self._generate_session_data(
-            uid, settings, extra_data,
-        )
+            ttl = await self._storage.ttl(session_id)
+            extra_data = data.copy()
+            extra_data.pop("sign", None)
 
-        await self._storage.set(
-            new_session_id, json.dumps(new_data), ex=ttl)
-        await self._storage.append(
-            self._get_id_hash(uid), f"{new_session_id};")
+            new_session_id, new_signature, new_data = (
+                self._generate_session_data(uid, settings, extra_data)
+            )
 
-        await self.delete_user_session(session_id)
+            await self._storage.set(
+                new_session_id, json.dumps(new_data), ex=ttl)
+            await self._storage.append(
+                self._get_id_hash(uid), f"{new_session_id};")
 
-        return f"{new_session_id}.{new_signature}"
+            await self.delete_user_session(session_id)
+
+            return f"{new_session_id}.{new_signature}"
+        finally:
+            await lock.release()
 
 
 class MemSessionStorage(SessionStorage):
@@ -482,6 +511,20 @@ class MemSessionStorage(SessionStorage):
 
         self._sessions[key] = data
         self._session_batch[self._get_id_hash(uid)].append(key)
+
+    async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
+        """Check rekey.
+
+        :param str session_id: session id
+        :param int rekey_interval: rekey interval in minutes
+        :return bool: True if rekey is needed
+        """
+        data = await self.get(session_id)
+
+        issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
+        return (
+            (datetime.now(timezone.utc) - issued).seconds > rekey_interval * 60
+        )
 
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
