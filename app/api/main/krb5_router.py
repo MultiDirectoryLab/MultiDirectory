@@ -208,14 +208,11 @@ async def setup_kdc(
     except KRBAPIError as err:
         direstories = (await session.scalars(
             select(Directory)
-            .where(
-                or_(
-                    get_filter_from_path(krbadmin),
-                    get_filter_from_path(services_container),
-                    get_filter_from_path(krbgroup),
-                ),
-            ),
-        )).all()
+            .where(or_(
+                get_filter_from_path(krbadmin),
+                get_filter_from_path(services_container),
+                get_filter_from_path(krbgroup),
+            )))).all()
 
         if direstories:
             await session.execute(
