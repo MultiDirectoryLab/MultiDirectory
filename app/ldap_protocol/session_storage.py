@@ -175,7 +175,7 @@ class SessionStorage(ABC):
         """Check rekey.
 
         :param str session_id: session id
-        :param int rekey_interval: rekey interval in minutes
+        :param int rekey_interval: rekey interval in seconds
         :return bool: True if rekey is needed
         """
 
@@ -334,7 +334,7 @@ class RedisSessionStorage(SessionStorage):
         """Check rekey.
 
         :param str session_id: session id
-        :param int rekey_interval: rekey interval in minutes
+        :param int rekey_interval: rekey interval in seconds
         :return bool: True if rekey is needed
         """
         lock = self._storage.lock(self._get_lock_key(session_id))
@@ -513,7 +513,7 @@ class MemSessionStorage(SessionStorage):
         """Check rekey.
 
         :param str session_id: session id
-        :param int rekey_interval: rekey interval in minutes
+        :param int rekey_interval: rekey interval in seconds
         :return bool: True if rekey is needed
         """
         data = await self.get(session_id)
