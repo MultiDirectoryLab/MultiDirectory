@@ -167,7 +167,7 @@ class AbstractKadmin(ABC):
 
     async def reset_setup(self) -> None:
         """Reset setup."""
-        log.info("Setup reset")
+        log.warning("Setup reset")
         await self.client.post("/setup/reset")
 
     async def setup(
