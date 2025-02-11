@@ -9,7 +9,9 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from models import Attribute, User
+from ldap_protocol.kerberos import KERBEROS_STATE_NAME
+from models import Attribute, CatalogueSetting, User
+
 
 # revision identifiers, used by Alembic.
 revision = 'dafg3a4b22ab'
@@ -44,7 +46,27 @@ def upgrade() -> None:
                 directory_id=attr_principal.directory_id,
             ))
 
+    settings = session.scalars(
+        sa.select(CatalogueSetting)
+        .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
+    ).all()
+
+    if not settings:
+        pass
+    elif len(settings) > 1:
+        for setting in settings[:-1]:
+            session.delete(setting)
+
     session.commit()
+
+    op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
+
+    op.create_index(
+        op.f("ix_Settings_name"),
+        "Settings",
+        ["name"],
+        unique=True,
+    )
 
 
 def downgrade() -> None:
