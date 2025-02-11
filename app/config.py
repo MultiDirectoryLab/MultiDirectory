@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     KV_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/0")
     SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/1")
     SESSION_KEY_LENGTH: int = 16
+    SESSION_REKEY_INTERVAL: int = 30 * 60
 
     HOSTNAME: str | None = None
 

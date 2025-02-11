@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_user
 from tests.conftest import TestCreds
@@ -51,6 +52,44 @@ async def test_session_creation(
     assert sessions[key]["issued"]
     assert sessions[key]["ip"]
     assert sessions[key]["sign"]
+
+    await storage.clear_user_sessions(user.id)
+    assert not await storage.get_user_sessions(user.id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_session_rekey(
+    unbound_http_client: AsyncClient,
+    creds: TestCreds,
+    storage: SessionStorage,
+    settings: Settings,
+    session: AsyncSession,
+) -> None:
+    """Test session rekey."""
+    user = await get_user(session, creds.un)
+    assert user
+    await unbound_http_client.post(
+        "auth/",
+        data={"username": creds.un, "password": creds.pw},
+    )
+    sessions = await storage.get_user_sessions(user.id)
+
+    old_key = list(sessions.keys())[0]
+    old_session = sessions[old_key]
+
+    await storage.rekey_session(old_key, settings)
+    sessions = await storage.get_user_sessions(user.id)
+
+    new_key = list(sessions.keys())[0]
+    new_session = sessions[new_key]
+
+    assert len(sessions) == 1
+    assert new_key != old_key
+    assert new_session["sign"] != old_session["sign"]
+    assert new_session["issued"] != old_session["issued"]
+    assert new_session["id"] == user.id
+    assert new_session["ip"] == old_session["ip"]
 
     await storage.clear_user_sessions(user.id)
     assert not await storage.get_user_sessions(user.id)

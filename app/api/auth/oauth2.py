@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
@@ -54,11 +54,24 @@ async def get_current_user(  # noqa: D103
     session: FromDishka[AsyncSession],
     session_storage: FromDishka[SessionStorage],
     request: Request,
+    response: Response,
 ) -> UserSchema:
-    session_id = request.cookies.get("id", "")
+    """Get current user.
 
+    Fetches the user id associated with the session stored in the
+    request's cookies, verifies the session, and returns the user schema.
+    Makes a rekey of the session if necessary.
+
+    :param FromDishka[Settings] settings: settings
+    :param FromDishka[AsyncSession] session: db session
+    :param FromDishka[SessionStorage] session_storage: session storage
+    :param Request request: request
+    :param Response response: response
+    :return UserSchema: user schema
+    """
+    session_key = request.cookies.get("id", "")
     try:
-        user_id = await session_storage.get_user_id(settings, session_id)
+        user_id = await session_storage.get_user_id(settings, session_key)
     except KeyError as err:
         raise _CREDENTIALS_EXCEPTION from err
 
@@ -70,5 +83,20 @@ async def get_current_user(  # noqa: D103
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
+
+    session_id, _ = session_key.split(".")
+    try:
+        if await session_storage.check_rekey(
+            session_id, settings.SESSION_REKEY_INTERVAL,
+        ):
+            key = await session_storage.rekey_session(session_id, settings)
+            response.set_cookie(
+                key="id",
+                value=key,
+                httponly=True,
+                expires=session_storage.key_ttl,
+            )
+    except KeyError as err:
+        raise _CREDENTIALS_EXCEPTION from err
 
     return await UserSchema.from_db(user, session_id)
