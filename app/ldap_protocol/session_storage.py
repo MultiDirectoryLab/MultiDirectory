@@ -349,6 +349,37 @@ class RedisSessionStorage(SessionStorage):
             (datetime.now(timezone.utc) - issued).seconds > rekey_interval
         )
 
+    async def _rekey_session(self, session_id: str, settings: Settings) -> str:
+        """Rekey session.
+
+        :param str session_id: session id
+        :param Settings settings: app settings
+        :return str: jwt token
+        """
+        data = await self.get(session_id)
+
+        tmp = data.get("id")
+        if tmp is None:
+            raise KeyError("Invalid session id")
+        uid = int(tmp)
+
+        ttl = await self._storage.ttl(session_id)
+        extra_data = data.copy()
+        extra_data.pop("sign", None)
+
+        new_session_id, new_signature, new_data = (
+            self._generate_session_data(uid, settings, extra_data)
+        )
+
+        await self._storage.set(
+            new_session_id, json.dumps(new_data), ex=ttl)
+        await self._storage.append(
+            self._get_id_hash(uid), f"{new_session_id};")
+
+        await self.delete_user_session(session_id)
+
+        return f"{new_session_id}.{new_signature}"
+
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
 
@@ -360,29 +391,7 @@ class RedisSessionStorage(SessionStorage):
             self._get_lock_key(session_id), blocking_timeout=5)
 
         async with lock:
-            data = await self.get(session_id)
-
-            tmp = data.get("id")
-            if tmp is None:
-                raise KeyError("Invalid session id")
-            uid = int(tmp)
-
-            ttl = await self._storage.ttl(session_id)
-            extra_data = data.copy()
-            extra_data.pop("sign", None)
-
-            new_session_id, new_signature, new_data = (
-                self._generate_session_data(uid, settings, extra_data)
-            )
-
-            await self._storage.set(
-                new_session_id, json.dumps(new_data), ex=ttl)
-            await self._storage.append(
-                self._get_id_hash(uid), f"{new_session_id};")
-
-            await self.delete_user_session(session_id)
-
-            return f"{new_session_id}.{new_signature}"
+            return await self._rekey_session(session_id, settings)
 
 
 class MemSessionStorage(SessionStorage):
