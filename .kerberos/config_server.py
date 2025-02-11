@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import logging
 import os
+import shutil
 import uuid
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
@@ -32,6 +33,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
+
+KRB5_CONF_PATH = "/etc/krb5.conf"
+KRB5_CONF_EXAMPLE_PATH = "/usr/local/share/examples/krb5/krb5.conf"
+STASH_FILE_PATH = "/etc/krb5.d/stash.keyfile"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -436,7 +441,7 @@ async def run_setup_stash(schema: ConfigSchema) -> None:
         schema.admin_dn,
         "stashsrvpw",
         "-f",
-        "/etc/krb5.d/stash.keyfile",
+        STASH_FILE_PATH,
         schema.krbadmin_dn,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
@@ -499,6 +504,17 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
         f.write(f"*/admin@{schema.domain.upper()}        *\n")
 
     await create_update_default_policy(0, 1, 2, 2)
+
+
+@setup_router.post("/reset")
+async def reset_setup() -> None:
+    """Reset setup."""
+    if os.path.exists(KRB5_CONF_PATH):
+        os.remove(KRB5_CONF_PATH)
+        shutil.copy(KRB5_CONF_EXAMPLE_PATH, KRB5_CONF_PATH)
+
+    if os.path.exists(STASH_FILE_PATH):
+        os.remove(STASH_FILE_PATH)
 
 
 @principal_router.post("", response_class=Response, status_code=201)

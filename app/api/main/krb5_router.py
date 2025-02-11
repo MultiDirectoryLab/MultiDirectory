@@ -14,6 +14,7 @@ from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
@@ -31,7 +32,12 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.const import EmailStr
-from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
+from ldap_protocol.utils.queries import (
+    get_base_directories,
+    get_dn_by_id,
+    get_filter_from_path,
+)
+from models import AccessPolicy, Directory
 
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
@@ -41,6 +47,7 @@ krb5_router = APIRouter(
     tags=["KRB5 API"],
     route_class=DishkaRoute,
 )
+KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 
 
 @krb5_router.post(
@@ -125,7 +132,7 @@ async def setup_krb_catalogue(
             raise HTTPException(status.HTTP_409_CONFLICT)
 
         await create_access_policy(
-            name="Kerberos Access Policy",
+            name=KERBEROS_POLICY_NAME,
             can_add=True,
             can_modify=True,
             can_read=True,
@@ -158,22 +165,12 @@ async def setup_kdc(
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[LDAPSession, Depends ldap_session: ldap session
     """
-    if not await authenticate_user(
-        session,
-        user.user_principal_name,
-        data.admin_password.get_secret_value(),
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Incorrect password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
     domain: str = base_dn_list[0].name
 
     krbadmin = "cn=krbadmin,ou=users," + base_dn
+    krbgroup = "cn=krbadmin,cn=groups," + base_dn
     services_container = "ou=services," + base_dn
 
     krb5_template = settings.TEMPLATES.get_template("krb5.conf")
@@ -189,6 +186,13 @@ async def setup_kdc(
     )
 
     try:
+        if not await authenticate_user(
+            session,
+            user.user_principal_name,
+            data.admin_password.get_secret_value(),
+        ):
+            raise KRBAPIError("Incorrect password")
+
         await kadmin.setup(
             domain=domain,
             admin_dn=await get_dn_by_id(user.directory_id, session),
@@ -202,10 +206,30 @@ async def setup_kdc(
             ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
     except KRBAPIError as err:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
+        direstories = await session.scalars(
+            select(Directory)
+            .where(or_(
+                get_filter_from_path(krbadmin),
+                get_filter_from_path(services_container),
+                get_filter_from_path(krbgroup),
+            )))
 
-    await set_state(session, KerberosState.READY)
-    await session.commit()
+        if direstories:
+            await session.execute(
+                delete(Directory)
+                .where(Directory.id.in_(
+                    [directory.id for directory in direstories])),
+            )
+        await session.execute(
+            delete(AccessPolicy)
+            .where(AccessPolicy.name == KERBEROS_POLICY_NAME),
+        )
+        await kadmin.reset_setup()
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
+    else:
+        await set_state(session, KerberosState.READY)
+    finally:
+        await session.commit()
 
 
 LIMITED_STR = Annotated[str, Len(min_length=1, max_length=8100)]
