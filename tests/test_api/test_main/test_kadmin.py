@@ -458,8 +458,8 @@ async def test_admin_incorrect_pw_setup(http_client: AsyncClient) -> None:
         "admin_password": '----',
         "stash_password": 'Password123',
     })
-
-    assert response.status_code == 403
+    data = response.json()
+    assert data['detail'] == 'Incorrect password'
 
 
 @pytest.mark.asyncio
