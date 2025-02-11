@@ -3,7 +3,7 @@
 
 services:
   migrations:
-    image: ghcr.io/multidirectorylab/multidirectory_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: multidirectory_migrations
     restart: "no"
     environment:
@@ -18,7 +18,7 @@ services:
         condition: service_healthy
 
   cert_check:
-    image: ghcr.io/multidirectorylab/multidirectory_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: multidirectory_certs_check
     restart: "no"
     command: ./extra/generate_cert.sh
@@ -26,7 +26,7 @@ services:
       - certs:/certs
 
   api_server:
-    image: ghcr.io/multidirectorylab/multidirectory_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: multidirectory_api
     restart: unless-stopped
     command: python multidirectory.py --http
@@ -56,7 +56,7 @@ services:
       start_period: 3s
 
   multidirectory_ldap:
-    image: ghcr.io/multidirectorylab/multidirectory_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: multidirectory_ldap
     restart: unless-stopped
     hostname: multidirectory_ldap
@@ -75,6 +75,8 @@ services:
     expose:
       - 389
     depends_on:
+      dragonfly:
+        condition: service_started
       migrations:
         condition: service_completed_successfully
       cert_check:
@@ -99,7 +101,7 @@ services:
 
   ssh:
     container_name: md-ssh
-    image: ghcr.io/multidirectorylab/multidirectory_ssh_test:latest
+    image: ghcr.io/multidirectorylab/multidirectory_ssh_test:beta
     environment:
       SERVER: "ldap://multidirectory_ldap"
       BASE: "dc=md,dc=multifactor,dc=dev"
@@ -114,8 +116,22 @@ services:
       retries: 10
       start_period: 3s
 
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    container_name: dragonfly
+    expose:
+      - 6379
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GiB
+        reservations:
+          cpus: '0.75'
+          memory: 0.5GiB
+
   connect:
-    image: ghcr.io/multidirectorylab/multidirectory:latest
+    image: ghcr.io/multidirectorylab/multidirectory:beta
     depends_on:
       ssh:
         condition: service_healthy
