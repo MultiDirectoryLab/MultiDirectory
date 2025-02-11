@@ -162,6 +162,31 @@ class SessionStorage(ABC):
         :param dict data: data, defaults to None
         """
 
+    async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
+        """Check rekey.
+
+        :param str session_id: session id
+        :param int rekey_interval: rekey interval in minutes
+        :return bool: True if rekey is needed
+        """
+        data = await self.get(session_id)
+        if data is None:
+            raise KeyError("Invalid session id")
+
+        issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
+        return (
+            (datetime.now(timezone.utc) - issued).seconds > rekey_interval * 60
+        )
+
+    @abstractmethod
+    async def rekey_session(self, session_id: str, settings: Settings) -> str:
+        """Rekey session.
+
+        :param str session_id: session id
+        :param Settings settings: app settings
+        :return str: jwt token
+        """
+
 
 class RedisSessionStorage(SessionStorage):
     """Session storage for Session."""
@@ -304,6 +329,39 @@ class RedisSessionStorage(SessionStorage):
         await self._storage.set(key, json.dumps(data), ex=None)
         await self._storage.append(self._get_id_hash(uid), f"{key};")
 
+    async def rekey_session(self, session_id: str, settings: Settings) -> str:
+        """Rekey session.
+
+        :param str session_id: session id
+        :param Settings settings: app settings
+        :return str: jwt token
+        """
+        data = await self.get(session_id)
+        if data is None:
+            raise KeyError("Invalid session id")
+
+        tmp = data.get("id")
+        if tmp is None:
+            raise KeyError("Invalid session id")
+        uid = int(tmp)
+
+        ttl = await self._storage.ttl(session_id)
+        extra_data = data.copy()
+        extra_data.pop("sign", None)
+
+        new_session_id, new_signature, new_data = self._generate_session_data(
+            uid, settings, extra_data,
+        )
+
+        await self._storage.set(
+            new_session_id, json.dumps(new_data), ex=ttl)
+        await self._storage.append(
+            self._get_id_hash(uid), f"{new_session_id};")
+
+        await self.delete_user_session(session_id)
+
+        return f"{new_session_id}.{new_signature}"
+
 
 class MemSessionStorage(SessionStorage):
     """Test session storage."""
@@ -428,3 +486,27 @@ class MemSessionStorage(SessionStorage):
 
         self._sessions[key] = data
         self._session_batch[self._get_id_hash(uid)].append(key)
+
+    async def rekey_session(self, session_id: str, settings: Settings) -> str:
+        """Rekey session.
+
+        :param str session_id: session id
+        :param Settings settings: app settings
+        :return str: jwt token
+        """
+        data = await self.get(session_id)
+        if data is None:
+            raise KeyError("Invalid session id")
+
+        tmp = data.get("id")
+        if tmp is None:
+            raise KeyError("Invalid session id")
+
+        uid = int(tmp)
+        extra_data = data.copy()
+        extra_data.pop("sign", None)
+
+        key = await self.create_session(uid, settings, extra_data=extra_data)
+        await self.delete_user_session(session_id)
+
+        return key  # noqa: R504
