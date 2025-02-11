@@ -13,13 +13,10 @@ from sqlalchemy.orm import defaultload
 
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_user
 from models import Group, User
 from security import verify_password
-
-from .utils import get_ip_from_request
 
 ALGORITHM = "HS256"
 
@@ -74,15 +71,10 @@ async def get_current_user(  # noqa: D103
     if user is None:
         raise _CREDENTIALS_EXCEPTION
 
-    ip = get_ip_from_request(request)
-    network_policy = await get_user_network_policy(ip, user, session)
-    if network_policy is None:
-        raise _CREDENTIALS_EXCEPTION
-
     session_id, _ = session_key.split(".")
     try:
         if await session_storage.check_rekey(
-            session_id, network_policy.session_rekey_interval,
+            session_id, settings.SESSION_REKEY_INTERVAL,
         ):
             key = await session_storage.rekey_session(session_id, settings)
             response.set_cookie(

@@ -99,7 +99,6 @@ async def add_network_policy(
         is_kerberos=new_policy.is_kerberos,
         bypass_no_connection=new_policy.bypass_no_connection,
         bypass_service_failure=new_policy.bypass_service_failure,
-        session_rekey_interval=new_policy.session_rekey_interval,
     )
 
 
@@ -136,7 +135,6 @@ async def get_list_network_policies(
             is_kerberos=policy.is_kerberos,
             bypass_no_connection=policy.bypass_no_connection,
             bypass_service_failure=policy.bypass_service_failure,
-            session_rekey_interval=policy.session_rekey_interval,
         )
         for policy in await session.scalars(
             select(NetworkPolicy)
@@ -290,9 +288,6 @@ async def update_network_policy(
     if request.bypass_service_failure is not None:
         selected_policy.bypass_service_failure = request.bypass_service_failure
 
-    if request.session_rekey_interval is not None:
-        selected_policy.session_rekey_interval = request.session_rekey_interval
-
     try:
         await session.commit()
     except IntegrityError:
@@ -316,7 +311,6 @@ async def update_network_policy(
         is_kerberos=selected_policy.is_kerberos,
         bypass_no_connection=selected_policy.bypass_no_connection,
         bypass_service_failure=selected_policy.bypass_service_failure,
-        session_rekey_interval=selected_policy.session_rekey_interval,
     )
 
 
