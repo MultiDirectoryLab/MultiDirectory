@@ -307,8 +307,7 @@ class RedisSessionStorage(SessionStorage):
         session_id, signature, data = self._generate_session_data(
             uid, settings, extra_data)
 
-        await self._storage.set(
-            session_id, json.dumps(data), ex=self.key_ttl)
+        await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
         await self._storage.append(self._get_id_hash(uid), f"{session_id};")
 
         return f"{session_id}.{signature}"
@@ -371,8 +370,7 @@ class RedisSessionStorage(SessionStorage):
             self._generate_session_data(uid, settings, extra_data)
         )
 
-        await self._storage.set(
-            new_session_id, json.dumps(new_data), ex=ttl)
+        await self._storage.set(new_session_id, json.dumps(new_data), ex=ttl)
         await self._storage.append(
             self._get_id_hash(uid), f"{new_session_id};")
 
