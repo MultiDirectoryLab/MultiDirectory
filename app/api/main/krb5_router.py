@@ -14,7 +14,7 @@ from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
-from sqlalchemy import delete, select, or_
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
