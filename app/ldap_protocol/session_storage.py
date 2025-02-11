@@ -358,9 +358,8 @@ class RedisSessionStorage(SessionStorage):
         """
         lock = self._storage.lock(
             self._get_lock_key(session_id), blocking_timeout=5)
-        try:
-            await lock.acquire()
 
+        async with lock:
             data = await self.get(session_id)
 
             tmp = data.get("id")
@@ -384,8 +383,6 @@ class RedisSessionStorage(SessionStorage):
             await self.delete_user_session(session_id)
 
             return f"{new_session_id}.{new_signature}"
-        finally:
-            await lock.release()
 
 
 class MemSessionStorage(SessionStorage):
