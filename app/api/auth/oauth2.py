@@ -80,17 +80,18 @@ async def get_current_user(  # noqa: D103
         raise _CREDENTIALS_EXCEPTION
 
     session_id, _ = session_key.split(".")
-    rekey_is_need = await session_storage.check_rekey(
-        session_id, network_policy.session_rekey_interval,
-    )
-
-    if rekey_is_need:
-        key = await session_storage.rekey_session(session_id, settings)
-        response.set_cookie(
-            key="id",
-            value=key,
-            httponly=True,
-            expires=session_storage.key_ttl,
-        )
+    try:
+        if await session_storage.check_rekey(
+            session_id, network_policy.session_rekey_interval,
+        ):
+            key = await session_storage.rekey_session(session_id, settings)
+            response.set_cookie(
+                key="id",
+                value=key,
+                httponly=True,
+                expires=session_storage.key_ttl,
+            )
+    except KeyError as err:
+        raise _CREDENTIALS_EXCEPTION from err
 
     return await UserSchema.from_db(user, session_id)
