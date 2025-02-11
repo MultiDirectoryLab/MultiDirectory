@@ -56,6 +56,19 @@ async def get_current_user(  # noqa: D103
     request: Request,
     response: Response,
 ) -> UserSchema:
+    """Get current user.
+
+    This function fetches the user id associated with the session stored in the
+    request's cookies, verifies the session, and returns the user schema.
+    Makes a rekey of the session if necessary.
+
+    :param FromDishka[Settings] settings: settings
+    :param FromDishka[AsyncSession] session: db session
+    :param FromDishka[SessionStorage] session_storage: session storage
+    :param Request request: request
+    :param Response response: response
+    :return UserSchema: user schema
+    """
     session_key = request.cookies.get("id", "")
     try:
         user_id = await session_storage.get_user_id(settings, session_key)
