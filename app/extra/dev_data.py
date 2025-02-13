@@ -271,6 +271,7 @@ TEST_DATA = [  # noqa
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
+                    "description": ["123 desc"],
                 },
             },
             {
