@@ -3,14 +3,17 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+from ipaddress import IPv4Address, IPv6Address
+from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import HTTPException, Request, Response, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
@@ -55,6 +58,8 @@ async def get_current_user(  # noqa: D103
     session_storage: FromDishka[SessionStorage],
     request: Request,
     response: Response,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
+    user_agent: Annotated[str, Depends(get_user_agent_from_request)],
 ) -> UserSchema:
     """Get current user.
 
@@ -71,7 +76,9 @@ async def get_current_user(  # noqa: D103
     """
     session_key = request.cookies.get("id", "")
     try:
-        user_id = await session_storage.get_user_id(settings, session_key)
+        user_id = await session_storage.get_user_id(
+            settings, session_key, user_agent, str(ip),
+        )
     except KeyError as err:
         raise _CREDENTIALS_EXCEPTION from err
 

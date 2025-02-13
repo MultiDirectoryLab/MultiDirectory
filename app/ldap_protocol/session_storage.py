@@ -68,6 +68,11 @@ class SessionStorage(ABC):
             hashlib.sha256,
         ).hexdigest()
 
+    def get_user_agent_hash(self, user_agent: str) -> str:
+        """Get user agent hash."""
+        return hashlib.blake2b(
+            user_agent.encode(), digest_size=16).hexdigest()
+
     def _get_id_hash(self, user_id: int) -> str:
         return "keys:" + hashlib.blake2b(
             str(user_id).encode(), digest_size=16).hexdigest()
@@ -86,6 +91,36 @@ class SessionStorage(ABC):
         :return str: lock key
         """
         return f"lock:{session_id}"
+
+    def _validate_session_data(
+        self,
+        data: dict,
+        session_id: str,
+        signature: str,
+        user_agent: str,
+        ip: str,
+        settings: Settings,
+    ) -> None:
+        """Validate session data.
+
+        :param dict data: session data
+        :param str user_agent: user agent
+        :param str ip: ip address
+        """
+        if data is None:
+            raise KeyError("Session data is missing")
+
+        if data.get("ip") != str(ip):
+            raise KeyError("Invalid ip")
+
+        if data.get("user_agent") != self.get_user_agent_hash(user_agent):
+            raise KeyError("Invalid user agent")
+
+        if (
+            data.get("sign") != signature or
+            signature != self._sign(session_id, settings)
+        ):
+            raise KeyError("Invalid signature")
 
     @abstractmethod
     async def create_session(
@@ -107,6 +142,8 @@ class SessionStorage(ABC):
         self: Self,
         settings: Settings,
         session_key: str,
+        user_agent: str,
+        ip: str,
     ) -> int:
         """Get user from storage.
 
@@ -120,15 +157,19 @@ class SessionStorage(ABC):
             raise KeyError("Invalid payload key")
 
         data = await self.get(session_id)
+        self._validate_session_data(
+            data,
+            session_id,
+            signature,
+            user_agent,
+            ip,
+            settings,
+        )
 
-        if data is None or data.get("sign") != signature:
-            raise KeyError("Invalid signature")
-
-        expected_signature = self._sign(session_id, settings)
         user_id = data.get("id")
 
-        if signature != expected_signature or user_id is None:
-            raise KeyError("Invalid signature")
+        if user_id is None:
+            raise KeyError("Invalid data")
 
         return user_id
 
