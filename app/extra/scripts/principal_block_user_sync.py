@@ -21,7 +21,10 @@ from ldap_protocol.utils.queries import (
 )
 from models import Attribute, Directory, User
 
+from .task_base import task_metadata
 
+
+@task_metadata(repeat=60.0, global_=True)
 async def principal_block_sync(
     session: AsyncSession, settings: Settings,
 ) -> None:

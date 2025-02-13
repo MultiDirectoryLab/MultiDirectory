@@ -15,10 +15,13 @@ from ldap_protocol.utils.queries import get_base_directories
 from models import User
 from security import get_password_hash
 
+from .task_base import task_metadata
+
 _LOCK_FILE = ".lock"
 _PATH = "/var/spool/krb5-sync"
 
 
+@task_metadata(repeat=1.5)
 async def read_and_save_krb_pwds(session: AsyncSession) -> None:
     """Process file queue with lock.
 
