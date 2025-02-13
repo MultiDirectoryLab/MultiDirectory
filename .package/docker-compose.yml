@@ -192,6 +192,7 @@ services:
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: md_maintence
+    restart: unless-stopped
     volumes:
       - ./certs:/certs
       - psync_queue:/var/spool/krb5-sync
