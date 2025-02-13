@@ -17,7 +17,10 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.utils.queries import get_base_directories
 
+from .task_base import task_metadata
 
+
+@task_metadata(repeat=0, one_time=True, global_=True)
 async def check_ldap_principal(
     kadmin: AbstractKadmin,
     session: AsyncSession,

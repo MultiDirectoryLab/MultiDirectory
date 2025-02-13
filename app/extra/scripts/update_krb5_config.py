@@ -10,7 +10,10 @@ from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.utils.queries import get_base_directories
 
+from .task_base import task_metadata
 
+
+@task_metadata(repeat=0.0, one_time=True, global_=True)
 async def update_krb5_config(
     kadmin: AbstractKadmin,
     session: AsyncSession,

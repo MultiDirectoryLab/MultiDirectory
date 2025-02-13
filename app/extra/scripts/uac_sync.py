@@ -14,7 +14,10 @@ from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.queries import add_lock_and_expire_attributes
 from models import Attribute, User
 
+from .task_base import task_metadata
 
+
+@task_metadata(repeat=600.0, global_=True)
 async def disable_accounts(
     session: AsyncSession, kadmin: AbstractKadmin, settings: Settings,
 ) -> None:
