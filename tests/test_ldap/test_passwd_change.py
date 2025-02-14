@@ -17,8 +17,8 @@ from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('_force_override_tls')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("_force_override_tls")
 async def test_anonymous_pwd_change(
     session: AsyncSession,
     event_loop: asyncio.BaseEventLoop,
@@ -28,17 +28,18 @@ async def test_anonymous_pwd_change(
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
-    new_test_password = 'Password123'  # noqa
+    new_test_password = "Password123"
     await event_loop.run_in_executor(None, ldap_client.bind)
 
     result = await event_loop.run_in_executor(
         None,
-        partial(  # noqa: S106
+        partial(
             ldap_client.extend.standard.modify_password,
             user_dn,
             old_password=password,
             new_password=new_test_password,
-        ))
+        ),
+    )
 
     assert result
 
@@ -52,8 +53,8 @@ async def test_anonymous_pwd_change(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('_force_override_tls')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("_force_override_tls")
 async def test_bind_pwd_change(
     session: AsyncSession,
     event_loop: asyncio.BaseEventLoop,
@@ -63,17 +64,19 @@ async def test_bind_pwd_change(
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
-    new_test_password = 'Password123'  # noqa
+    new_test_password = "Password123"
     await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=user_dn, password=password))
+        None, partial(ldap_client.rebind, user=user_dn, password=password)
+    )
 
     result = await event_loop.run_in_executor(
         None,
-        partial(  # noqa: S106
+        partial(
             ldap_client.extend.standard.modify_password,
             old_password=password,
             new_password=new_test_password,
-        ))
+        ),
+    )
 
     assert result
 

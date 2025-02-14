@@ -68,13 +68,15 @@ class Settings(BaseSettings):
     @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
         """Build postgres DSN."""
-        return PostgresDsn((
-            f"{self.POSTGRES_SCHEMA}://"
-            f"{self.POSTGRES_USER}:"
-            f"{self.POSTGRES_PASSWORD}@"
-            f"{self.POSTGRES_HOST}/"
-            f"{self.POSTGRES_DB}"
-        ))
+        return PostgresDsn(
+            (
+                f"{self.POSTGRES_SCHEMA}://"
+                f"{self.POSTGRES_USER}:"
+                f"{self.POSTGRES_PASSWORD}@"
+                f"{self.POSTGRES_HOST}/"
+                f"{self.POSTGRES_DB}"
+            )
+        )
 
     VENDOR_NAME: str = "MultiFactor"
     VENDOR_VERSION: str = Field(
@@ -101,15 +103,16 @@ class Settings(BaseSettings):
     KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/ldap.keytab"
 
     TEMPLATES: jinja2.Environment = jinja2.Environment(
-        loader=jinja2.FileSystemLoader('extra/templates'),
-        enable_async=True, autoescape=True,
+        loader=jinja2.FileSystemLoader("extra/templates"),
+        enable_async=True,
+        autoescape=True,
     )
 
-    DNS_BIND_HOST: str = 'bind_dns'
-    DNS_TSIG_KEY: str = '/DNS_server_file/zone.key'
-    DNS_ZONE_FILE: str = '/DNS_server_file/db.zone'
-    DNS_SERVER_NAMED_CONF: str = '/DNS_server_configs/named.conf'
-    DNS_SERVER_NAMED_CONF_LOCAL: str = '/DNS_server_configs/named.conf.local'
+    DNS_BIND_HOST: str = "bind_dns"
+    DNS_TSIG_KEY: str = "/DNS_server_file/zone.key"
+    DNS_ZONE_FILE: str = "/DNS_server_file/db.zone"
+    DNS_SERVER_NAMED_CONF: str = "/DNS_server_configs/named.conf"
+    DNS_SERVER_NAMED_CONF_LOCAL: str = "/DNS_server_configs/named.conf.local"
 
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 

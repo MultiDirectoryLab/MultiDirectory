@@ -23,11 +23,11 @@ from models import Attribute, Directory, User
 
 
 async def principal_block_sync(
-    session: AsyncSession, settings: Settings,
+    session: AsyncSession,
+    settings: Settings,
 ) -> None:
     """Synchronize principal and user account blocking."""
     for user in await session.scalars(select(User)):
-
         uac_check = await get_check_uac(session, user.directory_id)
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             continue
@@ -50,7 +50,8 @@ async def principal_block_sync(
             continue
 
         expiration_time = datetime.strptime(
-            krb_exp_attr.value, "%Y%m%d%H%M%SZ",
+            krb_exp_attr.value,
+            "%Y%m%d%H%M%SZ",
         ).replace(
             tzinfo=settings.TIMEZONE,
         )

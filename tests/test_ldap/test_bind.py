@@ -46,13 +46,16 @@ async def test_bind_ok_and_unbind(
     bind = MutePolicyBindRequest(
         version=0,
         name=creds.un,
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="password"),
     )
 
     result = await anext(
         bind.handle(
-            session, ldap_session,
-            kadmin, settings, None,  # type: ignore
+            session,
+            ldap_session,
+            kadmin,
+            settings,
+            None,  # type: ignore
         ),
     )
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
@@ -241,7 +244,7 @@ async def test_bind_invalid_password_or_user(
     bind = BindRequest(
         version=0,
         name="user0",
-        AuthenticationChoice=SimpleAuthentication(password="fail"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="fail"),
     )
 
     bad_response = BindResponse(
@@ -264,7 +267,7 @@ async def test_bind_invalid_password_or_user(
     bind = BindRequest(
         version=0,
         name="user1",
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="password"),
     )
 
     # async with container(scope=Scope.REQUEST) as container:
@@ -285,7 +288,7 @@ async def test_anonymous_bind(
     bind = BindRequest(
         version=0,
         name="",
-        AuthenticationChoice=SimpleAuthentication(password=""),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password=""),
     )
     async with container(scope=Scope.REQUEST) as container:
         handler = await resolve_deps(bind.handle, container)
@@ -309,7 +312,9 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+    ldap_client: Connection,
+    event_loop: BaseEventLoop,
+    creds: TestCreds,
 ) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound
@@ -319,7 +324,8 @@ async def test_ldap3_bind(
     assert ldap_client.bound
 
     result = await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw),
+        None,
+        partial(ldap_client.rebind, user=creds.un, password=creds.pw),
     )
     assert result
     assert ldap_client.bound
@@ -332,7 +338,9 @@ async def test_ldap3_bind(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind_sasl_plain(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+    ldap_client: Connection,
+    event_loop: BaseEventLoop,
+    creds: TestCreds,
 ) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound
@@ -384,7 +392,7 @@ async def test_bind_disabled_user(
     bind = BindRequest(
         version=0,
         name=user.sam_accout_name,
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="password"),
     )
 
     bad_response = BindResponse(

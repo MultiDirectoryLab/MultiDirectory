@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from __future__ import annotations
 
 import enum
@@ -46,10 +47,12 @@ class Base(DeclarativeBase, AsyncAttrs):
 
 nbool = Annotated[bool, mapped_column(nullable=False)]
 tbool = Annotated[
-    bool, mapped_column(server_default=expression.true(), nullable=False),
+    bool,
+    mapped_column(server_default=expression.true(), nullable=False),
 ]
 fbool = Annotated[
-    bool, mapped_column(server_default=expression.false(), nullable=False),
+    bool,
+    mapped_column(server_default=expression.false(), nullable=False),
 ]
 
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
@@ -57,7 +60,9 @@ UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
 @compiles(UniqueConstraint, "postgresql")
 def compile_create_uc(
-    create: DDLElement, compiler: DDLCompiler, **kw: dict,
+    create: DDLElement,
+    compiler: DDLCompiler,
+    **kw: dict,
 ) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
@@ -73,7 +78,7 @@ class CatalogueSetting(Base):
 
     __tablename__ = "Settings"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False, index=True)
     value: Mapped[str] = mapped_column(nullable=False)
 
@@ -83,10 +88,12 @@ class DirectoryMembership(Base):
 
     __tablename__ = "DirectoryMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+    )
 
     directory_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class PolicyMembership(Base):
@@ -94,9 +101,11 @@ class PolicyMembership(Base):
 
     __tablename__ = "PolicyMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+    )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class PolicyMFAMembership(Base):
@@ -104,9 +113,11 @@ class PolicyMFAMembership(Base):
 
     __tablename__ = "PolicyMFAMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+    )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class AccessPolicyMembership(Base):
@@ -114,9 +125,11 @@ class AccessPolicyMembership(Base):
 
     __tablename__ = "AccessPolicyMemberships"
     dir_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True
+    )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class GroupAccessPolicyMembership(Base):
@@ -124,9 +137,11 @@ class GroupAccessPolicyMembership(Base):
 
     __tablename__ = "GroupAccessPolicyMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+    )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True)
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class Directory(Base):
@@ -134,7 +149,7 @@ class Directory(Base):
 
     __tablename__ = "Directory"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     parent_id: Mapped[int] = mapped_column(
         "parentId",
@@ -174,7 +189,8 @@ class Directory(Base):
     objectsid: Mapped[str] = synonym("object_sid")
 
     password_policy_id: Mapped[int] = mapped_column(
-        ForeignKey("PasswordPolicies.id"), nullable=True)
+        ForeignKey("PasswordPolicies.id"), nullable=True
+    )
 
     object_guid: Mapped[uuid.UUID] = mapped_column(
         "objectGUID",
@@ -185,7 +201,8 @@ class Directory(Base):
     objectguid: Mapped[str] = synonym("object_guid")
 
     path: Mapped[list[str]] = mapped_column(
-        postgresql.ARRAY(String), nullable=False, index=True)
+        postgresql.ARRAY(String), nullable=False, index=True
+    )
 
     attributes: Mapped[list[Attribute]] = relationship(
         "Attribute",
@@ -300,7 +317,7 @@ class User(Base):
 
     __tablename__ = "Users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
@@ -316,15 +333,20 @@ class User(Base):
     )
 
     sam_accout_name: Mapped[str] = mapped_column(
-        "sAMAccountName", nullable=False, unique=True,
+        "sAMAccountName",
+        nullable=False,
+        unique=True,
     )
     user_principal_name: Mapped[str] = mapped_column(
-        "userPrincipalName", nullable=False, unique=True,
+        "userPrincipalName",
+        nullable=False,
+        unique=True,
     )
 
     mail: Mapped[str | None] = mapped_column(String(255))
     display_name: Mapped[str | None] = mapped_column(
-        "displayName", nullable=True)
+        "displayName", nullable=True
+    )
     password: Mapped[str] = mapped_column(nullable=True)
 
     samaccountname: Mapped[str] = synonym("sam_accout_name")
@@ -334,9 +356,11 @@ class User(Base):
     accountexpires: Mapped[str] = synonym("account_exp")
 
     last_logon: Mapped[datetime | None] = mapped_column(
-        "lastLogon", DateTime(timezone=True))
+        "lastLogon", DateTime(timezone=True)
+    )
     account_exp: Mapped[datetime | None] = mapped_column(
-        "accountExpires", DateTime(timezone=True))
+        "accountExpires", DateTime(timezone=True)
+    )
 
     search_fields = {
         "mail": "mail",
@@ -353,7 +377,7 @@ class User(Base):
         "homedirectory": "homeDirectory",
     }
 
-    password_history: Mapped[list[str]] = mapped_column(  # noqa TAE002
+    password_history: Mapped[list[str]] = mapped_column(
         MutableList.as_mutable(postgresql.ARRAY(String)),
         server_default="{}",
         nullable=False,
@@ -365,7 +389,7 @@ class User(Base):
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
-        lazy='selectin',
+        lazy="selectin",
         cascade="all",
         passive_deletes=True,
         overlaps="group,groups,directory",
@@ -399,7 +423,7 @@ class Group(Base):
 
     __tablename__ = "Groups"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
@@ -490,7 +514,7 @@ class Attribute(Base):
         ),
     )
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
@@ -503,7 +527,9 @@ class Attribute(Base):
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     directory: Mapped[Directory] = relationship(
-        "Directory", back_populates="attributes", uselist=False,
+        "Directory",
+        back_populates="attributes",
+        uselist=False,
     )
 
 
@@ -520,7 +546,7 @@ class NetworkPolicy(Base):
 
     __tablename__ = "Policies"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
 
     raw: Mapped[dict | list] = mapped_column(postgresql.JSON, nullable=False)
@@ -535,7 +561,10 @@ class NetworkPolicy(Base):
     priority: Mapped[int] = mapped_column(nullable=False)
 
     priority_uc = UniqueConstraint(
-        "priority", name="priority_uc", deferrable=True, initially="DEFERRED",
+        "priority",
+        name="priority_uc",
+        deferrable=True,
+        initially="DEFERRED",
     )
 
     groups: Mapped[list[Group]] = relationship(
@@ -544,7 +573,9 @@ class NetworkPolicy(Base):
         back_populates="policies",
     )
     mfa_status: Mapped[MFAFlags] = mapped_column(
-        Enum(MFAFlags), server_default="DISABLED", nullable=False,
+        Enum(MFAFlags),
+        server_default="DISABLED",
+        nullable=False,
     )
 
     is_ldap: Mapped[tbool]
@@ -566,7 +597,7 @@ class PasswordPolicy(Base):
 
     __tablename__ = "PasswordPolicies"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -575,15 +606,19 @@ class PasswordPolicy(Base):
     )
 
     password_history_length: Mapped[int] = mapped_column(
-        nullable=False, server_default="4")
+        nullable=False, server_default="4"
+    )
     maximum_password_age_days: Mapped[int] = mapped_column(
-        nullable=False, server_default="0",
+        nullable=False,
+        server_default="0",
     )
     minimum_password_age_days: Mapped[int] = mapped_column(
-        nullable=False, server_default="0",
+        nullable=False,
+        server_default="0",
     )
     minimum_password_length: Mapped[int] = mapped_column(
-        nullable=False, server_default="7",
+        nullable=False,
+        server_default="7",
     )
     password_must_meet_complexity_requirements: Mapped[tbool]
 
@@ -593,7 +628,7 @@ class AccessPolicy(Base):
 
     __tablename__ = "AccessPolicies"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
     can_read: Mapped[nbool]

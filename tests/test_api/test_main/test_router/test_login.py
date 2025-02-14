@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import httpx
 import pytest
 from fastapi import status
@@ -12,9 +13,10 @@ from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_before_setup(
-        unbound_http_client: httpx.AsyncClient) -> None:
+    unbound_http_client: httpx.AsyncClient,
+) -> None:
     """Test api before setup."""
     response = await unbound_http_client.get("auth/me")
 
@@ -22,10 +24,11 @@ async def test_api_before_setup(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("session")
 async def test_api_auth_after_change_account_exp(
-        http_client: httpx.AsyncClient) -> None:
+    http_client: httpx.AsyncClient,
+) -> None:
     """Test api auth."""
     await http_client.patch(
         "/entry/update",
@@ -45,9 +48,10 @@ async def test_api_auth_after_change_account_exp(
     auth = await http_client.post(
         "auth/",
         data={
-            "username": 'new_user@md.test',
-            "password": 'P@ssw0rd',
-        })
+            "username": "new_user@md.test",
+            "password": "P@ssw0rd",
+        },
+    )
 
     assert auth.status_code == status.HTTP_403_FORBIDDEN
 
@@ -69,23 +73,24 @@ async def test_api_auth_after_change_account_exp(
     auth = await http_client.post(
         "auth/",
         data={
-            "username": 'new_user@md.test',
-            "password": 'P@ssw0rd',
-        })
+            "username": "new_user@md.test",
+            "password": "P@ssw0rd",
+        },
+    )
 
-    assert auth.cookies.get('id')
+    assert auth.cookies.get("id")
 
 
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_refresh_and_logout_flow(
-        unbound_http_client: httpx.AsyncClient,
-        creds: TestCreds) -> None:
+    unbound_http_client: httpx.AsyncClient, creds: TestCreds
+) -> None:
     """Test login, refresh and logout cookie flow."""
     await unbound_http_client.post(
-        "auth/",
-        data={"username": creds.un, "password": creds.pw})
+        "auth/", data={"username": creds.un, "password": creds.pw}
+    )
 
-    old_token = unbound_http_client.cookies.get('id')
+    old_token = unbound_http_client.cookies.get("id")
 
     assert old_token
 

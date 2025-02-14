@@ -28,7 +28,7 @@ async def adding_test_user(
 ) -> None:
     """Test add user like keycloak."""
     test_user_dn = "cn=test,dc=md,dc=test"
-    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'  # noqa
+    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'
     response = await http_client.post(
         "/entry/add",
         json={
@@ -118,10 +118,10 @@ async def adding_test_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
     async with AsyncClient(
-            transport=ASGITransport(app=app, root_path='/api'),
-            timeout=3,
-            base_url="http://test") as client:
-
+        transport=ASGITransport(app=app, root_path="/api"),
+        timeout=3,
+        base_url="http://test",
+    ) as client:
         auth = await client.post(
             "auth/",
             data={
@@ -133,7 +133,7 @@ async def adding_test_user(
         assert auth.cookies.get("id")
 
 
-@pytest_asyncio.fixture(scope='function')
+@pytest_asyncio.fixture(scope="function")
 async def add_dns_settings(
     session: AsyncSession,
 ) -> None:
