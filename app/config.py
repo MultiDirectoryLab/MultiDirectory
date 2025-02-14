@@ -77,7 +77,10 @@ class Settings(BaseSettings):
         ))
 
     VENDOR_NAME: str = "MultiFactor"
-    VENDOR_VERSION: str = Field(default_factory=_get_vendor_version)
+    VENDOR_VERSION: str = Field(
+        default_factory=_get_vendor_version,
+        alias="VERSION",
+    )
     # to get a string run: `openssl rand -hex 32`
     SECRET_KEY: str
     SESSION_KEY_EXPIRE_SECONDS: int = 60 * 60 * 8
