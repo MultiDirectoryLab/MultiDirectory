@@ -50,6 +50,61 @@ async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap_search_filter(
+    settings: Settings, creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter on server."""
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-x', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
+        '-D', creds.un,
+        '-w', creds.pw,
+        '-b', 'dc=md,dc=test',
+        '(&'
+        '(objectClass=user)'
+        '(memberOf:1.2.840.113556.1.4.1941:=cn=domain admins,cn=groups,dc=md,\
+            dc=test)'
+        ')',
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split('\n')
+    result = await proc.wait()
+
+    assert result == 0
+    assert "dn: cn=user0,ou=users,dc=md,dc=test" in data
+    assert "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test" in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures('session')
+async def test_ldap_search_filter_prefix(
+    settings: Settings, creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter on server."""
+    proc = await asyncio.create_subprocess_exec(
+        'ldapsearch',
+        '-vvv', '-x', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
+        '-D', creds.un,
+        '-w', creds.pw,
+        '-b', 'dc=md,dc=test',
+        '(description=*desc)',
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split('\n')
+    result = await proc.wait()
+
+    assert result == 0
+    assert "dn: cn=user0,ou=users,dc=md,dc=test" in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures('setup_session')
 async def test_bind_policy(
     session: AsyncSession,
     settings: Settings,

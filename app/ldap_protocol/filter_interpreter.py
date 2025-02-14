@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import uuid
+from contextlib import suppress
 from operator import eq, ge, le, ne
 from typing import Callable
 
@@ -30,6 +31,9 @@ MEMBERS_ATTRS = {
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
     expr = right.value[0]
     value = expr.value
+    if isinstance(value, bytes):
+        with suppress(UnicodeDecodeError):
+            value = value.decode()
     index = expr.tag_id
     return [f"{value}%", f"%{value}%", f"%{value}"][index]
 
