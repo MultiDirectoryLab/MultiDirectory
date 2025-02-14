@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "MultiDirectory"
-version = "2.1.1"
+version = "2.0.1"
 description = ""
 authors = ["Mastermind-U <rex49513@gmail.com>"]
 readme = "README.md"
@@ -61,24 +61,6 @@ watchdog = "4.0.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.isort]
-known_first_party = [
-    "ldap_protocol",
-    "client",
-    "config",
-    "models",
-    "api",
-    "security",
-    "tests",
-    "web_app",
-    "ioc",
-    "schedule",
-    "extra",
-]
-include_trailing_comma = true
-line_length = 79
-multi_line_output = 3
-
 [tool.mypy]
 plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
 ignore_missing_imports = true
@@ -105,65 +87,119 @@ show_missing = true
 [tool.coverage.run]
 concurrency = ["thread", "gevent"]
 
+
+# RUFF
+# ruff check . --preview
+# ruff check . --fix --unsafe-fixes
+# ruff format .
 [tool.ruff]
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".ipynb_checkpoints",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pyenv",
-    ".pytest_cache",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    ".vscode",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "site-packages",
-    "venv",
-]
-
-line-length = 79
-indent-width = 4
-
 target-version = "py312"
+line-length = 79
+output-format = "grouped"
+unsafe-fixes = true
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 79
+line-ending = "lf"
+skip-magic-trailing-comma = false  # default: false
 
 [tool.ruff.lint]
-# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
-# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
-# McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F"]
-ignore = []
+# Flake8 S101, I900, G004, IF100, S311, D301, E231
+# S101 - ???
+# I900 - ???
+# G004 - ???
+# IF100 - default done
+# S311 - ???
+# D301 - ???
+# E231 - ???
 
-# Allow fix for all enabled rules (when `--fix`) is provided.
+select = [
+    "F",  # Pyflakes. Must have
+    "E",  # pycodestyle (Error), check tool.ruff.lint.pycodestyle. Must have
+    "W",  # pycodestyle (Warnings), check tool.ruff.lint.pycodestyle
+    "C90",  # mccabe (max_complexity), check tool.ruff.lint.mccabe
+    "I",  # isort, check tool.ruff.lint.isort. Must have
+    "N",  # pep8-naming
+    # "D",  # pydocstyle, check tool.ruff.lint.pydocstyle TODO uncomment, ruff fix and fix error
+    "UP",  # pyupgrade, check tool.ruff.lint.pyupgrade. Must have
+    "ANN",  # flake8-annotations, check tool.ruff.lint.flake8-annotations
+    # "ASYNC",  # flake8-async TODO uncomment, ruff fix and fix error
+    "S",  # flake8-bandit
+    "B",  # flake8-bugbear. Must have
+    "COM",  # flake8-commas
+    # "CPY",  # flake8-copyright TODO uncomment, ruff fix and fix error
+    # "PIE",  # flake8-pie TODO uncomment, ruff fix and fix error
+    # "PYI",  # flake8-pyi TODO uncomment, ruff fix and fix error
+    # "Q",  # flake8-quotes TODO uncomment, ruff fix and fix error
+    # "RET",  # flake8-return TODO uncomment, ruff fix and fix error
+    # "SLF",  # flake8-self TODO uncomment, ruff fix and fix error
+    # "SIM",  # flake8-simplify. Must have TODO uncomment, ruff fix and fix error
+    # "TC",  # flake8-type-checking, check flake8-type-checking TODO does we need it? uncomment, ruff fix and fix error
+    # "ARG",  # flake8-unused-arguments TODO uncomment, ruff fix and fix error
+    # "TD",  # flake8-todos TODO uncomment, ruff fix and fix error
+    # "ERA",  # eradicate TODO uncomment, ruff fix and fix error
+    # "PGH",  # pygrep-hooks TODO does we need it? uncomment, ruff fix and fix error
+    # "PL",  # Pylint TODO uncomment, ruff fix and fix error
+    # "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
+    # "RUF",  # Ruff-specific rules TODO uncomment, ruff fix and fix error
+    "RUF100" # TODO delete that and uncomment "RUF"-rule in lune up.
+]
+
+# Gradually remove all values marked 'TODO' and fix errors.
+ignore = [
+    "UP007",  # TODO delete that and fix all errors
+    "UP015",  # TODO delete that and fix all errors
+    "UP017",  # TODO delete that and fix all errors
+    "UP032",  # TODO delete that and fix all errors
+    "UP034",  # TODO delete that and fix all errors
+    "UP035",  # this is necessary. We allowed deprecated import
+    "UP037",  # TODO delete that and fix all errors
+    "UP040",  # TODO delete that and fix all errors
+    "ANN001",  # TODO delete that and fix all errors
+    "ANN002",  # this is necessary.
+    "ANN003",  # this is necessary.
+    "ANN401",  # TODO delete that and fix all errors
+    "S311",  # TODO delete that and fix all errors
+    "B904",  # this is necessary.
+    "COM812",  # this is necessary. Cause conflicts when used with the formatter
+    "TC001",  # this is necessary.
+    "TC002",  # this is necessary.
+    "TC003",  # this is necessary.
+]
+extend-select = []
+
 fixable = ["ALL"]
 unfixable = []
 
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["S"] # Ignore `S` rules for the `tests/` directory.
 
-[tool.ruff.format]
-# Like Black, use double quotes for strings.
-quote-style = "double"
+[tool.ruff.lint.mccabe]
+# 23 Complexity level is too high, need to reduce this level
+# or ignore it `# noqa: C901`.
+max-complexity = 23
 
-# Like Black, indent with spaces, rather than tabs.
-indent-style = "space"
+[tool.ruff.lint.isort]
+known-first-party = [
+    "ldap_protocol",
+    "client",
+    "config",
+    "models",
+    "api",
+    "security",
+    "tests",
+    "web_app",
+    "ioc",
+    "schedule",
+    "extra",
+]
+split-on-trailing-comma = false
+combine-as-imports = true
 
-# Like Black, respect magic trailing commas.
-skip-magic-trailing-comma = false
+[tool.ruff.lint.flake8-annotations]
+suppress-dummy-args = true
+suppress-none-returning = true
 
-# Like Black, automatically detect the appropriate line ending.
-line-ending = "auto"
+[tool.ruff.lint.flake8-type-checking]
+quote-annotations = true
