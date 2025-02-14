@@ -138,7 +138,7 @@ select = [
     "RUF",  # Ruff-specific rules
 ]
 
-# Delete all values with TODO mark and fix errors.
+# Gradually remove all values marked TODO and fix errors.
 ignore = [
     "D",  # TODO delete that and fix all errors
     "UP007",  # TODO delete that and fix all errors
