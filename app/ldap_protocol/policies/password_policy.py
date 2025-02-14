@@ -215,9 +215,7 @@ class PasswordPolicySchema(BaseModel):
 
         password_exists = self._count_password_exists_days(last_pwd_set)
 
-        if password_exists < self.minimum_password_age_days:
-            return True
-        return False
+        return password_exists < self.minimum_password_age_days
 
     def validate_max_age(self, last_pwd_set: Attribute) -> bool:
         """Validate max password change age.
@@ -234,9 +232,7 @@ class PasswordPolicySchema(BaseModel):
 
         password_exists = self._count_password_exists_days(last_pwd_set)
 
-        if password_exists > self.maximum_password_age_days:
-            return True
-        return False
+        return password_exists > self.maximum_password_age_days
 
     async def validate_password_with_policy(
         self,

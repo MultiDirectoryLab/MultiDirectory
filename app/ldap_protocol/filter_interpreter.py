@@ -110,16 +110,15 @@ def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
     elif len(column.split(":")) == 3:
         attribute, oid = column.split(":")[:-1]
     else:
-        ValueError("Incorrect attribute specified")
+        raise ValueError("Incorrect attribute specified")
 
     if attribute == "memberof":
         if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL:
             return _recursive_filter_memberof
         return _filter_memberof
-    elif attribute == "member":
+    if attribute == "member":
         return _filter_member
-    else:
-        raise ValueError("Incorrect attribute specified")
+    raise ValueError("Incorrect attribute specified")
 
 
 def _ldap_filter_by_attribute(
@@ -162,20 +161,18 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
 
     if attr in User.search_fields:
         return _from_filter(User, item, attr, right)
-    elif attr in Directory.search_fields:
+    if attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right)
-    elif attr in MEMBERS_ATTRS:  # NOTE: without oid
+    if attr in MEMBERS_ATTRS:  # NOTE: without oid
         return _ldap_filter_by_attribute(None, left, right)
+    if is_substring:
+        cond = Attribute.value.ilike(_get_substring(right))
+    elif isinstance(right.value, str):
+        cond = Attribute.value.ilike(right.value)
     else:
-        if is_substring:
-            cond = Attribute.value.ilike(_get_substring(right))
-        else:
-            if isinstance(right.value, str):
-                cond = Attribute.value.ilike(right.value)
-            else:
-                cond = Attribute.bvalue == right.value
+        cond = Attribute.bvalue == right.value
 
-        return Directory.attributes.any(and_(Attribute.name.ilike(attr), cond))
+    return Directory.attributes.any(and_(Attribute.name.ilike(attr), cond))
 
 
 def cast_filter2sql(expr: ASN1Row) -> UnaryExpression | ColumnElement:
@@ -228,19 +225,18 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
 
     if item.attr in User.search_fields:
         return _from_str_filter(User, is_substring, item)
-    elif item.attr in Directory.search_fields:
+    if item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item)
-    elif item.attr in MEMBERS_ATTRS:
+    if item.attr in MEMBERS_ATTRS:
         return _api_filter(item)
+    if is_substring:
+        cond = Attribute.value.ilike(item.val.replace("*", "%"))
     else:
-        if is_substring:
-            cond = Attribute.value.ilike(item.val.replace("*", "%"))
-        else:
-            cond = Attribute.value.ilike(item.val)
+        cond = Attribute.value.ilike(item.val)
 
-        return Directory.attributes.any(
-            and_(Attribute.name.ilike(item.attr), cond),
-        )
+    return Directory.attributes.any(
+        and_(Attribute.name.ilike(item.attr), cond),
+    )
 
 
 def cast_str_filter2sql(expr: Filter) -> UnaryExpression | ColumnElement:

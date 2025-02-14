@@ -173,7 +173,7 @@ def get_attribute_types() -> list[str]:
 
     :return list[list[str]]: attrs
     """
-    with open("extra/adTypes.txt", "r") as file:
+    with open("extra/adTypes.txt") as file:
         return [line.replace(")\n", " )") for line in file]
 
 
@@ -182,7 +182,7 @@ def get_object_classes() -> list[str]:
 
     :return list[list[str]]: attrs
     """
-    with open("extra/adClasses.txt", "r") as file:
+    with open("extra/adClasses.txt") as file:
         return list(file)
 
 

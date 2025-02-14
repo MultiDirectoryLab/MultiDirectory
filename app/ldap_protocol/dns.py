@@ -166,7 +166,7 @@ class AbstractDNSManager(ABC):
             with open(settings.DNS_SERVER_NAMED_CONF, "a") as f:
                 f.write('\ninclude "/opt/zone.key";')
 
-            with open(settings.DNS_TSIG_KEY, "r") as f:
+            with open(settings.DNS_TSIG_KEY) as f:
                 key_file_content = f.read()
 
             tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
@@ -421,15 +421,15 @@ async def get_dns_manager_settings(
     ):
         settings_dict[setting.name] = setting.value
 
-    dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None)
+    dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME)
 
     if await get_dns_state(session) == DNSManagerState.SELFHOSTED:
         dns_server_ip = await resolve_coro
 
     return DNSManagerSettings(
-        zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
+        zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME),
         dns_server_ip=dns_server_ip,
-        tsig_key=settings_dict.get(DNS_MANAGER_TSIG_KEY_NAME, None),
+        tsig_key=settings_dict.get(DNS_MANAGER_TSIG_KEY_NAME),
     )
 
 

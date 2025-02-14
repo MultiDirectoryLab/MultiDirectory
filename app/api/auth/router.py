@@ -55,7 +55,7 @@ async def login(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> None:
-    """Create session to cookies and storage.
+    r"""Create session to cookies and storage.
 
     - **username**: username formats:
     `DN`, `userPrincipalName`, `saMAccountName`
@@ -170,7 +170,7 @@ async def password_reset(
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Reset user's (entry) password.
+    r"""Reset user's (entry) password.
 
     - **identity**: user identity, any
     `userPrincipalName`, `saMAccountName` or `DN`

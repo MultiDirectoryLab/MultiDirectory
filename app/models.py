@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -158,7 +158,7 @@ class Directory(Base):
         nullable=True,
     )
 
-    parent: Mapped["Directory | None"] = relationship(
+    parent: Mapped[Directory | None] = relationship(
         lambda: Directory,
         remote_side="Directory.id",
         backref=backref("directories", cascade="all,delete", viewonly=True),
@@ -294,12 +294,12 @@ class Directory(Base):
 
     def create_path(
         self,
-        parent: "Directory | None" = None,
+        parent: Directory | None = None,
         dn: str = "cn",
     ) -> None:
         """Create path from a new directory."""
         pre_path: list[str] = parent.path if parent else []
-        self.path = pre_path + [self.get_dn(dn)]
+        self.path = [*pre_path, self.get_dn(dn)]
         self.depth = len(self.path)
         self.rdname = dn
 
@@ -412,10 +412,10 @@ class User(Base):
         if self.account_exp is None:
             return False
 
-        now = datetime.now(tz=timezone.utc)
-        user_account_exp = self.account_exp.astimezone(timezone.utc)
+        now = datetime.now(tz=UTC)
+        user_account_exp = self.account_exp.astimezone(UTC)
 
-        return True if now > user_account_exp else False
+        return now > user_account_exp
 
 
 class Group(Base):

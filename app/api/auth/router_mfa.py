@@ -57,11 +57,11 @@ async def setup_mfa(
     mfa: MFACreateRequest,
     session: FromDishka[AsyncSession],
 ) -> bool:
-    """Set mfa credentials, rewrites if exists.
+    r"""Set mfa credentials, rewrites if exists.
     \f
     :param MFACreateRequest mfa: MuliFactor credentials
     :param FromDishka[AsyncSession] session: db
-    :return bool: status
+    :return bool: status.
     """
     async with session.begin_nested():
         await session.execute(
@@ -106,9 +106,9 @@ async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
 ) -> MFAGetResponse:
-    """Get MFA creds.
+    r"""Get MFA creds.
     \f
-    :return MFAGetResponse: response
+    :return MFAGetResponse: response.
     """
     if not mfa_creds:
         mfa_creds = MFA_HTTP_Creds(Creds(None, None))
@@ -134,7 +134,7 @@ async def callback_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> RedirectResponse:
-    """Disassemble mfa token and send redirect.
+    r"""Disassemble mfa token and send redirect.
 
     Callback endpoint for MFA.
     \f
@@ -185,7 +185,7 @@ async def two_factor_protocol(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> MFAChallengeResponse:
-    """Initiate two factor protocol with app.
+    r"""Initiate two factor protocol with app.
     \f
     :param Annotated[OAuth2Form, Depends form: password form
     :param Request request: FastAPI request
@@ -200,7 +200,7 @@ async def two_factor_protocol(
     :raises HTTPException: network policy violation
     :raises HTTPException: Multifactor error
     :return MFAChallengeResponse:
-        {'status': 'pending', 'message': https://example.com}
+        {'status': 'pending', 'message': https://example.com}.
     """
     if not api:
         raise HTTPException(

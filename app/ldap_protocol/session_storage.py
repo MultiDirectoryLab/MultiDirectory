@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import hmac
 import json
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from secrets import token_hex
 from typing import Iterable, Self
 
@@ -150,7 +151,7 @@ class SessionStorage(ABC):
         signature = self._sign(session_id, settings)
 
         data = {"id": uid, "sign": signature} | extra_data
-        data["issued"] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(UTC).isoformat()
         return session_id, signature, data
 
     @abstractmethod
@@ -249,7 +250,7 @@ class RedisSessionStorage(SessionStorage):
 
         retval = {}
 
-        for k, v in zip(keys, data):
+        for k, v in zip(keys, data, strict=False):
             if v is not None:
                 tmp = json.loads(v)
                 if k.startswith("ldap"):
@@ -330,7 +331,7 @@ class RedisSessionStorage(SessionStorage):
         :param str key: session key
         :param dict data: any data
         """
-        data["issued"] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(UTC).isoformat()
 
         await self._storage.set(key, json.dumps(data), ex=None)
         await self._storage.append(self._get_id_hash(uid), f"{key};")
@@ -350,7 +351,7 @@ class RedisSessionStorage(SessionStorage):
         data = await self.get(session_id)
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
-        return (datetime.now(timezone.utc) - issued).seconds > rekey_interval
+        return (datetime.now(UTC) - issued).seconds > rekey_interval
 
     async def _rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
@@ -474,10 +475,8 @@ class MemSessionStorage(SessionStorage):
         uid = int(tmp)
 
         keys = await self._get_user_keys(uid)
-        try:
+        with contextlib.suppress(KeyError):
             keys.remove(session_id)
-        except KeyError:
-            pass
 
         self._session_batch[self._get_id_hash(uid)] = list(keys)
         await self.delete([session_id])
@@ -520,7 +519,7 @@ class MemSessionStorage(SessionStorage):
         :param str key: session key
         :param dict data: any data
         """
-        data["issued"] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(UTC).isoformat()
 
         self._sessions[key] = data
         self._session_batch[self._get_id_hash(uid)].append(key)
@@ -535,7 +534,7 @@ class MemSessionStorage(SessionStorage):
         data = await self.get(session_id)
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
-        return (datetime.now(timezone.utc) - issued).seconds > rekey_interval
+        return (datetime.now(UTC) - issued).seconds > rekey_interval
 
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.

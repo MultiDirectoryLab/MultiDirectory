@@ -16,16 +16,16 @@ from .network.router import network_router
 from .shadow.router import shadow_router
 
 __all__ = [
-    "auth_router",
-    "session_router",
-    "entry_router",
-    "network_router",
-    "mfa_router",
-    "pwd_router",
     "access_policy_router",
+    "auth_router",
     "dns_router",
-    "krb5_router",
     "entry_router",
+    "entry_router",
+    "krb5_router",
+    "mfa_router",
     "network_router",
+    "network_router",
+    "pwd_router",
+    "session_router",
     "shadow_router",
 ]

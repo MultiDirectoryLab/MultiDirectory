@@ -455,22 +455,21 @@ class SearchRequest(BaseRequest):
                     for group in directory.groups:
                         attrs["memberOf"].append(group.directory.path_dn)
 
-            if self.token_groups:
-                if "user" in obj_classes:
-                    attrs["tokenGroups"].append(
-                        str(string_to_sid(directory.object_sid))
-                    )
+            if self.token_groups and "user" in obj_classes:
+                attrs["tokenGroups"].append(
+                    str(string_to_sid(directory.object_sid))
+                )
 
-                    group_directories = await get_all_parent_group_directories(
-                        directory.groups,
-                        session,
-                    )
+                group_directories = await get_all_parent_group_directories(
+                    directory.groups,
+                    session,
+                )
 
-                    if group_directories is not None:
-                        async for directory_ in group_directories:
-                            attrs["tokenGroups"].append(
-                                str(string_to_sid(directory_.object_sid))
-                            )
+                if group_directories is not None:
+                    async for directory_ in group_directories:
+                        attrs["tokenGroups"].append(
+                            str(string_to_sid(directory_.object_sid))
+                        )
 
             if self.member:
                 if "group" in obj_classes and directory.group:

@@ -219,7 +219,7 @@ class AbstractKadmin(ABC):
         self,
         name: str,
         password: str | None,
-        timeout: int | float = 1,
+        timeout: float = 1,
     ) -> None: ...
 
     @abstractmethod
@@ -485,32 +485,27 @@ class StubKadminMDADPIClient(AbstractKadmin):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def get_principal(self, name: str) -> None:
-        ...
+    async def get_principal(self, name: str) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def del_principal(self, name: str) -> None:
-        ...
+    async def del_principal(self, name: str) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def change_principal_password(
         self,
         name: str,
         password: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def create_or_update_principal_pw(
         self,
         name: str,
         password: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def rename_princ(self, name: str, new_name: str) -> None:
-        ...
+    async def rename_princ(self, name: str, new_name: str) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def ktadd(self, names: list[str]) -> NoReturn:
@@ -526,12 +521,10 @@ class StubKadminMDADPIClient(AbstractKadmin):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def lock_principal(self, name: str) -> None:
-        ...
+    async def lock_principal(self, name: str) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def force_princ_pw_change(self, name: str) -> None:
-        ...
+    async def force_princ_pw_change(self, name: str) -> None: ...
 
 
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
@@ -548,8 +541,7 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
 
 
 async def set_state(session: AsyncSession, state: "KerberosState") -> None:
-    """
-    Set the server state in the database.
+    """Set the server state in the database.
 
     This function updates the server state in the database by either adding
     a new entry, updating an existing entry, or deleting and re-adding the

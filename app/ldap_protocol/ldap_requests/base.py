@@ -5,14 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    AsyncGenerator,
-    Callable,
-    ClassVar,
-    Protocol,
-    TypeAlias,
-)
+from typing import TYPE_CHECKING, AsyncGenerator, Callable, ClassVar, Protocol
 
 from dishka import AsyncContainer
 from loguru import logger
@@ -34,8 +27,8 @@ log_api.add(
     colorize=False,
 )
 
-handler: TypeAlias = Callable[..., AsyncGenerator[BaseResponse, None]]
-serializer: TypeAlias = Callable[..., "BaseRequest"]
+type handler = Callable[..., AsyncGenerator[BaseResponse, None]]
+type serializer = Callable[..., "BaseRequest"]
 
 
 if TYPE_CHECKING:

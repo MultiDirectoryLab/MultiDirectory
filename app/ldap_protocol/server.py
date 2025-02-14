@@ -286,9 +286,7 @@ class PoolClientHandler:
             unwrap_data = ldap_session.gssapi_security_context.unwrap(
                 sasl_buffer,
             )
-            message = unwrap_data.message
-            data = message
-            return data
+            return unwrap_data.message
 
         return data
 
@@ -364,21 +362,20 @@ class PoolClientHandler:
             ldap_session.gssapi_authenticated
             and protocol_op != 1
             and ldap_session.gssapi_security_context
+        ) and ldap_session.gssapi_security_layer in (
+            GSSAPISL.INTEGRITY_PROTECTION,
+            GSSAPISL.CONFIDENTIALITY,
         ):
-            if ldap_session.gssapi_security_layer in (
-                GSSAPISL.INTEGRITY_PROTECTION,
-                GSSAPISL.CONFIDENTIALITY,
-            ):
-                encrypt = ldap_session.gssapi_security_layer == (
-                    GSSAPISL.CONFIDENTIALITY
-                )
-                wrap_data = ldap_session.gssapi_security_context.wrap(
-                    data,
-                    encrypt=encrypt,
-                )
-                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
+            encrypt = ldap_session.gssapi_security_layer == (
+                GSSAPISL.CONFIDENTIALITY
+            )
+            wrap_data = ldap_session.gssapi_security_context.wrap(
+                data,
+                encrypt=encrypt,
+            )
+            sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
 
-                return sasl_buffer_length + wrap_data.message
+            return sasl_buffer_length + wrap_data.message
 
         return data
 

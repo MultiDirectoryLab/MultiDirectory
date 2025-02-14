@@ -357,7 +357,7 @@ class ModifyRequest(BaseRequest):
                 if not UserAccountControlFlag.is_value_valid(uac_val):
                     continue
 
-                elif (
+                if (
                     bool(
                         uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
                     )

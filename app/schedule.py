@@ -1,7 +1,7 @@
 """Simple scheduler for tasks."""
 
 import asyncio
-from typing import Callable, Coroutine, TypeAlias
+from typing import Callable, Coroutine
 
 import uvloop
 from dishka import AsyncContainer, Scope, make_async_container
@@ -16,7 +16,7 @@ from extra.scripts.update_krb5_config import update_krb5_config
 from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
 
-task_type: TypeAlias = Callable[..., Coroutine]
+type task_type = Callable[..., Coroutine]
 
 _TASKS: set[tuple[task_type, float]] = {
     (read_and_save_krb_pwds, 1.5),

@@ -108,18 +108,28 @@ line-ending = "lf"
 skip-magic-trailing-comma = false  # default: false
 
 [tool.ruff.lint]
+# Flake8 S101, I900, G004, IF100, S311, D301, E231
+# S101 - ???
+# I900 - ???
+# G004 - ???
+# IF100 - done
+# S311 - ???
+# D301 - ???
+# E231 - ???
+
 select = [
-    "F",  # Pyflakes
-    "E",  # pycodestyle (Error), check tool.ruff.lint.pycodestyle
+    "F",  # Pyflakes. Must have
+    "E",  # pycodestyle (Error), check tool.ruff.lint.pycodestyle. Must have
     "W",  # pycodestyle (Warnings), check tool.ruff.lint.pycodestyle
     "C90",  # mccabe (max_complexity), check tool.ruff.lint.mccabe
-    "I",  # isort, check tool.ruff.lint.isort
+    "I",  # isort, check tool.ruff.lint.isort. Must have
     "N",  # pep8-naming
     "D",  # pydocstyle, check tool.ruff.lint.pydocstyle
-    "UP",  # pyupgrade, check tool.ruff.lint.pyupgrade
+    "UP",  # pyupgrade, check tool.ruff.lint.pyupgrade. Must have
     "ANN",  # flake8-annotations, check tool.ruff.lint.flake8-annotations
     "ASYNC",  # flake8-async
     "S",  # flake8-bandit
+    "B",  # flake8-bugbear. Must have
     "COM",  # flake8-commas
     "CPY",  # flake8-copyright
     "PIE",  # flake8-pie
@@ -127,7 +137,7 @@ select = [
     "Q",  # flake8-quotes
     "RET",  # flake8-return
     "SLF",  # flake8-self
-    "SIM",  # flake8-simplify
+    "SIM",  # flake8-simplify. Must have
     "TC",  # flake8-type-checking, check flake8-type-checking
     "ARG",  # flake8-unused-arguments
     "TD",  # flake8-todos
@@ -146,16 +156,17 @@ ignore = [
     "UP017",  # TODO delete that and fix all errors
     "UP032",  # TODO delete that and fix all errors
     "UP034",  # TODO delete that and fix all errors
-    "UP035",  # we allowed deprecated import
+    "UP035",  # this is necessary. We allowed deprecated import
     "UP037",  # TODO delete that and fix all errors
     "UP040",  # TODO delete that and fix all errors
     "ANN001",  # TODO delete that and fix all errors
-    "ANN002",
-    "ANN003",
+    "ANN002",  # this is necessary.
+    "ANN003",  # this is necessary.
     "ANN401",  # TODO delete that and fix all errors
     "ASYNC",  # TODO delete that and fix all errors
     "S311",  # TODO delete that and fix all errors
-    "COM812",  # cause conflicts when used with the formatter
+    "B904",  # this is necessary.
+    "COM812",  # this is necessary. Cause conflicts when used with the formatter
     "CPY",  # TODO delete that and fix all errors
     "PIE",  # TODO delete that and fix all errors
     "PYI",  # TODO delete that and fix all errors
@@ -163,16 +174,21 @@ ignore = [
     "RET",  # TODO delete that and fix all errors
     "SLF",  # TODO delete that and fix all errors
     "SIM",  # TODO delete that and fix all errors
-    "TC",  # TODO delete that and fix all errors
+    "TC",  # TODO does we need it?
+    "TC001",  # this is necessary.
+    "TC002",  # this is necessary.
+    "TC003",  # this is necessary.
     "ARG",  # TODO delete that and fix all errors
     "TD",  # TODO delete that and fix all errors
     "ERA",  # TODO delete that and fix all errors
-    "PGH",  # does we need it?
+    "PGH",  # TODO does we need it?
     "PL",  # TODO delete that and fix all errors
     "DOC",  # TODO delete that and fix all errors
     "RUF",  # TODO delete that and fix all errors
 ]
-extend-select = []
+extend-select = [
+    "RUF100",
+]
 
 fixable = ["ALL"]
 unfixable = []
@@ -185,8 +201,6 @@ unfixable = []
 # 23 Complexity level is too high, need to reduce this level
 # or ignore it `# noqa: C901`.
 max-complexity = 23
-
-[tool.ruff.lint.pycodestyle]
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -204,13 +218,6 @@ known-first-party = [
 ]
 split-on-trailing-comma = false
 combine-as-imports = true
-
-[tool.ruff.lint.pep8-naming]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.ruff.lint.pyupgrade]
 
 [tool.ruff.lint.flake8-annotations]
 suppress-dummy-args = true

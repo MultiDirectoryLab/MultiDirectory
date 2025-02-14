@@ -21,7 +21,7 @@ from ldap_protocol.utils.queries import (
 from models import AccessPolicy, Directory, Group
 
 T = TypeVar("T", bound=Select)
-__all__ = ["get_policies", "create_access_policy", "mutate_ap"]
+__all__ = ["create_access_policy", "get_policies", "mutate_ap"]
 
 
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:

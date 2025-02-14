@@ -46,7 +46,7 @@ async def test_session_creation(
 
     assert sessions
 
-    key = list(sessions.keys())[0]
+    key = next(iter(sessions.keys()))
 
     assert sessions[key]["id"] == user.id
     assert sessions[key]["issued"]
@@ -75,13 +75,13 @@ async def test_session_rekey(
     )
     sessions = await storage.get_user_sessions(user.id)
 
-    old_key = list(sessions.keys())[0]
+    old_key = next(iter(sessions.keys()))
     old_session = sessions[old_key]
 
     await storage.rekey_session(old_key, settings)
     sessions = await storage.get_user_sessions(user.id)
 
-    new_key = list(sessions.keys())[0]
+    new_key = next(iter(sessions.keys()))
     new_session = sessions[new_key]
 
     assert len(sessions) == 1
@@ -120,7 +120,7 @@ async def test_session_creation_ldap_bind_unbind(
 
     assert sessions
 
-    key = list(sessions.keys())[0]
+    key = next(iter(sessions.keys()))
 
     assert sessions[key]["id"] == user.id
     assert sessions[key]["issued"]
@@ -209,7 +209,7 @@ async def test_session_api_delete_detail(
     response = await http_client.get(f"sessions/{creds.un}")
     assert response.status_code == 200
 
-    session_id = list(response.json().keys())[0]
+    session_id = next(iter(response.json().keys()))
 
     assert len(await storage.get_user_sessions(user.id)) == 1
 
