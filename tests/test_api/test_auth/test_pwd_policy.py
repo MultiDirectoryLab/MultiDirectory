@@ -12,7 +12,7 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_policy_password(http_client: AsyncClient) -> None:
     """Test create policy."""
     policy_data = {
@@ -34,8 +34,8 @@ async def test_policy_password(http_client: AsyncClient) -> None:
     assert response.json() == policy_data
 
     changed_data = copy(policy_data)
-    changed_data['maximum_password_age_days'] = 80
-    changed_data['minimum_password_age_days'] = 30
+    changed_data["maximum_password_age_days"] = 80
+    changed_data["minimum_password_age_days"] = 30
 
     response = await http_client.put(
         "/password-policy",

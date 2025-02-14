@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from ipaddress import IPv4Address, IPv6Address
 from typing import Literal
 
@@ -29,7 +30,7 @@ def build_policy_query(
     :return: Select query
     """
     protocol_field = getattr(NetworkPolicy, protocol_field_name)
-    query = ( # noqa
+    query = (  # noqa
         select(NetworkPolicy)
         .filter_by(enabled=True)
         .options(

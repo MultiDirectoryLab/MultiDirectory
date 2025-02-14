@@ -16,7 +16,9 @@ from models import Attribute, User
 
 
 async def disable_accounts(
-    session: AsyncSession, kadmin: AbstractKadmin, settings: Settings,
+    session: AsyncSession,
+    kadmin: AbstractKadmin,
+    settings: Settings,
 ) -> None:
     """Update userAccountControl attr.
 

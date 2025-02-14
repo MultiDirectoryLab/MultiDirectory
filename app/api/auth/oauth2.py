@@ -77,9 +77,9 @@ async def get_current_user(  # noqa: D103
 
     user = await session.scalar(
         select(User)
-        .options(
-            defaultload(User.groups).selectinload(Group.access_policies))
-        .where(User.id == user_id))
+        .options(defaultload(User.groups).selectinload(Group.access_policies))
+        .where(User.id == user_id)
+    )
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
@@ -87,7 +87,8 @@ async def get_current_user(  # noqa: D103
     session_id, _ = session_key.split(".")
     try:
         if await session_storage.check_rekey(
-            session_id, settings.SESSION_REKEY_INTERVAL,
+            session_id,
+            settings.SESSION_REKEY_INTERVAL,
         ):
             key = await session_storage.rekey_session(session_id, settings)
             response.set_cookie(

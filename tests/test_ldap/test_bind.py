@@ -51,8 +51,11 @@ async def test_bind_ok_and_unbind(
 
     result = await anext(
         bind.handle(
-            session, ldap_session,
-            kadmin, settings, None,  # type: ignore
+            session,
+            ldap_session,
+            kadmin,
+            settings,
+            None,  # type: ignore
         ),
     )
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
@@ -309,7 +312,9 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+    ldap_client: Connection,
+    event_loop: BaseEventLoop,
+    creds: TestCreds,
 ) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound
@@ -319,7 +324,8 @@ async def test_ldap3_bind(
     assert ldap_client.bound
 
     result = await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw),
+        None,
+        partial(ldap_client.rebind, user=creds.un, password=creds.pw),
     )
     assert result
     assert ldap_client.bound
@@ -332,7 +338,9 @@ async def test_ldap3_bind(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind_sasl_plain(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+    ldap_client: Connection,
+    event_loop: BaseEventLoop,
+    creds: TestCreds,
 ) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound

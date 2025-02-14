@@ -114,7 +114,7 @@ class MFAChallengeResponse(BaseModel):
 class SessionContentSchema(BaseModel):
     """Session content schema."""
 
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
     id: int  # noqa: A003
     sign: str = Field("", description="Session signature")

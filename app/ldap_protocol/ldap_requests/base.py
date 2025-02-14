@@ -35,7 +35,7 @@ log_api.add(
 )
 
 handler: TypeAlias = Callable[..., AsyncGenerator[BaseResponse, None]]
-serializer: TypeAlias = Callable[..., 'BaseRequest']
+serializer: TypeAlias = Callable[..., "BaseRequest"]
 
 
 if TYPE_CHECKING:
@@ -64,7 +64,8 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         """Protocol OP response code."""
 
     async def _handle_api(
-        self, container: AsyncContainer,
+        self,
+        container: AsyncContainer,
     ) -> list[BaseResponse]:
         """Hanlde response with api user.
 

@@ -144,7 +144,10 @@ async def _create_dir(
 
 
 async def setup_enviroment(
-    session: AsyncSession, *, data: list, dn: str = "multifactor.dev",
+    session: AsyncSession,
+    *,
+    data: list,
+    dn: str = "multifactor.dev",
 ) -> None:
     """Create directories and users for enviroment."""
     cat_result = await session.execute(select(Directory))
@@ -159,7 +162,7 @@ async def setup_enviroment(
     )
     domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
     domain.depth = len(domain.path)
-    domain.rdname = ''
+    domain.rdname = ""
 
     async with session.begin_nested():
         session.add(domain)

@@ -78,7 +78,7 @@ class TestProvider(Provider):
 
         ok_response = Mock()
         ok_response.status_code = 200
-        ok_response.aiter_bytes.return_value = map(bytes, zip(b'test_string'))
+        ok_response.aiter_bytes.return_value = map(bytes, zip(b"test_string"))
 
         kadmin.setup = AsyncMock()
         kadmin.ktadd = AsyncMock(return_value=ok_response)
@@ -107,18 +107,20 @@ class TestProvider(Provider):
         dns_manager.create_record = AsyncMock()
         dns_manager.update_record = AsyncMock()
         dns_manager.delete_record = AsyncMock()
-        dns_manager.get_all_records = AsyncMock(return_value=[
-            {
-                "record_type": "A",
-                "records": [
-                    {
-                        "record_name": "example.com",
-                        "record_value": "127.0.0.1",
-                        "ttl": 3600,
-                    },
-                ],
-            },
-        ])
+        dns_manager.get_all_records = AsyncMock(
+            return_value=[
+                {
+                    "record_type": "A",
+                    "records": [
+                        {
+                            "record_name": "example.com",
+                            "record_value": "127.0.0.1",
+                            "ttl": 3600,
+                        },
+                    ],
+                },
+            ]
+        )
         dns_manager.setup = AsyncMock()
 
         if not self._cached_dns_manager:
@@ -130,11 +132,13 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
     async def get_dns_mngr_settings(
-        self, session: AsyncSession,
-    ) -> AsyncIterator['DNSManagerSettings']:
+        self,
+        session: AsyncSession,
+    ) -> AsyncIterator["DNSManagerSettings"]:
         """Get DNS manager's settings."""
+
         async def resolve() -> str:
-            return '127.0.0.1'
+            return "127.0.0.1"
 
         resolver = resolve()
         yield await get_dns_manager_settings(session, resolver)
@@ -147,7 +151,8 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
     def get_session_factory(
-        self, engine: AsyncEngine,
+        self,
+        engine: AsyncEngine,
     ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
         return async_sessionmaker(
@@ -159,7 +164,8 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.APP, cache=False)
     async def get_session(
-        self, engine: AsyncEngine,
+        self,
+        engine: AsyncEngine,
         session_factory: async_sessionmaker[AsyncSession],
     ) -> AsyncIterator[AsyncSession]:
         """Get test session with a savepoint."""
@@ -191,7 +197,8 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_ldap_session(
-            self, storage: SessionStorage) -> AsyncIterator[LDAPSession]:
+        self, storage: SessionStorage
+    ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         yield LDAPSession(storage=storage)
         return
@@ -235,7 +242,8 @@ async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
         TestProvider(),
         MFACredsProvider(),
         context={Settings: settings},
-        start_scope=Scope.RUNTIME)
+        start_scope=Scope.RUNTIME,
+    )
     yield ctnr
     await ctnr.close()
 
@@ -320,14 +328,13 @@ async def setup_session(session: AsyncSession) -> None:
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
     domain_ex = await session.scalars(
-        select(Directory)
-        .filter(Directory.parent_id.is_(None)),
+        select(Directory).filter(Directory.parent_id.is_(None)),
     )
 
     domain = domain_ex.one()
 
     await create_access_policy(
-        name='Root Access Policy',
+        name="Root Access Policy",
         can_add=True,
         can_modify=True,
         can_read=True,
@@ -341,7 +348,8 @@ async def setup_session(session: AsyncSession) -> None:
 
 @pytest_asyncio.fixture(scope="function")
 async def ldap_session(
-        container: AsyncContainer) -> AsyncIterator[LDAPSession]:
+    container: AsyncContainer,
+) -> AsyncIterator[LDAPSession]:
     """Yield empty session."""
     async with container(scope=Scope.SESSION) as container:
         yield await container.get(LDAPSession)
@@ -379,7 +387,7 @@ def _server(
 ) -> Generator:
     """Run server in background."""
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
-    event_loop.run_until_complete(asyncio.sleep(.1))
+    event_loop.run_until_complete(asyncio.sleep(0.1))
     yield
     with suppress(asyncio.CancelledError):
         task.cancel()
@@ -389,7 +397,8 @@ def _server(
 def ldap_client(settings: Settings) -> ldap3.Connection:
     """Get ldap clinet without a creds."""
     return ldap3.Connection(
-        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL"))
+        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
+    )
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -400,23 +409,25 @@ async def app(
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
         app = _create_basic_app(settings)
-        app.include_router(shadow_router, prefix='/shadow')
+        app.include_router(shadow_router, prefix="/shadow")
         setup_dishka(container, app)
         yield app
 
 
 @pytest_asyncio.fixture(scope="function")
 async def unbound_http_client(
-        app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+    app: FastAPI,
+) -> AsyncIterator[httpx.AsyncClient]:
     """Get async client for fastapi tests.
 
     :param FastAPI app: asgi app
     :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
     """
     async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app, root_path='/api'),
-            timeout=3,
-            base_url="http://test") as client:
+        transport=httpx.ASGITransport(app=app, root_path="/api"),
+        timeout=3,
+        base_url="http://test",
+    ) as client:
         yield client
 
 
@@ -433,11 +444,12 @@ async def http_client(
     :param None setup_session: just a fixture call
     :return httpx.AsyncClient: bound client with cookies
     """
-    response = await unbound_http_client.post("auth/", data={
-        "username": creds.un, "password": creds.pw})
+    response = await unbound_http_client.post(
+        "auth/", data={"username": creds.un, "password": creds.pw}
+    )
 
     assert response.status_code == 200
-    assert unbound_http_client.cookies.get('id')
+    assert unbound_http_client.cookies.get("id")
 
     return unbound_http_client
 
@@ -445,13 +457,13 @@ async def http_client(
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
     """Get creds from test data."""
-    return TestCreds(user['sam_accout_name'], user['password'])
+    return TestCreds(user["sam_accout_name"], user["password"])
 
 
 @pytest.fixture
 def user() -> dict:
     """Get user data."""
-    return TEST_DATA[1]['children'][0]['organizationalPerson']  # type: ignore
+    return TEST_DATA[1]["children"][0]["organizationalPerson"]  # type: ignore
 
 
 @pytest.fixture
@@ -464,8 +476,9 @@ def _force_override_tls(settings: Settings) -> Iterator:
 
 
 @pytest_asyncio.fixture
-async def dns_manager(container: AsyncContainer)\
-        -> AsyncIterator[AbstractDNSManager]:
+async def dns_manager(
+    container: AsyncContainer,
+) -> AsyncIterator[AbstractDNSManager]:
     """Get DI DNS manager."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AbstractDNSManager)

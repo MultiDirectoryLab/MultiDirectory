@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from abc import ABC, abstractmethod
 from enum import StrEnum
 from functools import wraps
@@ -112,7 +113,8 @@ class AbstractKadmin(ABC):
             raise KRBAPIError(response.text)
 
     async def setup_stash(
-        self, domain: str,
+        self,
+        domain: str,
         admin_dn: str,
         services_dn: str,
         krbadmin_dn: str,
@@ -139,7 +141,8 @@ class AbstractKadmin(ABC):
             raise KRBAPIError(response.text)
 
     async def setup_subtree(
-        self, domain: str,
+        self,
+        domain: str,
         admin_dn: str,
         services_dn: str,
         krbadmin_dn: str,
@@ -213,7 +216,10 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def add_principal(  # noqa
-        self, name: str, password: str | None, timeout: int | float = 1,
+        self,
+        name: str,
+        password: str | None,
+        timeout: int | float = 1,
     ) -> None: ...
 
     @abstractmethod
@@ -224,12 +230,16 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def change_principal_password(  # noqa
-        self, name: str, password: str,
+        self,
+        name: str,
+        password: str,
     ) -> None: ...  # noqa
 
     @abstractmethod
     async def create_or_update_principal_pw(  # noqa
-        self, name: str, password: str,
+        self,
+        name: str,
+        password: str,
     ) -> None: ...  # noqa
 
     @abstractmethod
@@ -346,18 +356,23 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def change_principal_password(
-        self, name: str, password: str,
+        self,
+        name: str,
+        password: str,
     ) -> None:
         """Change password request."""
         response = await self.client.patch(
-            "principal", json={"name": name, "password": password},
+            "principal",
+            json={"name": name, "password": password},
         )
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
     @logger_wraps()
     async def create_or_update_principal_pw(
-        self, name: str, password: str,
+        self,
+        name: str,
+        password: str,
     ) -> None:
         """Change password request."""
         response = await self.client.post(
@@ -371,7 +386,8 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename request."""
         response = await self.client.put(
-            "principal", json={"name": name, "new_name": new_name},
+            "principal",
+            json={"name": name, "new_name": new_name},
         )
         if response.status_code != 202:
             raise KRBAPIError(response.text)
@@ -383,7 +399,9 @@ class KerberosMDAPIClient(AbstractKadmin):
         :return httpx.Response: stream
         """
         request = self.client.build_request(
-            "POST", "/principal/ktadd", json=names,
+            "POST",
+            "/principal/ktadd",
+            json=names,
         )
 
         response = await self.client.send(request, stream=True)
@@ -428,7 +446,8 @@ class KerberosMDAPIClient(AbstractKadmin):
         :raises KRBAPIError: on error
         """
         response = await self.client.post(
-            "principal/lock", json={"name": name},
+            "principal/lock",
+            json={"name": name},
         )
 
         if response.status_code != 200:
@@ -441,7 +460,8 @@ class KerberosMDAPIClient(AbstractKadmin):
         :raises KRBAPIError: err
         """
         response = await self.client.post(
-            "principal/force_reset", json={"name": name},
+            "principal/force_reset",
+            json={"name": name},
         )
 
         if response.status_code != 200:
@@ -482,7 +502,9 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps(is_stub=True)
     async def create_or_update_principal_pw(  # noqa D102
-        self, name: str, password: str,
+        self,
+        name: str,
+        password: str,
     ) -> None:  # noqa
         ...
 
@@ -534,8 +556,9 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     entry if there are multiple entries found.
     """
     results = await session.execute(
-        select(CatalogueSetting)
-        .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
+        select(CatalogueSetting).where(
+            CatalogueSetting.name == KERBEROS_STATE_NAME
+        ),
     )
     kerberos_state = results.scalar_one_or_none()
 

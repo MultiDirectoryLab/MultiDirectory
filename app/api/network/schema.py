@@ -74,7 +74,8 @@ class NetmasksMixin:
     @field_serializer("netmasks")
     @classmethod
     def netmasks_serialize(
-        cls, netmasks: IPv4IntefaceListType,
+        cls,
+        netmasks: IPv4IntefaceListType,
     ) -> list[str | dict]:
         """Serialize netmasks to list.
 

@@ -52,7 +52,8 @@ class BindRequest(BaseRequest):
     version: int
     name: str
     authentication_choice: AbstractLDAPAuth = Field(
-        ..., alias="AuthenticationChoice",
+        ...,
+        alias="AuthenticationChoice",
     )
 
     @classmethod
@@ -93,7 +94,9 @@ class BindRequest(BaseRequest):
 
     @staticmethod
     async def is_user_group_valid(
-        user: User, ldap_session: LDAPSession, session: AsyncSession,
+        user: User,
+        ldap_session: LDAPSession,
+        session: AsyncSession,
     ) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
@@ -167,7 +170,8 @@ class BindRequest(BaseRequest):
             return
 
         policy = await PasswordPolicySchema.get_policy_settings(
-            session, kadmin,
+            session,
+            kadmin,
         )
         p_last_set = await policy.get_pwd_last_set(session, user.directory_id)
         pwd_expired = policy.validate_max_age(p_last_set)
@@ -188,7 +192,6 @@ class BindRequest(BaseRequest):
 
         if policy := getattr(ldap_session, "policy", None):  # type: ignore
             if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
-
                 request_2fa = True
                 if policy.mfa_status == MFAFlags.WHITELIST:
                     request_2fa = await check_mfa_group(policy, user, session)
@@ -231,7 +234,8 @@ class UnbindRequest(BaseRequest):
         return cls()
 
     async def handle(
-        self, ldap_session: LDAPSession,
+        self,
+        ldap_session: LDAPSession,
     ) -> AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ldap_session.delete_user()
