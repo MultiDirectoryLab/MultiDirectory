@@ -75,7 +75,7 @@ async def adding_mfa_user_and_group(
 
     test_user_dn = "cn=mfa_user,dc=md,dc=test"
     test_user_email = "mfa_user@md.test"
-    user_password = "P@ssw0rd"  # noqa: S105
+    user_password = "P@ssw0rd"
 
     response = await http_client.post(
         "/entry/add",

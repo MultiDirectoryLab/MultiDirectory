@@ -49,7 +49,7 @@ if TYPE_CHECKING:
         ) -> list[BaseResponse] | BaseResponse: ...
 else:
 
-    class _APIProtocol: ...  # noqa
+    class _APIProtocol: ...
 
 
 class BaseRequest(ABC, _APIProtocol, BaseModel):

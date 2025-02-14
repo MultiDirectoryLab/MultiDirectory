@@ -112,7 +112,7 @@ def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
     else:
         ValueError("Incorrect attribute specified")
 
-    if attribute == "memberof":  # noqa: R505
+    if attribute == "memberof":
         if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL:
             return _recursive_filter_memberof
         return _filter_memberof
@@ -160,7 +160,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
 
     is_substring = item.tag_id == TagNumbers.SUBSTRING
 
-    if attr in User.search_fields:  # noqa: R505
+    if attr in User.search_fields:
         return _from_filter(User, item, attr, right)
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right)
@@ -226,7 +226,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
 
     is_substring = item.val.startswith("*") or item.val.endswith("*")
 
-    if item.attr in User.search_fields:  # noqa: R505
+    if item.attr in User.search_fields:
         return _from_str_filter(User, is_substring, item)
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item)

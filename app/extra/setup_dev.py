@@ -183,5 +183,5 @@ async def setup_enviroment(
     except Exception:
         import traceback
 
-        logger.error(traceback.format_exc())  # noqa
+        logger.error(traceback.format_exc())
         raise

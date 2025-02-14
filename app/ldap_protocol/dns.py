@@ -12,11 +12,9 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any, Awaitable, Callable
 
-from dns.asyncquery import inbound_xfr as make_inbound_xfr
-from dns.asyncquery import tcp as asynctcp
+from dns.asyncquery import inbound_xfr as make_inbound_xfr, tcp as asynctcp
 from dns.asyncresolver import Resolver as AsyncResolver
-from dns.message import Message
-from dns.message import make_query as make_dns_query
+from dns.message import Message, make_query as make_dns_query
 from dns.name import from_text
 from dns.rdataclass import IN
 from dns.rdatatype import AXFR
@@ -194,7 +192,7 @@ class AbstractDNSManager(ABC):
             )
 
     @abstractmethod
-    async def create_record(  # noqa
+    async def create_record(
         self,
         hostname: str,
         ip: str,
@@ -203,7 +201,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def update_record(  # noqa
+    async def update_record(
         self,
         hostname: str,
         ip: str | None,
@@ -212,7 +210,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def delete_record(  # noqa
+    async def delete_record(
         self,
         hostname: str,
         ip: str,
@@ -220,7 +218,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def get_all_records(self) -> list[DNSRecords]: ...  # noqa
+    async def get_all_records(self) -> list[DNSRecords]: ...
 
 
 class DNSManager(AbstractDNSManager):
@@ -331,7 +329,7 @@ class StubDNSManager(AbstractDNSManager):
     """Stub client."""
 
     @logger_wraps(is_stub=True)
-    async def create_record(  # noqa
+    async def create_record(
         self,
         hostname: str,
         ip: str,
@@ -340,7 +338,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def update_record(  # noqa
+    async def update_record(
         self,
         hostname: str,
         ip: str,
@@ -349,7 +347,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def delete_record(  # noqa
+    async def delete_record(
         self,
         hostname: str,
         ip: str,

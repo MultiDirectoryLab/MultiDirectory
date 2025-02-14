@@ -150,7 +150,7 @@ class ASN1Row(Generic[T]):
         if obj is None:
             obj = self
 
-        if isinstance(obj, ASN1Row):  # noqa: R505
+        if isinstance(obj, ASN1Row):
             value = obj.value
             operator = None
 

@@ -557,4 +557,4 @@ class MemSessionStorage(SessionStorage):
         key = await self.create_session(uid, settings, extra_data=extra_data)
         await self.delete_user_session(session_id)
 
-        return key  # noqa: R504
+        return key

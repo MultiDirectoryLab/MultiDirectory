@@ -49,7 +49,7 @@ async def authenticate_user(
 
 
 @inject
-async def get_current_user(  # noqa: D103
+async def get_current_user(
     settings: FromDishka[Settings],
     session: FromDishka[AsyncSession],
     session_storage: FromDishka[SessionStorage],

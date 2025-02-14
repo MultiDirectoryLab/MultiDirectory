@@ -78,7 +78,7 @@ class BindRequest(BaseRequest):
                 password=password,
                 otpassword=otpassword,
             )
-        elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
+        elif auth == SaslAuthentication.METHOD_ID:
             sasl_method = data[2].value[0].value
             auth_choice = sasl_mechanism_map[sasl_method].from_data(
                 data[2].value,

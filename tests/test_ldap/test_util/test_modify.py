@@ -168,7 +168,7 @@ async def test_ldap_membersip_user_add(
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
-    query = (  # noqa
+    query = (
         select(Directory)
         .options(selectinload(Directory.groups).selectinload(Group.directory))
         .filter(Directory.path == get_search_path(dn))
@@ -312,7 +312,7 @@ async def test_ldap_membersip_grp_replace(
     """Test ldapmodify on server."""
     dn = "cn=domain admins,cn=groups,dc=md,dc=test"
 
-    query = (  # noqa
+    query = (
         select(Directory)
         .options(
             selectinload(Directory.group)
@@ -448,7 +448,7 @@ async def test_ldap_modify_password_change(
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-    new_password = "Password12345"  # noqa
+    new_password = "Password12345"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(

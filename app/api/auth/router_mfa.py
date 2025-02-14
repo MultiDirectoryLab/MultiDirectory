@@ -31,8 +31,7 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
-from models import CatalogueSetting
-from models import User as DBUser
+from models import CatalogueSetting, User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (
@@ -63,7 +62,7 @@ async def setup_mfa(
     :param MFACreateRequest mfa: MuliFactor credentials
     :param FromDishka[AsyncSession] session: db
     :return bool: status
-    """  # noqa: D301
+    """
     async with session.begin_nested():
         await session.execute(
             (
@@ -110,7 +109,7 @@ async def get_mfa(
     """Get MFA creds.
     \f
     :return MFAGetResponse: response
-    """  # noqa: D301
+    """
     if not mfa_creds:
         mfa_creds = MFA_HTTP_Creds(Creds(None, None))
     if not mfa_creds_ldap:
@@ -148,7 +147,7 @@ async def callback_mfa(
     :param Annotated[str, Form access_token: token from multifactor callback
     :raises HTTPException: if mfa not set up
     :return RedirectResponse: on bypass or success
-    """  # noqa: D301
+    """
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 

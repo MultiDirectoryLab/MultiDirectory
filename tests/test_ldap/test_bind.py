@@ -46,7 +46,7 @@ async def test_bind_ok_and_unbind(
     bind = MutePolicyBindRequest(
         version=0,
         name=creds.un,
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="password"),
     )
 
     result = await anext(
@@ -244,7 +244,7 @@ async def test_bind_invalid_password_or_user(
     bind = BindRequest(
         version=0,
         name="user0",
-        AuthenticationChoice=SimpleAuthentication(password="fail"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="fail"),
     )
 
     bad_response = BindResponse(
@@ -267,7 +267,7 @@ async def test_bind_invalid_password_or_user(
     bind = BindRequest(
         version=0,
         name="user1",
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="password"),
     )
 
     # async with container(scope=Scope.REQUEST) as container:
@@ -288,7 +288,7 @@ async def test_anonymous_bind(
     bind = BindRequest(
         version=0,
         name="",
-        AuthenticationChoice=SimpleAuthentication(password=""),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password=""),
     )
     async with container(scope=Scope.REQUEST) as container:
         handler = await resolve_deps(bind.handle, container)
@@ -392,7 +392,7 @@ async def test_bind_disabled_user(
     bind = BindRequest(
         version=0,
         name=user.sam_accout_name,
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="password"),
     )
 
     bad_response = BindResponse(

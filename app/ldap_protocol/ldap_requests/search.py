@@ -87,7 +87,7 @@ class SearchRequest(BaseRequest):
     size_limit: int = Field(ge=0, le=sys.maxsize, examples=[1000])
     time_limit: int = Field(ge=0, le=sys.maxsize, examples=[1000])
     types_only: bool
-    filter: ASN1Row = Field(...)  # noqa: A003
+    filter: ASN1Row = Field(...)
     attributes: list[str]
 
     page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
@@ -104,7 +104,7 @@ class SearchRequest(BaseRequest):
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
-    def from_data(  # noqa: D102
+    def from_data(
         cls,
         data: dict[str, list[ASN1Row]],
     ) -> "SearchRequest":
@@ -131,7 +131,7 @@ class SearchRequest(BaseRequest):
         )
 
     @cached_property
-    def requested_attrs(self) -> list[str]:  # noqa
+    def requested_attrs(self) -> list[str]:
         return [attr.lower() for attr in self.attributes]
 
     def _get_subschema(self) -> SearchResultEntry:
@@ -293,19 +293,19 @@ class SearchRequest(BaseRequest):
         )
 
     @cached_property
-    def member_of(self) -> bool:  # noqa
+    def member_of(self) -> bool:
         return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
-    def member(self) -> bool:  # noqa
+    def member(self) -> bool:
         return "member" in self.requested_attrs or self.all_attrs
 
     @cached_property
-    def token_groups(self) -> bool:  # noqa
+    def token_groups(self) -> bool:
         return "tokengroups" in self.requested_attrs
 
     @cached_property
-    def all_attrs(self) -> bool:  # noqa
+    def all_attrs(self) -> bool:
         return "*" in self.requested_attrs or not self.requested_attrs
 
     def build_query(
@@ -314,7 +314,7 @@ class SearchRequest(BaseRequest):
         user: UserSchema,
     ) -> Select:
         """Build tree query."""
-        query = (  # noqa: ECE001
+        query = (
             select(Directory)
             .join(User, isouter=True)
             .join(Directory.attributes, isouter=True)
@@ -378,7 +378,7 @@ class SearchRequest(BaseRequest):
                 defaultload(Directory.groups).joinedload(Group.directory)
             )
 
-        return query  # noqa
+        return query
 
     async def paginate_query(
         self,

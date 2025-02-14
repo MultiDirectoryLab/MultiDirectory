@@ -376,7 +376,7 @@ class PoolClientHandler:
                     data,
                     encrypt=encrypt,
                 )
-                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")  # noqa
+                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
 
                 return sasl_buffer_length + wrap_data.message
 
@@ -417,7 +417,7 @@ class PoolClientHandler:
             await server.serve_forever()
 
     @staticmethod
-    def log_addrs(server: asyncio.base_events.Server) -> None:  # noqa
+    def log_addrs(server: asyncio.base_events.Server) -> None:
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
         log.info(f"Server on {addrs}")
 
