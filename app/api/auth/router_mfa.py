@@ -31,8 +31,7 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
-from models import CatalogueSetting
-from models import User as DBUser
+from models import CatalogueSetting, User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (
@@ -63,7 +62,7 @@ async def setup_mfa(
     :param MFACreateRequest mfa: MuliFactor credentials
     :param FromDishka[AsyncSession] session: db
     :return bool: status
-    """  # noqa: D301
+    """
     async with session.begin_nested():
         await session.execute(
             (
@@ -91,14 +90,13 @@ async def remove_mfa(
     scope: Literal["ldap", "http"],
 ) -> None:
     """Remove mfa credentials."""
-    if scope == 'http':
+    if scope == "http":
         keys = ["mfa_key", "mfa_secret"]
     else:
         keys = ["mfa_key_ldap", "mfa_secret_ldap"]
 
     await session.execute(
-        delete(CatalogueSetting)
-        .filter(CatalogueSetting.name.in_(keys)),
+        delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys)),
     )
     await session.commit()
 
@@ -111,7 +109,7 @@ async def get_mfa(
     """Get MFA creds.
     \f
     :return MFAGetResponse: response
-    """  # noqa: D301
+    """
     if not mfa_creds:
         mfa_creds = MFA_HTTP_Creds(Creds(None, None))
     if not mfa_creds_ldap:
@@ -127,8 +125,9 @@ async def get_mfa(
 
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
 async def callback_mfa(
-    access_token: Annotated[str, Form(
-        alias="accessToken", validation_alias="accessToken")],
+    access_token: Annotated[
+        str, Form(alias="accessToken", validation_alias="accessToken")
+    ],
     session: FromDishka[AsyncSession],
     storage: FromDishka[SessionStorage],
     settings: FromDishka[Settings],
@@ -148,7 +147,7 @@ async def callback_mfa(
     :param Annotated[str, Form access_token: token from multifactor callback
     :raises HTTPException: if mfa not set up
     :return RedirectResponse: on bypass or success
-    """  # noqa: D301
+    """
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
@@ -170,7 +169,8 @@ async def callback_mfa(
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
     await create_and_set_session_key(
-        user, session, settings, response, storage, ip)
+        user, session, settings, response, storage, ip
+    )
     return response
 
 
@@ -233,7 +233,8 @@ async def two_factor_protocol(
     except MultifactorAPI.MFAConnectError:
         if network_policy.bypass_no_connection:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip)
+                user, session, settings, response, storage, ip
+            )
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")
@@ -244,13 +245,15 @@ async def two_factor_protocol(
 
     except MultifactorAPI.MFAMissconfiguredError:
         await create_and_set_session_key(
-            user, session, settings, response, storage, ip)
+            user, session, settings, response, storage, ip
+        )
         return MFAChallengeResponse(status="bypass", message="")
 
     except MultifactorAPI.MultifactorError:
         if network_policy.bypass_service_failure:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip)
+                user, session, settings, response, storage, ip
+            )
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")

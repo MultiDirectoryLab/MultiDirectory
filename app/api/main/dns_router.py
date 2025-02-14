@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, HTTPException
@@ -28,14 +29,14 @@ from ldap_protocol.dns import (
 )
 
 dns_router = APIRouter(
-    prefix='/dns',
-    tags=['DNS_SERVICE'],
+    prefix="/dns",
+    tags=["DNS_SERVICE"],
     dependencies=[Depends(get_current_user)],
     route_class=DishkaRoute,
 )
 
 
-@dns_router.post('/record')
+@dns_router.post("/record")
 async def create_record(
     data: DNSServiceRecordCreateRequest,
     dns_manager: FromDishka[AbstractDNSManager],
@@ -49,7 +50,7 @@ async def create_record(
     )
 
 
-@dns_router.delete('/record')
+@dns_router.delete("/record")
 async def delete_single_record(
     data: DNSServiceRecordDeleteRequest,
     dns_manager: FromDishka[AbstractDNSManager],
@@ -62,7 +63,7 @@ async def delete_single_record(
     )
 
 
-@dns_router.patch('/record')
+@dns_router.patch("/record")
 async def update_record(
     data: DNSServiceRecordUpdateRequest,
     dns_manager: FromDishka[AbstractDNSManager],
@@ -76,7 +77,7 @@ async def update_record(
     )
 
 
-@dns_router.get('/record')
+@dns_router.get("/record")
 async def get_all_records(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSRecords]:
@@ -84,7 +85,7 @@ async def get_all_records(
     return await dns_manager.get_all_records()
 
 
-@dns_router.get('/status')
+@dns_router.get("/status")
 async def get_dns_status(
     session: FromDishka[AsyncSession],
     dns_settings: FromDishka[DNSManagerSettings],
@@ -98,7 +99,7 @@ async def get_dns_status(
     }
 
 
-@dns_router.post('/setup')
+@dns_router.post("/setup")
 async def setup_dns(
     data: DNSServiceSetupRequest,
     dns_manager: FromDishka[AbstractDNSManager],

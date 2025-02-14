@@ -19,38 +19,42 @@ from tests.conftest import TestCreds
 
 @pytest.mark.asyncio
 async def test_set_and_remove_mfa(
-        http_client: httpx.AsyncClient,
-        session: AsyncSession) -> None:
+    http_client: httpx.AsyncClient, session: AsyncSession
+) -> None:
     """Set mfa."""
     response = await http_client.post(
         "/multifactor/setup",
         json={
-            'mfa_key': "123",
-            'mfa_secret': "123",
-            'is_ldap_scope': False,
+            "mfa_key": "123",
+            "mfa_secret": "123",
+            "is_ldap_scope": False,
         },
     )
 
     assert response.json() is True
     assert response.status_code == 201
 
-    assert await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_key", value="123"))
-    assert await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_secret", value="123"))
+    assert await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_key", value="123")
+    )
+    assert await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_secret", value="123")
+    )
 
     response = await http_client.delete("/multifactor/keys?scope=http")
 
     assert response.status_code == 200
 
-    assert not await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_key", value="123"))
-    assert not await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_secret", value="123"))
+    assert not await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_key", value="123")
+    )
+    assert not await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_secret", value="123")
+    )
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_connect_mfa(
     http_client: httpx.AsyncClient,
     session: AsyncSession,
@@ -58,18 +62,19 @@ async def test_connect_mfa(
 ) -> None:
     """Test websocket mfa."""
     session.add(
-        CatalogueSetting(name='mfa_secret', value='123'),
+        CatalogueSetting(name="mfa_secret", value="123"),
     )
-    session.add(CatalogueSetting(name='mfa_key', value='123'))
+    session.add(CatalogueSetting(name="mfa_key", value="123"))
     await session.commit()
 
     redirect_url = "example.com"
 
     response = await http_client.post(
-        '/multifactor/connect',
-        data={'username': creds.un, 'password': creds.pw})
+        "/multifactor/connect",
+        data={"username": creds.un, "password": creds.pw},
+    )
 
-    assert response.json() == {'status': 'pending', 'message': redirect_url}
+    assert response.json() == {"status": "pending", "message": redirect_url}
 
     user = await authenticate_user(session, creds.un, creds.pw)
 
@@ -77,11 +82,13 @@ async def test_connect_mfa(
 
     exp = datetime.now() + timedelta(minutes=5)
 
-    token = jwt.encode({'aud': '123', "uid": user.id, "exp": exp}, '123')
+    token = jwt.encode({"aud": "123", "uid": user.id, "exp": exp}, "123")
 
     response = await http_client.post(
-        '/multifactor/create',
-        data={'accessToken': token}, follow_redirects=False)
+        "/multifactor/create",
+        data={"accessToken": token},
+        follow_redirects=False,
+    )
 
     assert response.status_code == 302
-    assert response.cookies.get('id')
+    assert response.cookies.get("id")
