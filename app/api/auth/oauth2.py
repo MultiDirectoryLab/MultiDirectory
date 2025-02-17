@@ -72,6 +72,8 @@ async def get_current_user(  # noqa: D103
     :param FromDishka[SessionStorage] session_storage: session storage
     :param Request request: request
     :param Response response: response
+    :param Annotated[IPv4Address | IPv6Address] ip: ip address
+    :param Annotated[str] user_agent: user agent
     :return UserSchema: user schema
     """
     session_key = request.cookies.get("id", "")

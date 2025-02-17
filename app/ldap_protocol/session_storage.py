@@ -92,36 +92,6 @@ class SessionStorage(ABC):
         """
         return f"lock:{session_id}"
 
-    def _validate_session_data(
-        self,
-        data: dict,
-        session_id: str,
-        signature: str,
-        user_agent: str,
-        ip: str,
-        settings: Settings,
-    ) -> None:
-        """Validate session data.
-
-        :param dict data: session data
-        :param str user_agent: user agent
-        :param str ip: ip address
-        """
-        if data is None:
-            raise KeyError("Session data is missing")
-
-        if data.get("ip") != str(ip):
-            raise KeyError("Invalid ip")
-
-        if data.get("user_agent") != self.get_user_agent_hash(user_agent):
-            raise KeyError("Invalid user agent")
-
-        if (
-            data.get("sign") != signature or
-            signature != self._sign(session_id, settings)
-        ):
-            raise KeyError("Invalid signature")
-
     @abstractmethod
     async def create_session(
         self: Self,
@@ -149,6 +119,8 @@ class SessionStorage(ABC):
 
         :param Settings settings: app settings
         :param str session_key: session key
+        :param str user_agent: user agent
+        :param str ip: ip address
         :return int: user id
         """
         try:
@@ -157,17 +129,22 @@ class SessionStorage(ABC):
             raise KeyError("Invalid payload key")
 
         data = await self.get(session_id)
-        self._validate_session_data(
-            data,
-            session_id,
-            signature,
-            user_agent,
-            ip,
-            settings,
-        )
+        expected_ua_hash = self.get_user_agent_hash(user_agent)
+        expected_signature = self._sign(session_id, settings)
+
+        if data is None:
+            raise KeyError("Session data is missing")
+
+        if data.get("ip") != ip:
+            raise KeyError("Invalid ip")
+
+        if data.get("user_agent") != expected_ua_hash:
+            raise KeyError("Invalid user agent")
+
+        if not (data.get("sign") == signature == expected_signature):
+            raise KeyError("Invalid signature")
 
         user_id = data.get("id")
-
         if user_id is None:
             raise KeyError("Invalid data")
 
