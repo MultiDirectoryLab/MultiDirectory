@@ -28,26 +28,6 @@ jobs:
           NEW_TAG: linter
         run: docker run $NEW_TAG ruff check
 
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build linters
-        env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          NEW_TAG: linter
-        run: docker build --target=runtime -f .docker/lint.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-      - name: Run linters
-        env:
-          NEW_TAG: linter
-        run: docker run $NEW_TAG flake8
-
   mypy:
     runs-on: ubuntu-latest
     steps:
