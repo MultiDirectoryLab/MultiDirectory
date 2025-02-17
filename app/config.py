@@ -7,11 +7,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import os
 import tomllib
 from functools import cached_property
-from typing import Literal
+from typing import ClassVar, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jinja2
 from pydantic import (
+    BaseModel,
     Field,
     HttpUrl,
     IPvAnyAddress,
@@ -20,7 +21,6 @@ from pydantic import (
     computed_field,
     field_validator,
 )
-from pydantic_settings import BaseSettings
 
 
 def _get_vendor_version() -> str:
@@ -28,7 +28,7 @@ def _get_vendor_version() -> str:
         return tomllib.load(f)["tool"]["poetry"]["version"]
 
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     """Settigns with database dsn."""
 
     DOMAIN: str
@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
     KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/ldap.keytab"
 
-    TEMPLATES: jinja2.Environment = jinja2.Environment(
+    TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
         loader=jinja2.FileSystemLoader('extra/templates'),
         enable_async=True, autoescape=True,
     )
@@ -148,3 +148,8 @@ class Settings(BaseSettings):
     def check_certs_exist(self) -> bool:
         """Check if certs exist."""
         return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)
+
+    @classmethod
+    def from_os(cls) -> "Settings":
+        """Get cls from environ."""
+        return Settings(**os.environ)
