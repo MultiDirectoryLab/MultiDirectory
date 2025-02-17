@@ -22,7 +22,6 @@ loguru = "^0.7.2"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 psycopg = {extras = ["binary", "pool"], version = "^3.2.3"}
 pydantic = "^2.9.2"
-pydantic-settings = "^2.6.1"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 python-multipart = "^0.0.17"
 pytz = "^2025.1"
