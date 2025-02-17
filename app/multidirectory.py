@@ -124,7 +124,7 @@ def create_prod_app(
     settings: Settings | None = None,
 ) -> FastAPI:
     """Create production app with container."""
-    settings = settings or Settings()
+    settings = settings or Settings.from_os()
     app = factory(settings)
     container = make_async_container(
         MainProvider(),
@@ -176,7 +176,7 @@ def ldap(settings: Settings) -> None:
 
 
 if __name__ == "__main__":
-    settings = Settings()
+    settings = Settings.from_os()
 
     parser = argparse.ArgumentParser(description="Run ldap or http")
     group = parser.add_mutually_exclusive_group(required=True)
