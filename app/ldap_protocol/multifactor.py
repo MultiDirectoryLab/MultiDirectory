@@ -197,9 +197,7 @@ class MultifactorAPI:
             },
         )
 
-        if data.get("model", {}).get("status") != "Granted":
-            return False
-        return True
+        return data.get("model", {}).get("status") == "Granted"
 
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(

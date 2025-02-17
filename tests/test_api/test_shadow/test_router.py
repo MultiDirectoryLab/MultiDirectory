@@ -16,14 +16,14 @@ from .conftest import ProxyRequestModel
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_non_existent_user(http_client: AsyncClient) -> None:
     """Test shadow api with non-existent user."""
     response = await http_client.post(
         "/shadow/mfa/push",
         json=ProxyRequestModel(
-            principal='non-existent_user',
-            ip='127.0.0.1',
+            principal="non-existent_user",
+            ip="127.0.0.1",
         ).model_dump(),
     )
 
@@ -31,7 +31,7 @@ async def test_shadow_api_non_existent_user(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_without_network_policies(
     http_client: AsyncClient,
     adding_mfa_user_and_group: dict,
@@ -49,7 +49,7 @@ async def test_shadow_api_without_network_policies(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_without_kerberos_protocol(
     http_client: AsyncClient,
     adding_mfa_user_and_group: dict,
@@ -70,7 +70,7 @@ async def test_shadow_api_without_kerberos_protocol(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_with_disable_mfa(
     http_client: AsyncClient,
     adding_mfa_user_and_group: dict,
@@ -85,7 +85,7 @@ async def test_shadow_api_with_disable_mfa(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_whitelist_without_user_group(
     http_client: AsyncClient,
     adding_mfa_user_and_group: dict,
@@ -106,7 +106,7 @@ async def test_shadow_api_whitelist_without_user_group(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_enable_mfa(
     http_client: AsyncClient,
     adding_mfa_user_and_group: dict,

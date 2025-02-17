@@ -159,7 +159,7 @@ async def setup_enviroment(
     )
     domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
     domain.depth = len(domain.path)
-    domain.rdname = ''
+    domain.rdname = ""
 
     async with session.begin_nested():
         session.add(domain)
@@ -180,5 +180,5 @@ async def setup_enviroment(
     except Exception:
         import traceback
 
-        logger.error(traceback.format_exc())  # noqa
+        logger.error(traceback.format_exc())
         raise

@@ -7,7 +7,7 @@ from ldap_protocol.dns import AbstractDNSManager, DNSManagerState
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_dns_create_record(
     http_client: AsyncClient,
     dns_manager: AbstractDNSManager,
@@ -38,7 +38,7 @@ async def test_dns_create_record(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_dns_delete_record(
     http_client: AsyncClient,
     dns_manager: AbstractDNSManager,
@@ -48,8 +48,8 @@ async def test_dns_delete_record(
     ip = "127.0.0.1"
     record_type = "A"
     response = await http_client.request(
-        'DELETE',
-        '/dns/record',
+        "DELETE",
+        "/dns/record",
         json={
          "record_name": hostname,
          "record_value": ip,
@@ -66,7 +66,7 @@ async def test_dns_delete_record(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_dns_update_record(
     http_client: AsyncClient,
     dns_manager: AbstractDNSManager,
@@ -77,8 +77,8 @@ async def test_dns_update_record(
     record_type = "A"
     ttl = 3600
     response = await http_client.request(
-        'PATCH',
-        '/dns/record',
+        "PATCH",
+        "/dns/record",
         json={
          "record_name": hostname,
          "record_value": ip,
@@ -96,10 +96,10 @@ async def test_dns_update_record(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_dns_get_all_records(http_client: AsyncClient) -> None:
     """DNS Manager get all records test."""
-    response = await http_client.get('/dns/record')
+    response = await http_client.get("/dns/record")
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -115,7 +115,7 @@ async def test_dns_get_all_records(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_dns_setup_selfhosted(
     http_client: AsyncClient,
     dns_manager: AbstractDNSManager,
@@ -126,7 +126,7 @@ async def test_dns_setup_selfhosted(
     tsig_key = None
     dns_ip_address = None
     response = await http_client.post(
-        '/dns/setup',
+        "/dns/setup",
         json={
             "dns_status": dns_status,
             "domain": domain,
@@ -141,11 +141,11 @@ async def test_dns_setup_selfhosted(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('add_dns_settings')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("add_dns_settings")
+@pytest.mark.usefixtures("session")
 async def test_dns_get_status(http_client: AsyncClient) -> None:
     """DNS Manager get status test."""
-    response = await http_client.get('/dns/status')
+    response = await http_client.get("/dns/status")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {

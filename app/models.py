@@ -73,7 +73,7 @@ class CatalogueSetting(Base):
 
     __tablename__ = "Settings"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False, index=True)
     value: Mapped[str] = mapped_column(nullable=False)
 
@@ -134,7 +134,7 @@ class Directory(Base):
 
     __tablename__ = "Directory"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     parent_id: Mapped[int] = mapped_column(
         "parentId",
@@ -300,7 +300,7 @@ class User(Base):
 
     __tablename__ = "Users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
@@ -353,7 +353,7 @@ class User(Base):
         "homedirectory": "homeDirectory",
     }
 
-    password_history: Mapped[list[str]] = mapped_column(  # noqa TAE002
+    password_history: Mapped[list[str]] = mapped_column(
         MutableList.as_mutable(postgresql.ARRAY(String)),
         server_default="{}",
         nullable=False,
@@ -365,7 +365,7 @@ class User(Base):
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
-        lazy='selectin',
+        lazy="selectin",
         cascade="all",
         passive_deletes=True,
         overlaps="group,groups,directory",
@@ -391,7 +391,7 @@ class User(Base):
         now = datetime.now(tz=timezone.utc)
         user_account_exp = self.account_exp.astimezone(timezone.utc)
 
-        return True if now > user_account_exp else False
+        return now > user_account_exp
 
 
 class Group(Base):
@@ -399,7 +399,7 @@ class Group(Base):
 
     __tablename__ = "Groups"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
@@ -490,7 +490,7 @@ class Attribute(Base):
         ),
     )
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
@@ -520,7 +520,7 @@ class NetworkPolicy(Base):
 
     __tablename__ = "Policies"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
 
     raw: Mapped[dict | list] = mapped_column(postgresql.JSON, nullable=False)
@@ -566,7 +566,7 @@ class PasswordPolicy(Base):
 
     __tablename__ = "PasswordPolicies"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -593,7 +593,7 @@ class AccessPolicy(Base):
 
     __tablename__ = "AccessPolicies"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
     can_read: Mapped[nbool]

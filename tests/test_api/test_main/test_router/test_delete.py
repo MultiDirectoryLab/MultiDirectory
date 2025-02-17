@@ -10,9 +10,9 @@ from ldap_protocol.ldap_codes import LDAPCodes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_correct_delete(http_client: AsyncClient) -> None:
     """Test API for delete object."""
     response = await http_client.request(
@@ -23,13 +23,13 @@ async def test_api_correct_delete(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for delete object with incorrect DN."""
     response = await http_client.request(
@@ -43,13 +43,13 @@ async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
+    assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_delete_non_exist_object(
         http_client: AsyncClient) -> None:
     """Test API for delete non-existen object."""
@@ -64,4 +64,4 @@ async def test_api_delete_non_exist_object(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
+    assert data.get("resultCode") == LDAPCodes.NO_SUCH_OBJECT

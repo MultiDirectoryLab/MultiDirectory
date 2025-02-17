@@ -30,13 +30,13 @@ class ProxyRequestModel(BaseModel):
 async def adding_mfa_keys(session: AsyncSession) -> None:
     """Test add user like keycloak."""
     session.add(
-        CatalogueSetting(name='mfa_secret', value='123'),
+        CatalogueSetting(name="mfa_secret", value="123"),
     )
-    session.add(CatalogueSetting(name='mfa_key', value='123'))
+    session.add(CatalogueSetting(name="mfa_key", value="123"))
     session.add(
-        CatalogueSetting(name='mfa_key_ldap', value='123'),
+        CatalogueSetting(name="mfa_key_ldap", value="123"),
     )
-    session.add(CatalogueSetting(name='mfa_secret_ldap', value='123'))
+    session.add(CatalogueSetting(name="mfa_secret_ldap", value="123"))
     await session.commit()
 
 

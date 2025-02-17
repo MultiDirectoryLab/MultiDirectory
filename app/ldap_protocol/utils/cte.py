@@ -76,13 +76,13 @@ def find_members_recursive_cte(dn: str) -> CTE:
     In the case of a recursive search through the specified group1, the search
     result will be as follows: user1, user2, group2, user3, group3, user4.
     """
-    directory_hierarchy = (  # noqa: ECE001
+    directory_hierarchy = (
         select(Directory.id.label("directory_id"), Group.id.label("group_id"))
         .join(Directory.group)
         .select_from(Directory)
         .where(get_filter_from_path(dn))
     ).cte(recursive=True)
-    recursive_part = (  # noqa: ECE001
+    recursive_part = (
         select(
             DirectoryMembership.directory_id.label("directory_id"),
             Group.id.label("group_id"),
@@ -134,7 +134,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     result will be as follows: group1, group2, group3,
     user4.
     """
-    directory_hierarchy = (  # noqa: ECE001
+    directory_hierarchy = (
         select(
             Directory.id.label("directory_id"), Group.id.label("group_id"),
         )
@@ -142,7 +142,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
         .join(Directory.group, isouter=True)
         .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
-    recursive_part = (  # noqa: ECE001
+    recursive_part = (
         select(
             Group.directory_id.label("directory_id"),
             Group.id.label("group_id"),

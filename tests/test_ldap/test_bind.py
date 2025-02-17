@@ -285,7 +285,7 @@ async def test_anonymous_bind(
     bind = BindRequest(
         version=0,
         name="",
-        AuthenticationChoice=SimpleAuthentication(password=""),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password=""),
     )
     async with container(scope=Scope.REQUEST) as container:
         handler = await resolve_deps(bind.handle, container)

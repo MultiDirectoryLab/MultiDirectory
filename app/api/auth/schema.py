@@ -37,10 +37,10 @@ class Login(BaseModel):
 class OAuth2Form(OAuth2PasswordRequestForm):
     """OAuth2 custom form."""
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
-        username: str = Form(),  # noqa: B008
-        password: str = Form(),  # noqa: B008
+        username: str = Form(),
+        password: str = Form(),
     ):
         self.username = username
         self.password = password
@@ -51,7 +51,7 @@ class Token(BaseModel):
 
     access_token: str
     refresh_token: str
-    type: str  # noqa: A003
+    type: str
 
 
 class SetupRequest(BaseModel):
@@ -80,7 +80,7 @@ class MFACreateRequest(BaseModel):
 
     @computed_field  # type: ignore
     @property
-    def key_name(self) -> str:  # noqa
+    def key_name(self) -> str:
         if self.is_ldap_scope:
             return "mfa_key_ldap"
 
@@ -88,7 +88,7 @@ class MFACreateRequest(BaseModel):
 
     @computed_field  # type: ignore
     @property
-    def secret_name(self) -> str:  # noqa
+    def secret_name(self) -> str:
         if self.is_ldap_scope:
             return "mfa_secret_ldap"
 
@@ -114,9 +114,9 @@ class MFAChallengeResponse(BaseModel):
 class SessionContentSchema(BaseModel):
     """Session content schema."""
 
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
-    id: int  # noqa: A003
+    id: int
     sign: str = Field("", description="Session signature")
     issued: datetime
     ip: IPv4Address | IPv6Address

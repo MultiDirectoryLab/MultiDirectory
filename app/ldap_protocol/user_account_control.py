@@ -86,7 +86,7 @@ class UserAccountControlFlag(IntFlag):
         if uac_value == 0:
             return False
 
-        return False if uac_value & ~sum(flag.value for flag in cls) else True
+        return not uac_value & ~sum(flag.value for flag in cls)
 
 
 async def get_check_uac(

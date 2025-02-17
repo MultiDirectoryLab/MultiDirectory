@@ -118,7 +118,7 @@ async def adding_test_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
     async with AsyncClient(
-            transport=ASGITransport(app=app, root_path='/api'),
+            transport=ASGITransport(app=app, root_path="/api"),
             timeout=3,
             base_url="http://test") as client:
 
@@ -133,7 +133,7 @@ async def adding_test_user(
         assert auth.cookies.get("id")
 
 
-@pytest_asyncio.fixture(scope='function')
+@pytest_asyncio.fixture(scope="function")
 async def add_dns_settings(
     session: AsyncSession,
 ) -> None:

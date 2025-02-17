@@ -212,28 +212,28 @@ class AbstractKadmin(ABC):
             )
 
     @abstractmethod
-    async def add_principal(  # noqa
+    async def add_principal(
         self, name: str, password: str | None, timeout: int | float = 1,
     ) -> None: ...
 
     @abstractmethod
-    async def get_principal(self, name: str) -> dict: ...  # noqa
+    async def get_principal(self, name: str) -> dict: ...
 
     @abstractmethod
-    async def del_principal(self, name: str) -> None: ...  # noqa
+    async def del_principal(self, name: str) -> None: ...
 
     @abstractmethod
-    async def change_principal_password(  # noqa
+    async def change_principal_password(
         self, name: str, password: str,
-    ) -> None: ...  # noqa
+    ) -> None: ...
 
     @abstractmethod
-    async def create_or_update_principal_pw(  # noqa
+    async def create_or_update_principal_pw(
         self, name: str, password: str,
-    ) -> None: ...  # noqa
+    ) -> None: ...
 
     @abstractmethod
-    async def rename_princ(self, name: str, new_name: str) -> None: ...  # noqa
+    async def rename_princ(self, name: str, new_name: str) -> None: ...
 
     @backoff.on_exception(
         backoff.constant,
@@ -260,10 +260,10 @@ class AbstractKadmin(ABC):
         return status
 
     @abstractmethod
-    async def ktadd(self, names: list[str]) -> httpx.Response: ...  # noqa
+    async def ktadd(self, names: list[str]) -> httpx.Response: ...
 
     @abstractmethod
-    async def create_or_update_policy(  # noqa
+    async def create_or_update_policy(
         self,
         minlife: int,
         maxlife: int,
@@ -272,10 +272,10 @@ class AbstractKadmin(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def lock_principal(self, name: str) -> None: ...  # noqa
+    async def lock_principal(self, name: str) -> None: ...
 
     @abstractmethod
-    async def force_princ_pw_change(self, name: str) -> None: ...  # noqa
+    async def force_princ_pw_change(self, name: str) -> None: ...
 
     async def ldap_principal_setup(self, name: str, path: str) -> None:
         """LDAP principal setup.
@@ -457,7 +457,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
         await super().setup(*args, **kwargs)
 
     @logger_wraps(is_stub=True)
-    async def add_principal(  # noqa D102
+    async def add_principal(
         self,
         name: str,
         password: str | None,
@@ -465,37 +465,37 @@ class StubKadminMDADPIClient(AbstractKadmin):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def get_principal(self, name: str) -> None:  # noqa D102
+    async def get_principal(self, name: str) -> None:
         ...
 
     @logger_wraps(is_stub=True)
-    async def del_principal(self, name: str) -> None:  # noqa D102
+    async def del_principal(self, name: str) -> None:
         ...
 
     @logger_wraps(is_stub=True)
-    async def change_principal_password(  # noqa D102
+    async def change_principal_password(
         self,
         name: str,
         password: str,
-    ) -> None:  # noqa
+    ) -> None:
         ...
 
     @logger_wraps(is_stub=True)
-    async def create_or_update_principal_pw(  # noqa D102
+    async def create_or_update_principal_pw(
         self, name: str, password: str,
-    ) -> None:  # noqa
+    ) -> None:
         ...
 
     @logger_wraps(is_stub=True)
-    async def rename_princ(self, name: str, new_name: str) -> None:  # noqa D102
+    async def rename_princ(self, name: str, new_name: str) -> None:
         ...
 
     @logger_wraps(is_stub=True)
-    async def ktadd(self, names: list[str]) -> NoReturn:  # noqa
+    async def ktadd(self, names: list[str]) -> NoReturn:
         raise KRBAPIError
 
     @logger_wraps(is_stub=True)
-    async def create_or_update_policy(  # noqa
+    async def create_or_update_policy(
         self,
         minlife: int,
         maxlife: int,
@@ -504,11 +504,11 @@ class StubKadminMDADPIClient(AbstractKadmin):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def lock_principal(self, name: str) -> None:  # noqa
+    async def lock_principal(self, name: str) -> None:
         ...
 
     @logger_wraps(is_stub=True)
-    async def force_princ_pw_change(self, name: str) -> None:  # noqa
+    async def force_princ_pw_change(self, name: str) -> None:
         ...
 
 

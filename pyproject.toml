@@ -183,6 +183,7 @@ ignore = [
     "TC001",  # this is necessary.
     "TC002",  # this is necessary.
     "TC003",  # this is necessary.
+    "SIM101",
 ]
 extend-select = []
 

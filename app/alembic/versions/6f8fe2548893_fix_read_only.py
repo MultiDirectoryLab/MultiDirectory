@@ -13,8 +13,8 @@ from ldap_protocol.utils.helpers import create_integer_hash
 from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
-revision = '6f8fe2548893'
-down_revision = 'fafc3d0b11ec'
+revision = "6f8fe2548893"
+down_revision = "fafc3d0b11ec"
 branch_labels = None
 depends_on = None
 
@@ -25,34 +25,34 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     ro_dir = session.scalar(select(Directory).where(
-        Directory.name == 'readonly domain controllers'))
+        Directory.name == "readonly domain controllers"))
 
     if not ro_dir:
         return
 
     session.execute(delete(Attribute).where(
-        Attribute.name == 'objectSid', Attribute.directory == ro_dir))
+        Attribute.name == "objectSid", Attribute.directory == ro_dir))
     session.execute(
         update(Attribute)
         .where(
-            Attribute.name == 'sAMAccountName',
+            Attribute.name == "sAMAccountName",
             Attribute.directory == ro_dir,
-            Attribute.value == 'domain users',
+            Attribute.value == "domain users",
         )
-        .values({'value': ro_dir.name}),
+        .values({"value": ro_dir.name}),
     )
 
     attr_object_class = session.scalar(
         select(Attribute)
         .where(
-            Attribute.name == 'objectClass',
+            Attribute.name == "objectClass",
             Attribute.directory == ro_dir,
-            Attribute.value == 'group',
+            Attribute.value == "group",
         ),
     )
     if not attr_object_class:
         session.add(Attribute(
-            name='objectClass', value='group', directory=ro_dir))
+            name="objectClass", value="group", directory=ro_dir))
         session.add(Attribute(
             name=ro_dir.rdname,
             value=ro_dir.name,
@@ -60,14 +60,14 @@ def upgrade() -> None:
             ),
         )
         session.add(Attribute(
-            name='gidNumber',
+            name="gidNumber",
             value=str(create_integer_hash(ro_dir.name)),
             directory=ro_dir,
             ),
         )
 
-    domain_sid = '-'.join(ro_dir.object_sid.split('-')[:-1])
-    ro_dir.object_sid = domain_sid + '-521'
+    domain_sid = "-".join(ro_dir.object_sid.split("-")[:-1])
+    ro_dir.object_sid = domain_sid + "-521"
 
     session.commit()
 

@@ -12,7 +12,7 @@ from ldap_protocol.user_account_control import UserAccountControlFlag
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_correct_add(http_client: AsyncClient) -> None:
     """Test api correct add."""
     response = await http_client.post(
@@ -47,12 +47,12 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
 
     assert isinstance(data, dict)
     assert response.status_code == status.HTTP_200_OK
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
-    assert data.get('errorMessage') == ''
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert data.get("errorMessage") == ""
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_add_computer(http_client: AsyncClient) -> None:
     """Test api correct add computer."""
     new_entry = "cn=PC,dc=md,dc=test"
@@ -96,19 +96,19 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
     )
     data = response.json()
 
-    assert data['search_result'][0]['object_name'] == new_entry
+    assert data["search_result"][0]["object_name"] == new_entry
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'userAccountControl':
-            assert int(attr['vals'][0]) &\
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "userAccountControl":
+            assert int(attr["vals"][0]) &\
                 UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
             break
     else:
-        raise Exception('Computer without userAccountControl')
+        raise Exception("Computer without userAccountControl")
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_correct_add_double_member_of(
         http_client: AsyncClient) -> None:
     """Test api correct add a group with a register.
@@ -136,11 +136,11 @@ async def test_api_correct_add_double_member_of(
                 },
                 {
                     "type": "groupType",
-                    "vals": ['-2147483646'],
+                    "vals": ["-2147483646"],
                 },
                 {
                     "type": "instanceType",
-                    "vals": ['4'],
+                    "vals": ["4"],
                 },
             ],
         },
@@ -148,7 +148,7 @@ async def test_api_correct_add_double_member_of(
     data = response.json()
 
     assert response.status_code == status.HTTP_200_OK
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -166,10 +166,10 @@ async def test_api_correct_add_double_member_of(
     )
     data = response.json()
 
-    assert data['search_result'][0]['object_name'] == new_group
+    assert data["search_result"][0]["object_name"] == new_group
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        assert attr['type'] != 'memberOf'
+    for attr in data["search_result"][0]["partial_attributes"]:
+        assert attr["type"] != "memberOf"
 
     response = await http_client.post(
         "/entry/add",
@@ -219,7 +219,7 @@ async def test_api_correct_add_double_member_of(
     data = response.json()
 
     assert response.status_code == status.HTTP_200_OK
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -238,28 +238,28 @@ async def test_api_correct_add_double_member_of(
     data = response.json()
 
     assert response.status_code == status.HTTP_200_OK
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
-    assert data['search_result'][0]['object_name'] == user
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == user
 
     created_groups = groups + ["cn=domain users,cn=groups,dc=md,dc=test"]
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'memberOf':
-            assert all(group in created_groups for group in attr['vals'])
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "memberOf":
+            assert all(group in created_groups for group in attr["vals"])
             break
     else:
-        raise Exception('memberOf not found')
+        raise Exception("memberOf not found")
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'userAccountControl':
-            assert attr['vals'][0] == "514"
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "userAccountControl":
+            assert attr["vals"][0] == "514"
             break
     else:
-        raise Exception('userAccountControl not found')
+        raise Exception("userAccountControl not found")
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_add_user_inccorect_uac(
         http_client: AsyncClient) -> None:
     """Test api add."""
@@ -310,7 +310,7 @@ async def test_api_add_user_inccorect_uac(
     data = response.json()
 
     assert response.status_code == status.HTTP_200_OK
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -329,24 +329,24 @@ async def test_api_add_user_inccorect_uac(
     data = response.json()
 
     assert response.status_code == status.HTTP_200_OK
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
-    assert data['search_result'][0]['object_name'] == user
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == user
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'userAccountControl':
-            assert attr['vals'][0] == "512"
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "userAccountControl":
+            assert attr["vals"][0] == "512"
             break
     else:
-        raise Exception('userAccountControl not found')
+        raise Exception("userAccountControl not found")
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_add_non_auth_user(unbound_http_client: AsyncClient) -> None:
     """Test API add for unauthorized user."""
     unbound_http_client.cookies.set(
-        'id', "09e67421-2f92-8ddc-494108a6e04f")
+        "id", "09e67421-2f92-8ddc-494108a6e04f")
     response = await unbound_http_client.post(
         "/entry/add",
         json={
@@ -359,11 +359,11 @@ async def test_api_add_non_auth_user(unbound_http_client: AsyncClient) -> None:
     data = response.json()
 
     assert response.status_code == 401
-    assert data.get('detail') == 'Could not validate credentials'
+    assert data.get("detail") == "Could not validate credentials"
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_add_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect DN."""
     response = await http_client.post(
@@ -377,11 +377,11 @@ async def test_api_add_with_incorrect_dn(http_client: AsyncClient) -> None:
 
     data = response.json()
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
+    assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_add_with_incorrect_name(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect name."""
     response = await http_client.post(
@@ -394,11 +394,11 @@ async def test_api_add_with_incorrect_name(http_client: AsyncClient) -> None:
     )
 
     data = response.json()
-    assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
+    assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect name."""
     entry = "cn=test test ,dc=md,dc=test"
@@ -417,7 +417,7 @@ async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
     )
 
     data = response.json()
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -435,11 +435,11 @@ async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
     )
     data = response.json()
 
-    assert data['search_result'][0]['object_name'] == entry
+    assert data["search_result"][0]["object_name"] == entry
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_add_with_non_exist_parent(http_client: AsyncClient) -> None:
     """Test API add a user with non-existen parent."""
     response = await http_client.post(
@@ -454,13 +454,13 @@ async def test_api_add_with_non_exist_parent(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
+    assert data.get("resultCode") == LDAPCodes.NO_SUCH_OBJECT
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_double_add(http_client: AsyncClient) -> None:
     """Test API for adding a user who already exists."""
     response = await http_client.post(
@@ -494,11 +494,11 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.ENTRY_ALREADY_EXISTS
+    assert data.get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_add_double_case_insensetive(
         http_client: AsyncClient) -> None:
     """Test api double add."""
@@ -529,7 +529,7 @@ async def test_api_add_double_case_insensetive(
         },
     )
 
-    assert response.json().get('resultCode') == LDAPCodes.SUCCESS
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "/entry/add",
@@ -558,4 +558,4 @@ async def test_api_add_double_case_insensetive(
         },
     )
 
-    assert response.json().get('resultCode') == LDAPCodes.ENTRY_ALREADY_EXISTS
+    assert response.json().get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS

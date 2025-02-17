@@ -99,8 +99,7 @@ def _recursive_filter_memberof(dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute(recursive)."""
     cte = find_members_recursive_cte(dn)
 
-    return Directory.id.in_(
-        select(cte.c.directory_id).offset(1))  # type: ignore
+    return Directory.id.in_(select(cte.c.directory_id).offset(1))  # type: ignore
 
 
 def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
@@ -113,7 +112,7 @@ def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
     else:
         ValueError("Incorrect attribute specified")
 
-    if attribute == "memberof":  # noqa: R505
+    if attribute == "memberof":
         if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL:
             return _recursive_filter_memberof
         return _filter_memberof
@@ -152,16 +151,19 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
 
         return Attribute.name.ilike(item.value.lower())
 
-    if len(item.value) == 3 and isinstance(item.value[1].value, bytes):
-        if item.value[1].value.decode('utf-8').lower() in MEMBERS_ATTRS:
-            return _ldap_filter_by_attribute(*item.value)  # NOTE: oid
+    if (
+        len(item.value) == 3
+        and isinstance(item.value[1].value, bytes)
+        and item.value[1].value.decode("utf-8").lower() in MEMBERS_ATTRS
+    ):
+        return _ldap_filter_by_attribute(*item.value)  # NOTE: oid
 
     left, right = item.value
     attr = left.value.lower().replace("objectcategory", "objectclass")
 
     is_substring = item.tag_id == TagNumbers.SUBSTRING
 
-    if attr in User.search_fields:  # noqa: R505
+    if attr in User.search_fields:
         return _from_filter(User, item, attr, right)
     elif attr in Directory.search_fields:
         return _from_filter(Directory, item, attr, right)
@@ -196,7 +198,9 @@ def cast_filter2sql(expr: ASN1Row) -> UnaryExpression | ColumnElement:
 
 
 def _from_str_filter(
-    model: type, is_substring: bool, item: Filter,
+    model: type,
+    is_substring: bool,
+    item: Filter,
 ) -> UnaryExpression:
     col = getattr(model, item.attr)
 
@@ -225,7 +229,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
 
     is_substring = item.val.startswith("*") or item.val.endswith("*")
 
-    if item.attr in User.search_fields:  # noqa: R505
+    if item.attr in User.search_fields:
         return _from_str_filter(User, is_substring, item)
     elif item.attr in Directory.search_fields:
         return _from_str_filter(Directory, is_substring, item)

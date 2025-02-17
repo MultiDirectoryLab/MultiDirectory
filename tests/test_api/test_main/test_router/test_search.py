@@ -12,7 +12,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_root_dse(http_client: AsyncClient) -> None:
     """Test api root dse."""
     response = await http_client.post(
@@ -33,26 +33,26 @@ async def test_api_root_dse(http_client: AsyncClient) -> None:
     data = response.json()
 
     attrs = sorted(
-        data['search_result'][0]['partial_attributes'],
-        key=lambda x: x['type'],
+        data["search_result"][0]["partial_attributes"],
+        key=lambda x: x["type"],
     )
 
-    aquired_attrs = [attr['type'] for attr in attrs]
+    aquired_attrs = [attr["type"] for attr in attrs]
 
     root_attrs = [
-        'LDAPServiceName', 'currentTime',
-        'defaultNamingContext', 'dnsHostName',
-        'domainFunctionality', 'dsServiceName',
-        'highestCommittedUSN', 'namingContexts',
-        'rootDomainNamingContext', 'vendorVersion',
-        'schemaNamingContext', 'serverName',
-        'serviceName', 'subschemaSubentry',
-        'supportedCapabilities', 'supportedControl',
-        'supportedLDAPPolicies', 'supportedLDAPVersion',
-        'supportedSASLMechanisms', 'vendorName',
+        "LDAPServiceName", "currentTime",
+        "defaultNamingContext", "dnsHostName",
+        "domainFunctionality", "dsServiceName",
+        "highestCommittedUSN", "namingContexts",
+        "rootDomainNamingContext", "vendorVersion",
+        "schemaNamingContext", "serverName",
+        "serviceName", "subschemaSubentry",
+        "supportedCapabilities", "supportedControl",
+        "supportedLDAPPolicies", "supportedLDAPVersion",
+        "supportedSASLMechanisms", "vendorName",
     ]
 
-    assert data['search_result'][0]['object_name'] == ""
+    assert data["search_result"][0]["object_name"] == ""
     assert all(
         attr in aquired_attrs
         for attr in root_attrs
@@ -60,7 +60,7 @@ async def test_api_root_dse(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_search(http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
@@ -80,23 +80,23 @@ async def test_api_search(http_client: AsyncClient) -> None:
 
     response = raw_response.json()
 
-    assert response['resultCode'] == LDAPCodes.SUCCESS
+    assert response["resultCode"] == LDAPCodes.SUCCESS
 
     sub_dirs = [
         "cn=groups,dc=md,dc=test",
         "ou=users,dc=md,dc=test",
     ]
     assert all(
-        obj['object_name'] in sub_dirs
-        for obj in response['search_result']
+        obj["object_name"] in sub_dirs
+        for obj in response["search_result"]
     )
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_search_filter_memberof(http_client: AsyncClient) -> None:
     """Test api search."""
-    member = 'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test'
+    member = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     raw_response = await http_client.post(
         "entry/search",
         json={
@@ -114,16 +114,16 @@ async def test_api_search_filter_memberof(http_client: AsyncClient) -> None:
 
     response = raw_response.json()
 
-    assert response['resultCode'] == LDAPCodes.SUCCESS
-    assert response['search_result'][0]['object_name'] == member
+    assert response["resultCode"] == LDAPCodes.SUCCESS
+    assert response["search_result"][0]["object_name"] == member
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_search_filter_member(http_client: AsyncClient) -> None:
     """Test api search."""
-    member = 'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test'
-    group = 'cn=developers,cn=groups,dc=md,dc=test'
+    member = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    group = "cn=developers,cn=groups,dc=md,dc=test"
     raw_response = await http_client.post(
         "entry/search",
         json={
@@ -141,12 +141,12 @@ async def test_api_search_filter_member(http_client: AsyncClient) -> None:
 
     response = raw_response.json()
 
-    assert response['resultCode'] == LDAPCodes.SUCCESS
-    assert response['search_result'][0]['object_name'] == group
+    assert response["resultCode"] == LDAPCodes.SUCCESS
+    assert response["search_result"][0]["object_name"] == group
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
@@ -166,14 +166,14 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     data = raw_response.json()
 
     hex_guid = None
-    entry_dn = data['search_result'][3]['object_name']
+    entry_dn = data["search_result"][3]["object_name"]
 
-    for attr in data['search_result'][3]['partial_attributes']:
-        if attr['type'] == 'objectGUID':
-            hex_guid = attr['vals'][0]
+    for attr in data["search_result"][3]["partial_attributes"]:
+        if attr["type"] == "objectGUID":
+            hex_guid = attr["vals"][0]
             break
 
-    assert hex_guid is not None, 'objectGUID attribute is missing'
+    assert hex_guid is not None, "objectGUID attribute is missing"
 
     object_guid = str(uuid.UUID(bytes_le=bytes(bytearray.fromhex(hex_guid))))
 
@@ -193,12 +193,12 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     )
     data = raw_response.json()
 
-    assert data['search_result'][0]['object_name'] == entry_dn, \
+    assert data["search_result"][0]["object_name"] == entry_dn, \
         "User with required objectGUID not found"
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
     """Test api search."""
     user = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
@@ -232,11 +232,11 @@ async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
         },
     )
     data = raw_response.json()
-    assert data['search_result'][0]['object_name'] == user
+    assert data["search_result"][0]["object_name"] == user
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     """Test api search."""
     group = "cn=domain admins,cn=groups,dc=md,dc=test"
@@ -260,15 +260,15 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
         },
     )
     data = response.json()
-    assert len(data['search_result']) == len(members)
+    assert len(data["search_result"]) == len(members)
     assert all(
-        obj['object_name'] in members
-        for obj in data['search_result']
+        obj["object_name"] in members
+        for obj in data["search_result"]
     )
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 async def test_api_bytes_to_hex(http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
@@ -288,8 +288,8 @@ async def test_api_bytes_to_hex(http_client: AsyncClient) -> None:
 
     response = raw_response.json()
 
-    assert response['resultCode'] == LDAPCodes.SUCCESS
+    assert response["resultCode"] == LDAPCodes.SUCCESS
 
-    for attr in response['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'attr_with_bvalue':
-            assert attr['vals'][0] == b"any".hex()
+    for attr in response["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "attr_with_bvalue":
+            assert attr["vals"][0] == b"any".hex()

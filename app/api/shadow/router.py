@@ -50,9 +50,7 @@ async def proxy_request(
     if not network_policy.is_kerberos:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if not mfa:  # noqa: R505
-        return
-    elif network_policy.mfa_status == MFAFlags.DISABLED:
+    if not mfa or network_policy.mfa_status == MFAFlags.DISABLED:
         return
     elif network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
         if (

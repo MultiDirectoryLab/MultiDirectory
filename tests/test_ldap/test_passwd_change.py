@@ -17,8 +17,8 @@ from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('_force_override_tls')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("_force_override_tls")
 async def test_anonymous_pwd_change(
     session: AsyncSession,
     event_loop: asyncio.BaseEventLoop,
@@ -33,7 +33,7 @@ async def test_anonymous_pwd_change(
 
     result = await event_loop.run_in_executor(
         None,
-        partial(  # noqa: S106
+        partial(
             ldap_client.extend.standard.modify_password,
             user_dn,
             old_password=password,
@@ -52,8 +52,8 @@ async def test_anonymous_pwd_change(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('_force_override_tls')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("_force_override_tls")
 async def test_bind_pwd_change(
     session: AsyncSession,
     event_loop: asyncio.BaseEventLoop,
@@ -69,7 +69,7 @@ async def test_bind_pwd_change(
 
     result = await event_loop.run_in_executor(
         None,
-        partial(  # noqa: S106
+        partial(
             ldap_client.extend.standard.modify_password,
             old_password=password,
             new_password=new_test_password,

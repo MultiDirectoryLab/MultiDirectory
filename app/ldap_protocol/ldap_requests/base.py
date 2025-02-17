@@ -35,7 +35,7 @@ log_api.add(
 )
 
 handler: TypeAlias = Callable[..., AsyncGenerator[BaseResponse, None]]
-serializer: TypeAlias = Callable[..., 'BaseRequest']
+serializer: TypeAlias = Callable[..., "BaseRequest"]
 
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
         ) -> list[BaseResponse] | BaseResponse: ...
 else:
 
-    class _APIProtocol: ...  # noqa
+    class _APIProtocol: ...
 
 
 class BaseRequest(ABC, _APIProtocol, BaseModel):
