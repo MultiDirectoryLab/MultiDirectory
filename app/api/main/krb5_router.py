@@ -152,7 +152,7 @@ async def setup_kdc(
     settings: FromDishka[Settings],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    r"""Set up KDC server.
+    """Set up KDC server.
 
     Create data structure in catalogue, generate config files, trigger commands
 
@@ -291,7 +291,8 @@ async def add_principal(
     instance: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    r"""Create principal in kerberos with given name.
+    """Create principal in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LDAPSession, Depends ldap_session: ldap
@@ -310,7 +311,8 @@ async def rename_principal(
     principal_new_name: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    r"""Rename principal in kerberos with given name.
+    """Rename principal in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body principal_new_name: _description_
@@ -330,7 +332,8 @@ async def reset_principal_pw(
     new_password: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    r"""Reset principal password in kerberos with given name.
+    """Reset principal password in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body new_password: _description_

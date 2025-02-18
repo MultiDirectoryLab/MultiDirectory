@@ -112,6 +112,7 @@ async def get_mfa(
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
 ) -> MFAGetResponse:
     """Get MFA creds.
+
     \f
     :return MFAGetResponse: response.
     """
@@ -192,7 +193,8 @@ async def two_factor_protocol(
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
 ) -> MFAChallengeResponse:
-    r"""Initiate two factor protocol with app.
+    """Initiate two factor protocol with app.
+
     \f
     :param Annotated[OAuth2Form, Depends form: password form
     :param Request request: FastAPI request

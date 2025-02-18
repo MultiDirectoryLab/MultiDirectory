@@ -169,7 +169,7 @@ async def password_reset(
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    r"""Reset user's (entry) password.
+    """Reset user's (entry) password.
 
     - **identity**: user identity, any
     `userPrincipalName`, `saMAccountName` or `DN`
