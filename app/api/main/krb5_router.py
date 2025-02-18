@@ -349,11 +349,12 @@ async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    r"""Delete principal in kerberos with given name.
+    """Delete principal in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param FromDishka[AbstractKadmin] kadmin: _description_
-    :raises HTTPException: on failed kamin request.
+    :raises HTTPException: on failed kamin request
     """
     try:
         await kadmin.del_principal(principal_name)

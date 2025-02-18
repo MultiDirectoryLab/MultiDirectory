@@ -87,7 +87,6 @@ show_missing = true
 [tool.coverage.run]
 concurrency = ["thread", "gevent"]
 
-
 # RUFF
 # Ruff is a linter, not a type checker.
 #
@@ -109,27 +108,6 @@ line-ending = "lf"
 skip-magic-trailing-comma = false  # default: false
 
 [tool.ruff.lint]
-# Flake8 S101, I900, G004, IF100, S311, D301, E231
-# Для alembic предлагаю оставить включенным, только некоторые правила можно вырубить.
-# S101 - done. Использование assert в коде. Вырубил только в тестах
-# I900 - done. Это аналог RUF100. Проверка использования комментариев # noqa
-# G004 - done. Аналог S102. Предлагаю врубить. Проверка использования небезопасных методов и функций (например, eval, exec)
-# IF100 - done. Это аналог SIM101. Предлагаю врубить. Проверка использования if условий, которые могут быть упрощены
-# S311 - done. Это аналог S311. Вырубил.
-# D301 - done. Вырублены все D-rules. Мб включим когда-нибудь, а пока добавлю и закомментирую.
-# E231 - done. Это не надо вырубать.
-
-# Ruff contains flake8-awesome.
-# flake8-annotations -> ANN (Ruff)
-# flake8-bandit -> S (Ruff)
-# flake8-bugbear -> B (Ruff)
-# flake8-commas -> COM (Ruff)
-# flake8-docstrings -> D (Ruff)
-# flake8-isort -> I (Ruff)
-# flake8-pytest -> PT (Ruff)
-# flake8-quotes -> Q (Ruff)
-# flake8-simplify -> SIM (Ruff)
-# flake8-type-checking -> TC (Ruff)
 select = [
     "F",  # Pyflakes. Must have
     "E",  # pycodestyle (Error), check tool.ruff.lint.pycodestyle. Must have
@@ -174,8 +152,8 @@ ignore = [
     "D106",  # TODO delete that and fix all errors
     "D107",  # TODO delete that and fix all errors
     "D203",  # this is necessary. Conflict with `D211`
-    "D205",  # TODO delete that and fix all errors
     "D213",  # this is necessary. Conflict with `D212`
+    "D301",  # this is necessary.
     "UP007",  # TODO delete that and fix all errors
     "UP015",  # TODO delete that and fix all errors
     "UP017",  # TODO delete that and fix all errors
@@ -208,7 +186,7 @@ unfixable = []
 
 [tool.ruff.lint.mccabe]
 # 30 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.
-max-complexity = 30
+max-complexity = 34
 
 [tool.ruff.lint.isort]
 known-first-party = [

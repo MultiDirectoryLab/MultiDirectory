@@ -82,7 +82,7 @@ async def login(
     :raises HTTPException: 403 if user not part of network policy
     :raises HTTPException: 426 if mfa required
     :return None: None
-    """  # noqa: D301
+    """
     user = await authenticate_user(session, form.username, form.password)
 
     if not user:
