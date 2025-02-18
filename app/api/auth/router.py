@@ -40,7 +40,11 @@ from security import get_password_hash
 
 from .oauth2 import authenticate_user, get_current_user, get_user
 from .schema import OAuth2Form, SetupRequest
-from .utils import create_and_set_session_key, get_ip_from_request
+from .utils import (
+    create_and_set_session_key,
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
@@ -54,6 +58,7 @@ async def login(
     storage: FromDishka[SessionStorage],
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
+    user_agent: Annotated[str, Depends(get_user_agent_from_request)],
 ) -> None:
     """Create session to cookies and storage.
 
@@ -130,7 +135,7 @@ async def login(
 
     await create_and_set_session_key(
         user, session, settings,
-        response, storage, ip,
+        response, storage, ip, user_agent,
     )
 
 

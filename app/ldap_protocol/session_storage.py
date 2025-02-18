@@ -68,6 +68,11 @@ class SessionStorage(ABC):
             hashlib.sha256,
         ).hexdigest()
 
+    def get_user_agent_hash(self, user_agent: str) -> str:
+        """Get user agent hash."""
+        return hashlib.blake2b(
+            user_agent.encode(), digest_size=6).hexdigest()
+
     def _get_id_hash(self, user_id: int) -> str:
         return "keys:" + hashlib.blake2b(
             str(user_id).encode(), digest_size=16).hexdigest()
@@ -107,11 +112,15 @@ class SessionStorage(ABC):
         self: Self,
         settings: Settings,
         session_key: str,
+        user_agent: str,
+        ip: str,
     ) -> int:
         """Get user from storage.
 
         :param Settings settings: app settings
         :param str session_key: session key
+        :param str user_agent: user agent
+        :param str ip: ip address
         :return int: user id
         """
         try:
@@ -120,15 +129,24 @@ class SessionStorage(ABC):
             raise KeyError("Invalid payload key")
 
         data = await self.get(session_id)
-
-        if data is None or data.get("sign") != signature:
-            raise KeyError("Invalid signature")
-
+        expected_ua_hash = self.get_user_agent_hash(user_agent)
         expected_signature = self._sign(session_id, settings)
-        user_id = data.get("id")
 
-        if signature != expected_signature or user_id is None:
+        if data is None:
+            raise KeyError("Session data is missing")
+
+        if data.get("ip") != ip:
+            raise KeyError("Invalid ip")
+
+        if data.get("user_agent") != expected_ua_hash:
+            raise KeyError("Invalid user agent")
+
+        if not (data.get("sign") == signature == expected_signature):
             raise KeyError("Invalid signature")
+
+        user_id = data.get("id")
+        if user_id is None:
+            raise KeyError("Invalid data")
 
         return user_id
 

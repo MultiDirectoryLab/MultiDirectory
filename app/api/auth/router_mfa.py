@@ -21,7 +21,11 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from api.auth.utils import create_and_set_session_key, get_ip_from_request
+from api.auth.utils import (
+    create_and_set_session_key,
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from config import Settings
 from ldap_protocol.multifactor import (
     Creds,
@@ -134,6 +138,7 @@ async def callback_mfa(
     settings: FromDishka[Settings],
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
+    user_agent: Annotated[str, Depends(get_user_agent_from_request)],
 ) -> RedirectResponse:
     """Disassemble mfa token and send redirect.
 
@@ -170,7 +175,7 @@ async def callback_mfa(
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
     await create_and_set_session_key(
-        user, session, settings, response, storage, ip)
+        user, session, settings, response, storage, ip, user_agent)
     return response
 
 
@@ -184,6 +189,7 @@ async def two_factor_protocol(
     storage: FromDishka[SessionStorage],
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
+    user_agent: Annotated[str, Depends(get_user_agent_from_request)],
 ) -> MFAChallengeResponse:
     """Initiate two factor protocol with app.
     \f
@@ -233,7 +239,7 @@ async def two_factor_protocol(
     except MultifactorAPI.MFAConnectError:
         if network_policy.bypass_no_connection:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip)
+                user, session, settings, response, storage, ip, user_agent)
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")
@@ -244,13 +250,13 @@ async def two_factor_protocol(
 
     except MultifactorAPI.MFAMissconfiguredError:
         await create_and_set_session_key(
-            user, session, settings, response, storage, ip)
+            user, session, settings, response, storage, ip, user_agent)
         return MFAChallengeResponse(status="bypass", message="")
 
     except MultifactorAPI.MultifactorError:
         if network_policy.bypass_service_failure:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip)
+                user, session, settings, response, storage, ip, user_agent)
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")

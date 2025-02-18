@@ -32,6 +32,16 @@ def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
     return ip_address(client_ip)
 
 
+def get_user_agent_from_request(request: Request) -> str:
+    """Get user agent from request.
+
+    :param Request request: The incoming request object.
+    :return str: The user agent header.
+    """
+    user_agent_header = request.headers.get("User-Agent")
+    return "" if not user_agent_header else user_agent_header
+
+
 async def create_and_set_session_key(
     user: User,
     session: AsyncSession,
@@ -39,6 +49,7 @@ async def create_and_set_session_key(
     response: Response,
     storage: SessionStorage,
     ip: IPv4Address | IPv6Address,
+    user_agent: str,
 ) -> None:
     """Create and set access and refresh tokens.
 
@@ -51,10 +62,14 @@ async def create_and_set_session_key(
     :param Response response: fastapi response object
     """
     await set_last_logon_user(user, session, settings.TIMEZONE)
+
     key = await storage.create_session(
         user.id,
         settings,
-        extra_data={"ip": str(ip)},
+        extra_data={
+            "ip": str(ip),
+            "user_agent": storage.get_user_agent_hash(user_agent),
+        },
     )
 
     response.set_cookie(
