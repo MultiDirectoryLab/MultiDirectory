@@ -71,8 +71,7 @@ class SessionStorage(ABC):
 
     def get_user_agent_hash(self, user_agent: str) -> str:
         """Get user agent hash."""
-        return hashlib.blake2b(
-            user_agent.encode(), digest_size=6).hexdigest()
+        return hashlib.blake2b(user_agent.encode(), digest_size=6).hexdigest()
 
     def _get_id_hash(self, user_id: int) -> str:
         return (

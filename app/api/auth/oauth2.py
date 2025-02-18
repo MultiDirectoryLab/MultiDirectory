@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated
 
@@ -79,7 +80,10 @@ async def get_current_user(
     session_key = request.cookies.get("id", "")
     try:
         user_id = await session_storage.get_user_id(
-            settings, session_key, user_agent, str(ip),
+            settings,
+            session_key,
+            user_agent,
+            str(ip),
         )
     except KeyError as err:
         raise _CREDENTIALS_EXCEPTION from err
