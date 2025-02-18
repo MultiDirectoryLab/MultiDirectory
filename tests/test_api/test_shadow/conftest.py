@@ -20,6 +20,7 @@ class ProxyRequestModel(BaseModel):
     Attributes:
         principal: Unique user identifier
         ip: IP address from which the request is made
+
     """
 
     principal: str

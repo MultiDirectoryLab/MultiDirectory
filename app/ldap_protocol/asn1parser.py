@@ -140,8 +140,7 @@ class ASN1Row(Generic[T]):
         return substring_tag_map[substring_tag]
 
     def serialize(self, obj: "ASN1Row | T | None" = None) -> str:
-        """
-        Serialize an ASN.1 object or list into a string.
+        """Serialize an ASN.1 object or list into a string.
 
         Recursively processes ASN.1 structures to construct a valid LDAP
         filter string based on LDAP operations such as AND, OR, and
@@ -225,8 +224,7 @@ class ASN1Row(Generic[T]):
             raise TypeError
 
     def to_ldap_filter(self) -> str:
-        """
-        Convert the ASN.1 object into an LDAP filter string.
+        """Convert the ASN.1 object into an LDAP filter string.
 
         The method recursively serializes ASN.1 rows into the LDAP filter
         format based on tag IDs and class IDs.

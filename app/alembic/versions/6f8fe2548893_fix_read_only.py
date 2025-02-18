@@ -5,6 +5,7 @@ Revises: fafc3d0b11ec
 Create Date: 2024-11-14 13:02:33.899640
 
 """
+
 from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session

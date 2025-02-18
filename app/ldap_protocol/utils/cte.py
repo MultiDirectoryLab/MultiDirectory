@@ -68,13 +68,14 @@ def find_members_recursive_cte(dn: str) -> CTE:
     SELECT * FROM anon_1;
 
     Example:
-    --------
+    -------
     Group1 includes user1, user2, and group2.
     Group2 includes users user3 and group3.
     Group3 includes user4.
 
     In the case of a recursive search through the specified group1, the search
     result will be as follows: user1, user2, group2, user3, group3, user4.
+
     """
     directory_hierarchy = (
         select(Directory.id.label("directory_id"), Group.id.label("group_id"))
@@ -125,7 +126,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     SELECT * FROM anon_1;
 
     Example:
-    --------
+    -------
     Group1 includes user1, user2, and group2.
     Group2 includes users user3 and group3.
     Group3 includes user4.
@@ -133,6 +134,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     In the case of a recursive search through the specified user4, the search
     result will be as follows: group1, group2, group3,
     user4.
+
     """
     directory_hierarchy = (
         select(
@@ -164,7 +166,7 @@ async def get_members_root_group(
     """Get all members root group by dn.
 
     Example:
-    --------
+    -------
     Group1 includes user1, user2, and group2.
     Group2 includes users user3 and group3.
     Group3 includes user4.
@@ -172,6 +174,7 @@ async def get_members_root_group(
     In the case of a recursive search through the specified user4, the search
     result will be as follows: group1, user1, user2, group2, user3, group3,
     user4.
+
     """
     cte = find_root_group_recursive_cte([dn])
     result = await session.scalars(select(cte.c.directory_id))

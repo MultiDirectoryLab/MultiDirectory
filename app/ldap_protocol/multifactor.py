@@ -98,6 +98,7 @@ class MultifactorAPI:
     - `REFRESH_URL`: Endpoint URL for token refresh.
     - `client`: Asynchronous HTTP client for making requests.
     - `settings`: Configuration settings for the MFA service.
+
     """
 
     MultifactorError = _MultifactorError

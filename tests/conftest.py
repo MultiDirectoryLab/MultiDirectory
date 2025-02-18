@@ -261,7 +261,7 @@ async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
 
 
 @pytest.fixture(scope="session")
-def event_loop() -> Generator:  # noqa: indirect usage
+def event_loop() -> Generator:
     loop = uvloop.new_event_loop()
     yield loop
     with suppress(asyncio.CancelledError, RuntimeError):

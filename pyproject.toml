@@ -137,7 +137,8 @@ select = [
     "C90",  # mccabe (max_complexity), check tool.ruff.lint.mccabe
     "I",  # isort, check tool.ruff.lint.isort. Must have
     "N",  # pep8-naming
-    # "D",  # pydocstyle, check tool.ruff.lint.pydocstyle TODO uncomment, ruff fix and fix error
+    "A",  # flake8 builtin-attribute-shadowing
+    "D",  # pydocstyle, check tool.ruff.lint.pydocstyle TODO uncomment, ruff fix and fix error
     "UP",  # pyupgrade, check tool.ruff.lint.pyupgrade. Must have
     "ANN",  # flake8-annotations, check tool.ruff.lint.flake8-annotations
     # "ASYNC",  # flake8-async TODO uncomment, ruff fix and fix error
@@ -160,11 +161,21 @@ select = [
     # "PL",  # Pylint TODO uncomment, ruff fix and fix error
     # "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
     # "RUF",  # Ruff-specific rules TODO uncomment, ruff fix and fix error
-    "RUF100" # TODO delete that and uncomment "RUF"-rule in line up.
+    "RUF100", # TODO delete that and uncomment "RUF"-rule in line up.
 ]
 
 # Gradually remove all values marked 'TODO' and fix errors.
 ignore = [
+    "D101",  # TODO delete that and fix all errors
+    "D102",  # TODO delete that and fix all errors
+    "D103",  # TODO delete that and fix all errors
+    "D104",  # TODO delete that and fix all errors
+    "D105",  # TODO delete that and fix all errors
+    "D106",  # TODO delete that and fix all errors
+    "D107",  # TODO delete that and fix all errors
+    "D203",  # this is necessary. Conflict with `D211`
+    "D205",  # TODO delete that and fix all errors
+    "D213",  # this is necessary. Conflict with `D212`
     "UP007",  # TODO delete that and fix all errors
     "UP015",  # TODO delete that and fix all errors
     "UP017",  # TODO delete that and fix all errors

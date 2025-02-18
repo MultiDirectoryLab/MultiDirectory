@@ -5,6 +5,7 @@ Revises: bf435bbd95ff
 Create Date: 2024-11-11 15:21:23.568233
 
 """
+
 from alembic import op
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError

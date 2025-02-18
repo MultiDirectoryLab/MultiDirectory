@@ -41,7 +41,7 @@ async def add_network_policy(
     policy: Policy,
     session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
-    """Add policy.
+    r"""Add policy.
 
     \f
     :param Policy policy: policy to add
@@ -106,7 +106,7 @@ async def add_network_policy(
 async def get_list_network_policies(
     session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
-    """Get network.
+    r"""Get network.
 
     \f
     :return list[PolicyResponse]: all policies
@@ -153,7 +153,7 @@ async def delete_network_policy(
     request: Request,
     session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
-    """Delete policy.
+    r"""Delete policy.
 
     \f
     :param int policy_id: id
@@ -194,7 +194,7 @@ async def switch_network_policy(
     policy_id: int,
     session: FromDishka[AsyncSession],
 ) -> bool:
-    """Switch state of policy.
+    r"""Switch state of policy.
 
     - **policy_id**: int, policy to switch
     \f
@@ -223,7 +223,7 @@ async def update_network_policy(
     request: PolicyUpdate,
     session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
-    """Update network policy.
+    r"""Update network policy.
 
     \f
     :param PolicyUpdate policy: update request
@@ -319,7 +319,7 @@ async def swap_network_policy(
     swap: SwapRequest,
     session: FromDishka[AsyncSession],
 ) -> SwapResponse:
-    """Swap priorities for policy.
+    r"""Swap priorities for policy.
 
     - **first_policy_id**: policy to swap
     - **second_policy_id**: policy to swap

@@ -526,8 +526,7 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
 
 
 async def set_state(session: AsyncSession, state: "KerberosState") -> None:
-    """
-    Set the server state in the database.
+    """Set the server state in the database.
 
     This function updates the server state in the database by either adding
     a new entry, updating an existing entry, or deleting and re-adding the
