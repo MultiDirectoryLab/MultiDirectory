@@ -203,6 +203,7 @@ unfixable = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101"] # Ignore `Flake8-bandit S101` rule for the `tests/` directory.
+"alembic/*.py" = ["I001"]
 
 [tool.ruff.lint.mccabe]
 # 23 Complexity level is too high, need to reduce this level
