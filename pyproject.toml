@@ -211,6 +211,7 @@ max-complexity = 23
 
 [tool.ruff.lint.isort]
 known-first-party = [
+    "app",
     "ldap_protocol",
     "client",
     "config",
