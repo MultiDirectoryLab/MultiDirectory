@@ -440,10 +440,13 @@ class SearchRequest(BaseRequest):
                         str(get_windows_timestamp(directory.user.last_logon)))
                     attrs["authTimestamp"].append(directory.user.last_logon)
 
-            if self.member_of:
-                if "group" in obj_classes or "user" in obj_classes:
-                    for group in directory.groups:
-                        attrs["memberOf"].append(group.directory.path_dn)
+            if (
+                self.member_of
+                and "group" in obj_classes
+                or "user" in obj_classes
+            ):
+                for group in directory.groups:
+                    attrs["memberOf"].append(group.directory.path_dn)
 
             if self.token_groups and "user" in obj_classes:
                 attrs["tokenGroups"].append(
@@ -458,10 +461,9 @@ class SearchRequest(BaseRequest):
                         attrs["tokenGroups"].append(
                             str(string_to_sid(directory_.object_sid)))
 
-            if self.member:
-                if "group" in obj_classes and directory.group:
-                    for member in directory.group.members:
-                        attrs["member"].append(member.path_dn)
+            if self.member and "group" in obj_classes and directory.group:
+                for member in directory.group.members:
+                    attrs["member"].append(member.path_dn)
 
             if directory.user:
                 if self.all_attrs:

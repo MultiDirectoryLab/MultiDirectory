@@ -152,9 +152,12 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
 
         return Attribute.name.ilike(item.value.lower())
 
-    if len(item.value) == 3 and isinstance(item.value[1].value, bytes):
-        if item.value[1].value.decode("utf-8").lower() in MEMBERS_ATTRS:
-            return _ldap_filter_by_attribute(*item.value)  # NOTE: oid
+    if (
+        len(item.value) == 3
+        and isinstance(item.value[1].value, bytes)
+        and item.value[1].value.decode("utf-8").lower() in MEMBERS_ATTRS
+    ):
+        return _ldap_filter_by_attribute(*item.value)  # NOTE: oid
 
     left, right = item.value
     attr = left.value.lower().replace("objectcategory", "objectclass")

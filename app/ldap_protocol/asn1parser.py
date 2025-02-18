@@ -139,7 +139,7 @@ class ASN1Row(Generic[T]):
 
         return substring_tag_map[substring_tag]
 
-    def serialize(self, obj: "ASN1Row" | T | None = None) -> str:
+    def serialize(self, obj: "ASN1Row | T | None" = None) -> str:
         """Serialize an ASN.1 object or list into a string.
 
         Recursively processes ASN.1 structures to construct a valid LDAP

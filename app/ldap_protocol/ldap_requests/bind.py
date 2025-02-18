@@ -138,14 +138,15 @@ class BindRequest(BaseRequest):
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        if isinstance(self.authentication_choice, SaslGSSAPIAuthentication):
-            if response := await self.authentication_choice.step(
-                session,
-                ldap_session,
-                settings,
-            ):
-                yield response
-                return
+        if isinstance(
+            self.authentication_choice, SaslGSSAPIAuthentication
+        ) and (
+            response := await self.authentication_choice.step(
+                session, ldap_session, settings
+            )
+        ):
+            yield response
+            return
 
         user = await self.authentication_choice.get_user(session, self.name)
 
@@ -163,11 +164,13 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        policy = await PasswordPolicySchema.get_policy_settings(
-            session, kadmin,
+        policy_pwd = await PasswordPolicySchema.get_policy_settings(
+            session, kadmin
         )
-        p_last_set = await policy.get_pwd_last_set(session, user.directory_id)
-        pwd_expired = policy.validate_max_age(p_last_set)
+        p_last_set = await policy_pwd.get_pwd_last_set(
+            session, user.directory_id
+        )
+        pwd_expired = policy_pwd.validate_max_age(p_last_set)
 
         is_krb_user = await check_kerberos_group(user, session)
 
@@ -183,24 +186,24 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 
-        if policy := getattr(ldap_session, "policy", None):  # type: ignore
-            if policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
+        if (
+            policy := getattr(ldap_session, "policy", None)
+        ) and policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
+            request_2fa = True
+            if policy.mfa_status == MFAFlags.WHITELIST:
+                request_2fa = await check_mfa_group(policy, user, session)
 
-                request_2fa = True
-                if policy.mfa_status == MFAFlags.WHITELIST:
-                    request_2fa = await check_mfa_group(policy, user, session)
+            if request_2fa:
+                mfa_status = await self.check_mfa(
+                    mfa,
+                    user.user_principal_name,
+                    self.authentication_choice.otpassword,
+                    policy,
+                )
 
-                if request_2fa:
-                    mfa_status = await self.check_mfa(
-                        mfa,
-                        user.user_principal_name,
-                        self.authentication_choice.otpassword,
-                        policy,
-                    )
-
-                    if mfa_status is False:
-                        yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
-                        return
+                if mfa_status is False:
+                    yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
+                    return
 
         with contextlib.suppress(KRBAPIError, httpx.TimeoutException):
             await kadmin.add_principal(
