@@ -89,8 +89,7 @@ class UserAccountControlFlag(IntFlag):
 
 
 async def get_check_uac(
-    session: AsyncSession,
-    directory_id: int,
+    session: AsyncSession, directory_id: int
 ) -> Callable[[UserAccountControlFlag], bool]:
     """Get userAccountControl attribute and check binary flags in it.
 
@@ -99,14 +98,14 @@ async def get_check_uac(
     :return Callable: function to check given flag in current
         userAccountControl attribute
     """
-    query = (
-        select(Attribute)
-        .filter_by(directory_id=directory_id, name="userAccountControl")
+    query = select(Attribute).filter_by(
+        directory_id=directory_id, name="userAccountControl"
     )
     uac = await session.scalar(query)
 
     value: str = (
-        uac.value if uac is not None and uac.value is not None else "0")
+        uac.value if uac is not None and uac.value is not None else "0"
+    )
 
     def is_flag_true(flag: UserAccountControlFlag) -> bool:
         """Check given flag in current userAccountControl attribute.

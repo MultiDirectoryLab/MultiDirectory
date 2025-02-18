@@ -21,9 +21,7 @@ from models import Directory, Group
 
 
 async def apply_user_account_control(
-    http_client: AsyncClient,
-    user_dn: str,
-    user_account_control_value: str,
+    http_client: AsyncClient, user_dn: str, user_account_control_value: str
 ) -> dict[str, Any]:
     """Apply userAccountControl value and return response data.
 
@@ -43,7 +41,7 @@ async def apply_user_account_control(
                         "type": "userAccountControl",
                         "vals": [user_account_control_value],
                     },
-                },
+                }
             ],
         },
     )
@@ -53,8 +51,7 @@ async def apply_user_account_control(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_first_setup_and_oauth(
-    unbound_http_client: AsyncClient,
-    session: AsyncSession,
+    unbound_http_client: AsyncClient, session: AsyncSession
 ) -> None:
     """Test api first setup."""
     response = await unbound_http_client.get("/auth/setup")
@@ -79,8 +76,7 @@ async def test_first_setup_and_oauth(
     assert response.json() is True
 
     auth = await unbound_http_client.post(
-        "auth/",
-        data={"username": "test", "password": "Password123"},
+        "auth/", data={"username": "test", "password": "Password123"}
     )
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["id"]
@@ -99,15 +95,15 @@ async def test_first_setup_and_oauth(
     result = await session.scalars(
         select(Directory)
         .options(
-            joinedload(Directory.group).selectinload(Group.access_policies),
+            joinedload(Directory.group).selectinload(Group.access_policies)
         )
         .filter(
             Directory.path
             == get_search_path(
                 "cn=readonly domain controllers,"
-                "cn=groups,dc=md,dc=test-localhost",
-            ),
-        ),
+                "cn=groups,dc=md,dc=test-localhost"
+            )
+        )
     )
     group_dir = result.one()
     assert group_dir.group
@@ -180,10 +176,7 @@ async def test_first_setup_with_invalid_domain(
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is False
 
-    response = await unbound_http_client.post(
-        "/auth/setup",
-        json=test_case,
-    )
+    response = await unbound_http_client.post("/auth/setup", json=test_case)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = await unbound_http_client.get("/auth/setup")
@@ -208,7 +201,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
                         "type": "userAccountControl",
                         "vals": ["8389120"],  # normal and paswd expire
                     },
-                },
+                }
             ],
         },
     )
@@ -217,10 +210,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
 
     response = await http_client.patch(
         "auth/user/password",
-        json={
-            "identity": user_dn,
-            "new_password": "Password123",
-        },
+        json={"identity": user_dn, "new_password": "Password123"},
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -260,30 +250,19 @@ async def test_update_password(http_client: AsyncClient) -> None:
     """Update policy."""
     response = await http_client.patch(
         "auth/user/password",
-        json={
-            "identity": "user0",
-            "new_password": "Password123",
-        },
+        json={"identity": "user0", "new_password": "Password123"},
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is None
 
     new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
+        "auth/", data={"username": "user0", "password": "password"}
     )
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
     new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "Password123",
-        },
+        "auth/", data={"username": "user0", "password": "Password123"}
     )
     assert new_auth.status_code == status.HTTP_200_OK
     token = new_auth.cookies.get("id")
@@ -293,16 +272,11 @@ async def test_update_password(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_auth_disabled_user(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
+    http_client: AsyncClient, kadmin: AbstractKadmin
 ) -> None:
     """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
     response = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
+        "auth/", data={"username": "user0", "password": "password"}
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -318,7 +292,7 @@ async def test_auth_disabled_user(
                         "type": "userAccountControl",
                         "vals": ["514"],
                     },
-                },
+                }
             ],
         },
     )
@@ -330,11 +304,7 @@ async def test_auth_disabled_user(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
+        "auth/", data={"username": "user0", "password": "password"}
     )
 
     assert response.status_code == 403
@@ -343,9 +313,7 @@ async def test_auth_disabled_user(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_lock_and_unlock_user(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-    session: AsyncSession,
+    http_client: AsyncClient, kadmin: AbstractKadmin, session: AsyncSession
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -392,7 +360,7 @@ async def test_lock_and_unlock_user(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     dir_ = await session.scalar(
-        select(Directory).filter(Directory.name == "user0"),
+        select(Directory).filter(Directory.name == "user0")
     )
     session.expire(dir_)
 

@@ -38,8 +38,7 @@ network_router = APIRouter(
 
 @network_router.post("", status_code=status.HTTP_201_CREATED)
 async def add_network_policy(
-    policy: Policy,
-    session: FromDishka[AsyncSession],
+    policy: Policy, session: FromDishka[AsyncSession]
 ) -> PolicyResponse:
     """Add policy.
 
@@ -79,7 +78,7 @@ async def add_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists",
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists"
         )
 
     await session.refresh(new_policy)
@@ -112,9 +111,8 @@ async def get_list_network_policies(
     :return list[PolicyResponse]: all policies
     """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
-    mfa_groups = (
-        selectinload(NetworkPolicy.mfa_groups)
-        .selectinload(Group.directory)
+    mfa_groups = selectinload(NetworkPolicy.mfa_groups).selectinload(
+        Group.directory
     )
 
     return [
@@ -139,7 +137,7 @@ async def get_list_network_policies(
         for policy in await session.scalars(
             select(NetworkPolicy)
             .options(groups, mfa_groups)
-            .order_by(NetworkPolicy.priority.asc()),
+            .order_by(NetworkPolicy.priority.asc())
         )
     ]
 
@@ -147,11 +145,10 @@ async def get_list_network_policies(
 @network_router.delete(
     "/{policy_id}",
     response_class=RedirectResponse,
-    status_code=status.HTTP_303_SEE_OTHER)
+    status_code=status.HTTP_303_SEE_OTHER,
+)
 async def delete_network_policy(
-    policy_id: int,
-    request: Request,
-    session: FromDishka[AsyncSession],
+    policy_id: int, request: Request, session: FromDishka[AsyncSession]
 ) -> list[PolicyResponse]:
     """Delete policy.
 
@@ -178,7 +175,7 @@ async def delete_network_policy(
                 update(NetworkPolicy)
                 .values({"priority": NetworkPolicy.priority - 1})
                 .filter(NetworkPolicy.priority > policy.priority)
-            ),
+            )
         )
         await session.commit()
 
@@ -191,8 +188,7 @@ async def delete_network_policy(
 
 @network_router.patch("/{policy_id}")
 async def switch_network_policy(
-    policy_id: int,
-    session: FromDishka[AsyncSession],
+    policy_id: int, session: FromDishka[AsyncSession]
 ) -> bool:
     """Switch state of policy.
 
@@ -220,8 +216,7 @@ async def switch_network_policy(
 
 @network_router.put("")
 async def update_network_policy(
-    request: PolicyUpdate,
-    session: FromDishka[AsyncSession],
+    request: PolicyUpdate, session: FromDishka[AsyncSession]
 ) -> PolicyResponse:
     """Update network policy.
 
@@ -292,8 +287,7 @@ async def update_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Entry already exists",
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists"
         )
 
     return PolicyResponse(
@@ -316,8 +310,7 @@ async def update_network_policy(
 
 @network_router.post("/swap")
 async def swap_network_policy(
-    swap: SwapRequest,
-    session: FromDishka[AsyncSession],
+    swap: SwapRequest, session: FromDishka[AsyncSession]
 ) -> SwapResponse:
     """Swap priorities for policy.
 
@@ -330,10 +323,10 @@ async def swap_network_policy(
     :return SwapResponse: policy new priorities
     """
     policy1 = await session.get(
-        NetworkPolicy, swap.first_policy_id, with_for_update=True,
+        NetworkPolicy, swap.first_policy_id, with_for_update=True
     )
     policy2 = await session.get(
-        NetworkPolicy, swap.second_policy_id, with_for_update=True,
+        NetworkPolicy, swap.second_policy_id, with_for_update=True
     )
 
     if not policy1 or not policy2:

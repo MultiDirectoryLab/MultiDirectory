@@ -16,7 +16,7 @@ from models import Attribute, User
 
 
 async def disable_accounts(
-    session: AsyncSession, kadmin: AbstractKadmin, settings: Settings,
+    session: AsyncSession, kadmin: AbstractKadmin, settings: Settings
 ) -> None:
     """Update userAccountControl attr.
 
@@ -41,14 +41,14 @@ async def disable_accounts(
     )
     new_value = cast(
         cast(Attribute.value, Integer).op("|")(
-            UserAccountControlFlag.ACCOUNTDISABLE,
+            UserAccountControlFlag.ACCOUNTDISABLE
         ),
         String,
     )
     conditions = [
         (
             cast(Attribute.value, Integer).op("&")(
-                UserAccountControlFlag.ACCOUNTDISABLE,
+                UserAccountControlFlag.ACCOUNTDISABLE
             )
             == 0
         ),
@@ -61,20 +61,18 @@ async def disable_accounts(
         .values(value=new_value)
         .where(*conditions)
         .returning(Attribute.directory_id)
-        .execution_options(synchronize_session=False),
+        .execution_options(synchronize_session=False)
     )
 
     users = await session.stream_scalars(
-        select(User).where(User.directory_id.in_(ids)),
+        select(User).where(User.directory_id.in_(ids))
     )
 
     async for user in users:
         await kadmin.lock_principal(user.get_upn_prefix())
 
         await add_lock_and_expire_attributes(
-            session,
-            user.directory,
-            settings.TIMEZONE,
+            session, user.directory, settings.TIMEZONE
         )
 
     await session.commit()

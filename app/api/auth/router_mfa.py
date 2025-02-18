@@ -46,9 +46,7 @@ from .schema import (
 )
 
 mfa_router = APIRouter(
-    prefix="/multifactor",
-    tags=["Multifactor"],
-    route_class=DishkaRoute,
+    prefix="/multifactor", tags=["Multifactor"], route_class=DishkaRoute
 )
 
 
@@ -58,8 +56,7 @@ mfa_router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 async def setup_mfa(
-    mfa: MFACreateRequest,
-    session: FromDishka[AsyncSession],
+    mfa: MFACreateRequest, session: FromDishka[AsyncSession]
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
 
@@ -75,14 +72,14 @@ async def setup_mfa(
                     operator.or_(
                         CatalogueSetting.name == mfa.key_name,
                         CatalogueSetting.name == mfa.secret_name,
-                    ),
+                    )
                 )
-            ),
+            )
         )
         await session.flush()
         session.add(CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key))
         session.add(
-            CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret),
+            CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret)
         )
         await session.commit()
 
@@ -91,8 +88,7 @@ async def setup_mfa(
 
 @mfa_router.delete("/keys", dependencies=[Depends(get_current_user)])
 async def remove_mfa(
-    session: FromDishka[AsyncSession],
-    scope: Literal["ldap", "http"],
+    session: FromDishka[AsyncSession], scope: Literal["ldap", "http"]
 ) -> None:
     """Remove mfa credentials."""
     if scope == "http":
@@ -101,7 +97,7 @@ async def remove_mfa(
         keys = ["mfa_key_ldap", "mfa_secret_ldap"]
 
     await session.execute(
-        delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys)),
+        delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys))
     )
     await session.commit()
 
@@ -213,16 +209,14 @@ async def two_factor_protocol(
     """
     if not api:
         raise HTTPException(
-            status.HTTP_428_PRECONDITION_REQUIRED,
-            "Missing API credentials",
+            status.HTTP_428_PRECONDITION_REQUIRED, "Missing API credentials"
         )
 
     user = await authenticate_user(session, form.username, form.password)
 
     if not user:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Invalid credentials",
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid credentials"
         )
 
     network_policy = await get_user_network_policy(ip, user, session)
@@ -235,9 +229,7 @@ async def two_factor_protocol(
             url = url.replace(scheme="https")
 
         redirect_url = await api.get_create_mfa(
-            user.user_principal_name,
-            url.components.geturl(),
-            user.id,
+            user.user_principal_name, url.components.geturl(), user.id
         )
     except MultifactorAPI.MFAConnectError:
         if network_policy.bypass_no_connection:
@@ -248,8 +240,7 @@ async def two_factor_protocol(
 
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
-            status.HTTP_406_NOT_ACCEPTABLE,
-            "Multifactor error",
+            status.HTTP_406_NOT_ACCEPTABLE, "Multifactor error"
         )
 
     except MultifactorAPI.MFAMissconfiguredError:
@@ -267,8 +258,7 @@ async def two_factor_protocol(
 
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
-            status.HTTP_406_NOT_ACCEPTABLE,
-            "Multifactor error",
+            status.HTTP_406_NOT_ACCEPTABLE, "Multifactor error"
         )
 
     return MFAChallengeResponse(status="pending", message=redirect_url)

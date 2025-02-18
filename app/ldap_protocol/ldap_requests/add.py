@@ -104,7 +104,7 @@ class AddRequest(BaseRequest):
         root_dn = get_search_path(self.entry)
 
         exists_q = select(
-            select(Directory).filter(get_path_filter(root_dn)).exists(),
+            select(Directory).filter(get_path_filter(root_dn)).exists()
         )
 
         if await session.scalar(exists_q) is True:
@@ -135,20 +135,18 @@ class AddRequest(BaseRequest):
             return
 
         if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "add"),
+            mutate_ap(query, ldap_session.user, "add")
         ):
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         if self.password is not None:
             validator = await PasswordPolicySchema.get_policy_settings(
-                session,
-                kadmin,
+                session, kadmin
             )
             raw_password = self.password.get_secret_value()
             errors = await validator.validate_password_with_policy(
-                raw_password,
-                None,
+                raw_password, None
             )
 
             if errors:
@@ -222,7 +220,7 @@ class AddRequest(BaseRequest):
                             value=value if isinstance(value, str) else None,
                             bvalue=value if isinstance(value, bytes) else None,
                             directory=new_dir,
-                        ),
+                        )
                     )
 
         parent_groups = await get_groups(group_attributes, session)
@@ -235,16 +233,14 @@ class AddRequest(BaseRequest):
 
         if is_user:
             parent_groups.append(
-                (await get_group("domain users", session)).group,
+                (await get_group("domain users", session)).group
             )
 
             sam_accout_name = user_attributes.get(
-                "sAMAccountName",
-                create_user_name(new_dir.id),
+                "sAMAccountName", create_user_name(new_dir.id)
             )
             user_principal_name = user_attributes.get(
-                "userPrincipalName",
-                f"{sam_accout_name!r}@{base_dn.name}",
+                "userPrincipalName", f"{sam_accout_name!r}@{base_dn.name}"
             )
             user = User(
                 sam_accout_name=sam_accout_name,
@@ -271,7 +267,7 @@ class AddRequest(BaseRequest):
                     name="userAccountControl",
                     value=uac_value,
                     directory=new_dir,
-                ),
+                )
             )
 
             for attr, value in {  # type: ignore
@@ -284,19 +280,11 @@ class AddRequest(BaseRequest):
                     del user_attributes[attr]  # type: ignore
 
                 attributes.append(
-                    Attribute(
-                        name=attr,
-                        value=value,
-                        directory=new_dir,
-                    ),
+                    Attribute(name=attr, value=value, directory=new_dir)
                 )
 
             attributes.append(
-                Attribute(
-                    name="pwdLastSet",
-                    value=ft_now(),
-                    directory=new_dir,
-                ),
+                Attribute(name="pwdLastSet", value=ft_now(), directory=new_dir)
             )
 
         elif is_group:
@@ -309,10 +297,10 @@ class AddRequest(BaseRequest):
                 Attribute(
                     name="userAccountControl",
                     value=str(
-                        UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT,
+                        UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
                     ),
                     directory=new_dir,
-                ),
+                )
             )
 
         if (is_user or is_group) and "gidnumber" not in self.attr_names:
@@ -325,7 +313,7 @@ class AddRequest(BaseRequest):
                     name="gidNumber",  # reverse dir name if it matches samAN
                     value=value,
                     directory=new_dir,
-                ),
+                )
             )
 
         try:
@@ -348,8 +336,7 @@ class AddRequest(BaseRequest):
                     await kadmin.add_principal(user.get_upn_prefix(), pw)
                 if is_computer:
                     await kadmin.add_principal(
-                        f"{new_dir.host_principal}.{base_dn.name}",
-                        None,
+                        f"{new_dir.host_principal}.{base_dn.name}", None
                     )
                     await kadmin.add_principal(new_dir.host_principal, None)
             except KRBAPIError:

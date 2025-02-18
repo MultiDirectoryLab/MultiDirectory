@@ -38,9 +38,7 @@ class LDAPResult(BaseModel):
 
         populate_by_name = True
         arbitrary_types_allowed = True
-        json_encoders = {
-            bytes: lambda value: value.hex(),
-        }
+        json_encoders = {bytes: lambda value: value.hex()}
 
 
 class BaseEncoder(BaseModel):
@@ -84,11 +82,7 @@ class BindResponse(LDAPResult, BaseResponse):
         enc.write(self.error_message, type_map[type(self.error_message)])
 
         if self.server_sasl_creds:
-            enc.write(
-                self.server_sasl_creds,
-                cls=Classes.Context,
-                nr=7,
-            )
+            enc.write(self.server_sasl_creds, cls=Classes.Context, nr=7)
 
 
 class PartialAttribute(BaseModel):
@@ -111,9 +105,7 @@ class PartialAttribute(BaseModel):
         """Allow class to use property."""
 
         arbitrary_types_allowed = True
-        json_encoders = {
-            bytes: lambda value: value.hex(),
-        }
+        json_encoders = {bytes: lambda value: value.hex()}
 
 
 class SearchResultEntry(BaseResponse):

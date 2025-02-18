@@ -47,10 +47,10 @@ async def delete_user_sessions(
 
 
 @session_router.delete(
-    "/session/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+    "/session/{session_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_session(
-    session_id: str,
-    storage: FromDishka[SessionStorage],
+    session_id: str, storage: FromDishka[SessionStorage]
 ) -> None:
     """Delete current logged in user data."""
     await storage.delete_user_session(session_id)

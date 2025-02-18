@@ -17,10 +17,7 @@ DATA = [
     {
         "name": "main",
         "object_class": "builtinDomain",
-        "attributes": {
-            "objectClass": ["top"],
-            "sAMAccountName": ["main"],
-        },
+        "attributes": {"objectClass": ["top"], "sAMAccountName": ["main"]},
         "children": [
             {
                 "name": "administrators",
@@ -68,7 +65,7 @@ DATA = [
                         "person",
                         "organizationalPerson",
                         "posixAccount",
-                    ],
+                    ]
                 },
             },
             {
@@ -88,7 +85,7 @@ DATA = [
                         "person",
                         "organizationalPerson",
                         "posixAccount",
-                    ],
+                    ]
                 },
             },
         ],
@@ -110,7 +107,7 @@ DATA = [
                 "person",
                 "organizationalPerson",
                 "posixAccount",
-            ],
+            ]
         },
     },
     {
@@ -160,7 +157,7 @@ DATA = [
                         "person",
                         "organizationalPerson",
                         "posixAccount",
-                    ],
+                    ]
                 },
             },
         ],
@@ -191,11 +188,11 @@ DATA = [
                                 "person",
                                 "organizationalPerson",
                                 "posixAccount",
-                            ],
+                            ]
                         },
-                    },
+                    }
                 ],
-            },
+            }
         ],
     },
 ]
@@ -204,10 +201,7 @@ TEST_DATA = [
     {
         "name": "groups",
         "object_class": "container",
-        "attributes": {
-            "objectClass": ["top"],
-            "sAMAccountName": ["groups"],
-        },
+        "attributes": {"objectClass": ["top"], "sAMAccountName": ["groups"]},
         "children": [
             {
                 "name": "domain admins",
@@ -334,9 +328,9 @@ TEST_DATA = [
                                     "posixEmail": ["user1@mail.com"],
                                     "userAccountControl": ["512"],
                                 },
-                            },
+                            }
                         ],
-                    },
+                    }
                 ],
             },
         ],

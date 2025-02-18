@@ -52,16 +52,15 @@ class _MFAMissconfiguredError(Exception):
 
 
 async def get_creds(
-    session: AsyncSession,
-    key_name: str,
-    secret_name: str,
+    session: AsyncSession, key_name: str, secret_name: str
 ) -> Creds | None:
     """Get API creds.
 
     :return tuple[str, str]: api key and secret
     """
     query = select(CatalogueSetting).where(
-        CatalogueSetting.name.in_([key_name, secret_name]))
+        CatalogueSetting.name.in_([key_name, secret_name])
+    )
 
     vals = await session.scalars(query)
     secrets = {s.name: s.value for s in vals.all()}
@@ -136,9 +135,7 @@ class MultifactorAPI:
 
     @log_mfa.catch(reraise=True)
     async def ldap_validate_mfa(
-        self,
-        username: str,
-        password: str | None,
+        self, username: str, password: str | None
     ) -> bool:
         """Validate multifactor.
 
@@ -195,14 +192,14 @@ class MultifactorAPI:
                 "response": data,
                 "req_content": response.request.content.decode(),
                 "req_headers": response.request.headers,
-            },
+            }
         )
 
         return data.get("model", {}).get("status") == "Granted"
 
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(
-        self, username: str, callback_url: str, uid: int,
+        self, username: str, callback_url: str, uid: int
     ) -> str:
         """Create mfa link.
 
@@ -216,14 +213,8 @@ class MultifactorAPI:
         """
         data = {
             "identity": username,
-            "claims": {
-                "uid": uid,
-                "grant_type": "multifactor",
-            },
-            "callback": {
-                "action": callback_url,
-                "target": "_self",
-            },
+            "claims": {"uid": uid, "grant_type": "multifactor"},
+            "callback": {"action": callback_url, "target": "_self"},
         }
         log_mfa.debug(data)
         try:

@@ -23,7 +23,7 @@ from pydantic import (
 from ldap_protocol.utils.const import EmailStr
 
 _domain_re = re.compile(
-    "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z-]{2,63}$",
+    "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z-]{2,63}$"
 )
 
 
@@ -37,11 +37,7 @@ class Login(BaseModel):
 class OAuth2Form(OAuth2PasswordRequestForm):
     """OAuth2 custom form."""
 
-    def __init__(
-        self,
-        username: str = Form(),
-        password: str = Form(),
-    ):
+    def __init__(self, username: str = Form(), password: str = Form()):
         """Initialize form."""
         self.username = username
         self.password = password

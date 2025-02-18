@@ -37,8 +37,7 @@ if TYPE_CHECKING:
         """Protocol for API handling."""
 
         async def _handle_api(
-            self,
-            container: AsyncContainer,
+            self, container: AsyncContainer
         ) -> list[BaseResponse] | BaseResponse: ...
 else:
 
@@ -57,7 +56,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         """Protocol OP response code."""
 
     async def _handle_api(
-        self, container: AsyncContainer,
+        self, container: AsyncContainer
     ) -> list[BaseResponse]:
         """Hanlde response with api user.
 

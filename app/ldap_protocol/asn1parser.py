@@ -58,7 +58,8 @@ class SubstringTag(IntEnum):
 
 
 T = TypeVar(
-    "T", contravariant=True,
+    "T",
+    contravariant=True,
     bound="ASN1Row | list[ASN1Row] | str | bytes | int | float",
 )
 
@@ -134,8 +135,7 @@ class ASN1Row(Generic[T]):
         try:
             substring_tag = SubstringTag(self.tag_id)
         except ValueError:
-            raise ValueError(
-                f"Invalid tag_id ({self.tag_id}) in substring")
+            raise ValueError(f"Invalid tag_id ({self.tag_id}) in substring")
 
         return substring_tag_map[substring_tag]
 
@@ -156,11 +156,7 @@ class ASN1Row(Generic[T]):
             if obj.class_id != Classes.Context:
                 return self.serialize(value)
 
-            if obj.tag_id in (
-                TagNumbers.AND,
-                TagNumbers.OR,
-                TagNumbers.NOT,
-            ):
+            if obj.tag_id in (TagNumbers.AND, TagNumbers.OR, TagNumbers.NOT):
                 subfilters = "".join(self.serialize(v) for v in value)
 
                 if obj.tag_id == TagNumbers.AND:
@@ -189,7 +185,8 @@ class ASN1Row(Generic[T]):
 
                 if operator is None:
                     raise ValueError(
-                        f"Invalid tag_id ({obj.tag_id}) in context")
+                        f"Invalid tag_id ({obj.tag_id}) in context"
+                    )
 
             if isinstance(obj.value, list):
                 if len(obj.value) == 2:
@@ -233,8 +230,7 @@ class ASN1Row(Generic[T]):
 
 
 def value_to_string(
-    tag: Tag,
-    value: str | bytes | int | bool,
+    tag: Tag, value: str | bytes | int | bool
 ) -> bytes | str | int:
     """Convert value to string."""
     if tag.nr == Numbers.Integer:

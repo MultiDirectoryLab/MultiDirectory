@@ -77,14 +77,10 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column(
-            "raw",
-            postgresql.JSON(astext_type=sa.Text()),
-            nullable=False,
+            "raw", postgresql.JSON(astext_type=sa.Text()), nullable=False
         ),
         sa.Column(
-            "netmasks",
-            postgresql.ARRAY(postgresql.CIDR()),
-            nullable=False,
+            "netmasks", postgresql.ARRAY(postgresql.CIDR()), nullable=False
         ),
         sa.Column(
             "enabled",
@@ -135,13 +131,9 @@ def upgrade() -> None:
         sa.Column("password_policy_id", sa.Integer(), nullable=True),
         sa.Column("objectGUID", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("path", postgresql.ARRAY(sa.String()), nullable=False),
+        sa.ForeignKeyConstraint(["parentId"], ["Directory.id"]),
         sa.ForeignKeyConstraint(
-            ["parentId"],
-            ["Directory.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["password_policy_id"],
-            ["PasswordPolicies.id"],
+            ["password_policy_id"], ["PasswordPolicies.id"]
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
@@ -156,14 +148,8 @@ def upgrade() -> None:
         "AccessPolicyMemberships",
         sa.Column("dir_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["dir_id"],
-            ["Directory.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["AccessPolicies.id"],
-        ),
+        sa.ForeignKeyConstraint(["dir_id"], ["Directory.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["AccessPolicies.id"]),
         sa.PrimaryKeyConstraint("dir_id", "policy_id"),
     )
     op.create_table(
@@ -177,10 +163,7 @@ def upgrade() -> None:
             "(value IS NULL) <> (bvalue IS NULL)",
             name="constraint_value_xor_bvalue",
         ),
-        sa.ForeignKeyConstraint(
-            ["directoryId"],
-            ["Directory.id"],
-        ),
+        sa.ForeignKeyConstraint(["directoryId"], ["Directory.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -188,10 +171,7 @@ def upgrade() -> None:
         "Groups",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("directoryId", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["directoryId"],
-            ["Directory.id"],
-        ),
+        sa.ForeignKeyConstraint(["directoryId"], ["Directory.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -211,10 +191,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("directoryId", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["directoryId"],
-            ["Directory.id"],
-        ),
+        sa.ForeignKeyConstraint(["directoryId"], ["Directory.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("sAMAccountName"),
         sa.UniqueConstraint("userPrincipalName"),
@@ -223,90 +200,51 @@ def upgrade() -> None:
         "DirectoryMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("directory_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["directory_id"],
-            ["Directory.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
+        sa.ForeignKeyConstraint(["directory_id"], ["Directory.id"]),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
         sa.PrimaryKeyConstraint("group_id", "directory_id"),
     )
     op.create_table(
         "GroupAccessPolicyMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["AccessPolicies.id"],
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["AccessPolicies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
     op.create_table(
         "PolicyMFAMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["Policies.id"],
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["Policies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
     op.create_table(
         "PolicyMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["Policies.id"],
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["Policies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
 
     op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
 
     op.create_index(
-        op.f("ix_Policies_netmasks"),
-        "Policies",
-        ["netmasks"],
-        unique=True,
+        op.f("ix_Policies_netmasks"), "Policies", ["netmasks"], unique=True
     )
     op.create_index(
-        op.f("ix_Settings_name"),
-        "Settings",
-        ["name"],
-        unique=False,
+        op.f("ix_Settings_name"), "Settings", ["name"], unique=False
     )
     op.create_index(
-        op.f("ix_Directory_parentId"),
-        "Directory",
-        ["parentId"],
-        unique=False,
+        op.f("ix_Directory_parentId"), "Directory", ["parentId"], unique=False
     )
     op.create_index(
-        op.f("ix_Directory_path"),
-        "Directory",
-        ["path"],
-        unique=False,
+        op.f("ix_Directory_path"), "Directory", ["path"], unique=False
     )
     op.create_index(
-        op.f("ix_Attributes_name"),
-        "Attributes",
-        ["name"],
-        unique=False,
+        op.f("ix_Attributes_name"), "Attributes", ["name"], unique=False
     )
 
     op.create_index("ix_directory_objectGUID", "Directory", ["objectGUID"])
@@ -319,15 +257,15 @@ def upgrade() -> None:
         SELECT btrim(lower(unnest($1)))::varchar AS tag
     ) AS q;
     $BODY$
-    language sql IMMUTABLE;"""),
+    language sql IMMUTABLE;""")
     )
     op.execute(
         sa.text(
             """
             CREATE INDEX lw_path
             ON "Directory" USING GIN(array_lowercase("path"));
-            """,
-        ),
+            """
+        )
     )
 
 

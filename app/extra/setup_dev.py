@@ -38,10 +38,7 @@ async def _get_group(name: str, session: AsyncSession) -> Group:
     retval = await session.scalars(
         select(Group)
         .join(Group.directory)
-        .filter(
-            Directory.name == name,
-            Directory.object_class == "group",
-        ),
+        .filter(Directory.name == name, Directory.object_class == "group")
     )
     return retval.one()
 
@@ -54,20 +51,14 @@ async def _create_dir(
 ) -> None:
     """Create data recursively."""
     dir_ = Directory(
-        object_class=data["object_class"],
-        name=data["name"],
-        parent=parent,
+        object_class=data["object_class"], name=data["name"], parent=parent
     )
     dir_.create_path(parent, dir_.get_dn_prefix())
 
     async with session.begin_nested():
         session.add(dir_)
         session.add(
-            Attribute(
-                name=dir_.rdname,
-                value=dir_.name,
-                directory=dir_,
-            ),
+            Attribute(name=dir_.rdname, value=dir_.name, directory=dir_)
         )
         await session.flush()
 
@@ -84,15 +75,13 @@ async def _create_dir(
             parent_group: Group = await _get_group(group_name, session)
             session.add(
                 DirectoryMembership(
-                    group_id=parent_group.id,
-                    directory_id=dir_.id,
-                ),
+                    group_id=parent_group.id, directory_id=dir_.id
+                )
             )
 
     if "attributes" in data:
         attrs = chain(
-            data["attributes"].items(),
-            [("objectClass", [dir_.object_class])],
+            data["attributes"].items(), [("objectClass", [dir_.object_class])]
         )
 
         for name, values in attrs:
@@ -103,7 +92,7 @@ async def _create_dir(
                         name=name,
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
-                    ),
+                    )
                 )
 
     if "organizationalPerson" in data:
@@ -120,10 +109,8 @@ async def _create_dir(
         await session.flush()
         session.add(
             Attribute(
-                directory=dir_,
-                name="homeDirectory",
-                value=f"/home/{user.uid}",
-            ),
+                directory=dir_, name="homeDirectory", value=f"/home/{user.uid}"
+            )
         )
 
         for group_name in user_data.get("groups", []):
@@ -131,9 +118,8 @@ async def _create_dir(
             await session.flush()
             session.add(
                 DirectoryMembership(
-                    group_id=parent_group.id,
-                    directory_id=dir_.id,
-                ),
+                    group_id=parent_group.id, directory_id=dir_.id
+                )
             )
 
     await session.flush()
@@ -144,7 +130,7 @@ async def _create_dir(
 
 
 async def setup_enviroment(
-    session: AsyncSession, *, data: list, dn: str = "multifactor.dev",
+    session: AsyncSession, *, data: list, dn: str = "multifactor.dev"
 ) -> None:
     """Create directories and users for enviroment."""
     cat_result = await session.execute(select(Directory))
@@ -153,9 +139,7 @@ async def setup_enviroment(
         return
 
     domain = Directory(
-        name=dn,
-        object_class="domain",
-        object_sid=generate_domain_sid(),
+        name=dn, object_class="domain", object_sid=generate_domain_sid()
     )
     domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
     domain.depth = len(domain.path)
@@ -169,7 +153,7 @@ async def setup_enviroment(
                 netmasks=["0.0.0.0/0"],
                 raw=["0.0.0.0/0"],
                 priority=1,
-            ),
+            )
         )
         session.add_all(list(get_domain_object_class(domain)))
         await session.flush()

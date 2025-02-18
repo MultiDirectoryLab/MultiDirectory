@@ -153,9 +153,7 @@ def upgrade() -> None:
     )
 
     op.drop_constraint(
-        "Attributes_directoryId_fkey",
-        "Attributes",
-        type_="foreignkey",
+        "Attributes_directoryId_fkey", "Attributes", type_="foreignkey"
     )
     op.create_foreign_key(
         "Attributes_directoryId_fkey",
@@ -167,9 +165,7 @@ def upgrade() -> None:
     )
 
     op.drop_constraint(
-        "Directory_parentId_fkey",
-        "Directory",
-        type_="foreignkey",
+        "Directory_parentId_fkey", "Directory", type_="foreignkey"
     )
     op.create_foreign_key(
         "Directory_parentId_fkey",
@@ -330,11 +326,7 @@ def downgrade() -> None:
 
     op.drop_constraint("Users_directoryId_fkey", "Users", type_="foreignkey")
     op.create_foreign_key(
-        "Users_directoryId_fkey",
-        "Users",
-        "Directory",
-        ["directoryId"],
-        ["id"],
+        "Users_directoryId_fkey", "Users", "Directory", ["directoryId"], ["id"]
     )
 
     op.drop_constraint("Groups_directoryId_fkey", "Groups", type_="foreignkey")
@@ -347,9 +339,7 @@ def downgrade() -> None:
     )
 
     op.drop_constraint(
-        "Directory_parentId_fkey",
-        "Directory",
-        type_="foreignkey",
+        "Directory_parentId_fkey", "Directory", type_="foreignkey"
     )
     op.create_foreign_key(
         "Directory_parentId_fkey",
@@ -360,9 +350,7 @@ def downgrade() -> None:
     )
 
     op.drop_constraint(
-        "Attributes_directoryId_fkey",
-        "Attributes",
-        type_="foreignkey",
+        "Attributes_directoryId_fkey", "Attributes", type_="foreignkey"
     )
     op.create_foreign_key(
         "Attributes_directoryId_fkey",

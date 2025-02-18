@@ -28,9 +28,7 @@ _TASKS: set[tuple[task_type, float]] = {
 
 
 async def _schedule(
-    task: task_type,
-    wait: float,
-    container: AsyncContainer,
+    task: task_type, wait: float, container: AsyncContainer
 ) -> None:
     """Run task periodically.
 
@@ -53,9 +51,10 @@ async def _schedule(
 
 def scheduler(settings: Settings) -> None:
     """Sript entrypoint."""
+
     async def runner(settings: Settings) -> None:
         container = make_async_container(
-            MainProvider(), context={Settings: settings},
+            MainProvider(), context={Settings: settings}
         )
 
         async with asyncio.TaskGroup() as tg:

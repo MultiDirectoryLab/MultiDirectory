@@ -35,9 +35,7 @@ class GSSAPISL(IntEnum):
     CONFIDENTIALITY = 4
 
     SUPPORTED_SECURITY_LAYERS = (
-        NO_SECURITY
-        | INTEGRITY_PROTECTION
-        | CONFIDENTIALITY
+        NO_SECURITY | INTEGRITY_PROTECTION | CONFIDENTIALITY
     )
 
 
@@ -103,14 +101,10 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param list[ASN1Row] data: data
         :return SaslGSSAPIAuthentication
         """
-        return cls(
-            ticket=data[1].value if len(data) > 1 else b"",
-        )
+        return cls(ticket=data[1].value if len(data) > 1 else b"")
 
     async def _init_security_context(
-        self,
-        session: AsyncSession,
-        settings: Settings,
+        self, session: AsyncSession, settings: Settings
     ) -> None:
         """Init security context.
 
@@ -133,11 +127,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         )
 
         self._ldap_session.gssapi_security_context = gssapi.SecurityContext(
-            creds=server_creds,
+            creds=server_creds
         )
 
     def _handle_ticket(
-        self, server_ctx: gssapi.SecurityContext,
+        self, server_ctx: gssapi.SecurityContext
     ) -> GSSAPIAuthStatus:
         """Handle the ticket and make gssapi step.
 
@@ -152,7 +146,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             return GSSAPIAuthStatus.ERROR
 
     def _validate_security_layer(
-        self, client_layer: GSSAPISL, settings: Settings,
+        self, client_layer: GSSAPISL, settings: Settings
     ) -> bool:
         """Validate security layer.
 
@@ -164,9 +158,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         return (client_layer & supported) == client_layer
 
     def _handle_final_client_message(
-        self,
-        server_ctx: gssapi.SecurityContext,
-        settings: Settings,
+        self, server_ctx: gssapi.SecurityContext, settings: Settings
     ) -> GSSAPIAuthStatus:
         """Handle final client message.
 
@@ -178,23 +170,22 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             unwrap_message = server_ctx.unwrap(self.ticket)
             if len(unwrap_message.message) == 4:
                 client_security_layer = GSSAPISL(
-                    int.from_bytes(
-                        unwrap_message.message[:1],
-                    ),
+                    int.from_bytes(unwrap_message.message[:1])
                 )
                 if self._validate_security_layer(
-                    client_security_layer, settings,
+                    client_security_layer, settings
                 ):
                     self._ldap_session.gssapi_authenticated = True
-                    self._ldap_session.gssapi_security_layer = \
+                    self._ldap_session.gssapi_security_layer = (
                         client_security_layer
+                    )
                     return GSSAPIAuthStatus.COMPLETE
             return GSSAPIAuthStatus.ERROR
         except gssapi.exceptions.GSSError:
             return GSSAPIAuthStatus.ERROR
 
     def _generate_final_message(
-        self, server_ctx: gssapi.SecurityContext, settings: Settings,
+        self, server_ctx: gssapi.SecurityContext, settings: Settings
     ) -> bytes:
         """Generate final wrap message.
 
@@ -207,8 +198,8 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             max_size = 0  # type: ignore
 
         message = (
-            GSSAPISL.SUPPORTED_SECURITY_LAYERS.to_bytes() +
-            max_size.to_bytes(length=3)
+            GSSAPISL.SUPPORTED_SECURITY_LAYERS.to_bytes()
+            + max_size.to_bytes(length=3)
         )
 
         wrap_message = server_ctx.wrap(message, encrypt=False)
@@ -237,7 +228,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         if self.ticket == b"":
             self.server_sasl_creds = self._generate_final_message(
-                server_ctx, settings,
+                server_ctx, settings
             )
             return BindResponse(
                 result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
@@ -245,9 +236,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             )
 
         if server_ctx.complete:
-            status = self._handle_final_client_message(
-                server_ctx, settings,
-            )
+            status = self._handle_final_client_message(server_ctx, settings)
             if status == GSSAPIAuthStatus.COMPLETE:
                 return None
 
@@ -263,9 +252,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
     async def get_user(  # type: ignore
-        self,
-        session: AsyncSession,
-        name: str,
+        self, session: AsyncSession, name: str
     ) -> User | None:
         """Get user.
 

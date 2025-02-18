@@ -33,8 +33,7 @@ async def create_policy(
 
 @pwd_router.get("")
 async def get_policy(
-    session: FromDishka[AsyncSession],
-    kadmin: FromDishka[AbstractKadmin],
+    session: FromDishka[AsyncSession], kadmin: FromDishka[AbstractKadmin]
 ) -> PasswordPolicySchema:
     """Get current policy setting."""
     return await PasswordPolicySchema.get_policy_settings(session, kadmin)
@@ -53,8 +52,7 @@ async def update_policy(
 
 @pwd_router.delete("")
 async def reset_policy(
-    session: FromDishka[AsyncSession],
-    kadmin: FromDishka[AbstractKadmin],
+    session: FromDishka[AsyncSession], kadmin: FromDishka[AbstractKadmin]
 ) -> PasswordPolicySchema:
     """Reset current policy setting."""
     return await PasswordPolicySchema.delete_policy_settings(session, kadmin)

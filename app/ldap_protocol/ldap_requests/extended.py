@@ -201,19 +201,18 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             if not ldap_session.user:
                 raise PermissionError("Anonymous user")
 
-            user = await session.get(
-                User, ldap_session.user.id)  # type: ignore
+            user = await session.get(User, ldap_session.user.id)  # type: ignore
 
         validator = await PasswordPolicySchema.get_policy_settings(
-            session, kadmin,
+            session, kadmin
         )
 
         errors = await validator.validate_password_with_policy(
-            self.new_password, user,
+            self.new_password, user
         )
 
         p_last_set = await validator.get_pwd_last_set(
-            session, user.directory_id,
+            session, user.directory_id
         )
 
         if validator.validate_min_age(p_last_set):
@@ -226,13 +225,13 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             user.password = get_password_hash(self.new_password)
             await post_save_password_actions(user, session)
             await session.execute(
-                update(Directory).where(Directory.id == user.directory_id),
+                update(Directory).where(Directory.id == user.directory_id)
             )
             await session.commit()
 
             try:
                 await kadmin.create_or_update_principal_pw(
-                    user.get_upn_prefix(), self.new_password,
+                    user.get_upn_prefix(), self.new_password
                 )
             except KRBAPIError:
                 await session.rollback()
@@ -289,7 +288,7 @@ class ExtendedRequest(BaseRequest):
         """Call proxy handler."""
         try:
             response = await self.request_value.handle(
-                ldap_session, session, kadmin, settings,
+                ldap_session, session, kadmin, settings
             )
         except PermissionError as err:
             logger.critical(err)

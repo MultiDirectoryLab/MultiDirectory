@@ -1,4 +1,5 @@
 """Test DNS service."""
+
 import pytest
 from httpx import AsyncClient
 from starlette import status
@@ -9,8 +10,7 @@ from ldap_protocol.dns import AbstractDNSManager, DNSManagerState
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_dns_create_record(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
+    http_client: AsyncClient, dns_manager: AbstractDNSManager
 ) -> None:
     """DNS Manager create record test."""
     hostname = "hello"
@@ -20,18 +20,16 @@ async def test_dns_create_record(
     response = await http_client.post(
         "/dns/record",
         json={
-         "record_name": hostname,
-         "record_value": ip,
-         "record_type": record_type,
-         "ttl": ttl,
+            "record_name": hostname,
+            "record_value": ip,
+            "record_type": record_type,
+            "ttl": ttl,
         },
     )
 
     dns_manager.create_record.assert_called()  # type: ignore
     assert (
-        dns_manager  # type: ignore
-        .create_record
-        .call_args.args
+        dns_manager.create_record.call_args.args  # type: ignore
     ) == (hostname, ip, record_type, int(ttl))
 
     assert response.status_code == status.HTTP_200_OK
@@ -40,8 +38,7 @@ async def test_dns_create_record(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_dns_delete_record(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
+    http_client: AsyncClient, dns_manager: AbstractDNSManager
 ) -> None:
     """DNS Manager delete record test."""
     hostname = "hello"
@@ -51,9 +48,9 @@ async def test_dns_delete_record(
         "DELETE",
         "/dns/record",
         json={
-         "record_name": hostname,
-         "record_value": ip,
-         "record_type": record_type,
+            "record_name": hostname,
+            "record_value": ip,
+            "record_type": record_type,
         },
     )
 
@@ -68,8 +65,7 @@ async def test_dns_delete_record(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_dns_update_record(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
+    http_client: AsyncClient, dns_manager: AbstractDNSManager
 ) -> None:
     """DNS Manager update record test."""
     hostname = "hello"
@@ -80,10 +76,10 @@ async def test_dns_update_record(
         "PATCH",
         "/dns/record",
         json={
-         "record_name": hostname,
-         "record_value": ip,
-         "record_type": record_type,
-         "ttl": ttl,
+            "record_name": hostname,
+            "record_value": ip,
+            "record_type": record_type,
+            "ttl": ttl,
         },
     )
 
@@ -104,21 +100,24 @@ async def test_dns_get_all_records(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
-    assert data == [{
-        "record_type": "A",
-        "records": [{
-            "record_name": "example.com",
-            "record_value": "127.0.0.1",
-            "ttl": 3600,
-        }],
-    }]
+    assert data == [
+        {
+            "record_type": "A",
+            "records": [
+                {
+                    "record_name": "example.com",
+                    "record_value": "127.0.0.1",
+                    "ttl": 3600,
+                }
+            ],
+        }
+    ]
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_dns_setup_selfhosted(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
+    http_client: AsyncClient, dns_manager: AbstractDNSManager
 ) -> None:
     """DNS Manager setup test."""
     dns_status = DNSManagerState.SELFHOSTED

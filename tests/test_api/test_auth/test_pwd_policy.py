@@ -37,10 +37,7 @@ async def test_policy_password(http_client: AsyncClient) -> None:
     changed_data["maximum_password_age_days"] = 80
     changed_data["minimum_password_age_days"] = 30
 
-    response = await http_client.put(
-        "/password-policy",
-        json=changed_data,
-    )
+    response = await http_client.put("/password-policy", json=changed_data)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == changed_data

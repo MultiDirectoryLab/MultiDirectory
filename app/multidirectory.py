@@ -47,8 +47,7 @@ from schedule import scheduler
 
 
 async def proc_time_header_middleware(
-    request: Request,
-    call_next: Callable,
+    request: Request, call_next: Callable
 ) -> Response:
     """Set X-Process-Time header.
 

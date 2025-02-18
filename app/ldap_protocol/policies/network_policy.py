@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from ipaddress import IPv4Address, IPv6Address
 from typing import Literal
 
@@ -48,16 +49,14 @@ def build_policy_query(
             or_(
                 NetworkPolicy.groups == None,  # noqa
                 NetworkPolicy.groups.any(Group.id.in_(user_group_ids)),
-            ),
+            )
         )
 
     return query
 
 
 async def check_mfa_group(
-    policy: NetworkPolicy,
-    user: User,
-    session: AsyncSession,
+    policy: NetworkPolicy, user: User, session: AsyncSession
 ) -> bool:
     """Check if user is in a group with MFA policy.
 
@@ -69,17 +68,14 @@ async def check_mfa_group(
     return await session.scalar(
         select(
             exists().where(  # type: ignore
-                Group.mfa_policies.contains(policy),
-                Group.users.contains(user),
-            ),
-        ),
+                Group.mfa_policies.contains(policy), Group.users.contains(user)
+            )
+        )
     )
 
 
 async def get_user_network_policy(
-    ip: IPv4Address | IPv6Address,
-    user: User,
-    session: AsyncSession,
+    ip: IPv4Address | IPv6Address, user: User, session: AsyncSession
 ) -> NetworkPolicy | None:
     """Get the highest priority network policy for user, ip and protocol.
 
@@ -95,9 +91,7 @@ async def get_user_network_policy(
 
 
 async def is_user_group_valid(
-    user: User | None,
-    policy: NetworkPolicy | None,
-    session: AsyncSession,
+    user: User | None, policy: NetworkPolicy | None, session: AsyncSession
 ) -> bool:
     """Validate user groups, is it including to policy.
 

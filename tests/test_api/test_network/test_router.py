@@ -17,21 +17,42 @@ from models import NetworkPolicy
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_add_policy(
-        http_client: AsyncClient) -> None:
+async def test_add_policy(http_client: AsyncClient) -> None:
     """Test api policy add and read."""
     compare_netmasks = [
-        "127.0.0.1/32", "172.0.0.2/31", "172.0.0.4/30",
-        "172.0.0.8/29", "172.0.0.16/28", "172.0.0.32/27",
-        "172.0.0.64/26", "172.0.0.128/25", "172.0.1.0/24",
-        "172.0.2.0/23", "172.0.4.0/22", "172.0.8.0/21",
-        "172.0.16.0/20", "172.0.32.0/19", "172.0.64.0/18",
-        "172.0.128.0/17", "172.1.0.0/16", "172.2.0.0/15",
-        "172.4.0.0/14", "172.8.0.0/13", "172.16.0.0/12",
-        "172.32.0.0/11", "172.64.0.0/10", "172.128.0.0/10",
-        "172.192.0.0/11", "172.224.0.0/12", "172.240.0.0/13",
-        "172.248.0.0/14", "172.252.0.0/15", "172.254.0.0/16",
-        "172.255.0.0/24", "172.255.1.0/30", "172.255.1.4/31",
+        "127.0.0.1/32",
+        "172.0.0.2/31",
+        "172.0.0.4/30",
+        "172.0.0.8/29",
+        "172.0.0.16/28",
+        "172.0.0.32/27",
+        "172.0.0.64/26",
+        "172.0.0.128/25",
+        "172.0.1.0/24",
+        "172.0.2.0/23",
+        "172.0.4.0/22",
+        "172.0.8.0/21",
+        "172.0.16.0/20",
+        "172.0.32.0/19",
+        "172.0.64.0/18",
+        "172.0.128.0/17",
+        "172.1.0.0/16",
+        "172.2.0.0/15",
+        "172.4.0.0/14",
+        "172.8.0.0/13",
+        "172.16.0.0/12",
+        "172.32.0.0/11",
+        "172.64.0.0/10",
+        "172.128.0.0/10",
+        "172.192.0.0/11",
+        "172.224.0.0/12",
+        "172.240.0.0/13",
+        "172.248.0.0/14",
+        "172.252.0.0/15",
+        "172.254.0.0/16",
+        "172.255.0.0/24",
+        "172.255.1.0/30",
+        "172.255.1.4/31",
         "172.8.4.0/24",
     ]
 
@@ -41,17 +62,20 @@ async def test_add_policy(
         "172.8.4.0/24",
     ]
 
-    raw_response = await http_client.post("/policy", json={
-        "name": "local seriveses",
-        "netmasks": raw_netmasks,
-        "priority": 2,
-        "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
-        "is_http": True,
-        "is_ldap": True,
-        "is_kerberos": True,
-        "bypass_no_connection": False,
-        "bypass_service_failure": False,
-    })
+    raw_response = await http_client.post(
+        "/policy",
+        json={
+            "name": "local seriveses",
+            "netmasks": raw_netmasks,
+            "priority": 2,
+            "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            "is_http": True,
+            "is_ldap": True,
+            "is_kerberos": True,
+            "bypass_no_connection": False,
+            "bypass_service_failure": False,
+        },
+    )
 
     assert raw_response.status_code == 201
     assert raw_response.json()["netmasks"] == compare_netmasks
@@ -122,7 +146,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             "is_kerberos": True,
             "bypass_no_connection": False,
             "bypass_service_failure": False,
-        },
+        }
     ]
 
     response = await http_client.put(
@@ -131,7 +155,8 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             "id": pol_id,
             "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
             "name": "Default open policy 2",
-        })
+        },
+    )
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -175,23 +200,24 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             "is_kerberos": True,
             "bypass_no_connection": False,
             "bypass_service_failure": False,
-        },
+        }
     ]
 
 
 @pytest.mark.asyncio
 async def test_delete_policy(
-    http_client: httpx.AsyncClient,
-    session: AsyncSession,
+    http_client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
     """Delete policy."""
-    session.add(NetworkPolicy(
-        name="Local policy",
-        netmasks=[IPv4Network("127.100.10.5/32")],
-        raw=["127.100.10.5/32"],
-        enabled=True,
-        priority=2,
-    ))
+    session.add(
+        NetworkPolicy(
+            name="Local policy",
+            netmasks=[IPv4Network("127.100.10.5/32")],
+            raw=["127.100.10.5/32"],
+            enabled=True,
+            priority=2,
+        )
+    )
     await session.commit()
 
     raw_response = await http_client.get("/policy")
@@ -218,7 +244,8 @@ async def test_delete_policy(
     }
 
     response = await http_client.delete(
-        f"/policy/{pol_id}", follow_redirects=False)
+        f"/policy/{pol_id}", follow_redirects=False
+    )
     assert response.status_code == 303
     assert response.next_request.url.path == "/api/policy"
     response = await http_client.get("/policy")
@@ -236,17 +263,18 @@ async def test_delete_policy(
 
 @pytest.mark.asyncio
 async def test_switch_policy(
-    http_client: AsyncClient,
-    session: AsyncSession,
+    http_client: AsyncClient, session: AsyncSession
 ) -> None:
     """Switch policy."""
-    session.add(NetworkPolicy(
-        name="Local policy",
-        netmasks=[IPv4Network("127.100.10.5/32")],
-        raw=["127.100.10.5/32"],
-        enabled=True,
-        priority=2,
-    ))
+    session.add(
+        NetworkPolicy(
+            name="Local policy",
+            netmasks=[IPv4Network("127.100.10.5/32")],
+            raw=["127.100.10.5/32"],
+            enabled=True,
+            priority=2,
+        )
+    )
     await session.commit()
 
     raw_response = await http_client.get("/policy")
@@ -272,9 +300,7 @@ async def test_switch_policy(
         "bypass_service_failure": False,
     }
 
-    response = await http_client.patch(
-        f"/policy/{pol_id}",
-    )
+    response = await http_client.patch(f"/policy/{pol_id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
 
@@ -294,22 +320,14 @@ async def test_404(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     some_id = response.json()[0]["id"] + 1
 
-    response = await http_client.delete(
-        f"/policy/{some_id}",
-    )
+    response = await http_client.delete(f"/policy/{some_id}")
     assert response.status_code == 404
 
-    response = await http_client.patch(
-        f"/policy/{some_id}",
-    )
+    response = await http_client.patch(f"/policy/{some_id}")
     assert response.status_code == 404
 
     response = await http_client.put(
-        "/policy",
-        json={
-            "id": some_id,
-            "name": "123",
-        },
+        "/policy", json={"id": some_id, "name": "123"}
     )
     assert response.status_code == 404
 
@@ -324,10 +342,7 @@ async def test_swap(http_client: AsyncClient) -> None:
             "name": "local seriveses",
             "netmasks": [
                 "127.0.0.1",
-                {
-                    "start": "172.0.0.2",
-                    "end": "172.255.1.5",
-                },
+                {"start": "172.0.0.2", "end": "172.255.1.5"},
                 "172.8.4.0/24",
             ],
             "priority": 2,
@@ -367,6 +382,7 @@ async def test_swap(http_client: AsyncClient) -> None:
 
     assert response[0]["priority"] == 1
     assert response[0]["groups"] == [
-        "cn=domain admins,cn=groups,dc=md,dc=test"]
+        "cn=domain admins,cn=groups,dc=md,dc=test"
+    ]
     assert response[1]["priority"] == 2
     assert response[1]["name"] == "Default open policy"

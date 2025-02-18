@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated
 
@@ -31,9 +32,7 @@ _CREDENTIALS_EXCEPTION = HTTPException(
 
 
 async def authenticate_user(
-    session: AsyncSession,
-    username: str,
-    password: str,
+    session: AsyncSession, username: str, password: str
 ) -> User | None:
     """Get user and verify password.
 
@@ -79,16 +78,16 @@ async def get_current_user(
     session_key = request.cookies.get("id", "")
     try:
         user_id = await session_storage.get_user_id(
-            settings, session_key, user_agent, str(ip),
+            settings, session_key, user_agent, str(ip)
         )
     except KeyError as err:
         raise _CREDENTIALS_EXCEPTION from err
 
     user = await session.scalar(
         select(User)
-        .options(
-            defaultload(User.groups).selectinload(Group.access_policies))
-        .where(User.id == user_id))
+        .options(defaultload(User.groups).selectinload(Group.access_policies))
+        .where(User.id == user_id)
+    )
 
     if user is None:
         raise _CREDENTIALS_EXCEPTION
@@ -96,7 +95,7 @@ async def get_current_user(
     session_id, _ = session_key.split(".")
     try:
         if await session_storage.check_rekey(
-            session_id, settings.SESSION_REKEY_INTERVAL,
+            session_id, settings.SESSION_REKEY_INTERVAL
         ):
             key = await session_storage.rekey_session(session_id, settings)
             response.set_cookie(

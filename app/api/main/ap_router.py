@@ -14,7 +14,7 @@ from ldap_protocol.policies.access_policy import get_policies
 from .schema import MaterialAccessPolicySchema
 
 access_policy_router = APIRouter(
-    prefix="/access_policy", tags=["Access Policy"],
+    prefix="/access_policy", tags=["Access Policy"]
 )
 
 

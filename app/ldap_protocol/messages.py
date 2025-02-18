@@ -98,7 +98,7 @@ class LDAPRequestMessage(LDAPMessage):
                         control_type=ctrl.value[0].value,
                         criticality=ctrl.value[1].value,
                         control_value=ctrl.value[2].value,
-                    ),
+                    )
                 )
         except (IndexError, ValueError, AttributeError):
             pass
@@ -148,8 +148,7 @@ class LDAPRequestMessage(LDAPMessage):
         )
 
     async def create_response(
-        self,
-        handler: Callable[..., AsyncGenerator[BaseResponse, None]],
+        self, handler: Callable[..., AsyncGenerator[BaseResponse, None]]
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 

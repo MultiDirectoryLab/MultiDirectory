@@ -65,7 +65,7 @@ class ModifyDNRequest(BaseRequest):
         deleteoldrdn=true
         new_superior='ou=users,dc=multifactor,dc=dev'
 
-        >>> cn=main2,ou=users,dc=multifactor,dc=dev
+        >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
     PROTOCOL_OP: ClassVar[int] = 12
@@ -86,9 +86,7 @@ class ModifyDNRequest(BaseRequest):
         )
 
     async def handle(
-        self,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
+        self, ldap_session: LDAPSession, session: AsyncSession
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:
@@ -100,7 +98,7 @@ class ModifyDNRequest(BaseRequest):
                 not validate_entry(self.entry),
                 self.new_superior and not validate_entry(self.new_superior),
                 not validate_entry(self.newrdn),
-            ],
+            ]
         ):
             yield ModifyDNResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
@@ -125,10 +123,10 @@ class ModifyDNRequest(BaseRequest):
             return
 
         if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "modify"),
+            mutate_ap(query, ldap_session.user, "modify")
         ):
             yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
             )
             return
 
@@ -163,10 +161,10 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             if not await session.scalar(
-                mutate_ap(query, ldap_session.user, "add"),
+                mutate_ap(query, ldap_session.user, "add")
             ):
                 yield ModifyDNResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
                 )
                 return
 
@@ -190,11 +188,10 @@ class ModifyDNRequest(BaseRequest):
             return
 
         async with session.begin_nested():
-
             await session.execute(
                 update(Directory)
                 .where(Directory.parent == directory)
-                .values(parent_id=new_directory.id),
+                .values(parent_id=new_directory.id)
             )
 
             await session.flush()
@@ -208,15 +205,11 @@ class ModifyDNRequest(BaseRequest):
                         Attribute.name == old_attr_name,
                         Attribute.value == directory.name,
                     )
-                    .values(name=dn, value=name),
+                    .values(name=dn, value=name)
                 )
             else:
                 session.add(
-                    Attribute(
-                        name=dn,
-                        value=name,
-                        directory=new_directory,
-                    ),
+                    Attribute(name=dn, value=name, directory=new_directory)
                 )
             await session.flush()
 
@@ -224,7 +217,7 @@ class ModifyDNRequest(BaseRequest):
                 await session.execute(
                     update(model)
                     .where(model.directory_id == directory.id)
-                    .values(directory_id=new_directory.id),
+                    .values(directory_id=new_directory.id)
                 )
 
             await session.flush()
@@ -234,17 +227,17 @@ class ModifyDNRequest(BaseRequest):
                 .where(
                     get_path_filter(
                         directory.path,
-                        column=Directory.path[1:directory.depth],
-                    ),
+                        column=Directory.path[1 : directory.depth],
+                    )
                 )
                 .values(
                     path=func.array_cat(
                         new_directory.path,
                         #  TODO: replace text with slice
                         text("path[:depth :]").bindparams(
-                            depth=directory.depth + 1,
+                            depth=directory.depth + 1
                         ),
-                    ),
+                    )
                 )
             )
 

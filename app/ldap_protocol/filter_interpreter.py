@@ -39,10 +39,7 @@ def _get_substring(right: ASN1Row) -> str:  # RFC 4511
 
 
 def _from_filter(
-    model: type,
-    item: ASN1Row,
-    attr: str,
-    right: ASN1Row,
+    model: type, item: ASN1Row, attr: str, right: ASN1Row
 ) -> UnaryExpression:
     is_substring = item.tag_id == TagNumbers.SUBSTRING
     col = getattr(model, attr)
@@ -73,7 +70,7 @@ def _filter_memberof(dn: str) -> UnaryExpression:
             select(Directory.id)
             .join(Directory.groups)
             .where(Group.id == group_id_subquery)
-        ),
+        )
     )  # type: ignore
 
 
@@ -91,7 +88,7 @@ def _filter_member(dn: str) -> UnaryExpression:
             select(Group.directory_id)
             .join(Group.users)
             .where(User.id == user_id_subquery)
-        ),
+        )
     )  # type: ignore
 
 
@@ -99,8 +96,7 @@ def _recursive_filter_memberof(dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute(recursive)."""
     cte = find_members_recursive_cte(dn)
 
-    return Directory.id.in_(
-        select(cte.c.directory_id).offset(1))  # type: ignore
+    return Directory.id.in_(select(cte.c.directory_id).offset(1))  # type: ignore
 
 
 def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
@@ -124,9 +120,7 @@ def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
 
 
 def _ldap_filter_by_attribute(
-    oid: ASN1Row | None,
-    attr: ASN1Row,
-    search_value: ASN1Row,
+    oid: ASN1Row | None, attr: ASN1Row, search_value: ASN1Row
 ) -> UnaryExpression:
     """Retrieve query conditions based on the specified LDAP attribute."""
     if oid is None:
@@ -199,7 +193,7 @@ def cast_filter2sql(expr: ASN1Row) -> UnaryExpression | ColumnElement:
 
 
 def _from_str_filter(
-    model: type, is_substring: bool, item: Filter,
+    model: type, is_substring: bool, item: Filter
 ) -> UnaryExpression:
     col = getattr(model, item.attr)
 
@@ -241,7 +235,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
             cond = Attribute.value.ilike(item.val)
 
         return Directory.attributes.any(
-            and_(Attribute.name.ilike(item.attr), cond),
+            and_(Attribute.name.ilike(item.attr), cond)
         )
 
 

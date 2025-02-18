@@ -51,9 +51,12 @@ async def test_bind_ok_and_unbind(
 
     result = await anext(
         bind.handle(
-            session, ldap_session,
-            kadmin, settings, None,  # type: ignore
-        ),
+            session,
+            ldap_session,
+            kadmin,
+            settings,
+            None,  # type: ignore
+        )
     )
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ldap_session.user
@@ -68,8 +71,7 @@ async def test_bind_ok_and_unbind(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_gssapi_bind_in_progress(
-    creds: TestCreds,
-    container: AsyncContainer,
+    creds: TestCreds, container: AsyncContainer
 ) -> None:
     """Test first step gssapi bind."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
@@ -77,8 +79,7 @@ async def test_gssapi_bind_in_progress(
     mock_security_context.complete = False
 
     async def mock_init_security_context(
-        session: AsyncSession,
-        settings: Settings,
+        session: AsyncSession, settings: Settings
     ) -> None:
         auth_choice._ldap_session.gssapi_security_context = (
             mock_security_context
@@ -90,9 +91,7 @@ async def test_gssapi_bind_in_progress(
     )
 
     bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=auth_choice,
+        version=0, name=creds.un, AuthenticationChoice=auth_choice
     )
 
     async with container(scope=Scope.REQUEST) as container:
@@ -108,8 +107,7 @@ async def test_gssapi_bind_in_progress(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_gssapi_bind_missing_credentials(
-    creds: TestCreds,
-    container: AsyncContainer,
+    creds: TestCreds, container: AsyncContainer
 ) -> None:
     """Test gssapi bind with missing credentials."""
     bind = BindRequest(
@@ -128,8 +126,7 @@ async def test_gssapi_bind_missing_credentials(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_gssapi_bind_ok(
-    creds: TestCreds,
-    container: AsyncContainer,
+    creds: TestCreds, container: AsyncContainer
 ) -> None:
     """Test gssapi bind ok."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
@@ -138,21 +135,17 @@ async def test_gssapi_bind_ok(
     mock_security_context.initiator_name = f"{creds.un}@domain"
     mock_security_context.wrap.return_value = (
         gssapi.raw.named_tuples.WrapResult(
-            message=b"\x01\x00\x04\x00",
-            encrypted=False,
+            message=b"\x01\x00\x04\x00", encrypted=False
         )
     )
     mock_security_context.unwrap.return_value = (
         gssapi.raw.named_tuples.UnwrapResult(
-            message=b"\x01\x00\x04\x00",
-            encrypted=False,
-            qop=0,
+            message=b"\x01\x00\x04\x00", encrypted=False, qop=0
         )
     )
 
     async def mock_init_security_context(
-        session: AsyncSession,
-        settings: Settings,
+        session: AsyncSession, settings: Settings
     ) -> None:
         auth_choice._ldap_session.gssapi_security_context = (
             mock_security_context
@@ -164,9 +157,7 @@ async def test_gssapi_bind_ok(
     )
 
     first_bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=auth_choice,
+        version=0, name=creds.un, AuthenticationChoice=auth_choice
     )
 
     second_bind = BindRequest(
@@ -179,7 +170,7 @@ async def test_gssapi_bind_ok(
         version=0,
         name=creds.un,
         AuthenticationChoice=SaslGSSAPIAuthentication(
-            ticket=b"wrap_client_request",
+            ticket=b"wrap_client_request"
         ),
     )
 
@@ -202,17 +193,13 @@ async def test_gssapi_bind_ok(
 
         handler = await resolve_deps(third_bind.handle, container)
         result = await anext(handler())  # type: ignore
-        assert result == BindResponse(
-            result_code=LDAPCodes.SUCCESS,
-        )
+        assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_bind_invalid_password_or_user(
-    session: AsyncSession,
-    ldap_session: LDAPSession,
-    container: AsyncContainer,
+    session: AsyncSession, ldap_session: LDAPSession, container: AsyncContainer
 ) -> None:
     """Test invalid password bind."""
     directory = Directory(
@@ -278,8 +265,7 @@ async def test_bind_invalid_password_or_user(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_anonymous_bind(
-    ldap_session: LDAPSession,
-    container: AsyncContainer,
+    ldap_session: LDAPSession, container: AsyncContainer
 ) -> None:
     """Test anonymous."""
     bind = BindRequest(
@@ -309,7 +295,7 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds
 ) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound
@@ -319,7 +305,7 @@ async def test_ldap3_bind(
     assert ldap_client.bound
 
     result = await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw),
+        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw)
     )
     assert result
     assert ldap_client.bound
@@ -332,7 +318,7 @@ async def test_ldap3_bind(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind_sasl_plain(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds,
+    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds
 ) -> None:
     """Test ldap3 bind."""
     assert not ldap_client.bound
@@ -353,9 +339,7 @@ async def test_ldap3_bind_sasl_plain(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_bind_disabled_user(
-    session: AsyncSession,
-    ldap_session: LDAPSession,
-    container: AsyncContainer,
+    session: AsyncSession, ldap_session: LDAPSession, container: AsyncContainer
 ) -> None:
     """Test disabled user bind."""
     directory = Directory(

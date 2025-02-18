@@ -27,36 +27,50 @@ from tests.conftest import TestCreds
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_root_add(
-        session: AsyncSession, settings: Settings, user: dict) -> None:
+    session: AsyncSession, settings: Settings, user: dict
+) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
     search_path = get_search_path(dn)
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write((
-            f"dn: {dn}\n"
-            "name: test\n"
-            "cn: test\n"
-            "objectClass: organization\n"
-            "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-        ))
+        file.write(
+            (
+                f"dn: {dn}\n"
+                "name: test\n"
+                "cn: test\n"
+                "objectClass: organization\n"
+                "objectClass: top\n"
+                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+            )
+        )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapadd",
-            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
-            "-f", file.name,
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_accout_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE)
+            stderr=asyncio.subprocess.PIPE,
+        )
 
         result = await proc.wait()
 
     assert result == 0
 
-    new_dir = (await session.scalars(
-        select(Directory)
-        .options(subqueryload(Directory.attributes))
-        .filter(Directory.path == search_path))).one()
+    new_dir = (
+        await session.scalars(
+            select(Directory)
+            .options(subqueryload(Directory.attributes))
+            .filter(Directory.path == search_path)
+        )
+    ).one()
 
     assert new_dir.name == "test"
 
@@ -71,7 +85,8 @@ async def test_ldap_root_add(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_user_add_with_group(
-        session: AsyncSession, settings: Settings, user: dict) -> None:
+    session: AsyncSession, settings: Settings, user: dict
+) -> None:
     """Test ldapadd on server."""
     user_dn = "cn=test,dc=md,dc=test"
     user_search_path = get_search_path(user_dn)
@@ -89,28 +104,42 @@ async def test_ldap_user_add_with_group(
             "objectClass: person\n"
             "objectClass: posixAccount\n"
             "objectClass: top\n"
-            f"memberOf: {group_dn}\n",
+            f"memberOf: {group_dn}\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapadd",
-            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
-            "-f", file.name,
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_accout_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE)
+            stderr=asyncio.subprocess.PIPE,
+        )
 
         result = await proc.wait()
 
     assert result == 0
 
-    membership = selectinload(Directory.user).selectinload(
-        User.groups).selectinload(Group.directory)
+    membership = (
+        selectinload(Directory.user)
+        .selectinload(User.groups)
+        .selectinload(Group.directory)
+    )
 
-    new_dir = (await session.scalars(
-        select(Directory)
-        .options(subqueryload(Directory.attributes), membership)
-        .filter(Directory.path == user_search_path))).one()
+    new_dir = (
+        await session.scalars(
+            select(Directory)
+            .options(subqueryload(Directory.attributes), membership)
+            .filter(Directory.path == user_search_path)
+        )
+    ).one()
 
     assert new_dir.name == "test"
 
@@ -122,41 +151,58 @@ async def test_ldap_user_add_with_group(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_user_add_group_with_group(
-        session: AsyncSession, settings: Settings, user: dict) -> None:
+    session: AsyncSession, settings: Settings, user: dict
+) -> None:
     """Test ldapadd on server."""
     child_group_dn = "cn=twisted,cn=groups,dc=md,dc=test"
     child_group_search_path = get_search_path(child_group_dn)
     group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write((
-            f"dn: {child_group_dn}\n"
-            "name: twisted\n"
-            "cn: twisted\n"
-            "objectClass: group\n"
-            "objectClass: top\n"
-            f"memberOf: {group_dn}\n"
-        ))
+        file.write(
+            (
+                f"dn: {child_group_dn}\n"
+                "name: twisted\n"
+                "cn: twisted\n"
+                "objectClass: group\n"
+                "objectClass: top\n"
+                f"memberOf: {group_dn}\n"
+            )
+        )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapadd",
-            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
-            "-f", file.name,
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_accout_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE)
+            stderr=asyncio.subprocess.PIPE,
+        )
 
         result = await proc.wait()
 
         assert result == 0
 
-    membership = selectinload(Directory.group).selectinload(
-        Group.parent_groups).selectinload(Group.directory)
+    membership = (
+        selectinload(Directory.group)
+        .selectinload(Group.parent_groups)
+        .selectinload(Group.directory)
+    )
 
-    new_dir = (await session.scalars(
-        select(Directory)
-        .options(membership)
-        .filter(Directory.path == child_group_search_path))).one()
+    new_dir = (
+        await session.scalars(
+            select(Directory)
+            .options(membership)
+            .filter(Directory.path == child_group_search_path)
+        )
+    ).one()
 
     assert new_dir.name == "twisted"
 
@@ -186,27 +232,38 @@ async def test_add_bvalue_attr(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_add_access_control(
-        session: AsyncSession, settings: Settings, creds: TestCreds) -> None:
+    session: AsyncSession, settings: Settings, creds: TestCreds
+) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
 
     async def try_add() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
-            file.write((
-                f"dn: {dn}\n"
-                "name: test\n"
-                "cn: test\n"
-                "objectClass: organization\n"
-                "objectClass: top\n"
-            ))
+            file.write(
+                (
+                    f"dn: {dn}\n"
+                    "name: test\n"
+                    "cn: test\n"
+                    "objectClass: organization\n"
+                    "objectClass: top\n"
+                )
+            )
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(
                 "ldapadd",
-                "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-                "-D", "user_non_admin", "-x", "-w", creds.pw,
-                "-f", file.name,
+                "-vvv",
+                "-H",
+                f"ldap://{settings.HOST}:{settings.PORT}",
+                "-D",
+                "user_non_admin",
+                "-x",
+                "-w",
+                creds.pw,
+                "-f",
+                file.name,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE)
+                stderr=asyncio.subprocess.PIPE,
+            )
 
             return await proc.wait()
 
@@ -240,12 +297,20 @@ async def test_ldap_add_access_control(
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", "user_non_admin",
-        "-w", creds.pw,
-        "-b", "dc=md,dc=test", "objectclass=*",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        "user_non_admin",
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")

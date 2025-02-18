@@ -109,7 +109,7 @@ class ModifyRequest(BaseRequest):
                             for attr in change.value[1].value[1].value
                         ],
                     ),
-                ),
+                )
             )
         return cls(object=entry.value, changes=changes)
 
@@ -123,7 +123,7 @@ class ModifyRequest(BaseRequest):
         """Change request handler."""
         if not ldap_session.user:
             yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
             )
             return
 
@@ -160,7 +160,7 @@ class ModifyRequest(BaseRequest):
 
         if not can_modify and not password_change_requested:
             yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
             )
             return
 
@@ -185,7 +185,7 @@ class ModifyRequest(BaseRequest):
 
                 await session.flush()
                 await session.execute(
-                    update(Directory).where(Directory.id == directory.id),
+                    update(Directory).where(Directory.id == directory.id)
                 )
                 await session.commit()
 
@@ -193,14 +193,14 @@ class ModifyRequest(BaseRequest):
                 logger.error(f"Invalid value: {err}")
                 await session.rollback()
                 yield ModifyResponse(
-                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
                 )
                 return
 
             except IntegrityError:
                 await session.rollback()
                 yield ModifyResponse(
-                    result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                    result_code=LDAPCodes.ENTRY_ALREADY_EXISTS
                 )
                 return
 
@@ -218,7 +218,7 @@ class ModifyRequest(BaseRequest):
 
             except PermissionError:
                 yield ModifyResponse(
-                    result_code=LDAPCodes.STRONGER_AUTH_REQUIRED,
+                    result_code=LDAPCodes.STRONGER_AUTH_REQUIRED
                 )
                 return
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
@@ -234,8 +234,7 @@ class ModifyRequest(BaseRequest):
         name = change.modification.type.lower()
 
         if name == "memberof":
-            groups = await get_groups(
-                change.modification.vals, session)  # type: ignore
+            groups = await get_groups(change.modification.vals, session)  # type: ignore
 
             if not change.modification.vals:
                 directory.groups.clear()
@@ -250,15 +249,14 @@ class ModifyRequest(BaseRequest):
             return
 
         if name == "member":
-            members = await get_directories(
-                change.modification.vals, session)  # type: ignore
+            members = await get_directories(change.modification.vals, session)  # type: ignore
 
             if not change.modification.vals:
                 directory.group.members.clear()
 
             elif change.operation == Operation.REPLACE:
                 directory.group.members = list(
-                    set(directory.group.members) & set(members),
+                    set(directory.group.members) & set(members)
                 )
 
             else:
@@ -280,25 +278,21 @@ class ModifyRequest(BaseRequest):
                         and_(
                             Attribute.name == change.modification.type,
                             condition,
-                        ),
+                        )
                     )
 
         if attrs:
             del_query = delete(Attribute).filter(
-                Attribute.directory == directory, or_(*attrs),
+                Attribute.directory == directory, or_(*attrs)
             )
 
             await session.execute(del_query)
 
     async def _add_group_attrs(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
+        self, change: Changes, directory: Directory, session: AsyncSession
     ) -> None:
         name = change.get_name()
-        directories = await get_directories(
-            change.modification.vals, session)  # type: ignore
+        directories = await get_directories(change.modification.vals, session)  # type: ignore
 
         if name == "memberof":
             groups = [
@@ -330,7 +324,7 @@ class ModifyRequest(BaseRequest):
                     _directory.group
                     for _directory in directories
                     if _directory.group
-                ],
+                ]
             )
         else:
             directory.group.members.extend(directories)
@@ -360,64 +354,56 @@ class ModifyRequest(BaseRequest):
                     continue
 
                 elif (
-                    bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     await kadmin.lock_principal(
-                        directory.user.get_upn_prefix(),
+                        directory.user.get_upn_prefix()
                     )
 
                     await add_lock_and_expire_attributes(
-                        session,
-                        directory,
-                        settings.TIMEZONE,
+                        session, directory, settings.TIMEZONE
                     )
 
                 elif (
-                    not bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    not bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     await unlock_principal(
-                        directory.user.user_principal_name, session,
+                        directory.user.user_principal_name, session
                     )
 
                     await session.execute(
-                        delete(Attribute)
-                        .filter(
+                        delete(Attribute).filter(
                             Attribute.name == "nsAccountLock",
                             Attribute.directory == directory,
-                        ),
+                        )
                     )
 
                     await session.execute(
-                        delete(Attribute)
-                        .filter(
+                        delete(Attribute).filter(
                             Attribute.name == "shadowExpire",
                             Attribute.directory == directory,
-                        ),
+                        )
                     )
 
             if name == "pwdlastset" and value == "0" and directory.user:
                 await kadmin.force_princ_pw_change(
-                    directory.user.get_upn_prefix(),
+                    directory.user.get_upn_prefix()
                 )
 
             if name == directory.rdname:
                 await session.execute(
                     update(Directory)
                     .filter(Directory.id == directory.id)
-                    .values(name=value),
+                    .values(name=value)
                 )
 
             if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
                     .filter(Directory.id == directory.id)
-                    .values({name: value}),
+                    .values({name: value})
                 )
 
             elif name in User.search_fields:
@@ -453,14 +439,14 @@ class ModifyRequest(BaseRequest):
                 await session.execute(
                     update(User)
                     .filter(User.directory == directory)
-                    .values({name: new_value}),
+                    .values({name: new_value})
                 )
 
             elif name in Group.search_fields and directory.group:
                 await session.execute(
                     update(Group)
                     .filter(Group.directory == directory)
-                    .values({name: value}),
+                    .values({name: value})
                 )
 
             elif name in ("userpassword", "unicodepwd") and directory.user:
@@ -477,15 +463,15 @@ class ModifyRequest(BaseRequest):
                     pass
 
                 validator = await PasswordPolicySchema.get_policy_settings(
-                    session, kadmin,
+                    session, kadmin
                 )
 
                 p_last_set = await validator.get_pwd_last_set(
-                    session, directory.id,
+                    session, directory.id
                 )
 
                 errors = await validator.validate_password_with_policy(
-                    value, directory.user,
+                    value, directory.user
                 )
 
                 if validator.validate_min_age(p_last_set):
@@ -493,13 +479,13 @@ class ModifyRequest(BaseRequest):
 
                 if errors:
                     raise PermissionError(
-                        f"Password policy violation: {errors}",
+                        f"Password policy violation: {errors}"
                     )
 
                 directory.user.password = get_password_hash(value)
                 await post_save_password_actions(directory.user, session)
                 await kadmin.create_or_update_principal_pw(
-                    directory.user.get_upn_prefix(), value,
+                    directory.user.get_upn_prefix(), value
                 )
 
             else:
@@ -509,6 +495,7 @@ class ModifyRequest(BaseRequest):
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory=directory,
-                    ))
+                    )
+                )
 
         session.add_all(attrs)

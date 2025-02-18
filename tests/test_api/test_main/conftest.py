@@ -22,9 +22,7 @@ from models import CatalogueSetting
 
 @pytest_asyncio.fixture(scope="function")
 async def adding_test_user(
-    app: FastAPI,
-    http_client: AsyncClient,
-    _force_override_tls: None,
+    app: FastAPI, http_client: AsyncClient, _force_override_tls: None
 ) -> None:
     """Test add user like keycloak."""
     test_user_dn = "cn=test,dc=md,dc=test"
@@ -35,18 +33,9 @@ async def adding_test_user(
             "entry": test_user_dn,
             "password": None,
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "testing_attr",
-                    "vals": ["test"],
-                },
+                {"type": "name", "vals": ["test"]},
+                {"type": "cn", "vals": ["test"]},
+                {"type": "testing_attr", "vals": ["test"]},
                 {
                     "type": "objectClass",
                     "vals": ["organization", "top", "user"],
@@ -118,25 +107,20 @@ async def adding_test_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
     async with AsyncClient(
-            transport=ASGITransport(app=app, root_path="/api"),
-            timeout=3,
-            base_url="http://test") as client:
-
+        transport=ASGITransport(app=app, root_path="/api"),
+        timeout=3,
+        base_url="http://test",
+    ) as client:
         auth = await client.post(
             "auth/",
-            data={
-                "username": "new_user@md.test",
-                "password": "P@ssw0rd",
-            },
+            data={"username": "new_user@md.test", "password": "P@ssw0rd"},
         )
 
         assert auth.cookies.get("id")
 
 
 @pytest_asyncio.fixture(scope="function")
-async def add_dns_settings(
-    session: AsyncSession,
-) -> None:
+async def add_dns_settings(session: AsyncSession) -> None:
     """Add DNS manager settings to DB."""
     dns_ip_address = "127.0.0.1"
     domain = "example.com"
@@ -145,17 +129,10 @@ async def add_dns_settings(
     session.add_all(
         [
             CatalogueSetting(
-                name=DNS_MANAGER_IP_ADDRESS_NAME,
-                value=dns_ip_address,
+                name=DNS_MANAGER_IP_ADDRESS_NAME, value=dns_ip_address
             ),
-            CatalogueSetting(
-                name=DNS_MANAGER_ZONE_NAME,
-                value=domain,
-            ),
-            CatalogueSetting(
-                name=DNS_MANAGER_STATE_NAME,
-                value=dns_state,
-            ),
-        ],
+            CatalogueSetting(name=DNS_MANAGER_ZONE_NAME, value=domain),
+            CatalogueSetting(name=DNS_MANAGER_STATE_NAME, value=dns_state),
+        ]
     )
     await session.commit()
