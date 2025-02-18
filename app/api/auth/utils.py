@@ -39,10 +39,7 @@ def get_user_agent_from_request(request: Request) -> str:
     :return str: The user agent header.
     """
     user_agent_header = request.headers.get("User-Agent")
-    if not user_agent_header:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, detail="User-Agent header is missing.")
-    return user_agent_header
+    return "" if not user_agent_header else user_agent_header
 
 
 async def create_and_set_session_key(
