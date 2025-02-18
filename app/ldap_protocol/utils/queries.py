@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import time
 from datetime import datetime
 from typing import Iterator
@@ -67,7 +68,8 @@ async def get_user_by_upn(session: AsyncSession, upn: str) -> User | None:
     :return User | None: user
     """
     return await session.scalar(
-        select(User).where(User.user_principal_name.ilike(upn)))
+        select(User).where(User.user_principal_name.ilike(upn))
+    )
 
 
 async def get_directories(
@@ -211,7 +213,7 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     """Get dn by id.
 
     >>> await get_dn_by_id(0, session)
-    >>> 'cn=groups,dc=example,dc=com'
+    >>> "cn=groups,dc=example,dc=com"
     """
     query = select(Directory).filter(Directory.id == id_)
     retval = (await session.scalars(query)).one()
@@ -260,7 +262,8 @@ async def create_group(
     await session.flush()
 
     dir_.object_sid = create_object_sid(
-        base_dn_list[0], sid if sid else dir_.id)
+        base_dn_list[0], sid if sid else dir_.id
+    )
 
     await session.flush()
 
@@ -295,7 +298,8 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
         .where(
             Attribute.name.ilike("objectclass"),
             Attribute.value == "computer",
-            Attribute.directory_id == directory_id)
+            Attribute.directory_id == directory_id,
+        )
         .exists(),
     )
     return (await session.scalars(query)).one()
@@ -314,22 +318,25 @@ async def add_lock_and_expire_attributes(
     """
     now_with_tz = datetime.now(tz=tz)
     absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
-    session.add_all([
-        Attribute(
-            name="nsAccountLock",
-            value="true",
-            directory=directory,
-        ),
-        Attribute(
-            name="shadowExpire",
-            value=str(absolute_date),
-            directory=directory,
-        ),
-    ])
+    session.add_all(
+        [
+            Attribute(
+                name="nsAccountLock",
+                value="true",
+                directory=directory,
+            ),
+            Attribute(
+                name="shadowExpire",
+                value=str(absolute_date),
+                directory=directory,
+            ),
+        ]
+    )
 
 
 async def get_principal_directory(
-    session: AsyncSession, principal_name: str,
+    session: AsyncSession,
+    principal_name: str,
 ) -> Directory | None:
     """Fetch the principal's directory by principal name.
 

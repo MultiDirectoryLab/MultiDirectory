@@ -138,7 +138,8 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     """
     directory_hierarchy = (
         select(
-            Directory.id.label("directory_id"), Group.id.label("group_id"),
+            Directory.id.label("directory_id"),
+            Group.id.label("group_id"),
         )
         .select_from(Directory)
         .join(Directory.group, isouter=True)
@@ -161,7 +162,8 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
 
 
 async def get_members_root_group(
-    dn: str, session: AsyncSession,
+    dn: str,
+    session: AsyncSession,
 ) -> list[Directory]:
     """Get all members root group by dn.
 
@@ -199,15 +201,13 @@ async def get_members_root_group(
     if not directories_ids:
         return []
 
-    query = (
-        select(Directory).where(
-            or_(
-                *[
-                    Directory.id == directory_id
-                    for directory_id in directories_ids
-                ],
-            ),
-        )
+    query = select(Directory).where(
+        or_(
+            *[
+                Directory.id == directory_id
+                for directory_id in directories_ids
+            ],
+        ),
     )
 
     retval = await session.scalars(query)

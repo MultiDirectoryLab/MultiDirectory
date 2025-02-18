@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from typing import Optional, final
 
 from dishka import AsyncContainer
@@ -18,8 +19,7 @@ from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 class SearchRequest(LDAPSearchRequest):
     """Search request for web api."""
 
-    filter: str = Field(
-        ..., examples=["(objectClass=*)"])  # type: ignore
+    filter: str = Field(..., examples=["(objectClass=*)"])  # type: ignore
 
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""

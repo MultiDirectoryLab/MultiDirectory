@@ -38,17 +38,18 @@ def upgrade() -> None:
             "homeDirectory": "/home/krbadmin",
         }.items():
             session.execute(
-                sa.delete(Attribute)
-                .where(
+                sa.delete(Attribute).where(
                     Attribute.name == attr,
                     Attribute.directory_id == krb_admin_user.id,
                 ),
             )
-            session.add(Attribute(
-                name=attr,
-                value=new_value,
-                directory_id=krb_admin_user.id,
-            ))
+            session.add(
+                Attribute(
+                    name=attr,
+                    value=new_value,
+                    directory_id=krb_admin_user.id,
+                )
+            )
 
         krb_admin_group = session.scalar(
             sa.select(Directory)
@@ -57,17 +58,18 @@ def upgrade() -> None:
         )
 
         session.execute(
-            sa.delete(Attribute)
-            .where(
+            sa.delete(Attribute).where(
                 Attribute.name == "gidNumber",
                 Attribute.directory_id == krb_admin_group.id,
             ),
         )
-        session.add(Attribute(
-            name="gidNumber",
-            value="800",
-            directory_id=krb_admin_group.id,
-        ))
+        session.add(
+            Attribute(
+                name="gidNumber",
+                value="800",
+                directory_id=krb_admin_group.id,
+            )
+        )
 
     session.commit()
 

@@ -100,8 +100,7 @@ async def remove_mfa(
         keys = ["mfa_key_ldap", "mfa_secret_ldap"]
 
     await session.execute(
-        delete(CatalogueSetting)
-        .filter(CatalogueSetting.name.in_(keys)),
+        delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys)),
     )
     await session.commit()
 
@@ -130,8 +129,9 @@ async def get_mfa(
 
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
 async def callback_mfa(
-    access_token: Annotated[str, Form(
-        alias="accessToken", validation_alias="accessToken")],
+    access_token: Annotated[
+        str, Form(alias="accessToken", validation_alias="accessToken")
+    ],
     session: FromDishka[AsyncSession],
     storage: FromDishka[SessionStorage],
     settings: FromDishka[Settings],
@@ -174,7 +174,8 @@ async def callback_mfa(
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
     await create_and_set_session_key(
-        user, session, settings, response, storage, ip, user_agent)
+        user, session, settings, response, storage, ip, user_agent
+    )
     return response
 
 
@@ -238,7 +239,8 @@ async def two_factor_protocol(
     except MultifactorAPI.MFAConnectError:
         if network_policy.bypass_no_connection:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip, user_agent)
+                user, session, settings, response, storage, ip, user_agent
+            )
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")
@@ -249,13 +251,15 @@ async def two_factor_protocol(
 
     except MultifactorAPI.MFAMissconfiguredError:
         await create_and_set_session_key(
-            user, session, settings, response, storage, ip, user_agent)
+            user, session, settings, response, storage, ip, user_agent
+        )
         return MFAChallengeResponse(status="bypass", message="")
 
     except MultifactorAPI.MultifactorError:
         if network_policy.bypass_service_failure:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip, user_agent)
+                user, session, settings, response, storage, ip, user_agent
+            )
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")

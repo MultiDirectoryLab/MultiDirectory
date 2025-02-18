@@ -28,6 +28,7 @@ depends_on = None
 
 def upgrade() -> None:
     """Upgrade."""
+
     async def _create_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
@@ -36,25 +37,34 @@ def upgrade() -> None:
             return
 
         try:
-            group_dir = (await session.scalars(
-                select(
-                    exists(Directory)
-                    .where(Directory.name == "readonly domain controllers")),
-            )).one()
+            group_dir = (
+                await session.scalars(
+                    select(
+                        exists(Directory).where(
+                            Directory.name == "readonly domain controllers"
+                        )
+                    ),
+                )
+            ).one()
 
             if not group_dir:
                 dir_, _ = await create_group(
-                    "readonly domain controllers", 521, session)
+                    "readonly domain controllers", 521, session
+                )
 
             await session.flush()
         except (IntegrityError, DBAPIError):
             pass
 
-        has_ro_access_policy = (await session.scalars(
-            select(
-                exists(AccessPolicy)
-                .where(AccessPolicy.name == "ReadOnly Access Policy")),
-        )).one()
+        has_ro_access_policy = (
+            await session.scalars(
+                select(
+                    exists(AccessPolicy).where(
+                        AccessPolicy.name == "ReadOnly Access Policy"
+                    )
+                ),
+            )
+        ).one()
 
         if not has_ro_access_policy:
             await create_access_policy(
@@ -76,6 +86,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
+
     async def _delete_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
@@ -83,17 +94,21 @@ def downgrade() -> None:
         if not base_dn_list:
             return
 
-        group_dn = "cn=readonly domain controllers,cn=groups," +\
-            base_dn_list[0].path_dn
-
-        await session.execute(
-            delete(AccessPolicy)
-            .where(AccessPolicy.name == "ReadOnly Access Policy"),
+        group_dn = (
+            "cn=readonly domain controllers,cn=groups,"
+            + base_dn_list[0].path_dn
         )
 
         await session.execute(
-            delete(Directory)
-            .where(Directory.path == get_search_path(group_dn)),
+            delete(AccessPolicy).where(
+                AccessPolicy.name == "ReadOnly Access Policy"
+            ),
+        )
+
+        await session.execute(
+            delete(Directory).where(
+                Directory.path == get_search_path(group_dn)
+            ),
         )
 
         await session.commit()

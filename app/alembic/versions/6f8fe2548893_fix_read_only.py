@@ -25,14 +25,20 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    ro_dir = session.scalar(select(Directory).where(
-        Directory.name == "readonly domain controllers"))
+    ro_dir = session.scalar(
+        select(Directory).where(
+            Directory.name == "readonly domain controllers"
+        )
+    )
 
     if not ro_dir:
         return
 
-    session.execute(delete(Attribute).where(
-        Attribute.name == "objectSid", Attribute.directory == ro_dir))
+    session.execute(
+        delete(Attribute).where(
+            Attribute.name == "objectSid", Attribute.directory == ro_dir
+        )
+    )
     session.execute(
         update(Attribute)
         .where(
@@ -44,26 +50,28 @@ def upgrade() -> None:
     )
 
     attr_object_class = session.scalar(
-        select(Attribute)
-        .where(
+        select(Attribute).where(
             Attribute.name == "objectClass",
             Attribute.directory == ro_dir,
             Attribute.value == "group",
         ),
     )
     if not attr_object_class:
-        session.add(Attribute(
-            name="objectClass", value="group", directory=ro_dir))
-        session.add(Attribute(
-            name=ro_dir.rdname,
-            value=ro_dir.name,
-            directory=ro_dir,
+        session.add(
+            Attribute(name="objectClass", value="group", directory=ro_dir)
+        )
+        session.add(
+            Attribute(
+                name=ro_dir.rdname,
+                value=ro_dir.name,
+                directory=ro_dir,
             ),
         )
-        session.add(Attribute(
-            name="gidNumber",
-            value=str(create_integer_hash(ro_dir.name)),
-            directory=ro_dir,
+        session.add(
+            Attribute(
+                name="gidNumber",
+                value=str(create_integer_hash(ro_dir.name)),
+                directory=ro_dir,
             ),
         )
 

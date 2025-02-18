@@ -79,7 +79,8 @@ async def add_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists",
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Entry already exists",
         )
 
     await session.refresh(new_policy)
@@ -112,9 +113,8 @@ async def get_list_network_policies(
     :return list[PolicyResponse]: all policies
     """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
-    mfa_groups = (
-        selectinload(NetworkPolicy.mfa_groups)
-        .selectinload(Group.directory)
+    mfa_groups = selectinload(NetworkPolicy.mfa_groups).selectinload(
+        Group.directory
     )
 
     return [
@@ -147,7 +147,8 @@ async def get_list_network_policies(
 @network_router.delete(
     "/{policy_id}",
     response_class=RedirectResponse,
-    status_code=status.HTTP_303_SEE_OTHER)
+    status_code=status.HTTP_303_SEE_OTHER,
+)
 async def delete_network_policy(
     policy_id: int,
     request: Request,
@@ -330,10 +331,14 @@ async def swap_network_policy(
     :return SwapResponse: policy new priorities
     """
     policy1 = await session.get(
-        NetworkPolicy, swap.first_policy_id, with_for_update=True,
+        NetworkPolicy,
+        swap.first_policy_id,
+        with_for_update=True,
     )
     policy2 = await session.get(
-        NetworkPolicy, swap.second_policy_id, with_for_update=True,
+        NetworkPolicy,
+        swap.second_policy_id,
+        with_for_update=True,
     )
 
     if not policy1 or not policy2:

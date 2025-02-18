@@ -104,8 +104,7 @@ class AddRequest(BaseRequest):
         root_dn = get_search_path(self.entry)
 
         exists_q = select(
-            select(Directory)
-            .filter(get_path_filter(root_dn)).exists(),
+            select(Directory).filter(get_path_filter(root_dn)).exists(),
         )
 
         if await session.scalar(exists_q) is True:
@@ -187,8 +186,9 @@ class AddRequest(BaseRequest):
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.keys() | User.fields.keys()
-        attributes.append(Attribute(
-            name=new_dn, value=name, directory=new_dir))
+        attributes.append(
+            Attribute(name=new_dn, value=name, directory=new_dir)
+        )
 
         for attr in self.attributes:
             lname = attr.type.lower()
@@ -239,10 +239,12 @@ class AddRequest(BaseRequest):
             )
 
             sam_accout_name = user_attributes.get(
-                "sAMAccountName", create_user_name(new_dir.id),
+                "sAMAccountName",
+                create_user_name(new_dir.id),
             )
             user_principal_name = user_attributes.get(
-                "userPrincipalName", f"{sam_accout_name!r}@{base_dn.name}",
+                "userPrincipalName",
+                f"{sam_accout_name!r}@{base_dn.name}",
             )
             user = User(
                 sam_accout_name=sam_accout_name,
@@ -316,9 +318,7 @@ class AddRequest(BaseRequest):
         if (is_user or is_group) and "gidnumber" not in self.attr_names:
             reverse_d_name = new_dir.name[::-1]
             value = (
-                "513"
-                if is_user
-                else str(create_integer_hash(reverse_d_name))
+                "513" if is_user else str(create_integer_hash(reverse_d_name))
             )
             attributes.append(
                 Attribute(
@@ -348,7 +348,8 @@ class AddRequest(BaseRequest):
                     await kadmin.add_principal(user.get_upn_prefix(), pw)
                 if is_computer:
                     await kadmin.add_principal(
-                        f"{new_dir.host_principal}.{base_dn.name}", None,
+                        f"{new_dir.host_principal}.{base_dn.name}",
+                        None,
                     )
                     await kadmin.add_principal(new_dir.host_principal, None)
             except KRBAPIError:
