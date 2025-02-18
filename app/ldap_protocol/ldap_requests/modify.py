@@ -337,7 +337,7 @@ class ModifyRequest(BaseRequest):
 
         await session.commit()
 
-    async def _add(
+    async def _add(  # noqa: C901
         self,
         change: Changes,
         directory: Directory,

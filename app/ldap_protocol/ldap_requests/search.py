@@ -398,7 +398,7 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
-    async def tree_view(
+    async def tree_view(  # noqa: C901
         self, query: Select, session: AsyncSession,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""

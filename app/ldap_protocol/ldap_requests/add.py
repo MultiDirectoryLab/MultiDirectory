@@ -86,7 +86,7 @@ class AddRequest(BaseRequest):
         ]
         return cls(entry=entry.value, attributes=attributes)  # type: ignore
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         session: AsyncSession,
         ldap_session: LDAPSession,

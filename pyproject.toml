@@ -161,7 +161,7 @@ ignore = [
     "UP034",  # TODO delete that and fix all errors
     "UP035",  # this is necessary. We allowed deprecated import
     "UP037",  # TODO delete that and fix all errors
-    "UP040",  # TODO delete that and fix all errors
+    # "UP040",  # TODO delete that and fix all errors
     "ANN001",  # TODO delete that and fix all errors
     "ANN002",  # this is necessary.
     "ANN003",  # this is necessary.
@@ -187,8 +187,8 @@ unfixable = []
 "alembic/*.py" = ["I001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
 
 [tool.ruff.lint.mccabe]
-# 30 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.
-max-complexity = 34
+# 22 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.
+max-complexity = 15
 
 [tool.ruff.lint.isort]
 known-first-party = [
