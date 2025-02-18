@@ -147,7 +147,7 @@ select = [
     # "CPY",  # flake8-copyright TODO uncomment, ruff fix and fix error
     # "PIE",  # flake8-pie TODO uncomment, ruff fix and fix error
     # "PYI",  # flake8-pyi TODO uncomment, ruff fix and fix error
-    "PT",
+    "PT",  # flake8-pytest
     "Q",  # flake8-quotes TODO uncomment, ruff fix and fix error
     # "RET",  # flake8-return TODO uncomment, ruff fix and fix error
     # "SLF",  # flake8-self TODO uncomment, ruff fix and fix error
@@ -183,7 +183,7 @@ ignore = [
     "TC001",  # this is necessary.
     "TC002",  # this is necessary.
     "TC003",  # this is necessary.
-    "SIM101",
+    "SIM101",  # Аналог simplify-boolean-expressions IF100
 ]
 extend-select = []
 
