@@ -119,12 +119,12 @@ select = [
     "D",  # pydocstyle, check tool.ruff.lint.pydocstyle
     "UP",  # pyupgrade, check tool.ruff.lint.pyupgrade. Must have
     "ANN",  # flake8-annotations, check tool.ruff.lint.flake8-annotations
-    # "ASYNC",  # flake8-async TODO uncomment, ruff fix and fix error
+    "ASYNC",  # flake8-async
     "S",  # flake8-bandit
     "B",  # flake8-bugbear. Must have
     "COM",  # flake8-commas
     # "CPY",  # flake8-copyright TODO uncomment, ruff fix and fix error
-    # "PIE",  # flake8-pie TODO uncomment, ruff fix and fix error
+    "PIE",  # flake8-pie
     # "PYI",  # flake8-pyi TODO uncomment, ruff fix and fix error
     "PT",  # flake8-pytest
     "Q",  # flake8-quotes
@@ -134,7 +134,7 @@ select = [
     "TC",  # flake8-type-checking, check flake8-type-checking
     # "ARG",  # flake8-unused-arguments TODO uncomment, ruff fix and fix error
     # "TD",  # flake8-todos TODO uncomment, ruff fix and fix error
-    # "ERA",  # eradicate TODO uncomment, ruff fix and fix error
+    "ERA",  # eradicate
     # "PGH",  # pygrep-hooks TODO does we need it? uncomment, ruff fix and fix error
     # "PL",  # Pylint TODO uncomment, ruff fix and fix error
     # "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
@@ -166,6 +166,8 @@ ignore = [
     "ANN002",  # this is necessary.
     "ANN003",  # this is necessary.
     "ANN401",  # TODO delete that and fix all errors
+    "ASYNC109",
+    "ASYNC230",
     "S311",  # this is necessary.
     "B904",  # this is necessary.
     "COM812",  # this is necessary. Cause conflicts when used with the formatter

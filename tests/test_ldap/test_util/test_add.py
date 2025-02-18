@@ -49,7 +49,6 @@ async def test_ldap_root_add(
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
-        # print(await proc.communicate())
         result = await proc.wait()
 
     assert result == 0
