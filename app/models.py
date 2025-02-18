@@ -143,7 +143,7 @@ class Directory(Base):
         nullable=True,
     )
 
-    parent: Mapped["Directory | None"] = relationship(
+    parent: Mapped[Directory | None] = relationship(
         lambda: Directory,
         remote_side="Directory.id",
         backref=backref("directories", cascade="all,delete", viewonly=True),
@@ -277,7 +277,7 @@ class Directory(Base):
 
     def create_path(
         self,
-        parent: "Directory | None" = None,
+        parent: Directory | None = None,
         dn: str = "cn",
     ) -> None:
         """Create path from a new directory."""

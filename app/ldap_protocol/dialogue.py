@@ -48,7 +48,7 @@ class UserSchema:
         cls,
         user: User,
         session_id: str,
-    ) -> "UserSchema":
+    ) -> UserSchema:
         """Create model from db model."""
         return cls(
             id=user.id,
@@ -76,7 +76,7 @@ class LDAPSession:
 
     gssapi_authenticated: bool = False
     gssapi_security_context: gssapi.SecurityContext | None = None
-    gssapi_security_layer: "GSSAPISL"
+    gssapi_security_layer: GSSAPISL
 
     def __init__(
         self, *, user: UserSchema | None = None,
@@ -85,7 +85,7 @@ class LDAPSession:
         """Set lock."""
         self._lock = asyncio.Lock()
         self._user: UserSchema | None = user
-        self.queue: asyncio.Queue["LDAPRequestMessage"] = asyncio.Queue()
+        self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
         self.id = uuid.uuid4()
         self.storage = storage
 

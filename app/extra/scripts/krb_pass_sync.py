@@ -42,7 +42,7 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
     domain = domains[0].name
 
     for path in files:
-        with open(path, "r") as file:
+        with open(path) as file:
             data = file.read().split("\n")
             username, password = data[0], data[3]
 

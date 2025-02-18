@@ -3,7 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-from typing import Optional, final
+from typing import final
 
 from dishka import AsyncContainer
 from pydantic import BaseModel, Field, SecretStr
@@ -75,8 +75,8 @@ class DNSServiceSetupRequest(BaseModel):
 
     dns_status: DNSManagerState
     domain: str
-    dns_ip_address: Optional[str] = Field(None)
-    tsig_key: Optional[str] = Field(None)
+    dns_ip_address: str | None = Field(None)
+    tsig_key: str | None = Field(None)
 
 
 class DNSServiceRecordBaseRequest(BaseModel):
@@ -90,7 +90,7 @@ class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
     """DNS create request schema."""
 
     record_value: str
-    ttl: Optional[int] = Field(None)
+    ttl: int | None = Field(None)
 
 
 class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
@@ -102,5 +102,5 @@ class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
 class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
     """DNS update request schema."""
 
-    record_value: Optional[str] = Field(None)
-    ttl: Optional[int] = Field(None)
+    record_value: str | None = Field(None)
+    ttl: int | None = Field(None)

@@ -163,7 +163,7 @@ class AbstractDNSManager(ABC):
             with open(settings.DNS_SERVER_NAMED_CONF, "a") as f:
                 f.write('\ninclude "/opt/zone.key";')
 
-            with open(settings.DNS_TSIG_KEY, "r") as f:
+            with open(settings.DNS_TSIG_KEY) as f:
                 key_file_content = f.read()
 
             tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]

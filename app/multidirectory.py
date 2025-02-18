@@ -59,7 +59,7 @@ async def proc_time_header_middleware(
     start_time = time.perf_counter()
     response = await call_next(request)
     process_time = time.perf_counter() - start_time
-    response.headers["X-Process-Time"] = "{:.4f}".format(process_time)
+    response.headers["X-Process-Time"] = f"{process_time:.4f}"
     return response
 
 
