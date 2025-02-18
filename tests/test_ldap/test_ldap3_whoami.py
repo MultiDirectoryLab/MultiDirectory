@@ -14,7 +14,7 @@ from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_anonymous_whoami(
     event_loop: asyncio.BaseEventLoop,
     ldap_client: Connection,
@@ -30,7 +30,7 @@ async def test_anonymous_whoami(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_bind_whoami(
     event_loop: asyncio.BaseEventLoop,
     ldap_client: Connection,
@@ -43,4 +43,4 @@ async def test_bind_whoami(
     result = await event_loop.run_in_executor(
         None, ldap_client.extend.standard.who_am_i)
 
-    assert result == 'u:user0'
+    assert result == "u:user0"

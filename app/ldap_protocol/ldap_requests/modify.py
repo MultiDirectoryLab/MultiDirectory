@@ -90,11 +90,11 @@ class ModifyRequest(BaseRequest):
 
     PROTOCOL_OP: ClassVar[int] = 6
 
-    object: str  # noqa: A003
+    object: str
     changes: list[Changes]
 
     @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":  # noqa: D102
+    def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
         entry, proto_changes = data
 
         changes = []
@@ -131,7 +131,7 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        query = (  # noqa: ECE001
+        query = (
             select(Directory)
             .join(Directory.attributes)
             .options(
@@ -356,7 +356,7 @@ class ModifyRequest(BaseRequest):
             if name == "useraccountcontrol":
                 uac_val = int(value)
 
-                if not UserAccountControlFlag.is_value_valid(uac_val):  # noqa
+                if not UserAccountControlFlag.is_value_valid(uac_val):
                     continue
 
                 elif (
@@ -468,7 +468,7 @@ class ModifyRequest(BaseRequest):
                     raise PermissionError("TLS required")
 
                 if isinstance(value, bytes):
-                    raise ValueError('password is bytes')
+                    raise ValueError("password is bytes")
 
                 try:
                     value = value.replace("\\x00", "\x00")

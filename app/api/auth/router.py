@@ -82,7 +82,7 @@ async def login(
     :raises HTTPException: 403 if user not part of network policy
     :raises HTTPException: 426 if mfa required
     :return None: None
-    """  # noqa: D205, D301
+    """  # noqa: D301
     user = await authenticate_user(session, form.username, form.password)
 
     if not user:
@@ -92,7 +92,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    query = (  # noqa: ECE001
+    query = (
         select(Group)
         .join(Group.users)
         .join(Group.directory)
@@ -169,7 +169,7 @@ async def password_reset(
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Reset user's (entry) password.
+    r"""Reset user's (entry) password.
 
     - **identity**: user identity, any
     `userPrincipalName`, `saMAccountName` or `DN`
@@ -244,7 +244,7 @@ async def first_setup(
     if setup_already_performed:
         raise HTTPException(status.HTTP_423_LOCKED)
 
-    data = [  # noqa
+    data = [
         {
             "name": "groups",
             "object_class": "container",

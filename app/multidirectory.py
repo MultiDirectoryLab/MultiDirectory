@@ -180,10 +180,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run ldap or http")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--ldap', action='store_true', help="Run ldap")
-    group.add_argument('--http', action='store_true', help="Run http")
-    group.add_argument('--shadow', action='store_true', help="Run http")
-    group.add_argument('--scheduler', action='store_true', help="Run tasks")
+    group.add_argument("--ldap", action="store_true", help="Run ldap")
+    group.add_argument("--http", action="store_true", help="Run http")
+    group.add_argument("--shadow", action="store_true", help="Run http")
+    group.add_argument("--scheduler", action="store_true", help="Run tasks")
 
     args = parser.parse_args()
 

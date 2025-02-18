@@ -152,7 +152,7 @@ async def setup_kdc(
     settings: FromDishka[Settings],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Set up KDC server.
+    r"""Set up KDC server.
 
     Create data structure in catalogue, generate config files, trigger commands
 
@@ -291,11 +291,11 @@ async def add_principal(
     instance: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Create principal in kerberos with given name.
+    r"""Create principal in kerberos with given name.
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request
+    :raises HTTPException: on failed kamin request.
     """
     try:
         await kadmin.add_principal(f"{primary}/{instance}", None)
@@ -310,12 +310,12 @@ async def rename_principal(
     principal_new_name: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Rename principal in kerberos with given name.
+    r"""Rename principal in kerberos with given name.
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body principal_new_name: _description_
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request
+    :raises HTTPException: on failed kamin request.
     """
     try:
         await kadmin.rename_princ(principal_name, principal_new_name)
@@ -330,12 +330,12 @@ async def reset_principal_pw(
     new_password: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Reset principal password in kerberos with given name.
+    r"""Reset principal password in kerberos with given name.
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body new_password: _description_
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request
+    :raises HTTPException: on failed kamin request.
     """
     try:
         await kadmin.change_principal_password(principal_name, new_password)
@@ -349,11 +349,11 @@ async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Delete principal in kerberos with given name.
+    r"""Delete principal in kerberos with given name.
     \f
     :param Annotated[str, Body principal_name: upn
     :param FromDishka[AbstractKadmin] kadmin: _description_
-    :raises HTTPException: on failed kamin request
+    :raises HTTPException: on failed kamin request.
     """
     try:
         await kadmin.del_principal(principal_name)

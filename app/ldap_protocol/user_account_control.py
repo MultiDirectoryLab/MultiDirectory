@@ -70,8 +70,7 @@ class UserAccountControlFlag(IntFlag):
 
     @classmethod
     def is_value_valid(cls, uac_value: str | int) -> bool:
-        """
-        Check all flags set in the userAccountControl value.
+        """Check all flags set in the userAccountControl value.
 
         :param int uac_value: userAccountControl attribute value
         :return: True if the value is valid (only known flags), False otherwise
@@ -86,7 +85,7 @@ class UserAccountControlFlag(IntFlag):
         if uac_value == 0:
             return False
 
-        return False if uac_value & ~sum(flag.value for flag in cls) else True
+        return not uac_value & ~sum(flag.value for flag in cls)
 
 
 async def get_check_uac(

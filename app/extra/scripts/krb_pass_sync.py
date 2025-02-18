@@ -24,7 +24,7 @@ async def read_and_save_krb_pwds(session: AsyncSession) -> None:
 
     :param AsyncSession session: db
     """
-    files = [  # noqa: ECE001
+    files = [
         fp
         for f in os.listdir(_PATH)
         if os.path.isfile(fp := os.path.join(_PATH, f)) and f != _LOCK_FILE

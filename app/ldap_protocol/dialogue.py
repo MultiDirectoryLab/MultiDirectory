@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 class UserSchema:
     """User model, alias for db user."""
 
-    id: int  # noqa: A003
+    id: int
     session_id: str
     sam_accout_name: str
     user_principal_name: str

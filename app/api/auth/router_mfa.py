@@ -35,8 +35,7 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
-from models import CatalogueSetting
-from models import User as DBUser
+from models import CatalogueSetting, User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (
@@ -66,7 +65,7 @@ async def setup_mfa(
     \f
     :param MFACreateRequest mfa: MuliFactor credentials
     :param FromDishka[AsyncSession] session: db
-    :return bool: status
+    :return bool: status.
     """  # noqa: D301
     async with session.begin_nested():
         await session.execute(
@@ -95,7 +94,7 @@ async def remove_mfa(
     scope: Literal["ldap", "http"],
 ) -> None:
     """Remove mfa credentials."""
-    if scope == 'http':
+    if scope == "http":
         keys = ["mfa_key", "mfa_secret"]
     else:
         keys = ["mfa_key_ldap", "mfa_secret_ldap"]
@@ -114,7 +113,7 @@ async def get_mfa(
 ) -> MFAGetResponse:
     """Get MFA creds.
     \f
-    :return MFAGetResponse: response
+    :return MFAGetResponse: response.
     """  # noqa: D301
     if not mfa_creds:
         mfa_creds = MFA_HTTP_Creds(Creds(None, None))
@@ -191,7 +190,7 @@ async def two_factor_protocol(
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
 ) -> MFAChallengeResponse:
-    """Initiate two factor protocol with app.
+    r"""Initiate two factor protocol with app.
     \f
     :param Annotated[OAuth2Form, Depends form: password form
     :param Request request: FastAPI request
@@ -206,7 +205,7 @@ async def two_factor_protocol(
     :raises HTTPException: network policy violation
     :raises HTTPException: Multifactor error
     :return MFAChallengeResponse:
-        {'status': 'pending', 'message': https://example.com}
+        {'status': 'pending', 'message': https://example.com}.
     """
     if not api:
         raise HTTPException(

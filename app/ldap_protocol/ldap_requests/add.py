@@ -70,7 +70,7 @@ class AddRequest(BaseRequest):
     password: SecretStr | None = Field(None, examples=["password"])
 
     @property
-    def attr_names(self) -> dict[str, list[str | bytes]]:  # noqa: D102
+    def attr_names(self) -> dict[str, list[str | bytes]]:
         return {attr.type.lower(): attr.vals for attr in self.attributes}
 
     @classmethod
@@ -313,7 +313,7 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        if (is_user or is_group) and 'gidnumber' not in self.attr_names:
+        if (is_user or is_group) and "gidnumber" not in self.attr_names:
             reverse_d_name = new_dir.name[::-1]
             value = (
                 "513"

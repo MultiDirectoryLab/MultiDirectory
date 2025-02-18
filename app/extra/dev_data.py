@@ -13,7 +13,7 @@ group_attrs = {
 }
 
 
-DATA = [  # noqa
+DATA = [
     {
         "name": "main",
         "object_class": "builtinDomain",
@@ -200,7 +200,7 @@ DATA = [  # noqa
     },
 ]
 
-TEST_DATA = [  # noqa
+TEST_DATA = [
     {
         "name": "groups",
         "object_class": "container",

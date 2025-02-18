@@ -42,7 +42,7 @@ class DeleteRequest(BaseRequest):
     entry: str
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> "DeleteRequest":  # noqa: D102
+    def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
     async def handle(

@@ -688,9 +688,7 @@ def get_status(request: Request) -> bool:
     """
     kadmind = getattr(request.app.state, "kadmind", None)
 
-    if kadmind is not None:
-        return True
-    return False
+    return kadmind is not None
 
 
 def create_app() -> FastAPI:

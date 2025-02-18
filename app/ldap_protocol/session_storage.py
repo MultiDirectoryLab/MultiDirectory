@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import hmac
 import json
@@ -263,7 +264,7 @@ class RedisSessionStorage(SessionStorage):
 
         retval = {}
 
-        for k, v in zip(keys, data):
+        for k, v in zip(keys, data, strict=False):
             if v is not None:
                 tmp = json.loads(v)
                 if k.startswith("ldap"):
@@ -485,10 +486,8 @@ class MemSessionStorage(SessionStorage):
         uid = int(tmp)
 
         keys = await self._get_user_keys(uid)
-        try:
+        with contextlib.suppress(KeyError):
             keys.remove(session_id)
-        except KeyError:
-            pass
 
         self._session_batch[self._get_id_hash(uid)] = list(keys)
         await self.delete([session_id])
@@ -568,4 +567,4 @@ class MemSessionStorage(SessionStorage):
         key = await self.create_session(uid, settings, extra_data=extra_data)
         await self.delete_user_session(session_id)
 
-        return key  # noqa: R504
+        return key

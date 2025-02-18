@@ -276,5 +276,5 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         if not ctx:
             return None
 
-        username = str(ctx.initiator_name).split('@')[0]
+        username = str(ctx.initiator_name).split("@")[0]
         return await get_user(session, username)

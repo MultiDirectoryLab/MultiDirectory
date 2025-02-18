@@ -19,8 +19,7 @@ def build_policy_query(
     protocol_field_name: Literal["is_http", "is_ldap", "is_kerberos"],
     user_group_ids: list[int] | None = None,
 ) -> Select:
-    """
-    Build a base query for network policies with optional group filtering.
+    """Build a base query for network policies with optional group filtering.
 
     :param IPv4Address ip: IP address to filter
     :param Literal["is_http", "is_ldap", "is_kerberos"] protocol_field_name
@@ -29,7 +28,7 @@ def build_policy_query(
     :return: Select query
     """
     protocol_field = getattr(NetworkPolicy, protocol_field_name)
-    query = ( # noqa
+    query = (
         select(NetworkPolicy)
         .filter_by(enabled=True)
         .options(
@@ -82,8 +81,7 @@ async def get_user_network_policy(
     user: User,
     session: AsyncSession,
 ) -> NetworkPolicy | None:
-    """
-    Get the highest priority network policy for user, ip and protocol.
+    """Get the highest priority network policy for user, ip and protocol.
 
     :param User user: user object
     :param AsyncSession session: db session
@@ -114,7 +112,7 @@ async def is_user_group_valid(
     if not policy.groups:
         return True
 
-    query = (  # noqa: ECE001
+    query = (
         select(Group)
         .join(Group.users)
         .join(Group.policies, isouter=True)

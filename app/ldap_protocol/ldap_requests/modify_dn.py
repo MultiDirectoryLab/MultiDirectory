@@ -200,7 +200,7 @@ class ModifyDNRequest(BaseRequest):
             await session.flush()
 
             if self.deleteoldrdn:
-                old_attr_name = directory.path[-1].split('=')[0]
+                old_attr_name = directory.path[-1].split("=")[0]
                 await session.execute(
                     update(Attribute)
                     .where(

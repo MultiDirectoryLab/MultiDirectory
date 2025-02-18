@@ -292,7 +292,7 @@ class ExtendedRequest(BaseRequest):
                 ldap_session, session, kadmin, settings,
             )
         except PermissionError as err:
-            logger.critical(err)  # noqa
+            logger.critical(err)
             yield ExtendedResponse(
                 result_code=LDAPCodes.OPERATIONS_ERROR,
                 response_name=self.request_name,

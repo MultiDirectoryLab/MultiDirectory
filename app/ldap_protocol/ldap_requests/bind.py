@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 from typing import AsyncGenerator, ClassVar
 
 import httpx
@@ -77,7 +78,7 @@ class BindRequest(BaseRequest):
                 password=password,
                 otpassword=otpassword,
             )
-        elif auth == SaslAuthentication.METHOD_ID:  # noqa: R506
+        elif auth == SaslAuthentication.METHOD_ID:
             sasl_method = data[2].value[0].value
             auth_choice = sasl_mechanism_map[sasl_method].from_data(
                 data[2].value,
@@ -118,15 +119,11 @@ class BindRequest(BaseRequest):
         try:
             return await api.ldap_validate_mfa(identity, otp)
         except MultifactorAPI.MFAConnectError:
-            if policy.bypass_no_connection:
-                return True
-            return False
+            return bool(policy.bypass_no_connection)
         except MultifactorAPI.MFAMissconfiguredError:
             return True
         except MultifactorAPI.MultifactorError:
-            if policy.bypass_service_failure:
-                return True
-            return False
+            return bool(policy.bypass_service_failure)
 
     async def handle(
         self,
@@ -205,14 +202,12 @@ class BindRequest(BaseRequest):
                         yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
                         return
 
-        try:
+        with contextlib.suppress(KRBAPIError, httpx.TimeoutException):
             await kadmin.add_principal(
                 user.get_upn_prefix(),
                 self.authentication_choice.password.get_secret_value(),
                 0.1,
             )
-        except (KRBAPIError, httpx.TimeoutException):
-            pass
 
         await ldap_session.set_user(user)
         await set_last_logon_user(user, session, settings.TIMEZONE)

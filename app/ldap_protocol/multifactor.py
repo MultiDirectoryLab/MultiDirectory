@@ -98,6 +98,7 @@ class MultifactorAPI:
     - `REFRESH_URL`: Endpoint URL for token refresh.
     - `client`: Asynchronous HTTP client for making requests.
     - `settings`: Configuration settings for the MFA service.
+
     """
 
     MultifactorError = _MultifactorError
@@ -197,9 +198,7 @@ class MultifactorAPI:
             },
         )
 
-        if data.get("model", {}).get("status") != "Granted":
-            return False
-        return True
+        return data.get("model", {}).get("status") == "Granted"
 
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(
