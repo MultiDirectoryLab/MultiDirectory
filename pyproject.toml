@@ -144,13 +144,8 @@ select = [
 
 # Gradually remove all values marked 'TODO' and fix errors.
 ignore = [
-    "D101",  # TODO delete that and fix all errors
     "D102",  # TODO delete that and fix all errors
-    "D103",  # TODO delete that and fix all errors
     "D104",  # TODO delete that and fix all errors
-    "D105",  # TODO delete that and fix all errors
-    "D106",  # TODO delete that and fix all errors
-    "D107",  # TODO delete that and fix all errors
     "D203",  # this is necessary. Conflict with `D211`
     "D213",  # this is necessary. Conflict with `D212`
     "D301",  # this is necessary.
@@ -161,7 +156,6 @@ ignore = [
     "UP034",  # TODO delete that and fix all errors
     "UP035",  # this is necessary. We allowed deprecated import
     "UP037",  # TODO delete that and fix all errors
-    # "UP040",  # TODO delete that and fix all errors
     "ANN001",  # TODO delete that and fix all errors
     "ANN002",  # this is necessary.
     "ANN003",  # this is necessary.

@@ -34,6 +34,8 @@ class LDAPResult(BaseModel):
     error_message: str = Field("", alias="errorMessage")
 
     class Config:
+        """Allow class to use property."""
+
         populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {

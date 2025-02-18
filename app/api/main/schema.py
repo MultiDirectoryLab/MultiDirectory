@@ -36,6 +36,8 @@ class SearchRequest(LDAPSearchRequest):
 
 
 class SearchResponse(SearchResultDone):
+    """Search response for web api."""
+
     search_result: list[SearchResultEntry]
 
 

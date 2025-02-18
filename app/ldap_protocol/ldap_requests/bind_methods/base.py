@@ -48,6 +48,7 @@ class LDAPBindErrors(StrEnum):
     ACCOUNT_LOCKED_OUT = "775"
 
     def __str__(self) -> str:
+        """Return the error message as a string."""
         return (
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "

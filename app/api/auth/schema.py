@@ -42,6 +42,8 @@ class OAuth2Form(OAuth2PasswordRequestForm):
         username: str = Form(),
         password: str = Form(),
     ):
+        """Initialize form."""
+
         self.username = username
         self.password = password
 
