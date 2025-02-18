@@ -27,7 +27,7 @@ jobs:
         env:
           NEW_TAG: linter
         run: docker run $NEW_TAG ruff check --output-format=github .
-  
+
   ruff_fmt:
     runs-on: ubuntu-latest
     steps:
@@ -46,7 +46,7 @@ jobs:
       - name: Run linters
         env:
           NEW_TAG: linter
-        run: docker run $NEW_TAG ruff format .
+        run: docker run $NEW_TAG ruff format --check
 
   mypy:
     runs-on: ubuntu-latest

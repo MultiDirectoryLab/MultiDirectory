@@ -102,6 +102,7 @@ output-format = "grouped"
 unsafe-fixes = true
 
 [tool.ruff.format]
+# Use `fmt: off/fmt: on` (some lines) or `fmt: skip` (one operator) if you want to disable formatting.
 docstring-code-format = true
 docstring-code-line-length = 79
 line-ending = "lf"
