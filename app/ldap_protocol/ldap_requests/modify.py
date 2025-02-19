@@ -289,7 +289,10 @@ class ModifyRequest(BaseRequest):
             await session.execute(del_query)
 
     async def _add_group_attrs(
-        self, change: Changes, directory: Directory, session: AsyncSession
+        self,
+        change: Changes,
+        directory: Directory,
+        session: AsyncSession,
     ) -> None:
         name = change.get_name()
         directories = await get_directories(change.modification.vals, session)  # type: ignore

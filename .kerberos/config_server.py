@@ -315,7 +315,10 @@ class KAdminLocalManager(AbstractKRBManager):
 
 
 async def create_update_default_policy(
-    minlife: int, maxlife: int, minlength: int, minclasses: int
+    minlife: int,
+    maxlife: int,
+    minlength: int,
+    minclasses: int,
 ) -> None:
     """Create or update default policy.
 
@@ -410,7 +413,8 @@ principal_router = APIRouter(prefix="/principal", tags=["config"])
 
 @setup_router.post("/configs", status_code=status.HTTP_201_CREATED)
 def write_configs(
-    krb5_config: Annotated[str, Body()], kdc_config: Annotated[str, Body()]
+    krb5_config: Annotated[str, Body()],
+    kdc_config: Annotated[str, Body()],
 ) -> None:
     """Write two config files, strings are: hex bytes.
 

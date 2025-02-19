@@ -256,7 +256,10 @@ class MFAProvider(Provider):
         if not credentials or not credentials.key or not credentials.secret:
             return None
         return MultifactorAPI(
-            credentials.key, credentials.secret, client, settings
+            credentials.key,
+            credentials.secret,
+            client,
+            settings,
         )
 
     @provide(provides=LDAPMultiFactorAPI)
@@ -276,6 +279,9 @@ class MFAProvider(Provider):
             return None
         return LDAPMultiFactorAPI(
             MultifactorAPI(
-                credentials.key, credentials.secret, client, settings
+                credentials.key,
+                credentials.secret,
+                client,
+                settings,
             )
         )

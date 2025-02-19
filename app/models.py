@@ -317,7 +317,10 @@ class User(Base):
     )
 
     directory: Mapped[Directory] = relationship(
-        "Directory", back_populates="user", uselist=False, lazy="joined"
+        "Directory",
+        back_populates="user",
+        uselist=False,
+        lazy="joined",
     )
 
     sam_accout_name: Mapped[str] = mapped_column(
@@ -416,7 +419,10 @@ class Group(Base):
     )
 
     directory: Mapped[Directory] = relationship(
-        "Directory", back_populates="group", uselist=False, lazy="joined"
+        "Directory",
+        back_populates="group",
+        uselist=False,
+        lazy="joined",
     )
 
     search_fields: ClassVar[dict[str, str]] = {}
@@ -540,7 +546,10 @@ class NetworkPolicy(Base):
     priority: Mapped[int] = mapped_column(nullable=False)
 
     priority_uc = UniqueConstraint(
-        "priority", name="priority_uc", deferrable=True, initially="DEFERRED"
+        "priority",
+        name="priority_uc",
+        deferrable=True,
+        initially="DEFERRED",
     )
 
     groups: Mapped[list[Group]] = relationship(

@@ -228,7 +228,11 @@ class DNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def create_record(
-        self, hostname: str, ip: str, record_type: str, ttl: int | None
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
+        ttl: int | None,
     ) -> None:
         """Create DNS record."""
         action = Update(self._dns_settings.zone_name)
@@ -281,7 +285,11 @@ class DNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def update_record(
-        self, hostname: str, ip: str | None, record_type: str, ttl: int | None
+        self,
+        hostname: str,
+        ip: str | None,
+        record_type: str,
+        ttl: int | None,
     ) -> None:
         """Update DNS record."""
         action = Update(self._dns_settings.zone_name)
@@ -291,7 +299,10 @@ class DNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def delete_record(
-        self, hostname: str, ip: str, record_type: str
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
     ) -> None:
         """Delete DNS record."""
         action = Update(self._dns_settings.zone_name)

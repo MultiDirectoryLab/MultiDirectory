@@ -73,5 +73,8 @@ async def create_and_set_session_key(
     )
 
     response.set_cookie(
-        key="id", value=key, httponly=True, expires=storage.key_ttl
+        key="id",
+        value=key,
+        httponly=True,
+        expires=storage.key_ttl,
     )

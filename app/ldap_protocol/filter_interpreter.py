@@ -39,7 +39,10 @@ def _get_substring(right: ASN1Row) -> str:  # RFC 4511
 
 
 def _from_filter(
-    model: type, item: ASN1Row, attr: str, right: ASN1Row
+    model: type,
+    item: ASN1Row,
+    attr: str,
+    right: ASN1Row,
 ) -> UnaryExpression:
     is_substring = item.tag_id == TagNumbers.SUBSTRING
     col = getattr(model, attr)

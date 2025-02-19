@@ -199,7 +199,10 @@ class MultifactorAPI:
 
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(
-        self, username: str, callback_url: str, uid: int
+        self,
+        username: str,
+        callback_url: str,
+        uid: int,
     ) -> str:
         """Create mfa link.
 

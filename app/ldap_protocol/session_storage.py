@@ -153,7 +153,10 @@ class SessionStorage(ABC):
         return user_id
 
     def _generate_session_data(
-        self: Self, uid: int, settings: Settings, extra_data: dict | None
+        self: Self,
+        uid: int,
+        settings: Settings,
+        extra_data: dict | None,
     ) -> tuple[str, str, dict]:
         """Set data."""
         if extra_data is None:
@@ -518,7 +521,10 @@ class MemSessionStorage(SessionStorage):
         return session_id in self._sessions
 
     async def create_ldap_session(
-        self, uid: int, key: str, data: dict
+        self,
+        uid: int,
+        key: str,
+        data: dict,
     ) -> None:
         """Create ldap session.
 

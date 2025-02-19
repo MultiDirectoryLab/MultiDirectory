@@ -340,7 +340,10 @@ class PoolClientHandler:
                 raise RuntimeError(err) from err
 
     async def _wrap_response(
-        self, data: bytes, ldap_session: LDAPSession, protocol_op: int
+        self,
+        data: bytes,
+        ldap_session: LDAPSession,
+        protocol_op: int,
     ) -> bytes:
         """Wrap response with GSSAPI security layer if needed.
 
