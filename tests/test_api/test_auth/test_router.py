@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Any, TypedDict
 
 import pytest
+from dishka import AsyncContainer
 from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -16,6 +17,7 @@ from sqlalchemy.orm import joinedload
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
 
@@ -346,9 +348,16 @@ async def test_lock_and_unlock_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
     session: AsyncSession,
+    container: AsyncContainer,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
-    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+    user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    dir_ = await session.scalar(
+        select(Directory).filter(Directory.name == "user_non_admin"),
+    )
+    async with container() as c:
+        session_storage = await c.get(SessionStorage)
+        await session_storage.create_ldap_session(dir_.user.id, "key", {})  # type: ignore
 
     data = await apply_user_account_control(http_client, user_dn, "514")
 
