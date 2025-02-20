@@ -78,9 +78,7 @@ class TestProvider(Provider):
 
         ok_response = Mock()
         ok_response.status_code = 200
-        ok_response.aiter_bytes.return_value = map(
-            bytes, zip(b"test_string", strict=False)
-        )
+        ok_response.aiter_bytes.return_value = map(bytes, zip(b"test_string"))
 
         kadmin.setup = AsyncMock()
         kadmin.ktadd = AsyncMock(return_value=ok_response)

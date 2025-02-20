@@ -264,7 +264,7 @@ class RedisSessionStorage(SessionStorage):
 
         retval = {}
 
-        for k, v in zip(keys, data, strict=False):
+        for k, v in zip(keys, data):
             if v is not None:
                 tmp = json.loads(v)
                 if k.startswith("ldap"):

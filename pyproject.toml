@@ -165,6 +165,7 @@ ignore = [
     "TC002",  # this is necessary.
     "TC003",  # this is necessary.
     "SIM101",  # analogue simplify-boolean-expressions IF100
+    "B905",  # this is necessary. get-attr-with-constant
 ]
 
 extend-select = []
