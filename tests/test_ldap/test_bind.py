@@ -91,7 +91,9 @@ async def test_gssapi_bind_in_progress(
     )
 
     bind = BindRequest(
-        version=0, name=creds.un, AuthenticationChoice=auth_choice
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=auth_choice,
     )
 
     async with container(scope=Scope.REQUEST) as container:
@@ -157,7 +159,9 @@ async def test_gssapi_bind_ok(
     )
 
     first_bind = BindRequest(
-        version=0, name=creds.un, AuthenticationChoice=auth_choice
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=auth_choice,
     )
 
     second_bind = BindRequest(

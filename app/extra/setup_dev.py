@@ -51,7 +51,9 @@ async def _create_dir(
 ) -> None:
     """Create data recursively."""
     dir_ = Directory(
-        object_class=data["object_class"], name=data["name"], parent=parent
+        object_class=data["object_class"],
+        name=data["name"],
+        parent=parent,
     )
     dir_.create_path(parent, dir_.get_dn_prefix())
 
@@ -109,7 +111,9 @@ async def _create_dir(
         await session.flush()
         session.add(
             Attribute(
-                directory=dir_, name="homeDirectory", value=f"/home/{user.uid}"
+                directory=dir_,
+                name="homeDirectory",
+                value=f"/home/{user.uid}",
             )
         )
 

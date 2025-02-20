@@ -93,7 +93,9 @@ class BindRequest(BaseRequest):
 
     @staticmethod
     async def is_user_group_valid(
-        user: User, ldap_session: LDAPSession, session: AsyncSession
+        user: User,
+        ldap_session: LDAPSession,
+        session: AsyncSession,
     ) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
@@ -137,13 +139,16 @@ class BindRequest(BaseRequest):
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        if isinstance(
-            self.authentication_choice, SaslGSSAPIAuthentication
-        ) and (
-            response := await self.authentication_choice.step(
-                session, ldap_session, settings
+        if (
+            isinstance(self.authentication_choice, SaslGSSAPIAuthentication)
+            and (
+                response := await self.authentication_choice.step(
+                    session,
+                    ldap_session,
+                    settings,
+                )
             )
-        ):
+        ):  # fmt: skip
             yield response
             return
 

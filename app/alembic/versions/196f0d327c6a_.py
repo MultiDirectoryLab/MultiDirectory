@@ -326,7 +326,11 @@ def downgrade() -> None:
 
     op.drop_constraint("Users_directoryId_fkey", "Users", type_="foreignkey")
     op.create_foreign_key(
-        "Users_directoryId_fkey", "Users", "Directory", ["directoryId"], ["id"]
+        "Users_directoryId_fkey",
+        "Users",
+        "Directory",
+        ["directoryId"],
+        ["id"],
     )
 
     op.drop_constraint("Groups_directoryId_fkey", "Groups", type_="foreignkey")

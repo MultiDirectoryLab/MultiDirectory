@@ -41,7 +41,9 @@ def upgrade() -> None:
 
         attrs.append(
             Attribute(
-                name=rdname, value=directory.name, directory_id=directory.id
+                name=rdname,
+                value=directory.name,
+                directory_id=directory.id,
             )
         )
 

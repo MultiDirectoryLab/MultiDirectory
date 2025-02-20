@@ -94,7 +94,9 @@ class PoolClientHandler:
                 self.ssl_context.load_cert_chain(cert_name, key_name)
 
     async def __call__(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
     ) -> None:
         """Create session, queue and start message handlers concurrently."""
         async with self.container(scope=Scope.SESSION) as session_scope:
@@ -305,7 +307,9 @@ class PoolClientHandler:
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(
-        self, writer: asyncio.StreamWriter, container: AsyncContainer
+        self,
+        writer: asyncio.StreamWriter,
+        container: AsyncContainer,
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
@@ -373,7 +377,9 @@ class PoolClientHandler:
         return data
 
     async def _handle_responses(
-        self, writer: asyncio.StreamWriter, container: AsyncContainer
+        self,
+        writer: asyncio.StreamWriter,
+        container: AsyncContainer,
     ) -> None:
         """Create pool of workers and apply handler to it.
 

@@ -123,7 +123,9 @@ def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
 
 
 def _ldap_filter_by_attribute(
-    oid: ASN1Row | None, attr: ASN1Row, search_value: ASN1Row
+    oid: ASN1Row | None,
+    attr: ASN1Row,
+    search_value: ASN1Row,
 ) -> UnaryExpression:
     """Retrieve query conditions based on the specified LDAP attribute."""
     if oid is None:

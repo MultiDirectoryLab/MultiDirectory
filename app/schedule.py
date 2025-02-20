@@ -28,7 +28,9 @@ _TASKS: set[tuple[task_type, float]] = {
 
 
 async def _schedule(
-    task: task_type, wait: float, container: AsyncContainer
+    task: task_type,
+    wait: float,
+    container: AsyncContainer,
 ) -> None:
     """Run task periodically.
 

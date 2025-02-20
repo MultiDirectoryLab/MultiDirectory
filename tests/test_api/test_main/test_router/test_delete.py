@@ -17,7 +17,9 @@ from ldap_protocol.ldap_codes import LDAPCodes
 async def test_api_correct_delete(http_client: AsyncClient) -> None:
     """Test API for delete object."""
     response = await http_client.request(
-        "delete", "/entry/delete", json={"entry": "cn=test,dc=md,dc=test"}
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn=test,dc=md,dc=test"},
     )
 
     data = response.json()
@@ -33,7 +35,9 @@ async def test_api_correct_delete(http_client: AsyncClient) -> None:
 async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for delete object with incorrect DN."""
     response = await http_client.request(
-        "delete", "/entry/delete", json={"entry": "cn!=test,dc=md,dc=test"}
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn!=test,dc=md,dc=test"},
     )
 
     data = response.json()

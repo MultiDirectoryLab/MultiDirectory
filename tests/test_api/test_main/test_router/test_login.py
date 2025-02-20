@@ -46,7 +46,8 @@ async def test_api_auth_after_change_account_exp(
         },
     )
     auth = await http_client.post(
-        "auth/", data={"username": "new_user@md.test", "password": "P@ssw0rd"}
+        "auth/",
+        data={"username": "new_user@md.test", "password": "P@ssw0rd"},
     )
 
     assert auth.status_code == status.HTTP_403_FORBIDDEN

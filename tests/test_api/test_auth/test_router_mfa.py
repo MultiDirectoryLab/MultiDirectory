@@ -52,7 +52,9 @@ async def test_set_and_remove_mfa(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_connect_mfa(
-    http_client: httpx.AsyncClient, session: AsyncSession, creds: TestCreds
+    http_client: httpx.AsyncClient,
+    session: AsyncSession,
+    creds: TestCreds,
 ) -> None:
     """Test websocket mfa."""
     session.add(CatalogueSetting(name="mfa_secret", value="123"))

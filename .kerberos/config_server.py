@@ -92,7 +92,10 @@ class AbstractKRBManager(ABC):
 
     @abstractmethod
     async def add_princ(
-        self, name: str, password: str | None, **dbargs
+        self,
+        name: str,
+        password: str | None,
+        **dbargs,
     ) -> None:
         """Create principal.
 
@@ -202,7 +205,10 @@ class KAdminLocalManager(AbstractKRBManager):
         return await self.loop.run_in_executor(self.pool, kadmv.local)
 
     async def add_princ(
-        self, name: str, password: str | None, **dbargs
+        self,
+        name: str,
+        password: str | None,
+        **dbargs,
     ) -> None:
         """Create principal.
 
@@ -210,7 +216,10 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str | None password: if empty - uses randkey.
         """
         await self.loop.run_in_executor(
-            self.pool, self.client.add_principal, name, password
+            self.pool,
+            self.client.add_principal,
+            name,
+            password,
         )
 
         princ = await self._get_raw_principal(name)
@@ -225,7 +234,9 @@ class KAdminLocalManager(AbstractKRBManager):
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
         principal = await self.loop.run_in_executor(
-            self.pool, self.client.getprinc, name
+            self.pool,
+            self.client.getprinc,
+            name,
         )
 
         if not principal:
@@ -250,7 +261,9 @@ class KAdminLocalManager(AbstractKRBManager):
         """
         princ = await self._get_raw_principal(name)
         await self.loop.run_in_executor(
-            self.pool, princ.change_password, new_password
+            self.pool,
+            princ.change_password,
+            new_password,
         )
 
     async def create_or_update_princ_pw(self, name: str, new_password) -> None:
@@ -278,7 +291,10 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str new_name: new name
         """
         await self.loop.run_in_executor(
-            self.pool, self.client.rename_principal, name, new_name
+            self.pool,
+            self.client.rename_principal,
+            name,
+            new_name,
         )
 
     async def ktadd(self, names: list[str], fn: str) -> None:
@@ -586,7 +602,9 @@ async def change_princ_password(
 
 
 @principal_router.post(
-    "/create_or_update", status_code=201, response_class=Response
+    "/create_or_update",
+    status_code=201,
+    response_class=Response,
 )
 async def create_or_update_princ_password(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
@@ -603,7 +621,9 @@ async def create_or_update_princ_password(
 
 
 @principal_router.put(
-    "", status_code=status.HTTP_202_ACCEPTED, response_class=Response
+    "",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_class=Response,
 )
 async def rename_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
@@ -693,7 +713,9 @@ def create_app() -> FastAPI:
 
     app.dependency_overrides = {get_kadmin: _get_kadmin}
     app.add_middleware(
-        CORSMiddleware, allow_credentials=True, allow_methods=["*"]
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_methods=["*"],
     )
     app.include_router(setup_router)
     app.include_router(principal_router)

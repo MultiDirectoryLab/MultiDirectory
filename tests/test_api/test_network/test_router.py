@@ -327,7 +327,8 @@ async def test_404(http_client: AsyncClient) -> None:
     assert response.status_code == 404
 
     response = await http_client.put(
-        "/policy", json={"id": some_id, "name": "123"}
+        "/policy",
+        json={"id": some_id, "name": "123"},
     )
     assert response.status_code == 404
 

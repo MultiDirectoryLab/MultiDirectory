@@ -43,7 +43,9 @@ from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
 
 krb5_router = APIRouter(
-    prefix="/kerberos", tags=["KRB5 API"], route_class=DishkaRoute
+    prefix="/kerberos",
+    tags=["KRB5 API"],
+    route_class=DishkaRoute,
 )
 KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 

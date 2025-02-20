@@ -32,7 +32,9 @@ _CREDENTIALS_EXCEPTION = HTTPException(
 
 
 async def authenticate_user(
-    session: AsyncSession, username: str, password: str
+    session: AsyncSession,
+    username: str,
+    password: str,
 ) -> User | None:
     """Get user and verify password.
 

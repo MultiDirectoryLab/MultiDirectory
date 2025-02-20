@@ -43,7 +43,10 @@ async def create_record(
 ) -> None:
     """Create DNS record with given params."""
     await dns_manager.create_record(
-        data.record_name, data.record_value, data.record_type, data.ttl
+        data.record_name,
+        data.record_value,
+        data.record_type,
+        data.ttl,
     )
 
 
@@ -65,7 +68,10 @@ async def update_record(
 ) -> None:
     """Update DNS record with given params."""
     await dns_manager.update_record(
-        data.record_name, data.record_value, data.record_type, data.ttl
+        data.record_name,
+        data.record_value,
+        data.record_type,
+        data.ttl,
     )
 
 

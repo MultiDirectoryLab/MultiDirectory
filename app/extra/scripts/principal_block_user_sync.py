@@ -75,7 +75,9 @@ async def principal_block_sync(
         )
 
         await add_lock_and_expire_attributes(
-            session=session, directory=user.directory, tz=settings.TIMEZONE
+            session=session,
+            directory=user.directory,
+            tz=settings.TIMEZONE,
         )
 
         await session.commit()

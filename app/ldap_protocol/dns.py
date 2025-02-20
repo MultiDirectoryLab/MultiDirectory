@@ -193,17 +193,28 @@ class AbstractDNSManager(ABC):
 
     @abstractmethod
     async def create_record(
-        self, hostname: str, ip: str, record_type: str, ttl: int | None
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
+        ttl: int | None,
     ) -> None: ...
 
     @abstractmethod
     async def update_record(
-        self, hostname: str, ip: str | None, record_type: str, ttl: int | None
+        self,
+        hostname: str,
+        ip: str | None,
+        record_type: str,
+        ttl: int | None,
     ) -> None: ...
 
     @abstractmethod
     async def delete_record(
-        self, hostname: str, ip: str, record_type: str
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
     ) -> None: ...
 
     @abstractmethod
@@ -316,17 +327,28 @@ class StubDNSManager(AbstractDNSManager):
 
     @logger_wraps(is_stub=True)
     async def create_record(
-        self, hostname: str, ip: str, record_type: str, ttl: int | None
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
+        ttl: int | None,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def update_record(
-        self, hostname: str, ip: str, record_type: str, ttl: int
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
+        ttl: int,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def delete_record(
-        self, hostname: str, ip: str, record_type: str
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)

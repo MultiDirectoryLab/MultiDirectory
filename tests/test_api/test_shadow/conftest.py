@@ -101,7 +101,11 @@ async def adding_mfa_user_and_group(
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
     auth = await unbound_http_client.post(
-        "auth/", data={"username": test_user_email, "password": user_password}
+        "auth/",
+        data={
+            "username": test_user_email,
+            "password": user_password,
+        },  # fmt: skip
     )
 
     assert response.status_code == status.HTTP_200_OK

@@ -148,7 +148,9 @@ async def get_list_network_policies(
     status_code=status.HTTP_303_SEE_OTHER,
 )
 async def delete_network_policy(
-    policy_id: int, request: Request, session: FromDishka[AsyncSession]
+    policy_id: int,
+    request: Request,
+    session: FromDishka[AsyncSession],
 ) -> list[PolicyResponse]:
     """Delete policy.
 

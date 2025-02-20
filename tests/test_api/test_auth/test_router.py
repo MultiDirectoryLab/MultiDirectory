@@ -21,7 +21,9 @@ from models import Directory, Group
 
 
 async def apply_user_account_control(
-    http_client: AsyncClient, user_dn: str, user_account_control_value: str
+    http_client: AsyncClient,
+    user_dn: str,
+    user_account_control_value: str,
 ) -> dict[str, Any]:
     """Apply userAccountControl value and return response data.
 
@@ -76,7 +78,8 @@ async def test_first_setup_and_oauth(
     assert response.json() is True
 
     auth = await unbound_http_client.post(
-        "auth/", data={"username": "test", "password": "Password123"}
+        "auth/",
+        data={"username": "test", "password": "Password123"},
     )
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["id"]
@@ -257,12 +260,14 @@ async def test_update_password(http_client: AsyncClient) -> None:
     assert response.json() is None
 
     new_auth = await http_client.post(
-        "auth/", data={"username": "user0", "password": "password"}
+        "auth/",
+        data={"username": "user0", "password": "password"},
     )
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
     new_auth = await http_client.post(
-        "auth/", data={"username": "user0", "password": "Password123"}
+        "auth/",
+        data={"username": "user0", "password": "Password123"},
     )
     assert new_auth.status_code == status.HTTP_200_OK
     token = new_auth.cookies.get("id")
@@ -276,7 +281,8 @@ async def test_auth_disabled_user(
 ) -> None:
     """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
     response = await http_client.post(
-        "auth/", data={"username": "user0", "password": "password"}
+        "auth/",
+        data={"username": "user0", "password": "password"},
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -304,7 +310,8 @@ async def test_auth_disabled_user(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
-        "auth/", data={"username": "user0", "password": "password"}
+        "auth/",
+        data={"username": "user0", "password": "password"},
     )
 
     assert response.status_code == 403
@@ -313,7 +320,9 @@ async def test_auth_disabled_user(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_lock_and_unlock_user(
-    http_client: AsyncClient, kadmin: AbstractKadmin, session: AsyncSession
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+    session: AsyncSession,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"

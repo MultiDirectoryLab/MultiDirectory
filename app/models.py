@@ -58,7 +58,9 @@ UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
 @compiles(UniqueConstraint, "postgresql")
 def compile_create_uc(
-    create: DDLElement, compiler: DDLCompiler, **kw: dict
+    create: DDLElement,
+    compiler: DDLCompiler,
+    **kw: dict,
 ) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)

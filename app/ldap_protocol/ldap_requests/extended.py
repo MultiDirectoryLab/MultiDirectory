@@ -288,7 +288,10 @@ class ExtendedRequest(BaseRequest):
         """Call proxy handler."""
         try:
             response = await self.request_value.handle(
-                ldap_session, session, kadmin, settings
+                ldap_session,
+                session,
+                kadmin,
+                settings,
             )
         except PermissionError as err:
             logger.critical(err)

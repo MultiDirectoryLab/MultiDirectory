@@ -135,7 +135,13 @@ async def login(
             )
 
     await create_and_set_session_key(
-        user, session, settings, response, storage, ip, user_agent
+        user,
+        session,
+        settings,
+        response,
+        storage,
+        ip,
+        user_agent,
     )
 
 

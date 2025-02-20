@@ -35,7 +35,8 @@ async def test_session_creation(
     assert not await storage.get_user_sessions(user.id)
 
     response = await unbound_http_client.post(
-        "auth/", data={"username": creds.un, "password": creds.pw}
+        "auth/",
+        data={"username": creds.un, "password": creds.pw},
     )
 
     assert response.cookies.get("id")
@@ -69,7 +70,8 @@ async def test_session_rekey(
     user = await get_user(session, creds.un)
     assert user
     await unbound_http_client.post(
-        "auth/", data={"username": creds.un, "password": creds.pw}
+        "auth/",
+        data={"username": creds.un, "password": creds.pw},
     )
     sessions = await storage.get_user_sessions(user.id)
 
@@ -108,7 +110,10 @@ async def test_session_creation_ldap_bind_unbind(
     assert not await storage.get_user_sessions(user.id)
 
     result = await event_loop.run_in_executor(
-        None, ldap_client.rebind, creds.un, creds.pw
+        None,
+        ldap_client.rebind,
+        creds.un,
+        creds.pw,
     )
 
     assert result

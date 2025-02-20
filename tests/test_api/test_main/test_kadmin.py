@@ -257,11 +257,14 @@ async def test_ldap_kadmin_delete_user(
 ) -> None:
     """Test API for delete object."""
     await http_client.post(
-        "/entry/add", json=_create_test_user_data("ktest", "Password123")
+        "/entry/add",
+        json=_create_test_user_data("ktest", "Password123"),
     )
 
     response = await http_client.request(
-        "delete", "/entry/delete", json={"entry": "cn=ktest,dc=md,dc=test"}
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn=ktest,dc=md,dc=test"},
     )
 
     data = response.json()
@@ -289,7 +292,9 @@ async def test_ldap_kadmin_delete_computer(
     )
 
     response = await http_client.request(
-        "delete", "/entry/delete", json={"entry": "cn=ktest,dc=md,dc=test"}
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn=ktest,dc=md,dc=test"},
     )
 
     data = response.json()

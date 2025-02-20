@@ -46,7 +46,9 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """Get auth from data."""
         _, username, password = data[1].value.split("\\x00")
         return cls(
-            credentials=data[1].value, username=username, password=password
+            credentials=data[1].value,
+            username=username,
+            password=password,
         )
 
     async def get_user(self, session: AsyncSession, _: str) -> User:

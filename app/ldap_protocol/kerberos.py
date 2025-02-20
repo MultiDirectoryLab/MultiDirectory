@@ -209,7 +209,10 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def add_principal(
-        self, name: str, password: str | None, timeout: int | float = 1
+        self,
+        name: str,
+        password: str | None,
+        timeout: int | float = 1,
     ) -> None: ...
 
     @abstractmethod
@@ -260,7 +263,11 @@ class AbstractKadmin(ABC):
 
     @abstractmethod
     async def create_or_update_policy(
-        self, minlife: int, maxlife: int, minlength: int, minclasses: int
+        self,
+        minlife: int,
+        maxlife: int,
+        minlength: int,
+        minclasses: int,
     ) -> None: ...
 
     @abstractmethod
@@ -302,7 +309,10 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def add_principal(
-        self, name: str, password: str | None, timeout: int = 1
+        self,
+        name: str,
+        password: str | None,
+        timeout: int = 1,
     ) -> None:
         """Add request."""
         response = await self.client.post(
@@ -336,7 +346,8 @@ class KerberosMDAPIClient(AbstractKadmin):
     ) -> None:
         """Change password request."""
         response = await self.client.patch(
-            "principal", json={"name": name, "password": password}
+            "principal",
+            json={"name": name, "password": password},
         )
         if response.status_code != 201:
             raise KRBAPIError(response.text)
@@ -380,7 +391,11 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def create_or_update_policy(
-        self, minlife: int, maxlife: int, minlength: int, minclasses: int
+        self,
+        minlife: int,
+        maxlife: int,
+        minlength: int,
+        minclasses: int,
     ) -> None:
         """Create or update pw policy for krb.
 
@@ -440,7 +455,10 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps(is_stub=True)
     async def add_principal(
-        self, name: str, password: str | None, timeout: int = 1
+        self,
+        name: str,
+        password: str | None,
+        timeout: int = 1,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -468,7 +486,11 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps(is_stub=True)
     async def create_or_update_policy(
-        self, minlife: int, maxlife: int, minlength: int, minclasses: int
+        self,
+        minlife: int,
+        maxlife: int,
+        minlength: int,
+        minclasses: int,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)

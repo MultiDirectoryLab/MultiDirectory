@@ -179,7 +179,10 @@ class SessionStorage(ABC):
 
     @abstractmethod
     async def create_ldap_session(
-        self: Self, uid: int, key: str, data: dict
+        self: Self,
+        uid: int,
+        key: str,
+        data: dict,
     ) -> None:
         """Create ldap session.
 
@@ -320,7 +323,9 @@ class RedisSessionStorage(SessionStorage):
         :return str: jwt token
         """
         session_id, signature, data = self._generate_session_data(
-            uid, settings, extra_data
+            uid,
+            settings,
+            extra_data,
         )
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
@@ -333,7 +338,10 @@ class RedisSessionStorage(SessionStorage):
         return await self._storage.exists(session_id)
 
     async def create_ldap_session(
-        self, uid: int, key: str, data: dict
+        self,
+        uid: int,
+        key: str,
+        data: dict,
     ) -> None:
         """Create ldap session.
 
@@ -424,7 +432,10 @@ class MemSessionStorage(SessionStorage):
         return self._sessions[key]
 
     async def _set_data(
-        self, key: str, data: dict, expire: int | None
+        self,
+        key: str,
+        data: dict,
+        expire: int | None,
     ) -> None:
         """Set session data."""
         self._sessions[key] = data
