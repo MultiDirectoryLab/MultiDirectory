@@ -57,7 +57,8 @@ async def modify(request: ModifyRequest, req: Request) -> LDAPResult:
 
 @entry_router.patch("/update_many")
 async def modify_many(
-    requests: list[ModifyRequest], req: Request
+    requests: list[ModifyRequest],
+    req: Request,
 ) -> list[LDAPResult]:
     """Bulk LDAP MODIFY entry request."""
     results = []
