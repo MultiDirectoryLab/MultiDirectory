@@ -26,7 +26,7 @@ python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 python-multipart = "^0.0.17"
 pytz = "^2025.1"
 redis = "^5.2.1"
-sqlalchemy = {extras = ["asyncio", "mypy"], version = "^2.0.35"}
+sqlalchemy = {extras = ["asyncio", "mypy"], version = "^2.0.38"}
 uvicorn = "^0.32.0"
 uvloop = "^0.21.0"
 websockets = "^14.0"
