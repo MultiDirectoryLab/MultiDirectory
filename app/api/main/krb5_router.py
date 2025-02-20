@@ -245,7 +245,8 @@ LIMITED_LIST = Annotated[
 
 @krb5_router.post("/ktadd", dependencies=[Depends(get_current_user)])
 async def ktadd(
-    kadmin: FromDishka[AbstractKadmin], names: Annotated[LIMITED_LIST, Body()]
+    kadmin: FromDishka[AbstractKadmin],
+    names: Annotated[LIMITED_LIST, Body()],
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 

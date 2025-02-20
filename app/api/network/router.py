@@ -191,7 +191,8 @@ async def delete_network_policy(
 
 @network_router.patch("/{policy_id}")
 async def switch_network_policy(
-    policy_id: int, session: FromDishka[AsyncSession]
+    policy_id: int,
+    session: FromDishka[AsyncSession],
 ) -> bool:
     """Switch state of policy.
 
@@ -219,7 +220,8 @@ async def switch_network_policy(
 
 @network_router.put("")
 async def update_network_policy(
-    request: PolicyUpdate, session: FromDishka[AsyncSession]
+    request: PolicyUpdate,
+    session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
     """Update network policy.
 
@@ -314,7 +316,8 @@ async def update_network_policy(
 
 @network_router.post("/swap")
 async def swap_network_policy(
-    swap: SwapRequest, session: FromDishka[AsyncSession]
+    swap: SwapRequest,
+    session: FromDishka[AsyncSession],
 ) -> SwapResponse:
     """Swap priorities for policy.
 
