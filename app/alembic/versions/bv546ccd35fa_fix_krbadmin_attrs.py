@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
-revision = 'bv546ccd35fa'
-down_revision = '8c2bd40dd809'
+revision = "bv546ccd35fa"
+down_revision = "8c2bd40dd809"
 branch_labels = None
 depends_on = None
 
@@ -26,7 +26,7 @@ def upgrade() -> None:
     krb_admin_user = session.scalar(
         sa.select(Directory)
         .join(Directory.user)
-        .filter(Directory.name == 'krbadmin'),
+        .filter(Directory.name == "krbadmin"),
     )
 
     if krb_admin_user:
@@ -52,19 +52,19 @@ def upgrade() -> None:
         krb_admin_group = session.scalar(
             sa.select(Directory)
             .join(Directory.group)
-            .filter(Directory.name == 'krbadmin'),
+            .filter(Directory.name == "krbadmin"),
         )
 
         session.execute(
             sa.delete(Attribute)
             .where(
-                Attribute.name == 'gidNumber',
+                Attribute.name == "gidNumber",
                 Attribute.directory_id == krb_admin_group.id,
             ),
         )
         session.add(Attribute(
-            name='gidNumber',
-            value='800',
+            name="gidNumber",
+            value="800",
             directory_id=krb_admin_group.id,
         ))
 
@@ -73,4 +73,3 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
-    pass

@@ -10,20 +10,20 @@ from ldap_protocol.ldap_codes import LDAPCodes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
     """Test API for update DN."""
     root_dn = "ou=moscow,ou=russia,ou=users,dc=md,dc=test"
 
     old_user_dn = "cn=user1," + root_dn
     newrdn_user = "cn=new_test2"
-    new_user_dn = ','.join((newrdn_user, root_dn))
+    new_user_dn = ",".join((newrdn_user, root_dn))
 
     old_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
     new_group_dn = "cn=new_developers,cn=groups,dc=md,dc=test"
-    newrdn_group, new_superior_group = new_group_dn.split(',', maxsplit=1)
+    newrdn_group, new_superior_group = new_group_dn.split(",", maxsplit=1)
 
     response = await http_client.put(
         "/entry/update/dn",
@@ -38,7 +38,7 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -50,11 +50,11 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
             "time_limit": 10,
             "types_only": False,
             "filter": "(objectClass=*)",
-            "attributes": ['*'],
+            "attributes": ["*"],
         },
     )
     data = response.json()
-    assert data['search_result'][0]['object_name'] == new_user_dn
+    assert data["search_result"][0]["object_name"] == new_user_dn
 
     response = await http_client.put(
         "/entry/update/dn",
@@ -69,7 +69,7 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -81,32 +81,32 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
             "time_limit": 0,
             "types_only": False,
             "filter": "(objectClass=*)",
-            "attributes": ['memberOf'],
+            "attributes": ["memberOf"],
         },
     )
 
     data = response.json()
 
-    assert new_user_dn == data['search_result'][0]['object_name']
+    assert new_user_dn == data["search_result"][0]["object_name"]
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'memberOf':
-            assert attr['vals'][0] == new_group_dn
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "memberOf":
+            assert attr["vals"][0] == new_group_dn
             break
     else:
-        raise Exception('Groups not found')
+        raise Exception("Groups not found")
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
     """Test API for update DN."""
     old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     new_user_dn = "cn=new_test2,ou=users,dc=md,dc=test"
     groups_user = None
-    newrdn_user, new_superior = new_user_dn.split(',', maxsplit=1)
+    newrdn_user, new_superior = new_user_dn.split(",", maxsplit=1)
 
     response = await http_client.post(
         "entry/search",
@@ -118,18 +118,18 @@ async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
             "time_limit": 0,
             "types_only": False,
             "filter": "(objectClass=*)",
-            "attributes": ['*'],
+            "attributes": ["*"],
         },
     )
 
     data = response.json()
 
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
-    assert old_user_dn == data['search_result'][0]['object_name']
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert old_user_dn == data["search_result"][0]["object_name"]
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'memberOf':
-            groups_user = attr['vals']
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "memberOf":
+            groups_user = attr["vals"]
 
     assert groups_user
 
@@ -145,7 +145,7 @@ async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
 
     data = response.json()
 
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.post(
         "entry/search",
@@ -157,26 +157,26 @@ async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
             "time_limit": 0,
             "types_only": False,
             "filter": "(objectClass=*)",
-            "attributes": ['*'],
+            "attributes": ["*"],
         },
     )
 
     data = response.json()
 
-    assert data.get('resultCode') == LDAPCodes.SUCCESS
-    assert new_user_dn == data['search_result'][0]['object_name']
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert new_user_dn == data["search_result"][0]["object_name"]
 
-    for attr in data['search_result'][0]['partial_attributes']:
-        if attr['type'] == 'memberOf':
-            assert groups_user == attr['vals']
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "memberOf":
+            assert groups_user == attr["vals"]
             break
     else:
-        raise Exception('Groups not found')
+        raise Exception("Groups not found")
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
     """Test API update dn for unauthorized user."""
     http_client.cookies.clear()
@@ -192,13 +192,13 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
 
     data = response.json()
     assert response.status_code == 401
-    assert data.get('detail') == 'Could not validate credentials'
+    assert data.get("detail") == "Could not validate credentials"
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_update_dn_non_exist_superior(
         http_client: AsyncClient) -> None:
     """Test API update dn with non-existen new_superior."""
@@ -215,13 +215,13 @@ async def test_api_update_dn_non_exist_superior(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
+    assert data.get("resultCode") == LDAPCodes.NO_SUCH_OBJECT
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_update_dn_non_exist_entry(http_client: AsyncClient) -> None:
     """Test API update dn with non-existen entry."""
     response = await http_client.put(
@@ -237,13 +237,13 @@ async def test_api_update_dn_non_exist_entry(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.NO_SUCH_OBJECT
+    assert data.get("resultCode") == LDAPCodes.NO_SUCH_OBJECT
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
     """Test API update dn with invalid entry."""
     response = await http_client.put(
@@ -259,13 +259,13 @@ async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
+    assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('adding_test_user')
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_update_dn_invalid_new_superior(
         http_client: AsyncClient) -> None:
     """Test API update dn with invalid new_superior."""
@@ -282,4 +282,4 @@ async def test_api_update_dn_invalid_new_superior(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get('resultCode') == LDAPCodes.INVALID_DN_SYNTAX
+    assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX

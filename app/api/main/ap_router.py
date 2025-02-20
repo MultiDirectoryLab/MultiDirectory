@@ -24,9 +24,10 @@ async def get_access_policies(
     session: FromDishka[AsyncSession],
 ) -> list[MaterialAccessPolicySchema]:
     """Get APs.
+
     \f
     :param AccessPolicySchema policy: ap
-    :param FromDishka[AsyncSession] session: db
+    :param FromDishka[AsyncSession] session: db.
     """
     return [
         MaterialAccessPolicySchema(

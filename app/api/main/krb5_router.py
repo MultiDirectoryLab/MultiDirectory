@@ -292,10 +292,11 @@ async def add_principal(
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Create principal in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request
+    :raises HTTPException: on failed kamin request.
     """
     try:
         await kadmin.add_principal(f"{primary}/{instance}", None)
@@ -311,11 +312,12 @@ async def rename_principal(
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Rename principal in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body principal_new_name: _description_
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request
+    :raises HTTPException: on failed kamin request.
     """
     try:
         await kadmin.rename_princ(principal_name, principal_new_name)
@@ -331,11 +333,12 @@ async def reset_principal_pw(
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Reset principal password in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body new_password: _description_
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request
+    :raises HTTPException: on failed kamin request.
     """
     try:
         await kadmin.change_principal_password(principal_name, new_password)
@@ -350,6 +353,7 @@ async def delete_principal(
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Delete principal in kerberos with given name.
+
     \f
     :param Annotated[str, Body principal_name: upn
     :param FromDishka[AbstractKadmin] kadmin: _description_

@@ -92,20 +92,20 @@ class ASN1Row(Generic[T]):
                 oid = child_value
             elif tag_value == 2:
                 attribute = (
-                    child_value.decode(errors='replace')
+                    child_value.decode(errors="replace")
                     if isinstance(child_value, bytes)
                     else child_value
                 )
             elif tag_value == 3:
                 value = (
-                    child_value.decode(errors='replace')
+                    child_value.decode(errors="replace")
                     if isinstance(child_value, bytes)
                     else child_value
                 )
             elif tag_value == 4:
                 dn_attributes = bool(child_value)
 
-        match = ''
+        match = ""
         if attribute:
             match += attribute
         if oid:
@@ -122,7 +122,7 @@ class ASN1Row(Generic[T]):
     def _handle_substring(self) -> str:
         """Process and format substring operations for LDAP."""
         value = (
-            self.value.decode(errors='replace')
+            self.value.decode(errors="replace")
             if isinstance(self.value, bytes)
             else str(self.value)
         )
@@ -135,13 +135,12 @@ class ASN1Row(Generic[T]):
             substring_tag = SubstringTag(self.tag_id)
         except ValueError:
             raise ValueError(
-                f'Invalid tag_id ({self.tag_id}) in substring')
+                f"Invalid tag_id ({self.tag_id}) in substring")
 
         return substring_tag_map[substring_tag]
 
-    def serialize(self, obj: 'ASN1Row' | T | None = None) -> str:
-        """
-        Serialize an ASN.1 object or list into a string.
+    def serialize(self, obj: "ASN1Row | T | None" = None) -> str:  # noqa: C901
+        """Serialize an ASN.1 object or list into a string.
 
         Recursively processes ASN.1 structures to construct a valid LDAP
         filter string based on LDAP operations such as AND, OR, and
@@ -150,7 +149,7 @@ class ASN1Row(Generic[T]):
         if obj is None:
             obj = self
 
-        if isinstance(obj, ASN1Row):  # noqa: R505
+        if isinstance(obj, ASN1Row):
             value = obj.value
             operator = None
 
@@ -162,7 +161,7 @@ class ASN1Row(Generic[T]):
                 TagNumbers.OR,
                 TagNumbers.NOT,
             ):
-                subfilters = ''.join(self.serialize(v) for v in value)
+                subfilters = "".join(self.serialize(v) for v in value)
 
                 if obj.tag_id == TagNumbers.AND:
                     return f"(&{subfilters})"
@@ -180,24 +179,24 @@ class ASN1Row(Generic[T]):
 
             else:
                 operator_map: dict[int, str] = {
-                    TagNumbers.EQUALITY_MATCH: '=',
-                    TagNumbers.SUBSTRING: '*=',
-                    TagNumbers.GE: '>=',
-                    TagNumbers.LE: '<=',
-                    TagNumbers.APPROX_MATCH: '~=',
+                    TagNumbers.EQUALITY_MATCH: "=",
+                    TagNumbers.SUBSTRING: "*=",
+                    TagNumbers.GE: ">=",
+                    TagNumbers.LE: "<=",
+                    TagNumbers.APPROX_MATCH: "~=",
                 }
                 operator = operator_map.get(obj.tag_id)
 
                 if operator is None:
                     raise ValueError(
-                        f'Invalid tag_id ({obj.tag_id}) in context')
+                        f"Invalid tag_id ({obj.tag_id}) in context")
 
             if isinstance(obj.value, list):
                 if len(obj.value) == 2:
                     attr = self.serialize(value[0])
                     val = value[1]
-                    if operator == '*=':
-                        operator = '='
+                    if operator == "*=":
+                        operator = "="
                         substrings = val.value[0]._handle_substring()
                         value_str = substrings
                     else:
@@ -205,15 +204,15 @@ class ASN1Row(Generic[T]):
 
                     return f"({attr}{operator}{value_str})"
 
-                return ''.join(self.serialize(v) for v in obj.value)
+                return "".join(self.serialize(v) for v in obj.value)
 
             return self.serialize(obj.value)
 
         elif isinstance(obj, list):
-            return ''.join(self.serialize(v) for v in obj)
+            return "".join(self.serialize(v) for v in obj)
 
         elif isinstance(obj, bytes):
-            return obj.decode(errors='replace')
+            return obj.decode(errors="replace")
 
         elif isinstance(obj, str):
             return obj
@@ -225,8 +224,7 @@ class ASN1Row(Generic[T]):
             raise TypeError
 
     def to_ldap_filter(self) -> str:
-        """
-        Convert the ASN.1 object into an LDAP filter string.
+        """Convert the ASN.1 object into an LDAP filter string.
 
         The method recursively serializes ASN.1 rows into the LDAP filter
         format based on tag IDs and class IDs.

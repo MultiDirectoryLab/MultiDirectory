@@ -358,25 +358,24 @@ class PoolClientHandler:
             ldap_session.gssapi_authenticated
             and protocol_op != 1
             and ldap_session.gssapi_security_context
+        ) and ldap_session.gssapi_security_layer in (
+            GSSAPISL.INTEGRITY_PROTECTION,
+            GSSAPISL.CONFIDENTIALITY,
         ):
-            if ldap_session.gssapi_security_layer in (
-                GSSAPISL.INTEGRITY_PROTECTION,
-                GSSAPISL.CONFIDENTIALITY,
-            ):
-                encrypt = (
-                    ldap_session.gssapi_security_layer == (
-                        GSSAPISL.CONFIDENTIALITY
-                    )
+            encrypt = (
+                ldap_session.gssapi_security_layer == (
+                    GSSAPISL.CONFIDENTIALITY
                 )
-                wrap_data = (
-                    ldap_session.gssapi_security_context.wrap(
-                        data,
-                        encrypt=encrypt,
-                    )
+            )
+            wrap_data = (
+                ldap_session.gssapi_security_context.wrap(
+                    data,
+                    encrypt=encrypt,
                 )
-                sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")  # noqa
+            )
+            sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
 
-                return sasl_buffer_length + wrap_data.message
+            return sasl_buffer_length + wrap_data.message
 
         return data
 
@@ -415,7 +414,7 @@ class PoolClientHandler:
             await server.serve_forever()
 
     @staticmethod
-    def log_addrs(server: asyncio.base_events.Server) -> None:  # noqa
+    def log_addrs(server: asyncio.base_events.Server) -> None:
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
         log.info(f"Server on {addrs}")
 
@@ -423,8 +422,8 @@ class PoolClientHandler:
         """Run and log tcp server."""
         server = await self._get_server()
         log.info(
-            f'started {'DEBUG' if self.settings.DEBUG else 'PROD'} '
-            f'{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server',
+            f"started {'DEBUG' if self.settings.DEBUG else 'PROD'} "
+            f"{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server",
         )
 
         try:

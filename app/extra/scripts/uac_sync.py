@@ -56,7 +56,7 @@ async def disable_accounts(
         Attribute.name == "userAccountControl",
     ]
 
-    ids = await session.scalars(  # noqa: ECE001
+    ids = await session.scalars(
         update(Attribute)
         .values(value=new_value)
         .where(*conditions)

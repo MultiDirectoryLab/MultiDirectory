@@ -78,7 +78,7 @@ class TestProvider(Provider):
 
         ok_response = Mock()
         ok_response.status_code = 200
-        ok_response.aiter_bytes.return_value = map(bytes, zip(b'test_string'))
+        ok_response.aiter_bytes.return_value = map(bytes, zip(b"test_string"))
 
         kadmin.setup = AsyncMock()
         kadmin.ktadd = AsyncMock(return_value=ok_response)
@@ -131,10 +131,10 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
     async def get_dns_mngr_settings(
         self, session: AsyncSession,
-    ) -> AsyncIterator['DNSManagerSettings']:
+    ) -> AsyncIterator["DNSManagerSettings"]:
         """Get DNS manager's settings."""
         async def resolve() -> str:
-            return '127.0.0.1'
+            return "127.0.0.1"
 
         resolver = resolve()
         yield await get_dns_manager_settings(session, resolver)
@@ -259,7 +259,8 @@ async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
 
 
 @pytest.fixture(scope="session")
-def event_loop() -> Generator:  # noqa: indirect usage
+def event_loop() -> Generator:
+    """Create uvloop event loop."""
     loop = uvloop.new_event_loop()
     yield loop
     with suppress(asyncio.CancelledError, RuntimeError):
@@ -327,7 +328,7 @@ async def setup_session(session: AsyncSession) -> None:
     domain = domain_ex.one()
 
     await create_access_policy(
-        name='Root Access Policy',
+        name="Root Access Policy",
         can_add=True,
         can_modify=True,
         can_read=True,
@@ -400,7 +401,7 @@ async def app(
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
         app = _create_basic_app(settings)
-        app.include_router(shadow_router, prefix='/shadow')
+        app.include_router(shadow_router, prefix="/shadow")
         setup_dishka(container, app)
         yield app
 
@@ -414,7 +415,7 @@ async def unbound_http_client(
     :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
     """
     async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app, root_path='/api'),
+            transport=httpx.ASGITransport(app=app, root_path="/api"),
             timeout=3,
             base_url="http://test") as client:
         yield client
@@ -437,7 +438,7 @@ async def http_client(
         "username": creds.un, "password": creds.pw})
 
     assert response.status_code == 200
-    assert unbound_http_client.cookies.get('id')
+    assert unbound_http_client.cookies.get("id")
 
     return unbound_http_client
 
@@ -445,13 +446,13 @@ async def http_client(
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
     """Get creds from test data."""
-    return TestCreds(user['sam_accout_name'], user['password'])
+    return TestCreds(user["sam_accout_name"], user["password"])
 
 
 @pytest.fixture
 def user() -> dict:
     """Get user data."""
-    return TEST_DATA[1]['children'][0]['organizationalPerson']  # type: ignore
+    return TEST_DATA[1]["children"][0]["organizationalPerson"]  # type: ignore
 
 
 @pytest.fixture

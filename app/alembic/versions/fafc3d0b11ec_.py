@@ -19,8 +19,8 @@ from ldap_protocol.utils.queries import (
 from models import AccessPolicy, Directory
 
 # revision identifiers, used by Alembic.
-revision = 'fafc3d0b11ec'
-down_revision = 'bf435bbd95ff'
+revision = "fafc3d0b11ec"
+down_revision = "bf435bbd95ff"
 branch_labels = None
 depends_on = None
 
@@ -38,12 +38,12 @@ def upgrade() -> None:
             group_dir = (await session.scalars(
                 select(
                     exists(Directory)
-                    .where(Directory.name == 'readonly domain controllers')),
+                    .where(Directory.name == "readonly domain controllers")),
             )).one()
 
             if not group_dir:
                 dir_, _ = await create_group(
-                    'readonly domain controllers', 521, session)
+                    "readonly domain controllers", 521, session)
 
             await session.flush()
         except (IntegrityError, DBAPIError):
@@ -52,12 +52,12 @@ def upgrade() -> None:
         has_ro_access_policy = (await session.scalars(
             select(
                 exists(AccessPolicy)
-                .where(AccessPolicy.name == 'ReadOnly Access Policy')),
+                .where(AccessPolicy.name == "ReadOnly Access Policy")),
         )).one()
 
         if not has_ro_access_policy:
             await create_access_policy(
-                name='ReadOnly Access Policy',
+                name="ReadOnly Access Policy",
                 can_add=False,
                 can_modify=False,
                 can_read=True,
@@ -87,7 +87,7 @@ def downgrade() -> None:
 
         await session.execute(
             delete(AccessPolicy)
-            .where(AccessPolicy.name == 'ReadOnly Access Policy'),
+            .where(AccessPolicy.name == "ReadOnly Access Policy"),
         )
 
         await session.execute(

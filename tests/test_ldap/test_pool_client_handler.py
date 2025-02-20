@@ -15,8 +15,8 @@ from models import NetworkPolicy
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_check_policy(
         ldap_session: LDAPSession, session: AsyncSession) -> None:
     """Check policy."""
@@ -30,9 +30,9 @@ async def test_specific_policy_ok(
         ldap_session: LDAPSession, session: AsyncSession) -> None:
     """Test specific ip."""
     session.add(NetworkPolicy(
-        name='Local policy',
-        netmasks=[IPv4Network('127.100.10.5/32')],
-        raw=['127.100.10.5/32'],
+        name="Local policy",
+        netmasks=[IPv4Network("127.100.10.5/32")],
+        raw=["127.100.10.5/32"],
         enabled=True,
         priority=1,
     ))
@@ -46,8 +46,8 @@ async def test_specific_policy_ok(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('settings')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("settings")
 async def test_check_policy_group(
         ldap_session: LDAPSession,
         session: AsyncSession) -> None:
@@ -55,13 +55,13 @@ async def test_check_policy_group(
     user = await get_user(session, "user0")
     assert user
 
-    policy = await ldap_session._get_policy(IPv4Address('127.0.0.1'), session)
+    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
     assert policy
 
     assert await is_user_group_valid(user, policy, session)
 
     group_dir = await get_group(
-        'cn=domain admins,cn=groups,dc=md,dc=test', session)
+        "cn=domain admins,cn=groups,dc=md,dc=test", session)
 
     policy.groups.append(group_dir.group)
     await session.commit()

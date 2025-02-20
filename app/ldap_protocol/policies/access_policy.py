@@ -90,8 +90,8 @@ def mutate_ap(
 
     if action == "read":
         user_path = get_search_path(user.dn)
-        get_upper_tree_elem = text(  # noqa: F811
-            "(:path)[1:\"Directory\".\"depth\"]",
+        get_upper_tree_elem = text(
+            '(:path)[1:"Directory"."depth"]',
         ).bindparams(bindparam("path", value=user_path, type_=ARRAY(String)))
 
         ap_filter = or_(

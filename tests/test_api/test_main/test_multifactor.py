@@ -10,7 +10,7 @@ from ldap_protocol.multifactor import MultifactorAPI
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('session')
+@pytest.mark.usefixtures("session")
 @pytest.mark.parametrize(
     (
         "mock_post_side_effect",

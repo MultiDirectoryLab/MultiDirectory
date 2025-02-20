@@ -33,7 +33,9 @@ class LDAPResult(BaseModel):
     matched_dn: str = Field("", alias="matchedDN")
     error_message: str = Field("", alias="errorMessage")
 
-    class Config:  # noqa
+    class Config:
+        """Allow class to use property."""
+
         populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {
@@ -44,7 +46,7 @@ class LDAPResult(BaseModel):
 class BaseEncoder(BaseModel):
     """Class with encoder methods."""
 
-    def _get_asn1_fields(self) -> dict:  # noqa
+    def _get_asn1_fields(self) -> dict:
         fields = self.model_dump()
         fields.pop("PROTOCOL_OP", None)
         return fields
@@ -60,7 +62,7 @@ class BaseResponse(ABC, BaseEncoder):
 
     @property
     @abstractmethod
-    def PROTOCOL_OP(self) -> int:  # noqa: N802, D102
+    def PROTOCOL_OP(self) -> int:  # noqa: N802
         """Protocol OP response code."""
 
 
@@ -92,17 +94,17 @@ class BindResponse(LDAPResult, BaseResponse):
 class PartialAttribute(BaseModel):
     """Partial attribite structure. Description in rfc2251 4.1.6."""
 
-    type: Annotated[str, annotated_types.Len(max_length=8100)]  # noqa: A003
+    type: Annotated[str, annotated_types.Len(max_length=8100)]
     vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
     @field_validator("type", mode="before")
     @classmethod
-    def validate_type(cls, v: str | bytes | int) -> str:  # noqa
+    def validate_type(cls, v: str | bytes | int) -> str:
         return str(v)
 
     @field_validator("vals", mode="before")
     @classmethod
-    def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:  # noqa
+    def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:
         return [v if isinstance(v, bytes) else str(v) for v in vals]
 
     class Config:
@@ -161,7 +163,7 @@ class SearchResultDone(LDAPResult, BaseResponse):
     total_pages: int = 0
     total_objects: int = 0
 
-    def _get_asn1_fields(self) -> dict:  # noqa
+    def _get_asn1_fields(self) -> dict:
         fields = super()._get_asn1_fields()
         fields.pop("total_pages")
         fields.pop("total_objects")

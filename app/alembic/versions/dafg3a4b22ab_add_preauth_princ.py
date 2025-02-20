@@ -13,8 +13,8 @@ from ldap_protocol.kerberos import KERBEROS_STATE_NAME
 from models import Attribute, CatalogueSetting, User
 
 # revision identifiers, used by Alembic.
-revision = 'dafg3a4b22ab'
-down_revision = 'f68a134a3685'
+revision = "dafg3a4b22ab"
+down_revision = "f68a134a3685"
 branch_labels = None
 depends_on = None
 
@@ -25,23 +25,23 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     for user in session.query(User):
-        if user.sam_accout_name == 'krbadmin':
+        if user.sam_accout_name == "krbadmin":
             continue
 
-        username, domain = user.user_principal_name.split('@')
+        username, domain = user.user_principal_name.split("@")
         principal = f"{username}@{domain.upper()}"
 
         attr_principal = session.scalar(
             sa.select(Attribute)
             .filter(
-                Attribute.name == 'krbprincipalname',
+                Attribute.name == "krbprincipalname",
                 Attribute.value == principal,
             ),
         )
         if attr_principal:
             session.add(Attribute(
-                name='krbticketflags',
-                value='128',
+                name="krbticketflags",
+                value="128",
                 directory_id=attr_principal.directory_id,
             ))
 
@@ -75,4 +75,3 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
-    pass

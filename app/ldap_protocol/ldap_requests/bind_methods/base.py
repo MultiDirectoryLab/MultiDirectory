@@ -47,7 +47,8 @@ class LDAPBindErrors(StrEnum):
     PASSWORD_MUST_CHANGE = "773"  # noqa
     ACCOUNT_LOCKED_OUT = "775"
 
-    def __str__(self) -> str:  # noqa
+    def __str__(self) -> str:
+        """Return the error message as a string."""
         return (
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "
@@ -79,7 +80,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     @property
     @abstractmethod
-    def METHOD_ID(self) -> int:  # noqa: N802, D102
+    def METHOD_ID(self) -> int:  # noqa: N802
         """Abstract method id."""
 
     @abstractmethod

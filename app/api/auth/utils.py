@@ -39,7 +39,7 @@ def get_user_agent_from_request(request: Request) -> str:
     :return str: The user agent header.
     """
     user_agent_header = request.headers.get("User-Agent")
-    return "" if not user_agent_header else user_agent_header
+    return user_agent_header if user_agent_header else ""
 
 
 async def create_and_set_session_key(

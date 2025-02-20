@@ -101,15 +101,15 @@ class Settings(BaseModel):
     KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/ldap.keytab"
 
     TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
-        loader=jinja2.FileSystemLoader('extra/templates'),
+        loader=jinja2.FileSystemLoader("extra/templates"),
         enable_async=True, autoescape=True,
     )
 
-    DNS_BIND_HOST: str = 'bind_dns'
-    DNS_TSIG_KEY: str = '/DNS_server_file/zone.key'
-    DNS_ZONE_FILE: str = '/DNS_server_file/db.zone'
-    DNS_SERVER_NAMED_CONF: str = '/DNS_server_configs/named.conf'
-    DNS_SERVER_NAMED_CONF_LOCAL: str = '/DNS_server_configs/named.conf.local'
+    DNS_BIND_HOST: str = "bind_dns"
+    DNS_TSIG_KEY: str = "/DNS_server_file/zone.key"
+    DNS_ZONE_FILE: str = "/DNS_server_file/db.zone"
+    DNS_SERVER_NAMED_CONF: str = "/DNS_server_configs/named.conf"
+    DNS_SERVER_NAMED_CONF_LOCAL: str = "/DNS_server_configs/named.conf.local"
 
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 

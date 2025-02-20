@@ -146,7 +146,7 @@ async def check_kerberos_group(
     if user is None:
         return False
 
-    query = (  # noqa: ECE001
+    query = (
         select(Group)
         .join(Group.users)
         .join(Group.directory)

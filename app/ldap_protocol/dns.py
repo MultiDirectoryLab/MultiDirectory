@@ -11,11 +11,9 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any, Awaitable, Callable
 
-from dns.asyncquery import inbound_xfr as make_inbound_xfr
-from dns.asyncquery import tcp as asynctcp
+from dns.asyncquery import inbound_xfr as make_inbound_xfr, tcp as asynctcp
 from dns.asyncresolver import Resolver as AsyncResolver
-from dns.message import Message
-from dns.message import make_query as make_dns_query
+from dns.message import Message, make_query as make_dns_query
 from dns.name import from_text
 from dns.rdataclass import IN
 from dns.rdatatype import AXFR
@@ -35,11 +33,11 @@ DNS_MANAGER_IP_ADDRESS_NAME = "DNSManagerIpAddress"
 DNS_MANAGER_TSIG_KEY_NAME = "DNSManagerTSIGKey"
 
 
-log = loguru_logger.bind(name='DNSManager')
+log = loguru_logger.bind(name="DNSManager")
 
 log.add(
     "logs/dnsmanager_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == 'dnsmanager',
+    filter=lambda rec: rec["extra"].get("name") == "dnsmanager",
     retention="10 days",
     rotation="1d",
     colorize=False)
@@ -59,7 +57,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
             try:
                 result = await func(*args, **kwargs)
             except DNSConnectionError as err:
-                logger.error(f'{name} call raised: {err}')
+                logger.error(f"{name} call raised: {err}")
                 raise
 
             else:
@@ -131,9 +129,9 @@ class DNSRecords:
 class DNSManagerState(StrEnum):
     """DNSManager state enum."""
 
-    NOT_CONFIGURED = '0'
-    SELFHOSTED = '1'
-    HOSTED = '2'
+    NOT_CONFIGURED = "0"
+    SELFHOSTED = "1"
+    HOSTED = "2"
 
 
 class AbstractDNSManager(ABC):
@@ -163,9 +161,9 @@ class AbstractDNSManager(ABC):
                 f.write(named_conf_local_part)
 
             with open(settings.DNS_SERVER_NAMED_CONF, "a") as f:
-                f.write("\ninclude \"/opt/zone.key\";")
+                f.write('\ninclude "/opt/zone.key";')
 
-            with open(settings.DNS_TSIG_KEY, "r") as f:
+            with open(settings.DNS_TSIG_KEY) as f:
                 key_file_content = f.read()
 
             tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
@@ -188,25 +186,25 @@ class AbstractDNSManager(ABC):
                 for name, value in new_settings.items()])
 
     @abstractmethod
-    async def create_record( # noqa
+    async def create_record(
         self, hostname: str, ip: str,
         record_type: str, ttl: int | None,
     ) -> None: ...
 
     @abstractmethod
-    async def update_record( # noqa
+    async def update_record(
         self, hostname: str, ip: str | None,
         record_type: str, ttl: int | None,
     ) -> None: ...
 
     @abstractmethod
-    async def delete_record( # noqa
+    async def delete_record(
         self, hostname: str, ip: str,
         record_type: str,
     ) -> None: ...
 
     @abstractmethod
-    async def get_all_records(self) -> list[DNSRecords]: ... # noqa
+    async def get_all_records(self) -> list[DNSRecords]: ...
 
 
 class DNSManager(AbstractDNSManager):
@@ -306,19 +304,19 @@ class StubDNSManager(AbstractDNSManager):
     """Stub client."""
 
     @logger_wraps(is_stub=True)
-    async def create_record( # noqa
+    async def create_record(
         self, hostname: str, ip: str,
         record_type: str, ttl: int | None,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def update_record( # noqa
+    async def update_record(
         self, hostname: str, ip: str,
         record_type: str, ttl: int,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def delete_record( # noqa
+    async def delete_record(
         self, hostname: str, ip: str,
         record_type: str,
     ) -> None: ...
@@ -331,7 +329,7 @@ class StubDNSManager(AbstractDNSManager):
 
 async def get_dns_state(
     session: AsyncSession,
-) -> 'DNSManagerState':
+) -> "DNSManagerState":
     """Get or create DNS manager state."""
     state = await session.scalar(
         select(CatalogueSetting)
@@ -376,7 +374,7 @@ async def resolve_dns_server_ip(host: str) -> str:
 async def get_dns_manager_settings(
     session: AsyncSession,
     resolve_coro: Awaitable[str],
-) -> 'DNSManagerSettings':
+) -> "DNSManagerSettings":
     """Get DNS manager's settings."""
     settings_dict = {}
     for setting in await session.scalars(
@@ -388,15 +386,15 @@ async def get_dns_manager_settings(
     ):
         settings_dict[setting.name] = setting.value
 
-    dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME, None)
+    dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME)
 
     if await get_dns_state(session) == DNSManagerState.SELFHOSTED:
         dns_server_ip = await resolve_coro
 
     return DNSManagerSettings(
-        zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME, None),
+        zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME),
         dns_server_ip=dns_server_ip,
-        tsig_key=settings_dict.get(DNS_MANAGER_TSIG_KEY_NAME, None),
+        tsig_key=settings_dict.get(DNS_MANAGER_TSIG_KEY_NAME),
     )
 
 

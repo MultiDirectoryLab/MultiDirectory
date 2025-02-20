@@ -22,7 +22,7 @@ from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_ldap_base_modify(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
@@ -43,8 +43,8 @@ async def test_ldap_base_modify(
     for attr in directory.attributes:
         attributes[attr.name].append(attr.value)
 
-    assert 'user' in attributes['objectClass']
-    assert attributes['posixEmail'] == ["abctest@mail.com"]
+    assert "user" in attributes["objectClass"]
+    assert attributes["posixEmail"] == ["abctest@mail.com"]
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write((
@@ -67,10 +67,10 @@ async def test_ldap_base_modify(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapmodify',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
-            '-f', file.name,
+            "ldapmodify",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -85,21 +85,21 @@ async def test_ldap_base_modify(
     for attr in directory.attributes:
         attributes[attr.name].append(attr.value)
 
-    assert attributes['objectClass'] == [
-        'top', 'person',
-        'organizationalPerson', 'posixAccount', 'user']
-    assert attributes['title'] == [
+    assert attributes["objectClass"] == [
+        "top", "person",
+        "organizationalPerson", "posixAccount", "user"]
+    assert attributes["title"] == [
         "Grand Poobah", "Grand Poobah1",
         "Grand Poobah2", "Grand Poobah3",
     ]
-    assert attributes['jpegPhoto'] == ['modme.jpeg']
+    assert attributes["jpegPhoto"] == ["modme.jpeg"]
     assert directory.user.mail == "modme@student.of.life.edu"
 
-    assert 'posixEmail' not in attributes
+    assert "posixEmail" not in attributes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_user_delete(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
@@ -122,10 +122,10 @@ async def test_ldap_membersip_user_delete(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapmodify',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
-            '-f', file.name,
+            "ldapmodify",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -139,12 +139,12 @@ async def test_ldap_membersip_user_delete(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_user_add(
         session: AsyncSession, settings: Settings, creds: TestCreds) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
-    query = (  # noqa
+    query = (
         select(Directory)
         .options(selectinload(Directory.groups).selectinload(Group.directory))
         .filter(Directory.path == get_search_path(dn)))
@@ -166,10 +166,10 @@ async def test_ldap_membersip_user_add(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapmodify',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', creds.un, '-x', '-w', creds.pw,
-            '-f', file.name,
+            "ldapmodify",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", creds.un, "-x", "-w", creds.pw,
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -183,7 +183,7 @@ async def test_ldap_membersip_user_add(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_user_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
@@ -210,10 +210,10 @@ async def test_ldap_membersip_user_replace(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapadd',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
-            '-f', file.name,
+            "ldapadd",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -231,10 +231,10 @@ async def test_ldap_membersip_user_replace(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapmodify',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
-            '-f', file.name,
+            "ldapmodify",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -248,13 +248,13 @@ async def test_ldap_membersip_user_replace(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_grp_replace(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
     dn = "cn=domain admins,cn=groups,dc=md,dc=test"
 
-    query = (  # noqa
+    query = (
         select(Directory)
         .options(
             selectinload(Directory.group)
@@ -279,10 +279,10 @@ async def test_ldap_membersip_grp_replace(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapadd',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
-            '-f', file.name,
+            "ldapadd",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -300,10 +300,10 @@ async def test_ldap_membersip_grp_replace(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapmodify',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
-            '-f', file.name,
+            "ldapmodify",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
         result = await proc.wait()
@@ -317,7 +317,7 @@ async def test_ldap_membersip_grp_replace(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_ldap_modify_dn(
         session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapmodify on server."""
@@ -333,10 +333,10 @@ async def test_ldap_modify_dn(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapmodify',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', user['sam_accout_name'], '-x', '-w', user['password'],
-            '-f', file.name,
+            "ldapmodify",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -350,8 +350,8 @@ async def test_ldap_modify_dn(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
-@pytest.mark.usefixtures('_force_override_tls')
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("_force_override_tls")
 async def test_ldap_modify_password_change(
         settings: Settings, creds: TestCreds) -> None:
     """Test ldapmodify on server."""
@@ -368,10 +368,10 @@ async def test_ldap_modify_password_change(
         ))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
-            'ldapmodify',
-            '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-            '-D', creds.un, '-x', '-w', creds.pw,
-            '-f', file.name,
+            "ldapmodify",
+            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D", creds.un, "-x", "-w", creds.pw,
+            "-f", file.name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
 
@@ -380,16 +380,16 @@ async def test_ldap_modify_password_change(
     assert result == 0
 
     proc = await asyncio.create_subprocess_exec(
-        'ldapsearch',
-        '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-        '-D', creds.un, '-x', '-w', new_password)
+        "ldapsearch",
+        "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D", creds.un, "-x", "-w", new_password)
 
     result = await proc.wait()
     assert result == 0
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures('setup_session')
+@pytest.mark.usefixtures("setup_session")
 async def test_ldap_modify_with_ap(
         session: AsyncSession, settings: Settings, creds: TestCreds) -> None:
     """Test ldapmodify on server."""
@@ -427,10 +427,10 @@ async def test_ldap_modify_with_ap(
             ))
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(
-                'ldapmodify',
-                '-vvv', '-H', f'ldap://{settings.HOST}:{settings.PORT}',
-                '-D', "user_non_admin", '-x', '-w', creds.pw,
-                '-f', file.name,
+                "ldapmodify",
+                "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
+                "-D", "user_non_admin", "-x", "-w", creds.pw,
+                "-f", file.name,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE)
 
@@ -439,7 +439,7 @@ async def test_ldap_modify_with_ap(
     assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
     await create_access_policy(
-        name='TEST read Access Policy',
+        name="TEST read Access Policy",
         can_add=False,
         can_modify=False,
         can_read=True,
@@ -452,7 +452,7 @@ async def test_ldap_modify_with_ap(
     assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
     await create_access_policy(
-        name='TEST modify Access Policy',
+        name="TEST modify Access Policy",
         can_add=False,
         can_modify=True,
         can_read=True,
@@ -473,13 +473,13 @@ async def test_ldap_modify_with_ap(
     for attr in directory.attributes:
         attributes[attr.name].append(attr.value)
 
-    assert attributes['objectClass'] == [
-        'top', 'container', 'organizationalUnit']
-    assert attributes['title'] == [
+    assert attributes["objectClass"] == [
+        "top", "container", "organizationalUnit"]
+    assert attributes["title"] == [
         "Grand Poobah", "Grand Poobah1",
         "Grand Poobah2", "Grand Poobah3",
     ]
-    assert attributes['jpegPhoto'] == ['modme.jpeg']
+    assert attributes["jpegPhoto"] == ["modme.jpeg"]
     assert directory.user.mail == "modme@student.of.life.edu"
 
-    assert 'posixEmail' not in attributes
+    assert "posixEmail" not in attributes

@@ -87,7 +87,7 @@ class SearchRequest(BaseRequest):
     size_limit: int = Field(ge=0, le=sys.maxsize, examples=[1000])
     time_limit: int = Field(ge=0, le=sys.maxsize, examples=[1000])
     types_only: bool
-    filter: ASN1Row = Field(...)  # noqa: A003
+    filter: ASN1Row = Field(...)
     attributes: list[str]
 
     page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
@@ -105,7 +105,7 @@ class SearchRequest(BaseRequest):
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
-    def from_data(  # noqa: D102
+    def from_data(
         cls, data: dict[str, list[ASN1Row]],
     ) -> "SearchRequest":
         (
@@ -131,7 +131,7 @@ class SearchRequest(BaseRequest):
         )
 
     @cached_property
-    def requested_attrs(self) -> list[str]:  # noqa
+    def requested_attrs(self) -> list[str]:
         return [attr.lower() for attr in self.attributes]
 
     def _get_subschema(self) -> SearchResultEntry:
@@ -290,19 +290,19 @@ class SearchRequest(BaseRequest):
         )
 
     @cached_property
-    def member_of(self) -> bool:  # noqa
+    def member_of(self) -> bool:
         return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
-    def member(self) -> bool:  # noqa
+    def member(self) -> bool:
         return "member" in self.requested_attrs or self.all_attrs
 
     @cached_property
-    def token_groups(self) -> bool:  # noqa
+    def token_groups(self) -> bool:
         return "tokengroups" in self.requested_attrs
 
     @cached_property
-    def all_attrs(self) -> bool:  # noqa
+    def all_attrs(self) -> bool:
         return "*" in self.requested_attrs or not self.requested_attrs
 
     def build_query(
@@ -311,7 +311,7 @@ class SearchRequest(BaseRequest):
         user: UserSchema,
     ) -> Select:
         """Build tree query."""
-        query = (  # noqa: ECE001
+        query = (
             select(Directory)
             .join(User, isouter=True)
             .join(Directory.attributes, isouter=True)
@@ -372,7 +372,7 @@ class SearchRequest(BaseRequest):
             query = query.options(
                 defaultload(Directory.groups).joinedload(Group.directory))
 
-        return query  # noqa
+        return query
 
     async def paginate_query(
         self,
@@ -398,7 +398,7 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
-    async def tree_view(
+    async def tree_view(  # noqa: C901
         self, query: Select, session: AsyncSession,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
@@ -440,29 +440,30 @@ class SearchRequest(BaseRequest):
                         str(get_windows_timestamp(directory.user.last_logon)))
                     attrs["authTimestamp"].append(directory.user.last_logon)
 
-            if self.member_of:
-                if "group" in obj_classes or "user" in obj_classes:
-                    for group in directory.groups:
-                        attrs["memberOf"].append(group.directory.path_dn)
+            if (
+                self.member_of
+                and "group" in obj_classes
+                or "user" in obj_classes
+            ):
+                for group in directory.groups:
+                    attrs["memberOf"].append(group.directory.path_dn)
 
-            if self.token_groups:
-                if "user" in obj_classes:
-                    attrs["tokenGroups"].append(
-                        str(string_to_sid(directory.object_sid)))
+            if self.token_groups and "user" in obj_classes:
+                attrs["tokenGroups"].append(
+                    str(string_to_sid(directory.object_sid)))
 
-                    group_directories = await get_all_parent_group_directories(
-                        directory.groups, session,
-                    )
+                group_directories = await get_all_parent_group_directories(
+                    directory.groups, session,
+                )
 
-                    if group_directories is not None:
-                        async for directory_ in group_directories:
-                            attrs["tokenGroups"].append(
-                                str(string_to_sid(directory_.object_sid)))
+                if group_directories is not None:
+                    async for directory_ in group_directories:
+                        attrs["tokenGroups"].append(
+                            str(string_to_sid(directory_.object_sid)))
 
-            if self.member:
-                if "group" in obj_classes and directory.group:
-                    for member in directory.group.members:
-                        attrs["member"].append(member.path_dn)
+            if self.member and "group" in obj_classes and directory.group:
+                for member in directory.group.members:
+                    attrs["member"].append(member.path_dn)
 
             if directory.user:
                 if self.all_attrs:

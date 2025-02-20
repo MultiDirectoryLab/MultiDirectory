@@ -53,7 +53,7 @@ class NetmasksMixin:
 
     @field_validator("groups")
     @classmethod
-    def validate_group(cls, groups: list[str]) -> list[str]:  # noqa
+    def validate_group(cls, groups: list[str]) -> list[str]:
         if not groups:
             return groups
         if all(validate_entry(group) for group in groups):
@@ -63,7 +63,7 @@ class NetmasksMixin:
 
     @field_validator("mfa_groups")
     @classmethod
-    def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:  # noqa
+    def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:
         if not mfa_groups:
             return mfa_groups
         if all(validate_entry(group) for group in mfa_groups):
@@ -115,7 +115,7 @@ class PolicyResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int  # noqa
+    id: int
     name: str
     netmasks: list[IPv4Network]
     raw: list[str | dict]
@@ -134,7 +134,7 @@ class PolicyResponse(BaseModel):
 class PolicyUpdate(BaseModel, NetmasksMixin):
     """Update request."""
 
-    id: int  # noqa
+    id: int
     name: str | None = None
     netmasks: IPv4IntefaceListType | None = None  # type: ignore
     groups: list[str] | None = None

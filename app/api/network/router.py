@@ -48,7 +48,7 @@ async def add_network_policy(
     :raises HTTPException: 422 invalid group DN
     :raises HTTPException: 422 Entry already exists
     :return PolicyResponse: Ready policy
-    """  # noqa: D205, D301
+    """
     new_policy = NetworkPolicy(
         name=policy.name,
         netmasks=policy.complete_netmasks,
@@ -110,7 +110,7 @@ async def get_list_network_policies(
 
     \f
     :return list[PolicyResponse]: all policies
-    """  # noqa: D205, D301
+    """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
     mfa_groups = (
         selectinload(NetworkPolicy.mfa_groups)
@@ -162,7 +162,7 @@ async def delete_network_policy(
     :raises HTTPException: 422 On last active policy,
         at least 1 should be in database.
     :return bool: status of delete
-    """  # noqa: D205, D301
+    """
     policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
 
     if not policy:
@@ -204,7 +204,7 @@ async def switch_network_policy(
     :raises HTTPException: 422 On last active policy,
         at least 1 should be active
     :return bool: status of update
-    """  # noqa: D205, D301
+    """
     policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
 
     if not policy:
@@ -231,7 +231,7 @@ async def update_network_policy(
     :raises HTTPException: 422 Invalid group DN
     :raises HTTPException: 422 Entry already exists
     :return PolicyResponse: Policy from database
-    """  # noqa: D205, D301
+    """
     selected_policy = await session.get(
         NetworkPolicy,
         request.id,
@@ -328,7 +328,7 @@ async def swap_network_policy(
     :param int second_policy_id: policy to swap
     :raises HTTPException: 404
     :return SwapResponse: policy new priorities
-    """  # noqa: D205, D301
+    """
     policy1 = await session.get(
         NetworkPolicy, swap.first_policy_id, with_for_update=True,
     )
