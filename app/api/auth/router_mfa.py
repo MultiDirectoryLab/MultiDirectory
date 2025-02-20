@@ -9,7 +9,6 @@ import traceback
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal
 
-from config import Settings
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, Form, HTTPException, Request, Response, status
@@ -17,17 +16,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from jose.exceptions import JWKError
-from ldap_protocol.multifactor import (
-    Creds,
-    MFA_HTTP_Creds,
-    MFA_LDAP_Creds,
-    MultifactorAPI,
-)
-from ldap_protocol.policies.network_policy import get_user_network_policy
-from ldap_protocol.session_storage import SessionStorage
 from loguru import logger
-from models import CatalogueSetting
-from models import User as DBUser
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +26,16 @@ from api.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
 )
+from config import Settings
+from ldap_protocol.multifactor import (
+    Creds,
+    MFA_HTTP_Creds,
+    MFA_LDAP_Creds,
+    MultifactorAPI,
+)
+from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.session_storage import SessionStorage
+from models import CatalogueSetting, User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
 from .schema import (
