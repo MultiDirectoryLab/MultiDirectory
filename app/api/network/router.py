@@ -60,6 +60,8 @@ async def add_network_policy(
         is_kerberos=policy.is_kerberos,
         bypass_no_connection=policy.bypass_no_connection,
         bypass_service_failure=policy.bypass_service_failure,
+        ldap_session_ttl=policy.ldap_session_ttl,
+        http_session_ttl=policy.http_session_ttl,
     )
     group_dns = []
     mfa_group_dns = []
@@ -99,6 +101,8 @@ async def add_network_policy(
         is_kerberos=new_policy.is_kerberos,
         bypass_no_connection=new_policy.bypass_no_connection,
         bypass_service_failure=new_policy.bypass_service_failure,
+        ldap_session_ttl=new_policy.ldap_session_ttl,
+        http_session_ttl=new_policy.http_session_ttl,
     )
 
 
@@ -135,6 +139,8 @@ async def get_list_network_policies(
             is_kerberos=policy.is_kerberos,
             bypass_no_connection=policy.bypass_no_connection,
             bypass_service_failure=policy.bypass_service_failure,
+            ldap_session_ttl=policy.ldap_session_ttl,
+            http_session_ttl=policy.http_session_ttl,
         )
         for policy in await session.scalars(
             select(NetworkPolicy)
@@ -219,7 +225,7 @@ async def switch_network_policy(
 
 
 @network_router.put("")
-async def update_network_policy(
+async def update_network_policy(  # noqa: C901
     request: PolicyUpdate,
     session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
@@ -288,6 +294,12 @@ async def update_network_policy(
     if request.bypass_service_failure is not None:
         selected_policy.bypass_service_failure = request.bypass_service_failure
 
+    if request.ldap_session_ttl is not None:
+        selected_policy.ldap_session_ttl = request.ldap_session_ttl
+
+    if request.http_session_ttl is not None:
+        selected_policy.http_session_ttl = request.http_session_ttl
+
     try:
         await session.commit()
     except IntegrityError:
@@ -311,6 +323,8 @@ async def update_network_policy(
         is_kerberos=selected_policy.is_kerberos,
         bypass_no_connection=selected_policy.bypass_no_connection,
         bypass_service_failure=selected_policy.bypass_service_failure,
+        ldap_session_ttl=selected_policy.ldap_session_ttl,
+        http_session_ttl=selected_policy.http_session_ttl,
     )
 
 
