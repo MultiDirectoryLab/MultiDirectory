@@ -78,7 +78,8 @@ async def add_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists"
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Entry already exists",
         )
 
     await session.refresh(new_policy)
@@ -289,7 +290,8 @@ async def update_network_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists"
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Entry already exists",
         )
 
     return PolicyResponse(

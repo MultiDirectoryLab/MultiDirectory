@@ -405,21 +405,24 @@ def get_kadmin() -> KAdminLocalManager:
 def handle_db_error(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_424_FAILED_DEPENDENCY, detail="Database Error"
+        status.HTTP_424_FAILED_DEPENDENCY,
+        detail="Database Error",
     )
 
 
 def handle_duplicate(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_409_CONFLICT, detail="Principal already exists"
+        status.HTTP_409_CONFLICT,
+        detail="Principal already exists",
     )
 
 
 def handle_not_found(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_404_NOT_FOUND, detail="Principal does not exist"
+        status.HTTP_404_NOT_FOUND,
+        detail="Principal does not exist",
     )
 
 

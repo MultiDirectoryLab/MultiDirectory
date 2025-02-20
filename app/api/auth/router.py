@@ -131,7 +131,8 @@ async def login(
 
         if request_2fa:
             raise HTTPException(
-                status.HTTP_426_UPGRADE_REQUIRED, detail="Requires MFA connect"
+                status.HTTP_426_UPGRADE_REQUIRED,
+                detail="Requires MFA connect",
             )
 
     await create_and_set_session_key(
@@ -165,7 +166,9 @@ async def logout(
 
 
 @auth_router.patch(
-    "/user/password", status_code=200, dependencies=[Depends(get_current_user)]
+    "/user/password",
+    status_code=200,
+    dependencies=[Depends(get_current_user)],
 )
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
@@ -198,7 +201,8 @@ async def password_reset(
 
     if errors:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=errors
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=errors,
         )
 
     user.password = get_password_hash(new_password)

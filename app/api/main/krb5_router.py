@@ -267,7 +267,8 @@ async def ktadd(
 
 @krb5_router.get("/status", dependencies=[Depends(get_current_user)])
 async def get_krb_status(
-    session: FromDishka[AsyncSession], kadmin: FromDishka[AbstractKadmin]
+    session: FromDishka[AsyncSession],
+    kadmin: FromDishka[AbstractKadmin],
 ) -> KerberosState:
     """Get server status.
 
@@ -307,7 +308,8 @@ async def add_principal(
 
 
 @krb5_router.patch(
-    "/principal/rename", dependencies=[Depends(get_current_user)]
+    "/principal/rename",
+    dependencies=[Depends(get_current_user)],
 )
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -329,7 +331,8 @@ async def rename_principal(
 
 
 @krb5_router.patch(
-    "/principal/reset", dependencies=[Depends(get_current_user)]
+    "/principal/reset",
+    dependencies=[Depends(get_current_user)],
 )
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -351,7 +354,8 @@ async def reset_principal_pw(
 
 
 @krb5_router.delete(
-    "/principal/delete", dependencies=[Depends(get_current_user)]
+    "/principal/delete",
+    dependencies=[Depends(get_current_user)],
 )
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
