@@ -280,7 +280,7 @@ async def two_factor_protocol(
         )
         return MFAChallengeResponse(status="bypass", message="")
 
-    except MultifactorAPI.MultifactorError:
+    except MultifactorAPI.MultifactorError as error:
         if network_policy.bypass_service_failure:
             await create_and_set_session_key(
                 user,
@@ -296,7 +296,7 @@ async def two_factor_protocol(
         logger.critical(f"API error {traceback.format_exc()}")
         raise HTTPException(
             status.HTTP_406_NOT_ACCEPTABLE,
-            "Multifactor error",
+            str(error),
         )
 
     return MFAChallengeResponse(status="pending", message=redirect_url)
