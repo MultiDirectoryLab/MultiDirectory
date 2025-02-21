@@ -38,11 +38,12 @@ def upgrade() -> None:
             "homeDirectory": "/home/krbadmin",
         }.items():
             session.execute(
-                sa.delete(Attribute).where(
+                sa.delete(Attribute)
+                .where(
                     Attribute.name == attr,
                     Attribute.directory_id == krb_admin_user.id,
                 ),
-            )
+            )  # fmt: skip
             session.add(
                 Attribute(
                     name=attr,
@@ -58,11 +59,12 @@ def upgrade() -> None:
         )
 
         session.execute(
-            sa.delete(Attribute).where(
+            sa.delete(Attribute)
+            .where(
                 Attribute.name == "gidNumber",
                 Attribute.directory_id == krb_admin_group.id,
             ),
-        )
+        )  # fmt: skip
         session.add(
             Attribute(
                 name="gidNumber",

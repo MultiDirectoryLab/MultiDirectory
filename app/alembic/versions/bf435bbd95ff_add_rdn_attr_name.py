@@ -64,11 +64,12 @@ def downgrade() -> None:
             continue
 
         session.execute(
-            sa.delete(Attribute).where(
+            sa.delete(Attribute)
+            .where(
                 Attribute.name == directory.rdname,
                 Attribute.name != "krbprincipalname",
                 Attribute.directory_id == directory.id,
             ),
-        )
+        )  # fmt: skip
 
     op.drop_column("Directory", "rdname")

@@ -70,15 +70,14 @@ async def setup_mfa(
     """
     async with session.begin_nested():
         await session.execute(
-            (
-                delete(CatalogueSetting).filter(
-                    operator.or_(
-                        CatalogueSetting.name == mfa.key_name,
-                        CatalogueSetting.name == mfa.secret_name,
-                    ),
-                )
-            ),
-        )
+            delete(CatalogueSetting)
+            .filter(
+                operator.or_(
+                    CatalogueSetting.name == mfa.key_name,
+                    CatalogueSetting.name == mfa.secret_name,
+                ),
+            )
+        )  # fmt: skip
         await session.flush()
         session.add(CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key))
         session.add(
@@ -89,7 +88,10 @@ async def setup_mfa(
     return True
 
 
-@mfa_router.delete("/keys", dependencies=[Depends(get_current_user)])
+@mfa_router.delete(
+    "/keys",
+    dependencies=[Depends(get_current_user)],
+)
 async def remove_mfa(
     session: FromDishka[AsyncSession],
     scope: Literal["ldap", "http"],
@@ -101,8 +103,9 @@ async def remove_mfa(
         keys = ["mfa_key_ldap", "mfa_secret_ldap"]
 
     await session.execute(
-        delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys)),
-    )
+        delete(CatalogueSetting)
+        .filter(CatalogueSetting.name.in_(keys))
+    )  # fmt: skip
     await session.commit()
 
 

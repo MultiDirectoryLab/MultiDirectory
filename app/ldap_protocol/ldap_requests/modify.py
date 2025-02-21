@@ -282,10 +282,10 @@ class ModifyRequest(BaseRequest):
                     )
 
         if attrs:
-            del_query = delete(Attribute).filter(
-                Attribute.directory == directory,
-                or_(*attrs),
-            )
+            del_query = (
+                delete(Attribute)
+                .filter(Attribute.directory == directory, or_(*attrs))
+            )  # fmt: skip
 
             await session.execute(del_query)
 
@@ -385,18 +385,20 @@ class ModifyRequest(BaseRequest):
                     )
 
                     await session.execute(
-                        delete(Attribute).filter(
+                        delete(Attribute)
+                        .filter(
                             Attribute.name == "nsAccountLock",
                             Attribute.directory == directory,
-                        ),
-                    )
+                        )
+                    )  # fmt: skip
 
                     await session.execute(
-                        delete(Attribute).filter(
+                        delete(Attribute)
+                        .filter(
                             Attribute.name == "shadowExpire",
                             Attribute.directory == directory,
                         ),
-                    )
+                    )  # fmt: skip
 
             if name == "pwdlastset" and value == "0" and directory.user:
                 await kadmin.force_princ_pw_change(
