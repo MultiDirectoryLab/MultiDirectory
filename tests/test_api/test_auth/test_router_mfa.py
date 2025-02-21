@@ -19,7 +19,8 @@ from tests.conftest import TestCreds
 
 @pytest.mark.asyncio
 async def test_set_and_remove_mfa(
-    http_client: httpx.AsyncClient, session: AsyncSession
+    http_client: httpx.AsyncClient,
+    session: AsyncSession,
 ) -> None:
     """Set mfa."""
     response = await http_client.post(

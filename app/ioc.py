@@ -159,7 +159,8 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
-        self, settings: Settings
+        self,
+        settings: Settings,
     ) -> AsyncIterator[SessionStorageClient]:
         """Get redis connection."""
         client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))

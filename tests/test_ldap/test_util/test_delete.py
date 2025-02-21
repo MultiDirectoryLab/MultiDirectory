@@ -21,7 +21,9 @@ from tests.conftest import TestCreds
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_delete(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapdelete on server."""
     dn = "cn=test,dc=md,dc=test"
@@ -83,7 +85,9 @@ async def test_ldap_delete(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_delete_w_access_control(
-    session: AsyncSession, settings: Settings, creds: TestCreds
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"

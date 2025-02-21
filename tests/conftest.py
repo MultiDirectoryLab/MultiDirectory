@@ -197,7 +197,8 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_ldap_session(
-        self, storage: SessionStorage
+        self,
+        storage: SessionStorage,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         yield LDAPSession(storage=storage)

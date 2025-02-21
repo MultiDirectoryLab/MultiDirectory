@@ -27,7 +27,9 @@ from tests.conftest import TestCreds
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_root_add(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
@@ -84,7 +86,9 @@ async def test_ldap_root_add(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_user_add_with_group(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapadd on server."""
     user_dn = "cn=test,dc=md,dc=test"
@@ -149,7 +153,9 @@ async def test_ldap_user_add_with_group(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_user_add_group_with_group(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapadd on server."""
     child_group_dn = "cn=twisted,cn=groups,dc=md,dc=test"
@@ -229,7 +235,9 @@ async def test_add_bvalue_attr(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_add_access_control(
-    session: AsyncSession, settings: Settings, creds: TestCreds
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"

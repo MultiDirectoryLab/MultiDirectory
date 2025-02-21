@@ -17,7 +17,9 @@ from tests.conftest import TestCreds
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_search(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds
+    ldap_client: Connection,
+    event_loop: BaseEventLoop,
+    creds: TestCreds,
 ) -> None:
     """Test ldap3 search."""
     await event_loop.run_in_executor(
@@ -41,7 +43,9 @@ async def test_ldap3_search(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_search_memberof(
-    ldap_client: Connection, event_loop: BaseEventLoop, creds: TestCreds
+    ldap_client: Connection,
+    event_loop: BaseEventLoop,
+    creds: TestCreds,
 ) -> None:
     """Test ldap3 search memberof."""
     member = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"

@@ -24,7 +24,9 @@ from tests.conftest import TestCreds
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_base_modify(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -119,7 +121,9 @@ async def test_ldap_base_modify(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_user_delete(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -164,7 +168,9 @@ async def test_ldap_membersip_user_delete(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_user_add(
-    session: AsyncSession, settings: Settings, creds: TestCreds
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
@@ -220,7 +226,9 @@ async def test_ldap_membersip_user_add(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_user_replace(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -307,7 +315,9 @@ async def test_ldap_membersip_user_replace(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_grp_replace(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=domain admins,cn=groups,dc=md,dc=test"
@@ -398,7 +408,9 @@ async def test_ldap_membersip_grp_replace(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_modify_dn(
-    session: AsyncSession, settings: Settings, user: dict
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -443,7 +455,8 @@ async def test_ldap_modify_dn(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("_force_override_tls")
 async def test_ldap_modify_password_change(
-    settings: Settings, creds: TestCreds
+    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -499,7 +512,9 @@ async def test_ldap_modify_password_change(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_modify_with_ap(
-    session: AsyncSession, settings: Settings, creds: TestCreds
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "ou=users,dc=md,dc=test"

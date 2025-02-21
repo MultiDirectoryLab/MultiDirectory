@@ -340,7 +340,10 @@ class RedisSessionStorage(SessionStorage):
         return await self._storage.exists(session_id)
 
     async def create_ldap_session(
-        self, uid: int, key: str, data: dict
+        self,
+        uid: int,
+        key: str,
+        data: dict,
     ) -> None:
         """Create ldap session.
 
@@ -431,7 +434,10 @@ class MemSessionStorage(SessionStorage):
         return self._sessions[key]
 
     async def _set_data(
-        self, key: str, data: dict, expire: int | None
+        self,
+        key: str,
+        data: dict,
+        expire: int | None,
     ) -> None:
         """Set session data."""
         self._sessions[key] = data
@@ -528,7 +534,10 @@ class MemSessionStorage(SessionStorage):
         return session_id in self._sessions
 
     async def create_ldap_session(
-        self, uid: int, key: str, data: dict
+        self,
+        uid: int,
+        key: str,
+        data: dict,
     ) -> None:
         """Create ldap session.
 

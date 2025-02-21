@@ -83,7 +83,8 @@ async def test_api_auth_after_change_account_exp(
 
 @pytest.mark.usefixtures("setup_session")
 async def test_refresh_and_logout_flow(
-    unbound_http_client: httpx.AsyncClient, creds: TestCreds
+    unbound_http_client: httpx.AsyncClient,
+    creds: TestCreds,
 ) -> None:
     """Test login, refresh and logout cookie flow."""
     await unbound_http_client.post(

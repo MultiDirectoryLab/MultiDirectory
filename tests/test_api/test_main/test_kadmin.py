@@ -19,7 +19,8 @@ from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
 def _create_test_user_data(
-    name: str, pw: str
+    name: str,
+    pw: str,
 ) -> dict[str, str | list[dict[str, str | list[str]]]]:
     return {
         "entry": "cn=ktest,dc=md,dc=test",

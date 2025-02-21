@@ -19,7 +19,8 @@ from models import NetworkPolicy
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_check_policy(
-    ldap_session: LDAPSession, session: AsyncSession
+    ldap_session: LDAPSession,
+    session: AsyncSession,
 ) -> None:
     """Check policy."""
     policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
@@ -29,7 +30,8 @@ async def test_check_policy(
 
 @pytest.mark.asyncio
 async def test_specific_policy_ok(
-    ldap_session: LDAPSession, session: AsyncSession
+    ldap_session: LDAPSession,
+    session: AsyncSession,
 ) -> None:
     """Test specific ip."""
     session.add(
@@ -56,7 +58,8 @@ async def test_specific_policy_ok(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("settings")
 async def test_check_policy_group(
-    ldap_session: LDAPSession, session: AsyncSession
+    ldap_session: LDAPSession,
+    session: AsyncSession,
 ) -> None:
     """Check policy."""
     user = await get_user(session, "user0")

@@ -140,7 +140,8 @@ class LDAPSession:
         return ":".join(map(str, writer.get_extra_info("peername")))
 
     async def get_ip(
-        self, writer: asyncio.StreamWriter
+        self,
+        writer: asyncio.StreamWriter,
     ) -> IPv4Address | IPv6Address:
         """Get ip addr from writer."""
         addr = self.get_address(writer)
