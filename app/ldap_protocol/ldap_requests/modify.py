@@ -486,8 +486,8 @@ class ModifyRequest(BaseRequest):
                 )
 
                 errors = await validator.validate_password_with_policy(
-                    value,
-                    directory.user,
+                    password=value,
+                    user=directory.user,
                 )
 
                 if validator.validate_min_age(p_last_set):

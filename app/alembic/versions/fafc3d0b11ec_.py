@@ -45,7 +45,9 @@ def upgrade() -> None:
 
             if not group_dir:
                 dir_, _ = await create_group(
-                    "readonly domain controllers", 521, session
+                    name="readonly domain controllers",
+                    sid=521,
+                    session=session,
                 )
 
             await session.flush()

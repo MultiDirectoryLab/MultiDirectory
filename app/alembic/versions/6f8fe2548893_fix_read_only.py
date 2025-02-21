@@ -57,7 +57,11 @@ def upgrade() -> None:
     )  # fmt: skip
     if not attr_object_class:
         session.add(
-            Attribute(name="objectClass", value="group", directory=ro_dir)
+            Attribute(
+                name="objectClass",
+                value="group",
+                directory=ro_dir,
+            ),
         )
         session.add(
             Attribute(

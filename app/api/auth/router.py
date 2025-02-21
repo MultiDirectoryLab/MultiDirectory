@@ -346,8 +346,8 @@ async def first_setup(
 
             default_pwd_policy = PasswordPolicySchema()
             errors = await default_pwd_policy.validate_password_with_policy(
-                request.password,
-                None,
+                password=request.password,
+                user=None,
             )
 
             if errors:

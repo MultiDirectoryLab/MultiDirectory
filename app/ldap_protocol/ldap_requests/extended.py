@@ -209,8 +209,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         )
 
         errors = await validator.validate_password_with_policy(
-            self.new_password,
-            user,
+            password=self.new_password,
+            user=user,
         )
 
         p_last_set = await validator.get_pwd_last_set(

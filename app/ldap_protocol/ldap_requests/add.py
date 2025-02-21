@@ -148,8 +148,8 @@ class AddRequest(BaseRequest):
             )
             raw_password = self.password.get_secret_value()
             errors = await validator.validate_password_with_policy(
-                raw_password,
-                None,
+                password=raw_password,
+                user=None,
             )
 
             if errors:
