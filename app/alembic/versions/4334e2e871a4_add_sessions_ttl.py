@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column(
             "ldap_session_ttl",
             sa.Integer(),
-            server_default="28800",
+            server_default="-1",
             nullable=False,
         ),
     )

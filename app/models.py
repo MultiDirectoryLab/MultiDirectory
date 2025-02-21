@@ -561,7 +561,7 @@ class NetworkPolicy(Base):
     bypass_service_failure: Mapped[fbool]
 
     ldap_session_ttl: Mapped[int] = mapped_column(
-        nullable=False, server_default="28800")
+        nullable=False, server_default="-1")
 
     http_session_ttl: Mapped[int] = mapped_column(
         nullable=False, server_default="28800")
