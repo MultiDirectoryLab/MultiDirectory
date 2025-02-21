@@ -251,18 +251,8 @@ async def update_network_policy(
     if not selected_policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
 
-    fields_map = {
-        "name": request.name,
-        "mfa_status": request.mfa_status,
-        "is_http": request.is_http,
-        "is_ldap": request.is_ldap,
-        "is_kerberos": request.is_kerberos,
-        "bypass_no_connection": request.bypass_no_connection,
-        "bypass_service_failure": request.bypass_service_failure,
-        "ldap_session_ttl": request.ldap_session_ttl,
-        "http_session_ttl": request.http_session_ttl,
-    }
-    for field, value in fields_map.items():
+    for field in PolicyUpdate.fields_map:
+        value = getattr(request, field)
         if value is not None:
             setattr(selected_policy, field, value)
 
