@@ -225,7 +225,7 @@ async def switch_network_policy(
 
 
 @network_router.put("")
-async def update_network_policy(  # noqa: C901
+async def update_network_policy(
     request: PolicyUpdate,
     session: FromDishka[AsyncSession],
 ) -> PolicyResponse:
@@ -251,54 +251,43 @@ async def update_network_policy(  # noqa: C901
     if not selected_policy:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
 
-    if request.name:
-        selected_policy.name = request.name
+    fields_map = {
+        "name": request.name,
+        "mfa_status": request.mfa_status,
+        "is_http": request.is_http,
+        "is_ldap": request.is_ldap,
+        "is_kerberos": request.is_kerberos,
+        "bypass_no_connection": request.bypass_no_connection,
+        "bypass_service_failure": request.bypass_service_failure,
+        "ldap_session_ttl": request.ldap_session_ttl,
+        "http_session_ttl": request.http_session_ttl,
+    }
+    for field, value in fields_map.items():
+        if value is not None:
+            setattr(selected_policy, field, value)
 
     if request.netmasks:
         selected_policy.netmasks = request.complete_netmasks
         selected_policy.raw = request.model_dump(mode="json")["netmasks"]
 
-    if request.mfa_status is not None:
-        selected_policy.mfa_status = request.mfa_status
+    async def _update_groups(
+        policy: NetworkPolicy, new_groups: list[str] | None, attr_name: str,
+    ) -> list[str]:
+        if new_groups is not None:
+            if len(new_groups) > 0:
+                groups = await get_groups(new_groups, session)
+                setattr(policy, attr_name, groups)
+                return [group.directory.path_dn for group in groups]
+            else:
+                getattr(policy, attr_name).clear()
+        return []
 
-    if request.groups is not None and len(request.groups) > 0:
-        groups = await get_groups(request.groups, session)
-        selected_policy.groups = groups
-
-        request.groups = [group.directory.path_dn for group in groups]
-
-    elif request.groups is not None and len(request.groups) == 0:
-        selected_policy.groups.clear()
-
-    if request.mfa_groups is not None and len(request.mfa_groups) > 0:
-        mfa_groups = await get_groups(request.mfa_groups, session)
-        selected_policy.mfa_groups = mfa_groups
-
-        request.mfa_groups = [group.directory.path_dn for group in mfa_groups]
-
-    elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
-        selected_policy.mfa_groups.clear()
-
-    if request.is_http is not None:
-        selected_policy.is_http = request.is_http
-
-    if request.is_ldap is not None:
-        selected_policy.is_ldap = request.is_ldap
-
-    if request.is_kerberos is not None:
-        selected_policy.is_kerberos = request.is_kerberos
-
-    if request.bypass_no_connection is not None:
-        selected_policy.bypass_no_connection = request.bypass_no_connection
-
-    if request.bypass_service_failure is not None:
-        selected_policy.bypass_service_failure = request.bypass_service_failure
-
-    if request.ldap_session_ttl is not None:
-        selected_policy.ldap_session_ttl = request.ldap_session_ttl
-
-    if request.http_session_ttl is not None:
-        selected_policy.http_session_ttl = request.http_session_ttl
+    request.groups = await _update_groups(
+        selected_policy, request.groups, "groups",
+    )
+    request.mfa_groups = await _update_groups(
+        selected_policy, request.mfa_groups, "mfa_groups",
+    )
 
     try:
         await session.commit()
@@ -315,9 +304,9 @@ async def update_network_policy(  # noqa: C901
         raw=selected_policy.raw,
         enabled=selected_policy.enabled,
         priority=selected_policy.priority,
-        groups=request.groups or [],
+        groups=request.groups,
         mfa_status=selected_policy.mfa_status,
-        mfa_groups=request.mfa_groups or [],
+        mfa_groups=request.mfa_groups,
         is_http=selected_policy.is_http,
         is_ldap=selected_policy.is_ldap,
         is_kerberos=selected_policy.is_kerberos,
