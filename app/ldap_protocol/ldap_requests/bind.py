@@ -53,7 +53,7 @@ class BindRequest(BaseRequest):
     version: int
     name: str
     authentication_choice: AbstractLDAPAuth = Field(
-        ..., alias="AuthenticationChoice",
+        ..., alias="AuthenticationChoice"
     )
 
     @classmethod
@@ -75,13 +75,12 @@ class BindRequest(BaseRequest):
                 password = payload
 
             auth_choice = SimpleAuthentication(
-                password=password,
-                otpassword=otpassword,
+                password=password, otpassword=otpassword
             )
         elif auth == SaslAuthentication.METHOD_ID:
             sasl_method = data[2].value[0].value
             auth_choice = sasl_mechanism_map[sasl_method].from_data(
-                data[2].value,
+                data[2].value
             )
         else:
             raise ValueError("Auth version not supported")
@@ -94,7 +93,7 @@ class BindRequest(BaseRequest):
 
     @staticmethod
     async def is_user_group_valid(
-        user: User, ldap_session: LDAPSession, session: AsyncSession,
+        user: User, ldap_session: LDAPSession, session: AsyncSession
     ) -> bool:
         """Test compability."""
         return await is_user_group_valid(user, ldap_session.policy, session)
@@ -229,7 +228,7 @@ class UnbindRequest(BaseRequest):
         return cls()
 
     async def handle(
-        self, ldap_session: LDAPSession,
+        self, ldap_session: LDAPSession
     ) -> AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ldap_session.delete_user()

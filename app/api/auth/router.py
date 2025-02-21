@@ -97,7 +97,8 @@ async def login(
         .join(Group.users)
         .join(Group.directory)
         .filter(User.id == user.id, Directory.name == "domain admins")
-        .exists())
+        .exists()
+    )
 
     is_part_of_admin_group = (await session.scalars(select(query))).one()
 
@@ -121,21 +122,20 @@ async def login(
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if mfa and network_policy.mfa_status in (
-        MFAFlags.ENABLED, MFAFlags.WHITELIST,
+        MFAFlags.ENABLED,
+        MFAFlags.WHITELIST,
     ):
         request_2fa = True
-        if (network_policy.mfa_status == MFAFlags.WHITELIST):
+        if network_policy.mfa_status == MFAFlags.WHITELIST:
             request_2fa = await check_mfa_group(network_policy, user, session)
 
         if request_2fa:
             raise HTTPException(
-                status.HTTP_426_UPGRADE_REQUIRED,
-                detail="Requires MFA connect",
+                status.HTTP_426_UPGRADE_REQUIRED, detail="Requires MFA connect"
             )
 
     await create_and_set_session_key(
-        user, session, settings,
-        response, storage, ip, user_agent,
+        user, session, settings, response, storage, ip, user_agent
     )
 
 
@@ -159,9 +159,7 @@ async def logout(
 
 
 @auth_router.patch(
-    "/user/password",
-    status_code=200,
-    dependencies=[Depends(get_current_user)],
+    "/user/password", status_code=200, dependencies=[Depends(get_current_user)]
 )
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
@@ -194,16 +192,14 @@ async def password_reset(
 
     if errors:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=errors,
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=errors
         )
 
     user.password = get_password_hash(new_password)
 
     try:
         await kadmin.create_or_update_principal_pw(
-            user.get_upn_prefix(),
-            new_password,
+            user.get_upn_prefix(), new_password
         )
     except KRBAPIError:
         raise HTTPException(
@@ -238,7 +234,7 @@ async def first_setup(
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
-        select(Directory).filter(Directory.parent_id.is_(None)),
+        select(Directory).filter(Directory.parent_id.is_(None))
     )
 
     if setup_already_performed:
@@ -325,7 +321,7 @@ async def first_setup(
                         "userAccountControl": ["512"],
                     },
                     "objectSid": 500,
-                },
+                }
             ],
         },
     ]
@@ -338,7 +334,7 @@ async def first_setup(
 
             default_pwd_policy = PasswordPolicySchema()
             errors = await default_pwd_policy.validate_password_with_policy(
-                request.password, None,
+                request.password, None
             )
 
             if errors:
@@ -349,9 +345,11 @@ async def first_setup(
 
             await default_pwd_policy.create_policy_settings(session, kadmin)
 
-            domain = (await session.scalars(
-                select(Directory).filter(Directory.parent_id.is_(None)),
-            )).one()
+            domain = (
+                await session.scalars(
+                    select(Directory).filter(Directory.parent_id.is_(None))
+                )
+            ).one()
 
             await create_access_policy(
                 name="Root Access Policy",
@@ -372,8 +370,8 @@ async def first_setup(
                 can_delete=False,
                 grant_dn=domain.path_dn,
                 groups=[
-                    "cn=readonly domain controllers,cn=groups," +
-                    domain.path_dn,
+                    "cn=readonly domain controllers,cn=groups,"
+                    + domain.path_dn
                 ],
                 session=session,
             )

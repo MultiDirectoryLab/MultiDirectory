@@ -3,6 +3,7 @@
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,9 +13,7 @@ from ldap_protocol.utils.queries import get_base_directories
 
 
 async def update_krb5_config(
-    kadmin: AbstractKadmin,
-    session: AsyncSession,
-    settings: Settings,
+    kadmin: AbstractKadmin, session: AsyncSession, settings: Settings
 ) -> None:
     """Update kerberos config."""
     if not (await kadmin.get_status(wait_for_positive=True)):

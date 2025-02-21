@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import time
 from datetime import datetime
 from typing import Iterator
@@ -29,7 +30,7 @@ from .helpers import (
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
-        select(Directory).filter(Directory.parent_id.is_(None)),
+        select(Directory).filter(Directory.parent_id.is_(None))
     )
     return list(result.scalars().all())
 
@@ -55,7 +56,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         select(User)
         .join(User.directory)
         .options(policies)
-        .where(get_filter_from_path(name)),
+        .where(get_filter_from_path(name))
     )
 
 
@@ -67,12 +68,12 @@ async def get_user_by_upn(session: AsyncSession, upn: str) -> User | None:
     :return User | None: user
     """
     return await session.scalar(
-        select(User).where(User.user_principal_name.ilike(upn)))
+        select(User).where(User.user_principal_name.ilike(upn))
+    )
 
 
 async def get_directories(
-    dn_list: list[ENTRY_TYPE],
-    session: AsyncSession,
+    dn_list: list[ENTRY_TYPE], session: AsyncSession
 ) -> list[Directory]:
     """Get directories by dn list."""
     paths = []
@@ -134,8 +135,7 @@ async def get_group(dn: str | ENTRY_TYPE, session: AsyncSession) -> Directory:
 
 
 async def check_kerberos_group(
-    user: User | None,
-    session: AsyncSession,
+    user: User | None, session: AsyncSession
 ) -> bool:
     """Check if user in kerberos group.
 
@@ -160,15 +160,13 @@ async def check_kerberos_group(
 
 
 async def set_last_logon_user(
-    user: User,
-    session: AsyncSession,
-    tz: ZoneInfo,
+    user: User, session: AsyncSession, tz: ZoneInfo
 ) -> None:
     """Update lastLogon attr."""
     await session.execute(
         update(User)
         .values({"last_logon": datetime.now(tz=tz)})
-        .where(User.id == user.id),
+        .where(User.id == user.id)
     )
     await session.commit()
 
@@ -199,9 +197,7 @@ def get_path_filter(
 
 
 def get_filter_from_path(
-    dn: str,
-    *,
-    column: Column | InstrumentedAttribute = Directory.path,
+    dn: str, *, column: Column | InstrumentedAttribute = Directory.path
 ) -> ColumnElement:
     """Get filter condition for path equality from dn."""
     return get_path_filter(get_search_path(dn), column=column)
@@ -211,7 +207,7 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     """Get dn by id.
 
     >>> await get_dn_by_id(0, session)
-    >>> 'cn=groups,dc=example,dc=com'
+    >>> "cn=groups,dc=example,dc=com"
     """
     query = select(Directory).filter(Directory.id == id_)
     retval = (await session.scalars(query)).one()
@@ -225,9 +221,7 @@ def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
 
 
 async def create_group(
-    name: str,
-    sid: int | None,
-    session: AsyncSession,
+    name: str, sid: int | None, session: AsyncSession
 ) -> tuple[Directory, Group]:
     """Create group in default groups path.
 
@@ -247,11 +241,7 @@ async def create_group(
 
     parent = (await session.scalars(query)).one()
 
-    dir_ = Directory(
-        object_class="",
-        name=name,
-        parent=parent,
-    )
+    dir_ = Directory(object_class="", name=name, parent=parent)
     dir_.access_policies.extend(parent.access_policies)
 
     group = Group(directory=dir_)
@@ -260,7 +250,8 @@ async def create_group(
     await session.flush()
 
     dir_.object_sid = create_object_sid(
-        base_dn_list[0], sid if sid else dir_.id)
+        base_dn_list[0], sid if sid else dir_.id
+    )
 
     await session.flush()
 
@@ -295,16 +286,15 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
         .where(
             Attribute.name.ilike("objectclass"),
             Attribute.value == "computer",
-            Attribute.directory_id == directory_id)
-        .exists(),
+            Attribute.directory_id == directory_id,
+        )
+        .exists()
     )
     return (await session.scalars(query)).one()
 
 
 async def add_lock_and_expire_attributes(
-    session: AsyncSession,
-    directory: Directory,
-    tz: ZoneInfo,
+    session: AsyncSession, directory: Directory, tz: ZoneInfo
 ) -> None:
     """Add `nsAccountLock` and `shadowExpire` attributes to the directory.
 
@@ -314,22 +304,20 @@ async def add_lock_and_expire_attributes(
     """
     now_with_tz = datetime.now(tz=tz)
     absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
-    session.add_all([
-        Attribute(
-            name="nsAccountLock",
-            value="true",
-            directory=directory,
-        ),
-        Attribute(
-            name="shadowExpire",
-            value=str(absolute_date),
-            directory=directory,
-        ),
-    ])
+    session.add_all(
+        [
+            Attribute(name="nsAccountLock", value="true", directory=directory),
+            Attribute(
+                name="shadowExpire",
+                value=str(absolute_date),
+                directory=directory,
+            ),
+        ]
+    )
 
 
 async def get_principal_directory(
-    session: AsyncSession, principal_name: str,
+    session: AsyncSession, principal_name: str
 ) -> Directory | None:
     """Fetch the principal's directory by principal name.
 
@@ -340,5 +328,5 @@ async def get_principal_directory(
     return await session.scalar(
         select(Directory)
         .where(Directory.name == principal_name)
-        .options(selectinload(Directory.attributes)),
+        .options(selectinload(Directory.attributes))
     )

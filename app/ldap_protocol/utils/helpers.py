@@ -198,7 +198,7 @@ def _get_domain(name: str) -> str:
             item[3:].lower()
             for item in name.split(",")
             if item[:2] in ("DC", "dc")
-        ],
+        ]
     )
 
 
@@ -242,7 +242,7 @@ def ft_to_dt(filetime: int) -> datetime:
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
     return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(
-        microsecond=(ns100 // 10),
+        microsecond=(ns100 // 10)
     )
 
 
@@ -286,7 +286,7 @@ def string_to_sid(sid_string: str) -> bytes:
 
 
 def create_object_sid(
-    domain: Directory, rid: int, reserved: bool = False,
+    domain: Directory, rid: int, reserved: bool = False
 ) -> str:
     """Generate the objectSid attribute for an object.
 
@@ -298,7 +298,7 @@ def create_object_sid(
                           the final RID
     :return str: the complete objectSid as a string
     """
-    return domain.object_sid + f"-{rid if reserved else 1000+rid}"
+    return domain.object_sid + f"-{rid if reserved else 1000 + rid}"
 
 
 def generate_domain_sid() -> str:

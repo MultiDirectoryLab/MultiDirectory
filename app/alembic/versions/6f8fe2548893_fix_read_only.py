@@ -5,6 +5,7 @@ Revises: fafc3d0b11ec
 Create Date: 2024-11-14 13:02:33.899640
 
 """
+
 from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
@@ -24,14 +25,20 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    ro_dir = session.scalar(select(Directory).where(
-        Directory.name == "readonly domain controllers"))
+    ro_dir = session.scalar(
+        select(Directory).where(
+            Directory.name == "readonly domain controllers"
+        )
+    )
 
     if not ro_dir:
         return
 
-    session.execute(delete(Attribute).where(
-        Attribute.name == "objectSid", Attribute.directory == ro_dir))
+    session.execute(
+        delete(Attribute).where(
+            Attribute.name == "objectSid", Attribute.directory == ro_dir
+        )
+    )
     session.execute(
         update(Attribute)
         .where(
@@ -39,31 +46,29 @@ def upgrade() -> None:
             Attribute.directory == ro_dir,
             Attribute.value == "domain users",
         )
-        .values({"value": ro_dir.name}),
+        .values({"value": ro_dir.name})
     )
 
     attr_object_class = session.scalar(
-        select(Attribute)
-        .where(
+        select(Attribute).where(
             Attribute.name == "objectClass",
             Attribute.directory == ro_dir,
             Attribute.value == "group",
-        ),
+        )
     )
     if not attr_object_class:
-        session.add(Attribute(
-            name="objectClass", value="group", directory=ro_dir))
-        session.add(Attribute(
-            name=ro_dir.rdname,
-            value=ro_dir.name,
-            directory=ro_dir,
-            ),
+        session.add(
+            Attribute(name="objectClass", value="group", directory=ro_dir)
         )
-        session.add(Attribute(
-            name="gidNumber",
-            value=str(create_integer_hash(ro_dir.name)),
-            directory=ro_dir,
-            ),
+        session.add(
+            Attribute(name=ro_dir.rdname, value=ro_dir.name, directory=ro_dir)
+        )
+        session.add(
+            Attribute(
+                name="gidNumber",
+                value=str(create_integer_hash(ro_dir.name)),
+                directory=ro_dir,
+            )
         )
 
     domain_sid = "-".join(ro_dir.object_sid.split("-")[:-1])

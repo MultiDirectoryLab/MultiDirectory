@@ -94,9 +94,7 @@ class PoolClientHandler:
                 self.ssl_context.load_cert_chain(cert_name, key_name)
 
     async def __call__(
-        self,
-        reader: asyncio.StreamReader,
-        writer: asyncio.StreamWriter,
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
         """Create session, queue and start message handlers concurrently."""
         async with self.container(scope=Scope.SESSION) as session_scope:
@@ -159,7 +157,8 @@ class PoolClientHandler:
             "certificates for public domains. "
             "Try deleting and recreating the `acme.json` file, "
             "or consider using a self-signed certificate "
-            "for local environments or closed networks.")
+            "for local environments or closed networks."
+        )
 
         if not os.path.exists("/certs/acme.json"):
             log.critical("Cannot load ACME file for MultiDirectory")
@@ -212,7 +211,7 @@ class PoolClientHandler:
             if len(data) >= bytes_length + 2:
                 value_length = 0
                 cont = bytes_length
-                for byte in data[2:2 + bytes_length]:
+                for byte in data[2 : 2 + bytes_length]:
                     cont -= 1
                     value_length += byte * (256**cont)
                 return value_length + 2 + bytes_length
@@ -255,9 +254,7 @@ class PoolClientHandler:
                 await ldap_session.queue.put(request)
 
     async def _unwrap_request(
-        self,
-        data: bytes,
-        ldap_session: LDAPSession,
+        self, data: bytes, ldap_session: LDAPSession
     ) -> bytes:
         """Unwrap request with GSSAPI security layer if needed.
 
@@ -273,17 +270,15 @@ class PoolClientHandler:
             sasl_buffer = data[4:]
 
             if len(sasl_buffer) != sasl_buffer_length:
-                raise ConnectionAbortedError(
-                    "SASL buffer length mismatch",
-                )
+                raise ConnectionAbortedError("SASL buffer length mismatch")
 
             if not ldap_session.gssapi_security_context:
                 raise ConnectionAbortedError(
-                    "GSSAPI security context not found",
+                    "GSSAPI security context not found"
                 )
 
             unwrap_data = ldap_session.gssapi_security_context.unwrap(
-                sasl_buffer,
+                sasl_buffer
             )
             message = unwrap_data.message
             data = message
@@ -295,14 +290,14 @@ class PoolClientHandler:
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
         log.debug(
             f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}\n",
+            f"{msg.model_dump_json()}\n"
         )
 
     @staticmethod
     def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
         log.debug(
             f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}"[:3000],
+            f"{msg.model_dump_json()}"[:3000]
         )
 
     @staticmethod
@@ -310,7 +305,7 @@ class PoolClientHandler:
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(
-        self, writer: asyncio.StreamWriter, container: AsyncContainer,
+        self, writer: asyncio.StreamWriter, container: AsyncContainer
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
@@ -345,7 +340,7 @@ class PoolClientHandler:
                 raise RuntimeError(err) from err
 
     async def _wrap_response(
-        self, data: bytes, ldap_session: LDAPSession, protocol_op: int,
+        self, data: bytes, ldap_session: LDAPSession, protocol_op: int
     ) -> bytes:
         """Wrap response with GSSAPI security layer if needed.
 
@@ -362,16 +357,11 @@ class PoolClientHandler:
             GSSAPISL.INTEGRITY_PROTECTION,
             GSSAPISL.CONFIDENTIALITY,
         ):
-            encrypt = (
-                ldap_session.gssapi_security_layer == (
-                    GSSAPISL.CONFIDENTIALITY
-                )
+            encrypt = ldap_session.gssapi_security_layer == (
+                GSSAPISL.CONFIDENTIALITY
             )
-            wrap_data = (
-                ldap_session.gssapi_security_context.wrap(
-                    data,
-                    encrypt=encrypt,
-                )
+            wrap_data = ldap_session.gssapi_security_context.wrap(
+                data, encrypt=encrypt
             )
             sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
 
@@ -380,9 +370,7 @@ class PoolClientHandler:
         return data
 
     async def _handle_responses(
-        self,
-        writer: asyncio.StreamWriter,
-        container: AsyncContainer,
+        self, writer: asyncio.StreamWriter, container: AsyncContainer
     ) -> None:
         """Create pool of workers and apply handler to it.
 
@@ -423,7 +411,7 @@ class PoolClientHandler:
         server = await self._get_server()
         log.info(
             f"started {'DEBUG' if self.settings.DEBUG else 'PROD'} "
-            f"{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server",
+            f"{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server"
         )
 
         try:

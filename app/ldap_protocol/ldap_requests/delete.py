@@ -63,8 +63,7 @@ class DeleteRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                defaultload(Directory.user),
-                defaultload(Directory.attributes),
+                defaultload(Directory.user), defaultload(Directory.attributes)
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -76,10 +75,10 @@ class DeleteRequest(BaseRequest):
             return
 
         if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "del"),
+            mutate_ap(query, ldap_session.user, "del")
         ):
             yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
             )
             return
 
@@ -99,12 +98,11 @@ class DeleteRequest(BaseRequest):
             if await is_computer(directory.id, session):
                 await kadmin.del_principal(directory.host_principal)
                 await kadmin.del_principal(
-                    f"{directory.host_principal}.{base_dn.name}",
+                    f"{directory.host_principal}.{base_dn.name}"
                 )
         except KRBAPIError:
             yield DeleteResponse(
-                result_code=LDAPCodes.UNAVAILABLE,
-                errorMessage="KerberosError",
+                result_code=LDAPCodes.UNAVAILABLE, errorMessage="KerberosError"
             )
             return
 

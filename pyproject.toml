@@ -105,7 +105,7 @@ unsafe-fixes = true
 docstring-code-format = true
 docstring-code-line-length = 79
 line-ending = "lf"
-skip-magic-trailing-comma = false  # default: false
+skip-magic-trailing-comma = true  # default: false
 
 [tool.ruff.lint]
 select = [

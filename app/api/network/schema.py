@@ -45,7 +45,7 @@ class NetmasksMixin:
         for item in self.netmasks:
             if isinstance(item, IPRange):
                 values.extend(
-                    list(summarize_address_range(item.start, item.end)),
+                    list(summarize_address_range(item.start, item.end))
                 )
             else:
                 values.append(IPv4Network(item))
@@ -74,7 +74,7 @@ class NetmasksMixin:
     @field_serializer("netmasks")
     @classmethod
     def netmasks_serialize(
-        cls, netmasks: IPv4IntefaceListType,
+        cls, netmasks: IPv4IntefaceListType
     ) -> list[str | dict]:
         """Serialize netmasks to list.
 
@@ -86,7 +86,7 @@ class NetmasksMixin:
         for netmask in netmasks:
             if isinstance(netmask, IPRange):
                 values.append(
-                    {"start": str(netmask.start), "end": str(netmask.end)},
+                    {"start": str(netmask.start), "end": str(netmask.end)}
                 )
             else:
                 values.append(str(netmask))

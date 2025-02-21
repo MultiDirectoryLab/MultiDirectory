@@ -28,10 +28,7 @@ entry_router = APIRouter(
 
 
 @entry_router.post("/search")
-async def search(
-    request: SearchRequest,
-    req: Request,
-) -> SearchResponse:
+async def search(request: SearchRequest, req: Request) -> SearchResponse:
     """LDAP SEARCH entry request."""
     responses = await request.handle_api(req.state.dishka_container)
     metadata: SearchResultDone = responses.pop(-1)  # type: ignore
@@ -47,27 +44,20 @@ async def search(
 
 
 @entry_router.post("/add")
-async def add(
-    request: AddRequest,
-    req: Request,
-) -> LDAPResult:
+async def add(request: AddRequest, req: Request) -> LDAPResult:
     """LDAP ADD entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
 @entry_router.patch("/update")
-async def modify(
-    request: ModifyRequest,
-    req: Request,
-) -> LDAPResult:
+async def modify(request: ModifyRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
 @entry_router.patch("/update_many")
 async def modify_many(
-    requests: list[ModifyRequest],
-    req: Request,
+    requests: list[ModifyRequest], req: Request
 ) -> list[LDAPResult]:
     """Bulk LDAP MODIFY entry request."""
     results = []
@@ -77,18 +67,12 @@ async def modify_many(
 
 
 @entry_router.put("/update/dn")
-async def modify_dn(
-    request: ModifyDNRequest,
-    req: Request,
-) -> LDAPResult:
+async def modify_dn(request: ModifyDNRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
     return await request.handle_api(req.state.dishka_container)
 
 
 @entry_router.delete("/delete")
-async def delete(
-    request: DeleteRequest,
-    req: Request,
-) -> LDAPResult:
+async def delete(request: DeleteRequest, req: Request) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(req.state.dishka_container)

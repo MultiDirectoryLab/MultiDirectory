@@ -19,9 +19,7 @@ from ldap_protocol.utils.queries import get_base_directories
 
 
 async def check_ldap_principal(
-    kadmin: AbstractKadmin,
-    session: AsyncSession,
-    settings: Settings,
+    kadmin: AbstractKadmin, session: AsyncSession, settings: Settings
 ) -> None:
     """Check ldap principal and keytab existence.
 
@@ -52,6 +50,5 @@ async def check_ldap_principal(
 
     if status:
         await kadmin.ldap_principal_setup(
-            ldap_principal_name,
-            settings.KRB5_LDAP_KEYTAB,
+            ldap_principal_name, settings.KRB5_LDAP_KEYTAB
         )

@@ -19,7 +19,7 @@ def _type_validate_entry(entry: str) -> str:
 
 
 EMAIL_RE = re.compile(
-    r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z0-9-]{2,})+",
+    r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z0-9-]{2,})+"
 )
 
 

@@ -30,21 +30,16 @@ class ProxyRequestModel(BaseModel):
 @pytest_asyncio.fixture
 async def adding_mfa_keys(session: AsyncSession) -> None:
     """Test add user like keycloak."""
-    session.add(
-        CatalogueSetting(name="mfa_secret", value="123"),
-    )
+    session.add(CatalogueSetting(name="mfa_secret", value="123"))
     session.add(CatalogueSetting(name="mfa_key", value="123"))
-    session.add(
-        CatalogueSetting(name="mfa_key_ldap", value="123"),
-    )
+    session.add(CatalogueSetting(name="mfa_key_ldap", value="123"))
     session.add(CatalogueSetting(name="mfa_secret_ldap", value="123"))
     await session.commit()
 
 
 @pytest_asyncio.fixture
 async def adding_mfa_user_and_group(
-    http_client: AsyncClient,
-    unbound_http_client: AsyncClient,
+    http_client: AsyncClient, unbound_http_client: AsyncClient
 ) -> dict:
     """Add mfa user and group."""
     response = await http_client.post(
@@ -53,14 +48,8 @@ async def adding_mfa_user_and_group(
             "entry": "cn=mfa_group,cn=groups,dc=md,dc=test",
             "password": None,
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["mfa_group"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["mfa_group"],
-                },
+                {"type": "name", "vals": ["mfa_group"]},
+                {"type": "cn", "vals": ["mfa_group"]},
                 {
                     "type": "objectClass",
                     "vals": ["organization", "top", "group"],
@@ -84,30 +73,12 @@ async def adding_mfa_user_and_group(
             "entry": test_user_dn,
             "password": user_password,
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["mfa_user"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["mfa_user"],
-                },
-                {
-                    "type": "sAMAccountName",
-                    "vals": ["Test"],
-                },
-                {
-                    "type": "mail",
-                    "vals": [test_user_email],
-                },
-                {
-                    "type": "userPrincipalName",
-                    "vals": [test_user_email],
-                },
-                {
-                    "type": "displayName",
-                    "vals": ["MFA User"],
-                },
+                {"type": "name", "vals": ["mfa_user"]},
+                {"type": "cn", "vals": ["mfa_user"]},
+                {"type": "sAMAccountName", "vals": ["Test"]},
+                {"type": "mail", "vals": [test_user_email]},
+                {"type": "userPrincipalName", "vals": [test_user_email]},
+                {"type": "displayName", "vals": ["MFA User"]},
                 {
                     "type": "memberOf",
                     "vals": [
@@ -115,10 +86,7 @@ async def adding_mfa_user_and_group(
                         "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
-                {
-                    "type": "userAccountControl",
-                    "vals": ["512"],
-                },
+                {"type": "userAccountControl", "vals": ["512"]},
                 {
                     "type": "objectClass",
                     "vals": ["organization", "top", "user"],
@@ -133,17 +101,12 @@ async def adding_mfa_user_and_group(
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
     auth = await unbound_http_client.post(
-        "auth/",
-        data={
-            "username": test_user_email,
-            "password": user_password,
-        },
+        "auth/", data={"username": test_user_email, "password": user_password}
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert auth.cookies.get("id")
 
     return ProxyRequestModel(
-        principal=test_user_email,
-        ip="127.0.0.1",
+        principal=test_user_email, ip="127.0.0.1"
     ).model_dump()

@@ -55,8 +55,7 @@ async def create_access_policy(
     """
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
-        column=Directory.path[1:len(path)],
-        path=path,
+        column=Directory.path[1 : len(path)], path=path
     )
 
     directories = await session.scalars(select(Directory).where(dir_filter))
@@ -91,7 +90,7 @@ def mutate_ap(
     if action == "read":
         user_path = get_search_path(user.dn)
         get_upper_tree_elem = text(
-            '(:path)[1:"Directory"."depth"]',
+            '(:path)[1:"Directory"."depth"]'
         ).bindparams(bindparam("path", value=user_path, type_=ARRAY(String)))
 
         ap_filter = or_(

@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, HTTPException
@@ -42,10 +43,7 @@ async def create_record(
 ) -> None:
     """Create DNS record with given params."""
     await dns_manager.create_record(
-        data.record_name,
-        data.record_value,
-        data.record_type,
-        data.ttl,
+        data.record_name, data.record_value, data.record_type, data.ttl
     )
 
 
@@ -56,9 +54,7 @@ async def delete_single_record(
 ) -> None:
     """Delete DNS record with given params."""
     await dns_manager.delete_record(
-        data.record_name,
-        data.record_value,
-        data.record_type,
+        data.record_name, data.record_value, data.record_type
     )
 
 
@@ -69,10 +65,7 @@ async def update_record(
 ) -> None:
     """Update DNS record with given params."""
     await dns_manager.update_record(
-        data.record_name,
-        data.record_value,
-        data.record_type,
-        data.ttl,
+        data.record_name, data.record_value, data.record_type, data.ttl
     )
 
 
@@ -119,7 +112,7 @@ async def setup_dns(
         zone_file = await zone_file_template.render_async(domain=data.domain)
 
         tmpl = settings.TEMPLATES.get_template(
-            "named_conf_local_zone_part.template",
+            "named_conf_local_zone_part.template"
         )
         conf_part = await tmpl.render_async(domain=data.domain)
 

@@ -43,9 +43,7 @@ from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
 
 krb5_router = APIRouter(
-    prefix="/kerberos",
-    tags=["KRB5 API"],
-    route_class=DishkaRoute,
+    prefix="/kerberos", tags=["KRB5 API"], route_class=DishkaRoute
 )
 KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 
@@ -207,22 +205,27 @@ async def setup_kdc(
         )
     except KRBAPIError as err:
         direstories = await session.scalars(
-            select(Directory)
-            .where(or_(
-                get_filter_from_path(krbadmin),
-                get_filter_from_path(services_container),
-                get_filter_from_path(krbgroup),
-            )))
+            select(Directory).where(
+                or_(
+                    get_filter_from_path(krbadmin),
+                    get_filter_from_path(services_container),
+                    get_filter_from_path(krbgroup),
+                )
+            )
+        )
 
         if direstories:
             await session.execute(
-                delete(Directory)
-                .where(Directory.id.in_(
-                    [directory.id for directory in direstories])),
+                delete(Directory).where(
+                    Directory.id.in_(
+                        [directory.id for directory in direstories]
+                    )
+                )
             )
         await session.execute(
-            delete(AccessPolicy)
-            .where(AccessPolicy.name == KERBEROS_POLICY_NAME),
+            delete(AccessPolicy).where(
+                AccessPolicy.name == KERBEROS_POLICY_NAME
+            )
         )
         await kadmin.reset_setup()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
@@ -234,15 +237,13 @@ async def setup_kdc(
 
 LIMITED_STR = Annotated[str, Len(min_length=1, max_length=8100)]
 LIMITED_LIST = Annotated[
-    list[LIMITED_STR],
-    Len(min_length=1, max_length=10000),
+    list[LIMITED_STR], Len(min_length=1, max_length=10000)
 ]
 
 
 @krb5_router.post("/ktadd", dependencies=[Depends(get_current_user)])
 async def ktadd(
-    kadmin: FromDishka[AbstractKadmin],
-    names: Annotated[LIMITED_LIST, Body()],
+    kadmin: FromDishka[AbstractKadmin], names: Annotated[LIMITED_LIST, Body()]
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 
@@ -264,8 +265,7 @@ async def ktadd(
 
 @krb5_router.get("/status", dependencies=[Depends(get_current_user)])
 async def get_krb_status(
-    session: FromDishka[AsyncSession],
-    kadmin: FromDishka[AbstractKadmin],
+    session: FromDishka[AsyncSession], kadmin: FromDishka[AbstractKadmin]
 ) -> KerberosState:
     """Get server status.
 
@@ -305,7 +305,8 @@ async def add_principal(
 
 
 @krb5_router.patch(
-    "/principal/rename", dependencies=[Depends(get_current_user)])
+    "/principal/rename", dependencies=[Depends(get_current_user)]
+)
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
     principal_new_name: Annotated[LIMITED_STR, Body()],
@@ -326,7 +327,8 @@ async def rename_principal(
 
 
 @krb5_router.patch(
-    "/principal/reset", dependencies=[Depends(get_current_user)])
+    "/principal/reset", dependencies=[Depends(get_current_user)]
+)
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
     new_password: Annotated[LIMITED_STR, Body()],
@@ -347,7 +349,8 @@ async def reset_principal_pw(
 
 
 @krb5_router.delete(
-    "/principal/delete", dependencies=[Depends(get_current_user)])
+    "/principal/delete", dependencies=[Depends(get_current_user)]
+)
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
     kadmin: FromDishka[AbstractKadmin],

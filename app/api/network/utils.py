@@ -22,7 +22,7 @@ async def check_policy_count(session: AsyncSession) -> None:
             select(func.count())
             .select_from(NetworkPolicy)
             .filter_by(enabled=True)
-        ),
+        )
     )
 
     if count.one() == 1:

@@ -31,9 +31,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """
         password = getattr(user, "password", None)
         if password is not None:
-            return verify_password(
-                self.password.get_secret_value(), password,
-            )
+            return verify_password(self.password.get_secret_value(), password)
         return False
 
     def is_anonymous(self) -> bool:
@@ -48,9 +46,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """Get auth from data."""
         _, username, password = data[1].value.split("\\x00")
         return cls(
-            credentials=data[1].value,
-            username=username,
-            password=password,
+            credentials=data[1].value, username=username, password=password
         )
 
     async def get_user(self, session: AsyncSession, _: str) -> User:

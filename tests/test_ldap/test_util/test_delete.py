@@ -21,27 +21,38 @@ from tests.conftest import TestCreds
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_delete(
-        session: AsyncSession, settings: Settings, user: dict) -> None:
+    session: AsyncSession, settings: Settings, user: dict
+) -> None:
     """Test ldapdelete on server."""
     dn = "cn=test,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write((
-            f"dn: {dn}\n"
-            "name: test\n"
-            "cn: test\n"
-            "objectClass: organization\n"
-            "objectClass: top\n"
-            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-        ))
+        file.write(
+            (
+                f"dn: {dn}\n"
+                "name: test\n"
+                "cn: test\n"
+                "objectClass: organization\n"
+                "objectClass: top\n"
+                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+            )
+        )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapadd",
-            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-            "-D", user["sam_accout_name"], "-x", "-w", user["password"],
-            "-f", file.name,
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_accout_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE)
+            stderr=asyncio.subprocess.PIPE,
+        )
 
         assert await proc.wait() == 0
 
@@ -49,52 +60,75 @@ async def test_ldap_delete(
 
     proc = await asyncio.create_subprocess_exec(
         "ldapdelete",
-        "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", user["sam_accout_name"], "-x", "-w", user["password"],
+        "-vvv",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        user["sam_accout_name"],
+        "-x",
+        "-w",
+        user["password"],
         dn,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     assert await proc.wait() == 0
-    assert not await session.scalar(
-        select(Directory).filter_by(name="test"),
-    )
+    assert not await session.scalar(select(Directory).filter_by(name="test"))
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_delete_w_access_control(
-        session: AsyncSession, settings: Settings, creds: TestCreds) -> None:
+    session: AsyncSession, settings: Settings, creds: TestCreds
+) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write((
-            f"dn: {dn}\n"
-            "name: test\n"
-            "cn: test\n"
-            "objectClass: organization\n"
-            "objectClass: top\n"
-        ))
+        file.write(
+            (
+                f"dn: {dn}\n"
+                "name: test\n"
+                "cn: test\n"
+                "objectClass: organization\n"
+                "objectClass: top\n"
+            )
+        )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(  # Add as Admin
             "ldapadd",
-            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-            "-D", creds.un, "-x", "-w", creds.pw,
-            "-f", file.name,
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            creds.un,
+            "-x",
+            "-w",
+            creds.pw,
+            "-f",
+            file.name,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE)
+            stderr=asyncio.subprocess.PIPE,
+        )
 
         assert await proc.wait() == LDAPCodes.SUCCESS
 
     async def try_delete() -> int:
         proc = await asyncio.create_subprocess_exec(
             "ldapdelete",
-            "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-            "-D", "user_non_admin", "-x", "-w", creds.pw,
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            "user_non_admin",
+            "-x",
+            "-w",
+            creds.pw,
             dn,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE)
+            stderr=asyncio.subprocess.PIPE,
+        )
 
         return await proc.wait()
 
@@ -128,12 +162,20 @@ async def test_ldap_delete_w_access_control(
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", "user_non_admin",
-        "-w", creds.pw,
-        "-b", "dc=md,dc=test", "objectclass=*",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        "user_non_admin",
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")

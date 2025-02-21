@@ -137,9 +137,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
 
     """
     directory_hierarchy = (
-        select(
-            Directory.id.label("directory_id"), Group.id.label("group_id"),
-        )
+        select(Directory.id.label("directory_id"), Group.id.label("group_id"))
         .select_from(Directory)
         .join(Directory.group, isouter=True)
         .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
@@ -161,7 +159,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
 
 
 async def get_members_root_group(
-    dn: str, session: AsyncSession,
+    dn: str, session: AsyncSession
 ) -> list[Directory]:
     """Get all members root group by dn.
 
@@ -186,7 +184,7 @@ async def get_members_root_group(
     root_group_id = group_ids[-1]
 
     directory = await session.scalar(
-        select(Directory).where(Directory.id == root_group_id),
+        select(Directory).where(Directory.id == root_group_id)
     )
 
     if not directory:
@@ -199,14 +197,9 @@ async def get_members_root_group(
     if not directories_ids:
         return []
 
-    query = (
-        select(Directory).where(
-            or_(
-                *[
-                    Directory.id == directory_id
-                    for directory_id in directories_ids
-                ],
-            ),
+    query = select(Directory).where(
+        or_(
+            *[Directory.id == directory_id for directory_id in directories_ids]
         )
     )
 
@@ -216,8 +209,7 @@ async def get_members_root_group(
 
 
 async def get_all_parent_group_directories(
-    groups: list[Group],
-    session: AsyncSession,
+    groups: list[Group], session: AsyncSession
 ) -> AsyncScalarResult | None:
     """Get all parent groups directory.
 

@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -16,8 +17,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 async def test_api_correct_delete(http_client: AsyncClient) -> None:
     """Test API for delete object."""
     response = await http_client.request(
-        "delete", "/entry/delete",
-        json={"entry": "cn=test,dc=md,dc=test"},
+        "delete", "/entry/delete", json={"entry": "cn=test,dc=md,dc=test"}
     )
 
     data = response.json()
@@ -33,11 +33,7 @@ async def test_api_correct_delete(http_client: AsyncClient) -> None:
 async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for delete object with incorrect DN."""
     response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={
-            "entry": "cn!=test,dc=md,dc=test",
-        },
+        "delete", "/entry/delete", json={"entry": "cn!=test,dc=md,dc=test"}
     )
 
     data = response.json()
@@ -50,15 +46,12 @@ async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_delete_non_exist_object(
-        http_client: AsyncClient) -> None:
+async def test_api_delete_non_exist_object(http_client: AsyncClient) -> None:
     """Test API for delete non-existen object."""
     response = await http_client.request(
         "delete",
         "/entry/delete",
-        json={
-            "entry": "cn=non-exist-object,dc=md,dc=test",
-        },
+        json={"entry": "cn=non-exist-object,dc=md,dc=test"},
     )
 
     data = response.json()
