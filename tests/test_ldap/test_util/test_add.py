@@ -64,13 +64,12 @@ async def test_ldap_root_add(
 
     assert result == 0
 
-    new_dir = (
-        await session.scalars(
-            select(Directory)
-            .options(subqueryload(Directory.attributes))
-            .filter(Directory.path == search_path)
-        )
-    ).one()
+    new_dir_query = (
+        select(Directory)
+        .options(subqueryload(Directory.attributes))
+        .filter(Directory.path == search_path)
+    )
+    new_dir = (await session.scalars(new_dir_query)).one()
 
     assert new_dir.name == "test"
 
@@ -133,13 +132,12 @@ async def test_ldap_user_add_with_group(
         .selectinload(Group.directory)
     )
 
-    new_dir = (
-        await session.scalars(
-            select(Directory)
-            .options(subqueryload(Directory.attributes), membership)
-            .filter(Directory.path == user_search_path)
-        )
-    ).one()
+    new_dir_query = (
+        select(Directory)
+        .options(subqueryload(Directory.attributes), membership)
+        .filter(Directory.path == user_search_path)
+    )
+    new_dir = (await session.scalars(new_dir_query)).one()
 
     assert new_dir.name == "test"
 
@@ -196,13 +194,12 @@ async def test_ldap_user_add_group_with_group(
         .selectinload(Group.directory)
     )
 
-    new_dir = (
-        await session.scalars(
-            select(Directory)
-            .options(membership)
-            .filter(Directory.path == child_group_search_path)
-        )
-    ).one()
+    new_dir_query = (
+        select(Directory)
+        .options(membership)
+        .filter(Directory.path == child_group_search_path)
+    )
+    new_dir = (await session.scalars(new_dir_query)).one()
 
     assert new_dir.name == "twisted"
 

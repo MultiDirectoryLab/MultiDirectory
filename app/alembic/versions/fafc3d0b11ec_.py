@@ -37,15 +37,11 @@ def upgrade() -> None:
             return
 
         try:
-            group_dir = (
-                await session.scalars(
-                    select(
-                        exists(Directory).where(
-                            Directory.name == "readonly domain controllers"
-                        )
-                    ),
-                )
-            ).one()
+            group_dir_query = select(
+                exists(Directory)
+                .where(Directory.name == "readonly domain controllers")
+            )  # fmt: skip
+            group_dir = (await session.scalars(group_dir_query)).one()
 
             if not group_dir:
                 dir_, _ = await create_group(
@@ -56,17 +52,13 @@ def upgrade() -> None:
         except (IntegrityError, DBAPIError):
             pass
 
-        has_ro_access_policy = (
-            await session.scalars(
-                select(
-                    exists(AccessPolicy).where(
-                        AccessPolicy.name == "ReadOnly Access Policy"
-                    )
-                ),
-            )
-        ).one()
+        ro_access_policy_q = select(
+            exists(AccessPolicy)
+            .where(AccessPolicy.name == "ReadOnly Access Policy")
+        )  # fmt: skip
+        ro_access_policy = (await session.scalars(ro_access_policy_q)).one()
 
-        if not has_ro_access_policy:
+        if not ro_access_policy:
             await create_access_policy(
                 name="ReadOnly Access Policy",
                 can_add=False,

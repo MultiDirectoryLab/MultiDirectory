@@ -174,13 +174,12 @@ async def test_bind_policy_missing_group(
 
     assert policy
 
-    user = (
-        await session.scalars(
-            select(User)
-            .filter_by(display_name="user0")
-            .options(selectinload(User.groups))
-        )
-    ).one()
+    user_query = (
+        select(User)
+        .filter_by(display_name="user0")
+        .options(selectinload(User.groups))
+    )
+    user = (await session.scalars(user_query)).one()
 
     policy.groups = await get_groups(
         ["cn=domain admins,cn=groups,dc=md,dc=test"],

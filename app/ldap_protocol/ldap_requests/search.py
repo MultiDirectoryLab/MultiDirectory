@@ -161,11 +161,11 @@ class SearchRequest(BaseRequest):
         :return defaultdict[str, list[str]]: queried attrs
         """
         data = defaultdict(list)
-        domain = (
-            await session.scalars(
-                select(Directory).where(Directory.object_class == "domain"),
-            )
-        ).one()
+        domain_query = (
+            select(Directory)
+            .where(Directory.object_class == "domain")
+        )  # fmt: skip
+        domain = (await session.scalars(domain_query)).one()
 
         schema = "CN=Schema"
         if self.requested_attrs == ["subschemasubentry"]:

@@ -357,11 +357,11 @@ async def first_setup(
 
             await default_pwd_policy.create_policy_settings(session, kadmin)
 
-            domain = (
-                await session.scalars(
-                    select(Directory).filter(Directory.parent_id.is_(None)),
-                )
-            ).one()
+            domain_query = (
+                select(Directory)
+                .filter(Directory.parent_id.is_(None))
+            )  # fmt:skip
+            domain = (await session.scalars(domain_query)).one()
 
             await create_access_policy(
                 name="Root Access Policy",
