@@ -138,7 +138,8 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     """
     directory_hierarchy = (
         select(
-            Directory.id.label("directory_id"), Group.id.label("group_id"),
+            Directory.id.label("directory_id"),
+            Group.id.label("group_id"),
         )
         .select_from(Directory)
         .join(Directory.group, isouter=True)
@@ -161,7 +162,8 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
 
 
 async def get_members_root_group(
-    dn: str, session: AsyncSession,
+    dn: str,
+    session: AsyncSession,
 ) -> list[Directory]:
     """Get all members root group by dn.
 
@@ -186,29 +188,28 @@ async def get_members_root_group(
     root_group_id = group_ids[-1]
 
     directory = await session.scalar(
-        select(Directory).where(Directory.id == root_group_id),
-    )
+        select(Directory)
+        .where(Directory.id == root_group_id)
+    )  # fmt: skip
 
     if not directory:
         raise RuntimeError
 
     cte = find_members_recursive_cte(directory.path_dn)
     result = await session.scalars(select(cte.c.directory_id))
-    directories_ids = result.all()
+    dir_ids = result.all()
 
-    if not directories_ids:
+    if not dir_ids:
         return []
 
     query = (
-        select(Directory).where(
+        select(Directory)
+        .where(
             or_(
-                *[
-                    Directory.id == directory_id
-                    for directory_id in directories_ids
-                ],
-            ),
+                *[Directory.id == dir_id for dir_id in dir_ids],
+            )
         )
-    )
+    )  # fmt: skip
 
     retval = await session.scalars(query)
 

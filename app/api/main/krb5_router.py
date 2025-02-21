@@ -206,24 +206,28 @@ async def setup_kdc(
             ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
     except KRBAPIError as err:
-        direstories = await session.scalars(
+        direstories_query = (
             select(Directory)
-            .where(or_(
-                get_filter_from_path(krbadmin),
-                get_filter_from_path(services_container),
-                get_filter_from_path(krbgroup),
-            )))
+            .where(
+                or_(
+                    get_filter_from_path(krbadmin),
+                    get_filter_from_path(services_container),
+                    get_filter_from_path(krbgroup),
+                )
+            )
+        )  # fmt: skip
+        direstories = await session.scalars(direstories_query)
 
         if direstories:
             await session.execute(
                 delete(Directory)
-                .where(Directory.id.in_(
-                    [directory.id for directory in direstories])),
-            )
+                .where(Directory.id.in_([dir_.id for dir_ in direstories]))
+            )  # fmt: skip
+
         await session.execute(
             delete(AccessPolicy)
-            .where(AccessPolicy.name == KERBEROS_POLICY_NAME),
-        )
+            .where(AccessPolicy.name == KERBEROS_POLICY_NAME)
+        )  # fmt: skip
         await kadmin.reset_setup()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
     else:
@@ -305,7 +309,9 @@ async def add_principal(
 
 
 @krb5_router.patch(
-    "/principal/rename", dependencies=[Depends(get_current_user)])
+    "/principal/rename",
+    dependencies=[Depends(get_current_user)],
+)
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
     principal_new_name: Annotated[LIMITED_STR, Body()],
@@ -326,7 +332,9 @@ async def rename_principal(
 
 
 @krb5_router.patch(
-    "/principal/reset", dependencies=[Depends(get_current_user)])
+    "/principal/reset",
+    dependencies=[Depends(get_current_user)],
+)
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
     new_password: Annotated[LIMITED_STR, Body()],
@@ -347,7 +355,9 @@ async def reset_principal_pw(
 
 
 @krb5_router.delete(
-    "/principal/delete", dependencies=[Depends(get_current_user)])
+    "/principal/delete",
+    dependencies=[Depends(get_current_user)],
+)
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
     kadmin: FromDishka[AbstractKadmin],

@@ -55,7 +55,7 @@ async def create_access_policy(
     """
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
-        column=Directory.path[1:len(path)],
+        column=Directory.path[1 : len(path)],
         path=path,
     )
 

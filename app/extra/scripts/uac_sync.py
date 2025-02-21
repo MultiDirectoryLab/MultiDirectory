@@ -16,7 +16,9 @@ from models import Attribute, User
 
 
 async def disable_accounts(
-    session: AsyncSession, kadmin: AbstractKadmin, settings: Settings,
+    session: AsyncSession,
+    kadmin: AbstractKadmin,
+    settings: Settings,
 ) -> None:
     """Update userAccountControl attr.
 
@@ -65,8 +67,9 @@ async def disable_accounts(
     )
 
     users = await session.stream_scalars(
-        select(User).where(User.directory_id.in_(ids)),
-    )
+        select(User)
+        .where(User.directory_id.in_(ids))
+    )  # fmt: skip
 
     async for user in users:
         await kadmin.lock_principal(user.get_upn_prefix())

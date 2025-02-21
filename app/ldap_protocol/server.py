@@ -159,7 +159,8 @@ class PoolClientHandler:
             "certificates for public domains. "
             "Try deleting and recreating the `acme.json` file, "
             "or consider using a self-signed certificate "
-            "for local environments or closed networks.")
+            "for local environments or closed networks."
+        )
 
         if not os.path.exists("/certs/acme.json"):
             log.critical("Cannot load ACME file for MultiDirectory")
@@ -212,7 +213,7 @@ class PoolClientHandler:
             if len(data) >= bytes_length + 2:
                 value_length = 0
                 cont = bytes_length
-                for byte in data[2:2 + bytes_length]:
+                for byte in data[2 : 2 + bytes_length]:
                     cont -= 1
                     value_length += byte * (256**cont)
                 return value_length + 2 + bytes_length
@@ -310,7 +311,9 @@ class PoolClientHandler:
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(
-        self, writer: asyncio.StreamWriter, container: AsyncContainer,
+        self,
+        writer: asyncio.StreamWriter,
+        container: AsyncContainer,
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
@@ -345,7 +348,10 @@ class PoolClientHandler:
                 raise RuntimeError(err) from err
 
     async def _wrap_response(
-        self, data: bytes, ldap_session: LDAPSession, protocol_op: int,
+        self,
+        data: bytes,
+        ldap_session: LDAPSession,
+        protocol_op: int,
     ) -> bytes:
         """Wrap response with GSSAPI security layer if needed.
 
@@ -362,16 +368,12 @@ class PoolClientHandler:
             GSSAPISL.INTEGRITY_PROTECTION,
             GSSAPISL.CONFIDENTIALITY,
         ):
-            encrypt = (
-                ldap_session.gssapi_security_layer == (
-                    GSSAPISL.CONFIDENTIALITY
-                )
+            encrypt = ldap_session.gssapi_security_layer == (
+                GSSAPISL.CONFIDENTIALITY
             )
-            wrap_data = (
-                ldap_session.gssapi_security_context.wrap(
-                    data,
-                    encrypt=encrypt,
-                )
+            wrap_data = ldap_session.gssapi_security_context.wrap(
+                data,
+                encrypt=encrypt,
             )
             sasl_buffer_length = len(wrap_data.message).to_bytes(4, "big")
 

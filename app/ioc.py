@@ -82,7 +82,8 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_krb_class(
-        self, session_maker: async_sessionmaker[AsyncSession],
+        self,
+        session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractKadmin]:
         """Get kerberos type."""
         async with session_maker() as session:
@@ -129,7 +130,8 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.SESSION)
     async def get_dns_mngr_class(
-        self, session_maker: async_sessionmaker[AsyncSession],
+        self,
+        session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
         async with session_maker() as session:
@@ -137,7 +139,8 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_settings(
-        self, session_maker: async_sessionmaker[AsyncSession],
+        self,
+        session_maker: async_sessionmaker[AsyncSession],
         settings: Settings,
     ) -> DNSManagerSettings:
         """Get DNS manager's settings."""
@@ -156,7 +159,9 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
-            self, settings: Settings) -> AsyncIterator[SessionStorageClient]:
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[SessionStorageClient]:
         """Get redis connection."""
         client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
 
@@ -168,14 +173,16 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_session_storage(
-        self, client: SessionStorageClient,
+        self,
+        client: SessionStorageClient,
         settings: Settings,
     ) -> SessionStorage:
         """Get session storage."""
         return RedisSessionStorage(
             client,
             settings.SESSION_KEY_LENGTH,
-            settings.SESSION_KEY_EXPIRE_SECONDS)
+            settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
 
 
 class HTTPProvider(Provider):
@@ -231,7 +238,8 @@ class MFAProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_client(
-        self, settings: Settings,
+        self,
+        settings: Settings,
     ) -> AsyncIterator[MFAHTTPClient]:
         """Get async client for DI."""
         async with httpx.AsyncClient(

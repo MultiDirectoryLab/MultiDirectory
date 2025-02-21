@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -194,7 +195,8 @@ async def test_api_modify_non_exist_object(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_correct_modify_replace_memberof(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test API for modify object attribute."""
     user = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     new_group = "cn=domain admins,cn=groups,dc=md,dc=test"
@@ -249,7 +251,8 @@ async def test_api_correct_modify_replace_memberof(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_add_loop_detect_member(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -276,7 +279,8 @@ async def test_api_modify_add_loop_detect_member(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_add_loop_detect_memberof(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -303,7 +307,8 @@ async def test_api_modify_add_loop_detect_memberof(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_replace_loop_detect_member(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -316,7 +321,7 @@ async def test_api_modify_replace_loop_detect_member(
                         "type": "member",
                         "vals": [
                             "cn=user0,ou=users,dc=md,dc=test",
-                            'cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test',  # noqa
+                            "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
                         ],
                     },
                 },
@@ -333,7 +338,8 @@ async def test_api_modify_replace_loop_detect_member(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_replace_loop_detect_memberof(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",

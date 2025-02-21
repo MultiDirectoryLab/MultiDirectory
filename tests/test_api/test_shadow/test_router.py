@@ -57,8 +57,7 @@ async def test_shadow_api_without_kerberos_protocol(
 ) -> None:
     """Test shadow api without network policy with kerberos protocol."""
     await session.execute(
-        update(NetworkPolicy)
-        .values({NetworkPolicy.is_kerberos: False}),
+        update(NetworkPolicy).values({NetworkPolicy.is_kerberos: False}),
     )
 
     response = await http_client.post(
@@ -93,8 +92,9 @@ async def test_shadow_api_whitelist_without_user_group(
 ) -> None:
     """Test shadow api whitelist without user group."""
     await session.execute(
-        update(NetworkPolicy)
-        .values({NetworkPolicy.mfa_status: MFAFlags.WHITELIST}),
+        update(NetworkPolicy).values(
+            {NetworkPolicy.mfa_status: MFAFlags.WHITELIST}
+        ),
     )
 
     response = await http_client.post(
@@ -114,8 +114,9 @@ async def test_shadow_api_enable_mfa(
 ) -> None:
     """Test shadow api enable mfa."""
     await session.execute(
-        update(NetworkPolicy)
-        .values({NetworkPolicy.mfa_status: MFAFlags.ENABLED}),
+        update(NetworkPolicy).values(
+            {NetworkPolicy.mfa_status: MFAFlags.ENABLED}
+        ),
     )
 
     response = await http_client.post(

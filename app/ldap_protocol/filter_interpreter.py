@@ -99,8 +99,7 @@ def _recursive_filter_memberof(dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute(recursive)."""
     cte = find_members_recursive_cte(dn)
 
-    return Directory.id.in_(
-        select(cte.c.directory_id).offset(1))  # type: ignore
+    return Directory.id.in_(select(cte.c.directory_id).offset(1))  # type: ignore
 
 
 def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
@@ -199,7 +198,9 @@ def cast_filter2sql(expr: ASN1Row) -> UnaryExpression | ColumnElement:
 
 
 def _from_str_filter(
-    model: type, is_substring: bool, item: Filter,
+    model: type,
+    is_substring: bool,
+    item: Filter,
 ) -> UnaryExpression:
     col = getattr(model, item.attr)
 

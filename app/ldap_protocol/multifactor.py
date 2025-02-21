@@ -60,8 +60,10 @@ async def get_creds(
 
     :return tuple[str, str]: api key and secret
     """
-    query = select(CatalogueSetting).where(
-        CatalogueSetting.name.in_([key_name, secret_name]))
+    query = (
+        select(CatalogueSetting)
+        .where(CatalogueSetting.name.in_([key_name, secret_name]))
+    )  # fmt: skip
 
     vals = await session.scalars(query)
     secrets = {s.name: s.value for s in vals.all()}
@@ -202,7 +204,10 @@ class MultifactorAPI:
 
     @log_mfa.catch(reraise=True)
     async def get_create_mfa(
-        self, username: str, callback_url: str, uid: int,
+        self,
+        username: str,
+        callback_url: str,
+        uid: int,
     ) -> str:
         """Create mfa link.
 

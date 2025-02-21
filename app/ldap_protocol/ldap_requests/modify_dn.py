@@ -65,7 +65,7 @@ class ModifyDNRequest(BaseRequest):
         deleteoldrdn=true
         new_superior='ou=users,dc=multifactor,dc=dev'
 
-        >>> cn=main2,ou=users,dc=multifactor,dc=dev
+        >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
     PROTOCOL_OP: ClassVar[int] = 12
@@ -190,7 +190,6 @@ class ModifyDNRequest(BaseRequest):
             return
 
         async with session.begin_nested():
-
             await session.execute(
                 update(Directory)
                 .where(Directory.parent == directory)
@@ -234,7 +233,7 @@ class ModifyDNRequest(BaseRequest):
                 .where(
                     get_path_filter(
                         directory.path,
-                        column=Directory.path[1:directory.depth],
+                        column=Directory.path[1 : directory.depth],
                     ),
                 )
                 .values(

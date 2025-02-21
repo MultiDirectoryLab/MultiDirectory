@@ -32,7 +32,8 @@ class SaslPLAINAuthentication(SaslAuthentication):
         password = getattr(user, "password", None)
         if password is not None:
             return verify_password(
-                self.password.get_secret_value(), password,
+                self.password.get_secret_value(),
+                password,
             )
         return False
 

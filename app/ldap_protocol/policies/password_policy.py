@@ -25,7 +25,8 @@ with open("extra/common_pwds.txt") as f:
 
 
 async def post_save_password_actions(
-    user: User, session: AsyncSession,
+    user: User,
+    session: AsyncSession,
 ) -> None:
     """Post save actions for password update.
 
@@ -59,7 +60,9 @@ class PasswordPolicySchema(BaseModel):
     """PasswordPolicy schema."""
 
     name: str = Field(
-        "Default domain password policy", min_length=3, max_length=255,
+        "Default domain password policy",
+        min_length=3,
+        max_length=255,
     )
     password_history_length: int = Field(4, ge=0, le=24)
     maximum_password_age_days: int = Field(0, ge=0, le=999)
@@ -77,7 +80,9 @@ class PasswordPolicySchema(BaseModel):
         return self
 
     async def create_policy_settings(
-        self, session: AsyncSession, kadmin: AbstractKadmin,
+        self,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
     ) -> Self:
         """Create policies settings.
 
@@ -99,7 +104,9 @@ class PasswordPolicySchema(BaseModel):
 
     @classmethod
     async def get_policy_settings(
-        cls, session: AsyncSession, kadmin: AbstractKadmin,
+        cls,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
     ) -> "PasswordPolicySchema":
         """Get policy settings.
 
@@ -112,7 +119,9 @@ class PasswordPolicySchema(BaseModel):
         return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(
-        self, session: AsyncSession, kadmin: AbstractKadmin,
+        self,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
     ) -> None:
         """Update policy.
 
@@ -131,7 +140,9 @@ class PasswordPolicySchema(BaseModel):
 
     @classmethod
     async def delete_policy_settings(
-        cls, session: AsyncSession, kadmin: AbstractKadmin,
+        cls,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
     ) -> "PasswordPolicySchema":
         """Reset (delete) default policy.
 
@@ -162,7 +173,8 @@ class PasswordPolicySchema(BaseModel):
 
     @staticmethod
     async def get_pwd_last_set(
-        session: AsyncSession, directory_id: int,
+        session: AsyncSession,
+        directory_id: int,
     ) -> Attribute:
         """Get pwdLastSet.
 
@@ -171,14 +183,17 @@ class PasswordPolicySchema(BaseModel):
         :return Attribute: pwdLastSet
         """
         plset = await session.scalar(
-            select(Attribute).where(
+            select(Attribute)
+            .where(
                 Attribute.directory_id == directory_id,
                 Attribute.name == "pwdLastSet",
             ),
-        )
+        )  # fmt: skip
         if not plset:
             plset = Attribute(
-                directory_id=directory_id, name="pwdLastSet", value=ft_now(),
+                directory_id=directory_id,
+                name="pwdLastSet",
+                value=ft_now(),
             )
 
             session.add(plset)
@@ -237,7 +252,8 @@ class PasswordPolicySchema(BaseModel):
 
         if user is not None:
             history = islice(
-                reversed(user.password_history), self.password_history_length,
+                reversed(user.password_history),
+                self.password_history_length,
             )
 
         for pwd_hash in history:

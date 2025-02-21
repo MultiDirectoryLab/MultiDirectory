@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import uuid
 
 import pytest
@@ -40,23 +41,30 @@ async def test_api_root_dse(http_client: AsyncClient) -> None:
     aquired_attrs = [attr["type"] for attr in attrs]
 
     root_attrs = [
-        "LDAPServiceName", "currentTime",
-        "defaultNamingContext", "dnsHostName",
-        "domainFunctionality", "dsServiceName",
-        "highestCommittedUSN", "namingContexts",
-        "rootDomainNamingContext", "vendorVersion",
-        "schemaNamingContext", "serverName",
-        "serviceName", "subschemaSubentry",
-        "supportedCapabilities", "supportedControl",
-        "supportedLDAPPolicies", "supportedLDAPVersion",
-        "supportedSASLMechanisms", "vendorName",
+        "LDAPServiceName",
+        "currentTime",
+        "defaultNamingContext",
+        "dnsHostName",
+        "domainFunctionality",
+        "dsServiceName",
+        "highestCommittedUSN",
+        "namingContexts",
+        "rootDomainNamingContext",
+        "vendorVersion",
+        "schemaNamingContext",
+        "serverName",
+        "serviceName",
+        "subschemaSubentry",
+        "supportedCapabilities",
+        "supportedControl",
+        "supportedLDAPPolicies",
+        "supportedLDAPVersion",
+        "supportedSASLMechanisms",
+        "vendorName",
     ]
 
     assert data["search_result"][0]["object_name"] == ""
-    assert all(
-        attr in aquired_attrs
-        for attr in root_attrs
-    )
+    assert all(attr in aquired_attrs for attr in root_attrs)
 
 
 @pytest.mark.asyncio
@@ -87,8 +95,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
         "ou=users,dc=md,dc=test",
     ]
     assert all(
-        obj["object_name"] in sub_dirs
-        for obj in response["search_result"]
+        obj["object_name"] in sub_dirs for obj in response["search_result"]
     )
 
 
@@ -193,8 +200,9 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     )
     data = raw_response.json()
 
-    assert data["search_result"][0]["object_name"] == entry_dn, \
+    assert data["search_result"][0]["object_name"] == entry_dn, (
         "User with required objectGUID not found"
+    )
 
 
 @pytest.mark.asyncio
@@ -261,10 +269,7 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     )
     data = response.json()
     assert len(data["search_result"]) == len(members)
-    assert all(
-        obj["object_name"] in members
-        for obj in data["search_result"]
-    )
+    assert all(obj["object_name"] in members for obj in data["search_result"])
 
 
 @pytest.mark.asyncio

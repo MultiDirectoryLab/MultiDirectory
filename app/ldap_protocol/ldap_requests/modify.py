@@ -234,8 +234,7 @@ class ModifyRequest(BaseRequest):
         name = change.modification.type.lower()
 
         if name == "memberof":
-            groups = await get_groups(
-                change.modification.vals, session)  # type: ignore
+            groups = await get_groups(change.modification.vals, session)  # type: ignore
 
             if not change.modification.vals:
                 directory.groups.clear()
@@ -250,8 +249,7 @@ class ModifyRequest(BaseRequest):
             return
 
         if name == "member":
-            members = await get_directories(
-                change.modification.vals, session)  # type: ignore
+            members = await get_directories(change.modification.vals, session)  # type: ignore
 
             if not change.modification.vals:
                 directory.group.members.clear()
@@ -284,9 +282,10 @@ class ModifyRequest(BaseRequest):
                     )
 
         if attrs:
-            del_query = delete(Attribute).filter(
-                Attribute.directory == directory, or_(*attrs),
-            )
+            del_query = (
+                delete(Attribute)
+                .filter(Attribute.directory == directory, or_(*attrs))
+            )  # fmt: skip
 
             await session.execute(del_query)
 
@@ -297,8 +296,7 @@ class ModifyRequest(BaseRequest):
         session: AsyncSession,
     ) -> None:
         name = change.get_name()
-        directories = await get_directories(
-            change.modification.vals, session)  # type: ignore
+        directories = await get_directories(change.modification.vals, session)  # type: ignore
 
         if name == "memberof":
             groups = [
@@ -382,7 +380,8 @@ class ModifyRequest(BaseRequest):
                     and directory.user
                 ):
                     await unlock_principal(
-                        directory.user.user_principal_name, session,
+                        directory.user.user_principal_name,
+                        session,
                     )
 
                     await session.execute(
@@ -390,8 +389,8 @@ class ModifyRequest(BaseRequest):
                         .filter(
                             Attribute.name == "nsAccountLock",
                             Attribute.directory == directory,
-                        ),
-                    )
+                        )
+                    )  # fmt: skip
 
                     await session.execute(
                         delete(Attribute)
@@ -399,7 +398,7 @@ class ModifyRequest(BaseRequest):
                             Attribute.name == "shadowExpire",
                             Attribute.directory == directory,
                         ),
-                    )
+                    )  # fmt: skip
 
             if name == "pwdlastset" and value == "0" and directory.user:
                 await kadmin.force_princ_pw_change(
@@ -477,15 +476,18 @@ class ModifyRequest(BaseRequest):
                     pass
 
                 validator = await PasswordPolicySchema.get_policy_settings(
-                    session, kadmin,
+                    session,
+                    kadmin,
                 )
 
                 p_last_set = await validator.get_pwd_last_set(
-                    session, directory.id,
+                    session,
+                    directory.id,
                 )
 
                 errors = await validator.validate_password_with_policy(
-                    value, directory.user,
+                    password=value,
+                    user=directory.user,
                 )
 
                 if validator.validate_min_age(p_last_set):
@@ -499,7 +501,8 @@ class ModifyRequest(BaseRequest):
                 directory.user.password = get_password_hash(value)
                 await post_save_password_actions(directory.user, session)
                 await kadmin.create_or_update_principal_pw(
-                    directory.user.get_upn_prefix(), value,
+                    directory.user.get_upn_prefix(),
+                    value,
                 )
 
             else:
@@ -509,6 +512,7 @@ class ModifyRequest(BaseRequest):
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory=directory,
-                    ))
+                    )
+                )
 
         session.add_all(attrs)
