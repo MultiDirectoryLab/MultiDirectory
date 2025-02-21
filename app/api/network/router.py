@@ -260,24 +260,25 @@ async def update_network_policy(
         selected_policy.netmasks = request.complete_netmasks
         selected_policy.raw = request.model_dump(mode="json")["netmasks"]
 
-    async def _update_groups(
-        policy: NetworkPolicy, new_groups: list[str] | None, attr_name: str,
-    ) -> list[str]:
-        if new_groups is not None:
-            if len(new_groups) > 0:
-                groups = await get_groups(new_groups, session)
-                setattr(policy, attr_name, groups)
-                return [group.directory.path_dn for group in groups]
-            else:
-                getattr(policy, attr_name).clear()
-        return []
+    groups_path_dn = []
+    if request.groups is not None and len(request.groups) > 0:
+        groups = await get_groups(request.groups, session)
+        selected_policy.groups = groups
 
-    request.groups = await _update_groups(
-        selected_policy, request.groups, "groups",
-    )
-    request.mfa_groups = await _update_groups(
-        selected_policy, request.mfa_groups, "mfa_groups",
-    )
+        groups_path_dn = [group.directory.path_dn for group in groups]
+
+    elif request.groups is not None and len(request.groups) == 0:
+        selected_policy.groups.clear()
+
+    mfa_groups_path_dn = []
+    if request.mfa_groups is not None and len(request.mfa_groups) > 0:
+        mfa_groups = await get_groups(request.mfa_groups, session)
+        selected_policy.mfa_groups = mfa_groups
+
+        mfa_groups_path_dn = [group.directory.path_dn for group in mfa_groups]
+
+    elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
+        selected_policy.mfa_groups.clear()
 
     try:
         await session.commit()
@@ -294,9 +295,9 @@ async def update_network_policy(
         raw=selected_policy.raw,
         enabled=selected_policy.enabled,
         priority=selected_policy.priority,
-        groups=request.groups,
+        groups=groups_path_dn,
         mfa_status=selected_policy.mfa_status,
-        mfa_groups=request.mfa_groups,
+        mfa_groups=mfa_groups_path_dn,
         is_http=selected_policy.is_http,
         is_ldap=selected_policy.is_ldap,
         is_kerberos=selected_policy.is_kerberos,
