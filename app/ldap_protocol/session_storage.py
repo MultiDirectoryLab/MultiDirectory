@@ -71,12 +71,15 @@ class SessionStorage(ABC):
 
     def get_user_agent_hash(self, user_agent: str) -> str:
         """Get user agent hash."""
-        return hashlib.blake2b(
-            user_agent.encode(), digest_size=6).hexdigest()
+        return hashlib.blake2b(user_agent.encode(), digest_size=6).hexdigest()
 
     def _get_id_hash(self, user_id: int) -> str:
-        return "keys:" + hashlib.blake2b(
-            str(user_id).encode(), digest_size=16).hexdigest()
+        return (
+            "keys:"
+            + hashlib.blake2b(
+                str(user_id).encode(), digest_size=16
+            ).hexdigest()
+        )
 
     def _generate_key(self) -> str:
         """Generate a new key for storing data in the storage.
@@ -324,7 +327,8 @@ class RedisSessionStorage(SessionStorage):
         :return str: jwt token
         """
         session_id, signature, data = self._generate_session_data(
-            uid, settings, extra_data)
+            uid, settings, extra_data
+        )
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
         await self._storage.append(self._get_id_hash(uid), f"{session_id};")
@@ -336,7 +340,8 @@ class RedisSessionStorage(SessionStorage):
         return await self._storage.exists(session_id)
 
     async def create_ldap_session(
-            self, uid: int, key: str, data: dict) -> None:
+        self, uid: int, key: str, data: dict
+    ) -> None:
         """Create ldap session.
 
         :param int uid: user id
@@ -363,9 +368,7 @@ class RedisSessionStorage(SessionStorage):
         data = await self.get(session_id)
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
-        return (
-            (datetime.now(timezone.utc) - issued).seconds > rekey_interval
-        )
+        return (datetime.now(timezone.utc) - issued).seconds > rekey_interval
 
     async def _rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
@@ -385,13 +388,14 @@ class RedisSessionStorage(SessionStorage):
         extra_data = data.copy()
         extra_data.pop("sign", None)
 
-        new_session_id, new_signature, new_data = (
-            self._generate_session_data(uid, settings, extra_data)
+        new_session_id, new_signature, new_data = self._generate_session_data(
+            uid, settings, extra_data
         )
 
         await self._storage.set(new_session_id, json.dumps(new_data), ex=ttl)
         await self._storage.append(
-            self._get_id_hash(uid), f"{new_session_id};")
+            self._get_id_hash(uid), f"{new_session_id};"
+        )
 
         await self.delete_user_session(session_id)
 
@@ -405,7 +409,8 @@ class RedisSessionStorage(SessionStorage):
         :return str: jwt token
         """
         lock = self._storage.lock(
-            self._get_lock_key(session_id), blocking_timeout=5)
+            self._get_lock_key(session_id), blocking_timeout=5
+        )
 
         async with lock:
             return await self._rekey_session(session_id, settings)
@@ -426,7 +431,8 @@ class MemSessionStorage(SessionStorage):
         return self._sessions[key]
 
     async def _set_data(
-            self, key: str, data: dict, expire: int | None) -> None:
+        self, key: str, data: dict, expire: int | None
+    ) -> None:
         """Set session data."""
         self._sessions[key] = data
 
@@ -509,7 +515,8 @@ class MemSessionStorage(SessionStorage):
         :return str: jwt token
         """
         session_id, signature, data = self._generate_session_data(
-            uid, settings, extra_data)
+            uid, settings, extra_data
+        )
 
         self._sessions[session_id] = data
         self._session_batch[self._get_id_hash(uid)].append(session_id)
@@ -521,7 +528,8 @@ class MemSessionStorage(SessionStorage):
         return session_id in self._sessions
 
     async def create_ldap_session(
-            self, uid: int, key: str, data: dict) -> None:
+        self, uid: int, key: str, data: dict
+    ) -> None:
         """Create ldap session.
 
         :param int uid: user id
@@ -543,9 +551,7 @@ class MemSessionStorage(SessionStorage):
         data = await self.get(session_id)
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
-        return (
-            (datetime.now(timezone.utc) - issued).seconds > rekey_interval
-        )
+        return (datetime.now(timezone.utc) - issued).seconds > rekey_interval
 
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.

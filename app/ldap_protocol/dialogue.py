@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -79,7 +80,9 @@ class LDAPSession:
     gssapi_security_layer: GSSAPISL
 
     def __init__(
-        self, *, user: UserSchema | None = None,
+        self,
+        *,
+        user: UserSchema | None = None,
         storage: SessionStorage | None = None,
     ) -> None:
         """Set lock."""
@@ -137,7 +140,8 @@ class LDAPSession:
         return ":".join(map(str, writer.get_extra_info("peername")))
 
     async def get_ip(
-            self, writer: asyncio.StreamWriter) -> IPv4Address | IPv6Address:
+        self, writer: asyncio.StreamWriter
+    ) -> IPv4Address | IPv6Address:
         """Get ip addr from writer."""
         addr = self.get_address(writer)
         ip = ip_address(addr.split(":")[0])
@@ -146,13 +150,16 @@ class LDAPSession:
 
     @staticmethod
     async def _get_policy(
-        ip: IPv4Address, session: AsyncSession,
+        ip: IPv4Address,
+        session: AsyncSession,
     ) -> NetworkPolicy | None:
         query = build_policy_query(ip, "is_ldap")
         return await session.scalar(query)
 
     async def validate_conn(
-        self, ip: IPv4Address | IPv6Address, session: AsyncSession,
+        self,
+        ip: IPv4Address | IPv6Address,
+        session: AsyncSession,
     ) -> None:
         """Validate network policies."""
         policy = await self._get_policy(ip, session)  # type: ignore
@@ -178,7 +185,8 @@ class LDAPSession:
 
         await self.storage.delete_user_session(self.key)
         await self.storage.create_ldap_session(
-            self.user.id, self.key, {"id": self.user.id, "ip": str(self.ip)})
+            self.user.id, self.key, {"id": self.user.id, "ip": str(self.ip)}
+        )
 
     async def disconnect(self) -> None:
         """Disconnect session."""

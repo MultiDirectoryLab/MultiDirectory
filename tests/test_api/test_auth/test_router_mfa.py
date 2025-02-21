@@ -19,8 +19,8 @@ from tests.conftest import TestCreds
 
 @pytest.mark.asyncio
 async def test_set_and_remove_mfa(
-        http_client: httpx.AsyncClient,
-        session: AsyncSession) -> None:
+    http_client: httpx.AsyncClient, session: AsyncSession
+) -> None:
     """Set mfa."""
     response = await http_client.post(
         "/multifactor/setup",
@@ -34,19 +34,23 @@ async def test_set_and_remove_mfa(
     assert response.json() is True
     assert response.status_code == 201
 
-    assert await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_key", value="123"))
-    assert await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_secret", value="123"))
+    assert await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_key", value="123")
+    )
+    assert await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_secret", value="123")
+    )
 
     response = await http_client.delete("/multifactor/keys?scope=http")
 
     assert response.status_code == 200
 
-    assert not await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_key", value="123"))
-    assert not await session.scalar(select(CatalogueSetting).filter_by(
-        name="mfa_secret", value="123"))
+    assert not await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_key", value="123")
+    )
+    assert not await session.scalar(
+        select(CatalogueSetting).filter_by(name="mfa_secret", value="123")
+    )
 
 
 @pytest.mark.asyncio
@@ -67,7 +71,8 @@ async def test_connect_mfa(
 
     response = await http_client.post(
         "/multifactor/connect",
-        data={"username": creds.un, "password": creds.pw})
+        data={"username": creds.un, "password": creds.pw},
+    )
 
     assert response.json() == {"status": "pending", "message": redirect_url}
 
@@ -81,7 +86,9 @@ async def test_connect_mfa(
 
     response = await http_client.post(
         "/multifactor/create",
-        data={"accessToken": token}, follow_redirects=False)
+        data={"accessToken": token},
+        follow_redirects=False,
+    )
 
     assert response.status_code == 302
     assert response.cookies.get("id")

@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import pytest
 from fastapi import status
 from httpx import AsyncClient
@@ -100,8 +101,10 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
 
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "userAccountControl":
-            assert int(attr["vals"][0]) &\
-                UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
+            assert (
+                int(attr["vals"][0])
+                & UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
+            )
             break
     else:
         raise Exception("Computer without userAccountControl")
@@ -110,7 +113,8 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_api_correct_add_double_member_of(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test api correct add a group with a register.
 
     assigning it to a user,
@@ -260,8 +264,7 @@ async def test_api_correct_add_double_member_of(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_user_inccorect_uac(
-        http_client: AsyncClient) -> None:
+async def test_api_add_user_inccorect_uac(http_client: AsyncClient) -> None:
     """Test api add."""
     user = "cn=test0,dc=md,dc=test"
     un = "test0"
@@ -345,8 +348,7 @@ async def test_api_add_user_inccorect_uac(
 @pytest.mark.usefixtures("session")
 async def test_api_add_non_auth_user(unbound_http_client: AsyncClient) -> None:
     """Test API add for unauthorized user."""
-    unbound_http_client.cookies.set(
-        "id", "09e67421-2f92-8ddc-494108a6e04f")
+    unbound_http_client.cookies.set("id", "09e67421-2f92-8ddc-494108a6e04f")
     response = await unbound_http_client.post(
         "/entry/add",
         json={
@@ -500,7 +502,8 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_api_add_double_case_insensetive(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test api double add."""
     response = await http_client.post(
         "/entry/add",

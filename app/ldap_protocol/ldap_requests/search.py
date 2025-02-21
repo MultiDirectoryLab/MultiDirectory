@@ -99,14 +99,14 @@ class SearchRequest(BaseRequest):
         ignored_types = (cached_property,)
 
     @field_serializer("filter")
-    def serialize_filter(
-            self, val: ASN1Row | None, _info: Any) -> str | None:
+    def serialize_filter(self, val: ASN1Row | None, _info: Any) -> str | None:
         """Serialize filter field."""
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
     def from_data(
-        cls, data: dict[str, list[ASN1Row]],
+        cls,
+        data: dict[str, list[ASN1Row]],
     ) -> "SearchRequest":
         (
             base_object,
@@ -152,16 +152,20 @@ class SearchRequest(BaseRequest):
         )
 
     async def get_root_dse(
-        self, session: AsyncSession, settings: Settings,
+        self,
+        session: AsyncSession,
+        settings: Settings,
     ) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
         :return defaultdict[str, list[str]]: queried attrs
         """
         data = defaultdict(list)
-        domain = (await session.scalars(
-            select(Directory).where(Directory.object_class == "domain"),
-        )).one()
+        domain = (
+            await session.scalars(
+                select(Directory).where(Directory.object_class == "domain"),
+            )
+        ).one()
 
         schema = "CN=Schema"
         if self.requested_attrs == ["subschemasubentry"]:
@@ -267,8 +271,7 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(
-            await get_base_directories(session), user)  # type: ignore
+        query = self.build_query(await get_base_directories(session), user)  # type: ignore
 
         try:
             cond = self.cast_filter()
@@ -352,7 +355,7 @@ class SearchRequest(BaseRequest):
             query = query.filter(
                 func.cardinality(Directory.path) == len(search_path) + 1,
                 get_path_filter(
-                    column=Directory.path[0:len(search_path)],
+                    column=Directory.path[0 : len(search_path)],
                     path=search_path,
                 ),
             )
@@ -360,17 +363,20 @@ class SearchRequest(BaseRequest):
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
             query = query.filter(
                 get_path_filter(
-                    column=Directory.path[1:len(search_path)],
-                    path=search_path),
+                    column=Directory.path[1 : len(search_path)],
+                    path=search_path,
+                ),
             )
 
         if self.member:
             query = query.options(
-                defaultload(Directory.group).selectinload(Group.members))
+                defaultload(Directory.group).selectinload(Group.members)
+            )
 
         if self.member_of or self.token_groups:
             query = query.options(
-                defaultload(Directory.groups).joinedload(Group.directory))
+                defaultload(Directory.groups).joinedload(Group.directory)
+            )
 
         return query
 
@@ -399,7 +405,9 @@ class SearchRequest(BaseRequest):
         return query, int(ceil(count / float(self.size_limit))), count
 
     async def tree_view(  # noqa: C901
-        self, query: Select, session: AsyncSession,
+        self,
+        query: Select,
+        session: AsyncSession,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
@@ -432,12 +440,14 @@ class SearchRequest(BaseRequest):
                     attrs["accountExpires"].append("0")
                 else:
                     attrs["accountExpires"].append(
-                        str(dt_to_ft(directory.user.account_exp)))
+                        str(dt_to_ft(directory.user.account_exp))
+                    )
                 if directory.user.last_logon is None:
                     attrs["lastLogon"].append("0")
                 else:
                     attrs["lastLogon"].append(
-                        str(get_windows_timestamp(directory.user.last_logon)))
+                        str(get_windows_timestamp(directory.user.last_logon))
+                    )
                     attrs["authTimestamp"].append(directory.user.last_logon)
 
             if (
@@ -450,16 +460,19 @@ class SearchRequest(BaseRequest):
 
             if self.token_groups and "user" in obj_classes:
                 attrs["tokenGroups"].append(
-                    str(string_to_sid(directory.object_sid)))
+                    str(string_to_sid(directory.object_sid))
+                )
 
                 group_directories = await get_all_parent_group_directories(
-                    directory.groups, session,
+                    directory.groups,
+                    session,
                 )
 
                 if group_directories is not None:
                     async for directory_ in group_directories:
                         attrs["tokenGroups"].append(
-                            str(string_to_sid(directory_.object_sid)))
+                            str(string_to_sid(directory_.object_sid))
+                        )
 
             if self.member and "group" in obj_classes and directory.group:
                 for member in directory.group.members:

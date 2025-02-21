@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -200,7 +201,8 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_non_exist_superior(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test API update dn with non-existen new_superior."""
     response = await http_client.put(
         "/entry/update/dn",
@@ -267,7 +269,8 @@ async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_invalid_new_superior(
-        http_client: AsyncClient) -> None:
+    http_client: AsyncClient,
+) -> None:
     """Test API update dn with invalid new_superior."""
     response = await http_client.put(
         "/entry/update/dn",

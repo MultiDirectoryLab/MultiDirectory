@@ -31,12 +31,20 @@ async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", creds.un,
-        "-w", creds.pw,
-        "-b", "dc=md,dc=test", "objectclass=*",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")
@@ -52,22 +60,30 @@ async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap_search_filter(
-    settings: Settings, creds: TestCreds,
+    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test ldapsearch with filter on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", creds.un,
-        "-w", creds.pw,
-        "-b", "dc=md,dc=test",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
         "(&"
         "(objectClass=user)"
         "(memberOf:1.2.840.113556.1.4.1941:=cn=domain admins,cn=groups,dc=md,\
             dc=test)"
         ")",
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")
@@ -82,18 +98,26 @@ async def test_ldap_search_filter(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap_search_filter_prefix(
-    settings: Settings, creds: TestCreds,
+    settings: Settings,
+    creds: TestCreds,
 ) -> None:
     """Test ldapsearch with filter on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", creds.un,
-        "-w", creds.pw,
-        "-b", "dc=md,dc=test",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
         "(description=*desc)",
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")
@@ -116,14 +140,22 @@ async def test_bind_policy(
     assert policy
 
     group_dir = await get_group(
-        "cn=domain admins,cn=groups,dc=md,dc=test", session)
+        "cn=domain admins,cn=groups,dc=md,dc=test", session
+    )
     policy.groups.append(group_dir.group)
     await session.commit()
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", creds.un, "-x", "-w", creds.pw)
+        "-vvv",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-x",
+        "-w",
+        creds.pw,
+    )
 
     result = await proc.wait()
     assert result == 0
@@ -132,18 +164,23 @@ async def test_bind_policy(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_bind_policy_missing_group(
-        session: AsyncSession,
-        ldap_session: LDAPSession,
-        settings: Settings,
-        creds: TestCreds) -> None:
+    session: AsyncSession,
+    ldap_session: LDAPSession,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
     """Bind policy fail."""
     policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
 
     assert policy
 
-    user = (await session.scalars(
-        select(User).filter_by(display_name="user0")
-        .options(selectinload(User.groups)))).one()
+    user = (
+        await session.scalars(
+            select(User)
+            .filter_by(display_name="user0")
+            .options(selectinload(User.groups))
+        )
+    ).one()
 
     policy.groups = await get_groups(
         ["cn=domain admins,cn=groups,dc=md,dc=test"],
@@ -156,8 +193,15 @@ async def test_bind_policy_missing_group(
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", creds.un, "-x", "-w", creds.pw)
+        "-vvv",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-x",
+        "-w",
+        creds.pw,
+    )
 
     result = await proc.wait()
     assert result == 49
@@ -170,11 +214,17 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", creds.un,
-        "-w", creds.pw,
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     result = await proc.wait()
     assert result == 0
@@ -200,8 +250,9 @@ async def test_bvalue_in_search_request(
         attributes=["*"],
     )
 
-    result: SearchResultEntry = await anext(request.handle(
-        session, ldap_bound_session, settings))  # type: ignore
+    result: SearchResultEntry = await anext(
+        request.handle(session, ldap_bound_session, settings)
+    )  # type: ignore
 
     assert result
 
@@ -224,12 +275,20 @@ async def test_ldap_search_access_control_denied(
     """
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", "user_non_admin",
-        "-w", creds.pw,
-        "-b", "dc=md,dc=test", "objectclass=*",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        "user_non_admin",
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")
@@ -258,12 +317,20 @@ async def test_ldap_search_access_control_denied(
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
-        "-vvv", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D", "user_non_admin",
-        "-w", creds.pw,
-        "-b", "dc=md,dc=test", "objectclass=*",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        "user_non_admin",
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")
@@ -272,12 +339,14 @@ async def test_ldap_search_access_control_denied(
     dn_list = [d for d in data if d.startswith("dn:")]
 
     assert result == 0
-    assert sorted(dn_list) == sorted([
-        "dn: dc=md,dc=test",
-        "dn: ou=users,dc=md,dc=test",
-        "dn: cn=groups,dc=md,dc=test",
-        "dn: cn=domain admins,cn=groups,dc=md,dc=test",
-        "dn: cn=developers,cn=groups,dc=md,dc=test",
-        "dn: cn=domain users,cn=groups,dc=md,dc=test",
-        "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-    ])
+    assert sorted(dn_list) == sorted(
+        [
+            "dn: dc=md,dc=test",
+            "dn: ou=users,dc=md,dc=test",
+            "dn: cn=groups,dc=md,dc=test",
+            "dn: cn=domain admins,cn=groups,dc=md,dc=test",
+            "dn: cn=developers,cn=groups,dc=md,dc=test",
+            "dn: cn=domain users,cn=groups,dc=md,dc=test",
+            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+        ]
+    )

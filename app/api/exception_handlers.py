@@ -1,4 +1,5 @@
 """Exception handlers."""
+
 from typing import NoReturn
 
 from fastapi import HTTPException, Request, status

@@ -3,6 +3,7 @@
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 

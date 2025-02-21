@@ -5,6 +5,7 @@ Revises: f68a134a3685
 Create Date: 2024-12-20 16:28:24.419163
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
@@ -32,29 +33,30 @@ def upgrade() -> None:
         principal = f"{username}@{domain.upper()}"
 
         attr_principal = session.scalar(
-            sa.select(Attribute)
-            .filter(
+            sa.select(Attribute).filter(
                 Attribute.name == "krbprincipalname",
                 Attribute.value == principal,
             ),
         )
         if attr_principal:
-            session.add(Attribute(
-                name="krbticketflags",
-                value="128",
-                directory_id=attr_principal.directory_id,
-            ))
+            session.add(
+                Attribute(
+                    name="krbticketflags",
+                    value="128",
+                    directory_id=attr_principal.directory_id,
+                )
+            )
 
     # NOTE: Remove duplicate Kerberos state settings and keep the latest one
     settings = session.scalar(
-        sa.select(CatalogueSetting)
-        .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
+        sa.select(CatalogueSetting).where(
+            CatalogueSetting.name == KERBEROS_STATE_NAME
+        ),
     )
 
     if settings:
         session.execute(
-            sa.delete(CatalogueSetting)
-            .where(
+            sa.delete(CatalogueSetting).where(
                 CatalogueSetting.name == KERBEROS_STATE_NAME,
                 CatalogueSetting.id != settings.id,
             ),
