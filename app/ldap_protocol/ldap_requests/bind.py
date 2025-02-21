@@ -141,13 +141,16 @@ class BindRequest(BaseRequest):
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        if isinstance(
-            self.authentication_choice, SaslGSSAPIAuthentication
-        ) and (
-            response := await self.authentication_choice.step(
-                session, ldap_session, settings
+        if (
+            isinstance(self.authentication_choice, SaslGSSAPIAuthentication)
+            and (
+                response := await self.authentication_choice.step(
+                    session,
+                    ldap_session,
+                    settings,
+                )
             )
-        ):
+        ):  # fmt: skip
             yield response
             return
 
@@ -168,10 +171,12 @@ class BindRequest(BaseRequest):
             return
 
         policy_pwd = await PasswordPolicySchema.get_policy_settings(
-            session, kadmin
+            session=session,
+            kadmin=kadmin,
         )
         p_last_set = await policy_pwd.get_pwd_last_set(
-            session, user.directory_id
+            session=session,
+            directory_id=user.directory_id,
         )
         pwd_expired = policy_pwd.validate_max_age(p_last_set)
 

@@ -23,7 +23,8 @@ async def test_anonymous_whoami(
     await event_loop.run_in_executor(None, partial(ldap_client.rebind))
 
     result = await event_loop.run_in_executor(
-        None, ldap_client.extend.standard.who_am_i
+        None,
+        ldap_client.extend.standard.who_am_i,
     )
 
     assert result is None
@@ -38,11 +39,13 @@ async def test_bind_whoami(
 ) -> None:
     """Test anonymous pwd change."""
     await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw)
+        None,
+        partial(ldap_client.rebind, user=creds.un, password=creds.pw),
     )
 
     result = await event_loop.run_in_executor(
-        None, ldap_client.extend.standard.who_am_i
+        None,
+        ldap_client.extend.standard.who_am_i,
     )
 
     assert result == "u:user0"

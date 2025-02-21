@@ -140,7 +140,8 @@ async def test_bind_policy(
     assert policy
 
     group_dir = await get_group(
-        "cn=domain admins,cn=groups,dc=md,dc=test", session
+        dn="cn=domain admins,cn=groups,dc=md,dc=test",
+        session=session,
     )
     policy.groups.append(group_dir.group)
     await session.commit()
@@ -250,8 +251,8 @@ async def test_bvalue_in_search_request(
     )
 
     result: SearchResultEntry = await anext(
-        request.handle(session, ldap_bound_session, settings)
-    )  # type: ignore
+        request.handle(session, ldap_bound_session, settings)  # type: ignore
+    )
 
     assert result
 

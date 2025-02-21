@@ -110,7 +110,10 @@ async def test_session_creation_ldap_bind_unbind(
     assert not await storage.get_user_sessions(user.id)
 
     result = await event_loop.run_in_executor(
-        None, ldap_client.rebind, creds.un, creds.pw
+        None,
+        ldap_client.rebind,
+        creds.un,
+        creds.pw,
     )
 
     assert result
@@ -136,7 +139,9 @@ async def test_session_creation_ldap_bind_unbind(
         import warnings
 
         warnings.warn(
-            "Session was not deleted after ldap unbind.", RuntimeWarning, 2
+            "Session was not deleted after ldap unbind.",
+            RuntimeWarning,
+            2,
         )
 
 

@@ -186,7 +186,9 @@ class LDAPSession:
 
         await self.storage.delete_user_session(self.key)
         await self.storage.create_ldap_session(
-            self.user.id, self.key, {"id": self.user.id, "ip": str(self.ip)}
+            uid=self.user.id,
+            key=self.key,
+            data={"id": self.user.id, "ip": str(self.ip)},
         )
 
     async def disconnect(self) -> None:

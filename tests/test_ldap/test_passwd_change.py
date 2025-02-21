@@ -66,7 +66,8 @@ async def test_bind_pwd_change(
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=user_dn, password=password)
+        None,
+        partial(ldap_client.rebind, user=user_dn, password=password),
     )
 
     result = await event_loop.run_in_executor(

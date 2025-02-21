@@ -448,7 +448,8 @@ async def http_client(
     :return httpx.AsyncClient: bound client with cookies
     """
     response = await unbound_http_client.post(
-        "auth/", data={"username": creds.un, "password": creds.pw}
+        "auth/",
+        data={"username": creds.un, "password": creds.pw},
     )
 
     assert response.status_code == 200

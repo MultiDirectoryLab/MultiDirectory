@@ -99,8 +99,8 @@ async def test_tree_creation(
     )
 
     result = await anext(
-        bind.handle(session, ldap_session, kadmin, settings, None)
-    )  # type: ignore
+        bind.handle(session, ldap_session, kadmin, settings, None)  # type: ignore
+    )
     assert result.result_code == LDAPCodes.SUCCESS
 
 
@@ -261,7 +261,8 @@ async def test_ldap_add(
     pw = "Password123"
 
     response = await http_client.post(
-        "/entry/add", json=_create_test_user_data(san, pw)
+        "/entry/add",
+        json=_create_test_user_data(san, pw),
     )
 
     assert response.status_code == status.HTTP_200_OK, response.json()
@@ -276,7 +277,8 @@ async def test_ldap_kadmin_delete_user(
 ) -> None:
     """Test API for delete object."""
     await http_client.post(
-        "/entry/add", json=_create_test_user_data("ktest", "Password123")
+        "/entry/add",
+        json=_create_test_user_data("ktest", "Password123"),
     )
 
     response = await http_client.request(
@@ -367,7 +369,8 @@ async def test_extended_pw_change_call(
     new_test_password = "Password123"  # noqa
 
     await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=user_dn, password=password)
+        None,
+        partial(ldap_client.rebind, user=user_dn, password=password),
     )
 
     result = await event_loop.run_in_executor(

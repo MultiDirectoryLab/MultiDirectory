@@ -88,7 +88,8 @@ async def test_refresh_and_logout_flow(
 ) -> None:
     """Test login, refresh and logout cookie flow."""
     await unbound_http_client.post(
-        "auth/", data={"username": creds.un, "password": creds.pw}
+        "auth/",
+        data={"username": creds.un, "password": creds.pw},
     )
 
     old_token = unbound_http_client.cookies.get("id")

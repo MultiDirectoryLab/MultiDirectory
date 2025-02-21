@@ -259,7 +259,8 @@ async def test_delete_policy(
     }
 
     response = await http_client.delete(
-        f"/policy/{pol_id}", follow_redirects=False
+        f"/policy/{pol_id}",
+        follow_redirects=False,
     )
     assert response.status_code == 303
     assert response.next_request.url.path == "/api/policy"

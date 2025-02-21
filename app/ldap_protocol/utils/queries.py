@@ -264,7 +264,8 @@ async def create_group(
     await session.flush()
 
     dir_.object_sid = create_object_sid(
-        base_dn_list[0], sid if sid else dir_.id
+        base_dn_list[0],
+        rid=sid or dir_.id,
     )
 
     await session.flush()

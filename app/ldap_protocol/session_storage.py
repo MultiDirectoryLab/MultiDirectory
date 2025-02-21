@@ -77,7 +77,8 @@ class SessionStorage(ABC):
         return (
             "keys:"
             + hashlib.blake2b(
-                str(user_id).encode(), digest_size=16
+                str(user_id).encode(),
+                digest_size=16,
             ).hexdigest()
         )
 
@@ -327,7 +328,9 @@ class RedisSessionStorage(SessionStorage):
         :return str: jwt token
         """
         session_id, signature, data = self._generate_session_data(
-            uid, settings, extra_data
+            uid=uid,
+            settings=settings,
+            extra_data=extra_data,
         )
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
@@ -392,7 +395,9 @@ class RedisSessionStorage(SessionStorage):
         extra_data.pop("sign", None)
 
         new_session_id, new_signature, new_data = self._generate_session_data(
-            uid, settings, extra_data
+            uid=uid,
+            settings=settings,
+            extra_data=extra_data,
         )
 
         await self._storage.set(new_session_id, json.dumps(new_data), ex=ttl)
@@ -412,7 +417,8 @@ class RedisSessionStorage(SessionStorage):
         :return str: jwt token
         """
         lock = self._storage.lock(
-            self._get_lock_key(session_id), blocking_timeout=5
+            name=self._get_lock_key(session_id),
+            blocking_timeout=5,
         )
 
         async with lock:
@@ -521,7 +527,9 @@ class MemSessionStorage(SessionStorage):
         :return str: jwt token
         """
         session_id, signature, data = self._generate_session_data(
-            uid, settings, extra_data
+            uid=uid,
+            settings=settings,
+            extra_data=extra_data,
         )
 
         self._sessions[session_id] = data

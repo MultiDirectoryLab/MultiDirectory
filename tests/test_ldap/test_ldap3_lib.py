@@ -23,7 +23,8 @@ async def test_ldap3_search(
 ) -> None:
     """Test ldap3 search."""
     await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw)
+        None,
+        partial(ldap_client.rebind, user=creds.un, password=creds.pw),
     )
 
     result = await event_loop.run_in_executor(
@@ -50,7 +51,8 @@ async def test_ldap3_search_memberof(
     """Test ldap3 search memberof."""
     member = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     await event_loop.run_in_executor(
-        None, partial(ldap_client.rebind, user=creds.un, password=creds.pw)
+        None,
+        partial(ldap_client.rebind, user=creds.un, password=creds.pw),
     )
 
     result = await event_loop.run_in_executor(

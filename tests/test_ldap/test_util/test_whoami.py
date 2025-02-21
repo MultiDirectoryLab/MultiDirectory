@@ -17,7 +17,10 @@ from tests.conftest import TestCreds
 async def test_anonymous_whoami(settings: Settings) -> None:
     """Test anonymous whoami."""
     proc = await asyncio.create_subprocess_exec(
-        "ldapwhoami", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}"
+        "ldapwhoami",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
     )
 
     assert await proc.wait() == 0

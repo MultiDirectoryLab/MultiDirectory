@@ -88,11 +88,13 @@ class DirectoryMembership(Base):
 
     __tablename__ = "DirectoryMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
     directory_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
 
@@ -101,10 +103,12 @@ class PolicyMembership(Base):
 
     __tablename__ = "PolicyMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
     )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Policies.id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
 
@@ -113,10 +117,12 @@ class PolicyMFAMembership(Base):
 
     __tablename__ = "PolicyMFAMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
     )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Policies.id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
 
@@ -125,10 +131,12 @@ class AccessPolicyMembership(Base):
 
     __tablename__ = "AccessPolicyMemberships"
     dir_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        primary_key=True,
     )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
 
@@ -137,10 +145,12 @@ class GroupAccessPolicyMembership(Base):
 
     __tablename__ = "GroupAccessPolicyMemberships"
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
     )
     policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("AccessPolicies.id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
 
@@ -189,7 +199,8 @@ class Directory(Base):
     objectsid: Mapped[str] = synonym("object_sid")
 
     password_policy_id: Mapped[int] = mapped_column(
-        ForeignKey("PasswordPolicies.id"), nullable=True
+        ForeignKey("PasswordPolicies.id"),
+        nullable=True,
     )
 
     object_guid: Mapped[uuid.UUID] = mapped_column(
@@ -201,7 +212,9 @@ class Directory(Base):
     objectguid: Mapped[str] = synonym("object_guid")
 
     path: Mapped[list[str]] = mapped_column(
-        postgresql.ARRAY(String), nullable=False, index=True
+        postgresql.ARRAY(String),
+        nullable=False,
+        index=True,
     )
 
     attributes: Mapped[list[Attribute]] = relationship(
@@ -345,7 +358,8 @@ class User(Base):
 
     mail: Mapped[str | None] = mapped_column(String(255))
     display_name: Mapped[str | None] = mapped_column(
-        "displayName", nullable=True
+        "displayName",
+        nullable=True,
     )
     password: Mapped[str] = mapped_column(nullable=True)
 
@@ -356,10 +370,12 @@ class User(Base):
     accountexpires: Mapped[str] = synonym("account_exp")
 
     last_logon: Mapped[datetime | None] = mapped_column(
-        "lastLogon", DateTime(timezone=True)
+        "lastLogon",
+        DateTime(timezone=True),
     )
     account_exp: Mapped[datetime | None] = mapped_column(
-        "accountExpires", DateTime(timezone=True)
+        "accountExpires",
+        DateTime(timezone=True),
     )
 
     search_fields = {
@@ -592,11 +608,13 @@ class NetworkPolicy(Base):
     bypass_service_failure: Mapped[fbool]
 
     ldap_session_ttl: Mapped[int] = mapped_column(
-        nullable=False, server_default="-1"
+        nullable=False,
+        server_default="-1",
     )
 
     http_session_ttl: Mapped[int] = mapped_column(
-        nullable=False, server_default="28800"
+        nullable=False,
+        server_default="28800",
     )
 
 
@@ -614,7 +632,8 @@ class PasswordPolicy(Base):
     )
 
     password_history_length: Mapped[int] = mapped_column(
-        nullable=False, server_default="4"
+        nullable=False,
+        server_default="4",
     )
     maximum_password_age_days: Mapped[int] = mapped_column(
         nullable=False,

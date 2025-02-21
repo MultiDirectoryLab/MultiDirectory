@@ -33,7 +33,8 @@ async def test_ldap_base_modify(
     query = (
         select(Directory)
         .options(
-            subqueryload(Directory.attributes), joinedload(Directory.user)
+            subqueryload(Directory.attributes),
+            joinedload(Directory.user),
         )
         .filter(Directory.path == get_search_path(dn))
     )
@@ -523,7 +524,8 @@ async def test_ldap_modify_with_ap(
     query = (
         select(Directory)
         .options(
-            subqueryload(Directory.attributes), joinedload(Directory.user)
+            subqueryload(Directory.attributes),
+            joinedload(Directory.user),
         )
         .filter(Directory.path == search_path)
     )
