@@ -51,7 +51,7 @@ async def test_add_policy(
         "is_kerberos": True,
         "bypass_no_connection": False,
         "bypass_service_failure": False,
-        "ldap_session_ttl": 28800,
+        "ldap_session_ttl": -1,
         "http_session_ttl": 28800,
     })
 
@@ -80,7 +80,7 @@ async def test_add_policy(
             "is_kerberos": True,
             "bypass_no_connection": False,
             "bypass_service_failure": False,
-            "ldap_session_ttl": 28800,
+            "ldap_session_ttl": -1,
             "http_session_ttl": 28800,
         },
         {
@@ -97,7 +97,7 @@ async def test_add_policy(
             "is_kerberos": True,
             "bypass_no_connection": False,
             "bypass_service_failure": False,
-            "ldap_session_ttl": 28800,
+            "ldap_session_ttl": -1,
             "http_session_ttl": 28800,
         },
     ]
@@ -128,7 +128,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             "is_kerberos": True,
             "bypass_no_connection": False,
             "bypass_service_failure": False,
-            "ldap_session_ttl": 28800,
+            "ldap_session_ttl": -1,
             "http_session_ttl": 28800,
         },
     ]
@@ -160,7 +160,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
         "is_kerberos": True,
         "bypass_no_connection": False,
         "bypass_service_failure": False,
-        "ldap_session_ttl": 28800,
+        "ldap_session_ttl": -1,
         "http_session_ttl": 28800,
     }
 
@@ -185,7 +185,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             "is_kerberos": True,
             "bypass_no_connection": False,
             "bypass_service_failure": False,
-            "ldap_session_ttl": 28800,
+            "ldap_session_ttl": -1,
             "http_session_ttl": 28800,
         },
     ]
@@ -227,7 +227,7 @@ async def test_delete_policy(
         "is_kerberos": True,
         "bypass_no_connection": False,
         "bypass_service_failure": False,
-        "ldap_session_ttl": 28800,
+        "ldap_session_ttl": -1,
         "http_session_ttl": 28800,
     }
 
@@ -284,7 +284,7 @@ async def test_switch_policy(
         "is_kerberos": True,
         "bypass_no_connection": False,
         "bypass_service_failure": False,
-        "ldap_session_ttl": 28800,
+        "ldap_session_ttl": -1,
         "http_session_ttl": 28800,
     }
 
@@ -353,7 +353,7 @@ async def test_swap(http_client: AsyncClient) -> None:
             "is_kerberos": True,
             "bypass_no_connection": False,
             "bypass_service_failure": False,
-            "ldap_session_ttl": 28800,
+            "ldap_session_ttl": -1,
             "http_session_ttl": 28800,
         },
     )
