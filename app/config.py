@@ -69,13 +69,11 @@ class Settings(BaseModel):
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
         """Build postgres DSN."""
         return PostgresDsn(
-            (
-                f"{self.POSTGRES_SCHEMA}://"
-                f"{self.POSTGRES_USER}:"
-                f"{self.POSTGRES_PASSWORD}@"
-                f"{self.POSTGRES_HOST}/"
-                f"{self.POSTGRES_DB}"
-            )
+            f"{self.POSTGRES_SCHEMA}://"
+            f"{self.POSTGRES_USER}:"
+            f"{self.POSTGRES_PASSWORD}@"
+            f"{self.POSTGRES_HOST}/"
+            f"{self.POSTGRES_DB}"
         )
 
     VENDOR_NAME: str = "MultiFactor"
