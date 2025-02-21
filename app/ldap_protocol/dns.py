@@ -365,10 +365,9 @@ async def get_dns_state(
 ) -> "DNSManagerState":
     """Get or create DNS manager state."""
     state = await session.scalar(
-        select(CatalogueSetting).filter(
-            CatalogueSetting.name == DNS_MANAGER_STATE_NAME
-        ),
-    )
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name == DNS_MANAGER_STATE_NAME)
+    )  # fmt: skip
 
     if state is None:
         session.add(
@@ -417,7 +416,7 @@ async def get_dns_manager_settings(
                 CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME,
                 CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME,
             )
-        ),
+        ),  # fmt: skip
     ):
         settings_dict[setting.name] = setting.value
 

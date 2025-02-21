@@ -26,10 +26,9 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     ro_dir = session.scalar(
-        select(Directory).where(
-            Directory.name == "readonly domain controllers"
-        )
-    )
+        select(Directory)
+        .where(Directory.name == "readonly domain controllers")
+    )  # fmt: skip
 
     if not ro_dir:
         return
@@ -50,12 +49,13 @@ def upgrade() -> None:
     )
 
     attr_object_class = session.scalar(
-        select(Attribute).where(
+        select(Attribute)
+        .where(
             Attribute.name == "objectClass",
             Attribute.directory == ro_dir,
             Attribute.value == "group",
         ),
-    )
+    )  # fmt: skip
     if not attr_object_class:
         session.add(
             Attribute(name="objectClass", value="group", directory=ro_dir)

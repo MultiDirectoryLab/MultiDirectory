@@ -321,7 +321,7 @@ async def test_api_modify_replace_loop_detect_member(
                         "type": "member",
                         "vals": [
                             "cn=user0,ou=users,dc=md,dc=test",
-                            "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",  # noqa
+                            "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
                         ],
                     },
                 },

@@ -33,11 +33,12 @@ def upgrade() -> None:
         principal = f"{username}@{domain.upper()}"
 
         attr_principal = session.scalar(
-            sa.select(Attribute).filter(
+            sa.select(Attribute)
+            .filter(
                 Attribute.name == "krbprincipalname",
                 Attribute.value == principal,
             ),
-        )
+        )  # fmt: skip
         if attr_principal:
             session.add(
                 Attribute(
@@ -49,18 +50,18 @@ def upgrade() -> None:
 
     # NOTE: Remove duplicate Kerberos state settings and keep the latest one
     settings = session.scalar(
-        sa.select(CatalogueSetting).where(
-            CatalogueSetting.name == KERBEROS_STATE_NAME
-        ),
-    )
+        sa.select(CatalogueSetting)
+        .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
+    )  # fmt: skip
 
     if settings:
         session.execute(
-            sa.delete(CatalogueSetting).where(
+            sa.delete(CatalogueSetting)
+            .where(
                 CatalogueSetting.name == KERBEROS_STATE_NAME,
                 CatalogueSetting.id != settings.id,
             ),
-        )
+        )  # fmt: skip
 
         session.commit()
 

@@ -75,8 +75,9 @@ async def test_ldap_delete(
 
     assert await proc.wait() == 0
     assert not await session.scalar(
-        select(Directory).filter_by(name="test"),
-    )
+        select(Directory)
+        .filter_by(name="test"),
+    )  # fmt: skip
 
 
 @pytest.mark.asyncio

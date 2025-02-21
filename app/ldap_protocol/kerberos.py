@@ -530,10 +530,9 @@ class StubKadminMDADPIClient(AbstractKadmin):
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
     """Get kerberos server state."""
     state = await session.scalar(
-        select(CatalogueSetting).filter(
-            CatalogueSetting.name == KERBEROS_STATE_NAME,
-        ),
-    )
+        select(CatalogueSetting)
+        .filter(CatalogueSetting.name == KERBEROS_STATE_NAME)
+    )  # fmt: skip
 
     if state is None:
         return KerberosState.NOT_CONFIGURED
@@ -548,10 +547,9 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     entry if there are multiple entries found.
     """
     results = await session.execute(
-        select(CatalogueSetting).where(
-            CatalogueSetting.name == KERBEROS_STATE_NAME
-        ),
-    )
+        select(CatalogueSetting)
+        .where(CatalogueSetting.name == KERBEROS_STATE_NAME)
+    )  # fmt: skip
     kerberos_state = results.scalar_one_or_none()
 
     if not kerberos_state:

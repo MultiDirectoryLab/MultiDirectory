@@ -245,8 +245,9 @@ async def first_setup(
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
-        select(Directory).filter(Directory.parent_id.is_(None)),
-    )
+        select(Directory)
+        .filter(Directory.parent_id.is_(None))
+    )  # fmt: skip
 
     if setup_already_performed:
         raise HTTPException(status.HTTP_423_LOCKED)

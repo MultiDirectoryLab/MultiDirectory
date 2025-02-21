@@ -35,22 +35,26 @@ async def test_set_and_remove_mfa(
     assert response.status_code == 201
 
     assert await session.scalar(
-        select(CatalogueSetting).filter_by(name="mfa_key", value="123")
-    )
+        select(CatalogueSetting)
+        .filter_by(name="mfa_key", value="123")
+    )  # fmt: skip
     assert await session.scalar(
-        select(CatalogueSetting).filter_by(name="mfa_secret", value="123")
-    )
+        select(CatalogueSetting)
+        .filter_by(name="mfa_secret", value="123")
+    )  # fmt: skip
 
     response = await http_client.delete("/multifactor/keys?scope=http")
 
     assert response.status_code == 200
 
     assert not await session.scalar(
-        select(CatalogueSetting).filter_by(name="mfa_key", value="123")
-    )
+        select(CatalogueSetting)
+        .filter_by(name="mfa_key", value="123")
+    )  # fmt: skip
     assert not await session.scalar(
-        select(CatalogueSetting).filter_by(name="mfa_secret", value="123")
-    )
+        select(CatalogueSetting)
+        .filter_by(name="mfa_secret", value="123")
+    )  # fmt: skip
 
 
 @pytest.mark.asyncio

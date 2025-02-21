@@ -99,9 +99,10 @@ async def get_check_uac(
     :return Callable: function to check given flag in current
         userAccountControl attribute
     """
-    query = select(Attribute).filter_by(
-        directory_id=directory_id, name="userAccountControl"
-    )
+    query = (
+        select(Attribute)
+        .filter_by(directory_id=directory_id, name="userAccountControl")
+    )  # fmt: skip
     uac = await session.scalar(query)
 
     value: str = (

@@ -92,16 +92,14 @@ def downgrade() -> None:
         )
 
         await session.execute(
-            delete(AccessPolicy).where(
-                AccessPolicy.name == "ReadOnly Access Policy"
-            ),
-        )
+            delete(AccessPolicy)
+            .where(AccessPolicy.name == "ReadOnly Access Policy")
+        )  # fmt: skip
 
         await session.execute(
-            delete(Directory).where(
-                Directory.path == get_search_path(group_dn)
-            ),
-        )
+            delete(Directory)
+            .where(Directory.path == get_search_path(group_dn))
+        )  # fmt: skip
 
         await session.commit()
 

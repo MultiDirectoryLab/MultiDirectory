@@ -329,8 +329,9 @@ async def setup_session(session: AsyncSession) -> None:
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
     domain_ex = await session.scalars(
-        select(Directory).filter(Directory.parent_id.is_(None)),
-    )
+        select(Directory)
+        .filter(Directory.parent_id.is_(None)),
+    )  # fmt: skip
 
     domain = domain_ex.one()
 

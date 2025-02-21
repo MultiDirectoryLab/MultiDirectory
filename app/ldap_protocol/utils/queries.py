@@ -30,8 +30,9 @@ from .helpers import (
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
-        select(Directory).filter(Directory.parent_id.is_(None)),
-    )
+        select(Directory)
+        .filter(Directory.parent_id.is_(None))
+    )  # fmt: skip
     return list(result.scalars().all())
 
 
@@ -68,8 +69,9 @@ async def get_user_by_upn(session: AsyncSession, upn: str) -> User | None:
     :return User | None: user
     """
     return await session.scalar(
-        select(User).where(User.user_principal_name.ilike(upn))
-    )
+        select(User)
+        .where(User.user_principal_name.ilike(upn))
+    )  # fmt: skip
 
 
 async def get_directories(

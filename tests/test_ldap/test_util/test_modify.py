@@ -434,10 +434,9 @@ async def test_ldap_modify_dn(
         assert res == 0
 
     assert await session.scalar(
-        select(Directory).filter(
-            Directory.path == ["dc=test", "dc=md", "ou=users", "cn=user2"]
-        )
-    )
+        select(Directory)
+        .filter(Directory.path == ["dc=test", "dc=md", "ou=users", "cn=user2"])
+    )  # fmt: skip
 
 
 @pytest.mark.asyncio

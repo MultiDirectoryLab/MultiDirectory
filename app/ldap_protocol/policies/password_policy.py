@@ -183,11 +183,12 @@ class PasswordPolicySchema(BaseModel):
         :return Attribute: pwdLastSet
         """
         plset = await session.scalar(
-            select(Attribute).where(
+            select(Attribute)
+            .where(
                 Attribute.directory_id == directory_id,
                 Attribute.name == "pwdLastSet",
             ),
-        )
+        )  # fmt: skip
         if not plset:
             plset = Attribute(
                 directory_id=directory_id,
