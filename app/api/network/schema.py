@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import sys
 from ipaddress import IPv4Address, IPv4Network, summarize_address_range
-from typing import Self
+from typing import ClassVar, Self
 
 from pydantic import (
     BaseModel,
@@ -108,6 +108,8 @@ class Policy(BaseModel, NetmasksMixin):
     is_kerberos: bool
     bypass_no_connection: bool
     bypass_service_failure: bool
+    ldap_session_ttl: int
+    http_session_ttl: int
 
 
 class PolicyResponse(BaseModel):
@@ -129,6 +131,8 @@ class PolicyResponse(BaseModel):
     is_kerberos: bool
     bypass_no_connection: bool
     bypass_service_failure: bool
+    ldap_session_ttl: int
+    http_session_ttl: int
 
 
 class PolicyUpdate(BaseModel, NetmasksMixin):
@@ -145,6 +149,20 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
     is_kerberos: bool | None = None
     bypass_no_connection: bool | None = None
     bypass_service_failure: bool | None = None
+    ldap_session_ttl: int | None = None
+    http_session_ttl: int | None = None
+
+    fields_map: ClassVar[set[str]] = {
+        "name",
+        "mfa_status",
+        "is_http",
+        "is_ldap",
+        "is_kerberos",
+        "bypass_no_connection",
+        "bypass_service_failure",
+        "ldap_session_ttl",
+        "http_session_ttl",
+    }
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> Self:
