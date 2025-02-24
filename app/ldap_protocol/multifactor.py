@@ -244,12 +244,19 @@ class MultifactorAPI:
         if response.status_code == 401:
             raise self.MFAMissconfiguredError("API Key or Secret is invalid")
 
-        if response.status_code != 200:
-            raise self.MultifactorError("Status error")
+        if response.status_code == 403:
+            raise self.MultifactorError("Incorrect resource")
+
+        if response.status_code == 429:
+            raise self.MultifactorError("API calls quota exceeded")
 
         try:
             response_data = response.json()
             log_mfa.info(response_data)
+
+            if response_data.get("success") is False:
+                raise self.MultifactorError(response_data.get("message"))
+
             return response_data["model"]["url"]
         except (JSONDecodeError, KeyError) as err:
             raise self.MultifactorError(f"MFA API error: {err}") from err
