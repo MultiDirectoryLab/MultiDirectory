@@ -227,6 +227,11 @@ class BindRequest(BaseRequest):
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
+    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+        return {
+            "entry": self.name,
+        }
+
 
 class UnbindRequest(BaseRequest):
     """Remove user from ldap_session."""
@@ -246,3 +251,6 @@ class UnbindRequest(BaseRequest):
         await ldap_session.delete_user()
         return  # declare empty async generator and exit
         yield  # type: ignore
+
+    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+        return {}  # TODO
