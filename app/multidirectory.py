@@ -14,13 +14,6 @@ from typing import AsyncIterator, Callable
 import uvicorn
 import uvloop
 from alembic.config import Config, command
-from dishka import make_async_container
-from dishka.integrations.fastapi import setup_dishka
-from dns.exception import DNSException
-from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import exc as sa_exc
-
 from api import (
     access_policy_router,
     audit_router,
@@ -42,7 +35,13 @@ from api.exception_handlers import (
     handle_instance_not_found_error,
 )
 from config import Settings
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka
+from dns.exception import DNSException
+from event_handler import EventHandler
 from extra.dump_acme_certs import dump_acme_cert
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from ioc import (
     HTTPProvider,
     LDAPServerProvider,
@@ -57,6 +56,7 @@ from ldap_protocol.exceptions import (
 )
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler
+from sqlalchemy import exc as sa_exc
 
 
 async def proc_time_header_middleware(
@@ -199,6 +199,34 @@ def ldap(settings: Settings) -> None:
             _run()
 
 
+def event_handler(settings: Settings) -> None:
+    """Run event handler."""
+
+    async def _server(settings: Settings) -> None:
+        container = make_async_container(
+            MainProvider(),
+            MFAProvider(),
+            HTTPProvider(),
+            MFACredsProvider(),
+            context={Settings: settings},
+        )
+
+        await asyncio.gather(EventHandler(settings, container).start())
+
+    def _run() -> None:
+        uvloop.run(_server(settings))
+
+    try:
+        import py_hot_reload
+    except ImportError:
+        _run()
+    else:
+        if settings.DEBUG:
+            py_hot_reload.run_with_reloader(_run)
+        else:
+            _run()
+
+
 if __name__ == "__main__":
     settings = Settings.from_os()
 
@@ -249,3 +277,5 @@ if __name__ == "__main__":
         dump_acme_cert()
     elif args.migrate:
         command.upgrade(Config("alembic.ini"), "head")
+    elif args.event_handler:
+        event_handler(settings)
