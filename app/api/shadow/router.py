@@ -89,7 +89,7 @@ async def proxy_request(
 
 @shadow_router.post("/sync/password")
 @inject
-async def reset_password(
+async def sync_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
     session: FromDishka[AsyncSession],
