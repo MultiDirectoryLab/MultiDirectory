@@ -144,6 +144,11 @@ class GroupAccessPolicyMembership(Base):
     """Directory - policy m2m relationship."""
 
     __tablename__ = "GroupAccessPolicyMemberships"
+
+    __table_args__ = (
+        UniqueConstraint("group_id", "policy_id", name="group_policy_uc"),
+    )
+
     group_id: Mapped[int] = mapped_column(
         ForeignKey("Groups.id", ondelete="CASCADE"),
         primary_key=True,
