@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, AsyncGenerator, Callable, ClassVar, Protocol
 from dishka import AsyncContainer
 from loguru import logger
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
@@ -55,6 +56,10 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     @abstractmethod
     def PROTOCOL_OP(self) -> int:  # noqa: N802
         """Protocol OP response code."""
+
+    @abstractmethod
+    async def to_event_data(self, session: AsyncSession) -> dict:
+        """Convert request to event data."""
 
     async def _handle_api(
         self,

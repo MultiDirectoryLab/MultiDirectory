@@ -576,3 +576,6 @@ class ModifyRequest(BaseRequest):
                 )
 
         session.add_all(attrs)
+
+    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+        return {}

@@ -402,3 +402,23 @@ class AddRequest(BaseRequest):
                 for name, vals in attributes.items()
             ],
         )
+
+    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+        attributes = []
+
+        for attr in self.attributes:
+            values = []
+            for value in attr.vals:
+                if isinstance(value, bytes):
+                    value = value.decode()
+                values.append(value)
+            attributes.append(
+                {
+                    "attribute": attr.type,
+                    "value": values,
+                },
+            )
+        return {
+            "entry": self.entry,
+            "attributes": attributes,
+        }

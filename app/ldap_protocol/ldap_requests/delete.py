@@ -47,6 +47,33 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
+    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+        directory = await session.scalar((
+            select(Directory)
+            .options(defaultload(Directory.attributes))
+            .filter(get_filter_from_path(self.entry))
+        ))
+
+        attributes: dict[str, list[str]] = {}
+        if directory:
+            for attribute in directory.attributes:
+                if attribute.name not in attributes:
+                    attributes[attribute.name] = []
+
+                if attribute.value:
+                    value = attribute.value
+                elif attribute.bvalue:
+                    value = attribute.bvalue.decode(errors="replace")
+                else:
+                    raise AttributeError
+
+                attributes[attribute.name].append(value)
+
+        return {
+            "entry": self.entry,
+            "attributes": attributes,
+        }
+
     async def handle(
         self,
         session: AsyncSession,
