@@ -66,13 +66,11 @@ class Settings(BaseModel):
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
 
-    REDIS_SCHEMA: str = "redis"
-    REDIS_DB: str = "0"
+    EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
 
-    REDIS_HOST: str
-    REDIS_PORT: str = "6379"
-    REDIS_USER: str | None = None
-    REDIS_PASSWORD: str | None = None
+    EVENT_STREAM_NAME: str = "EVENT_LOG"
+    EVENT_HANLDER_GROUP: str = "event_handlers"
+    PROCESSED_EVENT_STREAM_NAME: str = "NORMAL_EVENT_LOG"
 
     @computed_field  # type: ignore
     @cached_property
