@@ -6,7 +6,6 @@ Create Date: 2025-02-24 10:46:08.830692
 
 """
 
-import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -24,25 +23,6 @@ def upgrade() -> None:
         "GroupAccessPolicyMemberships",
         ["group_id", "policy_id"],
     )
-
-    op.add_column(
-        "Policies",
-        sa.Column(
-            "ldap_session_ttl",
-            sa.Integer(),
-            server_default="-1",
-            nullable=False,
-        ),
-    )
-    op.add_column(
-        "Policies",
-        sa.Column(
-            "http_session_ttl",
-            sa.Integer(),
-            server_default="28800",
-            nullable=False,
-        ),
-    )
     # ### end Alembic commands ###
 
 
@@ -52,7 +32,4 @@ def downgrade() -> None:
     op.drop_constraint(
         "group_policy_uc", "GroupAccessPolicyMemberships", type_="unique"
     )
-
-    op.drop_column("Policies", "http_session_ttl")
-    op.drop_column("Policies", "ldap_session_ttl")
     # ### end Alembic commands ###
