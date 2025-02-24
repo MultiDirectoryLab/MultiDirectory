@@ -64,13 +64,11 @@ class Settings(BaseModel):
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
 
-    REDIS_SCHEMA: str = "redis"
-    REDIS_DB: str = "0"
+    EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
 
-    REDIS_HOST: str
-    REDIS_PORT: str = "6379"
-    REDIS_USER: str | None = None
-    REDIS_PASSWORD: str | None = None
+    EVENT_STREAM_NAME: str = "EVENT_LOG"
+    EVENT_HANLDER_GROUP: str = "event_handlers"
+    PROCESSED_EVENT_STREAM_NAME: str = "NORMAL_EVENT_LOG"
 
     @computed_field  # type: ignore
     @cached_property
@@ -82,19 +80,6 @@ class Settings(BaseModel):
             f"{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}/"
             f"{self.POSTGRES_DB}"
-        )
-
-    @computed_field  # type: ignore
-    @cached_property
-    def REDIS_URI(self) -> str:  # noqa: N802
-        """Build redis URL."""
-        return (
-            f"{self.REDIS_SCHEMA}://"
-            f"{self.REDIS_USER if self.REDIS_USER else ''}:"
-            f"{self.REDIS_PASSWORD if self.REDIS_PASSWORD else ''}@"
-            f"{self.REDIS_HOST}:"
-            f"{self.REDIS_PORT}/"
-            f"{self.REDIS_DB}"
         )
 
     VENDOR_NAME: str = "MultiFactor"
