@@ -26,6 +26,7 @@ from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
+from ldap_protocol.utils.helpers import send_event_to_redis
 
 log = logger.bind(name="ldap")
 
@@ -364,8 +365,13 @@ class PoolClientHandler:
                     )
                     handler = message.context.handle(**kwargs)
 
+                    responses: list = []
+                    event_data = {
+                        "request": message.model_dump(),
+                        "responses": responses,
+                        "protocol": "LDAP",
+                    }
                     async for response in message.create_response(handler):
-                        ...
                         self.rsp_log(addr, response)
 
                         data = await self._wrap_response(
@@ -376,8 +382,24 @@ class PoolClientHandler:
 
                         writer.write(data)
                         await writer.drain()
+                        responses.append(response.model_dump())
 
                 ldap_session.queue.task_done()
+
+                kwargs = await resolve_deps(
+                    func=send_event_to_redis,
+                    container=request_container,
+                )
+                logger.critical(f"Sending event to redis: {event_data}")
+
+                asyncio.create_task(
+                    send_event_to_redis(
+                        event_data,
+                        stream_name=self.settings.EVENT_STREAM_NAME,
+                        need_to_serialize=True,
+                        **kwargs,
+                    ),
+                )
             except Exception as err:
                 raise RuntimeError(err) from err
 
