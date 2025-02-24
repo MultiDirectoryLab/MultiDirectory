@@ -13,7 +13,7 @@ from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny, field_validator
 
 from ldap_protocol.asn1parser import LDAPOID
 
-from .dialogue import LDAPCodes
+from .ldap_codes import LDAPCodes
 from .objects import ProtocolResponse
 
 type_map = {
