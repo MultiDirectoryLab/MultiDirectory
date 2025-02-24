@@ -32,5 +32,5 @@ class AbandonRequest(BaseRequest):
         return
         yield  # type: ignore
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         return {}

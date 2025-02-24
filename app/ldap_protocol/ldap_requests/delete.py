@@ -47,7 +47,7 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         directory = await session.scalar((
             select(Directory)
             .options(defaultload(Directory.attributes))

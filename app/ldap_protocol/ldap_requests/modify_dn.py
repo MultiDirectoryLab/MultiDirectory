@@ -75,7 +75,7 @@ class ModifyDNRequest(BaseRequest):
     deleteoldrdn: bool
     new_superior: str | None
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         return {}
 
     @classmethod

@@ -126,7 +126,7 @@ class ChangeAttributesTrigger(BaseModel):
 class AuditPolicyRequest(BaseModel):
     """Audit policy schema with optional id."""
 
-    id: None | int  # noqa: A003
+    id: None | int
     name: str
     is_ldap: bool
     is_http: bool
@@ -139,7 +139,7 @@ class AuditPolicyRequest(BaseModel):
 class AuditPolicySchema(BaseModel):
     """Audit policy schema."""
 
-    id: int  # noqa: A003
+    id: int
     name: str
     is_ldap: bool
     is_http: bool

@@ -46,7 +46,7 @@ async def add_network_policy(
     :param Policy policy: policy to add
     :raises HTTPException: 422 invalid group DN
     :raises HTTPException: 422 Entry already exists
-    :return PolicyResponse: Ready policy
+    :return PolicyResponse: Ready policy.
     """
     new_policy = NetworkPolicy(
         name=policy.name,
@@ -108,7 +108,7 @@ async def get_list_network_policies(
 ) -> list[PolicyResponse]:
     """Get network.
     \f
-    :return list[PolicyResponse]: all policies
+    :return list[PolicyResponse]: all policies.
     """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
     mfa_groups = selectinload(NetworkPolicy.mfa_groups).selectinload(
@@ -159,7 +159,7 @@ async def delete_network_policy(
     :raises HTTPException: 404
     :raises HTTPException: 422 On last active policy,
         at least 1 should be in database.
-    :return bool: status of delete
+    :return bool: status of delete.
     """
     policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
 
@@ -227,7 +227,7 @@ async def update_network_policy(
     :raises HTTPException: 404 policy not found
     :raises HTTPException: 422 Invalid group DN
     :raises HTTPException: 422 Entry already exists
-    :return PolicyResponse: Policy from database
+    :return PolicyResponse: Policy from database.
     """
     selected_policy = await session.get(
         NetworkPolicy,

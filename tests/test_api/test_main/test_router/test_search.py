@@ -170,14 +170,14 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     data = raw_response.json()
 
     object_guid = None
-    entry_dn = data['search_result'][3]['object_name']
+    entry_dn = data["search_result"][3]["object_name"]
 
-    for attr in data['search_result'][3]['partial_attributes']:
-        if attr['type'] == 'objectGUID':
-            object_guid = attr['vals'][0]
+    for attr in data["search_result"][3]["partial_attributes"]:
+        if attr["type"] == "objectGUID":
+            object_guid = attr["vals"][0]
             break
 
-    assert object_guid is not None, 'objectGUID attribute is missing'
+    assert object_guid is not None, "objectGUID attribute is missing"
 
     raw_response = await http_client.post(
         "entry/search",

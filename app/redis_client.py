@@ -94,15 +94,15 @@ class RedisClient(AbstractRedisClient):
         self.redis_url = redis_url
         self.connect()
 
-    def connect(self) -> Self:  # noqa: D102
+    def connect(self) -> Self:
         self._client = Redis.from_url(self.redis_url)
         return self
 
-    async def disconnect(self) -> None:  # noqa: D102
+    async def disconnect(self) -> None:
         if self._client:
             await self._client.close()
 
-    async def add(  # noqa: D102
+    async def add(
         self, stream_name: str,
         message: dict[str, Any],
     ) -> None:
@@ -111,7 +111,7 @@ class RedisClient(AbstractRedisClient):
         logger.critical(message)
         return await self._client.xadd(stream_name, message)  # type: ignore
 
-    async def create_consumer_group(  # noqa: D102
+    async def create_consumer_group(
         self, stream_name: str, group_name: str, last_id: str = "0",
     ) -> None:
         if not self._client:
@@ -129,7 +129,7 @@ class RedisClient(AbstractRedisClient):
             else:
                 raise
 
-    async def read(  # noqa: D102
+    async def read(
         self,
         stream_name: str,
         group_name: str,
@@ -147,7 +147,7 @@ class RedisClient(AbstractRedisClient):
             block=block,
         )
 
-    async def ack_message(  # noqa: D102
+    async def ack_message(
         self, stream_name: str,
         group_name: str,
         message_id: str,
@@ -157,7 +157,7 @@ class RedisClient(AbstractRedisClient):
 
         await self._client.xack(stream_name, group_name, message_id)
 
-    async def remove(  # noqa: D102
+    async def remove(
         self, stream_name: str, message_id: str,
     ) -> None:
         if not self._client:

@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 from typing import Any, Callable, TypeVar, get_type_hints
 
 from dishka import AsyncContainer
@@ -22,9 +23,7 @@ async def resolve_deps(func: T, container: AsyncContainer) -> dict[str, Any]:
     kwargs = {}
 
     for arg_name, hint in get_type_hints(func).items():
-        try:
+        with contextlib.suppress(NoFactoryError):
             kwargs[arg_name] = await container.get(hint)
-        except NoFactoryError:
-            pass
 
     return kwargs

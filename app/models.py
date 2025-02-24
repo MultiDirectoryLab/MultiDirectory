@@ -966,7 +966,7 @@ class AuditPolicy(Base):
 
     __tablename__ = "AuditPolicies"
 
-    id: Mapped[int] = mapped_column(primary_key=True)  # noqa: A003
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     is_ldap: Mapped[tbool]
     is_http: Mapped[tbool]

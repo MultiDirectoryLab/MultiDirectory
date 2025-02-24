@@ -551,9 +551,8 @@ class SearchRequest(BaseRequest):
                     if not for_api:
                         attribute = string_to_sid(attribute)
 
-                elif attr == "objectguid":
-                    if not for_api:
-                        attribute = attribute.bytes_le
+                elif attr == "objectguid" and not for_api:
+                    attribute = attribute.bytes_le
 
                 attrs[directory.search_fields[attr]].append(attribute)
 
@@ -565,5 +564,5 @@ class SearchRequest(BaseRequest):
                 ],
             )
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         return {}

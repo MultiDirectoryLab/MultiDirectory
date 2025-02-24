@@ -59,14 +59,14 @@ class LDAPMatchingRule(StrEnum):
 
 
 class AuditOperation(StrEnum):
-    """
-    Enum for representing common operations.
+    """Enum for representing common operations.
 
     Attributes:
         GREATER_THAN: Represents the 'greater than' operation ('>')
         LESS_THAN: Represents the 'less than' operation ('<')
         NOT: Represents the 'not' operation ('!')
         BITWISE_AND: Represents the 'bitwise and' operation ('&')
+
     """
 
     GREATER_THAN = ">"
@@ -76,8 +76,7 @@ class AuditOperation(StrEnum):
 
 
 class ProtocolRequests(IntEnum):
-    """
-    Enum for LDAP requests.
+    """Enum for LDAP requests.
 
     Attributes:
         BIND: Represents the BindRequest operation (0)
@@ -90,6 +89,7 @@ class ProtocolRequests(IntEnum):
         ABANDON: Represents the AbandonRequest operation (16)
         EXTENDED: Represents the ExtendedRequest operation (23)
         MODIFY_DN: Represents the ModifyDNRequest operation (12)
+
     """
 
     BIND = 0
@@ -106,8 +106,7 @@ class ProtocolRequests(IntEnum):
 
 @unique
 class ProtocolResponse(IntEnum):
-    """
-    Enum for LDAP resposnes.
+    """Enum for LDAP resposnes.
 
     Attributes:
         BIND: Represents the BindResponse operation (1)
@@ -121,6 +120,7 @@ class ProtocolResponse(IntEnum):
         SEARCH_RESULT_: Represents the SearchResultReference operation (19)
         EXTENDED: Represents the ExtendedResponse operation (24)
         INTERMEDIATE: Represents the IntermediateResponse operation (25)
+
     """
 
     BIND = 1

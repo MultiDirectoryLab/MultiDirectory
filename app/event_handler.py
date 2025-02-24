@@ -38,20 +38,19 @@ class EventHandler:
         session: AsyncSession,
     ) -> bool:
         """Check if the event is valid."""
-
         policies = await session.scalars(
             select(AuditPolicy)
             .where(AuditPolicy.is_enabled == True),  # noqa: E712
         )
-        is_ldap = event_data['protocol'] == 'LDAP'
-        is_http = event_data['protocol'] == 'HTTP'
+        is_ldap = event_data["protocol"] == "LDAP"
+        is_http = event_data["protocol"] == "HTTP"
 
         suitable_policies = [
             policy
             for policy in policies
             if all([
                 policy.is_ldap == is_ldap or policy.is_http == is_http,
-                policy.operation_code == event_data['request']['protocol_op'],
+                policy.operation_code == event_data["request"]["protocol_op"],
             ])
         ]
 
@@ -122,7 +121,7 @@ class EventHandler:
                             for key, value in event_data.items():
                                 temp_key = key.decode()
 
-                                if temp_key in {'responses', 'request'}:
+                                if temp_key in {"responses", "request"}:
                                     temp_value = json.loads(value.decode())
                                 else:
                                     temp_value = value.decode()
