@@ -32,3 +32,4 @@ ENV VIRTUAL_ENV=/venvs/.venv \
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY app /app
+COPY pyproject.toml ./
