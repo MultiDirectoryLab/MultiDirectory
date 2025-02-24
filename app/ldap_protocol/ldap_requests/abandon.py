@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 from typing import AsyncGenerator, ClassVar
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
