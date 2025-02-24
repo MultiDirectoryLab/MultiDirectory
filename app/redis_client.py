@@ -5,13 +5,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Self
+from typing import Any
 
 from loguru import logger
 from redis.asyncio import Redis
 
 
-class AbstractRedisClient(ABC):
+class AbstractClient(ABC):
     """Abstract client for Redis."""
 
     _client: Any
@@ -80,27 +80,17 @@ class AbstractRedisClient(ABC):
         """
 
 
-class RedisClient(AbstractRedisClient):
+class RedisClient(AbstractClient):
     """Redis client."""
 
-    redis_url: str
     _client: Redis
 
-    def __init__(self, redis_url: str) -> None:
+    def __init__(self, redis_url: Redis) -> None:
         """Initialize the Redis client.
 
         :param redis_url: URL for connecting to Redis.
         """
-        self.redis_url = redis_url
-        self.connect()
-
-    def connect(self) -> Self:
-        self._client = Redis.from_url(self.redis_url)
-        return self
-
-    async def disconnect(self) -> None:
-        if self._client:
-            await self._client.close()
+        self._client = redis_url
 
     async def add(
         self, stream_name: str,

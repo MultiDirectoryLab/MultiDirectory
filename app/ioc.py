@@ -197,9 +197,18 @@ class MainProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    async def get_events_redis_client(self, settings: Settings) -> RedisClient:
+    async def get_events_redis_client(
+        self,
+        settings: Settings
+    ) -> AsyncIterator[RedisClient]:
         """Get events redis client."""
-        return RedisClient(settings.EVENT_REDIRECT_URI)
+        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        yield RedisClient(client)
+        await client.aclose()
 
 
 class HTTPProvider(Provider):
