@@ -59,7 +59,7 @@ async def add_audit_policy(
     \f
     :param AuditPolicySchema policy: policy to add
     :raises HTTPException: 422 Entry already exists
-    :return AuditPolicyResponse: Ready policy
+    :return AuditPolicyResponse: Ready policy.
     """
     new_policy = AuditPolicy(
         id=policy.id,
@@ -102,7 +102,7 @@ async def update_network_policy(
     :param AuditPolicySchema policy: update request
     :raises HTTPException: 404 policy not found
     :raises HTTPException: 422 Entry already exists
-    :return AuditPolicySchema: Policy from database
+    :return AuditPolicySchema: Policy from database.
     """
     selected_policy = await session.get(
         AuditPolicy,

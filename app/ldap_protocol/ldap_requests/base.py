@@ -72,7 +72,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         :return list[BaseResponse]: list of handled responses
         """
         kwargs = await resolve_deps(func=self.handle, container=container)
-        kwargs['for_api'] = True
+        kwargs["for_api"] = True
 
         ldap_session = await container.get(LDAPSession)
         settings = await container.get(Settings)
