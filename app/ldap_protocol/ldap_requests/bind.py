@@ -227,7 +227,7 @@ class BindRequest(BaseRequest):
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         return {
             "entry": self.name,
         }
@@ -252,5 +252,5 @@ class UnbindRequest(BaseRequest):
         return  # declare empty async generator and exit
         yield  # type: ignore
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         return {}  # TODO

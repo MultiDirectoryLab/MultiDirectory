@@ -18,5 +18,5 @@ class CompareRequest(BaseRequest):
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.COMPARE
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         return {}

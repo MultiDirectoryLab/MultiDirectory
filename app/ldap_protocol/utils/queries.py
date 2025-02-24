@@ -351,7 +351,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
         for line, status in {"ok": True, "fail": False}.items():
             policies.extend([
                 AuditPolicy(
-                    name=f'create_{object_class}_{line}',
+                    name=f"create_{object_class}_{line}",
                     is_ldap=True,
                     is_http=True,
                     operation_code=OperationEvent.ADD,
@@ -362,7 +362,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     }],
                 ),
                 AuditPolicy(
-                    name=f'modify_{object_class}_{line}',
+                    name=f"modify_{object_class}_{line}",
                     is_ldap=True,
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
@@ -373,7 +373,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     }],
                 ),
                 AuditPolicy(
-                    name=f'delete_{object_class}_{line}',
+                    name=f"delete_{object_class}_{line}",
                     is_ldap=True,
                     is_http=True,
                     operation_code=OperationEvent.DELETE,
@@ -388,7 +388,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
             if object_class == "user":
                 policies.extend([
                     AuditPolicy(
-                        name=f'{object_class}_password_modify_{line}',
+                        name=f"{object_class}_password_modify_{line}",
                         is_ldap=True,
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,  # FIXME
@@ -419,7 +419,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
             if object_class == "user" or object_class == "computer":
                 policies.extend([
                     AuditPolicy(
-                        name=f'{object_class}_enable_{line}',
+                        name=f"{object_class}_enable_{line}",
                         is_ldap=True,
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
@@ -440,7 +440,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                         ],
                     ),
                     AuditPolicy(
-                        name=f'{object_class}_disable_{line}',
+                        name=f"{object_class}_disable_{line}",
                         is_ldap=True,
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
@@ -465,7 +465,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
             if object_class == "group":
                 policies.extend([
                     AuditPolicy(
-                        name=f'{object_class}_add_member_{line}',
+                        name=f"{object_class}_add_member_{line}",
                         is_ldap=True,
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
@@ -486,7 +486,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                         ],
                     ),
                     AuditPolicy(
-                        name=f'{object_class}_remove_member_{line}',
+                        name=f"{object_class}_remove_member_{line}",
                         is_ldap=True,
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
@@ -510,7 +510,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
 
     policies.extend([
         AuditPolicy(
-            name='auth_ok',
+            name="auth_ok",
             is_ldap=True,
             is_http=True,
             operation_code=OperationEvent.BIND,
@@ -518,7 +518,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
             condition_attributes=[],
         ),
         AuditPolicy(
-            name='auth_fail',
+            name="auth_fail",
             is_ldap=True,
             is_http=True,
             operation_code=OperationEvent.BIND,
