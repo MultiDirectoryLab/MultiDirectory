@@ -290,6 +290,9 @@ class ExtendedRequest(BaseRequest):
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 
+    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+        return {}
+
     async def handle(
         self,
         ldap_session: LDAPSession,
