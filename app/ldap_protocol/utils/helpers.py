@@ -314,13 +314,13 @@ def custom_serializer(obj: Any) -> Any:
         return "********"
 
     if obj is None:
-        return 'None'
+        return "None"
 
-    if hasattr(obj, 'isoformat'):
+    if hasattr(obj, "isoformat"):
         return obj.isoformat()
 
     if isinstance(obj, bytes):
-        return obj.decode(errors='replace')
+        return obj.decode(errors="replace")
     return obj
 
 
@@ -333,7 +333,7 @@ async def send_event_to_redis(
     """Send an event to a Redis stream."""
     if need_to_serialize:
         for key, value in event_data.items():
-            if key == 'protocol':
+            if key == "protocol":
                 continue
             event_data[key] = json.dumps(value, default=custom_serializer)
 

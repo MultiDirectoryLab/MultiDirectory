@@ -403,7 +403,7 @@ class AddRequest(BaseRequest):
             ],
         )
 
-    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+    async def to_event_data(self, session: AsyncSession) -> dict:
         attributes = []
 
         for attr in self.attributes:
