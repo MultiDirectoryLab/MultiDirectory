@@ -16,6 +16,7 @@ import uvloop
 from dishka import make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
+from event_handler import EventHandler
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import exc as sa_exc
@@ -177,6 +178,33 @@ def ldap(settings: Settings) -> None:
             _run()
 
 
+def event_handler(settings: Settings) -> None:
+    """Run event handler."""
+    async def _server(settings: Settings) -> None:
+        container = make_async_container(
+            MainProvider(),
+            MFAProvider(),
+            HTTPProvider(),
+            MFACredsProvider(),
+            context={Settings: settings},
+        )
+
+        await asyncio.gather(EventHandler(settings, container).start())
+
+    def _run() -> None:
+        uvloop.run(_server(settings))
+
+    try:
+        import py_hot_reload
+    except ImportError:
+        _run()
+    else:
+        if settings.DEBUG:
+            py_hot_reload.run_with_reloader(_run)
+        else:
+            _run()
+
+
 if __name__ == "__main__":
     settings = Settings.from_os()
 
@@ -186,6 +214,11 @@ if __name__ == "__main__":
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
+    group.add_argument(
+        "--event_handler",
+        action="store_true",
+        help="Run handler",
+    )
 
     args = parser.parse_args()
 
@@ -213,3 +246,5 @@ if __name__ == "__main__":
         )
     elif args.scheduler:
         scheduler(settings)
+    elif args.event_handler:
+        event_handler(settings)
