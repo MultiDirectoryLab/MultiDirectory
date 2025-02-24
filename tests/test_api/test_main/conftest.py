@@ -118,10 +118,10 @@ async def adding_test_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
     async with AsyncClient(
-            transport=ASGITransport(app=app, root_path="/api"),
-            timeout=3,
-            base_url="http://test") as client:
-
+        transport=ASGITransport(app=app, root_path="/api"),
+        timeout=3,
+        base_url="http://test",
+    ) as client:
         auth = await client.post(
             "auth/",
             data={

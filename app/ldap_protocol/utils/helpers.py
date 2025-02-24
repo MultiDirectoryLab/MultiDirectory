@@ -286,7 +286,9 @@ def string_to_sid(sid_string: str) -> bytes:
 
 
 def create_object_sid(
-    domain: Directory, rid: int, reserved: bool = False,
+    domain: Directory,
+    rid: int,
+    reserved: bool = False,
 ) -> str:
     """Generate the objectSid attribute for an object.
 
@@ -298,7 +300,7 @@ def create_object_sid(
                           the final RID
     :return str: the complete objectSid as a string
     """
-    return domain.object_sid + f"-{rid if reserved else 1000+rid}"
+    return domain.object_sid + f"-{rid if reserved else 1000 + rid}"
 
 
 def generate_domain_sid() -> str:

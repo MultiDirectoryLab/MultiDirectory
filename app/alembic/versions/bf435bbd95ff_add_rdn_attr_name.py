@@ -5,6 +5,7 @@ Revises: 196f0d327c6a
 Create Date: 2024-10-23 10:46:24.419163
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
@@ -38,11 +39,13 @@ def upgrade() -> None:
         if rdname == "krbprincipalname":
             continue  # already exists
 
-        attrs.append(Attribute(
-            name=rdname,
-            value=directory.name,
-            directory_id=directory.id,
-        ))
+        attrs.append(
+            Attribute(
+                name=rdname,
+                value=directory.name,
+                directory_id=directory.id,
+            )
+        )
 
     session.add_all(attrs)
     session.commit()
@@ -67,6 +70,6 @@ def downgrade() -> None:
                 Attribute.name != "krbprincipalname",
                 Attribute.directory_id == directory.id,
             ),
-        )
+        )  # fmt: skip
 
     op.drop_column("Directory", "rdname")

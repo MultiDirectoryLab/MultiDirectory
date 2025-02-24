@@ -50,7 +50,9 @@ def run_migrations_online():
     """
     conn = context.config.attributes.get("connection", None)
     settings = context.config.attributes.get(
-        "app_settings", Settings.from_os())
+        "app_settings",
+        Settings.from_os(),
+    )
 
     if conn is None:
         asyncio.run(run_async_migrations(settings))

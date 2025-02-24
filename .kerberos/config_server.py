@@ -92,7 +92,10 @@ class AbstractKRBManager(ABC):
 
     @abstractmethod
     async def add_princ(
-        self, name: str, password: str | None, **dbargs,
+        self,
+        name: str,
+        password: str | None,
+        **dbargs,
     ) -> None:
         """Create principal.
 
@@ -202,7 +205,10 @@ class KAdminLocalManager(AbstractKRBManager):
         return await self.loop.run_in_executor(self.pool, kadmv.local)
 
     async def add_princ(
-        self, name: str, password: str | None, **dbargs,
+        self,
+        name: str,
+        password: str | None,
+        **dbargs,
     ) -> None:
         """Create principal.
 
@@ -210,7 +216,10 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str | None password: if empty - uses randkey.
         """
         await self.loop.run_in_executor(
-            self.pool, self.client.add_principal, name, password,
+            self.pool,
+            self.client.add_principal,
+            name,
+            password,
         )
 
         princ = await self._get_raw_principal(name)
@@ -229,7 +238,9 @@ class KAdminLocalManager(AbstractKRBManager):
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
         principal = await self.loop.run_in_executor(
-            self.pool, self.client.getprinc, name,
+            self.pool,
+            self.client.getprinc,
+            name,
         )
 
         if not principal:
@@ -254,7 +265,9 @@ class KAdminLocalManager(AbstractKRBManager):
         """
         princ = await self._get_raw_principal(name)
         await self.loop.run_in_executor(
-            self.pool, princ.change_password, new_password,
+            self.pool,
+            princ.change_password,
+            new_password,
         )
 
     async def create_or_update_princ_pw(self, name: str, new_password) -> None:
@@ -282,7 +295,10 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str new_name: new name
         """
         await self.loop.run_in_executor(
-            self.pool, self.client.rename_principal, name, new_name,
+            self.pool,
+            self.client.rename_principal,
+            name,
+            new_name,
         )
 
     async def ktadd(self, names: list[str], fn: str) -> None:
@@ -393,21 +409,24 @@ def get_kadmin() -> KAdminLocalManager:
 def handle_db_error(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_424_FAILED_DEPENDENCY, detail="Database Error",
+        status.HTTP_424_FAILED_DEPENDENCY,
+        detail="Database Error",
     )
 
 
 def handle_duplicate(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_409_CONFLICT, detail="Principal already exists",
+        status.HTTP_409_CONFLICT,
+        detail="Principal already exists",
     )
 
 
 def handle_not_found(request: Request, exc: BaseException):
     """Handle duplicate."""
     raise HTTPException(
-        status.HTTP_404_NOT_FOUND, detail="Principal does not exist",
+        status.HTTP_404_NOT_FOUND,
+        detail="Principal does not exist",
     )
 
 
@@ -597,7 +616,8 @@ async def change_princ_password(
 
 
 @principal_router.post(
-    "/create_or_update", status_code=201,
+    "/create_or_update",
+    status_code=201,
     response_class=Response,
 )
 async def create_or_update_princ_password(
@@ -615,7 +635,8 @@ async def create_or_update_princ_password(
 
 
 @principal_router.put(
-    "", status_code=status.HTTP_202_ACCEPTED,
+    "",
+    status_code=status.HTTP_202_ACCEPTED,
     response_class=Response,
 )
 async def rename_princ(

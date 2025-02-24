@@ -68,13 +68,13 @@ class Settings(BaseModel):
     @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
         """Build postgres DSN."""
-        return PostgresDsn((
+        return PostgresDsn(
             f"{self.POSTGRES_SCHEMA}://"
             f"{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}/"
             f"{self.POSTGRES_DB}"
-        ))
+        )
 
     VENDOR_NAME: str = "MultiFactor"
     VENDOR_VERSION: str = Field(
@@ -102,7 +102,8 @@ class Settings(BaseModel):
 
     TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
         loader=jinja2.FileSystemLoader("extra/templates"),
-        enable_async=True, autoescape=True,
+        enable_async=True,
+        autoescape=True,
     )
 
     DNS_BIND_HOST: str = "bind_dns"

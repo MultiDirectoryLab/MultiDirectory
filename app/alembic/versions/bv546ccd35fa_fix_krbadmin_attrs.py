@@ -5,6 +5,7 @@ Revises: 8c2bd40dd809
 Create Date: 2024-12-10 10:46:24.419163
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
@@ -42,12 +43,14 @@ def upgrade() -> None:
                     Attribute.name == attr,
                     Attribute.directory_id == krb_admin_user.id,
                 ),
+            )  # fmt: skip
+            session.add(
+                Attribute(
+                    name=attr,
+                    value=new_value,
+                    directory_id=krb_admin_user.id,
+                )
             )
-            session.add(Attribute(
-                name=attr,
-                value=new_value,
-                directory_id=krb_admin_user.id,
-            ))
 
         krb_admin_group = session.scalar(
             sa.select(Directory)
@@ -61,12 +64,14 @@ def upgrade() -> None:
                 Attribute.name == "gidNumber",
                 Attribute.directory_id == krb_admin_group.id,
             ),
+        )  # fmt: skip
+        session.add(
+            Attribute(
+                name="gidNumber",
+                value="800",
+                directory_id=krb_admin_group.id,
+            )
         )
-        session.add(Attribute(
-            name="gidNumber",
-            value="800",
-            directory_id=krb_admin_group.id,
-        ))
 
     session.commit()
 

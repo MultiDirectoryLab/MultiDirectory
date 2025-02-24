@@ -102,11 +102,12 @@ async def get_check_uac(
     query = (
         select(Attribute)
         .filter_by(directory_id=directory_id, name="userAccountControl")
-    )
+    )  # fmt: skip
     uac = await session.scalar(query)
 
     value: str = (
-        uac.value if uac is not None and uac.value is not None else "0")
+        uac.value if uac is not None and uac.value is not None else "0"
+    )
 
     def is_flag_true(flag: UserAccountControlFlag) -> bool:
         """Check given flag in current userAccountControl attribute.

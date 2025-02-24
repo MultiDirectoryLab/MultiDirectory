@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, HTTPException

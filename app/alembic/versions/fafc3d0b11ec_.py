@@ -5,6 +5,7 @@ Revises: bf435bbd95ff
 Create Date: 2024-11-11 15:21:23.568233
 
 """
+
 from alembic import op
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
@@ -27,6 +28,7 @@ depends_on = None
 
 def upgrade() -> None:
     """Upgrade."""
+
     async def _create_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
@@ -35,27 +37,30 @@ def upgrade() -> None:
             return
 
         try:
-            group_dir = (await session.scalars(
-                select(
-                    exists(Directory)
-                    .where(Directory.name == "readonly domain controllers")),
-            )).one()
+            group_dir_query = select(
+                exists(Directory)
+                .where(Directory.name == "readonly domain controllers")
+            )  # fmt: skip
+            group_dir = (await session.scalars(group_dir_query)).one()
 
             if not group_dir:
                 dir_, _ = await create_group(
-                    "readonly domain controllers", 521, session)
+                    name="readonly domain controllers",
+                    sid=521,
+                    session=session,
+                )
 
             await session.flush()
         except (IntegrityError, DBAPIError):
             pass
 
-        has_ro_access_policy = (await session.scalars(
-            select(
-                exists(AccessPolicy)
-                .where(AccessPolicy.name == "ReadOnly Access Policy")),
-        )).one()
+        ro_access_policy_q = select(
+            exists(AccessPolicy)
+            .where(AccessPolicy.name == "ReadOnly Access Policy")
+        )  # fmt: skip
+        ro_access_policy = (await session.scalars(ro_access_policy_q)).one()
 
-        if not has_ro_access_policy:
+        if not ro_access_policy:
             await create_access_policy(
                 name="ReadOnly Access Policy",
                 can_add=False,
@@ -75,6 +80,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
+
     async def _delete_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
@@ -82,18 +88,20 @@ def downgrade() -> None:
         if not base_dn_list:
             return
 
-        group_dn = "cn=readonly domain controllers,cn=groups," +\
-            base_dn_list[0].path_dn
+        group_dn = (
+            "cn=readonly domain controllers,cn=groups,"
+            + base_dn_list[0].path_dn
+        )
 
         await session.execute(
             delete(AccessPolicy)
-            .where(AccessPolicy.name == "ReadOnly Access Policy"),
-        )
+            .where(AccessPolicy.name == "ReadOnly Access Policy")
+        )  # fmt: skip
 
         await session.execute(
             delete(Directory)
-            .where(Directory.path == get_search_path(group_dn)),
-        )
+            .where(Directory.path == get_search_path(group_dn))
+        )  # fmt: skip
 
         await session.commit()
 

@@ -70,15 +70,14 @@ async def setup_mfa(
     """
     async with session.begin_nested():
         await session.execute(
-            (
-                delete(CatalogueSetting).filter(
-                    operator.or_(
-                        CatalogueSetting.name == mfa.key_name,
-                        CatalogueSetting.name == mfa.secret_name,
-                    ),
-                )
-            ),
-        )
+            delete(CatalogueSetting)
+            .filter(
+                operator.or_(
+                    CatalogueSetting.name == mfa.key_name,
+                    CatalogueSetting.name == mfa.secret_name,
+                ),
+            )
+        )  # fmt: skip
         await session.flush()
         session.add(CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key))
         session.add(
@@ -89,7 +88,10 @@ async def setup_mfa(
     return True
 
 
-@mfa_router.delete("/keys", dependencies=[Depends(get_current_user)])
+@mfa_router.delete(
+    "/keys",
+    dependencies=[Depends(get_current_user)],
+)
 async def remove_mfa(
     session: FromDishka[AsyncSession],
     scope: Literal["ldap", "http"],
@@ -101,8 +103,9 @@ async def remove_mfa(
         keys = ["mfa_key_ldap", "mfa_secret_ldap"]
 
     await session.execute(
-        delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys)),
-    )
+        delete(CatalogueSetting)
+        .filter(CatalogueSetting.name.in_(keys))
+    )  # fmt: skip
     await session.commit()
 
 
@@ -132,7 +135,8 @@ async def get_mfa(
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
 async def callback_mfa(
     access_token: Annotated[
-        str, Form(alias="accessToken", validation_alias="accessToken")
+        str,
+        Form(alias="accessToken", validation_alias="accessToken"),
     ],
     session: FromDishka[AsyncSession],
     storage: FromDishka[SessionStorage],
@@ -176,7 +180,13 @@ async def callback_mfa(
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
     await create_and_set_session_key(
-        user, session, settings, response, storage, ip, user_agent
+        user,
+        session,
+        settings,
+        response,
+        storage,
+        ip,
+        user_agent,
     )
     return response
 
@@ -242,7 +252,13 @@ async def two_factor_protocol(
     except MultifactorAPI.MFAConnectError:
         if network_policy.bypass_no_connection:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip, user_agent
+                user,
+                session,
+                settings,
+                response,
+                storage,
+                ip,
+                user_agent,
             )
             return MFAChallengeResponse(status="bypass", message="")
 
@@ -254,14 +270,26 @@ async def two_factor_protocol(
 
     except MultifactorAPI.MFAMissconfiguredError:
         await create_and_set_session_key(
-            user, session, settings, response, storage, ip, user_agent
+            user,
+            session,
+            settings,
+            response,
+            storage,
+            ip,
+            user_agent,
         )
         return MFAChallengeResponse(status="bypass", message="")
 
     except MultifactorAPI.MultifactorError:
         if network_policy.bypass_service_failure:
             await create_and_set_session_key(
-                user, session, settings, response, storage, ip, user_agent
+                user,
+                session,
+                settings,
+                response,
+                storage,
+                ip,
+                user_agent,
             )
             return MFAChallengeResponse(status="bypass", message="")
 

@@ -97,7 +97,8 @@ async def login(
         .join(Group.users)
         .join(Group.directory)
         .filter(User.id == user.id, Directory.name == "domain admins")
-        .exists())
+        .exists()
+    )
 
     is_part_of_admin_group = (await session.scalars(select(query))).one()
 
@@ -121,10 +122,11 @@ async def login(
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if mfa and network_policy.mfa_status in (
-        MFAFlags.ENABLED, MFAFlags.WHITELIST,
+        MFAFlags.ENABLED,
+        MFAFlags.WHITELIST,
     ):
         request_2fa = True
-        if (network_policy.mfa_status == MFAFlags.WHITELIST):
+        if network_policy.mfa_status == MFAFlags.WHITELIST:
             request_2fa = await check_mfa_group(network_policy, user, session)
 
         if request_2fa:
@@ -134,8 +136,13 @@ async def login(
             )
 
     await create_and_set_session_key(
-        user, session, settings,
-        response, storage, ip, user_agent,
+        user,
+        session,
+        settings,
+        response,
+        storage,
+        ip,
+        user_agent,
     )
 
 
@@ -238,8 +245,9 @@ async def first_setup(
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
-        select(Directory).filter(Directory.parent_id.is_(None)),
-    )
+        select(Directory)
+        .filter(Directory.parent_id.is_(None))
+    )  # fmt: skip
 
     if setup_already_performed:
         raise HTTPException(status.HTTP_423_LOCKED)
@@ -338,7 +346,8 @@ async def first_setup(
 
             default_pwd_policy = PasswordPolicySchema()
             errors = await default_pwd_policy.validate_password_with_policy(
-                request.password, None,
+                password=request.password,
+                user=None,
             )
 
             if errors:
@@ -349,9 +358,11 @@ async def first_setup(
 
             await default_pwd_policy.create_policy_settings(session, kadmin)
 
-            domain = (await session.scalars(
-                select(Directory).filter(Directory.parent_id.is_(None)),
-            )).one()
+            domain_query = (
+                select(Directory)
+                .filter(Directory.parent_id.is_(None))
+            )  # fmt:skip
+            domain = (await session.scalars(domain_query)).one()
 
             await create_access_policy(
                 name="Root Access Policy",
@@ -372,8 +383,8 @@ async def first_setup(
                 can_delete=False,
                 grant_dn=domain.path_dn,
                 groups=[
-                    "cn=readonly domain controllers,cn=groups," +
-                    domain.path_dn,
+                    "cn=readonly domain controllers,cn=groups,"
+                    + domain.path_dn,
                 ],
                 session=session,
             )

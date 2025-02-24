@@ -104,8 +104,9 @@ class AddRequest(BaseRequest):
         root_dn = get_search_path(self.entry)
 
         exists_q = select(
-            select(Directory).filter(get_path_filter(root_dn)).exists(),
-        )
+            select(Directory)
+            .filter(get_path_filter(root_dn)).exists()
+        )  # fmt: skip
 
         if await session.scalar(exists_q) is True:
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
@@ -147,8 +148,8 @@ class AddRequest(BaseRequest):
             )
             raw_password = self.password.get_secret_value()
             errors = await validator.validate_password_with_policy(
-                raw_password,
-                None,
+                password=raw_password,
+                user=None,
             )
 
             if errors:
@@ -187,7 +188,11 @@ class AddRequest(BaseRequest):
         group_attributes: list[str] = []
         user_fields = User.search_fields.keys() | User.fields.keys()
         attributes.append(
-            Attribute(name=new_dn, value=name, directory=new_dir)
+            Attribute(
+                name=new_dn,
+                value=name,
+                directory=new_dir,
+            )
         )
 
         for attr in self.attributes:
