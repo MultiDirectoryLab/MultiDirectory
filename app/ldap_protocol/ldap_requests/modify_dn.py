@@ -75,6 +75,9 @@ class ModifyDNRequest(BaseRequest):
     deleteoldrdn: bool
     new_superior: str | None
 
+    async def to_event_data(self, session: AsyncSession) -> dict:  # noqa: D102
+        return {}
+
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyDNRequest":
         """Create structure from ASN1Row dataclass list."""
