@@ -171,8 +171,12 @@ class ModifyRequest(BaseRequest):
                 continue
 
             add_args = (
-                change, directory, session,
-                session_storage, kadmin, settings,
+                change,
+                directory,
+                session,
+                session_storage,
+                kadmin,
+                settings,
             )
 
             try:
