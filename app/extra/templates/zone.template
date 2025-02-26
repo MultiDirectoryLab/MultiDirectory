@@ -20,5 +20,3 @@ _kdc._tcp.{{ domain }}. IN SRV 0 0 88 {{ domain }}.
 _kdc._udp.{{ domain }}. IN SRV 0 0 88 {{ domain }}.
 _kpasswd._tcp.{{ domain }}. IN SRV 0 0 464 {{ domain }}.
 _kpasswd._udp.{{ domain }}. IN SRV 0 0 464 {{ domain }}.
-1.2.0.192.in-addr.arpa. IN PTR {{ domain }}.
-1.0.0.192.in-addr.arpa. IN PTR {{ domain }}.
