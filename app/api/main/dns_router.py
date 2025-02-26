@@ -119,6 +119,13 @@ async def setup_dns(
         zone_file_template = settings.TEMPLATES.get_template("zone.template")
         zone_file = await zone_file_template.render_async(domain=data.domain)
 
+        reverse_zone_file_template = settings.TEMPLATES.get_template(
+            "reverse_zone.template",
+        )
+        reverse_zone_file = await reverse_zone_file_template.render_async(
+            domain=data.domain,
+        )
+
         tmpl = settings.TEMPLATES.get_template(
             "named_conf_local_zone_part.template",
         )
@@ -131,6 +138,7 @@ async def setup_dns(
             domain=data.domain,
             dns_ip_address=dns_ip_address,
             zone_file=zone_file,
+            reverse_zone_file=reverse_zone_file,
             tsig_key=tsig_key,
             named_conf_local_part=conf_part,
         )

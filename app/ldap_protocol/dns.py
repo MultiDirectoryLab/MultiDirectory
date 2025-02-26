@@ -152,13 +152,18 @@ class AbstractDNSManager(ABC):
         domain: str,
         dns_ip_address: str | None,
         zone_file: str | None,
+        reverse_zone_file: str | None,
         tsig_key: str | None,
         named_conf_local_part: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        if zone_file is not None and named_conf_local_part is not None:
+        if zone_file is not None and reverse_zone_file is not None and\
+            named_conf_local_part is not None:
             with open(settings.DNS_ZONE_FILE, "w") as f:
                 f.write(zone_file)
+
+            with open(settings.DNS_REVERSE_ZONE_FILE, "w") as f:
+                f.write(reverse_zone_file)
 
             with open(settings.DNS_SERVER_NAMED_CONF_LOCAL, "a") as f:
                 f.write(named_conf_local_part)
