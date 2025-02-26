@@ -402,7 +402,7 @@ async def test_lock_and_unlock_user(
 
     dir_ = await session.scalar(
         select(Directory)
-        .filter(Directory.name == "user0"),
+        .filter(Directory.name == "user_non_admin"),
     )  # fmt: skip
     session.expire(dir_)
 
