@@ -30,6 +30,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
 from ldap_protocol.utils.helpers import (
@@ -117,6 +118,7 @@ class ModifyRequest(BaseRequest):
         self,
         ldap_session: LDAPSession,
         session: AsyncSession,
+        session_storage: SessionStorage,
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> AsyncGenerator[ModifyResponse, None]:
@@ -168,7 +170,14 @@ class ModifyRequest(BaseRequest):
             if change.modification.type in Directory.ro_fields:
                 continue
 
-            add_args = (change, directory, session, kadmin, settings)
+            add_args = (
+                change,
+                directory,
+                session,
+                session_storage,
+                kadmin,
+                settings,
+            )
 
             try:
                 if change.operation == Operation.ADD:
@@ -340,6 +349,7 @@ class ModifyRequest(BaseRequest):
         change: Changes,
         directory: Directory,
         session: AsyncSession,
+        session_storage: SessionStorage,
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> None:
@@ -371,6 +381,10 @@ class ModifyRequest(BaseRequest):
                         session,
                         directory,
                         settings.TIMEZONE,
+                    )
+
+                    await session_storage.clear_user_sessions(
+                        directory.user.id,
                     )
 
                 elif (
