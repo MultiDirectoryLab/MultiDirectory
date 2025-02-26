@@ -5,3 +5,11 @@ zone "{{ domain }}" {
     allow-query { any; };
     allow-update { key zone. ; };
 };
+
+zone "1.0.0.in-addr.arpa" {
+    type master;
+    file "/opt/db.reverse.zone";
+    notify no;
+    allow-query { any; };
+    allow-update { key zone. ;};
+};
