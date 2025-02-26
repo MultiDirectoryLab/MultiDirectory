@@ -353,8 +353,9 @@ async def test_lock_and_unlock_user(
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
     dir_ = await session.scalar(
-        select(Directory).filter(Directory.name == "user_non_admin"),
-    )
+        select(Directory)
+        .filter(Directory.name == "user_non_admin"),
+    )  # fmt: skip
     async with container() as c:
         session_storage = await c.get(SessionStorage)
         await session_storage.create_ldap_session(dir_.user.id, "key", {})  # type: ignore
