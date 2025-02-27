@@ -39,8 +39,8 @@ def upgrade() -> None:
         sa.Column("is_ldap", sa.Boolean(), nullable=False),
         sa.Column("is_http", sa.Boolean(), nullable=False),
         sa.Column("operation_code", sa.Integer(), nullable=False),
-        sa.Column("condition_attributes", sa.JSON(), nullable=False),
-        sa.Column("change_attributes", sa.JSON()),
+        sa.Column("triggers", sa.JSON(), nullable=False),
+        sa.Column("changes", sa.JSON()),
         sa.Column("operation_success", sa.Boolean(), nullable=False),
         sa.Column(
             "is_enabled",
