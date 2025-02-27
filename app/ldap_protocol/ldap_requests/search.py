@@ -563,6 +563,3 @@ class SearchRequest(BaseRequest):
                     for key, value in attrs.items()
                 ],
             )
-
-    async def to_event_data(self, session: AsyncSession) -> dict:
-        return {}
