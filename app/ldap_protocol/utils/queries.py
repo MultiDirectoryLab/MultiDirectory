@@ -47,9 +47,9 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
-            cond = User.user_principal_name.ilike(name) | User.mail.ilike(name)
+            cond = User.user_principal_name.ilike(name)
         else:
-            cond = User.sam_accout_name.ilike(name)  # type: ignore
+            cond = User.sam_accout_name.ilike(name)
 
         return await session.scalar(select(User).where(cond).options(policies))
 
@@ -59,19 +59,6 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         .options(policies)
         .where(get_filter_from_path(name)),
     )
-
-
-async def get_user_by_upn(session: AsyncSession, upn: str) -> User | None:
-    """Get user by upn.
-
-    :param AsyncSession session: db
-    :param str upn: user principal name
-    :return User | None: user
-    """
-    return await session.scalar(
-        select(User)
-        .where(User.user_principal_name.ilike(upn))
-    )  # fmt: skip
 
 
 async def get_directories(
