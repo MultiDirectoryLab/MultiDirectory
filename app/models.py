@@ -971,9 +971,9 @@ class AuditPolicy(Base):
     is_ldap: Mapped[tbool]
     is_http: Mapped[tbool]
     operation_code: Mapped[int]
-    condition_attributes: Mapped[list[dict]] = mapped_column(
+    triggers: Mapped[dict] = mapped_column(
         JSON, nullable=False)
-    change_attributes: Mapped[list[dict]] = mapped_column(JSON)
+    changes: Mapped[dict] = mapped_column(JSON)
     operation_success: Mapped[nbool]
     is_enabled: Mapped[bool] = mapped_column(
         nullable=False, server_default=expression.true())
