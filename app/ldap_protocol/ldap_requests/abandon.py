@@ -7,8 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.objects import ProtocolRequests
 
@@ -31,6 +29,3 @@ class AbandonRequest(BaseRequest):
         await asyncio.sleep(0)
         return
         yield  # type: ignore
-
-    async def to_event_data(self, session: AsyncSession) -> dict:
-        return {}
