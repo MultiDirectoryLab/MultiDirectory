@@ -94,12 +94,6 @@ class PasswordPolicySchema(BaseModel):
             raise PermissionError("Policy already exists")
         session.add(PasswordPolicy(**self.model_dump(mode="json")))
         await session.flush()
-        await kadmin.create_or_update_policy(
-            self.minimum_password_age_days,
-            self.maximum_password_age_days,
-            self.minimum_password_length,
-            3 if self.password_must_meet_complexity_requirements else 0,
-        )
         return self
 
     @classmethod
@@ -129,12 +123,6 @@ class PasswordPolicySchema(BaseModel):
         """
         await session.execute(
             (update(PasswordPolicy).values(self.model_dump(mode="json"))),
-        )
-        await kadmin.create_or_update_policy(
-            self.minimum_password_age_days,
-            self.maximum_password_age_days,
-            self.minimum_password_length,
-            3 if self.password_must_meet_complexity_requirements else 0,
         )
         await session.commit()
 
