@@ -369,7 +369,7 @@ class PoolClientHandler:
                     event_data = {
                         "request": message.model_dump(),
                         "responses": responses,
-                        "protocol": "LDAP",
+                        "protocol": "TCP_LDAP",
                     }
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
@@ -386,11 +386,13 @@ class PoolClientHandler:
 
                 ldap_session.queue.task_done()
 
+                event_data["help_data"] = message.context.get_event_data()
+
                 kwargs = await resolve_deps(
                     func=send_event_to_redis,
                     container=request_container,
                 )
-                logger.critical(f"Sending event to redis: {event_data}")
+                # logger.critical(f"Sending event to redis: {event_data}")
 
                 asyncio.create_task(
                     send_event_to_redis(
