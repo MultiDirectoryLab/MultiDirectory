@@ -13,12 +13,12 @@ from typing import Any
 from dishka import AsyncContainer, Scope
 from loguru import logger
 from redis_client import RedisClient
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.utils.helpers import send_event_to_redis
+from ldap_protocol.ldap_codes import LDAPCodes
 from models import AuditPolicy
 
 
@@ -33,35 +33,87 @@ class EventHandler:
         self.settings = settings
         self.consumer_name = os.getenv("HOSTNAME", socket.gethostname())
 
-    async def is_event_valid(
+    def is_success_request(self, responses: list[dict[str, Any]]) -> bool:
+        """Check if the request was successful."""
+        if not responses:
+            return True
+
+        return responses[-1]["context"]["result_code"] == LDAPCodes.SUCCESS
+
+    def _check_triggers(self, policy: AuditPolicy, event: dict) -> bool:
+        """Check if event triggers match policy."""
+        event_triggers = list()
+        for protocol in policy.triggers:
+            if protocol in event["help_data"]:  # noqa
+                if protocol == "LDAP":
+                    for attr_name, attr_list in policy.triggers[protocol].items():  # noqa
+                        if attr_name in event["help_data"][protocol]:
+                            for attr in attr_list:
+                                event_triggers.append(
+                                    attr in event["help_data"][protocol][attr_name])  # noqa
+
+        return all(event_triggers)
+
+    def _check_changes(self, policy: AuditPolicy, event: dict) -> bool:
+        """Check if event changes match policy."""
+        if policy.changes is None:
+            return True
+
+        for protocol in policy.changes:
+            if protocol in event["help_data"]:
+                if protocol == "LDAP":
+                    return False
+
+        return True
+
+    def is_match_policy(self, policy: AuditPolicy, event: dict) -> bool:
+        """Check if event is suitable for policy."""
+        from loguru import logger
+        logger.debug(f"name - {policy.name}")
+        logger.debug(f"_check_triggers - {self._check_triggers(policy, event),}")
+        return all([
+            self._check_triggers(policy, event),
+            self._check_changes(policy, event)
+        ])
+
+    async def get_event_by_data(
         self, event_data: dict[str, Any],
         session: AsyncSession,
-    ) -> bool:
+    ) -> AuditPolicy | None:
         """Check if the event is valid."""
-        policies = await session.scalars(
+        is_ldap = event_data["protocol"] == "TCP_LDAP"
+        is_http = event_data["protocol"] == "HTTP_LDAP"
+        is_success = self.is_success_request(event_data["responses"])
+        operation_code = event_data["request"]["protocol_op"]
+
+        policies = (await session.scalars(
             select(AuditPolicy)
-            .where(AuditPolicy.is_enabled == True),  # noqa: E712
-        )
-        is_ldap = event_data["protocol"] == "LDAP"
-        is_http = event_data["protocol"] == "HTTP"
+            .where(
+                AuditPolicy.is_enabled.is_(True),
+                or_(
+                    AuditPolicy.is_ldap.is_(is_ldap),
+                    AuditPolicy.is_http.is_(is_http)
+                ),
+                AuditPolicy.operation_success.is_(is_success),
+                AuditPolicy.operation_code == operation_code,
+            ),
+        )).all()
 
-        suitable_policies = [
-            policy
-            for policy in policies
-            if all([
-                policy.is_ldap == is_ldap or policy.is_http == is_http,
-                policy.operation_code == event_data["request"]["protocol_op"],
-            ])
-        ]
+        if not policies:
+            return None
 
-        suitable_police_names = [policy.name for policy in suitable_policies]
+        logger.debug(
+            f"Suitable policies: {[policy.name for policy in policies]}")
 
-        logger.critical(f"Suitable policies: {suitable_police_names}")
+        for policy in policies:
+            if self.is_match_policy(policy, event_data):
+                return policy
 
-        return False
+        return None
 
     async def normalize_event_data(
         self, event_data: dict[str, Any],
+        policy: AuditPolicy,
         session: AsyncSession,
     ) -> dict[str, Any]:
         """Normalize event data."""
@@ -74,9 +126,12 @@ class EventHandler:
         redis_client: RedisClient,
     ) -> None:
         """Handle an event."""
-        logger.debug(f"Event data: {event_data}")
+        if event_data["request"]["protocol_op"] != 3:
+            logger.debug(f"Event data: {event_data}")
 
-        if not (await self.is_event_valid(event_data, session)):
+        policy = await self.get_event_by_data(event_data, session)
+
+        if policy is None:
             await redis_client.ack_message(
                 self.event_stream,
                 self.group_name,
@@ -87,15 +142,22 @@ class EventHandler:
 
         normalize_event_data = await self.normalize_event_data(
             event_data=event_data,
+            policy=policy,
             session=session,
         )
         logger.debug(f"Normalized event data: {normalize_event_data}")
 
-        await send_event_to_redis(
-            redis_client=redis_client,
-            stream_name=self.event_stream,
-            event_data=normalize_event_data,
+        # await send_event_to_redis(
+        #     redis_client=redis_client,
+        #     stream_name=self.event_stream,
+        #     event_data=normalize_event_data,
+        # )
+        await redis_client.ack_message(
+            self.event_stream,
+            self.group_name,
+            event_id,
         )
+        await redis_client.remove(self.event_stream, event_id)
 
     async def read_stream(self) -> None:
         """Read messages from the stream."""
@@ -120,11 +182,13 @@ class EventHandler:
 
                             for key, value in event_data.items():
                                 temp_key = key.decode()
+                                temp_value = value.decode()
 
-                                if temp_key in {"responses", "request"}:
-                                    temp_value = json.loads(value.decode())
-                                else:
-                                    temp_value = value.decode()
+                                if temp_key in {
+                                    "responses", "request", "help_data"}:
+                                    temp_value = json.loads(temp_value)
+                                elif temp_key == "datetime":
+                                    temp_value = float(temp_value)  # type: ignore
 
                                 decode_event_data[temp_key] = temp_value
 
