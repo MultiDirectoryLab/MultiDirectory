@@ -78,3 +78,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
+    op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
+    op.create_index(
+        op.f("ix_Settings_name"),
+        "Settings",
+        ["name"],
+        unique=False,
+    )
