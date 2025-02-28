@@ -136,8 +136,8 @@ class ModifyRequest(BaseRequest):
 
         query = (
             select(Directory)
-            .join(Directory.attributes)
             .options(
+                selectinload(Directory.attributes),
                 selectinload(Directory.groups),
                 selectinload(Directory.group).selectinload(Group.members),
             )
@@ -149,6 +149,8 @@ class ModifyRequest(BaseRequest):
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
+
+        self.set_event_data(self.get_directory_attrs(directory))
 
         names = {change.get_name() for change in self.changes}
 
@@ -519,6 +521,3 @@ class ModifyRequest(BaseRequest):
                 )
 
         session.add_all(attrs)
-
-    async def to_event_data(self, session: AsyncSession) -> dict:
-        return {}
