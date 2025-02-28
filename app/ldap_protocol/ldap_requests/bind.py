@@ -224,7 +224,7 @@ class BindRequest(BaseRequest):
 
         await ldap_session.set_user(user)
         await set_last_logon_user(user, session, settings.TIMEZONE)
-
+        self.set_event_data(self.get_directory_attrs(user.directory))
         yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
 
