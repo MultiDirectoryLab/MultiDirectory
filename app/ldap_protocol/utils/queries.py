@@ -58,7 +58,10 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     return await session.scalar(
         select(User)
         .join(User.directory)
-        .options(policies)
+        .options(
+            policies,
+            selectinload(User.directory).selectinload(Directory.attributes),
+        )
         .where(get_filter_from_path(name)),
     )
 
@@ -369,10 +372,11 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     is_http=True,
                     operation_code=OperationEvent.ADD,
                     operation_success=status,
-                    condition_attributes=[{
-                        "attribute": "objectClass",
-                        "value": f"{object_class}",
-                    }],
+                    triggers={
+                        "LDAP": {
+                            "objectClass": [object_class]
+                        },
+                    },
                 ),
                 AuditPolicy(
                     name=f"modify_{object_class}_{line}",
@@ -380,10 +384,11 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     operation_success=status,
-                    condition_attributes=[{
-                        "attribute": "objectClass",
-                        "value": f"{object_class}",
-                    }],
+                    triggers={
+                        "LDAP": {
+                            "objectClass": [object_class]
+                        },
+                    },
                 ),
                 AuditPolicy(
                     name=f"delete_{object_class}_{line}",
@@ -391,10 +396,11 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     is_http=True,
                     operation_code=OperationEvent.DELETE,
                     operation_success=status,
-                    condition_attributes=[{
-                        "attribute": "objectClass",
-                        "value": f"{object_class}",
-                    }],
+                    triggers={
+                        "LDAP": {
+                            "objectClass": [object_class]
+                        },
+                    },
                 ),
             ])
 
@@ -406,26 +412,42 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,  # FIXME
                         operation_success=status,
-                        condition_attributes=[
-                            {
-                                "attribute": "objectClass",
-                                "value": object_class,
+                        triggers={
+                            "LDAP": {
+                                "objectClass": [object_class]
                             },
-                        ],
-                        change_attributes=[
-                            {
-                                "attribute": "userPassword",
-                                "operation": None,
-                                "result": True,
-                                "value": None,
+                        },
+                        changes={
+                            "LDAP": {
+                                "operation": "OR",
+                                "conditions": [
+                                    {
+                                        "attribute": "userPassword",
+                                        "operation": None,
+                                        "result": True,
+                                        "value": None,
+                                    },
+                                    {
+                                        "attribute": "unicodePwd",
+                                        "operation": None,
+                                        "result": True,
+                                        "value": None,
+                                    },
+                                ],
+                            }
+                        }
+                    ),
+                    AuditPolicy(
+                        name=f"auth_{line}",
+                        is_ldap=True,
+                        is_http=True,
+                        operation_code=OperationEvent.BIND,
+                        operation_success=status,
+                        triggers={
+                            "LDAP": {
+                                "objectClass": [object_class]
                             },
-                            {
-                                "attribute": "unicodePwd",
-                                "operation": None,
-                                "result": True,
-                                "value": None,
-                            },
-                        ],
+                        },
                     ),
                 ])
 
@@ -437,20 +459,24 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
                         operation_success=status,
-                        condition_attributes=[
-                            {
-                                "attribute": "objectClass",
-                                "value": object_class,
+                        triggers={
+                            "LDAP": {
+                                "objectClass": [object_class]
                             },
-                        ],
-                        change_attributes=[
-                            {
-                                "attribute": "userAccountControl",
-                                "operation": AuditOperation.BITWISE_AND,
-                                "result": True,
-                                "value": UserAccountControlFlag.ACCOUNTDISABLE,
-                            },
-                        ],
+                        },
+                        changes={
+                            "LDAP": {
+                                "operation": "AND",
+                                "conditions": [
+                                    {
+                                        "attribute": "userAccountControl",
+                                        "operation": AuditOperation.BITWISE_AND,  # noqa
+                                        "result": True,
+                                        "value": UserAccountControlFlag.ACCOUNTDISABLE,  # noqa
+                                    },
+                                ],
+                            }
+                        }
                     ),
                     AuditPolicy(
                         name=f"{object_class}_disable_{line}",
@@ -458,20 +484,24 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
                         operation_success=status,
-                        condition_attributes=[
-                            {
-                                "attribute": "objectClass",
-                                "value": object_class,
+                        triggers={
+                            "LDAP": {
+                                "objectClass": [object_class]
                             },
-                        ],
-                        change_attributes=[
-                            {
-                                "attribute": "userAccountControl",
-                                "operation": AuditOperation.BITWISE_AND,
-                                "result": False,
-                                "value": UserAccountControlFlag.ACCOUNTDISABLE,
-                            },
-                        ],
+                        },
+                        changes={
+                            "LDAP": {
+                                "operation": "AND",
+                                "conditions": [
+                                    {
+                                        "attribute": "userAccountControl",
+                                        "operation": AuditOperation.BITWISE_AND,  # noqa
+                                        "result": False,
+                                        "value": UserAccountControlFlag.ACCOUNTDISABLE,  # noqa
+                                    },
+                                ],
+                            }
+                        }
                     ),
                 ])
 
@@ -483,20 +513,24 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
                         operation_success=status,
-                        condition_attributes=[
-                            {
-                                "attribute": "objectClass",
-                                "value": object_class,
+                        triggers={
+                            "LDAP": {
+                                "objectClass": [object_class]
                             },
-                        ],
-                        change_attributes=[
-                            {
-                                "attribute": "member",
-                                "operation": AuditOperation.GREATER_THAN,
-                                "result": True,
-                                "value": None,
-                            },
-                        ],
+                        },
+                        changes={
+                            "LDAP": {
+                                "operation": "AND",
+                                "conditions": [
+                                    {
+                                        "attribute": "member",
+                                        "operation": AuditOperation.GREATER_THAN,  # noqa
+                                        "result": True,
+                                        "value": None,
+                                    },
+                                ],
+                            }
+                        }
                     ),
                     AuditPolicy(
                         name=f"{object_class}_remove_member_{line}",
@@ -504,40 +538,25 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                         is_http=True,
                         operation_code=OperationEvent.MODIFY,
                         operation_success=status,
-                        condition_attributes=[
-                            {
-                                "attribute": "objectClass",
-                                "value": object_class,
+                        triggers={
+                            "LDAP": {
+                                "objectClass": [object_class]
                             },
-                        ],
-                        change_attributes=[
-                            {
-                                "attribute": "member",
-                                "operation": AuditOperation.LESS_THAN,
-                                "result": True,
-                                "value": None,
-                            },
-                        ],
+                        },
+                        changes={
+                            "LDAP": {
+                                "operation": "AND",
+                                "conditions": [
+                                    {
+                                        "attribute": "member",
+                                        "operation": AuditOperation.LESS_THAN,
+                                        "result": True,
+                                        "value": None,
+                                    },
+                                ],
+                            }
+                        }
                     ),
                 ])
-
-    policies.extend([
-        AuditPolicy(
-            name="auth_ok",
-            is_ldap=True,
-            is_http=True,
-            operation_code=OperationEvent.BIND,
-            operation_success=True,
-            condition_attributes=[],
-        ),
-        AuditPolicy(
-            name="auth_fail",
-            is_ldap=True,
-            is_http=True,
-            operation_code=OperationEvent.BIND,
-            operation_success=False,
-            condition_attributes=[],
-        ),
-    ])
 
     session.add_all(policies)
