@@ -222,17 +222,16 @@ class KAdminLocalManager(AbstractKRBManager):
             password,
         )
 
-        princ = await self._get_raw_principal(name)
-        await self.loop.run_in_executor(
-            self.pool,
-            princ.commit,
-        )
-
         if password:
             # NOTE: add preauth, attributes == krbticketflags
+            princ = await self._get_raw_principal(name)
             await self.loop.run_in_executor(
                 self.pool,
                 partial(princ.modify, attributes=128),
+            )
+            await self.loop.run_in_executor(
+                self.pool,
+                princ.commit,
             )
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
