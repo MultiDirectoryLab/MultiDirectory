@@ -98,7 +98,7 @@ class RedisClient(AbstractClient):
     ) -> None:
         if not self._client:
             raise ConnectionError("Redis client is not connected.")
-        logger.critical(message)
+
         return await self._client.xadd(stream_name, message)  # type: ignore
 
     async def create_consumer_group(
