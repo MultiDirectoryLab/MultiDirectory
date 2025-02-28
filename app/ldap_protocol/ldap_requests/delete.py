@@ -47,33 +47,6 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
-    async def to_event_data(self, session: AsyncSession) -> dict:
-        directory = await session.scalar((
-            select(Directory)
-            .options(defaultload(Directory.attributes))
-            .filter(get_filter_from_path(self.entry))
-        ))
-
-        attributes: dict[str, list[str]] = {}
-        if directory:
-            for attribute in directory.attributes:
-                if attribute.name not in attributes:
-                    attributes[attribute.name] = []
-
-                if attribute.value:
-                    value = attribute.value
-                elif attribute.bvalue:
-                    value = attribute.bvalue.decode(errors="replace")
-                else:
-                    raise AttributeError
-
-                attributes[attribute.name].append(value)
-
-        return {
-            "entry": self.entry,
-            "attributes": attributes,
-        }
-
     async def handle(
         self,
         session: AsyncSession,
@@ -106,6 +79,8 @@ class DeleteRequest(BaseRequest):
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
+
+        self.set_event_data(self.get_directory_attrs(directory))
 
         if not await session.scalar(
             mutate_ap(query, ldap_session.user, "del"),

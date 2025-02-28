@@ -10,13 +10,13 @@ from typing import TYPE_CHECKING, AsyncGenerator, Callable, ClassVar, Protocol
 from dishka import AsyncContainer
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
 from ldap_protocol.utils.helpers import get_class_name
+from models import Directory
 
 log_api = logger.bind(name="admin")
 
@@ -52,14 +52,35 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     handle: ClassVar[handler]
     from_data: ClassVar[serializer]
 
+    __event_data : dict = {}
+
     @property
     @abstractmethod
     def PROTOCOL_OP(self) -> int:  # noqa: N802
         """Protocol OP response code."""
 
-    @abstractmethod
-    async def to_event_data(self, session: AsyncSession) -> dict:
-        """Convert request to event data."""
+    def set_event_data(self, data: dict) -> None:
+        """Set event data."""
+        if "LDAP" not in self.__event_data:
+            self.__event_data["LDAP"] = {}
+
+        self.__event_data["LDAP"] = data
+
+    def get_event_data(self) -> dict:
+        """Get event data."""
+        return self.__event_data
+
+    def get_directory_attrs(self, directory: Directory) -> dict:
+        """Get directory attrs."""
+        attributes: dict[str, list] = {}
+
+        for attr in directory.attributes:
+            if attr.name not in attributes:
+                attributes[attr.name] = []  # type: ignore
+
+            attributes[attr.name].append(attr.value)
+
+        return attributes
 
     async def _handle_api(
         self,
