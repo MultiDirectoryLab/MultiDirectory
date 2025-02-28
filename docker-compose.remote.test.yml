@@ -20,3 +20,13 @@ services:
       - "5432"
     logging:
       driver: "none"
+
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    expose:
+      - "6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 0.5GiB

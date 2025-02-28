@@ -16,6 +16,7 @@ import httpx
 import ldap3
 import pytest
 import pytest_asyncio
+import redis.asyncio as redis
 import uvloop
 from alembic import command
 from alembic.config import Config as AlembicConfig
@@ -42,7 +43,7 @@ from sqlalchemy.ext.asyncio import (
 from api import shadow_router
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
-from ioc import MFACredsProvider
+from ioc import MFACredsProvider, SessionStorageClient
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -54,7 +55,7 @@ from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
-from ldap_protocol.session_storage import MemSessionStorage, SessionStorage
+from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
 from models import Directory
 
@@ -221,9 +222,33 @@ class TestProvider(Provider):
         return mfa
 
     @provide(scope=Scope.RUNTIME)
-    async def get_session_storage(self) -> SessionStorage:
+    async def get_redis_for_sessions(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[SessionStorageClient]:
+        """Get redis connection."""
+        client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        yield SessionStorageClient(client)
+
+        with suppress(RuntimeError):
+            await client.aclose()
+
+    @provide(scope=Scope.APP)
+    async def get_session_storage(
+        self,
+        client: SessionStorageClient,
+        settings: Settings,
+    ) -> SessionStorage:
         """Get session storage."""
-        return MemSessionStorage()
+        return RedisSessionStorage(
+            client,
+            settings.SESSION_KEY_LENGTH,
+            settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
 
 
 @dataclass
