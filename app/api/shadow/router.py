@@ -41,9 +41,7 @@ async def proxy_request(
     user = await session.scalar(query)
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        )
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     network_policy = await get_user_network_policy(
         ip,
@@ -82,9 +80,7 @@ async def proxy_request(
             if network_policy.bypass_service_failure:
                 return
 
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-    )
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @shadow_router.post("/sync/password")
