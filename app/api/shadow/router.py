@@ -8,10 +8,9 @@ from ipaddress import IPv4Address
 from typing import Annotated
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, HTTPException, status
 from loguru import logger
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
@@ -20,14 +19,14 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from models import MFAFlags, User
+from ldap_protocol.utils.queries import get_user
+from models import MFAFlags
 from security import get_password_hash
 
-shadow_router = APIRouter()
+shadow_router = APIRouter(route_class=DishkaRoute)
 
 
 @shadow_router.post("/mfa/push")
-@inject
 async def proxy_request(
     principal: Annotated[str, Body(embed=True)],
     ip: Annotated[IPv4Address, Body(embed=True)],
@@ -35,9 +34,7 @@ async def proxy_request(
     session: FromDishka[AsyncSession],
 ) -> None:
     """Proxy request to mfa."""
-    query = select(User).filter(User.user_principal_name.ilike(principal))
-
-    user = await session.scalar(query)
+    user = await get_user(session, principal)
 
     if not user:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
@@ -48,10 +45,7 @@ async def proxy_request(
         session,
     )
 
-    if network_policy is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    if not network_policy.is_kerberos:
+    if network_policy is None or not network_policy.is_kerberos:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if not mfa or network_policy.mfa_status == MFAFlags.DISABLED:
@@ -83,7 +77,6 @@ async def proxy_request(
 
 
 @shadow_router.post("/sync/password")
-@inject
 async def sync_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
@@ -102,9 +95,7 @@ async def sync_password(
     :raises HTTPException: 422 if password not valid
     :return None: None
     """
-    query = select(User).filter(User.user_principal_name.ilike(principal))
-
-    user = await session.scalar(query)
+    user = await get_user(session, principal)
 
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
