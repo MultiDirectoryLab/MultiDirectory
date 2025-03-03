@@ -14,7 +14,6 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.policies.password_policy import (
@@ -89,7 +88,6 @@ async def sync_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
     session: FromDishka[AsyncSession],
-    kadmin: FromDishka[AbstractKadmin],
 ) -> None:
     """Reset user's (entry) password.
 
@@ -109,11 +107,9 @@ async def sync_password(
     user = await session.scalar(query)
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    policy = await PasswordPolicySchema.get_policy_settings(session, kadmin)
+    policy = await PasswordPolicySchema.get_policy_settings(session)
     errors = await policy.validate_password_with_policy(new_password, user)
 
     if errors:
