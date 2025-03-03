@@ -273,15 +273,6 @@ class AbstractKadmin(ABC):
     async def ktadd(self, names: list[str]) -> httpx.Response: ...
 
     @abstractmethod
-    async def create_or_update_policy(
-        self,
-        minlife: int,
-        maxlife: int,
-        minlength: int,
-        minclasses: int,
-    ) -> None: ...
-
-    @abstractmethod
     async def lock_principal(self, name: str) -> None: ...
 
     @abstractmethod
@@ -411,34 +402,6 @@ class KerberosMDAPIClient(AbstractKadmin):
         return response
 
     @logger_wraps()
-    async def create_or_update_policy(
-        self,
-        minlife: int,
-        maxlife: int,
-        minlength: int,
-        minclasses: int,
-    ) -> None:
-        """Create or update pw policy for krb.
-
-        :param int minlife: pw attrs
-        :param int maxlife: pw attrs
-        :param int minlength: pw attrs
-        :param int minclasses: pw attrs
-        :raises KRBAPIError: on failure
-        """
-        response = await self.client.post(
-            "/principal/password_policy",
-            json={
-                "minlife": minlife,
-                "maxlife": maxlife,
-                "minlength": minlength,
-                "minclasses": minclasses,
-            },
-        )
-        if response.status_code != 200:
-            raise KRBAPIError(response.text)
-
-    @logger_wraps()
     async def lock_principal(self, name: str) -> None:
         """Lock princ.
 
@@ -510,15 +473,6 @@ class StubKadminMDADPIClient(AbstractKadmin):
     @logger_wraps(is_stub=True)
     async def ktadd(self, names: list[str]) -> NoReturn:  # noqa: ARG002
         raise KRBAPIError
-
-    @logger_wraps(is_stub=True)
-    async def create_or_update_policy(
-        self,
-        minlife: int,
-        maxlife: int,
-        minlength: int,
-        minclasses: int,
-    ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def lock_principal(self, name: str) -> None: ...
