@@ -9,10 +9,9 @@ from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy import and_, delete, or_, update
+from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from config import Settings
@@ -69,6 +68,15 @@ class Changes(BaseModel):
     def get_name(self) -> str:
         """Get mod name."""
         return self.modification.type.lower()
+
+
+MODIFY_EXCEPTION_STACK = (
+    ValueError,
+    IntegrityError,
+    KRBAPIError,
+    RecursionError,
+    PermissionError,
+)
 
 
 class ModifyRequest(BaseRequest):
@@ -133,15 +141,7 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        query = (
-            select(Directory)
-            .join(Directory.attributes)
-            .options(
-                selectinload(Directory.groups),
-                selectinload(Directory.group).selectinload(Group.members),
-            )
-            .filter(get_filter_from_path(self.object))
-        )
+        query = self._get_dir_query()
 
         directory = await session.scalar(mutate_ap(query, ldap_session.user))
 
@@ -151,10 +151,10 @@ class ModifyRequest(BaseRequest):
 
         names = {change.get_name() for change in self.changes}
 
-        password_change_requested = (
-            ("userpassword" in names or "unicodepwd" in names)
-            and len(names) == 1
-            and directory.id == ldap_session.user.directory_id
+        password_change_requested = self._check_password_change_requested(
+            names,
+            directory,
+            ldap_session.user.directory_id,
         )
 
         mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
@@ -197,40 +197,57 @@ class ModifyRequest(BaseRequest):
                     update(Directory).where(Directory.id == directory.id),
                 )
                 await session.commit()
-
-            except ValueError as err:
-                logger.error(f"Invalid value: {err}")
+            except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()
-                yield ModifyResponse(
-                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                )
+                result_code, message = self._match_bad_response(err)
+                yield ModifyResponse(result_code=result_code, message=message)
                 return
 
-            except IntegrityError:
-                await session.rollback()
-                yield ModifyResponse(
-                    result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
-                )
-                return
-
-            except KRBAPIError:
-                await session.rollback()
-                yield ModifyResponse(
-                    result_code=LDAPCodes.UNAVAILABLE,
-                    errorMessage="Kerberos error",
-                )
-                return
-
-            except RecursionError:
-                yield ModifyResponse(result_code=LDAPCodes.LOOP_DETECT)
-                return
-
-            except PermissionError:
-                yield ModifyResponse(
-                    result_code=LDAPCodes.STRONGER_AUTH_REQUIRED,
-                )
-                return
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+
+    def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
+        match err:
+            case ValueError():
+                logger.error(f"Invalid value: {err}")
+                return LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE, ""
+
+            case IntegrityError():
+                return LDAPCodes.ENTRY_ALREADY_EXISTS, ""
+
+            case KRBAPIError():
+                return LDAPCodes.UNAVAILABLE, "Kerberos error"
+
+            case RecursionError():
+                return LDAPCodes.LOOP_DETECT, ""
+
+            case PermissionError():
+                return LDAPCodes.STRONGER_AUTH_REQUIRED, ""
+
+            case _:
+                raise err
+
+    def _get_dir_query(self) -> Select:
+        return (
+            select(Directory)
+            .join(Directory.attributes)
+            .options(
+                selectinload(Directory.groups),
+                selectinload(Directory.group).selectinload(Group.members),
+            )
+            .filter(get_filter_from_path(self.object))
+        )
+
+    def _check_password_change_requested(
+        self,
+        names: set[str],
+        directory: Directory,
+        user_dir_id: int,
+    ) -> bool:
+        return (
+            ("userpassword" in names or "unicodepwd" in names)
+            and len(names) == 1
+            and directory.id == user_dir_id
+        )
 
     async def _delete(
         self,
