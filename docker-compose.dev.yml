@@ -47,23 +47,26 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 96M
+          cpus: '1.0'
+          memory: 128M
         reservations:
           cpus: '0.25'
           memory: 32M
 
   interface:
+    container_name: multidirectory_interface
     build:
       context: ./interface
-      dockerfile: ./configurations/docker/Dockerfile
-      args:
-        DOCKER_BUILDKIT: 1
-    container_name: multidirectory_interface
+      dockerfile: configurations/docker/Dockerfile.dev
     restart: unless-stopped
-    hostname: interface
     environment:
-      API_URL: https://${DOMAIN}/api
+      - HUSKY=0
+      - API_URL=https://${DOMAIN}/api
+      - NODE_ENV=development
+    ports:
+      - 9080:80
+    working_dir: /app
+    command:  ng serve --host 0.0.0.0 --port 80 --poll 2000
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.interface.rule=Host(`${DOMAIN}`)"
@@ -108,7 +111,7 @@ services:
     volumes:
       - ./certs:/certs
       - ./logs:/app/logs
-    command: python . --loop uvloop
+    command: python multidirectory.py --ldap
     tty: true
     environment:
       DEBUG: 1
@@ -167,6 +170,9 @@ services:
       - ./app:/app
       - ./certs:/certs
       - ./logs:/app/logs
+      - d_dns_server_file:/DNS_server_file/
+      - d_dns_server_config:/DNS_server_configs/
+      - d_ldap_keytab:/LDAP_keytab/
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
@@ -179,10 +185,27 @@ services:
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"
 
-    command: uvicorn --factory web_app:create_prod_app --host 0.0.0.0 --port 8000 --loop uvloop --reload
+    command:  python multidirectory.py --http
     depends_on:
       migrations:
         condition: service_completed_successfully
+
+  shadow_api:
+    image: multidirectory
+    container_name: shadow_api
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      ldap_server:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: python multidirectory.py --shadow
 
   postgres:
     container_name: MD-postgres
@@ -269,8 +292,46 @@ services:
       - traefik.tcp.routers.kadmind.service=kadmind
       - traefik.tcp.services.kadmind.loadbalancer.server.port=749
 
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    container_name: dragonfly
+    expose:
+      - 6379
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1.5GiB
+        reservations:
+          cpus: '0.25'
+          memory: 0.5GiB
+
+  bind_dns:
+    image: ubuntu/bind9:latest
+    container_name: bind9
+    hostname: bind9
+    restart: unless-stopped
+    volumes:
+      - d_dns_server_file:/opt/
+      - d_dns_server_config:/etc/bind/
+    tty: true
+    depends_on:
+      ldap_server:
+        condition: service_healthy
+        restart: true
+    command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.bind_dns.rule=HostSNI(`${DOMAIN}`)
+      - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
+      - traefik.tcp.routers.bind_dns.service=bind_dns
+      - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
+
 volumes:
   d_postgres:
   d_pgadmin:
   d_keyfile:
   d_kdc:
+  d_dns_server_file:
+  d_dns_server_config:
+  d_ldap_keytab:
