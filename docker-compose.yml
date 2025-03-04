@@ -246,7 +246,6 @@ services:
     hostname: kerberos
     volumes:
       - kdc:/etc
-      - psync_queue:/var/spool/krb5-sync
     image: krb5md
     tty: true
     command: kadmind -nofork
@@ -291,10 +290,10 @@ services:
   maintence:
     image: multidirectory
     container_name: md_maintence
+    restart: unless-stopped
     volumes:
       - ./certs:/certs
       - ./app:/app
-      - psync_queue:/var/spool/krb5-sync
       - ldap_keytab:/LDAP_keytab/
     env_file:
       local.env
@@ -366,7 +365,6 @@ volumes:
   pgadmin:
   wireshark:
   kdc:
-  psync_queue:
   dns_server_file:
   dns_server_config:
   ldap_keytab:
