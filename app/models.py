@@ -566,6 +566,7 @@ class AttributeType(Base):
 
     @property
     def definition(self) -> str:
+        """SQLAlchemy object format to LDAP definition."""
         chunks = [f"( {self.oid}"]
         if self.name:
             chunks.append(f"NAME '{self.name}'")
@@ -651,6 +652,7 @@ class ObjectClass(Base):
 
     @property
     def definition(self) -> str:
+        """SQLAlchemy object format to LDAP definition."""
         chunks = [f"( {self.oid}"]
         if self.name:
             chunks.append(f"NAME '{self.name}'")
