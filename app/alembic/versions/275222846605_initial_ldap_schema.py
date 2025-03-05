@@ -11,7 +11,7 @@ from alembic import op
 from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
 from sqlalchemy.orm import Session
 
-from extra.scripts.parse_ldap import (
+from extra.scripts.parse_ldap_txt_schema import (
     get_attribute_type_infos_from_txt_definition,
     get_object_class_infos_from_txt_definition,
 )
