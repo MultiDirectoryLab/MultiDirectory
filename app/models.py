@@ -554,6 +554,90 @@ class Attribute(Base):
     )
 
 
+class AttributeType(Base):
+    """Active Directory Type."""
+
+    __tablename__ = "AttributeTypes"
+
+    oid: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(primary_key=True)
+    syntax: Mapped[str]
+    single_value: Mapped[bool]
+
+
+class ObjectClassAttributeTypeMustMembership(Base):
+    """ObjectClass - MustAttributeType m2m relationship."""
+
+    __tablename__ = "ObjectClassAttributeTypeMustMemberships"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "attribute_type_name",
+            "object_class_name",
+            name="object_class_must_attribute_type_uc",
+        ),
+    )
+
+    attribute_type_name: Mapped[str] = mapped_column(
+        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    object_class_name: Mapped[str] = mapped_column(
+        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class ObjectClassAttributeTypeMayMembership(Base):
+    """ObjectClass - MayAttributeType m2m relationship."""
+
+    __tablename__ = "ObjectClassAttributeTypeMayMemberships"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "attribute_type_name",
+            "object_class_name",
+            name="object_class_may_attribute_type_uc",
+        ),
+    )
+
+    attribute_type_name: Mapped[str] = mapped_column(
+        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    object_class_name: Mapped[str] = mapped_column(
+        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class ObjectClass(Base):
+    """Active Directory ObjectClass."""
+
+    __tablename__ = "ObjectClasses"
+
+    oid: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(primary_key=True)
+    superior: Mapped[str] = mapped_column(nullable=True)
+    kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
+
+    attribute_types_must: Mapped[list[AttributeType]] = relationship(
+        "AttributeType",
+        secondary=ObjectClassAttributeTypeMustMembership.__table__,
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
+        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+        lazy="selectin",
+    )
+
+    attribute_types_may: Mapped[list[AttributeType]] = relationship(
+        "AttributeType",
+        secondary=ObjectClassAttributeTypeMayMembership.__table__,
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
+        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+        lazy="selectin",
+    )
+
+
 class MFAFlags(int, enum.Enum):
     """Two-Factor auth action."""
 
