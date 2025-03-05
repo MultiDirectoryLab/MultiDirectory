@@ -50,8 +50,6 @@ from models import AttributeType, Directory, Group, ObjectClass, User
 
 from .base import BaseRequest
 
-type AttributesType = dict[str, list[str | AttributeType | ObjectClass]]
-
 
 class SearchRequest(BaseRequest):
     """Search request schema.
@@ -136,18 +134,27 @@ class SearchRequest(BaseRequest):
         return [attr.lower() for attr in self.attributes]
 
     async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
-        attrs: AttributesType = defaultdict(list)
+        attrs: dict[str, list[str]] = defaultdict(list)
 
         attrs["name"].append("Schema")
         attrs["objectClass"].append("subSchema")
         attrs["objectClass"].append("top")
 
-        attrs["attributeTypes"] = list(
+        attribute_types = list(
             (await session.scalars(select(AttributeType))).all()
         )
-        attrs["objectClasses"] = list(
+        attribute_types_definitions = [
+            attribute_type.definition for attribute_type in attribute_types
+        ]
+        attrs["attributeTypes"] = attribute_types_definitions
+
+        object_classes = list(
             (await session.scalars(select(ObjectClass))).all()
         )
+        object_classes_definitions = [
+            object_class.definition for object_class in object_classes
+        ]
+        attrs["objectClasses"] = object_classes_definitions
 
         partial_attributes = [
             PartialAttribute(type=key, vals=value)
