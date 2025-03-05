@@ -6,6 +6,7 @@ before_pr:
 	make poetry
 	ruff format .
 	ruff check . --fix --unsafe-fixes
+	mypy app
 
 poetry:
 	poetry sort
