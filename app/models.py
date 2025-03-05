@@ -564,6 +564,18 @@ class AttributeType(Base):
     syntax: Mapped[str]
     single_value: Mapped[bool]
 
+    @property
+    def definition(self) -> str:
+        chunks = [f"( {self.oid}"]
+        if self.name:
+            chunks.append(f"NAME '{self.name}'")
+        if self.syntax:
+            chunks.append(f"SYNTAX '{self.syntax}'")
+        if self.single_value:
+            chunks.append("SINGLE-VALUE")
+        chunks.append(")")
+        return " ".join(chunks)
+
 
 class ObjectClassAttributeTypeMustMembership(Base):
     """ObjectClass - MustAttributeType m2m relationship."""
@@ -636,6 +648,28 @@ class ObjectClass(Base):
         secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
         lazy="selectin",
     )
+
+    @property
+    def definition(self) -> str:
+        chunks = [f"( {self.oid}"]
+        if self.name:
+            chunks.append(f"NAME '{self.name}'")
+        if self.superior:
+            chunks.append(f"SUP {self.superior}")
+        if self.kind:
+            chunks.append(self.kind)
+        if self.attribute_types_must:
+            attribute_types_must_names = [
+                attr.name for attr in self.attribute_types_must
+            ]
+            chunks.append(f"MUST ( {' $ '.join(attribute_types_must_names)} )")
+        if self.attribute_types_may:
+            attribute_types_may_names = [
+                attr.name for attr in self.attribute_types_may
+            ]
+            chunks.append(f"MAY ( {' $ '.join(attribute_types_may_names)} )")
+        chunks.append(")")
+        return " ".join(chunks)
 
 
 class MFAFlags(int, enum.Enum):

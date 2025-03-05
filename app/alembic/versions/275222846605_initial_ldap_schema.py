@@ -25,7 +25,8 @@ depends_on = None
 
 
 def _get_attribute_types(
-    session: Session, names: list[str]
+    session: Session,
+    names: list[str],
 ) -> list[AttributeType]:
     return (
         session.query(AttributeType)
