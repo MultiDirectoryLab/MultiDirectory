@@ -144,7 +144,8 @@ class SearchRequest(BaseRequest):
             (await session.scalars(select(AttributeType))).all()
         )
         attribute_types_definitions = [
-            attribute_type.definition for attribute_type in attribute_types
+            attribute_type.get_definition()
+            for attribute_type in attribute_types
         ]
         attrs["attributeTypes"] = attribute_types_definitions
 
@@ -152,17 +153,16 @@ class SearchRequest(BaseRequest):
             (await session.scalars(select(ObjectClass))).all()
         )
         object_classes_definitions = [
-            object_class.definition for object_class in object_classes
+            object_class.get_definition() for object_class in object_classes
         ]
         attrs["objectClasses"] = object_classes_definitions
 
-        partial_attributes = [
-            PartialAttribute(type=key, vals=value)
-            for key, value in attrs.items()
-        ]
         return SearchResultEntry(
             object_name="CN=Schema",
-            partial_attributes=partial_attributes,
+            partial_attributes=[
+                PartialAttribute(type=key, vals=value)
+                for key, value in attrs.items()
+            ],
         )
 
     async def get_root_dse(

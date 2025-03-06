@@ -9,6 +9,7 @@ before_pr:
 	mypy app
 
 poetry:
+	poetry self add poetry-plugin-sort@latest
 	poetry sort
 	poetry lock --no-update
 	poetry install
