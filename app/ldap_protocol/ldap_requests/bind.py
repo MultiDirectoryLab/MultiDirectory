@@ -201,7 +201,7 @@ class BindRequest(BaseRequest):
             if policy.mfa_status == MFAFlags.WHITELIST:
                 request_2fa = await check_mfa_group(policy, user, session)
 
-            if request_2fa:
+            if request_2fa and mfa is not None:
                 mfa_status = await self.check_mfa(
                     mfa,
                     user.user_principal_name,
