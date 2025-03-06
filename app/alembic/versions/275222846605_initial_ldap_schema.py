@@ -29,11 +29,11 @@ def _get_attribute_types(
     session: Session,
     names: list[str],
 ) -> list[AttributeType]:
-    query = session.scalar(
+    query = session.execute(
         select(AttributeType)
         .where(AttributeType.name.in_(names))
     )  # fmt: skip
-    return list(query.all())
+    return list(query.scalars().all())
 
 
 def _list_to_string(data: list[str]) -> str | None:
