@@ -564,8 +564,7 @@ class AttributeType(Base):
     syntax: Mapped[str]
     single_value: Mapped[bool]
 
-    @property
-    def definition(self) -> str:
+    def get_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
         chunks = [f"( {self.oid}"]
         if self.name:
@@ -650,8 +649,7 @@ class ObjectClass(Base):
         lazy="selectin",
     )
 
-    @property
-    def definition(self) -> str:
+    def get_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
         chunks = [f"( {self.oid}"]
         if self.name:
@@ -664,12 +662,12 @@ class ObjectClass(Base):
             attribute_types_must_names = [
                 attr.name for attr in self.attribute_types_must
             ]
-            chunks.append(f"MUST ( {' $ '.join(attribute_types_must_names)} )")
+            chunks.append(f"MUST ({' $ '.join(attribute_types_must_names)} )")
         if self.attribute_types_may:
             attribute_types_may_names = [
                 attr.name for attr in self.attribute_types_may
             ]
-            chunks.append(f"MAY ( {' $ '.join(attribute_types_may_names)} )")
+            chunks.append(f"MAY ({' $ '.join(attribute_types_may_names)} )")
         chunks.append(")")
         return " ".join(chunks)
 

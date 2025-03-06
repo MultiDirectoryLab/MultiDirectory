@@ -9,6 +9,7 @@ Create Date: 2025-03-05 12:19:03.407487
 import sqlalchemy as sa
 from alembic import op
 from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from extra.scripts.parse_ldap_txt_schema import (
@@ -28,11 +29,11 @@ def _get_attribute_types(
     session: Session,
     names: list[str],
 ) -> list[AttributeType]:
-    return (
-        session.query(AttributeType)
-        .filter(AttributeType.name.in_(names))
-        .all()
-    )
+    query = session.scalar(
+        select(AttributeType)
+        .where(AttributeType.name.in_(names))
+    )  # fmt: skip
+    return list(query.all())
 
 
 def _list_to_string(data: list[str]) -> str | None:
