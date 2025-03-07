@@ -1,0 +1,13 @@
+$ORIGIN .
+$TTL 604800	; 1 week
+1.0.0.in-addr.arpa.     IN  SOA ns1.{{ domain }}. info.{{ domain }}. (
+                        20240725   ; serial
+                        10800      ; refresh (3 hours)
+                        3600       ; retry (1 hour)
+                        604800     ; expire (1 week)
+                        21600      ; negative (6 hours)
+                        )
+                        IN  NS  ns1.{{ domain }}.
+1.0.0.127.in-addr.arpa. IN  PTR ns1.{{ domain }}.
+1.2.0.192.in-addr.arpa. IN PTR {{ domain }}.
+1.0.0.192.in-addr.arpa. IN PTR {{ domain }}.
