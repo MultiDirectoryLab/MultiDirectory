@@ -41,7 +41,6 @@ async def test_ldap3_parse_attribute_types(
         attribute_type: AttributeType = Ldap3Parser.get_attribute_type(
             raw_definition
         )
-        attribute_type.is_system = True
 
         assert raw_definition == attribute_type.get_raw_definition()
 
@@ -70,6 +69,5 @@ async def test_ldap3_parse_object_classes(
             session=session,
             raw_definition=raw_definition,
         )
-        object_class.is_system = True
 
         assert raw_definition == object_class.get_definition()
