@@ -566,7 +566,7 @@ class AttributeType(Base):
     no_user_modification: Mapped[bool]
     is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
 
-    def get_definition(self) -> str:
+    def get_raw_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
         chunks = [f"( {self.oid}"]
         if self.name:
