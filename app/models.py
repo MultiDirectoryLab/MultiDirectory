@@ -563,6 +563,8 @@ class AttributeType(Base):
     name: Mapped[str] = mapped_column(primary_key=True)
     syntax: Mapped[str]
     single_value: Mapped[bool]
+    no_user_modification: Mapped[bool]
+    is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
 
     def get_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
@@ -573,6 +575,8 @@ class AttributeType(Base):
             chunks.append(f"SYNTAX '{self.syntax}'")
         if self.single_value:
             chunks.append("SINGLE-VALUE")
+        if self.no_user_modification:
+            chunks.append("NO-USER-MODIFICATION")
         chunks.append(")")
         return " ".join(chunks)
 
@@ -632,6 +636,7 @@ class ObjectClass(Base):
     name: Mapped[str] = mapped_column(primary_key=True)
     superior: Mapped[str] = mapped_column(nullable=True)
     kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
+    is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
 
     attribute_types_must: Mapped[list[AttributeType]] = relationship(
         "AttributeType",
