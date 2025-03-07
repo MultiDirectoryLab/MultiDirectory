@@ -144,7 +144,7 @@ class SearchRequest(BaseRequest):
             (await session.scalars(select(AttributeType))).all()
         )
         attribute_types_definitions = [
-            attribute_type.get_definition()
+            attribute_type.get_raw_definition()
             for attribute_type in attribute_types
         ]
         attrs["attributeTypes"] = attribute_types_definitions
