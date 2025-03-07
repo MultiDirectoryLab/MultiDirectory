@@ -168,24 +168,6 @@ def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
     return base_directory.path_dn.lower() == entry.lower()
 
 
-def get_attribute_types() -> list[str]:
-    """Get attribute types from file.
-
-    :return list[list[str]]: attrs
-    """
-    with open("extra/adTypes.txt") as file:
-        return [line.replace(")\n", " )") for line in file]
-
-
-def get_object_classes() -> list[str]:
-    """Get attribute types from file.
-
-    :return list[list[str]]: attrs
-    """
-    with open("extra/adClasses.txt") as file:
-        return list(file)
-
-
 def get_generalized_now(tz: ZoneInfo) -> str:
     """Get generalized time (formated) with tz."""
     return datetime.now(tz).strftime("%Y%m%d%H%M%S.%f%z")
