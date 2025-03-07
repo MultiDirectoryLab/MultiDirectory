@@ -43,7 +43,7 @@ class Settings(BaseModel):
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
 
-    POSTGRES_SCHEMA: str = "postgresql+psycopg"
+    POSTGRES_SCHEMA: ClassVar[str] = "postgresql+psycopg"
     POSTGRES_DB: str = "postgres"
 
     POSTGRES_HOST: str = "postgres"
@@ -76,7 +76,7 @@ class Settings(BaseModel):
             f"{self.POSTGRES_DB}"
         )
 
-    VENDOR_NAME: str = "MultiFactor"
+    VENDOR_NAME: ClassVar[str] = "MultiFactor"
     VENDOR_VERSION: str = Field(
         default_factory=_get_vendor_version,
         alias="VERSION",
