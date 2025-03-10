@@ -208,7 +208,7 @@ class KAdminLocalManager(AbstractKRBManager):
         self,
         name: str,
         password: str | None,
-        **_dbargs,
+        **dbargs,
     ) -> None:
         """Create principal.
 
@@ -315,7 +315,7 @@ class KAdminLocalManager(AbstractKRBManager):
         for princ in principals:
             await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
 
-    async def lock_princ(self, name: str, **_dbargs) -> None:
+    async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock princ.
 
         :param str name: upn
@@ -324,7 +324,7 @@ class KAdminLocalManager(AbstractKRBManager):
         princ.expire = "Now"
         await self.loop.run_in_executor(self.pool, princ.commit)
 
-    async def force_pw_principal(self, name: str, **_dbargs) -> None:
+    async def force_pw_principal(self, name: str, **dbargs) -> None:
         """Lock princ.
 
         :param str name: upn
