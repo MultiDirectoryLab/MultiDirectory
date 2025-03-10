@@ -266,7 +266,7 @@ class SearchRequest(BaseRequest):
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
             if is_schema:
-                yield await self._get_subschema(session=session)
+                yield await self._get_subschema(session)
             elif is_root_dse:
                 attrs = await self.get_root_dse(session, settings)
                 yield SearchResultEntry(
