@@ -15,7 +15,7 @@ class Ldap3Parser:
     """LDAP3 parser."""
 
     @classmethod
-    def _list_to_string(cls, data: list[str]) -> str | None:
+    def _list_to_string(cls, data: list[str]) -> str:
         if not data or len(data) != 1:
             raise ValueError("Data is not a single element list")
         return data[0]
