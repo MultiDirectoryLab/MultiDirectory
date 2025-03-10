@@ -11,12 +11,16 @@ from secrets import token_hex
 from typing import Iterable, Self
 
 from redis.asyncio import Redis
+from redis.asyncio.lock import Lock
 
 from config import Settings
 
 
 class SessionStorage(ABC):
     """Abstract session storage class."""
+
+    ZSET_LDAP_SESSIONS: str = "sessions:ldap"
+    ZSET_HTTP_SESSIONS: str = "sessions:http"
 
     key_length: int = 16
     key_ttl: int
@@ -225,6 +229,18 @@ class RedisSessionStorage(SessionStorage):
         self.key_length = key_length
         self.key_ttl = key_ttl
 
+    async def _get_lock(self, name: str, blocking_timeout: int = 5) -> Lock:
+        """Get lock.
+
+        :param str name: lock name
+        :param int blocking_timeout: blocking timeout, defaults to 5
+        :return Lock: lock object
+        """
+        return self._storage.lock(
+            name=self._get_lock_key(name),
+            blocking_timeout=blocking_timeout,
+        )
+
     async def get(self, key: str) -> dict:
         """Retrieve data associated with the given key from storage.
 
@@ -278,10 +294,13 @@ class RedisSessionStorage(SessionStorage):
     async def clear_user_sessions(self, uid: int) -> None:
         """Clear user sessions."""
         keys = await self._get_user_keys(uid)
+        uid_hash = self._get_id_hash(uid)
         if not keys:
             return
         await self.delete(keys)
-        await self._storage.delete(self._get_id_hash(uid))
+        await self.delete([uid_hash])
+        await self._storage.zrem(self.ZSET_HTTP_SESSIONS, uid_hash)
+        await self._storage.zrem(self.ZSET_LDAP_SESSIONS, uid_hash)
 
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session."""
@@ -296,20 +315,36 @@ class RedisSessionStorage(SessionStorage):
             raise KeyError("Invalid session id")
 
         uid = int(uid)
+        uid_hash = self._get_id_hash(uid)
+        lock = await self._get_lock(uid_hash)
 
-        keys = await self._get_user_keys(uid)
-        try:
-            keys.remove(session_id)
-        except KeyError:
-            pass
-        else:
-            await self._storage.set(
-                self._get_id_hash(uid),
-                ";".join(keys) + ";",
-                keepttl=True,
-            )
+        async with lock:
+            keys = await self._get_user_keys(uid)
+            try:
+                keys.remove(session_id)
+            except KeyError:
+                pass
+            else:
+                protocols = {k.startswith("ldap:") for k in keys}
 
-        await self.delete([session_id])
+                if session_id.startswith("ldap:") and True not in protocols:
+                    await self._storage.zrem(self.ZSET_LDAP_SESSIONS, uid_hash)
+
+                if (
+                    not session_id.startswith("ldap:")
+                    and False not in protocols
+                ):
+                    await self._storage.zrem(self.ZSET_HTTP_SESSIONS, uid_hash)
+
+                if keys:
+                    await self._storage.set(uid_hash,
+                        ";".join(keys) + ";",
+                        keepttl=True,
+                    )
+                else:
+                    await self.delete([uid_hash])
+
+            await self.delete([session_id])
 
     async def create_session(
         self: Self,
@@ -332,9 +367,15 @@ class RedisSessionStorage(SessionStorage):
             settings=settings,
             extra_data=extra_data,
         )
+        uid_hash = self._get_id_hash(uid)
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
-        await self._storage.append(self._get_id_hash(uid), f"{session_id};")
+        await self._storage.append(uid_hash, f"{session_id};")
+        await self._storage.zadd(
+            self.ZSET_HTTP_SESSIONS,
+            {uid_hash: uid},
+            nx=True,
+        )
 
         return f"{session_id}.{signature}"
 
@@ -355,9 +396,15 @@ class RedisSessionStorage(SessionStorage):
         :param dict data: any data
         """
         data["issued"] = datetime.now(timezone.utc).isoformat()
+        uid_hash = self._get_id_hash(uid)
 
         await self._storage.set(key, json.dumps(data), ex=None)
-        await self._storage.append(self._get_id_hash(uid), f"{key};")
+        await self._storage.append(uid_hash, f"{key};")
+        await self._storage.zadd(
+            self.ZSET_LDAP_SESSIONS,
+            {uid_hash: uid},
+            nx=True,
+        )
 
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
@@ -366,7 +413,7 @@ class RedisSessionStorage(SessionStorage):
         :param int rekey_interval: rekey interval in seconds
         :return bool: True if rekey is needed
         """
-        lock = self._storage.lock(self._get_lock_key(session_id))
+        lock = await self._get_lock(session_id)
 
         if await lock.locked():
             return False
@@ -399,10 +446,14 @@ class RedisSessionStorage(SessionStorage):
             settings=settings,
             extra_data=extra_data,
         )
+        uid_hash = self._get_id_hash(uid)
 
         await self._storage.set(new_session_id, json.dumps(new_data), ex=ttl)
-        await self._storage.append(
-            self._get_id_hash(uid), f"{new_session_id};"
+        await self._storage.append(uid_hash, f"{new_session_id};")
+        await self._storage.zadd(
+            self.ZSET_HTTP_SESSIONS,
+            {uid_hash: uid},
+            nx=True,
         )
 
         await self.delete_user_session(session_id)
@@ -416,10 +467,7 @@ class RedisSessionStorage(SessionStorage):
         :param Settings settings: app settings
         :return str: jwt token
         """
-        lock = self._storage.lock(
-            name=self._get_lock_key(session_id),
-            blocking_timeout=5,
-        )
+        lock = await self._get_lock(session_id)
 
         async with lock:
             return await self._rekey_session(session_id, settings)
