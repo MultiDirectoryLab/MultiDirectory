@@ -34,8 +34,14 @@ services:
     volumes:
       - certs:/certs
       - ldap_keytab:/LDAP_keytab/
-    env_file:
-      local.env
+    environment:
+      DOCKER_DEFAULT_PLATFORM: linux/arm64
+      DOMAIN: md.localhost
+      DEBUG: 1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test_pwd
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      MFA_API_SOURCE: dev
     command: python -OO multidirectory.py --ldap
     tty: true
     depends_on:
@@ -81,8 +87,14 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
-    env_file:
-      local.env
+    environment:
+      USE_CORE_TLS: 0
+      DOMAIN: md.localhost
+      DEBUG: 1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test_pwd
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      MFA_API_SOURCE: dev
     command: python multidirectory.py --http
     tty: true
     labels:
@@ -109,8 +121,12 @@ services:
     image: ghcr.io/multidirectorylab/multidirectory:beta
     container_name: multidirectory_migrations
     restart: "no"
-    env_file:
-      local.env
+    environment:
+      DOMAIN: md.localhost
+      DEBUG: 1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: test_pwd
+      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
     command: alembic upgrade head
     depends_on:
       postgres:
@@ -255,6 +271,7 @@ services:
           memory: 0.5GiB
 
 volumes:
+  certs:
   postgres:
   pgadmin:
   wireshark:
