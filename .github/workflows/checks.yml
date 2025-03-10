@@ -8,6 +8,23 @@ env:
   REPO: ${{ github.repository }}
 
 jobs:
+  run_gssapi_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull tests
+        run: cd integration_tests/gssapi && docker compose pull 
+      - name: run test enviroment
+        run: cd integration_tests/gssapi && docker compose up -d
+      - name: run gssapi test
+        run: cd integration_tests/gssapi && ./run.sh
+
   ruff_linter:
     runs-on: ubuntu-latest
     steps:
