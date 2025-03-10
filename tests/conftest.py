@@ -424,8 +424,9 @@ def _server(
 @pytest.fixture
 def ldap_client(settings: Settings) -> ldap3.Connection:
     """Get ldap clinet without a creds."""
-    server = ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
-    return ldap3.Connection(server)
+    return ldap3.Connection(
+        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
+    )
 
 
 @pytest_asyncio.fixture(scope="function")

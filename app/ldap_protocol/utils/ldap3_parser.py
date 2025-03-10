@@ -17,11 +17,10 @@ class Ldap3Parser:
     @classmethod
     def _list_to_string(cls, data: list[str]) -> str | None:
         res = None
-        if data:
-            if len(data) == 1:
-                res = data[0]
-            else:
-                raise ValueError("Data is not a single element list")
+        if len(data) == 1:
+            res = data[0]
+        else:
+            raise ValueError("Data is not a single element list")
         return res
 
     @classmethod
@@ -84,13 +83,15 @@ class Ldap3Parser:
         if object_class_info.must_contain:
             object_class.attribute_types_must.extend(
                 await cls._get_attribute_types(
-                    session, object_class_info.must_contain
+                    session=session,
+                    names=object_class_info.must_contain,
                 )
             )
         if object_class_info.may_contain:
             object_class.attribute_types_may.extend(
                 await cls._get_attribute_types(
-                    session, object_class_info.may_contain
+                    session=session,
+                    names=object_class_info.may_contain,
                 )
             )
 
