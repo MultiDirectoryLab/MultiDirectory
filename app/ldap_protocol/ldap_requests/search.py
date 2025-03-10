@@ -140,13 +140,13 @@ class SearchRequest(BaseRequest):
         attrs["objectClass"].append("subSchema")
         attrs["objectClass"].append("top")
 
-        attribute_types = (await session.scalars(select(AttributeType))).all()
+        attribute_types = await session.scalars(select(AttributeType))
         attrs["attributeTypes"] = [
             attribute_type.get_raw_definition()
             for attribute_type in attribute_types
         ]
 
-        object_classes = (await session.scalars(select(ObjectClass))).all()
+        object_classes = await session.scalars(select(ObjectClass))
         attrs["objectClasses"] = [
             object_class.get_definition() for object_class in object_classes
         ]
