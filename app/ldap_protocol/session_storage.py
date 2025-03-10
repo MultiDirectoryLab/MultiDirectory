@@ -278,6 +278,8 @@ class RedisSessionStorage(SessionStorage):
     async def clear_user_sessions(self, uid: int) -> None:
         """Clear user sessions."""
         keys = await self._get_user_keys(uid)
+        if not keys:
+            return
         await self.delete(keys)
         await self._storage.delete(self._get_id_hash(uid))
 
