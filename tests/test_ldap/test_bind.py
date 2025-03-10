@@ -88,9 +88,7 @@ async def test_gssapi_bind_in_progress(
         )
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"ticket")
-    auth_choice._init_security_context = (  # type: ignore
-        mock_init_security_context
-    )
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore
 
     bind = BindRequest(
         version=0,
@@ -162,9 +160,7 @@ async def test_gssapi_bind_ok(
         )
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"client_ticket")
-    auth_choice._init_security_context = (  # type: ignore
-        mock_init_security_context
-    )
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore
 
     first_bind = BindRequest(
         version=0,
