@@ -9,6 +9,8 @@ from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_user
 from tests.conftest import TestCreds
@@ -222,3 +224,91 @@ async def test_session_api_delete_detail(
     assert response.status_code == 204
 
     assert len(await storage.get_user_sessions(user.id)) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_block_ldap_user_without_session(
+    http_client: AsyncClient,
+    session: AsyncSession,
+    storage: SessionStorage,
+) -> None:
+    """Test blocking ldap user without active session."""
+    user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    un = "user_non_admin"
+
+    user = await get_user(session, un)
+    assert user
+    assert not await storage.get_user_sessions(user.id)
+
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": user_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["514"],
+                    },
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["resultCode"] == LDAPCodes.SUCCESS
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_block_ldap_user_with_active_session(
+    http_client: AsyncClient,
+    ldap_client: Connection,
+    session: AsyncSession,
+    storage: SessionStorage,
+    event_loop: asyncio.AbstractEventLoop,
+) -> None:
+    """Test blocking ldap user with active session."""
+    user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    un = "user_non_admin"
+    pw = "password"
+
+    user = await get_user(session, un)
+    assert user
+    assert not await storage.get_user_sessions(user.id)
+
+    result = await event_loop.run_in_executor(
+        None,
+        ldap_client.rebind,
+        un,
+        pw,
+    )
+    assert result
+    assert ldap_client.bound
+
+    sessions = await storage.get_user_sessions(user.id)
+    assert sessions
+
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": user_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["514"],
+                    },
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["resultCode"] == LDAPCodes.SUCCESS
+
+    sessions = await storage.get_user_sessions(user.id)
+    assert not sessions
