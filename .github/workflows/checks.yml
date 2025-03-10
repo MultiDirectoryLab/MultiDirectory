@@ -22,6 +22,8 @@ jobs:
         run: cd integration_tests/gssapi && docker compose pull 
       - name: run test enviroment
         run: cd integration_tests/gssapi && docker compose up -d
+      - name: set execute permission
+        run: cd integration_tests/gssapi && chmod +x run.sh
       - name: run gssapi test
         run: cd integration_tests/gssapi && ./run.sh
 
