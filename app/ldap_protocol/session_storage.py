@@ -8,12 +8,14 @@ import json
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from secrets import token_hex
-from typing import Iterable, Self
+from typing import TYPE_CHECKING, Iterable, Self
 
 from redis.asyncio import Redis
-from redis.asyncio.lock import Lock
 
 from config import Settings
+
+if TYPE_CHECKING:
+    from redis.asyncio.lock import Lock
 
 
 class SessionStorage(ABC):
@@ -337,7 +339,8 @@ class RedisSessionStorage(SessionStorage):
                     await self._storage.zrem(self.ZSET_HTTP_SESSIONS, uid_hash)
 
                 if keys:
-                    await self._storage.set(uid_hash,
+                    await self._storage.set(
+                        uid_hash,
                         ";".join(keys) + ";",
                         keepttl=True,
                     )
