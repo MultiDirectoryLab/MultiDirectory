@@ -16,12 +16,9 @@ class Ldap3Parser:
 
     @classmethod
     def _list_to_string(cls, data: list[str]) -> str | None:
-        res = None
-        if len(data) == 1:
-            res = data[0]
-        else:
+        if not data or len(data) != 1:
             raise ValueError("Data is not a single element list")
-        return res
+        return data[0]
 
     @classmethod
     def _get_attribute_type_info(
