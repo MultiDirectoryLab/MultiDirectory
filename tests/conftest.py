@@ -280,7 +280,7 @@ class MutePolicyBindRequest(BindRequest):
     __test__ = False
 
     @staticmethod
-    async def is_user_group_valid(*args, **kwargs) -> bool:
+    async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
         """Stub."""
         return True
 
@@ -388,7 +388,7 @@ async def ldap_bound_session(
     ldap_session: LDAPSession,
     session: AsyncSession,
     creds: TestCreds,
-    setup_session: None,
+    setup_session: None,  # noqa: ARG001 NOTE: just a fixture call
 ) -> AsyncIterator[LDAPSession]:
     """Yield bound session."""
     user = await get_user(session, creds.un)
@@ -463,7 +463,7 @@ async def unbound_http_client(
 async def http_client(
     unbound_http_client: httpx.AsyncClient,
     creds: TestCreds,
-    setup_session: None,
+    setup_session: None,  # noqa: ARG001 NOTE: just a fixture call
 ) -> httpx.AsyncClient:
     """Authenticate and return client with cookies.
 

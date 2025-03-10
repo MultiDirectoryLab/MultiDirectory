@@ -167,7 +167,7 @@ extend-select = []
 fixable = ["ALL"]
 unfixable = []
 
-dummy-variable-rgx = "^(setup_session|data|_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+dummy-variable-rgx = "^(data|_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.flake8-unused-arguments]
 ignore-variadic-names = true
