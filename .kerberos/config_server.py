@@ -18,7 +18,7 @@ from tempfile import gettempdir
 from types import TracebackType
 from typing import Annotated, AsyncIterator, Protocol, Self
 
-import kadmin_local as kadmv
+import kadmin_local as kadmv  # type: ignore
 from fastapi import (
     APIRouter,
     Body,
@@ -406,7 +406,7 @@ def get_kadmin() -> KAdminLocalManager:
     raise NotImplementedError
 
 
-def handle_db_error(request: Request, exc: BaseException):
+def handle_db_error():
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_424_FAILED_DEPENDENCY,
@@ -414,7 +414,7 @@ def handle_db_error(request: Request, exc: BaseException):
     )
 
 
-def handle_duplicate(request: Request, exc: BaseException):
+def handle_duplicate():
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_409_CONFLICT,
@@ -422,7 +422,7 @@ def handle_duplicate(request: Request, exc: BaseException):
     )
 
 
-def handle_not_found(request: Request, exc: BaseException):
+def handle_not_found():
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_404_NOT_FOUND,

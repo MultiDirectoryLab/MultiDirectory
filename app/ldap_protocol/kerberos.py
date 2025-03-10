@@ -508,7 +508,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
     async def rename_princ(self, name: str, new_name: str) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def ktadd(self, names: list[str]) -> NoReturn:
+    async def ktadd(self) -> NoReturn:
         raise KRBAPIError
 
     @logger_wraps(is_stub=True)

@@ -280,7 +280,7 @@ class MutePolicyBindRequest(BindRequest):
     __test__ = False
 
     @staticmethod
-    async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
+    async def is_user_group_valid(*args, **kwargs) -> bool:
         """Stub."""
         return True
 

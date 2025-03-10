@@ -174,7 +174,6 @@ invalid_domain_test_cases: list[AuthSetupRequestDataType] = [
 @pytest.mark.parametrize("test_case", invalid_domain_test_cases)
 async def test_first_setup_with_invalid_domain(
     unbound_http_client: AsyncClient,
-    session: AsyncSession,
     test_case: AuthSetupRequestDataType,
 ) -> None:
     """Test api first setup with invalid domain."""

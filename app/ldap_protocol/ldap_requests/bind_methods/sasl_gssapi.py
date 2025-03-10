@@ -79,7 +79,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ticket: bytes = b""
     _ldap_session: LDAPSession
 
-    def is_valid(self, user: User | None) -> bool:
+    def is_valid(self, user: User | None) -> bool:  # noqa: ARG002 NOTE: superclass method signature
         """Check if GSSAPI token is valid.
 
         :param User | None user: indb user
@@ -150,11 +150,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         except gssapi.exceptions.GSSError:
             return GSSAPIAuthStatus.ERROR
 
-    def _validate_security_layer(
-        self,
-        client_layer: GSSAPISL,
-        settings: Settings,
-    ) -> bool:
+    def _validate_security_layer(self, client_layer: GSSAPISL) -> bool:
         """Validate security layer.
 
         :param int client_layer: client security layer
@@ -167,7 +163,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     def _handle_final_client_message(
         self,
         server_ctx: gssapi.SecurityContext,
-        settings: Settings,
     ) -> GSSAPIAuthStatus:
         """Handle final client message.
 
@@ -183,10 +178,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
                         unwrap_message.message[:1],
                     ),
                 )
-                if self._validate_security_layer(
-                    client_security_layer,
-                    settings,
-                ):
+                if self._validate_security_layer(client_security_layer):
                     self._ldap_session.gssapi_authenticated = True
                     self._ldap_session.gssapi_security_layer = (
                         client_security_layer
@@ -251,10 +243,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             )
 
         if server_ctx.complete:
-            status = self._handle_final_client_message(
-                server_ctx,
-                settings,
-            )
+            status = self._handle_final_client_message(server_ctx)
             if status == GSSAPIAuthStatus.COMPLETE:
                 return None
 
@@ -272,7 +261,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     async def get_user(  # type: ignore
         self,
         session: AsyncSession,
-        name: str,
+        name: str,  # noqa: ARG002 NOTE: superclass method signature
     ) -> User | None:
         """Get user.
 

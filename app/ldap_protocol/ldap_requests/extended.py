@@ -101,8 +101,8 @@ class WhoAmIRequestValue(BaseExtendedValue):
         self,
         ldap_session: LDAPSession,
         _: AsyncSession,
-        kadmin: AbstractKadmin,
-        settings: Settings,
+        kadmin: AbstractKadmin,  # noqa: ARG002 NOTE: superclass method signature
+        settings: Settings,  # noqa: ARG002 NOTE: superclass method signature
     ) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
@@ -129,9 +129,9 @@ class StartTLSRequestValue(BaseExtendedValue):
 
     async def handle(
         self,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
-        kadmin: AbstractKadmin,
+        ldap_session: LDAPSession,  # noqa: ARG002 NOTE: superclass method signature
+        session: AsyncSession,  # noqa: ARG002 NOTE: superclass method signature
+        kadmin: AbstractKadmin,  # noqa: ARG002 NOTE: superclass method signature
         settings: Settings,
     ) -> StartTLSResponse:
         """Update password of current or selected user."""
