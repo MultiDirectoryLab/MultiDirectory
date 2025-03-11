@@ -45,8 +45,8 @@ class Ldap3Parser:
 
     @staticmethod
     def get_attribute_type(raw_definition: str) -> AttributeType:
-        attribute_type_info: AttributeTypeInfo = (
-            Ldap3Parser._get_attribute_type_info(raw_definition=raw_definition)
+        attribute_type_info = Ldap3Parser._get_attribute_type_info(
+            raw_definition=raw_definition
         )
 
         return AttributeType(
@@ -63,8 +63,8 @@ class Ldap3Parser:
         session: AsyncSession,
         raw_definition: str,
     ) -> ObjectClass:
-        object_class_info: ObjectClassInfo = (
-            Ldap3Parser._get_object_class_info(raw_definition=raw_definition)
+        object_class_info = Ldap3Parser._get_object_class_info(
+            raw_definition=raw_definition
         )
 
         object_class = ObjectClass(
