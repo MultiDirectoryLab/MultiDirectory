@@ -70,4 +70,4 @@ async def test_ldap3_parse_object_classes(
             raw_definition=raw_definition,
         )
 
-        assert raw_definition == object_class.get_definition()
+        assert raw_definition == object_class.get_raw_definition()

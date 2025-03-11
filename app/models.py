@@ -654,7 +654,7 @@ class ObjectClass(Base):
         lazy="selectin",
     )
 
-    def get_definition(self) -> str:
+    def get_raw_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
         chunks = [f"( {self.oid}"]
         if self.name:

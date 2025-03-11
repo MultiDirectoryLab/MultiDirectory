@@ -148,7 +148,8 @@ class SearchRequest(BaseRequest):
 
         object_classes = await session.scalars(select(ObjectClass))
         attrs["objectClasses"] = [
-            object_class.get_definition() for object_class in object_classes
+            object_class.get_raw_definition()
+            for object_class in object_classes
         ]
 
         return SearchResultEntry(
