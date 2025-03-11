@@ -406,7 +406,8 @@ def get_kadmin() -> KAdminLocalManager:
     raise NotImplementedError
 
 
-def handle_db_error():
+# NOTE: the function signature matches starlette.types.HTTPExceptionHandler
+def handle_db_error(request: Request, exc: BaseException):  # noqa: ARG001
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_424_FAILED_DEPENDENCY,
@@ -414,7 +415,8 @@ def handle_db_error():
     )
 
 
-def handle_duplicate():
+# NOTE: the function signature matches starlette.types.HTTPExceptionHandler
+def handle_duplicate(request: Request, exc: BaseException):  # noqa: ARG001
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_409_CONFLICT,
@@ -422,7 +424,8 @@ def handle_duplicate():
     )
 
 
-def handle_not_found():
+# NOTE: the function signature matches starlette.types.HTTPExceptionHandler
+def handle_not_found(request: Request, exc: BaseException):  # noqa: ARG001
     """Handle duplicate."""
     raise HTTPException(
         status.HTTP_404_NOT_FOUND,
