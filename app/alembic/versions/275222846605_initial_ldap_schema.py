@@ -41,7 +41,7 @@ def upgrade() -> None:
         ]
 
         for oc_raw_definition in oc_raw_definitions_filtered:
-            object_class = await Ldap3Parser.get_object_class(
+            object_class = await Ldap3Parser.create_object_class_by_raw(
                 session=session,
                 raw_definition=oc_raw_definition,
             )
@@ -134,7 +134,7 @@ def upgrade() -> None:
         if "NAME 'ms" not in defenition and "NAME 'mS-" not in defenition
     ]
     for at_raw_definition in at_raw_definitions_filtered:
-        attribute_type = Ldap3Parser.get_attribute_type(
+        attribute_type = Ldap3Parser.create_attribute_type_by_raw(
             raw_definition=at_raw_definition
         )
         attribute_type.is_system = True

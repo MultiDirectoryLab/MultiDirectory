@@ -33,13 +33,11 @@ test_ldap3_parse_attribute_types_dataset = [
     test_ldap3_parse_attribute_types_dataset,
 )
 @pytest.mark.asyncio
-async def test_ldap3_parse_attribute_types(
-    test_dataset: list[str],
-) -> None:
+async def test_ldap3_parse_attribute_types(test_dataset: list[str]) -> None:
     """Test parse ldap3 attribute types."""
     for raw_definition in test_dataset:
-        attribute_type: AttributeType = Ldap3Parser.get_attribute_type(
-            raw_definition
+        attribute_type: AttributeType = (
+            Ldap3Parser.create_attribute_type_by_raw(raw_definition)
         )
 
         assert raw_definition == attribute_type.get_raw_definition()
@@ -65,9 +63,11 @@ async def test_ldap3_parse_object_classes(
 ) -> None:
     """Test parse ldap3 object classes."""
     for raw_definition in test_dataset:
-        object_class: ObjectClass = await Ldap3Parser.get_object_class(
-            session=session,
-            raw_definition=raw_definition,
+        object_class: ObjectClass = (
+            await Ldap3Parser.create_object_class_by_raw(
+                session=session,
+                raw_definition=raw_definition,
+            )
         )
 
         assert raw_definition == object_class.get_raw_definition()

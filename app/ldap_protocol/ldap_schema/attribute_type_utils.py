@@ -12,7 +12,7 @@ from models import AttributeType
 
 
 class AttributeTypeSchema(BaseModel):
-    """Attribute Type Schema w/o id."""
+    """Attribute Type Schema."""
 
     oid: str
     name: str
@@ -54,20 +54,43 @@ async def create_attribute_type(
     await session.flush()
 
 
-async def get_attribute_type(
-    attribute_type_oid: int,
+async def get_attribute_types_by_oids(
+    attribute_type_oids: list[str],
     session: AsyncSession,
-) -> AttributeType | None:
+) -> list[AttributeType] | None:
     """Get single Attribute Type.
 
-    :param int attribute_type_oid: Attribute Type OID.
+    :param list[str] attribute_type_oids: Attribute Type OID.
     :param AsyncSession session: Database session.
     :return Optional[AccessPolicy]: Attribute Type.
     """
-    return await session.get(AttributeType, attribute_type_oid)
+    query = await session.scalars(
+        select(AttributeType)
+        .where(AttributeType.oid.in_(attribute_type_oids)),
+    )  # fmt: skip
+    return list(query.all())
 
 
-async def get_attribute_types(session: AsyncSession) -> list[AttributeType]:
+async def get_attribute_types_by_names(
+    attribute_type_names: list[str],
+    session: AsyncSession,
+) -> list[AttributeType] | None:
+    """Get single Attribute Type.
+
+    :param list[str] attribute_type_names: Attribute Type names.
+    :param AsyncSession session: Database session.
+    :return Optional[AccessPolicy]: Attribute Type.
+    """
+    query = await session.scalars(
+        select(AttributeType)
+        .where(AttributeType.name.in_(attribute_type_names)),
+    )  # fmt: skip
+    return list(query.all())
+
+
+async def get_all_attribute_types(
+    session: AsyncSession,
+) -> list[AttributeType]:
     """Retrieve a list of all attribute types.
 
     :param AsyncSession session: Database session.
@@ -101,17 +124,17 @@ async def modify_attribute_type(
 
 
 async def delete_attribute_types(
-    attribute_types_oids: list[str],
+    attribute_types_names: list[str],
     session: AsyncSession,
 ) -> None:
     """Delete Attribute Type.
 
-    :param list[str] attribute_types_oids: List of Attribute Types OIDs.
+    :param list[str] attribute_types_names: List of Attribute Types OIDs.
     :param AsyncSession session: Database session.
     :return None: None.
     """
     await session.execute(
         delete(AttributeType)
-        .where(AttributeType.oid.in_(attribute_types_oids)),
+        .where(AttributeType.oid.in_(attribute_types_names)),
     )  # fmt: skip
     await session.commit()

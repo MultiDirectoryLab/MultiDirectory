@@ -44,7 +44,9 @@ class Ldap3Parser:
         return list(query.scalars().all())
 
     @staticmethod
-    def get_attribute_type(raw_definition: str) -> AttributeType:
+    def create_attribute_type_by_raw(
+        raw_definition: str,
+    ) -> AttributeType:
         attribute_type_info = Ldap3Parser._get_attribute_type_info(
             raw_definition=raw_definition
         )
@@ -59,7 +61,7 @@ class Ldap3Parser:
         )
 
     @staticmethod
-    async def get_object_class(
+    async def create_object_class_by_raw(
         session: AsyncSession,
         raw_definition: str,
     ) -> ObjectClass:
