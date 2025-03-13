@@ -21,9 +21,6 @@ if TYPE_CHECKING:
 class SessionStorage(ABC):
     """Abstract session storage class."""
 
-    ZSET_LDAP_SESSIONS: str = "sessions:ldap"
-    ZSET_HTTP_SESSIONS: str = "sessions:http"
-
     key_length: int = 16
     key_ttl: int
 
@@ -301,8 +298,6 @@ class RedisSessionStorage(SessionStorage):
             return
         await self.delete(keys)
         await self.delete([uid_hash])
-        await self._storage.zrem(self.ZSET_HTTP_SESSIONS, uid_hash)
-        await self._storage.zrem(self.ZSET_LDAP_SESSIONS, uid_hash)
 
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session."""
@@ -327,17 +322,6 @@ class RedisSessionStorage(SessionStorage):
             except KeyError:
                 pass
             else:
-                protocols = {k.startswith("ldap:") for k in keys}
-
-                if session_id.startswith("ldap:") and True not in protocols:
-                    await self._storage.zrem(self.ZSET_LDAP_SESSIONS, uid_hash)
-
-                if (
-                    not session_id.startswith("ldap:")
-                    and False not in protocols
-                ):
-                    await self._storage.zrem(self.ZSET_HTTP_SESSIONS, uid_hash)
-
                 if keys:
                     await self._storage.set(
                         uid_hash,
@@ -374,11 +358,6 @@ class RedisSessionStorage(SessionStorage):
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
         await self._storage.append(uid_hash, f"{session_id};")
-        await self._storage.zadd(
-            self.ZSET_HTTP_SESSIONS,
-            {uid_hash: uid},
-            nx=True,
-        )
 
         return f"{session_id}.{signature}"
 
@@ -403,11 +382,6 @@ class RedisSessionStorage(SessionStorage):
 
         await self._storage.set(key, json.dumps(data), ex=None)
         await self._storage.append(uid_hash, f"{key};")
-        await self._storage.zadd(
-            self.ZSET_LDAP_SESSIONS,
-            {uid_hash: uid},
-            nx=True,
-        )
 
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
@@ -453,11 +427,6 @@ class RedisSessionStorage(SessionStorage):
 
         await self._storage.set(new_session_id, json.dumps(new_data), ex=ttl)
         await self._storage.append(uid_hash, f"{new_session_id};")
-        await self._storage.zadd(
-            self.ZSET_HTTP_SESSIONS,
-            {uid_hash: uid},
-            nx=True,
-        )
 
         await self.delete_user_session(session_id)
 
