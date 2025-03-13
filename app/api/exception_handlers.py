@@ -6,7 +6,6 @@ from fastapi import HTTPException, Request, status
 from loguru import logger
 
 
-# NOTE: the function signature matches starlette.types.ExceptionHandler
 def handle_db_connect_error(
     request: Request,  # noqa: ARG001
     exc: Exception,
@@ -25,7 +24,6 @@ def handle_db_connect_error(
     raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
-# NOTE: the function signature matches starlette.types.ExceptionHandler
 async def handle_dns_error(
     request: Request,  # noqa: ARG001
     exc: Exception,

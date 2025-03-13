@@ -80,8 +80,8 @@ async def test_gssapi_bind_in_progress(
     mock_security_context.complete = False
 
     async def mock_init_security_context(
-        session: AsyncSession,  # noqa: ARG001 NOTE: Signature of "_init_security_context" compatible with supertype "SaslGSSAPIAuthentication"
-        settings: Settings,  # noqa: ARG001 NOTE: Signature of "_init_security_context" compatible with supertype "SaslGSSAPIAuthentication"
+        session: AsyncSession,  # noqa: ARG001
+        settings: Settings,  # noqa: ARG001
     ) -> None:
         auth_choice._ldap_session.gssapi_security_context = (
             mock_security_context
@@ -152,8 +152,8 @@ async def test_gssapi_bind_ok(
     )
 
     async def mock_init_security_context(
-        session: AsyncSession,  # noqa: ARG001 NOTE: Signature of "_init_security_context" compatible with supertype "SaslGSSAPIAuthentication"
-        settings: Settings,  # noqa: ARG001 NOTE: Signature of "_init_security_context" compatible with supertype "SaslGSSAPIAuthentication"
+        session: AsyncSession,  # noqa: ARG001
+        settings: Settings,  # noqa: ARG001
     ) -> None:
         auth_choice._ldap_session.gssapi_security_context = (
             mock_security_context

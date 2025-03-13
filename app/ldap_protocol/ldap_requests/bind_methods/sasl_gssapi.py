@@ -79,7 +79,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ticket: bytes = b""
     _ldap_session: LDAPSession
 
-    def is_valid(self, user: User | None) -> bool:  # noqa: ARG002 NOTE: Signature of "is_valid" compatible with supertype "AbstractLDAPAuth"
+    def is_valid(self, user: User | None) -> bool:  # noqa: ARG002
         """Check if GSSAPI token is valid.
 
         :param User | None user: indb user
