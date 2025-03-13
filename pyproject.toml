@@ -126,7 +126,7 @@ select = [
     # "SLF",  # flake8-self TODO uncomment, ruff fix and fix error
     "SIM",  # flake8-simplify. Must have
     "TC",  # flake8-type-checking, check flake8-type-checking
-    # "ARG",  # flake8-unused-arguments TODO uncomment, ruff fix and fix error
+    "ARG",  # flake8-unused-arguments
     # "TD",  # flake8-todos TODO uncomment, ruff fix and fix error
     "ERA",  # eradicate
     # "PGH",  # pygrep-hooks TODO does we need it? uncomment, ruff fix and fix error
@@ -166,6 +166,9 @@ extend-select = []
 
 fixable = ["ALL"]
 unfixable = []
+
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101"] # Ignore `Flake8-bandit S101` rule for the `tests/` directory.

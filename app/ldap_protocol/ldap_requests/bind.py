@@ -234,7 +234,7 @@ class UnbindRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = 2
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
         """Unbind request has no body."""
         return cls()
 

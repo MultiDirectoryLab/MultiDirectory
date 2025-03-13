@@ -7,7 +7,7 @@ from loguru import logger
 
 
 def handle_db_connect_error(
-    request: Request,
+    request: Request,  # noqa: ARG001
     exc: Exception,
 ) -> NoReturn:
     """Handle duplicate."""
@@ -25,7 +25,7 @@ def handle_db_connect_error(
 
 
 async def handle_dns_error(
-    request: Request,
+    request: Request,  # noqa: ARG001
     exc: Exception,
 ) -> NoReturn:
     """Handle EmptyLabel exception."""
