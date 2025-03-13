@@ -1,4 +1,4 @@
-"""object class management routers.
+"""Object Class management routers.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -11,10 +11,10 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from ldap_protocol.ldap_schema.object_class_utils import (
+from ldap_protocol.ldap_schema.object_class import (
     ObjectClassSchema,
     create_object_class,
-    delete_object_classes,
+    delete_object_classes_by_names,
     get_all_object_classes,
     get_object_class_by_name,
     modify_object_class,
@@ -36,9 +36,9 @@ async def create_one_object_class(
     request_data: ObjectClassSchema,
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Create a new object class.
+    """Create a new Object Class.
 
-    :param ObjectClassSchema request_data: Data for creating object class.
+    :param ObjectClassSchema request_data: Data for creating Object Class.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
@@ -62,7 +62,7 @@ async def create_one_object_class(
 async def get_list_object_classes(
     session: FromDishka[AsyncSession],
 ) -> list[ObjectClassSchema]:
-    """Retrieve a list of all object classes.
+    """Retrieve a list of all Object Classes.
 
     :param FromDishka[AsyncSession] session: Database session.
     :return list[AccessPolicyMaterialSchema]: List of access policies.
@@ -74,8 +74,8 @@ async def get_list_object_classes(
             superior=object_class.superior,
             kind=object_class.kind,
             is_system=object_class.is_system,
-            attribute_types_must=object_class.attribute_types_must,
-            attribute_types_may=object_class.attribute_types_may,
+            attribute_types_must=object_class.attribute_types_must_display,
+            attribute_types_may=object_class.attribute_types_may_display,
         )
         for object_class in await get_all_object_classes(session)
     ]
@@ -90,9 +90,9 @@ async def modify_one_object_class(
     request_data: ObjectClassSchema,
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Modify an object class.
+    """Modify an Object Class.
 
-    :param str object_class_name: Name of the object class.
+    :param str object_class_name: Name of the Object Class.
     :param ObjectClassSchema request_data: Data for modifying.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
@@ -104,7 +104,7 @@ async def modify_one_object_class(
             "Object Class not found.",
         )
 
-    await modify_object_class(session=session)
+    await modify_object_class(request_data=request_data, session=session)
 
 
 @object_class_router.post(
@@ -115,9 +115,9 @@ async def delete_bulk_object_classes(
     object_classes_names: Annotated[list[str], Body(embed=True)],
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Delete object classs by their names.
+    """Delete Object Classes by their names.
 
-    :param list[str] object_classes_names: List of object classs names.
+    :param list[str] object_classes_names: List of Object Classes names.
     :param FromDishka[AsyncSession] session: Database session.
     :return None: None
     """
@@ -127,4 +127,4 @@ async def delete_bulk_object_classes(
             "Object Classes not found.",
         )
 
-    await delete_object_classes(object_classes_names, session)
+    await delete_object_classes_by_names(object_classes_names, session)

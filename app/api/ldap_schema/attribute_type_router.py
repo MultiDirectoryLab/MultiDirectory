@@ -11,12 +11,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from ldap_protocol.ldap_schema.attribute_type_utils import (
+from ldap_protocol.ldap_schema.attribute_type import (
     AttributeTypeSchema,
     create_attribute_type,
-    delete_attribute_types,
+    delete_attribute_types_by_names,
     get_all_attribute_types,
-    get_attribute_types_by_names,
+    get_attribute_type_by_name,
     modify_attribute_type,
 )
 
@@ -95,17 +95,17 @@ async def modify_one_attribute_type(
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    attribute_types = await get_attribute_types_by_names(
-        [attribute_type_name], session
+    attribute_type = await get_attribute_type_by_name(
+        attribute_type_name, session
     )
-    if not attribute_types:
+    if not attribute_type:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Attribute Type not found.",
         )
 
     await modify_attribute_type(
-        attribute_type=attribute_types[0],
+        attribute_type=attribute_type,
         attribute_type_schema=request_data,
         session=session,
     )
@@ -131,4 +131,4 @@ async def delete_bulk_attribute_types(
             "Attribute Types not found.",
         )
 
-    await delete_attribute_types(attribute_types_names, session)
+    await delete_attribute_types_by_names(attribute_types_names, session)

@@ -31,14 +31,14 @@ async def create_attribute_type(
     is_system: bool,
     session: AsyncSession,
 ) -> None:
-    """Create a new attribute type.
+    """Create a new Attribute Type.
 
     :param str oid: OID.
     :param str name: Name.
     :param str syntax: Syntax.
     :param bool single_value: Single value.
-    :param bool no_user_modification: No user modification.
-    :param bool is_system: Is system.
+    :param bool no_user_modification: User can't modify it.
+    :param bool is_system: Attribute Type is system.
     :param AsyncSession session: Database session.
     :return None.
     """
@@ -54,32 +54,28 @@ async def create_attribute_type(
     await session.flush()
 
 
-async def get_attribute_types_by_oids(
-    attribute_type_oids: list[str],
+async def get_attribute_type_by_name(
+    attribute_type_name: str,
     session: AsyncSession,
-) -> list[AttributeType] | None:
-    """Get single Attribute Type.
+) -> AttributeType | None:
+    """Get single Attribute Type by name.
 
-    :param list[str] attribute_type_oids: Attribute Type OID.
+    :param str attribute_type_name: Attribute Type name.
     :param AsyncSession session: Database session.
-    :return Optional[AccessPolicy]: Attribute Type.
+    :return AttributeType: Attribute Type.
     """
-    query = await session.scalars(
-        select(AttributeType)
-        .where(AttributeType.oid.in_(attribute_type_oids)),
-    )  # fmt: skip
-    return list(query.all())
+    return await session.get(AttributeType, attribute_type_name)
 
 
 async def get_attribute_types_by_names(
     attribute_type_names: list[str],
     session: AsyncSession,
 ) -> list[AttributeType] | None:
-    """Get single Attribute Type.
+    """Get list of Attribute Types by names.
 
     :param list[str] attribute_type_names: Attribute Type names.
     :param AsyncSession session: Database session.
-    :return Optional[AccessPolicy]: Attribute Type.
+    :return list[AttributeType]: List of Attribute Types.
     """
     query = await session.scalars(
         select(AttributeType)
@@ -91,10 +87,10 @@ async def get_attribute_types_by_names(
 async def get_all_attribute_types(
     session: AsyncSession,
 ) -> list[AttributeType]:
-    """Retrieve a list of all attribute types.
+    """Retrieve a list of all Attribute Types.
 
     :param AsyncSession session: Database session.
-    :return list[AttributeType]: List of attribute types.
+    :return list[AttributeType]: List of Attribute Types.
     """
     query = await session.scalars(select(AttributeType))
     return list(query.all())
@@ -105,7 +101,7 @@ async def modify_attribute_type(
     attribute_type_schema: AttributeTypeSchema,
     session: AsyncSession,
 ) -> None:
-    """Modify an attribute type.
+    """Modify Attribute Type.
 
     :param AttributeType attribute_type: Attribute Type.
     :param AttributeTypeSchema attribute_type_schema: Attribute Type Schema.
@@ -123,11 +119,11 @@ async def modify_attribute_type(
     await session.flush()
 
 
-async def delete_attribute_types(
+async def delete_attribute_types_by_names(
     attribute_types_names: list[str],
     session: AsyncSession,
 ) -> None:
-    """Delete Attribute Type.
+    """Delete Attribute Types by names.
 
     :param list[str] attribute_types_names: List of Attribute Types OIDs.
     :param AsyncSession session: Database session.

@@ -1,4 +1,4 @@
-"""LDAP3 parser.
+"""Raw definition parser.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import AttributeType, ObjectClass
 
 
-class Ldap3Parser:
-    """LDAP3 parser."""
+class RawDefinitionParser:
+    """Parser for ObjectClass and AttributeType raw definition."""
 
     @staticmethod
     def _list_to_string(data: list[str]) -> str | None:
@@ -33,7 +33,7 @@ class Ldap3Parser:
         return list(tmp.values())[0]
 
     @staticmethod
-    async def _get_attribute_types(
+    async def _get_attribute_types_by_names(
         session: AsyncSession,
         names: list[str],
     ) -> list[AttributeType]:
@@ -47,13 +47,13 @@ class Ldap3Parser:
     def create_attribute_type_by_raw(
         raw_definition: str,
     ) -> AttributeType:
-        attribute_type_info = Ldap3Parser._get_attribute_type_info(
+        attribute_type_info = RawDefinitionParser._get_attribute_type_info(
             raw_definition=raw_definition
         )
 
         return AttributeType(
             oid=attribute_type_info.oid,
-            name=Ldap3Parser._list_to_string(attribute_type_info.name),
+            name=RawDefinitionParser._list_to_string(attribute_type_info.name),
             syntax=attribute_type_info.syntax,
             single_value=attribute_type_info.single_value,
             no_user_modification=attribute_type_info.no_user_modification,
@@ -65,27 +65,29 @@ class Ldap3Parser:
         session: AsyncSession,
         raw_definition: str,
     ) -> ObjectClass:
-        object_class_info = Ldap3Parser._get_object_class_info(
+        object_class_info = RawDefinitionParser._get_object_class_info(
             raw_definition=raw_definition
         )
 
         object_class = ObjectClass(
             oid=object_class_info.oid,
-            name=Ldap3Parser._list_to_string(object_class_info.name),
-            superior=Ldap3Parser._list_to_string(object_class_info.superior),
+            name=RawDefinitionParser._list_to_string(object_class_info.name),
+            superior=RawDefinitionParser._list_to_string(
+                object_class_info.superior
+            ),
             kind=object_class_info.kind,
             is_system=False,
         )
         if object_class_info.must_contain:
             object_class.attribute_types_must.extend(
-                await Ldap3Parser._get_attribute_types(
+                await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.must_contain,
                 )
             )
         if object_class_info.may_contain:
             object_class.attribute_types_may.extend(
-                await Ldap3Parser._get_attribute_types(
+                await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.may_contain,
                 )

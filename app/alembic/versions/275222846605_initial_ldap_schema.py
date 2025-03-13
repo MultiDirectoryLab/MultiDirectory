@@ -14,7 +14,9 @@ from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from ldap_protocol.utils.ldap3_parser import Ldap3Parser
+from ldap_protocol.utils.raw_definition_parser import (
+    RawDefinitionParser as RDParser,
+)
 
 # revision identifiers, used by Alembic.
 revision = "275222846605"
@@ -41,7 +43,7 @@ def upgrade() -> None:
         ]
 
         for oc_raw_definition in oc_raw_definitions_filtered:
-            object_class = await Ldap3Parser.create_object_class_by_raw(
+            object_class = await RDParser.create_object_class_by_raw(
                 session=session,
                 raw_definition=oc_raw_definition,
             )
@@ -62,7 +64,7 @@ def upgrade() -> None:
         sa.Column("single_value", sa.Boolean(), nullable=False),
         sa.Column("no_user_modification", sa.Boolean(), nullable=False),
         sa.Column("is_system", sa.Boolean(), nullable=False),
-        sa.PrimaryKeyConstraint("oid"),
+        sa.UniqueConstraint("oid"),
         sa.PrimaryKeyConstraint("name"),
     )
 
@@ -77,7 +79,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("is_system", sa.Boolean(), nullable=False),
-        sa.PrimaryKeyConstraint("oid"),
+        sa.UniqueConstraint("oid"),
         sa.PrimaryKeyConstraint("name"),
     )
 
@@ -134,7 +136,7 @@ def upgrade() -> None:
         if "NAME 'ms" not in defenition and "NAME 'mS-" not in defenition
     ]
     for at_raw_definition in at_raw_definitions_filtered:
-        attribute_type = Ldap3Parser.create_attribute_type_by_raw(
+        attribute_type = RDParser.create_attribute_type_by_raw(
             raw_definition=at_raw_definition
         )
         attribute_type.is_system = True

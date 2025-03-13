@@ -559,7 +559,7 @@ class AttributeType(Base):
 
     __tablename__ = "AttributeTypes"
 
-    oid: Mapped[str] = mapped_column(primary_key=True)
+    oid: Mapped[str] = mapped_column(nullable=False, unique=True)
     name: Mapped[str] = mapped_column(primary_key=True)
     syntax: Mapped[str]
     single_value: Mapped[bool]
@@ -632,11 +632,11 @@ class ObjectClass(Base):
 
     __tablename__ = "ObjectClasses"
 
-    oid: Mapped[str] = mapped_column(primary_key=True)
+    oid: Mapped[str] = mapped_column(nullable=False, unique=True)
     name: Mapped[str] = mapped_column(primary_key=True)
     superior: Mapped[str] = mapped_column(nullable=True)
     kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
-    is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
+    is_system: Mapped[bool]
 
     attribute_types_must: Mapped[list[AttributeType]] = relationship(
         "AttributeType",
@@ -675,6 +675,16 @@ class ObjectClass(Base):
             chunks.append(f"MAY ({' $ '.join(attribute_types_may_names)} )")
         chunks.append(")")
         return " ".join(chunks)
+
+    @property
+    def attribute_types_must_display(self) -> list[str]:
+        """Display attribute types must."""
+        return [attr.name for attr in self.attribute_types_must]
+
+    @property
+    def attribute_types_may_display(self) -> list[str]:
+        """Display attribute types may."""
+        return [attr.name for attr in self.attribute_types_may]
 
 
 class MFAFlags(int, enum.Enum):
