@@ -11,12 +11,13 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from ldap_protocol.ldap_schema.object_class import (
+from ldap_protocol.ldap_schema.object_class_uow import (
     ObjectClassSchema,
     create_object_class,
     delete_object_classes_by_names,
     get_all_object_classes,
     get_object_class_by_name,
+    get_object_classes_by_names,
     modify_object_class,
 )
 
@@ -65,7 +66,7 @@ async def get_list_object_classes(
     """Retrieve a list of all Object Classes.
 
     :param FromDishka[AsyncSession] session: Database session.
-    :return list[AccessPolicyMaterialSchema]: List of access policies.
+    :return list[ObjectClassSchema]: List of object classes.
     """
     return [
         ObjectClassSchema(
@@ -92,8 +93,8 @@ async def modify_one_object_class(
 ) -> None:
     """Modify an Object Class.
 
-    :param str object_class_name: Name of the Object Class.
-    :param ObjectClassSchema request_data: Data for modifying.
+    :param str object_class_name: Name of the Object Class for modifying.
+    :param ObjectClassSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
@@ -104,7 +105,7 @@ async def modify_one_object_class(
             "Object Class not found.",
         )
 
-    await modify_object_class(request_data=request_data, session=session)
+    await modify_object_class(changed_data=request_data, session=session)
 
 
 @object_class_router.post(
@@ -123,8 +124,23 @@ async def delete_bulk_object_classes(
     """
     if not object_classes_names:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
+            status.HTTP_400_BAD_REQUEST,
             "Object Classes not found.",
+        )
+
+    object_classes_names_exists = set(
+        object_class.name
+        for object_class in await get_object_classes_by_names(
+            object_classes_names,
+            session,
+        )
+    )
+
+    diff = set(object_classes_names) - object_classes_names_exists
+    if diff:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Object Classes not found: {diff}",
         )
 
     await delete_object_classes_by_names(object_classes_names, session)

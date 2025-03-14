@@ -3,14 +3,20 @@
 import pytest
 from fastapi import status
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import AttributeType
+
+from .test_attribute_type_router_datasets import (
+    test_delete_bulk_attribute_types_dataset,
+    test_modify_one_attribute_type_dataset,
+)
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
 async def test_create_one_attribute_type(
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """Test creating a single attribute type."""
     request_data = {
@@ -26,10 +32,8 @@ async def test_create_one_attribute_type(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
 async def test_get_list_attribute_types(
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """Test retrieving a list of attribute types."""
     response = await http_client.get("/attribute_type")
@@ -38,37 +42,88 @@ async def test_get_list_attribute_types(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_modify_one_attribute_type(
+async def test_modify_one_attribute_type_raise_404(
     http_client: AsyncClient,
     session: AsyncSession,
 ) -> None:
     """Test modifying a single attribute type."""
-    attribute_type_name = "testAttribute"
-    request_data = {
+    attribute_type_data = {
         "oid": "1.2.3.4",
-        "name": "modifiedAttribute",
-        "syntax": "modifiedSyntax",
-        "single_value": False,
-        "no_user_modification": True,
-        "is_system": True,
+        "name": "testAttributeType1",
+        "syntax": "testSyntax",
+        "single_value": True,
+        "no_user_modification": False,
+        "is_system": False,
     }
+    session.add(AttributeType(**attribute_type_data))
+    await session.commit()
+
     response = await http_client.patch(
-        f"/attribute_type/{attribute_type_name}", json=request_data
+        "/attribute_type/testAttributeType12345",
+        json=attribute_type_data,
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND  # TODO: Fix this
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+@pytest.mark.parametrize(
+    "dataset",
+    test_modify_one_attribute_type_dataset,
+)
+@pytest.mark.asyncio
+async def test_modify_one_attribute_type(
+    dataset: dict,
+    http_client: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """Test modifying a single attribute type."""
+    attribute_type_name = dataset["attribute_type_data"]["name"]
+    session.add(AttributeType(**dataset["attribute_type_data"]))
+    await session.commit()
+
+    response = await http_client.patch(
+        f"/attribute_type/{attribute_type_name}",
+        json=dataset["attribute_type_changes"],
+    )
+
+    assert response.status_code == dataset["status_code"]
+
+    if dataset["status_code"] == status.HTTP_200_OK:
+        query = await session.scalars(
+            select(AttributeType)
+            .where(AttributeType.name == attribute_type_name),
+        )  # fmt: skip
+        attribute_type = query.one()
+        for field_name, value in dataset["attribute_type_changes"].items():
+            assert getattr(attribute_type, field_name) == value
+
+
+@pytest.mark.parametrize(
+    "dataset",
+    test_delete_bulk_attribute_types_dataset,
+)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_delete_bulk_attribute_types(
+    dataset: dict,
     http_client: AsyncClient,
     session: AsyncSession,
 ) -> None:
     """Test deleting multiple attribute types."""
-    attribute_types_names = ["testAttribute1", "testAttribute2"]
+    for attribute_type_data in dataset["attribute_type_datas"]:
+        session.add(AttributeType(**attribute_type_data))
+        await session.commit()
+
     response = await http_client.post(
         "/attribute_type/delete",
-        json={"attribute_types_names": attribute_types_names},
+        json={"attribute_types_names": dataset["attribute_types_deleted"]},
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == dataset["status_code"]
+
+    if dataset["status_code"] == status.HTTP_200_OK:
+        query = await session.scalars(
+            select(AttributeType)
+            .where(AttributeType.name.in_(dataset["attribute_types_deleted"])),
+        )  # fmt: skip
+        result = list(query.all())
+        assert len(result) == 0

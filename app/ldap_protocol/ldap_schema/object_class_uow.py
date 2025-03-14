@@ -11,7 +11,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.ldap_schema.attribute_type import (
+from ldap_protocol.ldap_schema.attribute_type_uow import (
     get_attribute_types_by_names,
 )
 from models import ObjectClass
@@ -32,7 +32,7 @@ class ObjectClassSchema(BaseModel):
 async def create_object_class(
     oid: str,
     name: str,
-    superior: str,
+    superior: str | None,
     kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"],
     is_system: bool,
     attribute_types_must: list[str],
@@ -65,7 +65,7 @@ async def create_object_class(
         ),
     )
     session.add(object_class)
-    await session.flush()
+    await session.commit()
 
 
 async def get_object_class_by_name(
@@ -114,7 +114,7 @@ async def get_all_object_classes(session: AsyncSession) -> list[ObjectClass]:
 
 
 async def modify_object_class(
-    request_data: ObjectClassSchema,
+    changed_data: ObjectClassSchema,
     session: AsyncSession,
 ) -> None:
     """Modify Object Class.

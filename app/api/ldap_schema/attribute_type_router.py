@@ -11,12 +11,13 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from ldap_protocol.ldap_schema.attribute_type import (
+from ldap_protocol.ldap_schema.attribute_type_uow import (
     AttributeTypeSchema,
     create_attribute_type,
     delete_attribute_types_by_names,
     get_all_attribute_types,
     get_attribute_type_by_name,
+    get_attribute_types_by_names,
     modify_attribute_type,
 )
 
@@ -42,6 +43,7 @@ async def create_one_attribute_type(
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
+    # TODO: Add validation for the oid and name (it must be unique).
     await create_attribute_type(
         oid=request_data.oid,
         name=request_data.name,
@@ -64,7 +66,7 @@ async def get_list_attribute_types(
     """Retrieve a list of all attribute types.
 
     :param FromDishka[AsyncSession] session: Database session.
-    :return list[AccessPolicyMaterialSchema]: List of access policies.
+    :return list[AccessPolicyMaterialSchema]: List of Attribute Types.
     """
     return [
         AttributeTypeSchema(
@@ -90,19 +92,33 @@ async def modify_one_attribute_type(
 ) -> None:
     """Modify an Attribute Type.
 
-    :param str attribute_type_name: name of the attribute type.
-    :param AttributeTypeSchema request_data: Data for modifying.
+    :param str attribute_type_name: name of the attribute type for modifying.
+    :param AttributeTypeSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
+    :raise HTTP_404_NOT_FOUND: If attribute type not found.
+    :raise HTTP_400_BAD_REQUEST: If field cannot be changed.
     :return None.
     """
     attribute_type = await get_attribute_type_by_name(
-        attribute_type_name, session
+        attribute_type_name,
+        session,
     )
     if not attribute_type:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Attribute Type not found.",
         )
+
+    FIELDS_CANT_CHANGE = {"oid", "name"}  # noqa: N806
+    for field_name, new_value in request_data.model_dump().items():
+        if (
+            getattr(attribute_type, field_name) != new_value
+            and field_name in FIELDS_CANT_CHANGE
+        ):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"Field '{field_name}' cannot be changed.",
+            )
 
     await modify_attribute_type(
         attribute_type=attribute_type,
@@ -123,12 +139,29 @@ async def delete_bulk_attribute_types(
 
     :param list[str] attribute_types_names: List of attribute types names.
     :param FromDishka[AsyncSession] session: Database session.
+    :raise HTTP_400_BAD_REQUEST: If nothing to delete.
+    :raise HTTP_400_BAD_REQUEST: If attribute type don't exists.
     :return None: None
     """
     if not attribute_types_names:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "Attribute Types not found.",
+            status.HTTP_400_BAD_REQUEST,
+            "Attribute Type names not found.",
+        )
+
+    attribute_types_names_exists = set(
+        attribute_type.name
+        for attribute_type in await get_attribute_types_by_names(
+            attribute_types_names,
+            session,
+        )
+    )
+
+    fake_names = set(attribute_types_names) - attribute_types_names_exists
+    if fake_names:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Attribute Types not found: {fake_names}",
         )
 
     await delete_attribute_types_by_names(attribute_types_names, session)

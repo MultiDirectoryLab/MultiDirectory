@@ -51,7 +51,7 @@ async def create_attribute_type(
         is_system=is_system,
     )
     session.add(attribute_type)
-    await session.flush()
+    await session.commit()
 
 
 async def get_attribute_type_by_name(
@@ -70,7 +70,7 @@ async def get_attribute_type_by_name(
 async def get_attribute_types_by_names(
     attribute_type_names: list[str],
     session: AsyncSession,
-) -> list[AttributeType] | None:
+) -> list[AttributeType]:
     """Get list of Attribute Types by names.
 
     :param list[str] attribute_type_names: Attribute Type names.
@@ -108,15 +108,13 @@ async def modify_attribute_type(
     :param AsyncSession session: Database session.
     :return None.
     """
-    attribute_type.oid = attribute_type_schema.oid
-    attribute_type.name = attribute_type_schema.name
     attribute_type.syntax = attribute_type_schema.syntax
     attribute_type.single_value = attribute_type_schema.single_value
     attribute_type.no_user_modification = (
         attribute_type_schema.no_user_modification
     )
     attribute_type.is_system = attribute_type_schema.is_system
-    await session.flush()
+    await session.commit()
 
 
 async def delete_attribute_types_by_names(
@@ -131,6 +129,6 @@ async def delete_attribute_types_by_names(
     """
     await session.execute(
         delete(AttributeType)
-        .where(AttributeType.oid.in_(attribute_types_names)),
+        .where(AttributeType.name.in_(attribute_types_names)),
     )  # fmt: skip
     await session.commit()
