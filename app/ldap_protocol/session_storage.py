@@ -390,13 +390,13 @@ class RedisSessionStorage(SessionStorage):
         for k, v in zip(keys, data):
             if v is not None:
                 tmp = json.loads(v)
-                protocol = "ldap"
+                protocol: Literal["ldap", "http"] = "ldap"
                 if k.startswith("http:"):
                     protocol = "http"
                 if ip := tmp.get("ip"):
                     key_sessions_map.setdefault(
                         self._get_ip_session_key(ip, protocol),
-                        [],  # type: ignore
+                        [],
                     ).append(k)
 
         for key, sessions in key_sessions_map.items():
