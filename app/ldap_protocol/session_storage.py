@@ -8,11 +8,14 @@ import json
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from secrets import token_hex
-from typing import Iterable, Self
+from typing import TYPE_CHECKING, Iterable, Literal, Self
 
 from redis.asyncio import Redis
 
 from config import Settings
+
+if TYPE_CHECKING:
+    from redis.asyncio.lock import Lock
 
 
 class SessionStorage(ABC):
@@ -72,20 +75,31 @@ class SessionStorage(ABC):
         return hashlib.blake2b(user_agent.encode(), digest_size=6).hexdigest()
 
     def _get_id_hash(self, user_id: int) -> str:
-        return (
-            "keys:"
-            + hashlib.blake2b(
-                str(user_id).encode(),
-                digest_size=16,
-            ).hexdigest()
-        )
+        return hashlib.blake2b(
+            str(user_id).encode(),
+            digest_size=16,
+        ).hexdigest()
+
+    def _get_ip_session_key(
+        self,
+        ip: str,
+        protocol: Literal["ldap", "http"],
+    ) -> str:
+        return f"ip:{protocol}:{ip}"
+
+    def _get_user_session_key(
+        self,
+        user_id: int,
+        protocol: Literal["ldap", "http"],
+    ) -> str:
+        return f"keys:{protocol}:{self._get_id_hash(user_id)}"
 
     def _generate_key(self) -> str:
         """Generate a new key for storing data in the storage.
 
         :return str: A new key.
         """
-        return token_hex(self.key_length)
+        return f"http:{token_hex(self.key_length)}"
 
     def _get_lock_key(self, session_id: str) -> str:
         """Get lock key.
@@ -225,6 +239,18 @@ class RedisSessionStorage(SessionStorage):
         self.key_length = key_length
         self.key_ttl = key_ttl
 
+    async def _get_lock(self, name: str, blocking_timeout: int = 5) -> Lock:
+        """Get lock.
+
+        :param str name: lock name
+        :param int blocking_timeout: blocking timeout, defaults to 5
+        :return Lock: lock object
+        """
+        return self._storage.lock(
+            name=self._get_lock_key(name),
+            blocking_timeout=blocking_timeout,
+        )
+
     async def get(self, key: str) -> dict:
         """Retrieve data associated with the given key from storage.
 
@@ -244,44 +270,156 @@ class RedisSessionStorage(SessionStorage):
         """
         await self._storage.delete(*keys)
 
-    async def _get_user_keys(self, uid: int) -> set[str]:
-        """Get user sessions."""
-        keys = await self._storage.get(self._get_id_hash(uid))
+    async def _fetch_keys(self, key: str) -> set[str]:
+        encoded_keys = await self._storage.smembers(key)  # type: ignore
+        return {k.decode() for k in encoded_keys}
 
-        if keys is None:
-            return set()
+    async def _get_ip_keys(
+        self,
+        ip: str,
+        protocol: Literal["http", "ldap"] | None = None,
+    ) -> set[str]:
+        """Get session keys by ip."""
+        if protocol:
+            return await self._fetch_keys(
+                self._get_ip_session_key(ip, protocol),
+            )
 
-        return set(filter(None, keys.decode().split(";")))
+        return (
+            await self._fetch_keys(self._get_ip_session_key(ip, "http"))
+        ).union(await self._fetch_keys(self._get_ip_session_key(ip, "ldap")))
 
-    async def get_user_sessions(self, uid: int) -> dict:
-        """Get user sessions.
+    async def _get_user_keys(
+        self,
+        uid: int,
+        protocol: Literal["http", "ldap"] | None = None,
+    ) -> set[str]:
+        """Get sesssion keys by user id."""
+        if protocol:
+            return await self._fetch_keys(
+                self._get_user_session_key(uid, protocol),
+            )
+
+        return (
+            await self._fetch_keys(self._get_user_session_key(uid, "http"))
+        ).union(
+            await self._fetch_keys(self._get_user_session_key(uid, "ldap"))
+        )
+
+    async def get_user_sessions(
+        self,
+        uid: int,
+        protocol: Literal["http", "ldap"] | None = None,
+    ) -> dict:
+        """Get sessions by user id.
 
         :param UserSchema | int user: user id or user
+        :param Literal["ldap", "http"] | None protocol: protocol
         :return dict: user sessions contents
         """
-        keys = await self._get_user_keys(uid)
+        keys = await self._get_user_keys(uid, protocol)
         if not keys:
             return {}
+
         data = await self._storage.mget(*keys)
-
         retval = {}
-
+        keys_for_deletion = []
         for k, v in zip(keys, data):
             if v is not None:
                 tmp = json.loads(v)
-                if k.startswith("ldap"):
+                if k.startswith("ldap:"):
                     tmp["protocol"] = "ldap"
                 retval[k] = tmp
+            else:
+                keys_for_deletion.append(k)
+
+        if keys_for_deletion:
+            await self._storage.srem(
+                self._get_user_session_key(uid, protocol),  # type: ignore
+                *keys_for_deletion,
+            )
 
         return retval
 
-    async def clear_user_sessions(self, uid: int) -> None:
+    async def get_ip_sessions(
+        self,
+        ip: str,
+        protocol: Literal["ldap", "http"] | None = None,
+    ) -> dict:
+        """Get sessions data by ip.
+
+        :param str ip: ip
+        :param Literal["ldap", "http"] | None protocol: protocol
+        :return dict: user sessions contents
+        """
+        keys = await self._get_ip_keys(ip, protocol)
+        if not keys:
+            return {}
+
+        data = await self._storage.mget(*keys)
+        retval = {}
+        keys_for_deletion = []
+        for k, v in zip(keys, data):
+            if v is not None:
+                tmp = json.loads(v)
+                if k.startswith("ldap:"):
+                    tmp["protocol"] = "ldap"
+                retval[k] = tmp
+            else:
+                keys_for_deletion.append(k)
+
+        if keys_for_deletion:
+            await self._storage.srem(
+                self._get_ip_session_key(ip, protocol),  # type: ignore
+                *keys_for_deletion,
+            )
+
+        return retval
+
+    async def clear_user_sessions(
+        self,
+        uid: int,
+    ) -> None:
         """Clear user sessions."""
         keys = await self._get_user_keys(uid)
         if not keys:
             return
+        data = await self._storage.mget(*keys)
+
+        key_sessions_map: dict = {}
+        for k, v in zip(keys, data):
+            if v is not None:
+                tmp = json.loads(v)
+                protocol: Literal["ldap", "http"] = "ldap"
+                if k.startswith("http:"):
+                    protocol = "http"
+                if ip := tmp.get("ip"):
+                    key_sessions_map.setdefault(
+                        self._get_ip_session_key(ip, protocol),
+                        [],
+                    ).append(k)
+
+        for key, sessions in key_sessions_map.items():
+            if sessions:
+                await self._storage.srem(
+                    key,  # type: ignore
+                    *sessions,
+                )
+
+        http_sessions_key = self._get_user_session_key(uid, "http")
+        ldap_sessions_key = self._get_user_session_key(uid, "ldap")
         await self.delete(keys)
-        await self._storage.delete(self._get_id_hash(uid))
+        await self.delete([http_sessions_key, ldap_sessions_key])
+
+    async def delete_ip_session(self, ip: str, session_id: str) -> None:
+        """Delete ip session."""
+        protocol: Literal["ldap", "http"] = "ldap"
+        if session_id.startswith("http:"):
+            protocol = "http"
+        await self._storage.srem(
+            self._get_ip_session_key(ip, protocol),
+            session_id,
+        )  # type: ignore
 
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session."""
@@ -291,25 +429,25 @@ class RedisSessionStorage(SessionStorage):
             return
 
         uid = data.get("id")
+        ip = data.get("ip")
 
-        if uid is None:
+        if uid is None or ip is None:
             raise KeyError("Invalid session id")
 
         uid = int(uid)
 
-        keys = await self._get_user_keys(uid)
-        try:
-            keys.remove(session_id)
-        except KeyError:
-            pass
-        else:
-            await self._storage.set(
-                self._get_id_hash(uid),
-                ";".join(keys) + ";",
-                keepttl=True,
-            )
+        protocol: Literal["ldap", "http"] = "ldap"
+        if session_id.startswith("http:"):
+            protocol = "http"
 
-        await self.delete([session_id])
+        sessions_key = self._get_user_session_key(uid, protocol)
+        ip_key = self._get_ip_session_key(ip, protocol)
+        lock = await self._get_lock(sessions_key)
+
+        async with lock:
+            await self._storage.srem(sessions_key, session_id)  # type: ignore
+            await self._storage.srem(ip_key, session_id)  # type: ignore
+            await self.delete([session_id])
 
     async def create_session(
         self: Self,
@@ -332,9 +470,16 @@ class RedisSessionStorage(SessionStorage):
             settings=settings,
             extra_data=extra_data,
         )
+        http_sessions_key = self._get_user_session_key(uid, "http")
+
+        if extra_data and (ip := extra_data.get("ip")):
+            await self._storage.sadd(
+                self._get_ip_session_key(ip, "http"),
+                session_id,
+            )  # type: ignore
 
         await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
-        await self._storage.append(self._get_id_hash(uid), f"{session_id};")
+        await self._storage.sadd(http_sessions_key, session_id)  # type: ignore
 
         return f"{session_id}.{signature}"
 
@@ -355,9 +500,16 @@ class RedisSessionStorage(SessionStorage):
         :param dict data: any data
         """
         data["issued"] = datetime.now(timezone.utc).isoformat()
+        ldap_sessions_key = self._get_user_session_key(uid, "ldap")
+
+        if data and (ip := data.get("ip")):
+            await self._storage.sadd(
+                self._get_ip_session_key(ip, "ldap"),
+                key,
+            )  # type: ignore
 
         await self._storage.set(key, json.dumps(data), ex=None)
-        await self._storage.append(self._get_id_hash(uid), f"{key};")
+        await self._storage.sadd(ldap_sessions_key, key)  # type: ignore
 
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
@@ -366,7 +518,7 @@ class RedisSessionStorage(SessionStorage):
         :param int rekey_interval: rekey interval in seconds
         :return bool: True if rekey is needed
         """
-        lock = self._storage.lock(self._get_lock_key(session_id))
+        lock = await self._get_lock(session_id)
 
         if await lock.locked():
             return False
@@ -399,11 +551,10 @@ class RedisSessionStorage(SessionStorage):
             settings=settings,
             extra_data=extra_data,
         )
+        http_sessions_key = self._get_user_session_key(uid, "http")
 
         await self._storage.set(new_session_id, json.dumps(new_data), ex=ttl)
-        await self._storage.append(
-            self._get_id_hash(uid), f"{new_session_id};"
-        )
+        await self._storage.sadd(http_sessions_key, new_session_id)  # type: ignore
 
         await self.delete_user_session(session_id)
 
@@ -416,10 +567,7 @@ class RedisSessionStorage(SessionStorage):
         :param Settings settings: app settings
         :return str: jwt token
         """
-        lock = self._storage.lock(
-            name=self._get_lock_key(session_id),
-            blocking_timeout=5,
-        )
+        lock = await self._get_lock(session_id)
 
         async with lock:
             return await self._rekey_session(session_id, settings)
