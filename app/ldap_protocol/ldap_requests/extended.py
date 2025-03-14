@@ -93,7 +93,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
     base: int = 123
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> "WhoAmIRequestValue":
+    def from_data(cls, data: ASN1Row) -> "WhoAmIRequestValue":  # noqa: ARG003
         """Create model from data, WhoAmIRequestValue data is empty."""
         return cls()
 
@@ -101,8 +101,8 @@ class WhoAmIRequestValue(BaseExtendedValue):
         self,
         ldap_session: LDAPSession,
         _: AsyncSession,
-        kadmin: AbstractKadmin,
-        settings: Settings,
+        kadmin: AbstractKadmin,  # noqa: ARG002
+        settings: Settings,  # noqa: ARG002
     ) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
@@ -129,9 +129,9 @@ class StartTLSRequestValue(BaseExtendedValue):
 
     async def handle(
         self,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
-        kadmin: AbstractKadmin,
+        ldap_session: LDAPSession,  # noqa: ARG002
+        session: AsyncSession,  # noqa: ARG002
+        kadmin: AbstractKadmin,  # noqa: ARG002
         settings: Settings,
     ) -> StartTLSResponse:
         """Update password of current or selected user."""
@@ -141,7 +141,7 @@ class StartTLSRequestValue(BaseExtendedValue):
         raise PermissionError("No TLS")
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> "StartTLSRequestValue":
+    def from_data(cls, data: ASN1Row) -> "StartTLSRequestValue":  # noqa: ARG003
         """Create model from data, decoded from responseValue bytes."""
         return cls()
 

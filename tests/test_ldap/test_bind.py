@@ -80,17 +80,15 @@ async def test_gssapi_bind_in_progress(
     mock_security_context.complete = False
 
     async def mock_init_security_context(
-        session: AsyncSession,
-        settings: Settings,
+        session: AsyncSession,  # noqa: ARG001
+        settings: Settings,  # noqa: ARG001
     ) -> None:
         auth_choice._ldap_session.gssapi_security_context = (
             mock_security_context
         )
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"ticket")
-    auth_choice._init_security_context = (  # type: ignore
-        mock_init_security_context
-    )
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore
 
     bind = BindRequest(
         version=0,
@@ -154,17 +152,15 @@ async def test_gssapi_bind_ok(
     )
 
     async def mock_init_security_context(
-        session: AsyncSession,
-        settings: Settings,
+        session: AsyncSession,  # noqa: ARG001
+        settings: Settings,  # noqa: ARG001
     ) -> None:
         auth_choice._ldap_session.gssapi_security_context = (
             mock_security_context
         )
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"client_ticket")
-    auth_choice._init_security_context = (  # type: ignore
-        mock_init_security_context
-    )
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore
 
     first_bind = BindRequest(
         version=0,
