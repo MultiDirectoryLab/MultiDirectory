@@ -36,7 +36,7 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def _get_session_keys_by_user_id(self, uid: int) -> set[str]:
+    async def _get_session_keys_by_uid(self, uid: int) -> set[str]:
         pass
 
     @abstractmethod
@@ -103,19 +103,11 @@ class SessionStorage(ABC):
             digest_size=16,
         ).hexdigest()
 
-    def _get_ip_session_key(
-        self,
-        ip: str,
-        protocol: ProtocolType,
-    ) -> str:
+    def _get_ip_session_key(self, ip: str, protocol: ProtocolType) -> str:
         return f"ip:{protocol}:{ip}"
 
-    def _get_user_session_key(
-        self,
-        user_id: int,
-        protocol: ProtocolType,
-    ) -> str:
-        return f"keys:{protocol}:{self._get_id_hash(user_id)}"
+    def _get_user_session_key(self, uid: int, protocol: ProtocolType) -> str:
+        return f"keys:{protocol}:{self._get_id_hash(uid)}"
 
     def _get_protocol(self, session_id: str) -> ProtocolType:
         return "http" if session_id.startswith("http:") else "ldap"
@@ -315,7 +307,7 @@ class RedisSessionStorage(SessionStorage):
             await self._fetch_keys(self._get_ip_session_key(ip, "http"))
         ).union(await self._fetch_keys(self._get_ip_session_key(ip, "ldap")))
 
-    async def _get_session_keys_by_user_id(
+    async def _get_session_keys_by_uid(
         self,
         uid: int,
         protocol: ProtocolType | None = None,
@@ -343,7 +335,7 @@ class RedisSessionStorage(SessionStorage):
         :param ProtocolType | None protocol: protocol
         :return dict: user sessions contents
         """
-        keys = await self._get_session_keys_by_user_id(uid, protocol)
+        keys = await self._get_session_keys_by_uid(uid, protocol)
         if not keys:
             return {}
 
@@ -410,12 +402,12 @@ class RedisSessionStorage(SessionStorage):
 
         return retval
 
-    async def clear_user_sessions(
-        self,
-        uid: int,
-    ) -> None:
-        """Clear user sessions."""
-        keys = await self._get_session_keys_by_user_id(uid)
+    async def clear_user_sessions(self, uid: int) -> None:
+        """Clear user sessions.
+
+        :param int uid: user id
+        """
+        keys = await self._get_session_keys_by_uid(uid)
         if not keys:
             return
         data = await self._storage.mget(*keys)
@@ -442,7 +434,10 @@ class RedisSessionStorage(SessionStorage):
             await pipe.execute()
 
     async def delete_user_session(self, session_id: str) -> None:
-        """Delete user session."""
+        """Delete user session.
+
+        :param str session_id: session id
+        """
         try:
             data = await self.get(session_id)
         except KeyError:
