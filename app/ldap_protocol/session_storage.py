@@ -17,6 +17,8 @@ from config import Settings
 if TYPE_CHECKING:
     from redis.asyncio.lock import Lock
 
+ProtocolType = Literal["http", "ldap"]
+
 
 class SessionStorage(ABC):
     """Abstract session storage class."""
@@ -34,7 +36,7 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def _get_user_keys(self, uid: int) -> set[str]:
+    async def _get_session_keys_by_user(self, uid: int) -> set[str]:
         pass
 
     @abstractmethod
@@ -83,14 +85,14 @@ class SessionStorage(ABC):
     def _get_ip_session_key(
         self,
         ip: str,
-        protocol: Literal["ldap", "http"],
+        protocol: ProtocolType,
     ) -> str:
         return f"ip:{protocol}:{ip}"
 
     def _get_user_session_key(
         self,
         user_id: int,
-        protocol: Literal["ldap", "http"],
+        protocol: ProtocolType,
     ) -> str:
         return f"keys:{protocol}:{self._get_id_hash(user_id)}"
 
@@ -274,10 +276,10 @@ class RedisSessionStorage(SessionStorage):
         encoded_keys = await self._storage.smembers(key)  # type: ignore
         return {k.decode() for k in encoded_keys}
 
-    async def _get_ip_keys(
+    async def _get_session_keys_by_ip(
         self,
         ip: str,
-        protocol: Literal["http", "ldap"] | None = None,
+        protocol: ProtocolType | None = None,
     ) -> set[str]:
         """Get session keys by ip."""
         if protocol:
@@ -289,10 +291,10 @@ class RedisSessionStorage(SessionStorage):
             await self._fetch_keys(self._get_ip_session_key(ip, "http"))
         ).union(await self._fetch_keys(self._get_ip_session_key(ip, "ldap")))
 
-    async def _get_user_keys(
+    async def _get_session_keys_by_user(
         self,
         uid: int,
-        protocol: Literal["http", "ldap"] | None = None,
+        protocol: ProtocolType | None = None,
     ) -> set[str]:
         """Get sesssion keys by user id."""
         if protocol:
@@ -309,15 +311,15 @@ class RedisSessionStorage(SessionStorage):
     async def get_user_sessions(
         self,
         uid: int,
-        protocol: Literal["http", "ldap"] | None = None,
+        protocol: ProtocolType | None = None,
     ) -> dict:
         """Get sessions by user id.
 
         :param UserSchema | int user: user id or user
-        :param Literal["ldap", "http"] | None protocol: protocol
+        :param ProtocolType | None protocol: protocol
         :return dict: user sessions contents
         """
-        keys = await self._get_user_keys(uid, protocol)
+        keys = await self._get_session_keys_by_user(uid, protocol)
         if not keys:
             return {}
 
@@ -344,15 +346,15 @@ class RedisSessionStorage(SessionStorage):
     async def get_ip_sessions(
         self,
         ip: str,
-        protocol: Literal["ldap", "http"] | None = None,
+        protocol: ProtocolType | None = None,
     ) -> dict:
         """Get sessions data by ip.
 
         :param str ip: ip
-        :param Literal["ldap", "http"] | None protocol: protocol
+        :param ProtocolType | None protocol: protocol
         :return dict: user sessions contents
         """
-        keys = await self._get_ip_keys(ip, protocol)
+        keys = await self._get_session_keys_by_ip(ip, protocol)
         if not keys:
             return {}
 
@@ -381,7 +383,7 @@ class RedisSessionStorage(SessionStorage):
         uid: int,
     ) -> None:
         """Clear user sessions."""
-        keys = await self._get_user_keys(uid)
+        keys = await self._get_session_keys_by_user(uid)
         if not keys:
             return
         data = await self._storage.mget(*keys)
@@ -390,7 +392,7 @@ class RedisSessionStorage(SessionStorage):
         for k, v in zip(keys, data):
             if v is not None:
                 tmp = json.loads(v)
-                protocol: Literal["ldap", "http"] = "ldap"
+                protocol: ProtocolType = "ldap"
                 if k.startswith("http:"):
                     protocol = "http"
                 if ip := tmp.get("ip"):
@@ -414,7 +416,7 @@ class RedisSessionStorage(SessionStorage):
 
     async def delete_ip_session(self, ip: str, session_id: str) -> None:
         """Delete ip session."""
-        protocol: Literal["ldap", "http"] = "ldap"
+        protocol: ProtocolType = "ldap"
         if session_id.startswith("http:"):
             protocol = "http"
         await self._storage.srem(
@@ -437,7 +439,7 @@ class RedisSessionStorage(SessionStorage):
 
         uid = int(uid)
 
-        protocol: Literal["ldap", "http"] = "ldap"
+        protocol: ProtocolType = "ldap"
         if session_id.startswith("http:"):
             protocol = "http"
 
