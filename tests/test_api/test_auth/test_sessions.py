@@ -336,16 +336,11 @@ async def test_get_sessions_by_protocol(
         extra_data={
             "ip": http_ip,
             "user_agent": storage.get_user_agent_hash(""),
-        }
+        },
     )
 
     await storage.create_ldap_session(
-        uid,
-        "ldap:1234",
-        data={
-            "id": uid,
-            "ip": ldap_ip
-        }
+        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
     )
 
     all_sessions = await storage.get_user_sessions(uid)
@@ -409,17 +404,12 @@ async def test_delete_user_session(
         extra_data={
             "ip": http_ip,
             "user_agent": storage.get_user_agent_hash(""),
-        }
+        },
     )
     session_id, _ = session_key.split(".")
 
     await storage.create_ldap_session(
-        uid,
-        "ldap:1234",
-        data={
-            "id": uid,
-            "ip": ldap_ip
-        }
+        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
     )
 
     all_sessions = await storage.get_user_sessions(uid)
@@ -461,17 +451,12 @@ async def test_clear_user_sessions(
             extra_data={
                 "ip": http_ip,
                 "user_agent": storage.get_user_agent_hash(""),
-            }
+            },
         )
 
     for i in range(10):
         await storage.create_ldap_session(
-            uid,
-            f"ldap:{i}",
-            data={
-                "id": uid,
-                "ip": ldap_ip
-            }
+            uid, f"ldap:{i}", data={"id": uid, "ip": ldap_ip}
         )
 
     all_sessions = await storage.get_user_sessions(uid)
@@ -518,16 +503,11 @@ async def test_remove_non_existent_session(
         extra_data={
             "ip": http_ip,
             "user_agent": storage.get_user_agent_hash(""),
-        }
+        },
     )
 
     await storage.create_ldap_session(
-        uid,
-        "ldap:1234",
-        data={
-            "id": uid,
-            "ip": ldap_ip
-        }
+        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
     )
 
     all_sessions = await storage.get_user_sessions(uid)
