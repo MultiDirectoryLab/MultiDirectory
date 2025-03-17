@@ -408,6 +408,14 @@ async def handler(
         yield PoolClientHandler(settings, app_scope)
 
 
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def clear_redis_sessions(container: AsyncContainer) -> None:
+    """Clear redis sessions."""
+    async with container(scope=Scope.APP) as c:
+        storage: RedisSessionStorage = await c.get(SessionStorage)
+        await storage._storage.flushdb()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _server(
     event_loop: asyncio.BaseEventLoop,
