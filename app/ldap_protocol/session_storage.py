@@ -399,17 +399,18 @@ class RedisSessionStorage(SessionStorage):
                         [],
                     ).append(k)
 
-        for key, sessions in key_sessions_map.items():
-            if sessions:
-                await self._storage.srem(
-                    key,  # type: ignore
-                    *sessions,
-                )
-
         http_sessions_key = self._get_user_session_key(uid, "http")
         ldap_sessions_key = self._get_user_session_key(uid, "ldap")
-        await self.delete(keys)
-        await self.delete([http_sessions_key, ldap_sessions_key])
+
+        async with self._storage.pipeline(transaction=False) as pipe:
+            for key, sessions in key_sessions_map.items():
+                if sessions:
+                    await pipe.srem(
+                        key,  # type: ignore
+                        *sessions,
+                    )
+            await pipe.delete(*keys, http_sessions_key, ldap_sessions_key)
+            await pipe.execute()
 
     async def delete_ip_session(self, ip: str, session_id: str) -> None:
         """Delete ip session."""
