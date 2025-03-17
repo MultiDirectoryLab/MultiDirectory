@@ -51,7 +51,7 @@ class SessionStorage(ABC):
     ) -> dict:
         """Get sessions by user id.
 
-        :param UserSchema | int user: user id or user
+        :param int uid: user id
         :param ProtocolType | None protocol: protocol
         :return dict: user sessions contents
         """
@@ -81,7 +81,6 @@ class SessionStorage(ABC):
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session.
 
-        :param int uid: user id
         :param str session_id: session id
         :return None:
         """
@@ -340,7 +339,7 @@ class RedisSessionStorage(SessionStorage):
     ) -> dict:
         """Get sessions by user id.
 
-        :param UserSchema | int user: user id or user
+        :param int uid: user id
         :param ProtocolType | None protocol: protocol
         :return dict: user sessions contents
         """
@@ -438,10 +437,7 @@ class RedisSessionStorage(SessionStorage):
         async with self._storage.pipeline(transaction=False) as pipe:
             for key, sessions in key_sessions_map.items():
                 if sessions:
-                    await pipe.srem(  # type: ignore
-                        key,
-                        *sessions,
-                    )
+                    await pipe.srem(key, *sessions)  # type: ignore
             await pipe.delete(*keys, http_sessions_key, ldap_sessions_key)
             await pipe.execute()
 
