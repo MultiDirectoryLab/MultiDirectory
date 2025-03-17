@@ -324,11 +324,7 @@ class RedisSessionStorage(SessionStorage):
             await self._fetch_keys(self._get_user_session_key(uid, "ldap"))
         )
 
-    async def _get_sessions(
-        self,
-        keys: set[str],
-        id_value: str | int
-    ) -> dict:
+    async def _get_sessions(self, keys: set[str], id_value: str | int) -> dict:
         """Get sessions data by keys.
 
         Get sessions data by keys and remove expired sessions.
