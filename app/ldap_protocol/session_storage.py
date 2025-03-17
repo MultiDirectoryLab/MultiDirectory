@@ -36,7 +36,7 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def _get_session_keys_by_user(self, uid: int) -> set[str]:
+    async def _get_session_keys_by_user_id(self, uid: int) -> set[str]:
         pass
 
     @abstractmethod
@@ -386,7 +386,7 @@ class RedisSessionStorage(SessionStorage):
         uid: int,
     ) -> None:
         """Clear user sessions."""
-        keys = await self._get_session_keys_by_user(uid)
+        keys = await self._get_session_keys_by_user_id(uid)
         if not keys:
             return
         data = await self._storage.mget(*keys)
