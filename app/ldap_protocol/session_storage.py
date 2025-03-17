@@ -96,6 +96,9 @@ class SessionStorage(ABC):
     ) -> str:
         return f"keys:{protocol}:{self._get_id_hash(user_id)}"
 
+    def _get_protocol(self, session_id: str) -> ProtocolType:
+        return "http" if session_id.startswith("http:") else "ldap"
+
     def _generate_key(self) -> str:
         """Generate a new key for storing data in the storage.
 
@@ -291,7 +294,7 @@ class RedisSessionStorage(SessionStorage):
             await self._fetch_keys(self._get_ip_session_key(ip, "http"))
         ).union(await self._fetch_keys(self._get_ip_session_key(ip, "ldap")))
 
-    async def _get_session_keys_by_user(
+    async def _get_session_keys_by_user_id(
         self,
         uid: int,
         protocol: ProtocolType | None = None,
@@ -319,7 +322,7 @@ class RedisSessionStorage(SessionStorage):
         :param ProtocolType | None protocol: protocol
         :return dict: user sessions contents
         """
-        keys = await self._get_session_keys_by_user(uid, protocol)
+        keys = await self._get_session_keys_by_user_id(uid, protocol)
         if not keys:
             return {}
 
@@ -392,9 +395,7 @@ class RedisSessionStorage(SessionStorage):
         for k, v in zip(keys, data):
             if v is not None:
                 tmp = json.loads(v)
-                protocol: ProtocolType = "ldap"
-                if k.startswith("http:"):
-                    protocol = "http"
+                protocol = self._get_protocol(k)
                 if ip := tmp.get("ip"):
                     key_sessions_map.setdefault(
                         self._get_ip_session_key(ip, protocol),
@@ -416,9 +417,7 @@ class RedisSessionStorage(SessionStorage):
 
     async def delete_ip_session(self, ip: str, session_id: str) -> None:
         """Delete ip session."""
-        protocol: ProtocolType = "ldap"
-        if session_id.startswith("http:"):
-            protocol = "http"
+        protocol = self._get_protocol(session_id)
         await self._storage.srem(
             self._get_ip_session_key(ip, protocol),
             session_id,
@@ -439,9 +438,7 @@ class RedisSessionStorage(SessionStorage):
 
         uid = int(uid)
 
-        protocol: ProtocolType = "ldap"
-        if session_id.startswith("http:"):
-            protocol = "http"
+        protocol = self._get_protocol(session_id)
 
         sessions_key = self._get_user_session_key(uid, protocol)
         ip_key = self._get_ip_session_key(ip, protocol)
