@@ -43,11 +43,13 @@ async def create_object_class(
 
     :param str oid: OID.
     :param str name: Name.
-    :param str superior: Parent Object Class.
+    :param str | None superior: Parent Object Class.
     :param Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"] kind: Kind.
     :param bool is_system: Object Class is system.
     :param list[str] attribute_types_must: Attribute Types must.
     :param list[str] attribute_types_may: Attribute Types may.
+    :param AsyncSession session: Database session.
+    :return None.
     """
     object_class = ObjectClass(
         oid=oid,
@@ -76,7 +78,7 @@ async def get_object_class_by_name(
 
     :param str object_class_name: Object Class name.
     :param AsyncSession session: Database session.
-    :return ObjectClass: Object Class.
+    :return ObjectClass | None: Object Class.
     """
     return await session.get(ObjectClass, object_class_name)
 

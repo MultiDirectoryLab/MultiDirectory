@@ -62,7 +62,7 @@ async def get_attribute_type_by_name(
 
     :param str attribute_type_name: Attribute Type name.
     :param AsyncSession session: Database session.
-    :return AttributeType: Attribute Type.
+    :return AttributeType | None: Attribute Type.
     """
     return await session.get(AttributeType, attribute_type_name)
 

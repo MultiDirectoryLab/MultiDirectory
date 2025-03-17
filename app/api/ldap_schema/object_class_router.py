@@ -65,7 +65,7 @@ async def get_list_object_classes(
     """Retrieve a list of all Object Classes.
 
     :param FromDishka[AsyncSession] session: Database session.
-    :return list[ObjectClassSchema]: List of object classes.
+    :return list[ObjectClassSchema]: List of object class schemas.
     """
     return [
         ObjectClassSchema(
@@ -95,6 +95,7 @@ async def modify_one_object_class(
     :param str object_class_name: Name of the Object Class for modifying.
     :param ObjectClassSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
+    :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None.
     """
     object_class = await get_object_class_by_name(object_class_name, session)
@@ -123,6 +124,7 @@ async def delete_bulk_object_classes(
 
     :param list[str] object_classes_names: List of Object Classes names.
     :param FromDishka[AsyncSession] session: Database session.
+    :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
     if not object_classes_names:

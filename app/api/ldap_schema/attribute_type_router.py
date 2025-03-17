@@ -64,7 +64,7 @@ async def get_list_attribute_types(
     """Retrieve a list of all attribute types.
 
     :param FromDishka[AsyncSession] session: Database session.
-    :return list[AttributeTypeSchema]: List of Attribute Types.
+    :return list[AttributeTypeSchema]: List of Attribute Type Schemas.
     """
     return [
         AttributeTypeSchema(
@@ -137,7 +137,6 @@ async def delete_bulk_attribute_types(
     :param list[str] attribute_types_names: List of attribute types names.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
-    :raise HTTP_400_BAD_REQUEST: If attribute type don't exists.
     :return None: None
     """
     if not attribute_types_names:
