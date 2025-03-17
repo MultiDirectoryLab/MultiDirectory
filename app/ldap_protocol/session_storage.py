@@ -324,18 +324,19 @@ class RedisSessionStorage(SessionStorage):
             await self._fetch_keys(self._get_user_session_key(uid, "ldap"))
         )
 
-    async def get_user_sessions(
+    async def _get_sessions(
         self,
-        uid: int,
-        protocol: ProtocolType | None = None,
+        keys: set[str],
+        id_value: str | int
     ) -> dict:
-        """Get sessions by user id.
+        """Get sessions data by keys.
 
-        :param int uid: user id
-        :param ProtocolType | None protocol: protocol
+        Get sessions data by keys and remove expired sessions.
+
+        :param set[str] keys: session keys
+        :param str | int id_value: user id or ip
         :return dict: user sessions contents
         """
-        keys = await self._get_session_keys_by_uid(uid, protocol)
         if not keys:
             return {}
 
@@ -350,18 +351,37 @@ class RedisSessionStorage(SessionStorage):
                 retval[k] = tmp
             else:
                 protocol = self._get_protocol(k)
+                sessions_key = (
+                    self._get_user_session_key(id_value, protocol)
+                    if isinstance(id_value, int)
+                    else self._get_ip_session_key(id_value, protocol)
+                )
                 key_sessions_map.setdefault(
-                    self._get_user_session_key(uid, protocol),
+                    sessions_key,
                     [],
                 ).append(k)
 
         if key_sessions_map:
             async with self._storage.pipeline(transaction=False) as pipe:
-                for key, sessions in key_sessions_map.items():
-                    await pipe.srem(key, *sessions)  # type: ignore
+                for key, expired_sessions in key_sessions_map.items():
+                    await pipe.srem(key, *expired_sessions)  # type: ignore
                 await pipe.execute()
 
         return retval
+
+    async def get_user_sessions(
+        self,
+        uid: int,
+        protocol: ProtocolType | None = None,
+    ) -> dict:
+        """Get sessions by user id.
+
+        :param int uid: user id
+        :param ProtocolType | None protocol: protocol
+        :return dict: user sessions contents
+        """
+        keys = await self._get_session_keys_by_uid(uid, protocol)
+        return await self._get_sessions(keys, uid)
 
     async def get_ip_sessions(
         self,
@@ -375,32 +395,7 @@ class RedisSessionStorage(SessionStorage):
         :return dict: user sessions contents
         """
         keys = await self._get_session_keys_by_ip(ip, protocol)
-        if not keys:
-            return {}
-
-        data = await self._storage.mget(*keys)
-        retval = {}
-        key_sessions_map: dict = {}
-        for k, v in zip(keys, data):
-            if v is not None:
-                tmp = json.loads(v)
-                if k.startswith("ldap:"):
-                    tmp["protocol"] = "ldap"
-                retval[k] = tmp
-            else:
-                protocol = self._get_protocol(k)
-                key_sessions_map.setdefault(
-                    self._get_ip_session_key(ip, protocol),
-                    [],
-                ).append(k)
-
-        if key_sessions_map:
-            async with self._storage.pipeline(transaction=False) as pipe:
-                for key, sessions in key_sessions_map.items():
-                    await pipe.srem(key, *sessions)  # type: ignore
-                await pipe.execute()
-
-        return retval
+        return await self._get_sessions(keys, ip)
 
     async def clear_user_sessions(self, uid: int) -> None:
         """Clear user sessions.
