@@ -395,7 +395,7 @@ async def test_delete_user_session(
     session: AsyncSession,
     settings: Settings,
 ) -> None:
-    """Test delete user_session."""
+    """Test delete user session."""
     user = await get_user(session, creds.un)
     assert user
 
