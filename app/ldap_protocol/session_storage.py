@@ -445,14 +445,6 @@ class RedisSessionStorage(SessionStorage):
             await pipe.delete(*keys, http_sessions_key, ldap_sessions_key)
             await pipe.execute()
 
-    async def delete_ip_session(self, ip: str, session_id: str) -> None:
-        """Delete ip session."""
-        protocol = self._get_protocol(session_id)
-        await self._storage.srem(  # type: ignore
-            self._get_ip_session_key(ip, protocol),
-            session_id,
-        )
-
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session."""
         try:
