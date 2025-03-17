@@ -490,14 +490,16 @@ class RedisSessionStorage(SessionStorage):
         )
         http_sessions_key = self._get_user_session_key(uid, "http")
 
+        ip_sessions_key = None
         if extra_data and (ip := extra_data.get("ip")):
-            await self._storage.sadd(  # type: ignore
-                self._get_ip_session_key(ip, "http"),
-                session_id,
-            )
+            ip_sessions_key = self._get_ip_session_key(ip, "http")
 
-        await self._storage.set(session_id, json.dumps(data), ex=self.key_ttl)
-        await self._storage.sadd(http_sessions_key, session_id)  # type: ignore
+        async with self._storage.pipeline(transaction=False) as pipe:
+            await pipe.set(session_id, json.dumps(data), ex=self.key_ttl)
+            await pipe.sadd(http_sessions_key, session_id)  # type: ignore
+            if ip_sessions_key:
+                await pipe.sadd(ip_sessions_key, session_id)  # type: ignore
+            await pipe.execute()
 
         return f"{session_id}.{signature}"
 
@@ -520,14 +522,16 @@ class RedisSessionStorage(SessionStorage):
         data["issued"] = datetime.now(timezone.utc).isoformat()
         ldap_sessions_key = self._get_user_session_key(uid, "ldap")
 
+        ip_sessions_key = None
         if data and (ip := data.get("ip")):
-            await self._storage.sadd(  # type: ignore
-                self._get_ip_session_key(ip, "ldap"),
-                key,
-            )
+            ip_sessions_key = self._get_ip_session_key(ip, "ldap")
 
-        await self._storage.set(key, json.dumps(data), ex=None)
-        await self._storage.sadd(ldap_sessions_key, key)  # type: ignore
+        async with self._storage.pipeline(transaction=False) as pipe:
+            await pipe.set(key, json.dumps(data), ex=None)
+            await pipe.sadd(ldap_sessions_key, key)  # type: ignore
+            if ip_sessions_key:
+                await pipe.sadd(ip_sessions_key, key)  # type: ignore
+            await pipe.execute()
 
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
