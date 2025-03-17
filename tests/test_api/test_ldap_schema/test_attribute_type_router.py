@@ -3,9 +3,12 @@
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.ldap_schema.attribute_type_uow import (
+    get_attribute_type_by_name,
+    get_attribute_types_by_names,
+)
 from models import AttributeType
 
 from .test_attribute_type_router_datasets import (
@@ -62,7 +65,6 @@ async def test_modify_one_attribute_type_raise_404(
         "/attribute_type/testAttributeType12345",
         json=attribute_type_data,
     )
-
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -78,6 +80,7 @@ async def test_modify_one_attribute_type(
 ) -> None:
     """Test modifying a single attribute type."""
     attribute_type_name = dataset["attribute_type_data"]["name"]
+
     session.add(AttributeType(**dataset["attribute_type_data"]))
     await session.commit()
 
@@ -85,15 +88,13 @@ async def test_modify_one_attribute_type(
         f"/attribute_type/{attribute_type_name}",
         json=dataset["attribute_type_changes"],
     )
-
     assert response.status_code == dataset["status_code"]
 
     if dataset["status_code"] == status.HTTP_200_OK:
-        query = await session.scalars(
-            select(AttributeType)
-            .where(AttributeType.name == attribute_type_name),
-        )  # fmt: skip
-        attribute_type = query.one()
+        attribute_type = await get_attribute_type_by_name(
+            attribute_type_name,
+            session,
+        )
         for field_name, value in dataset["attribute_type_changes"].items():
             assert getattr(attribute_type, field_name) == value
 
@@ -121,9 +122,8 @@ async def test_delete_bulk_attribute_types(
     assert response.status_code == dataset["status_code"]
 
     if dataset["status_code"] == status.HTTP_200_OK:
-        query = await session.scalars(
-            select(AttributeType)
-            .where(AttributeType.name.in_(dataset["attribute_types_deleted"])),
-        )  # fmt: skip
-        result = list(query.all())
+        result = await get_attribute_types_by_names(
+            dataset["attribute_types_deleted"],
+            session,
+        )
         assert len(result) == 0

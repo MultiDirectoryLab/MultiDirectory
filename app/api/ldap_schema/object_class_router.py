@@ -104,7 +104,11 @@ async def modify_one_object_class(
             "Object Class not found.",
         )
 
-    await modify_object_class(changed_data=request_data, session=session)
+    await modify_object_class(
+        object_class=object_class,
+        new_statement=request_data,
+        session=session,
+    )
 
 
 @object_class_router.post(

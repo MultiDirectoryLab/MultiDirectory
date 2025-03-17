@@ -634,7 +634,7 @@ class ObjectClass(Base):
 
     oid: Mapped[str] = mapped_column(nullable=False, unique=True)
     name: Mapped[str] = mapped_column(primary_key=True)
-    superior: Mapped[str] = mapped_column(nullable=True)
+    superior: Mapped[str | None] = mapped_column(nullable=True)
     kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
     is_system: Mapped[bool]
 
@@ -685,6 +685,14 @@ class ObjectClass(Base):
     def attribute_types_may_display(self) -> list[str]:
         """Display attribute types may."""
         return [attr.name for attr in self.attribute_types_may]
+
+    def __str__(self) -> str:
+        """ObjectClass name."""
+        return f"ObjectClass({self.name})"
+
+    def __repr__(self) -> str:
+        """ObjectClass oid and name."""
+        return f"ObjectClass({self.oid}:{self.name})"
 
 
 class MFAFlags(int, enum.Enum):

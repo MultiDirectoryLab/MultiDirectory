@@ -105,24 +105,47 @@ async def get_all_object_classes(session: AsyncSession) -> list[ObjectClass]:
     :return list[ObjectClass]: List of Object Classes.
     """
     query = await session.scalars(
-        select(ObjectClass).options(
+        select(ObjectClass)
+        .options(
             selectinload(ObjectClass.attribute_types_must),
             selectinload(ObjectClass.attribute_types_may),
         )
-    )
+    )  # fmt: skip
     return list(query.all())
 
 
 async def modify_object_class(
-    changed_data: ObjectClassSchema,
+    object_class: ObjectClass,
+    new_statement: ObjectClassSchema,
     session: AsyncSession,
 ) -> None:
     """Modify Object Class.
 
+    :param ObjectClass object_class: Object Class.
+    :param ObjectClassSchema new_statement: New statement of object class.
     :param AsyncSession session: Database session.
     :return None.
     """
-    # TODO: Implement this function.
+    object_class.superior = new_statement.superior
+    object_class.kind = new_statement.kind
+    object_class.is_system = new_statement.is_system
+
+    object_class.attribute_types_must.clear()
+    object_class.attribute_types_must.extend(
+        await get_attribute_types_by_names(
+            new_statement.attribute_types_must,
+            session,
+        ),
+    )
+
+    object_class.attribute_types_may.clear()
+    object_class.attribute_types_may.extend(
+        await get_attribute_types_by_names(
+            new_statement.attribute_types_may,
+            session,
+        ),
+    )
+    await session.commit()
 
 
 async def delete_object_classes_by_names(

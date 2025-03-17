@@ -239,7 +239,7 @@ class ModifyDNRequest(BaseRequest):
                 .values(
                     path=func.array_cat(
                         new_directory.path,
-                        #  TODO: replace text with slice
+                        #  TODO: replace text with slice  # noqa: FIX002
                         text("path[:depth :]").bindparams(
                             depth=directory.depth + 1,
                         ),

@@ -98,7 +98,7 @@ async def get_all_attribute_types(
 
 async def modify_attribute_type(
     attribute_type: AttributeType,
-    attribute_type_schema: AttributeTypeSchema,
+    new_statement: AttributeTypeSchema,
     session: AsyncSession,
 ) -> None:
     """Modify Attribute Type.
@@ -108,12 +108,10 @@ async def modify_attribute_type(
     :param AsyncSession session: Database session.
     :return None.
     """
-    attribute_type.syntax = attribute_type_schema.syntax
-    attribute_type.single_value = attribute_type_schema.single_value
-    attribute_type.no_user_modification = (
-        attribute_type_schema.no_user_modification
-    )
-    attribute_type.is_system = attribute_type_schema.is_system
+    attribute_type.syntax = new_statement.syntax
+    attribute_type.single_value = new_statement.single_value
+    attribute_type.no_user_modification = new_statement.no_user_modification
+    attribute_type.is_system = new_statement.is_system
     await session.commit()
 
 
