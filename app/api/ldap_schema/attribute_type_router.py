@@ -17,7 +17,6 @@ from ldap_protocol.ldap_schema.attribute_type_uow import (
     delete_attribute_types_by_names,
     get_all_attribute_types,
     get_attribute_type_by_name,
-    get_attribute_types_by_names,
     modify_attribute_type,
 )
 
@@ -37,13 +36,12 @@ async def create_one_attribute_type(
     request_data: AttributeTypeSchema,
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Create a new access policy.
+    """Create a new attribute type.
 
-    :param AttributeTypeSchema request_data: Data for creating access policy.
+    :param AttributeTypeSchema request_data: Data for creating attribute type.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    # TODO: Add validation for the oid and name (it must be unique).
     await create_attribute_type(
         oid=request_data.oid,
         name=request_data.name,
@@ -66,7 +64,7 @@ async def get_list_attribute_types(
     """Retrieve a list of all attribute types.
 
     :param FromDishka[AsyncSession] session: Database session.
-    :return list[AccessPolicyMaterialSchema]: List of Attribute Types.
+    :return list[AttributeTypeSchema]: List of Attribute Types.
     """
     return [
         AttributeTypeSchema(
@@ -109,11 +107,10 @@ async def modify_one_attribute_type(
             "Attribute Type not found.",
         )
 
-    FIELDS_CANT_CHANGE = {"oid", "name"}  # noqa: N806
     for field_name, new_value in request_data.model_dump().items():
         if (
-            getattr(attribute_type, field_name) != new_value
-            and field_name in FIELDS_CANT_CHANGE
+            field_name in {"oid", "name"}
+            and getattr(attribute_type, field_name) != new_value
         ):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
@@ -147,21 +144,6 @@ async def delete_bulk_attribute_types(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Attribute Type names not found.",
-        )
-
-    attribute_types_names_exists = set(
-        attribute_type.name
-        for attribute_type in await get_attribute_types_by_names(
-            attribute_types_names,
-            session,
-        )
-    )
-
-    fake_names = set(attribute_types_names) - attribute_types_names_exists
-    if fake_names:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"Attribute Types not found: {fake_names}",
         )
 
     await delete_attribute_types_by_names(attribute_types_names, session)

@@ -102,8 +102,10 @@ test_delete_bulk_attribute_types_dataset = [
         "attribute_types_deleted": [
             "testAttributeType1",
             "testAttributeType2",
+            "testAttributeType3",
+            "testAttributeType4",
         ],
-        "status_code": status.HTTP_400_BAD_REQUEST,
+        "status_code": status.HTTP_200_OK,
     },
     {
         "attribute_type_datas": [],

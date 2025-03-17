@@ -17,7 +17,6 @@ from ldap_protocol.ldap_schema.object_class_uow import (
     delete_object_classes_by_names,
     get_all_object_classes,
     get_object_class_by_name,
-    get_object_classes_by_names,
     modify_object_class,
 )
 
@@ -126,21 +125,6 @@ async def delete_bulk_object_classes(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Object Classes not found.",
-        )
-
-    object_classes_names_exists = set(
-        object_class.name
-        for object_class in await get_object_classes_by_names(
-            object_classes_names,
-            session,
-        )
-    )
-
-    diff = set(object_classes_names) - object_classes_names_exists
-    if diff:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"Object Classes not found: {diff}",
         )
 
     await delete_object_classes_by_names(object_classes_names, session)
