@@ -555,10 +555,11 @@ class RedisSessionStorage(SessionStorage):
         """
         data = await self.get(session_id)
 
-        tmp = data.get("id")
-        if tmp is None:
+        uid = data.get("id")
+        ip = data.get("ip")
+        if uid is None or ip is None:
             raise KeyError("Invalid session id")
-        uid = int(tmp)
+        uid = int(uid)
 
         ttl = await self._storage.ttl(session_id)
         extra_data = data.copy()
@@ -570,9 +571,13 @@ class RedisSessionStorage(SessionStorage):
             extra_data=extra_data,
         )
         http_sessions_key = self._get_user_session_key(uid, "http")
+        ip_sessions_key = self._get_ip_session_key(ip, "http")
 
-        await self._storage.set(new_session_id, json.dumps(new_data), ex=ttl)
-        await self._storage.sadd(http_sessions_key, new_session_id)  # type: ignore
+        async with self._storage.pipeline(transaction=False) as pipe:
+            await pipe.set(new_session_id, json.dumps(new_data), ex=ttl)
+            await pipe.sadd(http_sessions_key, new_session_id)  # type: ignore
+            await pipe.sadd(ip_sessions_key, new_session_id)  # type: ignore
+            await pipe.execute()
 
         await self.delete_user_session(session_id)
 
