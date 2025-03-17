@@ -47,7 +47,7 @@ class SessionStorage(ABC):
     async def get_user_sessions(
         self,
         uid: int,
-        protocol: ProtocolType | None
+        protocol: ProtocolType | None = None,
     ) -> dict:
         """Get sessions by user id.
 
