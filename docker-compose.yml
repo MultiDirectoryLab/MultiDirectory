@@ -229,6 +229,8 @@ services:
     build:
       context: .
       dockerfile: ./.docker/krb.Dockerfile
+      args:
+        VERSION: beta
     container_name: kdc
     hostname: kerberos
     restart: unless-stopped
