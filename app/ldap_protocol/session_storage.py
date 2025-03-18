@@ -8,14 +8,12 @@ import json
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from secrets import token_hex
-from typing import TYPE_CHECKING, Iterable, Literal, Self
+from typing import Iterable, Literal, Self
 
 from redis.asyncio import Redis
+from redis.asyncio.lock import Lock
 
 from config import Settings
-
-if TYPE_CHECKING:
-    from redis.asyncio.lock import Lock
 
 ProtocolType = Literal["http", "ldap"]
 
