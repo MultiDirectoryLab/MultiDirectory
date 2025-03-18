@@ -97,17 +97,11 @@ class SessionStorage(ABC):
         """Get user agent hash."""
         return hashlib.blake2b(user_agent.encode(), digest_size=6).hexdigest()
 
-    def _get_id_hash(self, user_id: int) -> str:
-        return hashlib.blake2b(
-            str(user_id).encode(),
-            digest_size=16,
-        ).hexdigest()
-
     def _get_ip_session_key(self, ip: str, protocol: ProtocolType) -> str:
         return f"ip:{protocol}:{ip}"
 
     def _get_user_session_key(self, uid: int, protocol: ProtocolType) -> str:
-        return f"keys:{protocol}:{self._get_id_hash(uid)}"
+        return f"keys:{protocol}:{uid}"
 
     def _get_protocol(self, session_id: str) -> ProtocolType:
         return "http" if session_id.startswith("http:") else "ldap"
