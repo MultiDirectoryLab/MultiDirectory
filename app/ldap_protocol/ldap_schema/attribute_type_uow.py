@@ -113,7 +113,7 @@ async def modify_attribute_type(
     """Modify Attribute Type.
 
     :param AttributeType attribute_type: Attribute Type.
-    :param AttributeTypeUpdateSchema attribute_type_schema: Attribute Type Schema.
+    :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
     :param AsyncSession session: Database session.
     :return None.
     """
