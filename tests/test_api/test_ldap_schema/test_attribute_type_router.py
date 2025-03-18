@@ -79,7 +79,7 @@ async def test_modify_one_attribute_type(
     session: AsyncSession,
 ) -> None:
     """Test modifying a single attribute type."""
-    attribute_type_name = dataset["attribute_type_data"]["name"]
+    attribute_type_name = dataset["attribute_type_name"]
 
     session.add(AttributeType(**dataset["attribute_type_data"]))
     await session.commit()

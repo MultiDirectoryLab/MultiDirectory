@@ -22,6 +22,15 @@ class AttributeTypeSchema(BaseModel):
     is_system: bool
 
 
+class AttributeTypeUpdateSchema(BaseModel):
+    """Attribute Type Schema."""
+
+    syntax: str
+    single_value: bool
+    no_user_modification: bool
+    is_system: bool
+
+
 async def create_attribute_type(
     oid: str,
     name: str,
@@ -98,13 +107,13 @@ async def get_all_attribute_types(
 
 async def modify_attribute_type(
     attribute_type: AttributeType,
-    new_statement: AttributeTypeSchema,
+    new_statement: AttributeTypeUpdateSchema,
     session: AsyncSession,
 ) -> None:
     """Modify Attribute Type.
 
     :param AttributeType attribute_type: Attribute Type.
-    :param AttributeTypeSchema attribute_type_schema: Attribute Type Schema.
+    :param AttributeTypeUpdateSchema attribute_type_schema: Attribute Type Schema.
     :param AsyncSession session: Database session.
     :return None.
     """

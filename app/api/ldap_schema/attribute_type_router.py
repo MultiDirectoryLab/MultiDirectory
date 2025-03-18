@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth import get_current_user
 from ldap_protocol.ldap_schema.attribute_type_uow import (
     AttributeTypeSchema,
+    AttributeTypeUpdateSchema,
     create_attribute_type,
     delete_attribute_types_by_names,
     get_all_attribute_types,
@@ -85,13 +86,13 @@ async def get_list_attribute_types(
 )
 async def modify_one_attribute_type(
     attribute_type_name: str,
-    request_data: AttributeTypeSchema,
+    request_data: AttributeTypeUpdateSchema,
     session: FromDishka[AsyncSession],
 ) -> None:
     """Modify an Attribute Type.
 
     :param str attribute_type_name: name of the attribute type for modifying.
-    :param AttributeTypeSchema request_data: Changed data.
+    :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If attribute type not found.
     :raise HTTP_400_BAD_REQUEST: If field cannot be changed.
@@ -106,16 +107,6 @@ async def modify_one_attribute_type(
             status.HTTP_404_NOT_FOUND,
             "Attribute Type not found.",
         )
-
-    for field_name, new_value in request_data.model_dump().items():
-        if (
-            field_name in {"oid", "name"}
-            and getattr(attribute_type, field_name) != new_value
-        ):
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                f"Field '{field_name}' cannot be changed.",
-            )
 
     await modify_attribute_type(
         attribute_type=attribute_type,
