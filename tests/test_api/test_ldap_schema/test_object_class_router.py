@@ -5,7 +5,7 @@ from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.ldap_schema.object_class_uow import (
+from ldap_protocol.ldap_schema.object_class_crud import (
     create_object_class,
     get_object_class_by_name,
     get_object_classes_by_names,

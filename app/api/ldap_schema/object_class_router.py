@@ -11,7 +11,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from ldap_protocol.ldap_schema.object_class_uow import (
+from ldap_protocol.ldap_schema.object_class_crud import (
     ObjectClassSchema,
     create_object_class,
     delete_object_classes_by_names,

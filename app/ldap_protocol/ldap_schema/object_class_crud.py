@@ -11,7 +11,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.ldap_schema.attribute_type_uow import (
+from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
 from models import ObjectClass
