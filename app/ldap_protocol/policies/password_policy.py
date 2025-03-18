@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import ft_now, ft_to_dt
 from models import Attribute, PasswordPolicy, User
@@ -79,11 +78,7 @@ class PasswordPolicySchema(BaseModel):
             )
         return self
 
-    async def create_policy_settings(
-        self,
-        session: AsyncSession,
-        kadmin: AbstractKadmin,
-    ) -> Self:
+    async def create_policy_settings(self, session: AsyncSession) -> Self:
         """Create policies settings.
 
         :param AsyncSession session: db session
@@ -100,7 +95,6 @@ class PasswordPolicySchema(BaseModel):
     async def get_policy_settings(
         cls,
         session: AsyncSession,
-        kadmin: AbstractKadmin,
     ) -> "PasswordPolicySchema":
         """Get policy settings.
 
@@ -109,13 +103,12 @@ class PasswordPolicySchema(BaseModel):
         """
         policy = await session.scalar(select(PasswordPolicy))
         if not policy:
-            return await cls().create_policy_settings(session, kadmin)
+            return await cls().create_policy_settings(session)
         return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(
         self,
         session: AsyncSession,
-        kadmin: AbstractKadmin,
     ) -> None:
         """Update policy.
 
@@ -130,7 +123,6 @@ class PasswordPolicySchema(BaseModel):
     async def delete_policy_settings(
         cls,
         session: AsyncSession,
-        kadmin: AbstractKadmin,
     ) -> "PasswordPolicySchema":
         """Reset (delete) default policy.
 
@@ -138,7 +130,7 @@ class PasswordPolicySchema(BaseModel):
         :return PasswordPolicySchema: schema policy
         """
         default_policy = cls()
-        await default_policy.update_policy_settings(session, kadmin)
+        await default_policy.update_policy_settings(session)
         return default_policy
 
     @staticmethod

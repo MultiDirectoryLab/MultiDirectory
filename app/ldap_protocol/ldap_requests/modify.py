@@ -507,8 +507,7 @@ class ModifyRequest(BaseRequest):
                     pass
 
                 validator = await PasswordPolicySchema.get_policy_settings(
-                    session,
-                    kadmin,
+                    session
                 )
 
                 p_last_set = await validator.get_pwd_last_set(
