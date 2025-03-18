@@ -25,16 +25,18 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     default_policy = session.scalar(
-        select(Directory).where(Directory.name == "default_policy")
-    )
+        select(Directory)
+        .where(Directory.name == "default_policy")
+    )  # fmt: skip
 
     if not default_policy:
         return
 
     session.delete(default_policy)
     session.execute(
-        delete(Attribute).where(Attribute.name == "krbpwdpolicyreference")
-    )
+        delete(Attribute)
+        .where(Attribute.name == "krbpwdpolicyreference")
+    )  # fmt: skip
 
 
 def downgrade() -> None:
