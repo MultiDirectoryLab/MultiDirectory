@@ -1,4 +1,6 @@
 # The builder image, used to build the virtual environment
+ARG VERSION
+
 FROM python:3.12.6-bookworm AS builder
 
 ENV VIRTUAL_ENV=/venvs/.venv \
@@ -13,7 +15,7 @@ RUN pip install \
     https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
 
 
-FROM ghcr.io/multidirectorylab/krb5_base AS runtime
+FROM ghcr.io/multidirectorylab/krb5_base:${VERSION} AS runtime
 
 ENV LANG=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive \
