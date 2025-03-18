@@ -237,7 +237,43 @@ class SessionStorage(ABC):
 
 
 class RedisSessionStorage(SessionStorage):
-    """Session storage for Session."""
+    """Session storage for Session.
+
+    ## Session Structure:
+
+    1. Individual Sessions:
+        - Keys:
+            - `http:<session_id>`
+            - `ldap:<session_id>`
+        - Values are JSON-encoded strings with the following structure:
+        ```
+        {
+            "id": <user_id>,
+            "ip": <ip>,
+            "sign": <sign>,
+            "issued": <issued_timestamp>,
+            ...
+        }
+        ```
+
+    2. Mapping User ID to Sessions:
+        - Keys:
+            - `keys:http:<user_id>`
+            - `keys:ldap:<user_id>`
+        - Values are Sets containing session keys for the given user ID:
+        ```
+        Set("http:session_id_1", "ldap:session_id_2", ...)
+        ```
+
+    3. Mapping IP to Sessions:
+        - Keys:
+            - `ip:http:<ip>`
+            - `ip:ldap:<ip>`
+        - Values are Sets containing session keys associated with the given IP:
+        ```
+        Set("http:session_id_1", "ldap:session_id_2", ...)
+        ```
+    """
 
     def __init__(self, storage: Redis, key_length: int, key_ttl: int) -> None:
         """Initialize the storage.
@@ -291,7 +327,16 @@ class RedisSessionStorage(SessionStorage):
         ip: str,
         protocol: ProtocolType | None = None,
     ) -> set[str]:
-        """Get session keys by ip."""
+        """Get session keys by ip.
+
+        Retrieves session keys associated with the given IP address. If a
+        specific protocol is provided, only sessions for that protocol are
+        returned.
+
+        :param str ip: ip
+        :param ProtocolType | None protocol: protocol
+        :return set[str]: session keys
+        """
         if protocol:
             return await self._fetch_keys(
                 self._get_ip_session_key(ip, protocol),
@@ -306,7 +351,16 @@ class RedisSessionStorage(SessionStorage):
         uid: int,
         protocol: ProtocolType | None = None,
     ) -> set[str]:
-        """Get sesssion keys by user id."""
+        """Get sesssion keys by user id.
+
+        Retrieves session keys associated with the given User ID. If a
+        specific protocol is provided, only sessions for that protocol are
+        returned.
+
+        :param int uid: user id
+        :param ProtocolType | None protocol: protocol
+        :return set[str]: session keys
+        """
         if protocol:
             return await self._fetch_keys(
                 self._get_user_session_key(uid, protocol),
@@ -321,7 +375,21 @@ class RedisSessionStorage(SessionStorage):
     async def _get_sessions(self, keys: set[str], id_value: str | int) -> dict:
         """Get sessions data by keys.
 
-        Get sessions data by keys and remove expired sessions.
+        Fetches session data from storage for a given set of
+        session keys. If a session key exists in storage, its data is loaded
+        from JSON. If a session key starts with `ldap:`, the session is marked
+        as belonging to the LDAP protocol.
+
+        If a session key does not exist in storage (i.e., the session has
+        expired or was manually removed), it is considered an expired session,
+        and its reference is removed from the corresponding UID or IP set.
+
+        ## Process:
+        1. Fetch session data for each key.
+        2. Parse JSON data for each valid session.
+        3. Identify expired sessions (i.e., keys that return `None`)
+        4. Remove expired session keys from the sets that track user ID
+            or IP sessions.
 
         :param set[str] keys: session keys
         :param str | int id_value: user id or ip
@@ -390,6 +458,18 @@ class RedisSessionStorage(SessionStorage):
     async def clear_user_sessions(self, uid: int) -> None:
         """Clear user sessions.
 
+        Retrieves all session keys linked to a given user ID,
+        removes them from storage, and ensures that any session references
+        associated with the user's IP addresses are also cleared.
+
+        ## Process:
+        1. Retrieve all session keys linked to the user ID.
+        2. Fetch session data from storage using `mget`.
+        3. Create a mapping of IP-based session tracking keys to sessions.
+        4. Identify and remove session references stored under IP-based keys.
+        5. Identify and remove session references stored under UID-based keys.
+        6. Delete all user session keys from storage.
+
         :param int uid: user id
         """
         keys = await self._get_session_keys_by_uid(uid)
@@ -420,6 +500,23 @@ class RedisSessionStorage(SessionStorage):
 
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session.
+
+        Removes a session from storage based on the given
+        `session_id`.It also ensures that the session is unlinked from the
+        user's session list and the associated IP-based session tracking.
+
+        ## Process:
+        1. Retrieve session data using the `session_id`.
+        2. If the session does not exist, exit the function.
+        3. Extract the user ID (`uid`) and IP address (`ip`) from the session
+            data.
+        5. Determine the protocol type (`http` or `ldap`) from the `session_id`
+        7. Acquire a lock to ensure atomicity of session deletion.
+        8. Remove the session ID from:
+           - The user's session tracking set.
+           - The IP-based session tracking set.
+        9. Delete the session data from storage.
+        10. Release the lock.
 
         :param str session_id: session id
         """
@@ -455,6 +552,17 @@ class RedisSessionStorage(SessionStorage):
         extra_data: dict | None = None,
     ) -> str:
         """Create jwt token.
+
+        Generates a new session for the given user ID (`uid`), stores it
+        in storage, and maintains references in session tracking keys.
+
+        ## Process:
+        1. Generate a unique session ID and signature, along with session data.
+        2. Create a key (`http:<session_id>`) to store session details.
+        3. Link the session to the user's session tracking key
+            (`keys:http:<uid>`).
+        4. If an IP address is provided in `extra_data`, also link the session
+           to the IP-based session tracking key (`ip:http:<ip>`).
 
         :param int uid: user id
         :param dict data: data dict
@@ -495,6 +603,18 @@ class RedisSessionStorage(SessionStorage):
     ) -> None:
         """Create ldap session.
 
+        Generates a new session for the given user ID (`uid`),
+        stores it in storage, and maintains references in session tracking
+            keys.
+
+        ## Process:
+        1. Generate a unique session ID and signature, along with session data.
+        2. Create a key (`ldap:<session_id>`) to store session details.
+        3. Link the session to the user's session tracking key
+            (`keys:ldap:<uid>`).
+        4. If an IP address is provided in `extra_data`, also link the session
+           to the IP-based session tracking key (`ip:ldap:<ip>`).
+
         :param int uid: user id
         :param str key: session key
         :param dict data: any data
@@ -532,6 +652,23 @@ class RedisSessionStorage(SessionStorage):
 
     async def _rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
+
+        Rekey an existing session by creating a new
+        session ID while preserving the associated user data and expiration
+            time.
+        The old session is then removed, and the new session is stored.
+
+        ## Process:
+        1. Retrieve the session data using `session_id`.
+        2. Extract the user ID (`uid`) and IP address (`ip`).
+        4. Get the remaining TTL of the current session.
+        5. Generate a new session ID and signature while keeping the existing
+            session data.
+        6. Store the new session with the same TTL.
+        7. Add the new session ID to:
+           - The user's session tracking key (`keys:http:<uid>`)
+           - The IP-based session tracking key (`ip:http:<ip>`)
+        8. Delete the old session.
 
         :param str session_id: session id
         :param Settings settings: app settings
