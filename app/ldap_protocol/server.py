@@ -13,12 +13,16 @@ import socket
 import ssl
 from contextlib import suppress
 from io import BytesIO
+from ipaddress import IPv4Address, IPv6Address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
 from typing import cast
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
+from proxyprotocol.v1 import ProxyProtocolV1
+from proxyprotocol.v2 import ProxyProtocolV2
+from proxyprotocol.version import ProxyProtocolVersion
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,6 +45,8 @@ log.add(
 
 
 infinity = cast(int, math.inf)
+pp_v1: ProxyProtocolV1 = ProxyProtocolVersion.get("v1")  # type: ignore
+pp_v2: ProxyProtocolV2 = ProxyProtocolVersion.get("v2")  # type: ignore
 
 
 class PoolClientHandler:
@@ -101,7 +107,13 @@ class PoolClientHandler:
         """Create session, queue and start message handlers concurrently."""
         async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
-            addr = await ldap_session.get_ip(writer)
+            addr, first_chunk = await self.recieve(reader, return_addr=True)
+
+            if addr:
+                ldap_session.ip = addr
+            else:
+                await ldap_session.get_ip(writer)
+                addr = ldap_session.ip
 
             logger.info(f"Connection {addr} opened")
 
@@ -115,7 +127,12 @@ class PoolClientHandler:
                         return
 
                 await asyncio.gather(
-                    self._handle_request(reader, writer, session_scope),
+                    self._handle_request(
+                        first_chunk,
+                        reader,
+                        writer,
+                        session_scope,
+                    ),
                     self._handle_responses(writer, session_scope),
                     ldap_session.ensure_session_exists(),
                 )
@@ -134,20 +151,64 @@ class PoolClientHandler:
                     writer.close()
                     await writer.wait_closed()
 
-    async def recieve(self, reader: asyncio.StreamReader) -> bytes:
-        """Read N packets by 1kB."""
+    def _extract_proxy_protocol_address(
+        self,
+        data: bytes,
+    ) -> tuple[IPv4Address | IPv6Address | None, bytes]:
+        """Get ip from proxy protocol header.
+
+        :param bytes data: data
+        :return tuple: ip, data
+        """
+        try:
+            for version in [pp_v1, pp_v2]:
+                if version.is_valid(data[0:8]):
+                    result = version.unpack(data)
+
+                    if isinstance(result.source, tuple):
+                        addr = result.source[0]
+                    else:
+                        raise ValueError("Invalid source address")
+
+                    if isinstance(version, ProxyProtocolV1):
+                        return addr, data.split(b"\r\n")[1]
+                    else:
+                        header_length = int.from_bytes(data[14:16], "big")
+                        return addr, data[16 + header_length:]
+
+            return None, data
+
+        except Exception as err:
+            log.error(f"Proxy Protocol processing error: {err}")
+        return None, b""
+
+    async def recieve(
+        self,
+        reader: asyncio.StreamReader,
+        return_addr: bool = False,
+    ) -> tuple[IPv4Address | IPv6Address | None, bytes]:
+        """Read N packets by 1kB.
+
+        :param asyncio.StreamReader reader: reader
+        :return tuple: ip, data
+        """
         buffer = BytesIO()
+        addr = None
 
         while True:
-            buffer.write(await reader.read(self._size))
+            data = await reader.read(self._size)
 
+            if return_addr:
+                addr, data = self._extract_proxy_protocol_address(data)
+
+            buffer.write(data)
             actual_size = buffer.getbuffer().nbytes
             computed_size = self._compute_ldap_message_size(buffer.getvalue())
 
             if reader.at_eof() or actual_size >= computed_size:
                 break
 
-        return buffer.getvalue()
+        return addr, buffer.getvalue()
 
     @staticmethod
     def _read_acme_cert() -> tuple[str, str]:
@@ -221,19 +282,22 @@ class PoolClientHandler:
 
     async def _handle_request(
         self,
+        data: bytes,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
         container: AsyncContainer,
     ) -> None:
         """Create request object and send it to queue.
 
+        :param bytes data: initial data
+        :param asyncio.StreamReader reader: reader
+        :param asyncio.StreamWriter writer: writer
+        :param AsyncContainer container: container
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         ldap_session: LDAPSession = await container.get(LDAPSession)
         while True:
-            data = await self.recieve(reader)
-
             if not data:
                 raise ConnectionAbortedError("Connection terminated by client")
 
@@ -254,6 +318,8 @@ class PoolClientHandler:
 
             else:
                 await ldap_session.queue.put(request)
+
+            _, data = await self.recieve(reader)
 
     async def _unwrap_request(
         self,
@@ -317,7 +383,7 @@ class PoolClientHandler:
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
-        addr = str(await ldap_session.get_ip(writer))
+        addr = str(ldap_session.ip)
 
         while True:
             try:

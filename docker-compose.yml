@@ -16,6 +16,10 @@ services:
       - "--entrypoints.kadmind.address=:749"
       - "--entrypoints.kpasswd.address=:464"
       - "--entrypoints.bind_dns.address=:53"
+      - "--entrypoints.ldap.proxyProtocol=true"
+      - "--entrypoints.ldap.proxyProtocol.insecure=true"
+      - "--entrypoints.ldaps.proxyProtocol=true"
+      - "--entrypoints.ldaps.proxyProtocol.insecure=true"
     ports:
       - "80:80"
       - "8080:8080"
@@ -68,11 +72,13 @@ services:
       - traefik.tcp.routers.ldap.entrypoints=ldap
       - traefik.tcp.routers.ldap.service=ldap
       - traefik.tcp.services.ldap.loadbalancer.server.port=389
+      - traefik.tcp.services.ldap.loadbalancer.proxyprotocol.version=2
 
       - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
       - traefik.tcp.routers.ldaps.service=ldaps
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
+      - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
     healthcheck:
       test: ["CMD-SHELL", "nc -zv 127.0.0.1 389 636"]
       interval: 30s
