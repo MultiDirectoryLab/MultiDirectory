@@ -26,7 +26,12 @@ services:
       - --entrypoints.websecure.address=:443
 
       - "--entrypoints.ldap.address=:389"
+      - "--entrypoints.ldap.proxyProtocol=true"
+      - "--entrypoints.ldap.proxyProtocol.insecure=true"
+
       - "--entrypoints.ldaps.address=:636"
+      - "--entrypoints.ldaps.proxyProtocol=true"
+      - "--entrypoints.ldaps.proxyProtocol.insecure=true"
 
       - "--entrypoints.kadmind.address=:749"
       - "--entrypoints.kpasswd.address=:464"
@@ -123,11 +128,13 @@ services:
       - traefik.tcp.routers.ldap.entrypoints=ldap
       - traefik.tcp.routers.ldap.service=ldap
       - traefik.tcp.services.ldap.loadbalancer.server.port=389
+      - traefik.tcp.services.ldap.loadbalancer.proxyprotocol.version=2
 
       - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
       - traefik.tcp.routers.ldaps.service=ldaps
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
+      - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
 
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
