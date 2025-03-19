@@ -174,7 +174,7 @@ class PoolClientHandler:
                         return addr, data.split(b"\r\n")[1]
                     else:
                         header_length = int.from_bytes(data[14:16], "big")
-                        return addr, data[16 + header_length:]
+                        return addr, data[16 + header_length :]
 
             return None, data
 
