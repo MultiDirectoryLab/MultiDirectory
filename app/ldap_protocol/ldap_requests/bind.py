@@ -170,10 +170,7 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        policy_pwd = await PasswordPolicySchema.get_policy_settings(
-            session=session,
-            kadmin=kadmin,
-        )
+        policy_pwd = await PasswordPolicySchema.get_policy_settings(session)
         p_last_set = await policy_pwd.get_pwd_last_set(
             session=session,
             directory_id=user.directory_id,
