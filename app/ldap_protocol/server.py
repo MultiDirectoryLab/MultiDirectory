@@ -13,7 +13,7 @@ import socket
 import ssl
 from contextlib import suppress
 from io import BytesIO
-from ipaddress import IPv4Address, IPv6Address
+from ipaddress import IPv4Address, IPv6Address, ip_address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
 from typing import cast, overload
@@ -104,13 +104,12 @@ class PoolClientHandler:
         """Create session, queue and start message handlers concurrently."""
         async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
-            addr, first_chunk = await self.recieve(reader, return_addr=True)
-
-            if addr:
-                ldap_session.ip = addr
-            else:
-                await ldap_session.get_ip(writer)
-                addr = ldap_session.ip
+            addr, first_chunk = await self.recieve(
+                reader,
+                writer,
+                return_addr=True,
+            )
+            ldap_session.ip = addr
 
             logger.info(f"Connection {addr} opened")
 
@@ -151,7 +150,8 @@ class PoolClientHandler:
     def _extract_proxy_protocol_address(
         self,
         data: bytes,
-    ) -> tuple[IPv4Address | IPv6Address | None, bytes]:
+        writer: asyncio.StreamWriter,
+    ) -> tuple[IPv4Address | IPv6Address, bytes]:
         """Get ip from proxy protocol header.
 
         :param bytes data: data
@@ -159,7 +159,9 @@ class PoolClientHandler:
         """
         try:
             if not pp_v2.is_valid(data[0:8]):
-                return None, data
+                address = ":".join(map(str, writer.get_extra_info("peername")))
+                addr = ip_address(address.split(":")[0])
+                return addr, data
 
             result = pp_v2.unpack(data)
             if not isinstance(result.source, tuple):
@@ -170,27 +172,30 @@ class PoolClientHandler:
             return addr, data[16 + header_length :]
         except Exception as err:
             log.error(f"Proxy Protocol processing error: {err}")
-            return None, b""
+            return addr, b""
 
     @overload
     async def recieve(
         self,
         reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
         return_addr: bool,
-    ) -> tuple[IPv4Address | IPv6Address | None, bytes]: ...
+    ) -> tuple[IPv4Address | IPv6Address, bytes]: ...
 
     @overload
     async def recieve(
         self,
         reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
         return_addr: bool = False,
     ) -> bytes: ...
 
     async def recieve(
         self,
         reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
         return_addr: bool = False,
-    ) -> tuple[IPv4Address | IPv6Address | None, bytes] | bytes:
+    ) -> tuple[IPv4Address | IPv6Address, bytes] | bytes:
         """Read N packets by 1kB.
 
         :param asyncio.StreamReader reader: reader
@@ -198,14 +203,12 @@ class PoolClientHandler:
         """
         buffer = BytesIO()
         addr = None
-        pp_is_parsed = False
 
         while True:
             data = await reader.read(self._size)
 
-            if return_addr and not pp_is_parsed:
-                addr, data = self._extract_proxy_protocol_address(data)
-                pp_is_parsed = True
+            if return_addr and not addr:
+                addr, data = self._extract_proxy_protocol_address(data, writer)
 
             buffer.write(data)
             actual_size = buffer.getbuffer().nbytes
@@ -214,7 +217,7 @@ class PoolClientHandler:
             if reader.at_eof() or actual_size >= computed_size:
                 break
 
-        if not return_addr:
+        if not return_addr or not addr:
             return buffer.getvalue()
 
         return addr, buffer.getvalue()
@@ -328,7 +331,7 @@ class PoolClientHandler:
             else:
                 await ldap_session.queue.put(request)
 
-            data = await self.recieve(reader)
+            data = await self.recieve(reader, writer)
 
     async def _unwrap_request(
         self,
