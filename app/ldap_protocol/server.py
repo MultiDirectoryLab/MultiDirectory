@@ -174,15 +174,17 @@ class PoolClientHandler:
 
     @overload
     async def recieve(
-        self, reader: asyncio.StreamReader, return_addr: bool,
-    ) -> tuple[IPv4Address | IPv6Address | None, bytes]:
-        ...
+        self,
+        reader: asyncio.StreamReader,
+        return_addr: bool,
+    ) -> tuple[IPv4Address | IPv6Address | None, bytes]: ...
 
     @overload
     async def recieve(
-        self, reader: asyncio.StreamReader, return_addr: bool = False,
-    ) -> bytes:
-        ...
+        self,
+        reader: asyncio.StreamReader,
+        return_addr: bool = False,
+    ) -> bytes: ...
 
     async def recieve(
         self,
