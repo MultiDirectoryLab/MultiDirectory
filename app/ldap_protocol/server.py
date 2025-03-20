@@ -16,7 +16,7 @@ from io import BytesIO
 from ipaddress import IPv4Address, IPv6Address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
-from typing import cast
+from typing import cast, overload
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
@@ -172,12 +172,23 @@ class PoolClientHandler:
             log.error(f"Proxy Protocol processing error: {err}")
             return None, b""
 
+    @overload
+    async def recieve(
+        self, reader: asyncio.StreamReader, return_addr: bool,
+    ) -> tuple[IPv4Address | IPv6Address | None, bytes]:
+        ...
+
+    @overload
+    async def recieve(
+        self, reader: asyncio.StreamReader, return_addr: bool = False,
+    ) -> bytes:
+        ...
 
     async def recieve(
         self,
         reader: asyncio.StreamReader,
         return_addr: bool = False,
-    ) -> tuple[IPv4Address | IPv6Address | None, bytes]:
+    ) -> tuple[IPv4Address | IPv6Address | None, bytes] | bytes:
         """Read N packets by 1kB.
 
         :param asyncio.StreamReader reader: reader
@@ -198,6 +209,9 @@ class PoolClientHandler:
 
             if reader.at_eof() or actual_size >= computed_size:
                 break
+
+        if not return_addr:
+            return buffer.getvalue()
 
         return addr, buffer.getvalue()
 
@@ -310,7 +324,7 @@ class PoolClientHandler:
             else:
                 await ldap_session.queue.put(request)
 
-            _, data = await self.recieve(reader)
+            data = await self.recieve(reader)
 
     async def _unwrap_request(
         self,
