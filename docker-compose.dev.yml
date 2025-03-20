@@ -59,7 +59,7 @@ services:
       context: ./interface
       dockerfile: configurations/docker/Dockerfile.dev
       args:
-        - API_URL: http://${DOMAIN}/api
+        - API_URL: https://${DOMAIN}/api
     restart: unless-stopped
     environment:
       - HUSKY=0
