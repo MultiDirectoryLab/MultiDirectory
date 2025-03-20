@@ -196,12 +196,14 @@ class PoolClientHandler:
         """
         buffer = BytesIO()
         addr = None
+        pp_is_parsed = False
 
         while True:
             data = await reader.read(self._size)
 
-            if return_addr:
+            if return_addr and not pp_is_parsed:
                 addr, data = self._extract_proxy_protocol_address(data)
+                pp_is_parsed = True
 
             buffer.write(data)
             actual_size = buffer.getbuffer().nbytes
