@@ -20,9 +20,7 @@ from typing import cast
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
-from proxyprotocol.v1 import ProxyProtocolV1
 from proxyprotocol.v2 import ProxyProtocolV2
-from proxyprotocol.version import ProxyProtocolVersion
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,8 +43,7 @@ log.add(
 
 
 infinity = cast(int, math.inf)
-pp_v1: ProxyProtocolV1 = ProxyProtocolVersion.get("v1")  # type: ignore
-pp_v2: ProxyProtocolV2 = ProxyProtocolVersion.get("v2")  # type: ignore
+pp_v2 = ProxyProtocolV2()
 
 
 class PoolClientHandler:
@@ -161,26 +158,20 @@ class PoolClientHandler:
         :return tuple: ip, data
         """
         try:
-            for version in [pp_v1, pp_v2]:
-                if version.is_valid(data[0:8]):
-                    result = version.unpack(data)
+            if not pp_v2.is_valid(data[0:8]):
+                return None, data
 
-                    if isinstance(result.source, tuple):
-                        addr = result.source[0]
-                    else:
-                        raise ValueError("Invalid source address")
+            result = pp_v2.unpack(data)
+            if not isinstance(result.source, tuple):
+                raise ValueError("Invalid source address")
 
-                    if isinstance(version, ProxyProtocolV1):
-                        return addr, data.split(b"\r\n")[1]
-                    else:
-                        header_length = int.from_bytes(data[14:16], "big")
-                        return addr, data[16 + header_length :]
-
-            return None, data
-
+            addr = result.source[0]
+            header_length = int.from_bytes(data[14:16], "big")
+            return addr, data[16 + header_length :]
         except Exception as err:
             log.error(f"Proxy Protocol processing error: {err}")
-        return None, b""
+            return None, b""
+
 
     async def recieve(
         self,
