@@ -58,6 +58,8 @@ services:
     build:
       context: ./interface
       dockerfile: configurations/docker/Dockerfile.dev
+      args:
+        - API_URL: http://${DOMAIN}/api
     restart: unless-stopped
     environment:
       - HUSKY=0
@@ -203,6 +205,7 @@ services:
         restart: true
     volumes:
       - ./app:/app
+      - ./certs:/certs
     env_file:
       local.env
     command: python multidirectory.py --shadow
@@ -230,6 +233,8 @@ services:
     build:
       context: .
       dockerfile: ./.docker/krb.Dockerfile
+      args:
+        VERSION: beta
     container_name: kdc
     restart: unless-stopped
     hostname: kerberos
@@ -240,7 +245,7 @@ services:
     tty: true
     depends_on:
       - ldap_server
-    command: /usr/sbin/krb5kdc -n -w 4
+    command: krb5kdc -n -w 4
 
     labels:
       - traefik.enable=true
