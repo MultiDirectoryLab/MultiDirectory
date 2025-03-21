@@ -13,12 +13,14 @@ import socket
 import ssl
 from contextlib import suppress
 from io import BytesIO
+from ipaddress import IPv4Address, IPv6Address, ip_address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
-from typing import cast
+from typing import Literal, cast, overload
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
+from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,6 +43,7 @@ log.add(
 
 
 infinity = cast(int, math.inf)
+pp_v2 = ProxyProtocolV2()
 
 
 class PoolClientHandler:
@@ -101,7 +104,12 @@ class PoolClientHandler:
         """Create session, queue and start message handlers concurrently."""
         async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
-            addr = await ldap_session.get_ip(writer)
+            addr, first_chunk = await self.recieve(
+                reader,
+                writer,
+                return_addr=True,
+            )
+            ldap_session.ip = addr
 
             logger.info(f"Connection {addr} opened")
 
@@ -115,7 +123,12 @@ class PoolClientHandler:
                         return
 
                 await asyncio.gather(
-                    self._handle_request(reader, writer, session_scope),
+                    self._handle_request(
+                        first_chunk,
+                        reader,
+                        writer,
+                        session_scope,
+                    ),
                     self._handle_responses(writer, session_scope),
                     ldap_session.ensure_session_exists(),
                 )
@@ -134,20 +147,80 @@ class PoolClientHandler:
                     writer.close()
                     await writer.wait_closed()
 
-    async def recieve(self, reader: asyncio.StreamReader) -> bytes:
-        """Read N packets by 1kB."""
+    def _extract_proxy_protocol_address(
+        self,
+        data: bytes,
+        writer: asyncio.StreamWriter,
+    ) -> tuple[IPv4Address | IPv6Address, bytes]:
+        """Get ip from proxy protocol header.
+
+        :param bytes data: data
+        :return tuple: ip, data
+        """
+        try:
+            if not pp_v2.is_valid(data[0:8]):
+                address = ":".join(map(str, writer.get_extra_info("peername")))
+                addr = ip_address(address.split(":")[0])
+                return addr, data
+
+            result = pp_v2.unpack(data)
+            if not isinstance(result.source, tuple):
+                raise ValueError("Invalid source address")
+
+            addr = result.source[0]
+            header_length = int.from_bytes(data[14:16], "big")
+            return addr, data[16 + header_length :]
+        except Exception as err:
+            log.error(f"Proxy Protocol processing error: {err}")
+            return addr, b""
+
+    @overload
+    async def recieve(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        return_addr: Literal[True],
+    ) -> tuple[IPv4Address | IPv6Address, bytes]: ...
+
+    @overload
+    async def recieve(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        return_addr: Literal[False] = False,
+    ) -> bytes: ...
+
+    async def recieve(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        return_addr: Literal[True, False] | bool = False,
+    ) -> tuple[IPv4Address | IPv6Address, bytes] | bytes:
+        """Read N packets by 1kB.
+
+        :param asyncio.StreamReader reader: reader
+        :return tuple: ip, data
+        """
         buffer = BytesIO()
+        addr = None
 
         while True:
-            buffer.write(await reader.read(self._size))
+            data = await reader.read(self._size)
 
+            if return_addr and not addr:
+                addr, data = self._extract_proxy_protocol_address(data, writer)
+
+            buffer.write(data)
             actual_size = buffer.getbuffer().nbytes
             computed_size = self._compute_ldap_message_size(buffer.getvalue())
 
             if reader.at_eof() or actual_size >= computed_size:
                 break
 
-        return buffer.getvalue()
+        if not return_addr or not addr:
+            return buffer.getvalue()
+
+        return addr, buffer.getvalue()
 
     @staticmethod
     def _read_acme_cert() -> tuple[str, str]:
@@ -221,19 +294,22 @@ class PoolClientHandler:
 
     async def _handle_request(
         self,
+        data: bytes,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
         container: AsyncContainer,
     ) -> None:
         """Create request object and send it to queue.
 
+        :param bytes data: initial data
+        :param asyncio.StreamReader reader: reader
+        :param asyncio.StreamWriter writer: writer
+        :param AsyncContainer container: container
         :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         ldap_session: LDAPSession = await container.get(LDAPSession)
         while True:
-            data = await self.recieve(reader)
-
             if not data:
                 raise ConnectionAbortedError("Connection terminated by client")
 
@@ -254,6 +330,8 @@ class PoolClientHandler:
 
             else:
                 await ldap_session.queue.put(request)
+
+            data = await self.recieve(reader, writer)
 
     async def _unwrap_request(
         self,
@@ -317,7 +395,7 @@ class PoolClientHandler:
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
-        addr = str(await ldap_session.get_ip(writer))
+        addr = str(ldap_session.ip)
 
         while True:
             try:
@@ -406,7 +484,6 @@ class PoolClientHandler:
             str(self.settings.HOST),
             self.settings.PORT,
             flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
-            ssl=self.ssl_context,
         )
 
     @staticmethod

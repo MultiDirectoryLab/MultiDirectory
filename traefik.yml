@@ -1,0 +1,45 @@
+log:
+  level: INFO
+
+api:
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+  ldap:
+    address: ":389"
+    proxyProtocol:
+      insecure: true
+  ldaps:
+    address: ":636"
+    proxyProtocol:
+      insecure: true
+  kadmind:
+    address: ":749"
+  kpasswd:
+    address: ":464"
+  bind_dns:
+    address: ":53"
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/cert.pem
+        keyFile: /certs/privkey.pem
+
+  options:
+    default:
+      maxVersion: VersionTLS12
+    maxtls12:
+      maxVersion: VersionTLS12
+
+providers:
+  file:
+    filename: /traefik.yml
+    watch: true
+  
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
