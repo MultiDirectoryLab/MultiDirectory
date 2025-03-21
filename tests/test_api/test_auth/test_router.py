@@ -386,14 +386,14 @@ async def test_lock_and_unlock_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user_dn
 
-    {
+    attrs = {
         attr["type"]: attr["vals"][0]
         for attr in data["search_result"][0]["partial_attributes"]
     }
-    # shadow_expire = attrs.get("shadowExpire")
-    # assert attrs.get("nsAccountLock") == "true"  # NOTE: этот атрибут не из схемы 2012
-    # assert isinstance(shadow_expire, str)  # NOTE: по схеме 2012 у объекта класса нет этого атрибута  # fmt: skip
-    # assert shadow_expire.isdigit()
+    shadow_expire = attrs.get("shadowExpire")
+    assert attrs.get("nsAccountLock") == "true"
+    assert isinstance(shadow_expire, str)
+    assert shadow_expire.isdigit()
 
     data = await apply_user_account_control(http_client, user_dn, "512")
 
@@ -426,11 +426,11 @@ async def test_lock_and_unlock_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user_dn
 
-    {
+    attrs = {
         attr["type"]: attr["vals"][0]
         for attr in data["search_result"][0]["partial_attributes"]
     }
 
-    # assert "nsAccountLock" not in attrs  # NOTE: этот атрибут не из схемы 2012
-    # assert "shadowExpire" not in attrs  # NOTE: у объекта нет этого атрибута
+    assert "nsAccountLock" not in attrs
+    assert "shadowExpire" not in attrs
     assert not await session_storage.get_user_sessions(dir_.user.id)  # type: ignore

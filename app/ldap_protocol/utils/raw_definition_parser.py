@@ -86,10 +86,7 @@ class RawDefinitionParser:
                     object_class_info.must_contain,
                 )
             )
-            if len(attribute_types) == len(object_class_info.must_contain):
-                object_class.attribute_types_must.extend(attribute_types)
-            else:
-                raise Exception
+            object_class.attribute_types_must.extend(attribute_types)
 
         if object_class_info.may_contain:
             attribute_types = (
@@ -98,9 +95,6 @@ class RawDefinitionParser:
                     object_class_info.may_contain,
                 )
             )
-            if len(attribute_types) == len(object_class_info.may_contain):
-                object_class.attribute_types_may.extend(attribute_types)
-            else:
-                raise Exception
+            object_class.attribute_types_may.extend(attribute_types)
 
         return object_class
