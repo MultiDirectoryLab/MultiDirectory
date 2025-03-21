@@ -60,8 +60,6 @@ async def add_network_policy(
         is_kerberos=policy.is_kerberos,
         bypass_no_connection=policy.bypass_no_connection,
         bypass_service_failure=policy.bypass_service_failure,
-        ldap_session_ttl=policy.ldap_session_ttl,
-        http_session_ttl=policy.http_session_ttl,
     )
     group_dns = []
     mfa_group_dns = []
@@ -102,8 +100,6 @@ async def add_network_policy(
         is_kerberos=new_policy.is_kerberos,
         bypass_no_connection=new_policy.bypass_no_connection,
         bypass_service_failure=new_policy.bypass_service_failure,
-        ldap_session_ttl=new_policy.ldap_session_ttl,
-        http_session_ttl=new_policy.http_session_ttl,
     )
 
 
@@ -139,8 +135,6 @@ async def get_list_network_policies(
             is_kerberos=policy.is_kerberos,
             bypass_no_connection=policy.bypass_no_connection,
             bypass_service_failure=policy.bypass_service_failure,
-            ldap_session_ttl=policy.ldap_session_ttl,
-            http_session_ttl=policy.http_session_ttl,
         )
         for policy in await session.scalars(
             select(NetworkPolicy)
@@ -304,8 +298,6 @@ async def update_network_policy(
         is_kerberos=selected_policy.is_kerberos,
         bypass_no_connection=selected_policy.bypass_no_connection,
         bypass_service_failure=selected_policy.bypass_service_failure,
-        ldap_session_ttl=selected_policy.ldap_session_ttl,
-        http_session_ttl=selected_policy.http_session_ttl,
     )
 
 
