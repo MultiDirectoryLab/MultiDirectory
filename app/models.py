@@ -555,7 +555,7 @@ class Attribute(Base):
 
 
 class AttributeType(Base):
-    """Active Directory Type."""
+    """Attribute Type."""
 
     __tablename__ = "AttributeTypes"
 
@@ -568,9 +568,7 @@ class AttributeType(Base):
 
     def get_raw_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
-        chunks = [f"( {self.oid}"]
-        if self.name:
-            chunks.append(f"NAME '{self.name}'")
+        chunks = [f"( {self.oid}", f"NAME '{self.name}'"]
         if self.syntax:
             chunks.append(f"SYNTAX '{self.syntax}'")
         if self.single_value:
@@ -579,6 +577,14 @@ class AttributeType(Base):
             chunks.append("NO-USER-MODIFICATION")
         chunks.append(")")
         return " ".join(chunks)
+
+    def __str__(self) -> str:
+        """AttributeType name."""
+        return f"ObjectClass({self.name})"
+
+    def __repr__(self) -> str:
+        """AttributeType oid and name."""
+        return f"AttributeType({self.oid}:{self.name})"
 
 
 class ObjectClassAttributeTypeMustMembership(Base):
@@ -628,7 +634,7 @@ class ObjectClassAttributeTypeMayMembership(Base):
 
 
 class ObjectClass(Base):
-    """Active Directory ObjectClass."""
+    """Object Class."""
 
     __tablename__ = "ObjectClasses"
 
@@ -656,9 +662,7 @@ class ObjectClass(Base):
 
     def get_raw_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
-        chunks = [f"( {self.oid}"]
-        if self.name:
-            chunks.append(f"NAME '{self.name}'")
+        chunks = [f"( {self.oid}", f"NAME '{self.name}'"]
         if self.superior:
             chunks.append(f"SUP {self.superior}")
         if self.kind:
