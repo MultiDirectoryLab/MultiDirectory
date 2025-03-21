@@ -6,20 +6,7 @@ services:
     image: "traefik:v2.6"
     container_name: "traefik"
     command:
-      - "--log.level=INFO"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.ldap.address=:389"
-      - "--entrypoints.ldaps.address=:636"
-      - "--entrypoints.kadmind.address=:749"
-      - "--entrypoints.kpasswd.address=:464"
-      - "--entrypoints.bind_dns.address=:53"
-      - "--entrypoints.ldap.proxyProtocol=true"
-      - "--entrypoints.ldap.proxyProtocol.insecure=true"
-      - "--entrypoints.ldaps.proxyProtocol=true"
-      - "--entrypoints.ldaps.proxyProtocol.insecure=true"
+      - "--providers.file.filename=/traefik.yml"
     ports:
       - "80:80"
       - "8080:8080"
@@ -30,6 +17,8 @@ services:
       - "530:53"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./certs:/certs"
+      - "./traefik.yml:/traefik.yml"
 
   ldap_server:
     build:
@@ -77,6 +66,7 @@ services:
       - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
       - traefik.tcp.routers.ldaps.service=ldaps
+      - traefik.tcp.routers.ldaps.tls=true
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
       - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
     healthcheck:
