@@ -76,6 +76,7 @@ class AddRequest(BaseRequest):
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
         """Deserialize."""
+        # TODO какой тут тип данных?
         entry, attributes = data  # type: ignore
         attributes = [
             PartialAttribute(
@@ -332,6 +333,33 @@ class AddRequest(BaseRequest):
                     directory=new_dir,
                 ),
             )
+
+        # object_classes = [
+        #     attr.value
+        #     for attr in new_dir.attributes
+        #     if attr.name.lower() == "objectclass"
+        # ]
+        # if not object_classes:
+        #     yield AddResponse(
+        #         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+        #         message="No valid attributes to modify",
+        #     )
+        #     return
+
+        # allowed_attrs = set()
+        # for object_class in await get_object_classes_by_names(
+        #     object_classes,  # type: ignore
+        #     session,
+        # ):
+        #     allowed_attrs.update(object_class.attribute_types_may_display)
+        #     allowed_attrs.update(object_class.attribute_types_must_display)
+
+        # allowed_attrs = {attr.lower() for attr in allowed_attrs}
+        # attributes = [
+        #     attr
+        #     for attr in attributes
+        #     if attr.name.lower() in allowed_attrs
+        # ]  # fmt: skip
 
         try:
             items_to_add.extend(attributes)

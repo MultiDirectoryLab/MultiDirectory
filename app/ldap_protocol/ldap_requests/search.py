@@ -31,6 +31,9 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
+from ldap_protocol.ldap_schema.object_class_crud import (
+    get_object_classes_by_names,
+)
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.cte import get_all_parent_group_directories
@@ -544,10 +547,19 @@ class SearchRequest(BaseRequest):
                     attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
 
+            allowed_attrs = set()
+            for object_class in await get_object_classes_by_names(
+                obj_classes,
+                session,
+            ):
+                allowed_attrs.update(object_class.attribute_types_may_display)
+                allowed_attrs.update(object_class.attribute_types_must_display)
+
             yield SearchResultEntry(
                 object_name=distinguished_name,
                 partial_attributes=[
                     PartialAttribute(type=key, vals=value)
                     for key, value in attrs.items()
+                    if key in allowed_attrs
                 ],
             )

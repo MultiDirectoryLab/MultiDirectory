@@ -149,6 +149,33 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
+        # object_classes = [
+        #     attr.value
+        #     for attr in directory.attributes
+        #     if attr.name.lower() == "objectclass"
+        # ]
+
+        # allowed_attrs = set()
+        # for object_class in await get_object_classes_by_names(
+        #     object_classes,
+        #     session,
+        # ):
+        #     allowed_attrs.update(object_class.attribute_types_may_display)
+        #     allowed_attrs.update(object_class.attribute_types_must_display)
+
+        # self.changes = [
+        #     change
+        #     for change in self.changes
+        #     if change.get_name() in allowed_attrs
+        # ]
+
+        # if not self.changes:
+        #     yield ModifyResponse(
+        #         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+        #         message="No valid attributes to modify",
+        #     )
+        #     return
+
         names = {change.get_name() for change in self.changes}
 
         password_change_requested = self._check_password_change_requested(
@@ -194,8 +221,9 @@ class ModifyRequest(BaseRequest):
 
                 await session.flush()
                 await session.execute(
-                    update(Directory).where(Directory.id == directory.id),
-                )
+                    update(Directory)
+                    .where(Directory.id == directory.id),
+                )  # fmt: skip
                 await session.commit()
             except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()

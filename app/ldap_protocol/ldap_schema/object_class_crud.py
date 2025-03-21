@@ -95,7 +95,11 @@ async def get_object_classes_by_names(
     """
     query = await session.scalars(
         select(ObjectClass)
-        .where(ObjectClass.name.in_(object_class_names)),
+        .where(ObjectClass.name.in_(object_class_names))
+        .options(
+            selectinload(ObjectClass.attribute_types_must),
+            selectinload(ObjectClass.attribute_types_may),
+        )
     )  # fmt: skip
     return list(query.all())
 
