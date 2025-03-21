@@ -39,8 +39,8 @@ tls:
   stores:
     default:
       defaultCertificate:
-        certFile: /certs/cert.pem
-        keyFile: /certs/privkey.pem
+        certFile: /letsencrypt/cert.pem
+        keyFile: /letsencrypt/privkey.pem
   options:
     default:
       maxVersion: VersionTLS12
