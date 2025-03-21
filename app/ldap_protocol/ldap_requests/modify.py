@@ -24,6 +24,9 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
+from ldap_protocol.ldap_schema.object_class_crud import (
+    get_object_classes_by_names,
+)
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -149,11 +152,11 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        # object_classes = [
-        #     attr.value
-        #     for attr in directory.attributes
-        #     if attr.name.lower() == "objectclass"
-        # ]
+        object_classes = [
+            attr.value
+            for attr in directory.attributes
+            if attr.name.lower() == "objectclass"
+        ]
 
         # allowed_attrs = set()
         # for object_class in await get_object_classes_by_names(
