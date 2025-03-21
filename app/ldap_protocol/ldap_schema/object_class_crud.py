@@ -84,7 +84,7 @@ async def get_object_class_by_name(
 
 
 async def get_object_classes_by_names(
-    object_class_names: list[str],
+    object_class_names: list[str | bytes],
     session: AsyncSession,
 ) -> list[ObjectClass]:
     """Get list of Object Classes by names.
@@ -93,6 +93,11 @@ async def get_object_classes_by_names(
     :param AsyncSession session: Database session.
     :return list[ObjectClass]: List of Object Classes.
     """
+    # _object_class_names = []
+    # for i in object_class_names:
+    #     if isinstance(i, bytes):
+    #         _object_class_names.append(i.decode("utf-8"))
+
     query = await session.scalars(
         select(ObjectClass)
         .where(ObjectClass.name.in_(object_class_names))

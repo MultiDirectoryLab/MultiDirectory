@@ -22,6 +22,9 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
+from ldap_protocol.ldap_schema.object_class_crud import (
+    get_object_classes_by_names,
+)
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -76,7 +79,6 @@ class AddRequest(BaseRequest):
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
         """Deserialize."""
-        # TODO какой тут тип данных?
         entry, attributes = data  # type: ignore
         attributes = [
             PartialAttribute(
@@ -334,32 +336,29 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        # object_classes = [
-        #     attr.value
-        #     for attr in new_dir.attributes
-        #     if attr.name.lower() == "objectclass"
-        # ]
-        # if not object_classes:
-        #     yield AddResponse(
-        #         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-        #         message="No valid attributes to modify",
-        #     )
-        #     return
+        object_classes = self.attr_names.get("objectclass", [])
+        if not object_classes:
+            await session.rollback()
+            yield AddResponse(
+                result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+                message="No valid attributes to modify",
+            )
+            return
 
-        # allowed_attrs = set()
-        # for object_class in await get_object_classes_by_names(
-        #     object_classes,  # type: ignore
-        #     session,
-        # ):
-        #     allowed_attrs.update(object_class.attribute_types_may_display)
-        #     allowed_attrs.update(object_class.attribute_types_must_display)
+        allowed_attrs = set()
+        for object_class in await get_object_classes_by_names(
+            object_classes,  # type: ignore
+            session,
+        ):
+            allowed_attrs.update(object_class.attribute_types_may_display)
+            allowed_attrs.update(object_class.attribute_types_must_display)
 
-        # allowed_attrs = {attr.lower() for attr in allowed_attrs}
-        # attributes = [
-        #     attr
-        #     for attr in attributes
-        #     if attr.name.lower() in allowed_attrs
-        # ]  # fmt: skip
+        allowed_attrs = {attr.lower() for attr in allowed_attrs}
+        attributes = [
+            attr
+            for attr in attributes
+            if attr.name.lower() in allowed_attrs
+        ]  # fmt: skip
 
         try:
             items_to_add.extend(attributes)
