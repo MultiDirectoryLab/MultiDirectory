@@ -107,7 +107,7 @@ class MainProvider(Provider):
         )
         async with httpx.AsyncClient(
             timeout=30,
-            verify="/certs/krbcert.pem",
+            verify=settings.KRB_CERT,
             base_url=str(settings.KRB5_CONFIG_SERVER),
             limits=limits,
         ) as client:

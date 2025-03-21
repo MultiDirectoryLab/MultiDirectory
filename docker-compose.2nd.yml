@@ -1,0 +1,385 @@
+# For local development
+# Copyright (c) 2024 MultiFactor
+# License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+services:
+  # traefik:
+  #   image: "traefik:v2.6"
+  #   container_name: "traefik"
+  #   command:
+  #     - "--log.level=INFO"
+  #     - "--api.insecure=true"
+  #     - "--providers.docker=true"
+  #     - "--providers.docker.exposedbydefault=false"
+  #     - "--entrypoints.web.address=:80"
+  #     - "--entrypoints.ldap.address=:389"
+  #     - "--entrypoints.ldaps.address=:636"
+  #     - "--entrypoints.kadmind.address=:749"
+  #     - "--entrypoints.kpasswd.address=:464"
+  #     - "--entrypoints.bind_dns.address=:53"
+  #   ports:
+  #     - "80:80"
+  #     - "8080:8080"
+  #     - "389:389"
+  #     - "636:636"
+  #     - "749:749"
+  #     - "464:464"
+  #     - "530:53"
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  ldap_server2:
+    build:
+      context: .
+      dockerfile: ./.docker/dev.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
+    image: multidirectory
+    restart: unless-stopped
+    # container_name: multidirectory
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - md2_ldap_keytab:/LDAP_keytab/
+    env_file:
+      local2.env
+    command: python -OO multidirectory.py --ldap
+    tty: true
+    depends_on:
+      migrations2:
+        condition: service_completed_successfully
+      cert_local_check2:
+        condition: service_completed_successfully
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+        reservations:
+          cpus: '0.25'
+          memory: 20M
+    labels:
+      - traefik.enable=true
+
+      - traefik.tcp.routers.ldap2.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldap2.entrypoints=ldap2
+      - traefik.tcp.routers.ldap2.service=ldap2
+      - traefik.tcp.services.ldap2.loadbalancer.server.port=389
+
+      - traefik.tcp.routers.ldaps2.rule=HostSNI(`*`)
+      - traefik.tcp.routers.ldaps2.entrypoints=ldaps2
+      - traefik.tcp.routers.ldaps2.service=ldaps2
+      - traefik.tcp.services.ldaps2.loadbalancer.server.port=636
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv 127.0.0.1 389 636"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+
+  api2:
+    image: multidirectory
+    container_name: multidirectory_api2
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - md2_dns_server_file:/DNS_server_file/
+      - md2_dns_server_config:/DNS_server_configs/
+      - md2_ldap_keytab:/LDAP_keytab/
+    env_file:
+      local2.env
+    command: python multidirectory.py --http
+    tty: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api2.rule=Host(`md2.localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api2.entrypoints=web"
+      - "traefik.http.services.api2.loadbalancer.server.port=8000"
+      - "traefik.http.routers.api2.service=api2"
+      - "traefik.http.routers.api2.middlewares=api_strip"
+      - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
+      - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
+    depends_on:
+      migrations2:
+        condition: service_completed_successfully
+
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 150M
+
+  migrations2:
+    image: multidirectory
+    container_name: multidirectory_migrations2
+    restart: "no"
+    volumes:
+      - ./app:/app
+    env_file:
+      local2.env
+    command: alembic upgrade head
+    depends_on:
+      postgres2:
+        condition: service_healthy
+
+  cert_check2:
+    image: multidirectory
+    container_name: multidirectory_certs_check2
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
+    environment:
+      KADMIN_KEY: /certs/krbkey2.pem
+      KADMIN_CERT: /certs/krbcert2.pem
+      KADMIN_DOMAIN: kadmin_api2
+    command: ./extra/generate_cert.sh
+
+  cert_local_check2:
+    image: multidirectory
+    container_name: multidirectory_local_certs_check2
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+    command: bash -c "test -f /certs/cert.pem && echo 'CERT EXISTS, SKIPPING...' || openssl req -nodes -new -x509 -keyout /certs/privkey.pem -out /certs/cert.pem -subj '/C=RU/ST=Moscow/L=Moscow/O=Global Security/OU=Multifactor/CN=md.multifactor.dev'";
+
+  postgres2:
+    container_name: MD-postgres2
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: password123
+      PGDATA: /data/postgres
+    volumes:
+       - md2_postgres:/data/postgres
+    expose:
+      - 5432:5432
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
+
+  pgadmin2:
+    container_name: pgadmin_container2
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+       - md2_pgadmin:/var/lib/pgadmin
+    restart: unless-stopped
+    logging:
+      driver: "none"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pg2.rule=Host(`pg2.localhost`)"
+      - "traefik.http.routers.pg2.entrypoints=web"
+      - "traefik.http.services.pg2.loadbalancer.server.port=80"
+
+  kadmin_api2:
+    image: krb5md
+    container_name: kadmin_api2
+    restart: unless-stopped
+    volumes:
+      - ./certs:/certs
+      - .kerberos/:/server/
+      - md2_kdc:/etc
+    tty: true
+    depends_on:
+      ldap_server2:
+        condition: service_healthy
+        restart: true
+      cert_check2:
+        condition: service_completed_successfully
+    ports:
+      - 8001:8000
+    working_dir: /server
+    command: uvicorn --factory config_server:create_app
+             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey2.pem
+             --ssl-certfile=/certs/krbcert2.pem
+             --reload
+
+  bind_dns2:
+    image: ubuntu/bind9:latest
+    container_name: bind9_2
+    hostname: bind9
+    restart: unless-stopped
+    volumes:
+      - md2_dns_server_file:/opt/
+      - md2_dns_server_config:/etc/bind/
+    tty: true
+    depends_on:
+      ldap_server2:
+        condition: service_healthy
+        restart: true
+    command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.bind_dns2.rule=HostSNI(`*`)
+      - traefik.tcp.routers.bind_dns2.entrypoints=bind_dns2
+      - traefik.tcp.routers.bind_dns2.service=bind_dns2
+      - traefik.tcp.services.bind_dns2.loadbalancer.server.port=53
+
+  kdc2:
+    build:
+      context: .
+      dockerfile: ./.docker/krb.Dockerfile
+    container_name: kdc2
+    hostname: kerberos
+    restart: unless-stopped
+    volumes:
+      - md2_kdc:/etc
+    image: krb5md
+    tty: true
+    command: krb5kdc -n -w 4
+    ports:
+      - "89:88"
+      - "89:88/udp"
+    depends_on:
+      ldap_server2:
+        condition: service_healthy
+        restart: true
+
+  kadmind2:
+    container_name: kadmind2
+    restart: unless-stopped
+    hostname: kerberos
+    volumes:
+      - md2_kdc:/etc
+      - md2_psync_queue:/var/spool/krb5-sync
+    image: krb5md
+    tty: true
+    command: kadmind -nofork
+    depends_on:
+      ldap_server2:
+        condition: service_healthy
+        restart: true
+      kdc2:
+        condition: service_started
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kadmind.entrypoints=kadmind
+      - traefik.tcp.routers.kadmind.service=kadmind
+      - traefik.tcp.services.kadmind.loadbalancer.server.port=749
+
+      - traefik.tcp.routers.kpasswd.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kpasswd.entrypoints=kpasswd
+      - traefik.tcp.routers.kpasswd.service=kpasswd
+      - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
+
+  shadow_api2:
+    image: multidirectory
+    container_name: shadow_api2
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations2:
+        condition: service_completed_successfully
+      ldap_server2:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./app:/app
+    env_file:
+      local2.env
+    command: python multidirectory.py --shadow
+
+  maintence2:
+    image: multidirectory
+    container_name: md_maintence2
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
+      - md2_psync_queue:/var/spool/krb5-sync
+      - md2_ldap_keytab:/LDAP_keytab/
+    env_file:
+      local2.env
+    command: python multidirectory.py --scheduler
+    tty: true
+    depends_on:
+      migrations2:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+        reservations:
+          cpus: '0.1'
+          memory: 6M
+
+  interface2:
+    container_name: multidirectory_interface2
+    build:
+      context: ./interface
+      dockerfile: configurations/docker/Dockerfile.dev
+      args:
+        - API_URL=http://md2.localhost/api
+    restart: 'no'
+    environment:
+      - HUSKY=0
+      - API_URL=https://md2.localhost/api
+      - NODE_ENV=development
+    ports:
+      - 9081:80
+    working_dir: /app
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.multidirectory-app2.rule=Host(`md2.localhost`)'
+      - 'traefik.http.routers.multidirectory-app2.entrypoints=web'
+    command:
+      ng serve --host 0.0.0.0 --port 80 --poll 2000
+
+  dragonfly2:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    container_name: dragonfly2
+    expose:
+      - 6379
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3GiB
+        reservations:
+          cpus: '0.75'
+          memory: 1.5GiB
+
+  redis-commander2:
+    container_name: redis-commander2
+    hostname: redis-commander
+    image: ghcr.io/joeferner/redis-commander:latest
+    restart: always
+    environment:
+      - REDIS_HOSTS=sessions:dragonfly:6379:1
+    user: redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rc2.rule=Host(`rc2.localhost`)"
+      - "traefik.http.routers.rc2.entrypoints=web"
+      - "traefik.http.services.rc2.loadbalancer.server.port=8081"
+      - "traefik.http.routers.rc2.service=rc2"
+
+volumes:
+  md2_postgres:
+  md2_pgadmin:
+  md2_wireshark:
+  md2_kdc:
+  md2_psync_queue:
+  md2_dns_server_file:
+  md2_dns_server_config:
+  md2_ldap_keytab:
+  md2_dragonflydata:
+
+networks:
+  multidirectory_default:
+    external: true

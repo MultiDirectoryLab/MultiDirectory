@@ -97,6 +97,7 @@ class Settings(BaseModel):
 
     KRB5_LDAP_URI: str = "ldap://ldap_server"
     KRB5_CONFIG_SERVER: HttpUrl = "https://kadmin_api:8000"  # type: ignore
+    KRB_CERT: str = "/certs/krbcert.pem"
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
     KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/ldap.keytab"
