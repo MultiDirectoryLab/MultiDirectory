@@ -9,7 +9,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator
 
-from .helpers import validate_entry
+from .helpers import get_attribute_types, get_object_classes, validate_entry
 
 
 def _type_validate_entry(entry: str) -> str:
@@ -31,3 +31,5 @@ def _type_validate_email(email: str) -> str:
 
 ENTRY_TYPE = Annotated[str, AfterValidator(_type_validate_entry)]
 EmailStr = Annotated[str, AfterValidator(_type_validate_email)]
+ATTRIBUTE_TYPES = get_attribute_types()
+OBJECT_CLASSES = get_object_classes()
