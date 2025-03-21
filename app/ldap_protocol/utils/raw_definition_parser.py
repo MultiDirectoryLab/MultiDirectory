@@ -78,19 +78,29 @@ class RawDefinitionParser:
             kind=object_class_info.kind,
             is_system=False,
         )
+
         if object_class_info.must_contain:
-            object_class.attribute_types_must.extend(
+            attribute_types = (
                 await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.must_contain,
                 )
             )
+            if len(attribute_types) == len(object_class_info.must_contain):
+                object_class.attribute_types_must.extend(attribute_types)
+            else:
+                raise Exception
+
         if object_class_info.may_contain:
-            object_class.attribute_types_may.extend(
+            attribute_types = (
                 await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.may_contain,
                 )
             )
+            if len(attribute_types) == len(object_class_info.may_contain):
+                object_class.attribute_types_may.extend(attribute_types)
+            else:
+                raise Exception
 
         return object_class
