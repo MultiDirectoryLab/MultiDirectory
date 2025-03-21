@@ -16,7 +16,7 @@ from io import BytesIO
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
-from typing import cast, overload
+from typing import Literal, cast, overload
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
@@ -179,7 +179,7 @@ class PoolClientHandler:
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
-        return_addr: bool,
+        return_addr: Literal[True],
     ) -> tuple[IPv4Address | IPv6Address, bytes]: ...
 
     @overload
@@ -187,14 +187,14 @@ class PoolClientHandler:
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
-        return_addr: bool = False,
+        return_addr: Literal[False] = False,
     ) -> bytes: ...
 
     async def recieve(
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
-        return_addr: bool = False,
+        return_addr: Literal[True, False] | bool = False,
     ) -> tuple[IPv4Address | IPv6Address, bytes] | bytes:
         """Read N packets by 1kB.
 
