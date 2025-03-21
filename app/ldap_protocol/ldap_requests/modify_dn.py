@@ -239,6 +239,7 @@ class ModifyDNRequest(BaseRequest):
                 .values(
                     path=func.array_cat(
                         new_directory.path,
+                        #  TODO: replace text with slice
                         text("path[:depth :]").bindparams(
                             depth=directory.depth + 1,
                         ),

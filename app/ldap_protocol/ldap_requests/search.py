@@ -33,6 +33,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.utils.const import ATTRIBUTE_TYPES, OBJECT_CLASSES
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -46,7 +47,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AttributeType, Directory, Group, ObjectClass, User
+from models import Directory, Group, User
 
 from .base import BaseRequest
 
@@ -133,24 +134,14 @@ class SearchRequest(BaseRequest):
     def requested_attrs(self) -> list[str]:
         return [attr.lower() for attr in self.attributes]
 
-    async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
-        attrs: dict[str, list[str]] = defaultdict(list)
-
+    def _get_subschema(self) -> SearchResultEntry:
+        attrs = defaultdict(list)
         attrs["name"].append("Schema")
         attrs["objectClass"].append("subSchema")
         attrs["objectClass"].append("top")
 
-        attribute_types = await session.scalars(select(AttributeType))
-        attrs["attributeTypes"] = [
-            attribute_type.get_raw_definition()
-            for attribute_type in attribute_types
-        ]
-
-        object_classes = await session.scalars(select(ObjectClass))
-        attrs["objectClasses"] = [
-            object_class.get_raw_definition()
-            for object_class in object_classes
-        ]
+        attrs["attributeTypes"] = ATTRIBUTE_TYPES
+        attrs["objectClasses"] = OBJECT_CLASSES
 
         return SearchResultEntry(
             object_name="CN=Schema",
@@ -267,7 +258,7 @@ class SearchRequest(BaseRequest):
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
             if is_schema:
-                yield await self._get_subschema(session)
+                yield self._get_subschema()
             elif is_root_dse:
                 attrs = await self.get_root_dse(session, settings)
                 yield SearchResultEntry(
