@@ -39,11 +39,7 @@ def upgrade() -> None:
         oc_raw_definitions_filtered = [
             defenition
             for defenition in oc_raw_definitions
-            if (
-                "NAME 'ms" not in defenition
-                and "NAME 'mS" not in defenition
-                and "NAME 'MS" not in defenition
-            )
+            if "name 'ms" not in defenition.lower()
         ]
 
         for oc_raw_definition in oc_raw_definitions_filtered:
@@ -137,11 +133,7 @@ def upgrade() -> None:
     at_raw_definitions_filtered = [
         defenition
         for defenition in at_raw_definitions
-        if (
-            "NAME 'ms" not in defenition
-            and "NAME 'mS" not in defenition
-            and "NAME 'MS" not in defenition
-        )
+        if "name 'ms" not in defenition.lower()
     ]
     for at_raw_definition in at_raw_definitions_filtered:
         attribute_type = RDParser.create_attribute_type_by_raw(
