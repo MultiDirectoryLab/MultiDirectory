@@ -165,4 +165,13 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
-          docker build --push --target=runtime -f .docker/krb.Dockerfile . -t $TAG -t $TAG2 --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
+          docker build \
+            --push \
+            --target=runtime \
+            -f .docker/krb.Dockerfile . \
+            -t $TAG \
+            -t $TAG2 \
+            --cache-to type=gha,mode=max \
+            --cache-from $TAG \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --build-arg VERSION=latest
