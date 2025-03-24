@@ -60,7 +60,6 @@ providers:
   file:
     filename: /traefik.yml
     watch: true
-  
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
