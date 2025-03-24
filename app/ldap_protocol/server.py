@@ -18,6 +18,7 @@ from typing import Literal, cast, overload
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
+from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,11 +133,12 @@ class PoolClientHandler:
         :param bytes data: data
         :return tuple: ip, data
         """
+        peername = ":".join(map(str, writer.get_extra_info("peername")))
+        peer_addr = ip_address(peername.split(":")[0])
+
         try:
             if not pp_v2.is_valid(data[0:8]):
-                address = ":".join(map(str, writer.get_extra_info("peername")))
-                addr = ip_address(address.split(":")[0])
-                return addr, data
+                return peer_addr, data
 
             result = pp_v2.unpack(data)
             if not isinstance(result.source, tuple):
@@ -145,9 +147,9 @@ class PoolClientHandler:
             addr = result.source[0]
             header_length = int.from_bytes(data[14:16], "big")
             return addr, data[16 + header_length :]
-        except Exception as err:
+        except (ValueError, ProxyProtocolIncompleteError) as err:
             log.error(f"Proxy Protocol processing error: {err}")
-            return addr, b""
+            return peer_addr, data
 
     @overload
     async def recieve(
