@@ -78,12 +78,9 @@ services:
       replicas: 4
       endpoint_mode: dnsrr
       resources:
-        limits:
-          cpus: '1.0'
-          memory: 150M
         reservations:
           cpus: '0.25'
-          memory: 20M
+          memory: 100M
     healthcheck:
       test: ["CMD-SHELL", "nc -zv 127.0.0.1 389 636"]
       interval: 30s

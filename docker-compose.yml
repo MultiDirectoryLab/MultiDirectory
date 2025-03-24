@@ -48,12 +48,9 @@ services:
       replicas: 2
       endpoint_mode: dnsrr
       resources:
-        limits:
-          cpus: '1.0'
-          memory: 100M
         reservations:
           cpus: '0.25'
-          memory: 20M
+          memory: 100M
     labels:
       - traefik.enable=true
 
