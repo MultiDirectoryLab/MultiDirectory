@@ -10,11 +10,9 @@ import json
 import math
 import os
 import socket
-import ssl
 from contextlib import suppress
 from io import BytesIO
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from tempfile import NamedTemporaryFile
 from traceback import format_exc
 from typing import Literal, cast, overload
 
@@ -72,29 +70,6 @@ class PoolClientHandler:
             self.req_log = self.rsp_log = self._log_short
 
         self.ssl_context = None
-
-        if self.settings.USE_CORE_TLS:
-            with (
-                NamedTemporaryFile("w+") as certfile,
-                NamedTemporaryFile("w+") as keyfile,
-            ):
-                if self.settings.check_certs_exist():
-                    cert_name = self.settings.SSL_CERT
-                    key_name = self.settings.SSL_KEY
-                    log.success("Found existing cert and key, loading...")
-                else:
-                    cert, key = self._read_acme_cert()
-                    certfile.write(cert)
-                    keyfile.write(key)
-
-                    certfile.seek(0)
-                    keyfile.seek(0)
-
-                    cert_name = certfile.name
-                    key_name = keyfile.name
-
-                self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-                self.ssl_context.load_cert_chain(cert_name, key_name)
 
     async def __call__(
         self,
