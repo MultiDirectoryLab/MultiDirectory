@@ -6,36 +6,9 @@ services:
     command:
       # - --metrics
       # - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
-      - "--log.level=ERROR"
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
+      - "--providers.file.filename=/traefik.yml"
       # - --accesslog=true
       # - --accesslog.filepath=/var/log/traefik/access.log
-      - --accesslog.format=json
-
-      - --certificatesresolvers.md-resolver.acme.tlschallenge=true
-      - --certificatesresolvers.md-resolver.acme.email=support@multifactor.com
-      - --certificatesresolvers.md-resolver.acme.storage=/letsencrypt/acme.json
-
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-
-      - "--entrypoints.ldap.address=:389"
-      - "--entrypoints.ldaps.address=:636"
-      - "--entrypoints.ldap.proxyProtocol=true"
-      - "--entrypoints.ldap.proxyProtocol.insecure=true"
-      - "--entrypoints.ldaps.proxyProtocol=true"
-      - "--entrypoints.ldaps.proxyProtocol.insecure=true"
-
-      - "--entrypoints.kdc.address=:88"
-      - "--entrypoints.kadmind.address=:749"
-
-      - --entryPoints.websecure.http.tls=true
-      - --entryPoints.websecure.http.tls.certResolver=md-resolver
-
-      - --entrypoints.web.http.redirections.entryPoint.to=websecure
-      - --entrypoints.web.http.redirections.entryPoint.scheme=https
-      - --entrypoints.web.http.redirections.entrypoint.permanent=true
     ports:
       - "80:80"
       - "8080:8080"
@@ -47,6 +20,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
+      - "./package/traefik.yml:/traefik.yml"
 
     deploy:
       resources:
@@ -77,6 +51,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.interface.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.interface.entrypoints=websecure"
+      - "traefik.http.routers.interface.tls=true"
       - "traefik.http.routers.interface.tls.certresolver=md-resolver"
       - "traefik.http.services.interface.loadbalancer.server.port=80"
 
@@ -152,6 +127,7 @@ services:
       - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
       - traefik.tcp.routers.ldaps.service=ldaps
+      - traefik.tcp.routers.ldaps.tls=true
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
       - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
     healthcheck:
