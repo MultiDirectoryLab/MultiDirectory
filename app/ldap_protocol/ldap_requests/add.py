@@ -340,8 +340,8 @@ class AddRequest(BaseRequest):
         if not object_classes:
             await session.rollback()
             yield AddResponse(
-                result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-                message="No valid attributes to modify",
+                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                message="Directory object must have at least one object class",
             )
             return
 
