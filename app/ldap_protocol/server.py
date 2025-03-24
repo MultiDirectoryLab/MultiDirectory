@@ -5,10 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import base64
-import json
 import math
-import os
 import socket
 from contextlib import suppress
 from io import BytesIO
@@ -198,42 +195,6 @@ class PoolClientHandler:
             return buffer.getvalue()
 
         return addr, buffer.getvalue()
-
-    @staticmethod
-    def _read_acme_cert() -> tuple[str, str]:
-        acme_exc = SystemError(
-            "Let's Encrypt certificate not found. The `acme.json` "
-            "file might not have been generated or lacks certificate details. "
-            "This can also occur if the certificate failed to generate "
-            "for localhost, as Let's Encrypt only issues "
-            "certificates for public domains. "
-            "Try deleting and recreating the `acme.json` file, "
-            "or consider using a self-signed certificate "
-            "for local environments or closed networks."
-        )
-
-        if not os.path.exists("/certs/acme.json"):
-            log.critical("Cannot load ACME file for MultiDirectory")
-            raise acme_exc
-
-        try:
-            with open("/certs/acme.json") as certfile:
-                data = json.load(certfile)
-
-            domain = data["md-resolver"]["Certificates"][0]["domain"]["main"]
-            cert = data["md-resolver"]["Certificates"][0]["certificate"]
-            key = data["md-resolver"]["Certificates"][0]["key"]
-        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as err:
-            log.critical("Cannot load TLS cert for MultiDirectory")
-            raise acme_exc from err
-
-        else:
-            log.info(f"loaded cert for {domain}")
-
-            cert = base64.b64decode(cert.encode("ascii")).decode()
-            key = base64.b64decode(key.encode("ascii")).decode()
-
-            return cert, key
 
     @staticmethod
     def _compute_ldap_message_size(data: bytes) -> int:
