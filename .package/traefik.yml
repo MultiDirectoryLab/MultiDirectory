@@ -1,5 +1,5 @@
 log:
-  level: INFO
+  level: ERROR
 
 api:
   insecure: true
@@ -30,7 +30,8 @@ entryPoints:
   websecure:
     address: ":443"
     http:
-      tls: {}
+      tls:
+        certResolver: md-resolver
 
 accesslog:
   format: json
@@ -41,6 +42,7 @@ tls:
       defaultCertificate:
         certFile: /letsencrypt/cert.pem
         keyFile: /letsencrypt/privkey.pem
+
   options:
     default:
       maxVersion: VersionTLS12
