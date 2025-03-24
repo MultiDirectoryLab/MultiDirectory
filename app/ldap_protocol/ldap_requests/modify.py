@@ -146,7 +146,10 @@ class ModifyRequest(BaseRequest):
 
         query = self._get_dir_query()
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        directory = await session.scalar(
+            mutate_ap(query, ldap_session.user)
+            .options(selectinload(Directory.attributes))
+        )  # fmt: skip
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
@@ -158,19 +161,20 @@ class ModifyRequest(BaseRequest):
             if attr.name.lower() == "objectclass"
         ]
 
-        # allowed_attrs = set()
-        # for object_class in await get_object_classes_by_names(
-        #     object_classes,
-        #     session,
-        # ):
-        #     allowed_attrs.update(object_class.attribute_types_may_display)
-        #     allowed_attrs.update(object_class.attribute_types_must_display)
+        allowed_attrs = set()
+        for object_class in await get_object_classes_by_names(
+            object_classes,
+            session,
+        ):
+            allowed_attrs.update(object_class.attribute_types_may_display)
+            allowed_attrs.update(object_class.attribute_types_must_display)
+        allowed_attrs = {attr.lower() for attr in allowed_attrs}
 
-        # self.changes = [
-        #     change
-        #     for change in self.changes
-        #     if change.get_name() in allowed_attrs
-        # ]
+        self.changes = [
+            change
+            for change in self.changes
+            if change.get_name() in allowed_attrs
+        ]
 
         # if not self.changes:
         #     yield ModifyResponse(

@@ -345,20 +345,20 @@ class AddRequest(BaseRequest):
             )
             return
 
-        # allowed_attrs = set()
-        # for object_class in await get_object_classes_by_names(
-        #     object_classes,  # type: ignore
-        #     session,
-        # ):
-        #     allowed_attrs.update(object_class.attribute_types_may_display)
-        #     allowed_attrs.update(object_class.attribute_types_must_display)
+        allowed_attrs = set()
+        for object_class in await get_object_classes_by_names(
+            object_classes,  # type: ignore
+            session,
+        ):
+            allowed_attrs.update(object_class.attribute_types_may_display)
+            allowed_attrs.update(object_class.attribute_types_must_display)
 
-        # allowed_attrs = {attr.lower() for attr in allowed_attrs}
-        # attributes = [
-        #     attr
-        #     for attr in attributes
-        #     if attr.name.lower() in allowed_attrs
-        # ]  # fmt: skip
+        allowed_attrs = {attr.lower() for attr in allowed_attrs}
+        attributes = [
+            attr
+            for attr in attributes
+            if attr.name.lower() in allowed_attrs
+        ]  # fmt: skip
 
         try:
             items_to_add.extend(attributes)

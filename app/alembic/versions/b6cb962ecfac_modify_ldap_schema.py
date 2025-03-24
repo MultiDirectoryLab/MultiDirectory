@@ -35,7 +35,7 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
 
-    async def _create_attribute_type(connection):
+    async def _create_attribute_types(connection):
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -48,11 +48,20 @@ def upgrade() -> None:
             is_system=True,
             session=session,
         )
+        await create_attribute_type(
+            oid="1.3.6.1.4.1.99999.1.3",
+            name="posixEmail",
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=True,
+            is_system=True,
+            session=session,
+        )
         await session.commit()
 
-    op.run_async(_create_attribute_type)
+    op.run_async(_create_attribute_types)
 
-    async def _modify_attribute_type(connection):
+    async def _modify_object_classes(connection):
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -78,7 +87,31 @@ def upgrade() -> None:
         object_class_computer.attribute_types_must.extend(attribute_types_must)
         await session.commit()
 
-    op.run_async(_modify_attribute_type)
+        object_class_posix_account = await get_object_class_by_name(
+            object_class_name="posixAccount",
+            session=session,
+        )
+        attribute_types_may = await get_attribute_types_by_names(
+            attribute_type_names=("posixEmail",),
+            session=session,
+        )
+        object_class_posix_account.attribute_types_must.extend(
+            attribute_types_may
+        )
+        await session.commit()
+
+        object_class_org_unit = await get_object_class_by_name(
+            object_class_name="organizationalUnit",
+            session=session,
+        )
+        attribute_types_may = await get_attribute_types_by_names(
+            attribute_type_names=("title", "jpegPhoto"),
+            session=session,
+        )
+        object_class_org_unit.attribute_types_must.extend(attribute_types_may)
+        await session.commit()
+
+    op.run_async(_modify_object_classes)
 
 
 def downgrade() -> None:

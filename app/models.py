@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import enum
 import uuid
+from collections import defaultdict
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
@@ -227,6 +228,14 @@ class Directory(Base):
         cascade="all",
         passive_deletes=True,
     )
+
+    @property
+    def attributes_dict(self) -> defaultdict[str, list]:
+        attributes = defaultdict(list)
+        for attribute in self.attributes:
+            attributes[attribute.name].append(attribute.value)
+        return attributes
+
     group: Mapped[Group] = relationship(
         "Group",
         uselist=False,
@@ -647,16 +656,16 @@ class ObjectClass(Base):
     attribute_types_must: Mapped[list[AttributeType]] = relationship(
         "AttributeType",
         secondary=ObjectClassAttributeTypeMustMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",
+        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",
         lazy="selectin",
     )
 
     attribute_types_may: Mapped[list[AttributeType]] = relationship(
         "AttributeType",
         secondary=ObjectClassAttributeTypeMayMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",
+        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",
         lazy="selectin",
     )
 

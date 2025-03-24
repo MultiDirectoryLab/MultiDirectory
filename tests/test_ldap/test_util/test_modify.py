@@ -96,7 +96,6 @@ async def test_ldap_base_modify(
     directory = (await session.scalars(query)).one()
 
     attributes = defaultdict(list)
-
     for attr in directory.attributes:
         attributes[attr.name].append(attr.value)
 
@@ -605,23 +604,19 @@ async def test_ldap_modify_with_ap(
     directory = await session.scalar(query)
     assert directory
 
-    attributes = defaultdict(list)
-
-    for attr in directory.attributes:
-        attributes[attr.name].append(attr.value)
-
-    assert attributes["objectClass"] == [
+    assert directory.attributes_dict["objectClass"] == [
         "top",
         "container",
         "organizationalUnit",
     ]
-    assert attributes["title"] == [
+    assert directory.attributes_dict["title"] == [
         "Grand Poobah",
         "Grand Poobah1",
         "Grand Poobah2",
         "Grand Poobah3",
     ]
-    assert attributes["jpegPhoto"] == ["modme.jpeg"]
-    assert directory.user.mail == "modme@student.of.life.edu"
+    assert directory.attributes_dict["jpegPhoto"] == ["modme.jpeg"]
+    # а откуда здесь юзер возьмется если у нас нет такого ("user") обжект класса у директории, и тем более не от куда взяться email атрибуту
+    # assert directory.user.mail == "modme@student.of.life.edu"
 
-    assert "posixEmail" not in attributes
+    assert "posixEmail" not in directory.attributes_dict
