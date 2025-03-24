@@ -1,0 +1,65 @@
+log:
+  level: ERROR
+
+api:
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  ldap:
+    address: ":389"
+    proxyProtocol:
+      insecure: true
+  ldaps:
+    address: ":636"
+    proxyProtocol:
+      insecure: true
+  kadmind:
+    address: ":749"
+  kpasswd:
+    address: ":464"
+  bind_dns:
+    address: ":53"
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: md-resolver
+
+accesslog:
+  format: json
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /letsencrypt/cert.pem
+        keyFile: /letsencrypt/privkey.pem
+
+  options:
+    default:
+      maxVersion: VersionTLS12
+    maxtls12:
+      maxVersion: VersionTLS12
+
+certificatesResolvers:
+  md-resolver:
+    acme:
+      tlschallenge: true
+      email: support@multifactor.com
+      storage: /letsencrypt/acme.json
+
+providers:
+  file:
+    filename: /traefik.yml
+    watch: true
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
