@@ -20,7 +20,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
-      - "./package/traefik.yml:/traefik.yml"
+      - ".package/traefik.yml:/traefik.yml"
 
     deploy:
       resources:
@@ -37,7 +37,7 @@ services:
       context: ./interface
       dockerfile: configurations/docker/Dockerfile.dev
       args:
-        - API_URL: https://${DOMAIN}/api
+        - API_URL=https://${DOMAIN}/api
     restart: unless-stopped
     environment:
       - HUSKY=0
@@ -128,6 +128,7 @@ services:
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
       - traefik.tcp.routers.ldaps.service=ldaps
       - traefik.tcp.routers.ldaps.tls=true
+      - traefik.tcp.routers.ldaps.tls.certresolver=md-resolver
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
       - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
     healthcheck:
