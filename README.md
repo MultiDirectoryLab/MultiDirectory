@@ -25,6 +25,7 @@ mkdir MultiDirectory; cd MultiDirectory;
 ```sh
 bash <(curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/setup.sh);
 curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/docker-compose.yml;
+curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/traefik.yml;
 curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/LICENSE
 ```
 
@@ -35,6 +36,7 @@ After generating `.env` file, services are ready to deploy
 ```sh
 curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/setup.bat;
 curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/docker-compose.yml;
+curl -O https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/.package/traefik.yml;
 curl https://raw.githubusercontent.com/MultiDirectoryLab/MultiDirectory/main/LICENSE
 ```
 
