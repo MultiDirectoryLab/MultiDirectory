@@ -11,7 +11,7 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
-from ipaddress import IPv4Address, IPv6Address, ip_address
+from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncIterator, NoReturn
 
 import gssapi
@@ -133,21 +133,6 @@ class LDAPSession:
         """Lock session, user cannot be deleted or get while lock is set."""
         async with self._lock:
             yield self._user
-
-    @staticmethod
-    def get_address(writer: asyncio.StreamWriter) -> str:
-        """Get client address."""
-        return ":".join(map(str, writer.get_extra_info("peername")))
-
-    async def get_ip(
-        self,
-        writer: asyncio.StreamWriter,
-    ) -> IPv4Address | IPv6Address:
-        """Get ip addr from writer."""
-        addr = self.get_address(writer)
-        ip = ip_address(addr.split(":")[0])
-        self.ip = ip
-        return ip
 
     @staticmethod
     async def _get_policy(
