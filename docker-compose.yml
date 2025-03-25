@@ -231,7 +231,7 @@ services:
       - kdc:/etc
     image: krb5md
     tty: true
-    command: krb5kdc -n -w 4
+    command: krb5kdc -n
     ports:
       - "88:88"
       - "88:88/udp"
