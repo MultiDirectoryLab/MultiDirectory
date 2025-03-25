@@ -49,7 +49,14 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AttributeType, Directory, Group, ObjectClass, User
+from models import (
+    Attribute,
+    AttributeType,
+    Directory,
+    Group,
+    ObjectClass,
+    User,
+)
 
 from .base import BaseRequest
 
@@ -293,10 +300,10 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.PROTOCOL_ERROR)
             return
 
-        query, pages_total, count = await self.paginate_query(query, session)
+        query, pages_total, count = await self._paginate_query(query, session)
 
-        async for response in self._tree_view(query, session):
-            yield response
+        async for ldap_entry in self._get_ldap_tree_entries(query, session):
+            yield ldap_entry
 
         yield SearchResultDone(
             result_code=LDAPCodes.SUCCESS,
@@ -392,7 +399,7 @@ class SearchRequest(BaseRequest):
 
         return query
 
-    async def paginate_query(
+    async def _paginate_query(
         self,
         query: Select,
         session: AsyncSession,
@@ -416,7 +423,7 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
-    async def _tree_view(
+    async def _get_ldap_tree_entries(
         self,
         query: Select,
         session: AsyncSession,
@@ -425,43 +432,205 @@ class SearchRequest(BaseRequest):
         directories = await session.stream_scalars(query)
 
         async for directory in directories:
-            attrs = await self._display_directory(session, directory)
+            coll = CollectLdapTreeEntry(
+                directory,
+                session,
+                search_request=self,
+            )
+            coll._collect_object_class_names(directory.attributes)
+
+            await coll._collect_directory_attrs()
+
+            attrs_essense = await coll._apply_ldap_schema_to_attrs()
 
             yield SearchResultEntry(
                 object_name=directory.path_dn,
                 partial_attributes=[
                     PartialAttribute(type=key, vals=value)
-                    for key, value in attrs.items()
+                    for key, value in attrs_essense.items()
                 ],
             )
 
-    async def _display_directory(  # noqa: C901
+
+class CollectLdapTreeEntry:
+    """Collect directory attributes."""
+
+    def __init__(
         self,
-        session: AsyncSession,
         directory: Directory,
-    ) -> dict:
+        session: AsyncSession,
+        search_request: SearchRequest,
+    ) -> None:
+        """Init."""
+        self._directory = directory
+        self._session = session
+        self._search_request = search_request
+        self._object_class_names = self._collect_object_class_names(
+            self._directory.attributes
+        )
+        self._attrs: dict[str, list] = defaultdict(list)
+
+    async def _collect_directory_attrs(self) -> None:
         """Display directory."""
-        # object_classes
-        object_classes = []
-        for d_attribute in directory.attributes:
-            if d_attribute.name.lower() == "objectclass":
-                if isinstance(d_attribute.value, str):
-                    oc_value = d_attribute.value.replace("\\x00", "\x00")
-                else:
-                    oc_value = d_attribute.bvalue  # type: ignore
-
-                object_classes.append(oc_value)
-
-        attrs = defaultdict(list)
-
-        # default attrs
-        attrs["distinguishedName"].append(directory.path_dn)
-        attrs["whenCreated"].append(
-            directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
+        self._attrs["distinguishedName"].append(self._directory.path_dn)
+        self._attrs["whenCreated"].append(
+            self._directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
         )
 
-        # base attrs
-        for d_attribute in directory.attributes:
+        if self._directory.attributes:
+            self._pick_around_directory_attributes()
+
+        if self._need_expand_attr_memberof():
+            self._expand_attr_memberof()
+
+        if self._need_expand_attr_token_groups():
+            await self._expand_attr_token_groups()
+
+        if self._need_expand_attr_member():
+            self._expand_attr_member()
+
+        if self._directory.user:
+            self._pick_around_user_fields()
+
+        if self._directory.group:
+            self._pick_around_group_fields()
+
+        if self._directory.search_fields:
+            self._pick_around_directory_search_fields()
+
+    def _expand_attr_memberof(self) -> None:
+        for group in self._directory.groups:
+            self._attrs["memberOf"].append(group.directory.path_dn)
+
+    def _need_expand_attr_memberof(self) -> bool:
+        return bool(
+            self._search_request.member_of
+            and (
+                "group" in self._object_class_names
+                or "user" in self._object_class_names
+            )
+        )
+
+    def _pick_around_directory_search_fields(self) -> None:
+        directory_field_names: list[str] = []
+
+        if self._search_request.all_attrs:
+            directory_field_names = list(self._directory.search_fields.keys())
+        else:
+            directory_field_names = list(
+                requested_attr
+                for requested_attr in self._search_request.requested_attrs
+                if requested_attr in self._directory.search_fields
+            )
+
+        for dir_field_name in directory_field_names:
+            d_field_key = self._directory.search_fields[dir_field_name]
+
+            d_field_value = getattr(self._directory, dir_field_name)
+            if dir_field_name == "objectsid":
+                d_field_value = string_to_sid(d_field_value)
+            elif dir_field_name == "objectguid":
+                d_field_value = d_field_value.bytes_le
+
+            self._attrs[d_field_key].append(d_field_value)
+
+    def _pick_around_group_fields(self) -> None:
+        group_field_names = []
+        if self._search_request.all_attrs:
+            group_field_names = list(
+                self._directory.group.search_fields.keys()
+            )
+        else:
+            group_field_names = [
+                requested_attr
+                for requested_attr in self._search_request.requested_attrs
+                if (
+                    self._directory.group
+                    and (requested_attr in self._directory.group.search_fields)
+                )
+            ]
+
+        for group_field_name in group_field_names:
+            g_key = self._directory.group.search_fields[group_field_name]
+            g_value = getattr(self._directory.group, group_field_name)
+            self._attrs[g_key].append(g_value)
+
+    def _pick_around_user_fields(self) -> None:
+        user_field_names: list = []
+        if self._search_request.all_attrs:
+            user_field_names = list(self._directory.user.search_fields.keys())
+        else:
+            user_field_names = [
+                requested_attr_name
+                for requested_attr_name in self._search_request.requested_attrs
+                if (
+                    self._directory.user
+                    and (
+                        requested_attr_name
+                        in self._directory.user.search_fields
+                    )
+                )
+            ]
+
+        for user_field_name in user_field_names:
+            if user_field_name == "accountexpires":
+                continue
+
+            u_key = self._directory.user.search_fields[user_field_name]
+            u_value = getattr(self._directory.user, user_field_name)
+            self._attrs[u_key].append(u_value)
+
+        if self._directory.user.account_exp is None:
+            self._attrs["accountExpires"].append("0")
+        else:
+            self._attrs["accountExpires"].append(
+                str(dt_to_ft(self._directory.user.account_exp))
+            )
+
+        if self._directory.user.last_logon is None:
+            self._attrs["lastLogon"].append("0")
+        else:
+            self._attrs["lastLogon"].append(
+                str(get_windows_timestamp(self._directory.user.last_logon))
+            )
+            self._attrs["authTimestamp"].append(
+                str(self._directory.user.last_logon)
+            )
+
+    def _expand_attr_member(self) -> None:
+        for member in self._directory.group.members:
+            self._attrs["member"].append(member.path_dn)
+
+    def _need_expand_attr_member(self) -> bool:
+        return bool(
+            self._search_request.member
+            and "group" in self._object_class_names
+            and self._directory.group
+        )  # fmt: skip
+
+    async def _expand_attr_token_groups(self) -> None:
+        self._attrs["tokenGroups"].append(
+            str(string_to_sid(self._directory.object_sid))
+        )
+
+        group_directories = await get_all_parent_group_directories(
+            self._directory.groups,
+            self._session,
+        )
+        if group_directories is not None:
+            async for group_directory in group_directories:
+                self._attrs["tokenGroups"].append(
+                    str(string_to_sid(group_directory.object_sid))
+                )
+
+    def _need_expand_attr_token_groups(self) -> bool:
+        return (
+            self._search_request.token_groups
+            and "user" in self._object_class_names
+        )
+
+    def _pick_around_directory_attributes(self) -> dict:
+        for d_attribute in self._directory.attributes:
             d_key = d_attribute.name
 
             if isinstance(d_attribute.value, str):
@@ -469,142 +638,34 @@ class SearchRequest(BaseRequest):
             else:
                 d_value = d_attribute.bvalue  # type: ignore
 
-            attrs[d_key].append(d_value)
+            self._attrs[d_key].append(d_value)
+        return self._attrs
 
-        # memberOf
-        if (
-            self.member_of
-            and (
-                "group" in object_classes
-                or "user" in object_classes
-            )
-        ):  # fmt: skip
-            # values
-            for group in directory.groups:
-                attrs["memberOf"].append(group.directory.path_dn)
+    def _collect_object_class_names(
+        self,
+        directory_attributes: list[Attribute],
+    ) -> list[str]:
+        object_classes = []
+        for d_attribute in directory_attributes:
+            if d_attribute.name.lower() == "objectclass":
+                if isinstance(d_attribute.value, str):
+                    oc_value = d_attribute.value.replace("\\x00", "\x00")
+                else:
+                    oc_value = d_attribute.bvalue  # type: ignore
 
-        # tokenGroups
-        if self.token_groups and "user" in object_classes:
-            # base values
-            attrs["tokenGroups"].append(
-                str(string_to_sid(directory.object_sid))
-            )
+                object_classes.append(oc_value)
+        return object_classes
 
-            # values
-            group_directories = await get_all_parent_group_directories(
-                directory.groups,
-                session,
-            )
-            if group_directories is not None:
-                async for directory_ in group_directories:
-                    attrs["tokenGroups"].append(
-                        str(string_to_sid(directory_.object_sid))
-                    )
-
-        # member
-        if self.member and "group" in object_classes and directory.group:
-            for member in directory.group.members:
-                attrs["member"].append(member.path_dn)
-
-        # user_fields
-        if directory.user:
-            # names
-            user_field_names: list = []
-            if self.all_attrs:
-                user_field_names = list(directory.user.search_fields.keys())
-            else:
-                user_field_names = [
-                    requested_attr_name
-                    for requested_attr_name in self.requested_attrs
-                    if (
-                        directory.user
-                        and (
-                            requested_attr_name in directory.user.search_fields
-                        )
-                    )
-                ]
-
-            # values
-            for user_field_name in user_field_names:
-                if user_field_name == "accountexpires":
-                    continue
-
-                u_key = directory.user.search_fields[user_field_name]
-                u_value = getattr(directory.user, user_field_name)
-                attrs[u_key].append(u_value)
-
-            # default values
-            if directory.user.account_exp is None:
-                attrs["accountExpires"].append("0")
-            else:
-                attrs["accountExpires"].append(
-                    str(dt_to_ft(directory.user.account_exp))
-                )
-
-            if directory.user.last_logon is None:
-                attrs["lastLogon"].append("0")
-            else:
-                attrs["lastLogon"].append(
-                    str(get_windows_timestamp(directory.user.last_logon))
-                )
-                attrs["authTimestamp"].append(str(directory.user.last_logon))
-
-        # group_fields
-        if directory.group:
-            # names
-            group_field_names = []
-            if self.all_attrs:
-                group_field_names = list(directory.group.search_fields.keys())
-            else:
-                group_field_names = [
-                    requested_attr
-                    for requested_attr in self.requested_attrs
-                    if (
-                        directory.group
-                        and (requested_attr in directory.group.search_fields)
-                    )
-                ]
-
-            # values
-            for group_field_name in group_field_names:
-                g_key = directory.group.search_fields[group_field_name]
-                g_value = getattr(directory.group, group_field_name)
-                attrs[g_key].append(g_value)
-
-        # directory_fields
-        if directory.search_fields:
-            # names
-            directory_field_names: list[str] = []
-
-            if self.all_attrs:
-                directory_field_names = list(directory.search_fields.keys())
-            else:
-                directory_field_names = list(
-                    requested_attr
-                    for requested_attr in self.requested_attrs
-                    if requested_attr in directory.search_fields
-                )
-
-            # values
-            for dir_field_name in directory_field_names:
-                d_field_key = directory.search_fields[dir_field_name]
-
-                d_field_value = getattr(directory, dir_field_name)
-                if dir_field_name == "objectsid":
-                    d_field_value = string_to_sid(d_field_value)
-                elif dir_field_name == "objectguid":
-                    d_field_value = d_field_value.bytes_le
-
-                attrs[d_field_key].append(d_field_value)
-
-        # slice attrs
+    async def _apply_ldap_schema_to_attrs(self) -> dict[str, list]:
         allowed_attrs = set()
         for object_class in await get_object_classes_by_names(
-            object_classes,
-            session,
+            self._object_class_names,  # type: ignore
+            self._session,
         ):
             allowed_attrs.update(object_class.attribute_types_may_display)
             allowed_attrs.update(object_class.attribute_types_must_display)
 
-        # ответ
-        return {k: v for k, v in attrs.items() if k in allowed_attrs}
+        attrs_essense = {
+            k: v for k, v in self._attrs.items() if k in allowed_attrs
+        }
+        return attrs_essense
