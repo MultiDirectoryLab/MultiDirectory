@@ -155,7 +155,6 @@ class AbstractKRBManager(ABC):
         """Lock principal.
 
         :param str name: principal
-        :param str | None password: if empty - uses randkey.
         """
 
     @abstractmethod
@@ -163,7 +162,16 @@ class AbstractKRBManager(ABC):
         """Lock principal.
 
         :param str name: principal
-        :param str | None password: if empty - uses randkey.
+        """
+
+    @abstractmethod
+    async def update_password_exp(
+        self, name: str, days: int, **dbargs
+    ) -> None:
+        """Update attr password expiration.
+
+        :param str name: principal
+        :param int days: days
         """
 
 
@@ -228,10 +236,6 @@ class KAdminLocalManager(AbstractKRBManager):
             await self.loop.run_in_executor(
                 self.pool,
                 partial(princ.modify, attributes=128),
-            )
-            await self.loop.run_in_executor(
-                self.pool,
-                princ.commit,
             )
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
@@ -329,6 +333,18 @@ class KAdminLocalManager(AbstractKRBManager):
         """
         princ = await self._get_raw_principal(name)
         princ.pwexpire = "Now"
+        await self.loop.run_in_executor(self.pool, princ.commit)
+
+    async def update_password_exp(
+        self, name: str, days: int, **dbargs
+    ) -> None:
+        """Update attr password expiration.
+
+        :param str name: principal
+        :param int days: days
+        """
+        princ = await self._get_raw_principal(name)
+        princ.pwexpire = f"{days} Days"
         await self.loop.run_in_executor(self.pool, princ.commit)
 
 
@@ -585,6 +601,26 @@ async def rename_princ(
     """
     """"""
     await kadmin.rename_princ(name, new_name)
+
+
+@principal_router.post(
+    "/set_password_exp",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_class=Response,
+)
+async def set_new_password_exp(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    name: Annotated[str, Body()],
+    days: Annotated[int, Body()],
+) -> None:
+    """Rename principal.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    :param Annotated[str, Body new_name: principal new name
+    """
+    """"""
+    await kadmin.update_password_exp(name, days)
 
 
 @principal_router.post("/ktadd")
