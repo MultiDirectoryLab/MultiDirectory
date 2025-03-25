@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth import get_current_user
 from ldap_protocol.ldap_schema.object_class_crud import (
     ObjectClassSchema,
+    ObjectClassUpdateSchema,
     create_object_class,
     delete_object_classes_by_names,
     get_all_object_classes,
@@ -47,7 +48,7 @@ async def create_one_object_class(
         name=request_data.name,
         superior=request_data.superior,
         kind=request_data.kind,
-        is_system=request_data.is_system,
+        is_system=False,
         attribute_types_must=request_data.attribute_types_must,
         attribute_types_may=request_data.attribute_types_may,
         session=session,
@@ -87,15 +88,16 @@ async def get_list_object_classes(
 )
 async def modify_one_object_class(
     object_class_name: str,
-    request_data: ObjectClassSchema,
+    request_data: ObjectClassUpdateSchema,
     session: FromDishka[AsyncSession],
 ) -> None:
     """Modify an Object Class.
 
     :param str object_class_name: Name of the Object Class for modifying.
-    :param ObjectClassSchema request_data: Changed data.
+    :param ObjectClassUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
+    :raise HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
     :return None.
     """
     object_class = await get_object_class_by_name(object_class_name, session)
@@ -103,6 +105,12 @@ async def modify_one_object_class(
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Object Class not found.",
+        )
+
+    if object_class.is_system:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "System object class cannot be modified.",
         )
 
     await modify_object_class(

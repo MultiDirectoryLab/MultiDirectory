@@ -23,7 +23,7 @@ class AttributeTypeSchema(BaseModel):
 
 
 class AttributeTypeUpdateSchema(BaseModel):
-    """Attribute Type Schema."""
+    """Attribute Type Schema for modify/update."""
 
     syntax: str
     single_value: bool

@@ -29,6 +29,16 @@ class ObjectClassSchema(BaseModel):
     attribute_types_may: list[str]
 
 
+class ObjectClassUpdateSchema(BaseModel):
+    """Object Class Schema for modify/update."""
+
+    superior: str | None
+    kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
+    is_system: bool
+    attribute_types_must: list[str]
+    attribute_types_may: list[str]
+
+
 async def create_object_class(
     oid: str,
     name: str,
@@ -118,13 +128,13 @@ async def get_all_object_classes(session: AsyncSession) -> list[ObjectClass]:
 
 async def modify_object_class(
     object_class: ObjectClass,
-    new_statement: ObjectClassSchema,
+    new_statement: ObjectClassUpdateSchema,
     session: AsyncSession,
 ) -> None:
     """Modify Object Class.
 
     :param ObjectClass object_class: Object Class.
-    :param ObjectClassSchema new_statement: New statement of object class.
+    :param ObjectClassUpdateSchema new_statement: New statement of object class
     :param AsyncSession session: Database session.
     :return None.
     """
@@ -162,6 +172,9 @@ async def delete_object_classes_by_names(
     """
     await session.execute(
         delete(ObjectClass)
-        .where(ObjectClass.name.in_(object_classes_names)),
+        .where(
+            ObjectClass.name.in_(object_classes_names),
+            ObjectClass.is_system.is_(False),
+        ),
     )  # fmt: skip
     await session.commit()
