@@ -23,7 +23,7 @@ class AttributeTypeSchema(BaseModel):
 
 
 class AttributeTypeUpdateSchema(BaseModel):
-    """Attribute Type Schema."""
+    """Attribute Type Schema for modify/update."""
 
     syntax: str
     single_value: bool
@@ -136,6 +136,9 @@ async def delete_attribute_types_by_names(
     """
     await session.execute(
         delete(AttributeType)
-        .where(AttributeType.name.in_(attribute_types_names)),
+        .where(
+            AttributeType.name.in_(attribute_types_names),
+            AttributeType.is_system.is_(False),
+        ),
     )  # fmt: skip
     await session.commit()

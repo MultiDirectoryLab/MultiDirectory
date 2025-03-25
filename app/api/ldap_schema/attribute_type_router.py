@@ -95,7 +95,7 @@ async def modify_one_attribute_type(
     :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If attribute type not found.
-    :raise HTTP_400_BAD_REQUEST: If field cannot be changed.
+    :raise HTTP_400_BAD_REQUEST: If attribute type is system->cannot be changed
     :return None.
     """
     attribute_type = await get_attribute_type_by_name(
@@ -106,6 +106,12 @@ async def modify_one_attribute_type(
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Attribute Type not found.",
+        )
+
+    if attribute_type.is_system:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "System attribute type cannot be modified.",
         )
 
     await modify_attribute_type(
