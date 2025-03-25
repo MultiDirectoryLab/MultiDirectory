@@ -161,21 +161,28 @@ class ModifyRequest(BaseRequest):
             if attr.name.lower() == "objectclass"
         ]
 
-        allowed_attrs = set()
+        ldap_schema_field_names = set()
         for object_class in await get_object_classes_by_names(
             object_classes,
             session,
         ):
-            allowed_attrs.update(object_class.attribute_types_may_display)
-            allowed_attrs.update(object_class.attribute_types_must_display)
-        allowed_attrs = {attr.lower() for attr in allowed_attrs}
+            ldap_schema_field_names.update(
+                object_class.attribute_types_may_display
+            )
+            ldap_schema_field_names.update(
+                object_class.attribute_types_must_display
+            )
+        ldap_schema_field_names = {
+            field_names.lower() for field_names in ldap_schema_field_names
+        }
 
         self.changes = [
             change
             for change in self.changes
-            if change.get_name() in allowed_attrs
+            if change.get_name() in ldap_schema_field_names
         ]
 
+        # почему тесты падают если запретить вносить пустые изменения?
         # if not self.changes:
         #     yield ModifyResponse(
         #         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,

@@ -452,7 +452,7 @@ class CollectLdapTreeEntryPipeline:
     ) -> None:
         """Init pipeline.
 
-        :param Directory directory: directory is the skeleton of the future entry
+        :param Directory directory: it's the skeleton of the future entry
         :param AsyncSession session: session
         :param SearchRequest search_request: search request
         """

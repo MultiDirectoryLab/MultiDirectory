@@ -198,6 +198,32 @@ class AddRequest(BaseRequest):
             )
         )
 
+        # почему нельзя делать применение схемы здесь?
+        # object_classes = self.attr_names.get("objectclass", [])
+        # if not object_classes:
+        #     await session.rollback()
+        #     yield AddResponse(
+        #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+        #         message="Directory object must have at least one object class",
+        #     )
+        #     return
+
+        # ldap_schema_field_names = set()
+        # for object_class in await get_object_classes_by_names(
+        #     object_classes,  # type: ignore
+        #     session,
+        # ):
+        #     ldap_schema_field_names.update(
+        #         object_class.attribute_types_may_display
+        #     )
+        #     ldap_schema_field_names.update(
+        #         object_class.attribute_types_must_display
+        #     )
+
+        # ldap_schema_field_names = {
+        #     field_name.lower() for field_name in ldap_schema_field_names
+        # }
+
         for attr in self.attributes:
             lname = attr.type.lower()
 
@@ -205,6 +231,10 @@ class AddRequest(BaseRequest):
             # in the attributes
             if lname == new_dir.rdname:
                 continue
+
+            # почему нельзя делать фильтрацию атрибутов здесь?
+            # if lname not in ldap_schema_field_names:
+            #     continue
 
             for value in attr.vals:
                 if lname in Directory.ro_fields or lname in (
@@ -345,19 +375,25 @@ class AddRequest(BaseRequest):
             )
             return
 
-        allowed_attrs = set()
+        ldap_schema_field_names = set()
         for object_class in await get_object_classes_by_names(
             object_classes,  # type: ignore
             session,
         ):
-            allowed_attrs.update(object_class.attribute_types_may_display)
-            allowed_attrs.update(object_class.attribute_types_must_display)
+            ldap_schema_field_names.update(
+                object_class.attribute_types_may_display
+            )
+            ldap_schema_field_names.update(
+                object_class.attribute_types_must_display
+            )
 
-        allowed_attrs = {attr.lower() for attr in allowed_attrs}
+        ldap_schema_field_names = {
+            field_name.lower() for field_name in ldap_schema_field_names
+        }
         attributes = [
-            attr
-            for attr in attributes
-            if attr.name.lower() in allowed_attrs
+            field
+            for field in attributes
+            if field.name.lower() in ldap_schema_field_names
         ]  # fmt: skip
 
         try:
