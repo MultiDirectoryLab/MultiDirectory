@@ -3,7 +3,7 @@
 # License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 services:
   traefik:
-    image: "traefik:v2.6"
+    image: "traefik:v3.3.4"
     container_name: "traefik"
     command:
       - "--providers.file.filename=/traefik.yml"
