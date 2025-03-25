@@ -72,13 +72,13 @@ async def test_modify_one_object_class(
 
     new_statement = dataset["new_statement"]
     response = await http_client.patch(
-        f"/object_class/{new_statement['name']}",
+        f"/object_class/{dataset['object_class_data']['name']}",
         json=new_statement,
     )
     assert response.status_code == status.HTTP_200_OK
 
     object_class = await get_object_class_by_name(
-        str(new_statement.get("name", "")),
+        str(dataset["object_class_data"].get("name", "")),
         session,
     )
     assert isinstance(object_class, ObjectClass)
