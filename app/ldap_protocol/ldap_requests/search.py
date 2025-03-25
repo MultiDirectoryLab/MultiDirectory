@@ -425,60 +425,72 @@ class SearchRequest(BaseRequest):
         directories = await session.stream_scalars(query)
 
         async for directory in directories:
-            attrs, allowed_attrs = await self._display_directory(
-                session, directory
-            )
+            attrs = await self._display_directory(session, directory)
 
             yield SearchResultEntry(
                 object_name=directory.path_dn,
                 partial_attributes=[
                     PartialAttribute(type=key, vals=value)
                     for key, value in attrs.items()
-                    if key in allowed_attrs
                 ],
             )
 
-    async def _display_directory(
-        self, session: AsyncSession, directory: Directory
-    ) -> tuple:
+    async def _display_directory(  # noqa: C901
+        self,
+        session: AsyncSession,
+        directory: Directory,
+    ) -> dict:
         """Display directory."""
+        # object_classes
+        object_classes = []
+        for d_attribute in directory.attributes:
+            if d_attribute.name.lower() == "objectclass":
+                if isinstance(d_attribute.value, str):
+                    oc_value = d_attribute.value.replace("\\x00", "\x00")
+                else:
+                    oc_value = d_attribute.bvalue  # type: ignore
+
+                object_classes.append(oc_value)
+
         attrs = defaultdict(list)
 
+        # default attrs
         attrs["distinguishedName"].append(directory.path_dn)
         attrs["whenCreated"].append(
             directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
         )
 
-        # object_classes
-        object_classes = []
-        for attr in directory.attributes:
-            if isinstance(attr.value, str):
-                value = attr.value.replace("\\x00", "\x00")
+        # base attrs
+        for d_attribute in directory.attributes:
+            d_key = d_attribute.name
+
+            if isinstance(d_attribute.value, str):
+                d_value = d_attribute.value.replace("\\x00", "\x00")
             else:
-                value = attr.bvalue
+                d_value = d_attribute.bvalue  # type: ignore
 
-            if attr.name.lower() == "objectclass":
-                object_classes.append(value)
-
-            attrs[attr.name].append(value)
+            attrs[d_key].append(d_value)
 
         # memberOf
         if (
-                self.member_of
-                and (
-                    "group" in object_classes
-                    or "user" in object_classes
-                )
-            ):  # fmt: skip
+            self.member_of
+            and (
+                "group" in object_classes
+                or "user" in object_classes
+            )
+        ):  # fmt: skip
+            # values
             for group in directory.groups:
                 attrs["memberOf"].append(group.directory.path_dn)
 
         # tokenGroups
         if self.token_groups and "user" in object_classes:
+            # base values
             attrs["tokenGroups"].append(
                 str(string_to_sid(directory.object_sid))
             )
 
+            # values
             group_directories = await get_all_parent_group_directories(
                 directory.groups,
                 session,
@@ -496,25 +508,32 @@ class SearchRequest(BaseRequest):
 
         # user_fields
         if directory.user:
-            user_fields = []
+            # names
+            user_field_names: list = []
             if self.all_attrs:
-                user_fields = directory.user.search_fields.keys()
+                user_field_names = list(directory.user.search_fields.keys())
             else:
-                user_fields = [
-                    attr
-                    for attr in self.requested_attrs
+                user_field_names = [
+                    requested_attr_name
+                    for requested_attr_name in self.requested_attrs
                     if (
                         directory.user
-                        and (attr in directory.user.search_fields)
+                        and (
+                            requested_attr_name in directory.user.search_fields
+                        )
                     )
                 ]
 
-            for attr in user_fields:
-                if attr == "accountexpires":
+            # values
+            for user_field_name in user_field_names:
+                if user_field_name == "accountexpires":
                     continue
-                attribute = getattr(directory.user, attr)
-                attrs[directory.user.search_fields[attr]].append(attribute)
 
+                u_key = directory.user.search_fields[user_field_name]
+                u_value = getattr(directory.user, user_field_name)
+                attrs[u_key].append(u_value)
+
+            # default values
             if directory.user.account_exp is None:
                 attrs["accountExpires"].append("0")
             else:
@@ -528,13 +547,14 @@ class SearchRequest(BaseRequest):
                 attrs["lastLogon"].append(
                     str(get_windows_timestamp(directory.user.last_logon))
                 )
-                attrs["authTimestamp"].append(directory.user.last_logon)
+                attrs["authTimestamp"].append(str(directory.user.last_logon))
 
         # group_fields
         if directory.group:
+            # names
             group_field_names = []
             if self.all_attrs:
-                group_field_names = directory.group.search_fields.keys()
+                group_field_names = list(directory.group.search_fields.keys())
             else:
                 group_field_names = [
                     requested_attr
@@ -545,28 +565,37 @@ class SearchRequest(BaseRequest):
                     )
                 ]
 
-            for field_name in group_field_names:
-                value = getattr(directory.group, field_name)
-                attrs[directory.group.search_fields[field_name]].append(value)
+            # values
+            for group_field_name in group_field_names:
+                g_key = directory.group.search_fields[group_field_name]
+                g_value = getattr(directory.group, group_field_name)
+                attrs[g_key].append(g_value)
 
         # directory_fields
         if directory.search_fields:
+            # names
+            directory_field_names: list[str] = []
+
             if self.all_attrs:
-                directory_fields = directory.search_fields.keys()
+                directory_field_names = list(directory.search_fields.keys())
             else:
-                directory_fields = (
+                directory_field_names = list(
                     requested_attr
                     for requested_attr in self.requested_attrs
                     if requested_attr in directory.search_fields
                 )
 
-            for attr in directory_fields:
-                attribute = getattr(directory, attr)
-                if attr == "objectsid":
-                    attribute = string_to_sid(attribute)
-                elif attr == "objectguid":
-                    attribute = attribute.bytes_le
-                attrs[directory.search_fields[attr]].append(attribute)
+            # values
+            for dir_field_name in directory_field_names:
+                d_field_key = directory.search_fields[dir_field_name]
+
+                d_field_value = getattr(directory, dir_field_name)
+                if dir_field_name == "objectsid":
+                    d_field_value = string_to_sid(d_field_value)
+                elif dir_field_name == "objectguid":
+                    d_field_value = d_field_value.bytes_le
+
+                attrs[d_field_key].append(d_field_value)
 
         # slice attrs
         allowed_attrs = set()
@@ -576,4 +605,6 @@ class SearchRequest(BaseRequest):
         ):
             allowed_attrs.update(object_class.attribute_types_may_display)
             allowed_attrs.update(object_class.attribute_types_must_display)
-        return attrs, allowed_attrs
+
+        # ответ
+        return {k: v for k, v in attrs.items() if k in allowed_attrs}
