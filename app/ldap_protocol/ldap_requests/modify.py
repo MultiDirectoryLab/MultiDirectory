@@ -170,6 +170,21 @@ class ModifyRequest(BaseRequest):
             if change.modification.type in Directory.ro_fields:
                 continue
 
+            if all([
+                change.modification.type == "krbpasswordexpiration",
+                change.modification.vals[0] == "19700101000000Z"
+            ]):
+                policy = await PasswordPolicySchema.get_policy_settings(
+                    session
+                )
+
+                if policy.maximum_password_age_days > 0:
+                    principal_name = directory.name.split("@")[0]
+                    await kadmin.set_new_password_exp(
+                        principal_name, policy.maximum_password_age_days
+                    )
+                    continue
+
             add_args = (
                 change,
                 directory,

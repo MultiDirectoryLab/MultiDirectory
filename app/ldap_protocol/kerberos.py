@@ -278,6 +278,9 @@ class AbstractKadmin(ABC):
     @abstractmethod
     async def force_princ_pw_change(self, name: str) -> None: ...
 
+    @abstractmethod
+    async def set_new_password_exp(self, name: str, days: int) -> None: ...
+
     async def ldap_principal_setup(self, name: str, path: str) -> None:
         """LDAP principal setup.
 
@@ -416,6 +419,21 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
+    @logger_wraps()
+    async def set_new_password_exp(self, name: str, days: int) -> None:
+        """Set new password expiration.
+
+        :param str name: upn
+        :param int days: days
+        """
+        response = await self.client.post(
+            "principal/set_password_exp",
+            json={"name": name, "days": days},
+        )
+
+        if response.status_code != 202:
+            raise KRBAPIError(response.text)
+
     async def force_princ_pw_change(self, name: str) -> None:
         """Force mark password change for principal.
 
@@ -479,6 +497,9 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps(is_stub=True)
     async def force_princ_pw_change(self, name: str) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def set_new_password_exp(self, name: str, days: int) -> None: ...
 
 
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
