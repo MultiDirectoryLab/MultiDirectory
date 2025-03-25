@@ -3,7 +3,7 @@
 
 services:
   traefik:
-    image: "mirror.gcr.io/traefik:v2.6"
+    image: "mirror.gcr.io/traefik:v3.3.4"
     container_name: traefik
     restart: unless-stopped
     command:
