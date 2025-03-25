@@ -295,7 +295,7 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self.paginate_query(query, session)
 
-        async for response in self.tree_view(query, session):
+        async for response in self._tree_view(query, session):
             yield response
 
         yield SearchResultDone(
@@ -416,113 +416,98 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
-    async def tree_view(  # noqa: C901
+    async def _tree_view(
         self,
         query: Select,
         session: AsyncSession,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
-        # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 
         async for directory in directories:
-            attrs = defaultdict(list)
-            obj_classes = []
-
-            for attr in directory.attributes:
-                if isinstance(attr.value, str):
-                    value = attr.value.replace("\\x00", "\x00")
-                else:
-                    value = attr.bvalue
-
-                if attr.name.lower() == "objectclass":
-                    obj_classes.append(value)
-
-                attrs[attr.name].append(value)
-
-            distinguished_name = directory.path_dn
-
-            attrs["distinguishedName"].append(distinguished_name)
-            attrs["whenCreated"].append(
-                directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
+            attrs, allowed_attrs = await self._display_directory(
+                session, directory
             )
 
-            if directory.user:
-                if directory.user.account_exp is None:
-                    attrs["accountExpires"].append("0")
-                else:
-                    attrs["accountExpires"].append(
-                        str(dt_to_ft(directory.user.account_exp))
-                    )
-                if directory.user.last_logon is None:
-                    attrs["lastLogon"].append("0")
-                else:
-                    attrs["lastLogon"].append(
-                        str(get_windows_timestamp(directory.user.last_logon))
-                    )
-                    attrs["authTimestamp"].append(directory.user.last_logon)
+            yield SearchResultEntry(
+                object_name=directory.path_dn,
+                partial_attributes=[
+                    PartialAttribute(type=key, vals=value)
+                    for key, value in attrs.items()
+                    if key in allowed_attrs
+                ],
+            )
 
-            if (
+    async def _display_directory(
+        self, session: AsyncSession, directory: Directory
+    ) -> tuple:
+        """Display directory."""
+        attrs = defaultdict(list)
+
+        attrs["distinguishedName"].append(directory.path_dn)
+        attrs["whenCreated"].append(
+            directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
+        )
+
+        # object_classes
+        object_classes = []
+        for attr in directory.attributes:
+            if isinstance(attr.value, str):
+                value = attr.value.replace("\\x00", "\x00")
+            else:
+                value = attr.bvalue
+
+            if attr.name.lower() == "objectclass":
+                object_classes.append(value)
+
+            attrs[attr.name].append(value)
+
+        # memberOf
+        if (
                 self.member_of
-                and "group" in obj_classes
-                or "user" in obj_classes
-            ):
-                for group in directory.groups:
-                    attrs["memberOf"].append(group.directory.path_dn)
-
-            if self.token_groups and "user" in obj_classes:
-                attrs["tokenGroups"].append(
-                    str(string_to_sid(directory.object_sid))
+                and (
+                    "group" in object_classes
+                    or "user" in object_classes
                 )
+            ):  # fmt: skip
+            for group in directory.groups:
+                attrs["memberOf"].append(group.directory.path_dn)
 
-                group_directories = await get_all_parent_group_directories(
-                    directory.groups,
-                    session,
-                )
+        # tokenGroups
+        if self.token_groups and "user" in object_classes:
+            attrs["tokenGroups"].append(
+                str(string_to_sid(directory.object_sid))
+            )
 
-                if group_directories is not None:
-                    async for directory_ in group_directories:
-                        attrs["tokenGroups"].append(
-                            str(string_to_sid(directory_.object_sid))
-                        )
-
-            if self.member and "group" in obj_classes and directory.group:
-                for member in directory.group.members:
-                    attrs["member"].append(member.path_dn)
-
-            if directory.user:
-                if self.all_attrs:
-                    user_fields = directory.user.search_fields.keys()
-                else:
-                    user_fields = (
-                        attr
-                        for attr in self.requested_attrs
-                        if (
-                            directory.user
-                            and (attr in directory.user.search_fields)
-                        )
+            group_directories = await get_all_parent_group_directories(
+                directory.groups,
+                session,
+            )
+            if group_directories is not None:
+                async for directory_ in group_directories:
+                    attrs["tokenGroups"].append(
+                        str(string_to_sid(directory_.object_sid))
                     )
-            else:
-                user_fields = []
 
-            if directory.group:
-                if self.all_attrs:
-                    group_fields = directory.group.search_fields.keys()
-                else:
-                    group_fields = (
-                        attr
-                        for attr in self.requested_attrs
-                        if (
-                            directory.group
-                            and (attr in directory.group.search_fields)
-                        )
+        # member
+        if self.member and "group" in object_classes and directory.group:
+            for member in directory.group.members:
+                attrs["member"].append(member.path_dn)
+
+        # user_fields
+        if directory.user:
+            user_fields = []
+            if self.all_attrs:
+                user_fields = directory.user.search_fields.keys()
+            else:
+                user_fields = [
+                    attr
+                    for attr in self.requested_attrs
+                    if (
+                        directory.user
+                        and (attr in directory.user.search_fields)
                     )
-            else:
-                group_fields = []
-
-            for attr in group_fields:
-                attribute = getattr(directory.group, attr)
-                attrs[directory.group.search_fields[attr]].append(attribute)
+                ]
 
             for attr in user_fields:
                 if attr == "accountexpires":
@@ -530,13 +515,49 @@ class SearchRequest(BaseRequest):
                 attribute = getattr(directory.user, attr)
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
+            if directory.user.account_exp is None:
+                attrs["accountExpires"].append("0")
+            else:
+                attrs["accountExpires"].append(
+                    str(dt_to_ft(directory.user.account_exp))
+                )
+
+            if directory.user.last_logon is None:
+                attrs["lastLogon"].append("0")
+            else:
+                attrs["lastLogon"].append(
+                    str(get_windows_timestamp(directory.user.last_logon))
+                )
+                attrs["authTimestamp"].append(directory.user.last_logon)
+
+        # group_fields
+        if directory.group:
+            group_field_names = []
+            if self.all_attrs:
+                group_field_names = directory.group.search_fields.keys()
+            else:
+                group_field_names = [
+                    requested_attr
+                    for requested_attr in self.requested_attrs
+                    if (
+                        directory.group
+                        and (requested_attr in directory.group.search_fields)
+                    )
+                ]
+
+            for field_name in group_field_names:
+                value = getattr(directory.group, field_name)
+                attrs[directory.group.search_fields[field_name]].append(value)
+
+        # directory_fields
+        if directory.search_fields:
             if self.all_attrs:
                 directory_fields = directory.search_fields.keys()
             else:
                 directory_fields = (
-                    attr
-                    for attr in self.requested_attrs
-                    if attr in directory.search_fields
+                    requested_attr
+                    for requested_attr in self.requested_attrs
+                    if requested_attr in directory.search_fields
                 )
 
             for attr in directory_fields:
@@ -547,19 +568,12 @@ class SearchRequest(BaseRequest):
                     attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
 
-            allowed_attrs = set()
-            for object_class in await get_object_classes_by_names(
-                obj_classes,
-                session,
-            ):
-                allowed_attrs.update(object_class.attribute_types_may_display)
-                allowed_attrs.update(object_class.attribute_types_must_display)
-
-            yield SearchResultEntry(
-                object_name=distinguished_name,
-                partial_attributes=[
-                    PartialAttribute(type=key, vals=value)
-                    for key, value in attrs.items()
-                    if key in allowed_attrs
-                ],
-            )
+        # slice attrs
+        allowed_attrs = set()
+        for object_class in await get_object_classes_by_names(
+            object_classes,
+            session,
+        ):
+            allowed_attrs.update(object_class.attribute_types_may_display)
+            allowed_attrs.update(object_class.attribute_types_must_display)
+        return attrs, allowed_attrs
