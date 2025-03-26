@@ -4,7 +4,12 @@ log:
 api:
   insecure: true
 
+ping:
+  entryPoint: "ping"
+
 entryPoints:
+  ping:
+    address: ":8800"
   web:
     address: ":80"
     http:
