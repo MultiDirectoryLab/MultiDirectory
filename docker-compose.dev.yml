@@ -37,7 +37,7 @@ services:
     restart: "no"
     volumes:
       - ./certs:/certs
-    command: python ./extra/dump_acme_certs.py
+    command: python multidirectory.py --certs_dumper
     depends_on:
       - traefik
       - interface
