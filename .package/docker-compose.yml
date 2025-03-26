@@ -42,7 +42,6 @@ services:
     command: python multidirectory.py --certs_dumper
     depends_on:
       - traefik
-      - interface
 
   interface:
     image: ghcr.io/multidirectorylab/multidirectory-web-admin:${VERSION:-latest}

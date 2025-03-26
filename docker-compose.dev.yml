@@ -42,7 +42,6 @@ services:
       local.env
     depends_on:
       - traefik
-      - interface
 
   interface:
     container_name: multidirectory_interface
