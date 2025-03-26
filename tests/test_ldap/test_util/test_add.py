@@ -226,7 +226,7 @@ async def test_add_bvalue_attr(
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
         attributes=[
-            {"type": "objectclass", "vals": ["test"]}
+            {"type": "objectclass", "vals": [b"organizationalUnit"]}
         ],  # TODO: Add bvalue attribute
         password=None,
     )

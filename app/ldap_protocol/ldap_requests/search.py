@@ -430,6 +430,11 @@ class SearchRequest(BaseRequest):
                 session,
                 search_request=self,
             )
+
+            if not pipeline._object_class_names:
+                await session.rollback()
+                return
+
             await pipeline.start()
 
             yield SearchResultEntry(
@@ -460,7 +465,7 @@ class CollectLdapTreeEntryPipeline:
         self._session = session
         self._search_request = search_request
 
-        self._object_class_names: list[str] = self._get_object_class_names()
+        self._object_class_names: set[str] = self._get_object_class_names()
         self._fields_unfiltered: dict[str, list] = defaultdict(list)
         self._fields_filtered: dict[str, list] = defaultdict(list)
 
@@ -649,8 +654,8 @@ class CollectLdapTreeEntryPipeline:
             self._fields_unfiltered[field_name].append(field_value)
         return self._fields_unfiltered
 
-    def _get_object_class_names(self) -> list[str]:
-        object_class_names = []
+    def _get_object_class_names(self) -> set[str]:
+        object_class_names = set()
         for attribute in self._directory.attributes:
             if attribute.name.lower() == "objectclass":
                 if isinstance(attribute.value, str):
@@ -658,15 +663,26 @@ class CollectLdapTreeEntryPipeline:
                 else:
                     field_value = attribute.bvalue  # type: ignore
 
-                object_class_names.append(field_value)
+                object_class_names.add(field_value)
         return object_class_names
 
     async def _apply_ldap_schema_to_unfiltered_fields(self) -> None:
-        ldap_schema_field_names = set()
-        for object_class in await get_object_classes_by_names(
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        object_classes = await get_object_classes_by_names(
             self._object_class_names,  # type: ignore
             self._session,
-        ):
+        )
+
+        if len(object_classes) != len(self._object_class_names):
+            raise Exception(
+                "Some object classes were not found in the database."
+            )
+
+        ldap_schema_field_names = set()
+        for object_class in object_classes:
             ldap_schema_field_names.update(
                 object_class.attribute_types_may_display
             )
@@ -674,8 +690,16 @@ class CollectLdapTreeEntryPipeline:
                 object_class.attribute_types_must_display
             )
 
+        ldap_schema_field_names = {
+            field_names.lower() for field_names in ldap_schema_field_names
+        }
+
         self._fields_filtered = {
             field_name: field_value
             for field_name, field_value in self._fields_unfiltered.items()
-            if field_name in ldap_schema_field_names
+            if field_name.lower() in ldap_schema_field_names
         }
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END

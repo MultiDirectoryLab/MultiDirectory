@@ -117,7 +117,7 @@ async def test_delete_bulk_object_classes(
 
     if dataset["status_code"] == status.HTTP_200_OK:
         object_classes = await get_object_classes_by_names(
-            dataset["object_classes_deleted"],
+            set(dataset["object_classes_deleted"]),
             session,
         )
         assert len(object_classes) == 0

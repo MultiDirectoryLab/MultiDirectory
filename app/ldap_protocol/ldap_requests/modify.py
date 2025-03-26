@@ -155,23 +155,37 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        object_classes = [
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        object_class_names = {
             attr.value
             for attr in directory.attributes
             if attr.name.lower() == "objectclass"
-        ]
+        }
+
+        # TODO почему тесты падают если класс не указан? это ведь правильно
+        # if not object_class_names: await session.rollback() yield ModifyResponse(...  # noqa: E501
+
+        object_classes = await get_object_classes_by_names(
+            object_class_names,
+            session,
+        )
+        if len(object_classes) != len(object_class_names):
+            raise Exception(
+                "Some object classes were not found in the database."
+            )
 
         ldap_schema_field_names = set()
-        for object_class in await get_object_classes_by_names(
-            object_classes,
-            session,
-        ):
+        for object_class in object_classes:
             ldap_schema_field_names.update(
                 object_class.attribute_types_may_display
             )
             ldap_schema_field_names.update(
                 object_class.attribute_types_must_display
             )
+
         ldap_schema_field_names = {
             field_names.lower() for field_names in ldap_schema_field_names
         }
@@ -181,17 +195,15 @@ class ModifyRequest(BaseRequest):
             for change in self.changes
             if change.get_name() in ldap_schema_field_names
         ]
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
 
-        # почему тесты падают если запретить вносить пустые изменения?
-        # if not self.changes:
-        #     yield ModifyResponse(
-        #         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-        #         message="No valid attributes to modify",
-        #     )
-        #     return
+        # TODO почему тесты падают если запретить вносить пустые изменения?
+        # if not self.changes: yield ModifyResponse(...
 
         names = {change.get_name() for change in self.changes}
-
         password_change_requested = self._check_password_change_requested(
             names,
             directory,
@@ -200,7 +212,6 @@ class ModifyRequest(BaseRequest):
 
         mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
         can_modify = bool(await session.scalar(mutate_ap_q))
-
         if not can_modify and not password_change_requested:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
