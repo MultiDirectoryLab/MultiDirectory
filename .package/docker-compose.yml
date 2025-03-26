@@ -43,6 +43,7 @@ services:
       .env
     volumes:
       - ./certs:/certs
+      - "./traefik.yml:/traefik.yml"
     command: python multidirectory.py --certs_dumper
     depends_on:
       traefik:

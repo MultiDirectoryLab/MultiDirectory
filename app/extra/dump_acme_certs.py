@@ -49,5 +49,9 @@ def dump_acme_cert(resolver: str = "md-resolver") -> None:
         cert_f.write(base64.b64decode(cert.encode("ascii")).decode())
         key_f.write(base64.b64decode(key.encode("ascii")).decode())
 
+    # The config time needs to be updated in order
+    # for the certificates to be updated.
+    os.utime("/traefik.yml", (time.time(), time.time()))
+
     logger.info("Certeficate and key dumped")
     return
