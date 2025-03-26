@@ -11,39 +11,37 @@ import os
 from loguru import logger
 
 
-def dump_acme_cert() -> None:
+def dump_acme_cert(resolver: str = "md-resolver") -> None:
     """Dump Let's Encrypt certificate from the `acme.json` file."""
-    if not os.path.exists("/certs/acme.json"):
-        logger.warning("Cannot load ACME file for MultiDirectory")
-        return
-
     if os.path.exists("/certs/cert.pem") and os.path.exists(
         "/certs/privkey.pem"
     ):
-        logger.info("Cert already exists")
+        logger.info("Certeficate and key already exists, exiting...")
+        return
+
+    if not os.path.exists("/certs/acme.json"):
+        logger.warning("Cannot load ACME file, exiting...")
         return
 
     try:
         with open("/certs/acme.json") as certfile:
             data = json.load(certfile)
 
-        domain = data["md-resolver"]["Certificates"][0]["domain"]["main"]
-        cert = data["md-resolver"]["Certificates"][0]["certificate"]
-        key = data["md-resolver"]["Certificates"][0]["key"]
+        domain = data[resolver]["Certificates"][0]["domain"]["main"]
+        cert: str = data[resolver]["Certificates"][0]["certificate"]
+        key: str = data[resolver]["Certificates"][0]["key"]
     except (KeyError, IndexError, TypeError, json.JSONDecodeError):
-        logger.warning("Cannot load TLS cert for MultiDirectory")
+        logger.warning("Cannot load TLS certeficate, exiting...")
         return
 
-    else:
-        logger.info(f"Loaded cert for {domain}")
+    logger.info(f"Loaded certeficate for {domain}")
 
-        cert = base64.b64decode(cert.encode("ascii")).decode()
-        key = base64.b64decode(key.encode("ascii")).decode()
+    with (
+        open("/certs/cert.pem", "w") as cert_f,
+        open("/certs/privkey.pem", "w") as key_f,
+    ):
+        cert_f.write(base64.b64decode(cert.encode("ascii")).decode())
+        key_f.write(base64.b64decode(key.encode("ascii")).decode())
 
-        with open("/certs/cert.pem", "w") as f:
-            f.write(cert)
-
-        with open("/certs/privkey.pem", "w") as f:
-            f.write(key)
-
-        logger.info("Cert dumped")
+    logger.info("Certeficate and key dumped")
+    return
