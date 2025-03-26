@@ -34,6 +34,7 @@ from api import (
 )
 from api.exception_handlers import handle_db_connect_error, handle_dns_error
 from config import Settings
+from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
     HTTPProvider,
     LDAPServerProvider,
@@ -184,6 +185,9 @@ if __name__ == "__main__":
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
+    group.add_argument(
+        "--certs_dumper", action="store_true", help="Dump certs"
+    )
 
     args = parser.parse_args()
 
@@ -211,3 +215,5 @@ if __name__ == "__main__":
         )
     elif args.scheduler:
         scheduler(settings)
+    elif args.certs_dumper:
+        dump_acme_cert()

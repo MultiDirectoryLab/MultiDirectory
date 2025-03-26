@@ -4,7 +4,12 @@ log:
 api:
   insecure: true
 
+ping:
+  entryPoint: "ping"
+
 entryPoints:
+  ping:
+    address: ":8800"
   web:
     address: ":80"
   ldap:
@@ -39,7 +44,6 @@ providers:
   file:
     filename: /traefik.yml
     watch: true
-  
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
