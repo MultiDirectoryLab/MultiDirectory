@@ -38,6 +38,8 @@ services:
     volumes:
       - ./certs:/certs
     command: python multidirectory.py --certs_dumper
+    env_file:
+      local.env
     depends_on:
       - traefik
       - interface

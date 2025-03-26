@@ -35,6 +35,8 @@ services:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: traefik_certs_dumper
     restart: "no"
+    env_file:
+      .env
     volumes:
       - ./certs:/certs
     command: python multidirectory.py --certs_dumper
