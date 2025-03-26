@@ -49,5 +49,7 @@ def dump_acme_cert(resolver: str = "md-resolver") -> None:
         cert_f.write(base64.b64decode(cert.encode("ascii")).decode())
         key_f.write(base64.b64decode(key.encode("ascii")).decode())
 
+    os.utime("/traefik.yml", (time.time(), time.time()))
+
     logger.info("Certeficate and key dumped")
     return

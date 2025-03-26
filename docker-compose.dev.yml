@@ -43,6 +43,7 @@ services:
     restart: "on-failure"
     volumes:
       - ./certs:/certs
+      - ".package/traefik.yml:/traefik.yml"
     command: python multidirectory.py --certs_dumper
     env_file:
       local.env
