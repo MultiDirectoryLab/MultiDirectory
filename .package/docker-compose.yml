@@ -30,6 +30,17 @@ services:
         reservations:
           cpus: '0.25'
           memory: 32M
+  
+  traefik_certs_dumper:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: traefik_certs_dumper
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+    command: python ./extra/dump_acme_certs.py
+    depends_on:
+      - traefik
+      - interface
 
   interface:
     image: ghcr.io/multidirectorylab/multidirectory-web-admin:${VERSION:-latest}
