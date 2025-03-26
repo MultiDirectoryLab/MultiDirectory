@@ -38,7 +38,7 @@ services:
   traefik_certs_dumper:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: traefik_certs_dumper
-    restart: "no"
+    restart: "on-failure"
     env_file:
       .env
     volumes:
