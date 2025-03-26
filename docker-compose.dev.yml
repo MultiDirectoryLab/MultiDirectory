@@ -30,6 +30,12 @@ services:
         reservations:
           cpus: '0.25'
           memory: 32M
+    healthcheck:
+      test: traefik traefik healthcheck --ping
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
 
   traefik_certs_dumper:
     image: multidirectory
