@@ -40,7 +40,7 @@ services:
   traefik_certs_dumper:
     image: multidirectory
     container_name: traefik_certs_dumper
-    restart: "no"
+    restart: "on-failure"
     volumes:
       - ./certs:/certs
     command: python multidirectory.py --certs_dumper
