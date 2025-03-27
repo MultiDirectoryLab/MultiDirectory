@@ -217,7 +217,7 @@ services:
     tty: true
     depends_on:
       - ldap_server
-    command: krb5kdc -n -w 4
+    command: krb5kdc -n
     ports:
       - "88:88"
       - "88:88/udp"
