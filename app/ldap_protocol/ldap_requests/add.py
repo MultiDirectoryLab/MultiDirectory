@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from loguru import logger
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -185,7 +186,7 @@ class AddRequest(BaseRequest):
         group = None
         user = None
         items_to_add: list[Group | User | Directory | Attribute] = []
-        attributes = []
+        attributes: list[Attribute] = []
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
@@ -338,7 +339,10 @@ class AddRequest(BaseRequest):
         # Apply LDAP Schema START
         # Apply LDAP Schema START
         # Apply LDAP Schema START
+        # 1
         object_class_names = set(self.attr_names.get("objectclass", []))
+
+        # 2
         if not object_class_names:
             await session.rollback()
             yield AddResponse(
@@ -347,39 +351,90 @@ class AddRequest(BaseRequest):
             )
             return
 
+        # 3
         _object_class_names = set()
         for object_class_name in object_class_names:
             if isinstance(object_class_name, bytes):
                 object_class_name = object_class_name.decode()
             _object_class_names.add(object_class_name)
 
+        # 4
         object_classes = await get_object_classes_by_names(
             _object_class_names,
             session,
         )
+
+        # 5
         if len(object_classes) != len(object_class_names):
             raise Exception(
                 "Some object classes were not found in the database."
             )
 
-        ldap_schema_field_names = set()
+        # 6
+        ldap_schema_must_field_names = set()
+        ldap_schema_may_field_names = set()
         for object_class in object_classes:
-            ldap_schema_field_names.update(
-                object_class.attribute_types_may_display
-            )
-            ldap_schema_field_names.update(
+            ldap_schema_must_field_names.update(
                 object_class.attribute_types_must_display
             )
+            ldap_schema_may_field_names.update(
+                object_class.attribute_types_may_display
+            )
 
-        ldap_schema_field_names = {
-            field_name.lower() for field_name in ldap_schema_field_names
+        # 6 lower
+        ldap_schema_must_field_names = {
+            field_name.lower() for field_name in ldap_schema_must_field_names
+        }
+        ldap_schema_may_field_names = {
+            field_name.lower() for field_name in ldap_schema_may_field_names
         }
 
-        attributes = [
-            field
-            for field in attributes
-            if field.name.lower() in ldap_schema_field_names
-        ]  # fmt: skip
+        # 6 may -= must
+        ldap_schema_may_field_names -= ldap_schema_must_field_names
+
+        # 7
+        attributes_must: list[Attribute] = []
+        attributes_may: list[Attribute] = []
+        attributes_dropped: list[Attribute] = []
+        must_field_names_used = set()
+        for attribute in attributes:
+            if attribute.name.lower() in ldap_schema_must_field_names:
+                attributes_must.append(attribute)
+                must_field_names_used.add(attribute.name.lower())
+                if not attribute.value and not attribute.bvalue:
+                    message = f"Attribute {attribute} must have a value"
+                    logger.warning(message)
+                    yield AddResponse(
+                        result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                        message=message,
+                    )
+            elif attribute.name.lower() in ldap_schema_may_field_names:
+                attributes_may.append(attribute)
+            else:
+                attributes_dropped.append(attribute)
+
+        if attributes_dropped:
+            message = f"Attributes {attributes_dropped} are not allowed"
+            logger.warning(message)
+            # yield AddResponse(
+            #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+            #     message=message,
+            # )
+
+        if len(must_field_names_used) != len(ldap_schema_must_field_names):
+            message = (
+                f"ENTRY: {self.entry}"
+                f"Object class must have all required attributes. "
+                f"Expected: {ldap_schema_must_field_names}, "
+                f"Got: {must_field_names_used}"
+            )
+            logger.warning(message)
+            # yield AddResponse(
+            #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+            #     message=message,
+            # )
+
+        attributes = attributes_must + attributes_may
         # Apply LDAP Schema END
         # Apply LDAP Schema END
         # Apply LDAP Schema END

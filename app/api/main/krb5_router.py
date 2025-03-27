@@ -13,6 +13,7 @@ from fastapi import Body, HTTPException, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
+from loguru import logger
 from pydantic import SecretStr
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,10 +73,8 @@ async def setup_krb_catalogue(
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
 
-    krbadmin = "cn=krbadmin,ou=users," + base_dn
-    services_container = "ou=services," + base_dn
+    logger.warning(f"WARNIIIIIIIIIIIIIIIIIIIIING base dn = {base_dn}")
     krbgroup = "cn=krbadmin,cn=groups," + base_dn
-
     group = AddRequest.from_dict(
         krbgroup,
         {
@@ -87,11 +86,13 @@ async def setup_krb_catalogue(
         },
     )
 
+    services_container = "ou=services," + base_dn
     services = AddRequest.from_dict(
         services_container,
         {"objectClass": ["organizationalUnit", "top", "container"]},
     )
 
+    krbadmin = "cn=krbadmin,ou=users," + base_dn
     rkb_user = AddRequest.from_dict(
         krbadmin,
         password=krbadmin_password.get_secret_value(),

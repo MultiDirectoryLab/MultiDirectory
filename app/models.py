@@ -562,6 +562,24 @@ class Attribute(Base):
         uselist=False,
     )
 
+    def __str__(self) -> str:
+        """Attribute name and value."""
+        val = None
+        if self.bvalue:
+            val = self.bvalue.decode()
+        elif self.value:
+            val = self.value
+        return f"Attribute({self.name}:{val})"
+
+    def __repr__(self) -> str:
+        """Attribute name and value."""
+        val = None
+        if self.bvalue:
+            val = self.bvalue.decode()
+        elif self.value:
+            val = self.value
+        return f"Attribute({self.name}:{val})"
+
 
 class AttributeType(Base):
     """Attribute Type."""
