@@ -314,6 +314,8 @@ services:
     build:
       context: ./interface
       dockerfile: configurations/docker/Dockerfile.dev
+      args:
+        API_URL: http://md.localhost/api
     restart: 'no'
     environment:
       - HUSKY=0

@@ -94,18 +94,22 @@ async def get_object_class_by_name(
 
 
 async def get_object_classes_by_names(
-    object_class_names: list[str],
+    object_class_names: set[str],
     session: AsyncSession,
 ) -> list[ObjectClass]:
     """Get list of Object Classes by names.
 
-    :param list[str] object_class_names: Object Classes names.
+    :param set[str] object_class_names: Object Classes names.
     :param AsyncSession session: Database session.
     :return list[ObjectClass]: List of Object Classes.
     """
     query = await session.scalars(
         select(ObjectClass)
-        .where(ObjectClass.name.in_(object_class_names)),
+        .where(ObjectClass.name.in_(object_class_names))
+        .options(
+            selectinload(ObjectClass.attribute_types_must),
+            selectinload(ObjectClass.attribute_types_may),
+        )
     )  # fmt: skip
     return list(query.all())
 
