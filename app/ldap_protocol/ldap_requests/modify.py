@@ -170,10 +170,12 @@ class ModifyRequest(BaseRequest):
             if change.modification.type in Directory.ro_fields:
                 continue
 
-            if all([
-                change.modification.type == "krbpasswordexpiration",
-                change.modification.vals[0] == "19700101000000Z"
-            ]):
+            if all(
+                [
+                    change.modification.type == "krbpasswordexpiration",
+                    change.modification.vals[0] == "19700101000000Z",
+                ]
+            ):
                 policy = await PasswordPolicySchema.get_policy_settings(
                     session
                 )
