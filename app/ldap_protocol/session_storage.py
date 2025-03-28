@@ -566,7 +566,8 @@ class RedisSessionStorage(SessionStorage):
         ip_key = self._get_ip_session_key(ip, protocol)
         zset_key = (
             self.ZSET_HTTP_SESSIONS
-            if protocol == "http" else self.ZSET_LDAP_SESSIONS
+            if protocol == "http"
+            else self.ZSET_LDAP_SESSIONS
         )
         async with self._storage.pipeline(transaction=False) as pipe:
             await pipe.srem(sessions_key, session_id)  # type: ignore

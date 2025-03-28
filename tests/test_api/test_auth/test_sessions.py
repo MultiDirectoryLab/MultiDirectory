@@ -332,7 +332,9 @@ async def test_get_sessions_by_protocol(
     )
 
     await storage.create_ldap_session(
-        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
+        uid,
+        "ldap:1234",
+        data={"id": uid, "ip": ldap_ip},
     )
 
     all_sessions = await storage.get_user_sessions(uid)
