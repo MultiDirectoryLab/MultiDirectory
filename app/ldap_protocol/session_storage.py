@@ -271,6 +271,12 @@ class RedisSessionStorage(SessionStorage):
         ```
         Set("http:session_id_1", "ldap:session_id_2", ...)
         ```
+
+    ## Set methods:
+
+    - sadd(key, *values): Add one or more members to a set.
+    - srem(key, *values): Remove one or more members from a set.
+    - smembers(key): Get all the members in a set.
     """
 
     def __init__(self, storage: Redis, key_length: int, key_ttl: int) -> None:
