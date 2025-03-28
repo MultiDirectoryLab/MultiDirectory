@@ -221,7 +221,7 @@ class TestProvider(Provider):
         mfa.get_create_mfa = AsyncMock(return_value="example.com")
         return mfa
 
-    @provide(scope=Scope.RUNTIME)
+    @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
         settings: Settings,
@@ -234,6 +234,7 @@ class TestProvider(Provider):
 
         yield SessionStorageClient(client)
 
+        await client.flushdb()
         with suppress(RuntimeError):
             await client.aclose()
 
@@ -511,3 +512,10 @@ async def dns_manager(
     """Get DI DNS manager."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AbstractDNSManager)
+
+
+@pytest.fixture
+async def storage(container: AsyncContainer) -> AsyncIterator[SessionStorage]:
+    """Return session storage."""
+    async with container() as c:
+        yield await c.get(SessionStorage)
