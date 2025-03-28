@@ -323,6 +323,10 @@ class RedisSessionStorage(SessionStorage):
         await self._storage.delete(*keys)
 
     async def _fetch_keys(self, key: str) -> set[str]:
+        """Fetch keys.
+
+        :param str key: key
+        """
         encoded_keys = await self._storage.smembers(key)  # type: ignore
         return {k.decode() for k in encoded_keys}
 
