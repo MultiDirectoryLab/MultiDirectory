@@ -3,7 +3,6 @@
 import asyncio
 
 import pytest
-from dishka import AsyncContainer
 from httpx import AsyncClient
 from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,13 +13,6 @@ from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_user
 from tests.conftest import TestCreds
-
-
-@pytest.fixture
-async def storage(container: AsyncContainer) -> SessionStorage:
-    """Return session storage."""
-    async with container() as c:
-        return await c.get(SessionStorage)
 
 
 @pytest.mark.asyncio
