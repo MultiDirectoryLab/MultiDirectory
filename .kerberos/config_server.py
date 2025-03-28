@@ -155,7 +155,6 @@ class AbstractKRBManager(ABC):
         """Lock principal.
 
         :param str name: principal
-        :param str | None password: if empty - uses randkey.
         """
 
     @abstractmethod
@@ -163,7 +162,16 @@ class AbstractKRBManager(ABC):
         """Lock principal.
 
         :param str name: principal
-        :param str | None password: if empty - uses randkey.
+        """
+
+    @abstractmethod
+    async def update_password_exp(
+        self, name: str, days: int, **dbargs
+    ) -> None:
+        """Update attr password expiration.
+
+        :param str name: principal
+        :param int days: days
         """
 
 
@@ -222,15 +230,9 @@ class KAdminLocalManager(AbstractKRBManager):
             password,
         )
 
-        princ = await self._get_raw_principal(name)
-        princ.policy = "default_policy"
-        await self.loop.run_in_executor(
-            self.pool,
-            princ.commit,
-        )
-
         if password:
             # NOTE: add preauth, attributes == krbticketflags
+            princ = await self._get_raw_principal(name)
             await self.loop.run_in_executor(
                 self.pool,
                 partial(princ.modify, attributes=128),
@@ -333,47 +335,17 @@ class KAdminLocalManager(AbstractKRBManager):
         princ.pwexpire = "Now"
         await self.loop.run_in_executor(self.pool, princ.commit)
 
+    async def update_password_exp(
+        self, name: str, days: int, **dbargs
+    ) -> None:
+        """Update attr password expiration.
 
-async def create_update_default_policy(
-    minlife: int,
-    maxlife: int,
-    minlength: int,
-    minclasses: int,
-) -> None:
-    """Create or update default policy.
-
-    :param int minlife: minimum pw life
-    :param int maxlife: maximum pw life
-    :param int minlength: minimum pw length
-    :param int minclasses: cases of chars
-    """
-    proc = await asyncio.create_subprocess_shell(
-        "kadmin.local",
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    msg = (
-        f'-maxlife "{maxlife} days" '
-        f'-minlife "{minlife} days" '
-        f"-minlength {minlength} "
-        f"-minclasses {minclasses} "
-        "default_policy"
-    )
-    _, stderr = await proc.communicate(("add_policy " + msg).encode("UTF-8"))
-    await proc.wait()
-
-    if "Principal or policy already exists" not in stderr.decode():
-        return
-
-    proc = await asyncio.create_subprocess_shell(
-        "kadmin.local",
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    await proc.communicate(("modify_policy " + msg).encode("UTF-8"))
-    await proc.wait()
+        :param str name: principal
+        :param int days: days
+        """
+        princ = await self._get_raw_principal(name)
+        princ.pwexpire = f"{days} Days"
+        await self.loop.run_in_executor(self.pool, princ.commit)
 
 
 @asynccontextmanager
@@ -522,8 +494,6 @@ async def run_setup_subtree(schema: ConfigSchema) -> None:
     with open("/etc/krb5kdc/kadm5.acl", "w") as f:
         f.write(f"*/admin@{schema.domain.upper()}        *\n")
 
-    await create_update_default_policy(0, 1, 2, 2)
-
 
 @setup_router.post("/reset")
 async def reset_setup() -> None:
@@ -549,27 +519,6 @@ async def add_princ(
     :param Annotated[str, Body password: principal password
     """
     await kadmin.add_princ(name, password)
-
-
-@principal_router.post("/password_policy")
-async def create_or_update_default_pw_policy(
-    minlife: Annotated[int, Body()],
-    maxlife: Annotated[int, Body()],
-    minlength: Annotated[int, Body()],
-    minclasses: Annotated[int, Body()],
-) -> None:
-    """Add principal.
-
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
-    """
-    await create_update_default_policy(
-        minlife,
-        maxlife,
-        minlength,
-        minclasses,
-    )
 
 
 @principal_router.get("")
@@ -652,6 +601,26 @@ async def rename_princ(
     """
     """"""
     await kadmin.rename_princ(name, new_name)
+
+
+@principal_router.post(
+    "/set_password_exp",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_class=Response,
+)
+async def set_new_password_exp(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    name: Annotated[str, Body()],
+    days: Annotated[int, Body()],
+) -> None:
+    """Rename principal.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    :param Annotated[str, Body new_name: principal new name
+    """
+    """"""
+    await kadmin.update_password_exp(name, days)
 
 
 @principal_router.post("/ktadd")

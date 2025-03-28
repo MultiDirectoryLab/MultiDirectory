@@ -89,7 +89,6 @@ class TestProvider(Provider):
         kadmin.rename_princ = AsyncMock()
         kadmin.create_or_update_principal_pw = AsyncMock()
         kadmin.change_principal_password = AsyncMock()
-        kadmin.create_or_update_policy = AsyncMock()
         kadmin.lock_principal = AsyncMock()
         kadmin.reset_setup = AsyncMock()
 
