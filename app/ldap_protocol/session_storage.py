@@ -24,6 +24,9 @@ class SessionStorage(ABC):
     key_length: int = 16
     key_ttl: int
 
+    ZSET_LDAP_SESSIONS: str = "sessions:ldap"
+    ZSET_HTTP_SESSIONS: str = "sessions:http"
+
     @abstractmethod
     async def get(self, key: str) -> dict:
         """Retrieve data associated with the given key from storage.
@@ -280,6 +283,11 @@ class RedisSessionStorage(SessionStorage):
         Set("http:session_id_1", "ldap:session_id_2", ...)
         ```
 
+    4. ZSET for User Sessions:
+        - Key:
+            - `sessions:http`
+            - `sessions:ldap`
+
     ## Set methods:
 
     - sadd(key, *values): Add one or more members to a set.
@@ -512,6 +520,8 @@ class RedisSessionStorage(SessionStorage):
             for key, sessions in key_sessions_map.items():
                 if sessions:
                     await pipe.srem(key, *sessions)  # type: ignore
+            await pipe.zrem(self.ZSET_HTTP_SESSIONS, http_sessions_key)
+            await pipe.zrem(self.ZSET_LDAP_SESSIONS, ldap_sessions_key)
             await pipe.delete(*keys, http_sessions_key, ldap_sessions_key)
             await pipe.execute()
 
@@ -554,12 +564,18 @@ class RedisSessionStorage(SessionStorage):
 
         sessions_key = self._get_user_session_key(uid, protocol)
         ip_key = self._get_ip_session_key(ip, protocol)
-
+        zset_key = (
+            self.ZSET_HTTP_SESSIONS
+            if protocol == "http" else self.ZSET_LDAP_SESSIONS
+        )
         async with self._storage.pipeline(transaction=False) as pipe:
             await pipe.srem(sessions_key, session_id)  # type: ignore
             await pipe.srem(ip_key, session_id)  # type: ignore
             await pipe.delete(session_id)
             await pipe.execute()
+
+        if not await self._storage.smembers(sessions_key):  # type: ignore
+            await self._storage.zrem(zset_key, sessions_key)
 
     async def create_session(
         self: Self,
@@ -602,6 +618,11 @@ class RedisSessionStorage(SessionStorage):
         async with self._storage.pipeline(transaction=False) as pipe:
             await pipe.set(session_id, json.dumps(data), ex=self.key_ttl)
             await pipe.sadd(http_sessions_key, session_id)  # type: ignore
+            await pipe.zadd(
+                self.ZSET_HTTP_SESSIONS,
+                {http_sessions_key: uid},
+                nx=True,
+            )
             if ip_sessions_key:
                 await pipe.sadd(ip_sessions_key, session_id)  # type: ignore
             await pipe.execute()
@@ -646,6 +667,11 @@ class RedisSessionStorage(SessionStorage):
         async with self._storage.pipeline(transaction=False) as pipe:
             await pipe.set(key, json.dumps(data), ex=None)
             await pipe.sadd(ldap_sessions_key, key)  # type: ignore
+            await pipe.zadd(
+                self.ZSET_LDAP_SESSIONS,
+                {ldap_sessions_key: uid},
+                nx=True,
+            )
             if ip_sessions_key:
                 await pipe.sadd(ip_sessions_key, key)  # type: ignore
             await pipe.execute()
@@ -715,6 +741,11 @@ class RedisSessionStorage(SessionStorage):
             await pipe.set(new_session_id, json.dumps(new_data), ex=ttl)
             await pipe.sadd(http_sessions_key, new_session_id)  # type: ignore
             await pipe.sadd(ip_sessions_key, new_session_id)  # type: ignore
+            await pipe.zadd(
+                self.ZSET_HTTP_SESSIONS,
+                {http_sessions_key: uid},
+                nx=True,
+            )
             await pipe.execute()
 
         await self.delete_user_session(session_id)
