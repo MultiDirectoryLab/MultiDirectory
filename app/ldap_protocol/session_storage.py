@@ -38,6 +38,7 @@ class SessionStorage(ABC):
         """Get session keys by user id.
 
         :param int uid: user id
+        :return set[str]: session keys
         """
 
     @abstractmethod
@@ -45,6 +46,7 @@ class SessionStorage(ABC):
         """Get session keys by ip.
 
         :param str ip: ip
+        :return set[str]: session keys
         """
 
     @abstractmethod
