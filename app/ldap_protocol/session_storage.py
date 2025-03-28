@@ -415,17 +415,18 @@ class RedisSessionStorage(SessionStorage):
                 if k.startswith("ldap:"):
                     tmp["protocol"] = "ldap"
                 retval[k] = tmp
-            else:
-                protocol = self._get_protocol(k)
-                sessions_key = (
-                    self._get_user_session_key(id_value, protocol)
-                    if isinstance(id_value, int)
-                    else self._get_ip_session_key(id_value, protocol)
-                )
-                key_sessions_map.setdefault(
-                    sessions_key,
-                    [],
-                ).append(k)
+                continue
+
+            protocol = self._get_protocol(k)
+            sessions_key = (
+                self._get_user_session_key(id_value, protocol)
+                if isinstance(id_value, int)
+                else self._get_ip_session_key(id_value, protocol)
+            )
+            key_sessions_map.setdefault(
+                sessions_key,
+                [],
+            ).append(k)
 
         if key_sessions_map:
             async with self._storage.pipeline(transaction=False) as pipe:
