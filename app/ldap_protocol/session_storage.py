@@ -35,11 +35,17 @@ class SessionStorage(ABC):
 
     @abstractmethod
     async def _get_session_keys_by_uid(self, uid: int) -> set[str]:
-        pass
+        """Get session keys by user id.
+
+        :param int uid: user id
+        """
 
     @abstractmethod
     async def _get_session_keys_by_ip(self, ip: str) -> set[str]:
-        pass
+        """Get session keys by ip.
+
+        :param str ip: ip
+        """
 
     @abstractmethod
     async def get_user_sessions(
