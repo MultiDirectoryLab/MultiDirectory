@@ -545,12 +545,12 @@ class RedisSessionStorage(SessionStorage):
 
         sessions_key = self._get_user_session_key(uid, protocol)
         ip_key = self._get_ip_session_key(ip, protocol)
-        lock = await self._get_lock(sessions_key)
 
-        async with lock:
-            await self._storage.srem(sessions_key, session_id)  # type: ignore
-            await self._storage.srem(ip_key, session_id)  # type: ignore
-            await self.delete([session_id])
+        async with self._storage.pipeline(transaction=False) as pipe:
+            await pipe.srem(sessions_key, session_id)  # type: ignore
+            await pipe.srem(ip_key, session_id)  # type: ignore
+            await pipe.delete(session_id)
+            await pipe.execute()
 
     async def create_session(
         self: Self,
