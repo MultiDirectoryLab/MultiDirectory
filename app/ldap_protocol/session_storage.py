@@ -577,6 +577,43 @@ class RedisSessionStorage(SessionStorage):
         if not await self._storage.smembers(sessions_key):  # type: ignore
             await self._storage.zrem(zset_key, sessions_key)
 
+    async def _add_session(
+        self,
+        session_id: str,
+        data: dict,
+        uid: int,
+        ip_session_key: str | None,
+        sessions_key: str,
+        ttl: int | None = None,
+    ) -> None:
+        """Add session.
+
+        Adds a session to the storage and updates the session tracking keys
+        for both user ID and IP address.
+
+        :param str session_id: session id
+        :param int uid: user id
+        :param str ip_session_key: ip session key
+        :param str sessions_key: sessions key
+        """
+        zset_key = (
+            self.ZSET_HTTP_SESSIONS
+            if session_id.startswith("http:")
+            else self.ZSET_LDAP_SESSIONS
+        )
+
+        async with self._storage.pipeline() as pipe:
+            await pipe.set(session_id, json.dumps(data), ex=ttl)
+            await pipe.sadd(sessions_key, session_id)  # type: ignore
+            if ip_session_key:
+                await pipe.sadd(ip_session_key, session_id)  # type: ignore
+            await pipe.zadd(
+                zset_key,
+                {sessions_key: uid},
+                nx=True,
+            )
+            await pipe.execute()
+
     async def create_session(
         self: Self,
         uid: int,
@@ -615,17 +652,14 @@ class RedisSessionStorage(SessionStorage):
         if extra_data and (ip := extra_data.get("ip")):
             ip_sessions_key = self._get_ip_session_key(ip, "http")
 
-        async with self._storage.pipeline() as pipe:
-            await pipe.set(session_id, json.dumps(data), ex=self.key_ttl)
-            await pipe.sadd(http_sessions_key, session_id)  # type: ignore
-            await pipe.zadd(
-                self.ZSET_HTTP_SESSIONS,
-                {http_sessions_key: uid},
-                nx=True,
-            )
-            if ip_sessions_key:
-                await pipe.sadd(ip_sessions_key, session_id)  # type: ignore
-            await pipe.execute()
+        await self._add_session(
+            session_id,
+            data,
+            uid,
+            ip_sessions_key,
+            http_sessions_key,
+            self.key_ttl,
+        )
 
         return f"{session_id}.{signature}"
 
@@ -664,17 +698,13 @@ class RedisSessionStorage(SessionStorage):
         if data and (ip := data.get("ip")):
             ip_sessions_key = self._get_ip_session_key(ip, "ldap")
 
-        async with self._storage.pipeline() as pipe:
-            await pipe.set(key, json.dumps(data), ex=None)
-            await pipe.sadd(ldap_sessions_key, key)  # type: ignore
-            await pipe.zadd(
-                self.ZSET_LDAP_SESSIONS,
-                {ldap_sessions_key: uid},
-                nx=True,
-            )
-            if ip_sessions_key:
-                await pipe.sadd(ip_sessions_key, key)  # type: ignore
-            await pipe.execute()
+        await self._add_session(
+            key,
+            data,
+            uid,
+            ip_sessions_key,
+            ldap_sessions_key,
+        )
 
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
@@ -737,16 +767,14 @@ class RedisSessionStorage(SessionStorage):
         http_sessions_key = self._get_user_session_key(uid, "http")
         ip_sessions_key = self._get_ip_session_key(ip, "http")
 
-        async with self._storage.pipeline() as pipe:
-            await pipe.set(new_session_id, json.dumps(new_data), ex=ttl)
-            await pipe.sadd(http_sessions_key, new_session_id)  # type: ignore
-            await pipe.sadd(ip_sessions_key, new_session_id)  # type: ignore
-            await pipe.zadd(
-                self.ZSET_HTTP_SESSIONS,
-                {http_sessions_key: uid},
-                nx=True,
-            )
-            await pipe.execute()
+        await self._add_session(
+            new_session_id,
+            new_data,
+            uid,
+            ip_sessions_key,
+            http_sessions_key,
+            ttl,
+        )
 
         await self.delete_user_session(session_id)
 
