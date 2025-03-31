@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from datetime import datetime, timezone
 from secrets import token_hex
 from typing import Iterable, Literal, Self
@@ -424,7 +425,7 @@ class RedisSessionStorage(SessionStorage):
 
         data = await self._storage.mget(*keys)
         retval = {}
-        key_sessions_map: dict = {}
+        key_sessions_map = defaultdict(list)
         for k, v in zip(keys, data):
             if v is not None:
                 tmp = json.loads(v)
@@ -434,15 +435,13 @@ class RedisSessionStorage(SessionStorage):
                 continue
 
             protocol = self._get_protocol(k)
+
             sessions_key = (
                 self._get_user_session_key(id_value, protocol)
                 if isinstance(id_value, int)
                 else self._get_ip_session_key(id_value, protocol)
             )
-            key_sessions_map.setdefault(
-                sessions_key,
-                [],
-            ).append(k)
+            key_sessions_map[sessions_key].append(k)
 
         if key_sessions_map:
             async with self._storage.pipeline() as pipe:
@@ -502,16 +501,15 @@ class RedisSessionStorage(SessionStorage):
             return
         data = await self._storage.mget(*keys)
 
-        key_sessions_map: dict = {}
+        key_sessions_map = defaultdict(list)
         for k, v in zip(keys, data):
             if v is not None:
-                tmp = json.loads(v)
                 protocol = self._get_protocol(k)
-                if ip := tmp.get("ip"):
-                    key_sessions_map.setdefault(
-                        self._get_ip_session_key(ip, protocol),
-                        [],
-                    ).append(k)
+                ip = json.loads(v).get("ip")
+                if ip:
+                    key_sessions_map[
+                        self._get_ip_session_key(ip, protocol)
+                    ].append(k)
 
         http_sessions_key = self._get_user_session_key(uid, "http")
         ldap_sessions_key = self._get_user_session_key(uid, "ldap")
@@ -520,6 +518,7 @@ class RedisSessionStorage(SessionStorage):
             for key, sessions in key_sessions_map.items():
                 if sessions:
                     await pipe.srem(key, *sessions)  # type: ignore
+
             await pipe.zrem(self.ZSET_HTTP_SESSIONS, http_sessions_key)
             await pipe.zrem(self.ZSET_LDAP_SESSIONS, ldap_sessions_key)
             await pipe.delete(*keys, http_sessions_key, ldap_sessions_key)
