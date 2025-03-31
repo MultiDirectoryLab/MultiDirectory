@@ -3,7 +3,6 @@
 import asyncio
 
 import pytest
-from dishka import AsyncContainer
 from httpx import AsyncClient
 from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,13 +13,6 @@ from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_user
 from tests.conftest import TestCreds
-
-
-@pytest.fixture
-async def storage(container: AsyncContainer) -> SessionStorage:
-    """Return session storage."""
-    async with container() as c:
-        return await c.get(SessionStorage)
 
 
 @pytest.mark.asyncio
@@ -312,3 +304,210 @@ async def test_block_ldap_user_with_active_session(
 
     sessions = await storage.get_user_sessions(user.id)
     assert not sessions
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_get_sessions_by_protocol(
+    storage: SessionStorage,
+    creds: TestCreds,
+    session: AsyncSession,
+    settings: Settings,
+) -> None:
+    """Test get sessions by protocol."""
+    user = await get_user(session, creds.un)
+    assert user
+
+    uid = user.id
+    http_ip = "192.168.1.1"
+    ldap_ip = "192.172.9.3"
+
+    await storage.create_session(
+        uid,
+        settings,
+        extra_data={
+            "ip": http_ip,
+            "user_agent": storage.get_user_agent_hash(""),
+        },
+    )
+
+    await storage.create_ldap_session(
+        uid,
+        "ldap:1234",
+        data={"id": uid, "ip": ldap_ip},
+    )
+
+    all_sessions = await storage.get_user_sessions(uid)
+    assert len(all_sessions) == 2
+    key = list(all_sessions.keys())[0]
+    assert all_sessions[key]["id"] == user.id
+
+    http_sessions = await storage.get_user_sessions(uid, "http")
+    assert len(http_sessions) == 1
+    key = list(http_sessions.keys())[0]
+    assert http_sessions[key]["id"] == user.id
+    assert http_sessions[key]["ip"] == http_ip
+
+    ldap_sessions = await storage.get_user_sessions(uid, "ldap")
+    assert len(ldap_sessions) == 1
+    key = list(ldap_sessions.keys())[0]
+    assert ldap_sessions[key]["id"] == user.id
+    assert ldap_sessions[key]["ip"] == ldap_ip
+
+    ip_all_sessions = await storage.get_ip_sessions(http_ip)
+    assert len(ip_all_sessions) == 1
+    key = list(ip_all_sessions.keys())[0]
+    assert ip_all_sessions[key]["id"] == user.id
+    assert ip_all_sessions[key]["ip"] == http_ip
+
+    ip_http_sessions = await storage.get_ip_sessions(http_ip, "http")
+    assert len(ip_http_sessions) == 1
+    key = list(ip_http_sessions.keys())[0]
+    assert ip_http_sessions[key]["id"] == user.id
+    assert ip_http_sessions[key]["ip"] == http_ip
+
+    ip_ldap_sessions = await storage.get_ip_sessions(ldap_ip, "ldap")
+    assert len(ip_ldap_sessions) == 1
+    key = list(ip_ldap_sessions.keys())[0]
+    assert ip_ldap_sessions[key]["id"] == user.id
+    assert ip_ldap_sessions[key]["ip"] == ldap_ip
+
+    assert not await storage.get_ip_sessions(ldap_ip, "http")
+    assert not await storage.get_ip_sessions(http_ip, "ldap")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_delete_user_session(
+    storage: SessionStorage,
+    creds: TestCreds,
+    session: AsyncSession,
+    settings: Settings,
+) -> None:
+    """Test delete user session."""
+    user = await get_user(session, creds.un)
+    assert user
+
+    uid = user.id
+    http_ip = "192.168.1.1"
+    ldap_ip = "192.172.9.3"
+
+    session_key = await storage.create_session(
+        uid,
+        settings,
+        extra_data={
+            "ip": http_ip,
+            "user_agent": storage.get_user_agent_hash(""),
+        },
+    )
+    session_id, _ = session_key.split(".")
+
+    await storage.create_ldap_session(
+        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
+    )
+
+    all_sessions = await storage.get_user_sessions(uid)
+    assert len(all_sessions) == 2
+
+    await storage.delete_user_session(session_id)
+
+    assert await storage.get_user_sessions(uid, "ldap")
+    assert await storage.get_ip_sessions(ldap_ip)
+    assert not await storage.get_user_sessions(uid, "http")
+    assert not await storage.get_ip_sessions(http_ip)
+
+    await storage.delete_user_session("ldap:1234")
+
+    assert not await storage.get_ip_sessions(ldap_ip)
+    assert not await storage.get_user_sessions(uid)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_clear_user_sessions(
+    storage: SessionStorage,
+    creds: TestCreds,
+    session: AsyncSession,
+    settings: Settings,
+) -> None:
+    """Test clear user sessions."""
+    user = await get_user(session, creds.un)
+    assert user
+
+    uid = user.id
+    http_ip = "192.168.1.1"
+    ldap_ip = "192.172.9.3"
+
+    for _ in range(5):
+        await storage.create_session(
+            uid,
+            settings,
+            extra_data={
+                "ip": http_ip,
+                "user_agent": storage.get_user_agent_hash(""),
+            },
+        )
+
+    for i in range(10):
+        await storage.create_ldap_session(
+            uid, f"ldap:{i}", data={"id": uid, "ip": ldap_ip}
+        )
+
+    all_sessions = await storage.get_user_sessions(uid)
+    assert len(all_sessions) == 15
+
+    http_sessions = await storage.get_user_sessions(uid, "http")
+    assert len(http_sessions) == 5
+
+    ldap_sessions = await storage.get_user_sessions(uid, "ldap")
+    assert len(ldap_sessions) == 10
+
+    ip_ldap_sessions = await storage.get_ip_sessions(ldap_ip)
+    assert len(ip_ldap_sessions) == 10
+
+    ip_http_sessions = await storage.get_ip_sessions(http_ip)
+    assert len(ip_http_sessions) == 5
+
+    await storage.clear_user_sessions(uid)
+
+    assert not await storage.get_user_sessions(uid)
+    assert not await storage.get_ip_sessions(ldap_ip)
+    assert not await storage.get_ip_sessions(http_ip)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_remove_non_existent_session(
+    storage: SessionStorage,
+    creds: TestCreds,
+    session: AsyncSession,
+    settings: Settings,
+) -> None:
+    """Test remove non-existent session."""
+    user = await get_user(session, creds.un)
+    assert user
+
+    uid = user.id
+    http_ip = "192.168.1.1"
+    ldap_ip = "192.172.9.3"
+
+    await storage.create_session(
+        uid,
+        settings,
+        extra_data={
+            "ip": http_ip,
+            "user_agent": storage.get_user_agent_hash(""),
+        },
+    )
+
+    await storage.create_ldap_session(
+        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
+    )
+
+    all_sessions = await storage.get_user_sessions(uid)
+    assert len(all_sessions) == 2
+
+    await storage.delete(["ldap:1234"])  # type: ignore
+
+    all_sessions = await storage.get_user_sessions(uid)
+    assert len(all_sessions) == 1
