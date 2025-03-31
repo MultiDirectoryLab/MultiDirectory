@@ -592,9 +592,11 @@ class RedisSessionStorage(SessionStorage):
         for both user ID and IP address.
 
         :param str session_id: session id
+        :param dict data: session data
         :param int uid: user id
         :param str ip_session_key: ip session key
         :param str sessions_key: sessions key
+        :param int | None ttl: time to live, defaults to None
         """
         zset_key = (
             self.ZSET_HTTP_SESSIONS
