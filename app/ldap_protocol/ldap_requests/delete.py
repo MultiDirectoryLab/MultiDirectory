@@ -19,6 +19,7 @@ from ldap_protocol.ldap_responses import (
     DeleteResponse,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
     get_base_directories,
@@ -50,6 +51,7 @@ class DeleteRequest(BaseRequest):
         session: AsyncSession,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
+        session_storage: SessionStorage,
     ) -> AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
         if not ldap_session.user:
@@ -95,6 +97,7 @@ class DeleteRequest(BaseRequest):
         try:
             if directory.user:
                 await kadmin.del_principal(directory.user.get_upn_prefix())
+                await session_storage.clear_user_sessions(directory.user.id)
 
             if await is_computer(directory.id, session):
                 await kadmin.del_principal(directory.host_principal)
