@@ -23,15 +23,8 @@ def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
-
-    session.execute(
-        delete(Directory)
-        .where(Directory.name == "default_policy")
-    )  # fmt: skip
-    session.execute(
-        delete(Attribute)
-        .where(Attribute.name == "krbpwdpolicyreference")
-    )  # fmt: skip
+    session.execute(delete(Directory).filter_by(name="default_policy"))
+    session.execute(delete(Attribute).filter_by(name="krbpwdpolicyreference"))
 
 
 def downgrade() -> None:
