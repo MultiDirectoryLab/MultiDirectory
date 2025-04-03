@@ -124,19 +124,25 @@ class ModifyRequest(BaseRequest):
         return cls(object=entry.value, changes=changes)
 
     async def _update_password_expiration(
-        self, change: Changes, session: AsyncSession
+        self,
+        change: Changes,
+        session: AsyncSession,
     ) -> None:
         """Update password expiration if policy allows."""
         if (
-            change.modification.type == "krbpasswordexpiration"
-            and change.modification.vals[0] == "19700101000000Z"
+            change.modification.type != "krbpasswordexpiration"
+            and change.modification.vals[0] != "19700101000000Z"
         ):
-            policy = await PasswordPolicySchema.get_policy_settings(session)
+            return
 
-            if policy.maximum_password_age_days > 0:
-                now = datetime.now(timezone.utc)
-                now += timedelta(days=policy.maximum_password_age_days)
-                change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
+        policy = await PasswordPolicySchema.get_policy_settings(session)
+
+        if policy.maximum_password_age_days == 0:
+            return
+
+        now = datetime.now(timezone.utc)
+        now += timedelta(days=policy.maximum_password_age_days)
+        change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(
         self,
