@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
@@ -179,11 +180,9 @@ class ModifyRequest(BaseRequest):
                 )
 
                 if policy.maximum_password_age_days > 0:
-                    principal_name = directory.name.split("@")[0]
-                    await kadmin.set_new_password_exp(
-                        principal_name, policy.maximum_password_age_days
-                    )
-                    continue
+                    now = datetime.now(timezone.utc)
+                    now += timedelta(days=policy.maximum_password_age_days)
+                    change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
             add_args = (
                 change,
