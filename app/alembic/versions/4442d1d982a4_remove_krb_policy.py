@@ -7,7 +7,7 @@ Create Date: 2025-02-28 12:01:56.745334
 """
 
 from alembic import op
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from models import Attribute, Directory
@@ -24,15 +24,10 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    default_policy = session.scalar(
-        select(Directory)
+    session.execute(
+        delete(Directory)
         .where(Directory.name == "default_policy")
     )  # fmt: skip
-
-    if not default_policy:
-        return
-
-    session.delete(default_policy)
     session.execute(
         delete(Attribute)
         .where(Attribute.name == "krbpwdpolicyreference")
