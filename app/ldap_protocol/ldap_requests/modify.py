@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
@@ -122,6 +123,27 @@ class ModifyRequest(BaseRequest):
             )
         return cls(object=entry.value, changes=changes)
 
+    async def _update_password_expiration(
+        self,
+        change: Changes,
+        session: AsyncSession,
+    ) -> None:
+        """Update password expiration if policy allows."""
+        if (
+            change.modification.type != "krbpasswordexpiration"
+            and change.modification.vals[0] != "19700101000000Z"
+        ):
+            return
+
+        policy = await PasswordPolicySchema.get_policy_settings(session)
+
+        if policy.maximum_password_age_days == 0:
+            return
+
+        now = datetime.now(timezone.utc)
+        now += timedelta(days=policy.maximum_password_age_days)
+        change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
+
     async def handle(
         self,
         ldap_session: LDAPSession,
@@ -169,6 +191,8 @@ class ModifyRequest(BaseRequest):
         for change in self.changes:
             if change.modification.type in Directory.ro_fields:
                 continue
+
+            await self._update_password_expiration(change, session)
 
             add_args = (
                 change,
@@ -507,8 +531,7 @@ class ModifyRequest(BaseRequest):
                     pass
 
                 validator = await PasswordPolicySchema.get_policy_settings(
-                    session,
-                    kadmin,
+                    session
                 )
 
                 p_last_set = await validator.get_pwd_last_set(

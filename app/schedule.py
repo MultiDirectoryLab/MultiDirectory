@@ -9,7 +9,6 @@ from loguru import logger
 
 from config import Settings
 from extra.scripts.check_ldap_principal import check_ldap_principal
-from extra.scripts.krb_pass_sync import read_and_save_krb_pwds
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_krb5_config import update_krb5_config
@@ -19,7 +18,6 @@ from ldap_protocol.dependency import resolve_deps
 type task_type = Callable[..., Coroutine]
 
 _TASKS: set[tuple[task_type, float]] = {
-    (read_and_save_krb_pwds, 1.5),
     (disable_accounts, 600.0),
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
@@ -45,7 +43,7 @@ async def _schedule(
             await handler()
 
         # NOTE: one-time tasks
-        if wait < 0:
+        if wait < 0.0:
             break
 
         await asyncio.sleep(wait)
