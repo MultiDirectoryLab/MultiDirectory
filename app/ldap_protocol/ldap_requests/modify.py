@@ -129,9 +129,9 @@ class ModifyRequest(BaseRequest):
         session: AsyncSession,
     ) -> None:
         """Update password expiration if policy allows."""
-        if (
-            change.modification.type != "krbpasswordexpiration"
-            and change.modification.vals[0] != "19700101000000Z"
+        if not (
+            change.modification.type == "krbpasswordexpiration"
+            and change.modification.vals[0] == "19700101000000Z"
         ):
             return
 
