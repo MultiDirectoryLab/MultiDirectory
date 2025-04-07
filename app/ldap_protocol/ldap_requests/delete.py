@@ -112,6 +112,6 @@ class DeleteRequest(BaseRequest):
             return
 
         await session.execute(delete(Directory).filter_by(id=directory.id))
-        await session.commit()
+        await session.flush()
 
         yield DeleteResponse(result_code=LDAPCodes.SUCCESS)

@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal, TypeVar
 
-from sqlalchemy import ARRAY, String, bindparam, select, text
+from sqlalchemy import ARRAY, String, bindparam, delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, and_, or_
@@ -53,6 +53,8 @@ async def create_access_policy(
     :param ENTRY_TYPE grant_dn: main dn
     :param AsyncSession session: session
     """
+    await session.execute(delete(AccessPolicy).filter_by(name=name))
+
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
         column=Directory.path[1 : len(path)],

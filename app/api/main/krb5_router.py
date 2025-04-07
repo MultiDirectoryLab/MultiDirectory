@@ -31,8 +31,9 @@ from ldap_protocol.kerberos import (
     get_krb_server_state,
     set_state,
 )
-from ldap_protocol.ldap_requests import AddRequest
+from ldap_protocol.ldap_requests import AddRequest, DeleteRequest
 from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.const import EmailStr
 from ldap_protocol.utils.queries import (
     get_base_directories,
@@ -63,6 +64,7 @@ async def setup_krb_catalogue(
     krbadmin_password: Annotated[SecretStr, Body()],
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     kadmin: FromDishka[AbstractKadmin],
+    session_storage: FromDishka[SessionStorage],
 ) -> None:
     """Generate tree for kdc/kadmin.
 
@@ -78,6 +80,7 @@ async def setup_krb_catalogue(
     services_container = "ou=services," + base_dn
     krbgroup = "cn=krbadmin,cn=groups," + base_dn
 
+    delete_group = DeleteRequest(entry=krbgroup)
     group = AddRequest.from_dict(
         krbgroup,
         {
@@ -89,11 +92,13 @@ async def setup_krb_catalogue(
         },
     )
 
+    delete_services = DeleteRequest(entry=services_container)
     services = AddRequest.from_dict(
         services_container,
         {"objectClass": ["organizationalUnit", "top", "container"]},
     )
 
+    delete_krbadmin = DeleteRequest(entry=krbadmin)
     rkb_user = AddRequest.from_dict(
         krbadmin,
         password=krbadmin_password.get_secret_value(),
@@ -122,7 +127,18 @@ async def setup_krb_catalogue(
         },
     )
 
+    del_args = (
+        session,
+        ldap_session,
+        kadmin,
+        session_storage,
+    )
+
     async with session.begin_nested():
+        await anext(delete_group.handle(*del_args))
+        await anext(delete_services.handle(*del_args))
+        await anext(delete_krbadmin.handle(*del_args))
+
         results = (
             await anext(services.handle(session, ldap_session, kadmin)),
             await anext(group.handle(session, ldap_session, kadmin)),
@@ -183,9 +199,13 @@ async def setup_kdc(
 
     krb5_config = await krb5_template.render_async(
         domain=domain,
+        domain2=settings.KRB5_TRUSTED_DOMAIN,
         krbadmin=krbadmin,
+        kdc_addr=settings.KDC_ADDR,
+        kdc2_addr=settings.KDC_ADDR2,
         services_container=services_container,
         ldap_uri=settings.KRB5_LDAP_URI,
+        shadow_addr=settings.SHADOW_ADDR,
     )
 
     try:
@@ -229,7 +249,7 @@ async def setup_kdc(
 
         await session.execute(
             delete(AccessPolicy)
-            .where(AccessPolicy.name == KERBEROS_POLICY_NAME)
+            .filter_by(name=KERBEROS_POLICY_NAME)
         )  # fmt: skip
         await kadmin.reset_setup()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
