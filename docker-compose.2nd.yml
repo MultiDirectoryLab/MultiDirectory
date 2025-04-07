@@ -65,14 +65,16 @@ services:
       - traefik.enable=true
 
       - traefik.tcp.routers.ldap2.rule=HostSNI(`*`)
-      - traefik.tcp.routers.ldap2.entrypoints=ldap2
+      - traefik.tcp.routers.ldap2.entrypoints=ldap
       - traefik.tcp.routers.ldap2.service=ldap2
       - traefik.tcp.services.ldap2.loadbalancer.server.port=389
+      - traefik.tcp.services.ldap2.loadbalancer.proxyprotocol.version=2
 
       - traefik.tcp.routers.ldaps2.rule=HostSNI(`*`)
-      - traefik.tcp.routers.ldaps2.entrypoints=ldaps2
+      - traefik.tcp.routers.ldaps2.entrypoints=ldaps
       - traefik.tcp.routers.ldaps2.service=ldaps2
       - traefik.tcp.services.ldaps2.loadbalancer.server.port=636
+      - traefik.tcp.services.ldaps2.loadbalancer.proxyprotocol.version=2
     healthcheck:
       test: ["CMD-SHELL", "nc -zv 127.0.0.1 389 636"]
       interval: 30s
@@ -234,7 +236,7 @@ services:
       context: .
       dockerfile: ./.docker/krb.Dockerfile
     container_name: kdc2
-    hostname: kerberos
+    hostname: kerberos2
     restart: unless-stopped
     volumes:
       - md2_kdc:/etc
@@ -252,7 +254,7 @@ services:
   kadmind2:
     container_name: kadmind2
     restart: unless-stopped
-    hostname: kerberos
+    hostname: kerberos2
     volumes:
       - md2_kdc:/etc
       - md2_psync_queue:/var/spool/krb5-sync

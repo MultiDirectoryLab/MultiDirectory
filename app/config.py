@@ -96,7 +96,11 @@ class Settings(BaseModel):
     TIMEZONE: ZoneInfo = Field(ZoneInfo("UTC"), alias="TZ")
 
     KRB5_LDAP_URI: str = "ldap://ldap_server"
+    KRB5_TRUSTED_DOMAIN: str
     KRB5_CONFIG_SERVER: HttpUrl = "https://kadmin_api:8000"  # type: ignore
+    KDC_ADDR: str = "kerberos"
+    KDC_ADDR2: str = "kerberos2"
+    SHADOW_ADDR: str = "shadow_api:8000"
     KRB_CERT: str = "/certs/krbcert.pem"
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
