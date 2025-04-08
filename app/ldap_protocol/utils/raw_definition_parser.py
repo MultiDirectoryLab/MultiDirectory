@@ -28,7 +28,7 @@ class RawDefinitionParser:
         return list(tmp.values())[0]
 
     @staticmethod
-    def _get_object_class_info(raw_definition: str) -> ObjectClassInfo:
+    def get_object_class_info(raw_definition: str) -> ObjectClassInfo:
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
         return list(tmp.values())[0]
 
@@ -57,44 +57,55 @@ class RawDefinitionParser:
             syntax=attribute_type_info.syntax,
             single_value=attribute_type_info.single_value,
             no_user_modification=attribute_type_info.no_user_modification,
-            is_system=False,
+            is_system=True,
         )
 
     @staticmethod
-    async def create_object_class_by_raw(
+    async def _get_object_class_by_name(
+        object_class_name: str,
         session: AsyncSession,
-        raw_definition: str,
+    ) -> ObjectClass | None:
+        return await session.get(ObjectClass, object_class_name)
+
+    @staticmethod
+    async def create_object_class_by_info(
+        session: AsyncSession,
+        object_class_info: ObjectClassInfo,
     ) -> ObjectClass:
-        object_class_info = RawDefinitionParser._get_object_class_info(
-            raw_definition=raw_definition
+        """Create Object Class by ObjectClassInfo."""
+        superior_name = RawDefinitionParser._list_to_string(
+            object_class_info.superior
         )
+        if superior_name:
+            superior_object_class = (
+                await RawDefinitionParser._get_object_class_by_name(
+                    superior_name,
+                    session,
+                )
+            )
+        else:
+            superior_object_class = None
 
         object_class = ObjectClass(
             oid=object_class_info.oid,
             name=RawDefinitionParser._list_to_string(object_class_info.name),
-            superior=RawDefinitionParser._list_to_string(
-                object_class_info.superior
-            ),
+            superior=superior_object_class,
             kind=object_class_info.kind,
-            is_system=False,
+            is_system=True,
         )
-
         if object_class_info.must_contain:
-            attribute_types = (
+            object_class.attribute_types_must.extend(
                 await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.must_contain,
                 )
             )
-            object_class.attribute_types_must.extend(attribute_types)
-
         if object_class_info.may_contain:
-            attribute_types = (
+            object_class.attribute_types_may.extend(
                 await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.may_contain,
                 )
             )
-            object_class.attribute_types_may.extend(attribute_types)
 
         return object_class

@@ -7,8 +7,6 @@ services:
     container_name: traefik
     restart: unless-stopped
     command:
-      # - --metrics
-      # - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
       - "--providers.file.filename=/traefik.yml"
     ports:
       - "53:53"
@@ -25,11 +23,31 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.50'
+          cpus: '1.00'
           memory: 96M
         reservations:
           cpus: '0.25'
           memory: 32M
+    healthcheck:
+      test: traefik traefik healthcheck --ping
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+
+  traefik_certs_dumper:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: traefik_certs_dumper
+    restart: "on-failure"
+    env_file:
+      .env
+    volumes:
+      - ./certs:/certs
+      - "./traefik.yml:/traefik.yml"
+    command: python multidirectory.py --certs_dumper
+    depends_on:
+      traefik:
+        condition: service_healthy
 
   interface:
     image: ghcr.io/multidirectorylab/multidirectory-web-admin:${VERSION:-latest}
@@ -199,7 +217,7 @@ services:
     tty: true
     depends_on:
       - ldap_server
-    command: krb5kdc -n -w 4
+    command: krb5kdc -n
     ports:
       - "88:88"
       - "88:88/udp"
@@ -289,6 +307,8 @@ services:
     container_name: shadow_api
     restart: unless-stopped
     tty: true
+    volumes:
+      - ./certs:/certs
     env_file:
       .env
     depends_on:

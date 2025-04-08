@@ -46,7 +46,7 @@ async def create_one_object_class(
     await create_object_class(
         oid=request_data.oid,
         name=request_data.name,
-        superior=request_data.superior,
+        superior_name=request_data.superior_name,
         kind=request_data.kind,
         is_system=False,
         attribute_types_must=request_data.attribute_types_must,
@@ -72,7 +72,7 @@ async def get_list_object_classes(
         ObjectClassSchema(
             oid=object_class.oid,
             name=object_class.name,
-            superior=object_class.superior,
+            superior_name=object_class.superior_name,
             kind=object_class.kind,
             is_system=object_class.is_system,
             attribute_types_must=object_class.attribute_types_must_display,

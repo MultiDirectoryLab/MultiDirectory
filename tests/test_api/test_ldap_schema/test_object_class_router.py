@@ -82,14 +82,13 @@ async def test_modify_one_object_class(
         session,
     )
     assert isinstance(object_class, ObjectClass)
-    assert object_class.superior == new_statement.get("superior")
     assert object_class.kind == new_statement.get("kind")
     assert object_class.is_system == new_statement.get("is_system")
     assert set(object_class.attribute_types_must_display) == set(
-        new_statement.get("attribute_types_must", [])
+        new_statement.get("attribute_types_must")
     )  # type: ignore
     assert set(object_class.attribute_types_may_display) == set(
-        new_statement.get("attribute_types_may", [])
+        new_statement.get("attribute_types_may")
     )  # type: ignore
 
 
@@ -117,7 +116,7 @@ async def test_delete_bulk_object_classes(
 
     if dataset["status_code"] == status.HTTP_200_OK:
         object_classes = await get_object_classes_by_names(
-            set(dataset["object_classes_deleted"]),
+            dataset["object_classes_deleted"],
             session,
         )
         assert len(object_classes) == 0

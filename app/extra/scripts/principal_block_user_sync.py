@@ -45,7 +45,7 @@ async def principal_block_sync(
         if not principal_directory:
             continue
 
-        krb_exp_attr = find_krb_exp_attr(principal_directory)
+        krb_exp_attr = _find_krb_exp_attr(principal_directory)
         if (not krb_exp_attr) or (not krb_exp_attr.value):
             continue
 
@@ -88,7 +88,7 @@ async def principal_block_sync(
         await session.commit()
 
 
-def find_krb_exp_attr(directory: Directory) -> Attribute | None:
+def _find_krb_exp_attr(directory: Directory) -> Attribute | None:
     """Find krbprincipalexpiration attribute in directory.
 
     :param Directory directory: the directory object

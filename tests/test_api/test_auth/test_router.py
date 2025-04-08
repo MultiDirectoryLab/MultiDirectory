@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Any, TypedDict
 
 import pytest
-from dishka import AsyncContainer
 from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -49,6 +48,7 @@ async def apply_user_account_control(
             ],
         },
     )
+    assert response.status_code == status.HTTP_200_OK
     return response.json()
 
 
@@ -347,7 +347,7 @@ async def test_lock_and_unlock_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
     session: AsyncSession,
-    container: AsyncContainer,
+    storage: SessionStorage,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
@@ -355,9 +355,7 @@ async def test_lock_and_unlock_user(
         select(Directory)
         .filter(Directory.name == "user_non_admin"),
     )  # fmt: skip
-    async with container() as c:
-        session_storage = await c.get(SessionStorage)
-        await session_storage.create_ldap_session(dir_.user.id, "key", {})  # type: ignore
+    await storage.create_ldap_session(dir_.user.id, "key", {})  # type: ignore
 
     data = await apply_user_account_control(http_client, user_dn, "514")
 
@@ -433,4 +431,4 @@ async def test_lock_and_unlock_user(
 
     assert "nsAccountLock" not in attrs
     assert "shadowExpire" not in attrs
-    assert not await session_storage.get_user_sessions(dir_.user.id)  # type: ignore
+    assert not await storage.get_user_sessions(dir_.user.id)  # type: ignore

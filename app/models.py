@@ -667,31 +667,39 @@ class ObjectClass(Base):
 
     oid: Mapped[str] = mapped_column(nullable=False, unique=True)
     name: Mapped[str] = mapped_column(primary_key=True)
-    superior: Mapped[str | None] = mapped_column(nullable=True)
+    superior_name: Mapped[str | None] = mapped_column(
+        ForeignKey("ObjectClasses.name", ondelete="SET NULL"),
+        nullable=True,
+    )
+    superior: Mapped[ObjectClass | None] = relationship(
+        "ObjectClass",
+        remote_side="ObjectClass.name",
+        uselist=False,
+    )
     kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
     is_system: Mapped[bool]
 
     attribute_types_must: Mapped[list[AttributeType]] = relationship(
         "AttributeType",
         secondary=ObjectClassAttributeTypeMustMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",
-        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
+        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
         lazy="selectin",
     )
 
     attribute_types_may: Mapped[list[AttributeType]] = relationship(
         "AttributeType",
         secondary=ObjectClassAttributeTypeMayMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",
-        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
+        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
         lazy="selectin",
     )
 
     def get_raw_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
-        chunks = [f"( {self.oid}", f"NAME '{self.name}'"]
-        if self.superior:
-            chunks.append(f"SUP {self.superior}")
+        chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
+        if self.superior_name:
+            chunks.append(f"SUP {self.superior_name}")
         if self.kind:
             chunks.append(self.kind)
         if self.attribute_types_must:

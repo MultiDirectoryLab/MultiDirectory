@@ -231,7 +231,7 @@ services:
       - kdc:/etc
     image: krb5md
     tty: true
-    command: krb5kdc -n -w 4
+    command: krb5kdc -n
     ports:
       - "88:88"
       - "88:88/udp"
@@ -246,7 +246,6 @@ services:
     hostname: kerberos
     volumes:
       - kdc:/etc
-      - psync_queue:/var/spool/krb5-sync
     image: krb5md
     tty: true
     command: kadmind -nofork
@@ -281,17 +280,20 @@ services:
         restart: true
     volumes:
       - ./app:/app
+      - ./certs:/certs
     env_file:
       local.env
     command: python multidirectory.py --shadow
+    ports:
+      - 8001:8000
 
   maintence:
     image: multidirectory
     container_name: md_maintence
+    restart: unless-stopped
     volumes:
       - ./certs:/certs
       - ./app:/app
-      - psync_queue:/var/spool/krb5-sync
       - ldap_keytab:/LDAP_keytab/
     env_file:
       local.env
@@ -365,7 +367,6 @@ volumes:
   pgadmin:
   wireshark:
   kdc:
-  psync_queue:
   dns_server_file:
   dns_server_config:
   ldap_keytab:

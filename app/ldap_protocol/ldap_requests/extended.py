@@ -203,10 +203,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await session.get(User, ldap_session.user.id)  # type: ignore
 
-        validator = await PasswordPolicySchema.get_policy_settings(
-            session,
-            kadmin,
-        )
+        validator = await PasswordPolicySchema.get_policy_settings(session)
 
         errors = await validator.validate_password_with_policy(
             password=self.new_password,

@@ -30,6 +30,25 @@ services:
         reservations:
           cpus: '0.25'
           memory: 32M
+    healthcheck:
+      test: traefik traefik healthcheck --ping
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+
+  traefik_certs_dumper:
+    image: multidirectory
+    container_name: traefik_certs_dumper
+    restart: "on-failure"
+    volumes:
+      - ./certs:/certs
+      - ".package/traefik.yml:/traefik.yml"
+    command: python multidirectory.py --certs_dumper
+    env_file:
+      local.env
+    depends_on:
+      - traefik
 
   interface:
     container_name: multidirectory_interface
@@ -225,7 +244,7 @@ services:
     tty: true
     depends_on:
       - ldap_server
-    command: krb5kdc -n -w 4
+    command: krb5kdc -n
 
     labels:
       - traefik.enable=true
