@@ -640,7 +640,11 @@ class ObjectClass(Base):
 
     oid: Mapped[str] = mapped_column(nullable=False, unique=True)
     name: Mapped[str] = mapped_column(primary_key=True)
-    superior: Mapped[str | None] = mapped_column(nullable=True)
+    superior: Mapped[ObjectClass | None] = relationship(
+        lambda: ObjectClass,
+        remote_side="ObjectClasses.id",
+        uselist=False,
+    )
     kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
     is_system: Mapped[bool]
 

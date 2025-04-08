@@ -138,7 +138,7 @@ async def modify_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
-    object_class.superior = new_statement.superior
+    object_class.superior = None  # FIXME: new_statement.superior
     object_class.kind = new_statement.kind
     object_class.is_system = new_statement.is_system
 

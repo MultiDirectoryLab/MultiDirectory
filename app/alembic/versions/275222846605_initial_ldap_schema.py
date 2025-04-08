@@ -1,7 +1,7 @@
 """Initialise LDAP schema.
 
 Revision ID: 275222846605
-Revises: 692ae64e0cc5
+Revises: 4442d1d982a4
 Create Date: 2025-03-05 12:19:03.407487
 
 """
@@ -20,7 +20,7 @@ from ldap_protocol.utils.raw_definition_parser import (
 
 # revision identifiers, used by Alembic.
 revision = "275222846605"
-down_revision = "692ae64e0cc5"
+down_revision = "4442d1d982a4"
 branch_labels = None
 depends_on = None
 
@@ -30,28 +30,6 @@ ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 def upgrade() -> None:
     """Upgrade."""
-
-    async def _create_object_classes(connection):
-        session = AsyncSession(bind=connection)
-        await session.begin()
-
-        oc_raw_definitions = ad_2012_r2_schema_json["raw"]["objectClasses"]
-        oc_raw_definitions_filtered = [
-            defenition
-            for defenition in oc_raw_definitions
-            if "name 'ms" not in defenition.lower()
-        ]
-
-        for oc_raw_definition in oc_raw_definitions_filtered:
-            object_class = await RDParser.create_object_class_by_raw(
-                session=session,
-                raw_definition=oc_raw_definition,
-            )
-            object_class.is_system = True
-            session.add(object_class)
-        await session.commit()
-        await session.close()
-
     bind = op.get_bind()
     session = Session(bind=bind)
 
@@ -139,11 +117,38 @@ def upgrade() -> None:
         attribute_type = RDParser.create_attribute_type_by_raw(
             raw_definition=at_raw_definition
         )
-        attribute_type.is_system = True
         session.add(attribute_type)
     session.commit()
 
     # NOTE: Load objectClasses into the database
+    async def _create_object_classes(connection):
+        session = AsyncSession(bind=connection)
+        await session.begin()
+
+        object_class_top_raw_definition = "( 2.5.6.0 NAME 'top'  ABSTRACT MUST (objectClass $ instanceType $ nTSecurityDescriptor $ objectCategory ) MAY (cn $ description $ distinguishedName $ whenCreated $ whenChanged $ subRefs $ displayName $ uSNCreated $ isDeleted $ dSASignature $ objectVersion $ repsTo $ repsFrom $ memberOf $ ownerBL $ uSNChanged $ uSNLastObjRem $ showInAdvancedViewOnly $ adminDisplayName $ proxyAddresses $ adminDescription $ extensionName $ uSNDSALastObjRemoved $ displayNamePrintable $ directReports $ wWWHomePage $ USNIntersite $ name $ objectGUID $ replPropertyMetaData $ replUpToDateVector $ flags $ revision $ wbemPath $ fSMORoleOwner $ systemFlags $ siteObjectBL $ serverReferenceBL $ nonSecurityMemberBL $ queryPolicyBL $ wellKnownObjects $ isPrivilegeHolder $ partialAttributeSet $ managedObjects $ partialAttributeDeletionList $ url $ lastKnownParent $ bridgeheadServerListBL $ netbootSCPBL $ isCriticalSystemObject $ frsComputerReferenceBL $ fRSMemberReferenceBL $ uSNSource $ fromEntry $ allowedChildClasses $ allowedChildClassesEffective $ allowedAttributes $ allowedAttributesEffective $ possibleInferiors $ canonicalName $ proxiedObjectName $ sDRightsEffective $ dSCorePropagationData $ otherWellKnownObjects $ mS-DS-ConsistencyGuid $ mS-DS-ConsistencyChildCount $ masteredBy $ msCOM-PartitionSetLink $ msCOM-UserLink $ msDS-Approx-Immed-Subordinates $ msDS-NCReplCursors $ msDS-NCReplInboundNeighbors $ msDS-NCReplOutboundNeighbors $ msDS-ReplAttributeMetaData $ msDS-ReplValueMetaData $ msDS-NonMembersBL $ msDS-MembersForAzRoleBL $ msDS-OperationsForAzTaskBL $ msDS-TasksForAzTaskBL $ msDS-OperationsForAzRoleBL $ msDS-TasksForAzRoleBL $ msDs-masteredBy $ msDS-ObjectReferenceBL $ msDS-PrincipalName $ msDS-RevealedDSAs $ msDS-KrbTgtLinkBl $ msDS-IsFullReplicaFor $ msDS-IsDomainFor $ msDS-IsPartialReplicaFor $ msDS-AuthenticatedToAccountlist $ msDS-NC-RO-Replica-Locations-BL $ msDS-RevealedListBL $ msDS-PSOApplied $ msDS-NcType $ msDS-OIDToGroupLinkBl $ msDS-HostServiceAccountBL $ isRecycled $ msDS-LocalEffectiveDeletionTime $ msDS-LocalEffectiveRecycleTime $ msDS-LastKnownRDN $ msDS-EnabledFeatureBL $ msDS-ClaimSharesPossibleValuesWithBL $ msDS-MembersOfResourcePropertyListBL $ msDS-IsPrimaryComputerFor $ msDS-ValueTypeReferenceBL $ msDS-TDOIngressBL $ msDS-TDOEgressBL $ msDS-parentdistname $ msDS-ReplValueMetaDataExt $ msds-memberOfTransitive $ msds-memberTransitive $ structuralObjectClass $ createTimeStamp $ modifyTimeStamp $ subSchemaSubEntry $ msSFU30PosixMemberOf $ msDFSR-MemberReferenceBL $ msDFSR-ComputerReferenceBL ) )"  # noqa: E501
+        object_class = await RDParser.create_object_class_by_raw(
+            session=session,
+            raw_definition=object_class_top_raw_definition,
+        )
+        session.add(object_class)
+
+        oc_raw_definitions = ad_2012_r2_schema_json["raw"]["objectClasses"]
+        oc_raw_definitions_filtered = [
+            defenition
+            for defenition in oc_raw_definitions
+            if "name 'ms" not in defenition.lower()
+            and "name 'top'" not in defenition.lower()
+        ]
+
+        for oc_raw_definition in oc_raw_definitions_filtered:
+            object_class = await RDParser.create_object_class_by_raw(
+                session=session,
+                raw_definition=oc_raw_definition,
+            )
+            session.add(object_class)
+        await session.commit()
+        await session.close()
+
     op.run_async(_create_object_classes)
 
 
