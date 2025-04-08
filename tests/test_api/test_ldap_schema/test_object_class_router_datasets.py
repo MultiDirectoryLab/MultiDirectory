@@ -83,7 +83,6 @@ test_modify_one_object_class_dataset = [
             "attribute_types_may": [],
         },
         "new_statement": {
-            "superior_name": None,
             "kind": "ABSTRACT",
             "is_system": False,
             "attribute_types_must": [],
@@ -111,7 +110,6 @@ test_modify_one_object_class_dataset = [
             "attribute_types_may": [],
         },
         "new_statement": {
-            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [],
@@ -147,7 +145,6 @@ test_modify_one_object_class_dataset = [
             "attribute_types_may": [],
         },
         "new_statement": {
-            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [
@@ -194,7 +191,6 @@ test_modify_one_object_class_dataset = [
             "attribute_types_may": ["testAttributeType2"],
         },
         "new_statement": {
-            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [],

@@ -32,7 +32,6 @@ class ObjectClassSchema(BaseModel):
 class ObjectClassUpdateSchema(BaseModel):
     """Object Class Schema for modify/update."""
 
-    superior_name: str | None
     kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
     is_system: bool
     attribute_types_must: list[str]
@@ -144,7 +143,6 @@ async def modify_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
-    object_class.superior = None  # FIXME: new_statement.superior
     object_class.kind = new_statement.kind
     object_class.is_system = new_statement.is_system
 
