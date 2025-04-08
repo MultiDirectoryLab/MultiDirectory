@@ -50,7 +50,12 @@ def upgrade() -> None:
         "ObjectClasses",
         sa.Column("oid", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
-        sa.Column("superior", sa.String(), nullable=True),
+        sa.Column("superior_name", sa.String(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["superior_name"],
+            ["ObjectClasses.name"],
+            ondelete="SET NULL",
+        ),
         sa.Column(
             "kind",
             sa.Enum("AUXILIARY", "STRUCTURAL", "ABSTRACT", native_enum=False),
@@ -125,19 +130,37 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        object_class_top_raw_definition = "( 2.5.6.0 NAME 'top'  ABSTRACT MUST (objectClass $ instanceType $ nTSecurityDescriptor $ objectCategory ) MAY (cn $ description $ distinguishedName $ whenCreated $ whenChanged $ subRefs $ displayName $ uSNCreated $ isDeleted $ dSASignature $ objectVersion $ repsTo $ repsFrom $ memberOf $ ownerBL $ uSNChanged $ uSNLastObjRem $ showInAdvancedViewOnly $ adminDisplayName $ proxyAddresses $ adminDescription $ extensionName $ uSNDSALastObjRemoved $ displayNamePrintable $ directReports $ wWWHomePage $ USNIntersite $ name $ objectGUID $ replPropertyMetaData $ replUpToDateVector $ flags $ revision $ wbemPath $ fSMORoleOwner $ systemFlags $ siteObjectBL $ serverReferenceBL $ nonSecurityMemberBL $ queryPolicyBL $ wellKnownObjects $ isPrivilegeHolder $ partialAttributeSet $ managedObjects $ partialAttributeDeletionList $ url $ lastKnownParent $ bridgeheadServerListBL $ netbootSCPBL $ isCriticalSystemObject $ frsComputerReferenceBL $ fRSMemberReferenceBL $ uSNSource $ fromEntry $ allowedChildClasses $ allowedChildClassesEffective $ allowedAttributes $ allowedAttributesEffective $ possibleInferiors $ canonicalName $ proxiedObjectName $ sDRightsEffective $ dSCorePropagationData $ otherWellKnownObjects $ mS-DS-ConsistencyGuid $ mS-DS-ConsistencyChildCount $ masteredBy $ msCOM-PartitionSetLink $ msCOM-UserLink $ msDS-Approx-Immed-Subordinates $ msDS-NCReplCursors $ msDS-NCReplInboundNeighbors $ msDS-NCReplOutboundNeighbors $ msDS-ReplAttributeMetaData $ msDS-ReplValueMetaData $ msDS-NonMembersBL $ msDS-MembersForAzRoleBL $ msDS-OperationsForAzTaskBL $ msDS-TasksForAzTaskBL $ msDS-OperationsForAzRoleBL $ msDS-TasksForAzRoleBL $ msDs-masteredBy $ msDS-ObjectReferenceBL $ msDS-PrincipalName $ msDS-RevealedDSAs $ msDS-KrbTgtLinkBl $ msDS-IsFullReplicaFor $ msDS-IsDomainFor $ msDS-IsPartialReplicaFor $ msDS-AuthenticatedToAccountlist $ msDS-NC-RO-Replica-Locations-BL $ msDS-RevealedListBL $ msDS-PSOApplied $ msDS-NcType $ msDS-OIDToGroupLinkBl $ msDS-HostServiceAccountBL $ isRecycled $ msDS-LocalEffectiveDeletionTime $ msDS-LocalEffectiveRecycleTime $ msDS-LastKnownRDN $ msDS-EnabledFeatureBL $ msDS-ClaimSharesPossibleValuesWithBL $ msDS-MembersOfResourcePropertyListBL $ msDS-IsPrimaryComputerFor $ msDS-ValueTypeReferenceBL $ msDS-TDOIngressBL $ msDS-TDOEgressBL $ msDS-parentdistname $ msDS-ReplValueMetaDataExt $ msds-memberOfTransitive $ msds-memberTransitive $ structuralObjectClass $ createTimeStamp $ modifyTimeStamp $ subSchemaSubEntry $ msSFU30PosixMemberOf $ msDFSR-MemberReferenceBL $ msDFSR-ComputerReferenceBL ) )"  # noqa: E501
-        object_class = await RDParser.create_object_class_by_raw(
-            session=session,
-            raw_definition=object_class_top_raw_definition,
-        )
-        session.add(object_class)
+        oc_already_exists = set()
+        oc_first_priority_raw_definitions = [
+            "( 2.5.6.0 NAME 'top'  ABSTRACT MUST (objectClass $ instanceType $ nTSecurityDescriptor $ objectCategory ) MAY (cn $ description $ distinguishedName $ whenCreated $ whenChanged $ subRefs $ displayName $ uSNCreated $ isDeleted $ dSASignature $ objectVersion $ repsTo $ repsFrom $ memberOf $ ownerBL $ uSNChanged $ uSNLastObjRem $ showInAdvancedViewOnly $ adminDisplayName $ proxyAddresses $ adminDescription $ extensionName $ uSNDSALastObjRemoved $ displayNamePrintable $ directReports $ wWWHomePage $ USNIntersite $ name $ objectGUID $ replPropertyMetaData $ replUpToDateVector $ flags $ revision $ wbemPath $ fSMORoleOwner $ systemFlags $ siteObjectBL $ serverReferenceBL $ nonSecurityMemberBL $ queryPolicyBL $ wellKnownObjects $ isPrivilegeHolder $ partialAttributeSet $ managedObjects $ partialAttributeDeletionList $ url $ lastKnownParent $ bridgeheadServerListBL $ netbootSCPBL $ isCriticalSystemObject $ frsComputerReferenceBL $ fRSMemberReferenceBL $ uSNSource $ fromEntry $ allowedChildClasses $ allowedChildClassesEffective $ allowedAttributes $ allowedAttributesEffective $ possibleInferiors $ canonicalName $ proxiedObjectName $ sDRightsEffective $ dSCorePropagationData $ otherWellKnownObjects $ mS-DS-ConsistencyGuid $ mS-DS-ConsistencyChildCount $ masteredBy $ msCOM-PartitionSetLink $ msCOM-UserLink $ msDS-Approx-Immed-Subordinates $ msDS-NCReplCursors $ msDS-NCReplInboundNeighbors $ msDS-NCReplOutboundNeighbors $ msDS-ReplAttributeMetaData $ msDS-ReplValueMetaData $ msDS-NonMembersBL $ msDS-MembersForAzRoleBL $ msDS-OperationsForAzTaskBL $ msDS-TasksForAzTaskBL $ msDS-OperationsForAzRoleBL $ msDS-TasksForAzRoleBL $ msDs-masteredBy $ msDS-ObjectReferenceBL $ msDS-PrincipalName $ msDS-RevealedDSAs $ msDS-KrbTgtLinkBl $ msDS-IsFullReplicaFor $ msDS-IsDomainFor $ msDS-IsPartialReplicaFor $ msDS-AuthenticatedToAccountlist $ msDS-NC-RO-Replica-Locations-BL $ msDS-RevealedListBL $ msDS-PSOApplied $ msDS-NcType $ msDS-OIDToGroupLinkBl $ msDS-HostServiceAccountBL $ isRecycled $ msDS-LocalEffectiveDeletionTime $ msDS-LocalEffectiveRecycleTime $ msDS-LastKnownRDN $ msDS-EnabledFeatureBL $ msDS-ClaimSharesPossibleValuesWithBL $ msDS-MembersOfResourcePropertyListBL $ msDS-IsPrimaryComputerFor $ msDS-ValueTypeReferenceBL $ msDS-TDOIngressBL $ msDS-TDOEgressBL $ msDS-parentdistname $ msDS-ReplValueMetaDataExt $ msds-memberOfTransitive $ msds-memberTransitive $ structuralObjectClass $ createTimeStamp $ modifyTimeStamp $ subSchemaSubEntry $ msSFU30PosixMemberOf $ msDFSR-MemberReferenceBL $ msDFSR-ComputerReferenceBL ) )",  # noqa: E501
+            "( 1.2.840.113556.1.5.20 NAME 'leaf' SUP top ABSTRACT )",
+            "( 2.5.6.6 NAME 'person' SUP top STRUCTURAL MUST (cn ) MAY (sn $ serialNumber $ telephoneNumber $ seeAlso $ userPassword $ attributeCertificateAttribute ) )",
+            "( 2.5.6.7 NAME 'organizationalPerson' SUP person STRUCTURAL MAY (c $ l $ st $ street $ o $ ou $ title $ postalAddress $ postalCode $ postOfficeBox $ physicalDeliveryOfficeName $ telexNumber $ teletexTerminalIdentifier $ facsimileTelephoneNumber $ x121Address $ internationalISDNNumber $ registeredAddress $ destinationIndicator $ preferredDeliveryMethod $ givenName $ initials $ generationQualifier $ houseIdentifier $ otherTelephone $ otherPager $ co $ department $ company $ streetAddress $ otherHomePhone $ msExchHouseIdentifier $ personalTitle $ homePostalAddress $ countryCode $ employeeID $ comment $ division $ otherFacsimileTelephoneNumber $ otherMobile $ primaryTelexNumber $ primaryInternationalISDNNumber $ mhsORAddress $ otherMailbox $ assistant $ ipPhone $ otherIpPhone $ msDS-AllowedToDelegateTo $ msDS-PhoneticFirstName $ msDS-PhoneticLastName $ msDS-PhoneticDepartment $ msDS-PhoneticCompanyName $ msDS-PhoneticDisplayName $ msDS-HABSeniorityIndex $ msDS-AllowedToActOnBehalfOfOtherIdentity $ mail $ manager $ homePhone $ mobile $ pager $ middleName $ thumbnailPhoto $ thumbnailLogo ) )",
+            "( 1.2.840.113556.1.5.9 NAME 'user' SUP organizationalPerson STRUCTURAL MAY (o $ businessCategory $ userCertificate $ givenName $ initials $ x500uniqueIdentifier $ displayName $ networkAddress $ employeeNumber $ employeeType $ homePostalAddress $ userAccountControl $ badPwdCount $ codePage $ homeDirectory $ homeDrive $ badPasswordTime $ lastLogoff $ lastLogon $ dBCSPwd $ localeID $ scriptPath $ logonHours $ logonWorkstation $ maxStorage $ userWorkstations $ unicodePwd $ otherLoginWorkstations $ ntPwdHistory $ pwdLastSet $ preferredOU $ primaryGroupID $ userParameters $ profilePath $ operatorCount $ adminCount $ accountExpires $ lmPwdHistory $ groupMembershipSAM $ logonCount $ controlAccessRights $ defaultClassStore $ groupsToIgnore $ groupPriority $ desktopProfile $ dynamicLDAPServer $ userPrincipalName $ lockoutTime $ userSharedFolder $ userSharedFolderOther $ servicePrincipalName $ aCSPolicyName $ terminalServer $ mSMQSignCertificates $ mSMQDigests $ mSMQDigestsMig $ mSMQSignCertificatesMig $ msNPAllowDialin $ msNPCallingStationID $ msNPSavedCallingStationID $ msRADIUSCallbackNumber $ msRADIUSFramedIPAddress $ msRADIUSFramedRoute $ msRADIUSServiceType $ msRASSavedCallbackNumber $ msRASSavedFramedIPAddress $ msRASSavedFramedRoute $ mS-DS-CreatorSID $ msCOM-UserPartitionSetLink $ msDS-Cached-Membership $ msDS-Cached-Membership-Time-Stamp $ msDS-Site-Affinity $ msDS-User-Account-Control-Computed $ lastLogonTimestamp $ msIIS-FTPRoot $ msIIS-FTPDir $ msDRM-IdentityCertificate $ msDS-SourceObjectDN $ msPKIRoamingTimeStamp $ msPKIDPAPIMasterKeys $ msPKIAccountCredentials $ msRADIUS-FramedInterfaceId $ msRADIUS-SavedFramedInterfaceId $ msRADIUS-FramedIpv6Prefix $ msRADIUS-SavedFramedIpv6Prefix $ msRADIUS-FramedIpv6Route $ msRADIUS-SavedFramedIpv6Route $ msDS-SecondaryKrbTgtNumber $ msDS-AuthenticatedAtDC $ msDS-SupportedEncryptionTypes $ msDS-LastSuccessfulInteractiveLogonTime $ msDS-LastFailedInteractiveLogonTime $ msDS-FailedInteractiveLogonCount $ msDS-FailedInteractiveLogonCountAtLastSuccessfulLogon $ msTSProfilePath $ msTSHomeDirectory $ msTSHomeDrive $ msTSAllowLogon $ msTSRemoteControl $ msTSMaxDisconnectionTime $ msTSMaxConnectionTime $ msTSMaxIdleTime $ msTSReconnectionAction $ msTSBrokenConnectionAction $ msTSConnectClientDrives $ msTSConnectPrinterDrives $ msTSDefaultToMainPrinter $ msTSWorkDirectory $ msTSInitialProgram $ msTSProperty01 $ msTSProperty02 $ msTSExpireDate $ msTSLicenseVersion $ msTSManagingLS $ msDS-UserPasswordExpiryTimeComputed $ msTSExpireDate2 $ msTSLicenseVersion2 $ msTSManagingLS2 $ msTSExpireDate3 $ msTSLicenseVersion3 $ msTSManagingLS3 $ msTSExpireDate4 $ msTSLicenseVersion4 $ msTSManagingLS4 $ msTSLSProperty01 $ msTSLSProperty02 $ msDS-ResultantPSO $ msPKI-CredentialRoamingTokens $ msTSPrimaryDesktop $ msTSSecondaryDesktops $ msDS-PrimaryComputer $ msDS-SyncServerUrl $ msDS-AssignedAuthNPolicySilo $ msDS-AuthNPolicySiloMembersBL $ msDS-AssignedAuthNPolicy $ userSMIMECertificate $ uid $ mail $ roomNumber $ photo $ manager $ homePhone $ secretary $ mobile $ pager $ audio $ jpegPhoto $ carLicense $ departmentNumber $ preferredLanguage $ userPKCS12 $ labeledURI $ msSFU30Name $ msSFU30NisDomain ) )",
+            "( 1.2.840.113556.1.5.1 NAME 'securityObject' SUP top ABSTRACT MUST (cn ) )",
+            "( 1.2.840.113556.1.5.14 NAME 'connectionPoint' SUP leaf ABSTRACT MUST (cn ) MAY (keywords $ managedBy $ msDS-Settings ) )",
+            "( 1.2.840.113556.1.5.126 NAME 'serviceConnectionPoint' SUP connectionPoint STRUCTURAL MAY (versionNumber $ vendor $ versionNumberHi $ versionNumberLo $ serviceClassName $ serviceBindingInformation $ serviceDNSName $ serviceDNSNameType $ appSchemaVersion ) )",
+            "( 1.2.840.113556.1.5.94 NAME 'serviceAdministrationPoint' SUP serviceConnectionPoint STRUCTURAL )",
+            "( 1.2.840.113556.1.5.7000.56 NAME 'ipsecBase' SUP top ABSTRACT MAY (ipsecName $ ipsecID $ ipsecDataType $ ipsecData $ ipsecOwnersReference ) )",
+            "( 1.2.840.113556.1.5.66 NAME 'domain' SUP top ABSTRACT MUST (dc ) )",
+            "( 1.2.840.113556.1.3.59 NAME 'displayTemplate' SUP top STRUCTURAL MUST (cn ) MAY (helpData32 $ originalDisplayTableMSDOS $ addressEntryDisplayTable $ helpFileName $ addressEntryDisplayTableMSDOS $ helpData16 $ originalDisplayTable ) )",
+            "( 2.5.6.2 NAME 'country' SUP top STRUCTURAL MUST (c ) MAY (searchGuide $ co ) )",
+            "( 1.2.840.113556.1.5.7000.49 NAME 'applicationSettings' SUP top ABSTRACT MAY (applicationName $ notificationList $ msDS-Settings ) )",
+        ]
+        for oc_high_priority_raw_definition in oc_first_priority_raw_definitions:  # fmt: skip
+            object_class = await RDParser.create_object_class_by_raw(
+                session=session,
+                raw_definition=oc_high_priority_raw_definition,
+            )
+            oc_already_exists.add(object_class.name)
+            session.add(object_class)
 
         oc_raw_definitions = ad_2012_r2_schema_json["raw"]["objectClasses"]
         oc_raw_definitions_filtered = [
             defenition
             for defenition in oc_raw_definitions
             if "name 'ms" not in defenition.lower()
-            and "name 'top'" not in defenition.lower()
+            and "name 'serviceAdministrationPoint" not in defenition.lower()
         ]
 
         for oc_raw_definition in oc_raw_definitions_filtered:
@@ -145,6 +168,8 @@ def upgrade() -> None:
                 session=session,
                 raw_definition=oc_raw_definition,
             )
+            if object_class.name in oc_already_exists:
+                continue
             session.add(object_class)
         await session.commit()
         await session.close()
