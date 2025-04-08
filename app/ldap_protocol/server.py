@@ -72,8 +72,6 @@ class PoolClientHandler:
         else:
             self.req_log = self.rsp_log = self._log_short
 
-        self.ssl_context = None
-
     async def __call__(
         self,
         reader: asyncio.StreamReader,
