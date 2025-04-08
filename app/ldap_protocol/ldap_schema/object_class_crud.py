@@ -22,7 +22,7 @@ class ObjectClassSchema(BaseModel):
 
     oid: str
     name: str
-    superior: str | None
+    superior_name: str | None
     kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
     is_system: bool
     attribute_types_must: list[str]
@@ -32,7 +32,7 @@ class ObjectClassSchema(BaseModel):
 class ObjectClassUpdateSchema(BaseModel):
     """Object Class Schema for modify/update."""
 
-    superior: str | None
+    superior_name: str | None
     kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
     is_system: bool
     attribute_types_must: list[str]
@@ -42,7 +42,7 @@ class ObjectClassUpdateSchema(BaseModel):
 async def create_object_class(
     oid: str,
     name: str,
-    superior: str | None,
+    superior_name: str | None,
     kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"],
     is_system: bool,
     attribute_types_must: list[str],
@@ -53,7 +53,7 @@ async def create_object_class(
 
     :param str oid: OID.
     :param str name: Name.
-    :param str | None superior: Parent Object Class.
+    :param str | None superior_name: Parent Object Class.
     :param Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"] kind: Kind.
     :param bool is_system: Object Class is system.
     :param list[str] attribute_types_must: Attribute Types must.
@@ -61,6 +61,12 @@ async def create_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
+    superior = (
+        await get_object_class_by_name(superior_name, session)
+        if superior_name
+        else None
+    )
+
     object_class = ObjectClass(
         oid=oid,
         name=name,

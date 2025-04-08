@@ -670,9 +670,9 @@ class ObjectClass(Base):
 
     def get_raw_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
-        chunks = [f"( {self.oid}", f"NAME '{self.name}'"]
-        if self.superior:
-            chunks.append(f"SUP {self.superior}")
+        chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
+        if self.superior_name:
+            chunks.append(f"SUP {self.superior_name}")
         if self.kind:
             chunks.append(self.kind)
         if self.attribute_types_must:

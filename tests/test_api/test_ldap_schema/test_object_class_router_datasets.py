@@ -33,7 +33,7 @@ test_create_one_object_class_dataset = [
         "object_class": {
             "oid": "1.2.3.4",
             "name": "testObjectClass1",
-            "superior": "testSuperior",
+            "superior_name": None,
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [
@@ -48,7 +48,19 @@ test_create_one_object_class_dataset = [
         "object_class": {
             "oid": "1.2.3.4",
             "name": "testObjectClass2",
-            "superior": "testSuperior",
+            "superior_name": None,
+            "kind": "ABSTRACT",
+            "is_system": False,
+            "attribute_types_must": [],
+            "attribute_types_may": [],
+        },
+    },
+    {
+        "attribute_types": [],
+        "object_class": {
+            "oid": "1.2.3.4",
+            "name": "testObjectClass3",
+            "superior_name": "top",
             "kind": "ABSTRACT",
             "is_system": False,
             "attribute_types_must": [],
@@ -64,14 +76,14 @@ test_modify_one_object_class_dataset = [
         "object_class_data": {
             "oid": "1.2.3.4",
             "name": "modifiedObjectClass",
-            "superior": "top",
+            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [],
             "attribute_types_may": [],
         },
         "new_statement": {
-            "superior": None,
+            "superior_name": None,
             "kind": "ABSTRACT",
             "is_system": False,
             "attribute_types_must": [],
@@ -92,14 +104,14 @@ test_modify_one_object_class_dataset = [
         "object_class_data": {
             "oid": "1.2.3.4",
             "name": "modifiedObjectClass",
-            "superior": "top",
+            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": ["testAttributeType1"],
             "attribute_types_may": [],
         },
         "new_statement": {
-            "superior": "top",
+            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [],
@@ -128,14 +140,14 @@ test_modify_one_object_class_dataset = [
         "object_class_data": {
             "oid": "1.2.3.4",
             "name": "modifiedObjectClass",
-            "superior": "top",
+            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": ["testAttributeType1"],
             "attribute_types_may": [],
         },
         "new_statement": {
-            "superior": "top",
+            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [
@@ -175,14 +187,14 @@ test_modify_one_object_class_dataset = [
         "object_class_data": {
             "oid": "1.2.3.4",
             "name": "modifiedObjectClass",
-            "superior": "top",
+            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": ["testAttributeType1"],
             "attribute_types_may": ["testAttributeType2"],
         },
         "new_statement": {
-            "superior": "top",
+            "superior_name": "top",
             "kind": "STRUCTURAL",
             "is_system": False,
             "attribute_types_must": [],
@@ -190,6 +202,8 @@ test_modify_one_object_class_dataset = [
         },
     },
 ]
+
+
 test_delete_bulk_object_classes_dataset = [
     {
         "object_class_datas": [],
@@ -201,7 +215,7 @@ test_delete_bulk_object_classes_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testObjectClass1",
-                "superior": "top",
+                "superior_name": "top",
                 "kind": "STRUCTURAL",
                 "is_system": False,
                 "attribute_types_must": [],
@@ -210,7 +224,7 @@ test_delete_bulk_object_classes_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testObjectClass2",
-                "superior": "top",
+                "superior_name": None,
                 "kind": "STRUCTURAL",
                 "is_system": False,
                 "attribute_types_must": [],
@@ -225,7 +239,7 @@ test_delete_bulk_object_classes_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testObjectClass1",
-                "superior": "top",
+                "superior_name": "top",
                 "kind": "STRUCTURAL",
                 "is_system": False,
                 "attribute_types_must": [],

@@ -47,9 +47,9 @@ async def test_ldap3_parse_attribute_types(test_dataset: list[str]) -> None:
 
 test_ldap3_parse_object_classes_dataset = [
     [
-        "( 1.2.840.113556.1.5.152 NAME 'intellimirrorGroup' SUP top STRUCTURAL )",  # noqa: E501
-        "( 1.2.840.113556.1.5.262 NAME 'msImaging-PSPs' SUP container STRUCTURAL )",  # noqa: E501
-        "( 1.2.840.113556.1.5.27 NAME 'rpcEntry' SUP connectionPoint ABSTRACT )",  # noqa: E501
+        "( 1.2.840.113556.1.5.152 NAME 'intellimirrorGroup' STRUCTURAL )",
+        "( 1.2.840.113556.1.5.262 NAME 'msImaging-PSPs' STRUCTURAL )",
+        "( 1.2.840.113556.1.5.27 NAME 'rpcEntry' ABSTRACT )",
     ],
 ]
 
@@ -65,9 +65,12 @@ async def test_ldap3_parse_object_classes(
 ) -> None:
     """Test parse ldap3 object classes."""
     for raw_definition in test_dataset:
-        object_class: ObjectClass = await RDParser.create_object_class_by_raw(
+        object_class_info = RDParser.get_object_class_info(
+            raw_definition=raw_definition
+        )
+        object_class: ObjectClass = await RDParser.create_object_class_by_info(
             session=session,
-            raw_definition=raw_definition,
+            object_class_info=object_class_info,
         )
 
         assert raw_definition == object_class.get_raw_definition()

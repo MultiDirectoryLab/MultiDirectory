@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
-from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +28,7 @@ class RawDefinitionParser:
         return list(tmp.values())[0]
 
     @staticmethod
-    def _get_object_class_info(raw_definition: str) -> ObjectClassInfo:
+    def get_object_class_info(raw_definition: str) -> ObjectClassInfo:
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
         return list(tmp.values())[0]
 
@@ -69,14 +68,11 @@ class RawDefinitionParser:
         return await session.get(ObjectClass, object_class_name)
 
     @staticmethod
-    async def create_object_class_by_raw(
+    async def create_object_class_by_info(
         session: AsyncSession,
-        raw_definition: str,
+        object_class_info: ObjectClassInfo,
     ) -> ObjectClass:
-        object_class_info = RawDefinitionParser._get_object_class_info(
-            raw_definition=raw_definition
-        )
-
+        """Create Object Class by ObjectClassInfo."""
         superior_name = RawDefinitionParser._list_to_string(
             object_class_info.superior
         )
@@ -87,10 +83,6 @@ class RawDefinitionParser:
                     session,
                 )
             )
-            if not superior_object_class:
-                logger.error(
-                    f"ASDASDASDASD!!!!!!!!! Superior object class '{superior_name}' not found."
-                )
         else:
             superior_object_class = None
 
