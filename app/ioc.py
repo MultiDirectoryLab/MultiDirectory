@@ -198,8 +198,7 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_events_redis_client(
-        self,
-        settings: Settings
+        self, settings: Settings
     ) -> AsyncIterator[RedisClient]:
         """Get events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
