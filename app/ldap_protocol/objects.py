@@ -58,23 +58,6 @@ class LDAPMatchingRule(StrEnum):
     LDAP_MATCHING_RULE_DN_WITH_DATA = "1.2.840.113556.1.4.2253"
 
 
-class AuditOperation(StrEnum):
-    """Enum for representing common operations.
-
-    Attributes:
-        GREATER_THAN: Represents the 'greater than' operation ('>')
-        LESS_THAN: Represents the 'less than' operation ('<')
-        NOT: Represents the 'not' operation ('!')
-        BITWISE_AND: Represents the 'bitwise and' operation ('&')
-
-    """
-
-    GREATER_THAN = ">"
-    LESS_THAN = "<"
-    NOT = "!"
-    BITWISE_AND = "&"
-
-
 class ProtocolRequests(IntEnum):
     """Enum for LDAP requests.
 

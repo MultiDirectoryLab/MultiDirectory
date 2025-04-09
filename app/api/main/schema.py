@@ -14,7 +14,7 @@ from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
-from ldap_protocol.objects import AuditOperation, OperationEvent
+from ldap_protocol.objects import OperationEvent
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -118,7 +118,7 @@ class ChangeAttributesTrigger(BaseModel):
     """Attribute model for audit policy trigger."""
 
     attribute: str
-    operation: None | AuditOperation
+    operation: None | str
     result: bool
     value: None | str | int
 
