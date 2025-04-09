@@ -1,4 +1,4 @@
-"""Object Class management routers.
+"""Attribute Type management routers.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -6,11 +6,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Annotated
 
-from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from dishka.integrations.fastapi import FromDishka
+from fastapi import Body, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth import get_current_user
+from api.ldap_schema.attribute_type_router import ldap_schema_router
 from ldap_protocol.ldap_schema.object_class_crud import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
@@ -21,16 +21,9 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     modify_object_class,
 )
 
-object_class_router = APIRouter(
-    prefix="/object_class",
-    tags=["Object Class"],
-    dependencies=[Depends(get_current_user)],
-    route_class=DishkaRoute,
-)
 
-
-@object_class_router.post(
-    "",
+@ldap_schema_router.post(
+    "/object_class",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_one_object_class(
@@ -55,8 +48,46 @@ async def create_one_object_class(
     )
 
 
-@object_class_router.get(
-    "",
+@ldap_schema_router.get(
+    "/object_class/{object_class_name}",
+    response_model=ObjectClassSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def get_one_object_class(
+    object_class_name: str,
+    session: FromDishka[AsyncSession],
+) -> ObjectClassSchema:
+    """Retrieve a list of all attribute types.
+
+    :param str object_class_name: name of the Attribute Type.
+    :param FromDishka[AsyncSession] session: Database session.
+    :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
+    :return AttributeTypeSchema: One Attribute Type Schemas.
+    """
+    object_class = await get_object_class_by_name(
+        object_class_name,
+        session,
+    )
+
+    if not object_class:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Object Class not found.",
+        )
+
+    return ObjectClassSchema(
+        oid=object_class.oid,
+        name=object_class.name,
+        superior_name=object_class.superior_name,
+        kind=object_class.kind,
+        is_system=object_class.is_system,
+        attribute_types_must=object_class.attribute_types_must_display,
+        attribute_types_may=object_class.attribute_types_may_display,
+    )
+
+
+@ldap_schema_router.get(
+    "/object_classes",
     response_model=list[ObjectClassSchema],
     status_code=status.HTTP_200_OK,
 )
@@ -82,8 +113,8 @@ async def get_list_object_classes(
     ]
 
 
-@object_class_router.patch(
-    "/{object_class_name}",
+@ldap_schema_router.patch(
+    "/object_class/{object_class_name}",
     status_code=status.HTTP_200_OK,
 )
 async def modify_one_object_class(
@@ -120,8 +151,8 @@ async def modify_one_object_class(
     )
 
 
-@object_class_router.post(
-    "/delete",
+@ldap_schema_router.post(
+    "/object_classes/delete",
     status_code=status.HTTP_200_OK,
 )
 async def delete_bulk_object_classes(

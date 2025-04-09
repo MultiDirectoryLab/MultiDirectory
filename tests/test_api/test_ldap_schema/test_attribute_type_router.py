@@ -3,13 +3,6 @@
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ldap_protocol.ldap_schema.attribute_type_crud import (
-    get_attribute_type_by_name,
-    get_attribute_types_by_names,
-)
-from models import AttributeType
 
 from .test_attribute_type_router_datasets import (
     test_delete_bulk_attribute_types_dataset,
@@ -25,13 +18,22 @@ async def test_create_one_attribute_type(
     request_data = {
         "oid": "1.2.3.4",
         "name": "testAttribute",
-        "syntax": "testSyntax",
+        "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
         "single_value": True,
         "no_user_modification": False,
         "is_system": False,
     }
-    response = await http_client.post("/attribute_type", json=request_data)
+    response = await http_client.post(
+        "/schema/attribute_type",
+        json=request_data,
+    )
     assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.get(
+        f"/schema/attribute_type/{request_data['name']}",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert isinstance(response.json(), dict)
 
 
 @pytest.mark.asyncio
@@ -39,7 +41,7 @@ async def test_get_list_attribute_types(
     http_client: AsyncClient,
 ) -> None:
     """Test retrieving a list of attribute types."""
-    response = await http_client.get("/attribute_type")
+    response = await http_client.get("/schema/attribute_types")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), list)
 
@@ -47,22 +49,19 @@ async def test_get_list_attribute_types(
 @pytest.mark.asyncio
 async def test_modify_one_attribute_type_raise_404(
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
-    """Test modifying a single attribute type."""
+    """Test modifying a single attribute type (not exist)."""
     attribute_type_data = {
         "oid": "1.2.3.4",
         "name": "testAttributeType1",
-        "syntax": "testSyntax",
+        "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
         "single_value": True,
         "no_user_modification": False,
         "is_system": False,
     }
-    session.add(AttributeType(**attribute_type_data))
-    await session.commit()
 
     response = await http_client.patch(
-        "/attribute_type/testAttributeType12345",
+        "/schema/attribute_type/testAttributeType12345",
         json=attribute_type_data,
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -76,27 +75,29 @@ async def test_modify_one_attribute_type_raise_404(
 async def test_modify_one_attribute_type(
     dataset: dict,
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """Test modifying a single attribute type."""
     attribute_type_name = dataset["attribute_type_name"]
 
-    session.add(AttributeType(**dataset["attribute_type_data"]))
-    await session.commit()
+    response = await http_client.post(
+        "/schema/attribute_type",
+        json=dataset["attribute_type_data"],
+    )
+    assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.patch(
-        f"/attribute_type/{attribute_type_name}",
+        f"/schema/attribute_type/{attribute_type_name}",
         json=dataset["attribute_type_changes"],
     )
     assert response.status_code == dataset["status_code"]
 
     if dataset["status_code"] == status.HTTP_200_OK:
-        attribute_type = await get_attribute_type_by_name(
-            attribute_type_name,
-            session,
+        response = await http_client.get(
+            f"/schema/attribute_type/{attribute_type_name}",
         )
+        attribute_type_json = response.json()
         for field_name, value in dataset["attribute_type_changes"].items():
-            assert getattr(attribute_type, field_name) == value
+            assert attribute_type_json.get(field_name) == value
 
 
 @pytest.mark.parametrize(
@@ -108,22 +109,24 @@ async def test_modify_one_attribute_type(
 async def test_delete_bulk_attribute_types(
     dataset: dict,
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """Test deleting multiple attribute types."""
     for attribute_type_data in dataset["attribute_type_datas"]:
-        session.add(AttributeType(**attribute_type_data))
-        await session.commit()
+        response = await http_client.post(
+            "/schema/attribute_type",
+            json=attribute_type_data,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/attribute_type/delete",
+        "/schema/attribute_types/delete",
         json={"attribute_types_names": dataset["attribute_types_deleted"]},
     )
     assert response.status_code == dataset["status_code"]
 
     if dataset["status_code"] == status.HTTP_200_OK:
-        result = await get_attribute_types_by_names(
-            dataset["attribute_types_deleted"],
-            session,
-        )
-        assert len(result) == 0
+        for attribute_type_name in dataset["attribute_types_deleted"]:
+            response = await http_client.get(
+                f"/schema/attribute_type/{attribute_type_name}",
+            )
+            assert response.status_code == status.HTTP_404_NOT_FOUND

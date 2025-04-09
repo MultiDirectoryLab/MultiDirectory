@@ -568,7 +568,7 @@ class AttributeType(Base):
 
     def get_raw_definition(self) -> str:
         """SQLAlchemy object format to LDAP definition."""
-        chunks = [f"( {self.oid}", f"NAME '{self.name}'"]
+        chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
         if self.syntax:
             chunks.append(f"SYNTAX '{self.syntax}'")
         if self.single_value:
@@ -580,7 +580,7 @@ class AttributeType(Base):
 
     def __str__(self) -> str:
         """AttributeType name."""
-        return f"ObjectClass({self.name})"
+        return f"AttributeType({self.name})"
 
     def __repr__(self) -> str:
         """AttributeType oid and name."""

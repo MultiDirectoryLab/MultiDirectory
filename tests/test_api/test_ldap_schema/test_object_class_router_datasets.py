@@ -8,7 +8,7 @@ test_create_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -16,7 +16,7 @@ test_create_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testAttributeType2",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -24,7 +24,7 @@ test_create_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5.6",
                 "name": "testAttributeType3",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -84,7 +84,6 @@ test_modify_one_object_class_dataset = [
         },
         "new_statement": {
             "kind": "ABSTRACT",
-            "is_system": False,
             "attribute_types_must": [],
             "attribute_types_may": [],
         },
@@ -94,7 +93,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -111,7 +110,6 @@ test_modify_one_object_class_dataset = [
         },
         "new_statement": {
             "kind": "STRUCTURAL",
-            "is_system": False,
             "attribute_types_must": [],
             "attribute_types_may": ["testAttributeType1"],
         },
@@ -121,7 +119,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -129,7 +127,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testAttributeType2",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -146,7 +144,6 @@ test_modify_one_object_class_dataset = [
         },
         "new_statement": {
             "kind": "STRUCTURAL",
-            "is_system": False,
             "attribute_types_must": [
                 "testAttributeType1",
                 "testAttributeType2",
@@ -159,7 +156,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -167,7 +164,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testAttributeType2",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -175,7 +172,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5.6",
                 "name": "testAttributeType3",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -192,7 +189,6 @@ test_modify_one_object_class_dataset = [
         },
         "new_statement": {
             "kind": "STRUCTURAL",
-            "is_system": False,
             "attribute_types_must": [],
             "attribute_types_may": ["testAttributeType3"],
         },

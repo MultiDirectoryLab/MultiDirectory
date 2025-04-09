@@ -28,7 +28,6 @@ class AttributeTypeUpdateSchema(BaseModel):
     syntax: str
     single_value: bool
     no_user_modification: bool
-    is_system: bool
 
 
 async def create_attribute_type(
@@ -120,7 +119,6 @@ async def modify_attribute_type(
     attribute_type.syntax = new_statement.syntax
     attribute_type.single_value = new_statement.single_value
     attribute_type.no_user_modification = new_statement.no_user_modification
-    attribute_type.is_system = new_statement.is_system
     await session.commit()
 
 

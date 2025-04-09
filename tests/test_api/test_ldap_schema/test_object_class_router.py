@@ -3,14 +3,6 @@
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ldap_protocol.ldap_schema.object_class_crud import (
-    create_object_class,
-    get_object_class_by_name,
-    get_object_classes_by_names,
-)
-from models import AttributeType, ObjectClass
 
 from .test_object_class_router_datasets import (
     test_create_one_object_class_dataset,
@@ -28,18 +20,26 @@ from .test_object_class_router_datasets import (
 async def test_create_one_object_class(
     dataset: dict,
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """Test creating a single object class."""
     for attribute_type_data in dataset["attribute_types"]:
-        session.add(AttributeType(**attribute_type_data))
-        await session.commit()
+        response = await http_client.post(
+            "/schema/attribute_type",
+            json=attribute_type_data,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/object_class",
+        "/schema/object_class",
         json=dataset["object_class"],
     )
     assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.get(
+        f"/schema/object_class/{dataset['object_class']['name']}",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert isinstance(response.json(), dict)
 
 
 @pytest.mark.asyncio
@@ -48,7 +48,7 @@ async def test_get_list_object_classes(
     http_client: AsyncClient,
 ) -> None:
     """Test retrieving a list of object classes."""
-    response = await http_client.get("/object_class")
+    response = await http_client.get("/schema/object_classes")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), list)
 
@@ -62,32 +62,39 @@ async def test_get_list_object_classes(
 async def test_modify_one_object_class(
     dataset: dict,
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """Test modifying a single object class."""
     for attribute_type_data in dataset["attribute_types"]:
-        session.add(AttributeType(**attribute_type_data))
-        await session.commit()
-    await create_object_class(**dataset["object_class_data"], session=session)
+        response = await http_client.post(
+            "/schema/attribute_type",
+            json=attribute_type_data,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.post(
+        "/schema/object_class",
+        json=dataset["object_class_data"],
+    )
+    assert response.status_code == status.HTTP_201_CREATED
 
     new_statement = dataset["new_statement"]
     response = await http_client.patch(
-        f"/object_class/{dataset['object_class_data']['name']}",
+        f"/schema/object_class/{dataset['object_class_data']['name']}",
         json=new_statement,
     )
     assert response.status_code == status.HTTP_200_OK
 
-    object_class = await get_object_class_by_name(
-        str(dataset["object_class_data"].get("name", "")),
-        session,
+    response = await http_client.get(
+        f"/schema/object_class/{dataset['object_class_data']['name']}",
     )
-    assert isinstance(object_class, ObjectClass)
-    assert object_class.kind == new_statement.get("kind")
-    assert object_class.is_system == new_statement.get("is_system")
-    assert set(object_class.attribute_types_must_display) == set(
+    assert response.status_code == status.HTTP_200_OK
+    assert isinstance(response.json(), dict)
+    object_class = response.json()
+    assert object_class.get("kind") == new_statement.get("kind")
+    assert set(object_class.get("attribute_types_must")) == set(
         new_statement.get("attribute_types_must")
     )  # type: ignore
-    assert set(object_class.attribute_types_may_display) == set(
+    assert set(object_class.get("attribute_types_may")) == set(
         new_statement.get("attribute_types_may")
     )  # type: ignore
 
@@ -101,22 +108,24 @@ async def test_modify_one_object_class(
 async def test_delete_bulk_object_classes(
     dataset: dict,
     http_client: AsyncClient,
-    session: AsyncSession,
 ) -> None:
     """Test deleting multiple object classes."""
     for object_class_data in dataset["object_class_datas"]:
-        session.add(ObjectClass(**object_class_data))
-        await session.commit()
+        response = await http_client.post(
+            "/schema/object_class",
+            json=object_class_data,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/object_class/delete",
+        "/schema/object_classes/delete",
         json={"object_classes_names": dataset["object_classes_deleted"]},
     )
     assert response.status_code == dataset["status_code"]
 
     if dataset["status_code"] == status.HTTP_200_OK:
-        object_classes = await get_object_classes_by_names(
-            dataset["object_classes_deleted"],
-            session,
-        )
-        assert len(object_classes) == 0
+        for object_class_name in dataset["object_classes_deleted"]:
+            response = await http_client.get(
+                f"/schema/object_class/{object_class_name}",
+            )
+            assert response.status_code == status.HTTP_404_NOT_FOUND
