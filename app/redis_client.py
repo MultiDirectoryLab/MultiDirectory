@@ -18,7 +18,8 @@ class AbstractClient(ABC):
 
     @abstractmethod
     async def add(
-        self, stream_name: str,
+        self,
+        stream_name: str,
         message: dict[str, str],
     ) -> None:
         """Add a message to a stream.
@@ -29,7 +30,10 @@ class AbstractClient(ABC):
 
     @abstractmethod
     async def create_consumer_group(
-        self, stream_name: str, group_name: str, last_id: str = "0",
+        self,
+        stream_name: str,
+        group_name: str,
+        last_id: str = "0",
     ) -> None:
         """Create a consumer group for a stream.
 
@@ -68,7 +72,8 @@ class AbstractClient(ABC):
 
     @abstractmethod
     async def ack_message(
-        self, stream_name: str,
+        self,
+        stream_name: str,
         group_name: str,
         message_id: str,
     ) -> None:
@@ -93,7 +98,8 @@ class RedisClient(AbstractClient):
         self._client = redis_url
 
     async def add(
-        self, stream_name: str,
+        self,
+        stream_name: str,
         message: dict[str, Any],
     ) -> None:
         if not self._client:
@@ -102,7 +108,10 @@ class RedisClient(AbstractClient):
         return await self._client.xadd(stream_name, message)  # type: ignore
 
     async def create_consumer_group(
-        self, stream_name: str, group_name: str, last_id: str = "0",
+        self,
+        stream_name: str,
+        group_name: str,
+        last_id: str = "0",
     ) -> None:
         if not self._client:
             raise ConnectionError("Redis client is not connected.")
@@ -138,7 +147,8 @@ class RedisClient(AbstractClient):
         )
 
     async def ack_message(
-        self, stream_name: str,
+        self,
+        stream_name: str,
         group_name: str,
         message_id: str,
     ) -> None:
@@ -148,7 +158,9 @@ class RedisClient(AbstractClient):
         await self._client.xack(stream_name, group_name, message_id)
 
     async def remove(
-        self, stream_name: str, message_id: str,
+        self,
+        stream_name: str,
+        message_id: str,
     ) -> None:
         if not self._client:
             raise ConnectionError("Redis client is not connected.")

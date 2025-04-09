@@ -424,7 +424,10 @@ class SearchRequest(BaseRequest):
         return query, int(ceil(count / float(self.size_limit))), count
 
     async def tree_view(
-        self, query: Select, session: AsyncSession, for_api: bool,
+        self,
+        query: Select,
+        session: AsyncSession,
+        for_api: bool,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)

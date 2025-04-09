@@ -52,7 +52,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     handle: ClassVar[handler]
     from_data: ClassVar[serializer]
 
-    __event_data : dict = {}
+    __event_data: dict = {}
 
     @property
     @abstractmethod
