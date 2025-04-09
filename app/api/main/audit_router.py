@@ -76,7 +76,8 @@ async def add_audit_policy(
         await session.commit()
     except IntegrityError:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entry already exists",
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Entry already exists",
         )
 
     return AuditPolicySchema(

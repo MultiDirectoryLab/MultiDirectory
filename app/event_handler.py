@@ -46,11 +46,15 @@ class EventHandler:
         for protocol in policy.triggers:
             if protocol in event["help_data"]:  # noqa
                 if protocol == "LDAP":
-                    for attr_name, attr_list in policy.triggers[protocol].items():  # noqa
+                    for attr_name, attr_list in policy.triggers[
+                        protocol
+                    ].items():  # noqa
                         if attr_name in event["help_data"][protocol]:
                             for attr in attr_list:
                                 event_triggers.append(
-                                    attr in event["help_data"][protocol][attr_name])  # noqa
+                                    attr
+                                    in event["help_data"][protocol][attr_name]
+                                )  # noqa
 
         return all(event_triggers)
 
@@ -69,15 +73,21 @@ class EventHandler:
     def is_match_policy(self, policy: AuditPolicy, event: dict) -> bool:
         """Check if event is suitable for policy."""
         from loguru import logger
+
         logger.debug(f"name - {policy.name}")
-        logger.debug(f"_check_triggers - {self._check_triggers(policy, event),}")
-        return all([
-            self._check_triggers(policy, event),
-            self._check_changes(policy, event)
-        ])
+        logger.debug(
+            f"_check_triggers - {(self._check_triggers(policy, event),)}"
+        )
+        return all(
+            [
+                self._check_triggers(policy, event),
+                self._check_changes(policy, event),
+            ]
+        )
 
     async def get_event_by_data(
-        self, event_data: dict[str, Any],
+        self,
+        event_data: dict[str, Any],
         session: AsyncSession,
     ) -> AuditPolicy | None:
         """Check if the event is valid."""
@@ -86,24 +96,26 @@ class EventHandler:
         is_success = self.is_success_request(event_data["responses"])
         operation_code = event_data["request"]["protocol_op"]
 
-        policies = (await session.scalars(
-            select(AuditPolicy)
-            .where(
-                AuditPolicy.is_enabled.is_(True),
-                or_(
-                    AuditPolicy.is_ldap.is_(is_ldap),
-                    AuditPolicy.is_http.is_(is_http)
+        policies = (
+            await session.scalars(
+                select(AuditPolicy).where(
+                    AuditPolicy.is_enabled.is_(True),
+                    or_(
+                        AuditPolicy.is_ldap.is_(is_ldap),
+                        AuditPolicy.is_http.is_(is_http),
+                    ),
+                    AuditPolicy.operation_success.is_(is_success),
+                    AuditPolicy.operation_code == operation_code,
                 ),
-                AuditPolicy.operation_success.is_(is_success),
-                AuditPolicy.operation_code == operation_code,
-            ),
-        )).all()
+            )
+        ).all()
 
         if not policies:
             return None
 
         logger.debug(
-            f"Suitable policies: {[policy.name for policy in policies]}")
+            f"Suitable policies: {[policy.name for policy in policies]}"
+        )
 
         for policy in policies:
             if self.is_match_policy(policy, event_data):
@@ -112,7 +124,8 @@ class EventHandler:
         return None
 
     async def normalize_event_data(
-        self, event_data: dict[str, Any],
+        self,
+        event_data: dict[str, Any],
         policy: AuditPolicy,
         session: AsyncSession,
     ) -> dict[str, Any]:
@@ -120,7 +133,8 @@ class EventHandler:
         return {}
 
     async def handle_event(
-        self, event_data: dict[str, Any],
+        self,
+        event_data: dict[str, Any],
         event_id: str,
         session: AsyncSession,
         redis_client: RedisClient,
@@ -185,7 +199,10 @@ class EventHandler:
                                 temp_value = value.decode()
 
                                 if temp_key in {
-                                    "responses", "request", "help_data"}:
+                                    "responses",
+                                    "request",
+                                    "help_data",
+                                }:
                                     temp_value = json.loads(temp_value)
                                 elif temp_key == "datetime":
                                     temp_value = float(temp_value)  # type: ignore
