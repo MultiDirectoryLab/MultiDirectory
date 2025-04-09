@@ -1,4 +1,4 @@
-"""Test the attribute type routers."""
+"""Test the attribute type router."""
 
 import pytest
 from fastapi import status

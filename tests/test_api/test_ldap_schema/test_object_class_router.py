@@ -1,4 +1,4 @@
-"""Tests."""
+"""Tests the object class router."""
 
 import pytest
 from fastapi import status
