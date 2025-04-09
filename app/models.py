@@ -14,7 +14,6 @@ from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
 from sqlalchemy import (
-    JSON,
     CheckConstraint,
     DateTime,
     Enum,
@@ -961,6 +960,21 @@ class AccessPolicy(Base):
     )
 
 
+class AuditPolicyTriggersMembership(Base):
+    """Audit policy triggers membership."""
+
+    __tablename__ = "AuditPolicyTriggersMemberships"
+
+    policy_id: Mapped[int] = mapped_column(
+        ForeignKey("AuditPolicies.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    trigger_id: Mapped[int] = mapped_column(
+        ForeignKey("AuditPolicyTriggers.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
 class AuditPolicy(Base):
     """Audit policy."""
 
@@ -968,12 +982,40 @@ class AuditPolicy(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+
+    is_enabled: Mapped[bool] = mapped_column(
+        nullable=False, server_default=expression.false()
+    )
+
+    triggers: Mapped[list[AuditPolicyTrigger]] = relationship(
+        "AuditPolicyTrigger",
+        secondary=AuditPolicyTriggersMembership.__table__,
+        primaryjoin="AuditPolicy.id == AuditPolicyTriggersMembership.policy_id",  # noqa
+        secondaryjoin="AuditPolicyTriggersMembership.trigger_id == AuditPolicyTrigger.id",  # noqa
+        back_populates="audit_policies",
+        cascade="all",
+        passive_deletes=True,
+    )
+
+
+class AuditPolicyTrigger(Base):
+    """Audit policy triggers."""
+
+    __tablename__ = "AuditPolicyTriggers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
     is_ldap: Mapped[tbool]
     is_http: Mapped[tbool]
     operation_code: Mapped[int]
-    triggers: Mapped[dict] = mapped_column(
-        JSON, nullable=False)
-    changes: Mapped[dict] = mapped_column(JSON)
+    object_class: Mapped[str]
+    changes: Mapped[dict] = mapped_column(postgresql.JSON, nullable=True)
+    additional_info: Mapped[dict] = mapped_column(
+        postgresql.JSON, nullable=True
+    )
     operation_success: Mapped[nbool]
-    is_enabled: Mapped[bool] = mapped_column(
-        nullable=False, server_default=expression.true())
+
+    audit_policies: Mapped[list[AuditPolicy]] = relationship(
+        "AuditPolicy",
+        secondary=AuditPolicyTriggersMembership.__table__,
+        back_populates="triggers",
+    )

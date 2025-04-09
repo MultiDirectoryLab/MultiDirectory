@@ -15,9 +15,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from ldap_protocol.objects import AuditOperation, OperationEvent
+from ldap_protocol.asn1parser import LDAPOID
+from ldap_protocol.objects import OperationEvent
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models import Attribute, AuditPolicy, Directory, Group, User
+from models import (
+    Attribute,
+    AuditPolicy,
+    AuditPolicyTrigger,
+    Directory,
+    Group,
+    User,
+)
 
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
@@ -350,202 +358,202 @@ async def get_principal_directory(
 
 async def add_audit_pocilies(session: AsyncSession) -> None:
     """Add audit policies."""
-    policies = []
+    for object_class in {"organizationalUnit", "user", "group", "computer"}:
+        for line, is_ok in {"ok": True, "fail": False}.items():
+            add_policy = AuditPolicy(name=f"create_{object_class}_{line}")
+            add_trigger = AuditPolicyTrigger(
+                is_ldap=True,
+                is_http=True,
+                operation_code=OperationEvent.ADD,
+                object_class=object_class,
+                operation_success=is_ok,
+            )
+            add_policy.triggers.append(add_trigger)
+            session.add_all([add_policy, add_trigger])
 
-    for object_class in ["user", "group", "computer", "ou"]:
-        for line, status in {"ok": True, "fail": False}.items():
-            policies.extend([
-                AuditPolicy(
-                    name=f"create_{object_class}_{line}",
-                    is_ldap=True,
-                    is_http=True,
-                    operation_code=OperationEvent.ADD,
-                    operation_success=status,
-                    triggers={
-                        "LDAP": {
-                            "objectClass": [object_class]
-                        },
-                    },
-                ),
-                AuditPolicy(
-                    name=f"modify_{object_class}_{line}",
+            modify_policy = AuditPolicy(name=f"modify_{object_class}_{line}")
+            modify_trigger = AuditPolicyTrigger(
+                is_ldap=True,
+                is_http=True,
+                operation_code=OperationEvent.MODIFY,
+                object_class=object_class,
+                operation_success=is_ok,
+            )
+            modify_policy.triggers.append(modify_trigger)
+            session.add_all([modify_policy, modify_trigger])
+
+            delete_policy = AuditPolicy(name=f"delete_{object_class}_{line}")
+            delete_trigger = AuditPolicyTrigger(
+                is_ldap=True,
+                is_http=True,
+                operation_code=OperationEvent.DELETE,
+                object_class=object_class,
+                operation_success=is_ok,
+            )
+            delete_policy.triggers.append(delete_trigger)
+            session.add_all([delete_policy, delete_trigger])
+
+            if object_class == "user":
+                policy = AuditPolicy(
+                    name=f"password_modify_{object_class}_{line}"
+                )
+                trigger_1 = AuditPolicyTrigger(
                     is_ldap=True,
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
-                    operation_success=status,
-                    triggers={
-                        "LDAP": {
-                            "objectClass": [object_class]
-                        },
-                    },
-                ),
-                AuditPolicy(
-                    name=f"delete_{object_class}_{line}",
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    changes={"attributes": ["userPassword", "unicodePwd"]},
+                )
+                trigger_2 = AuditPolicyTrigger(
                     is_ldap=True,
                     is_http=True,
-                    operation_code=OperationEvent.DELETE,
-                    operation_success=status,
-                    triggers={
-                        "LDAP": {
-                            "objectClass": [object_class]
-                        },
-                    },
-                ),
-            ])
+                    operation_code=OperationEvent.EXTENDED,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    additional_info={"oid": LDAPOID.PASSWORD_MODIFY},
+                )
+                policy.triggers.extend([trigger_1, trigger_2])
+                session.add_all([policy, trigger_1, trigger_2])
 
-            if object_class == "user":
-                policies.extend([
-                    AuditPolicy(
-                        name=f"{object_class}_password_modify_{line}",
-                        is_ldap=True,
-                        is_http=True,
-                        operation_code=OperationEvent.MODIFY,  # FIXME
-                        operation_success=status,
-                        triggers={
-                            "LDAP": {
-                                "objectClass": [object_class]
-                            },
-                        },
-                        changes={
-                            "LDAP": {
-                                "operation": "OR",
-                                "conditions": [
-                                    {
-                                        "attribute": "userPassword",
-                                        "operation": None,
-                                        "result": True,
-                                        "value": None,
-                                    },
-                                    {
-                                        "attribute": "unicodePwd",
-                                        "operation": None,
-                                        "result": True,
-                                        "value": None,
-                                    },
-                                ],
-                            }
-                        }
-                    ),
-                    AuditPolicy(
-                        name=f"auth_{line}",
-                        is_ldap=True,
-                        is_http=True,
-                        operation_code=OperationEvent.BIND,
-                        operation_success=status,
-                        triggers={
-                            "LDAP": {
-                                "objectClass": [object_class]
-                            },
-                        },
-                    ),
-                ])
+                auth = AuditPolicy(name=f"auth_{line}")
+                auth_trigger = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.BIND,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                )
+                auth.triggers.append(auth_trigger)
+                session.add_all([auth, auth_trigger])
+                await session.flush()
+
+                policy = AuditPolicy(
+                    name=f"reset_password_{object_class}_{line}"
+                )
+                trigger = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    changes={"attributes": ["userAccountControl"]},
+                    additional_info={
+                        "value": UserAccountControlFlag.PASSWORD_EXPIRED,
+                        "result": True,
+                    },
+                )
+                trigger_2 = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    changes={"attributes": ["pwdLastSet"]},
+                    additional_info={
+                        "value": "0",
+                        "result": True,
+                    },
+                )
+                policy.triggers.extend([trigger_1, trigger_2])
+                session.add_all([policy, trigger_1, trigger_2])
 
             if object_class == "user" or object_class == "computer":
-                policies.extend([
-                    AuditPolicy(
-                        name=f"{object_class}_enable_{line}",
-                        is_ldap=True,
-                        is_http=True,
-                        operation_code=OperationEvent.MODIFY,
-                        operation_success=status,
-                        triggers={
-                            "LDAP": {
-                                "objectClass": [object_class]
-                            },
-                        },
-                        changes={
-                            "LDAP": {
-                                "operation": "AND",
-                                "conditions": [
-                                    {
-                                        "attribute": "userAccountControl",
-                                        "operation": AuditOperation.BITWISE_AND,  # noqa
-                                        "result": True,
-                                        "value": UserAccountControlFlag.ACCOUNTDISABLE,  # noqa
-                                    },
-                                ],
-                            }
-                        }
-                    ),
-                    AuditPolicy(
-                        name=f"{object_class}_disable_{line}",
-                        is_ldap=True,
-                        is_http=True,
-                        operation_code=OperationEvent.MODIFY,
-                        operation_success=status,
-                        triggers={
-                            "LDAP": {
-                                "objectClass": [object_class]
-                            },
-                        },
-                        changes={
-                            "LDAP": {
-                                "operation": "AND",
-                                "conditions": [
-                                    {
-                                        "attribute": "userAccountControl",
-                                        "operation": AuditOperation.BITWISE_AND,  # noqa
-                                        "result": False,
-                                        "value": UserAccountControlFlag.ACCOUNTDISABLE,  # noqa
-                                    },
-                                ],
-                            }
-                        }
-                    ),
-                ])
+                enable_policy = AuditPolicy(
+                    name=f"enable_{object_class}_{line}"
+                )
+                trigger = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    changes={"attribute": ["userAccountControl"]},
+                    additional_info={
+                        "value": UserAccountControlFlag.ACCOUNTDISABLE,
+                        "result": True,
+                    },
+                )
+                enable_policy.triggers.append(trigger)
+                session.add_all([enable_policy, trigger])
+
+                disable_policy = AuditPolicy(
+                    name=f"disable_{object_class}_{line}"
+                )
+                trigger = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    changes={"attribute": ["userAccountControl"]},
+                    additional_info={
+                        "value": UserAccountControlFlag.ACCOUNTDISABLE,
+                        "result": False,
+                    },
+                )
+                disable_policy.triggers.append(trigger)
+                session.add_all([disable_policy, trigger])
 
             if object_class == "group":
-                policies.extend([
-                    AuditPolicy(
-                        name=f"{object_class}_add_member_{line}",
-                        is_ldap=True,
-                        is_http=True,
-                        operation_code=OperationEvent.MODIFY,
-                        operation_success=status,
-                        triggers={
-                            "LDAP": {
-                                "objectClass": [object_class]
-                            },
-                        },
-                        changes={
-                            "LDAP": {
-                                "operation": "AND",
-                                "conditions": [
-                                    {
-                                        "attribute": "member",
-                                        "operation": AuditOperation.GREATER_THAN,  # noqa
-                                        "result": True,
-                                        "value": None,
-                                    },
-                                ],
-                            }
-                        }
-                    ),
-                    AuditPolicy(
-                        name=f"{object_class}_remove_member_{line}",
-                        is_ldap=True,
-                        is_http=True,
-                        operation_code=OperationEvent.MODIFY,
-                        operation_success=status,
-                        triggers={
-                            "LDAP": {
-                                "objectClass": [object_class]
-                            },
-                        },
-                        changes={
-                            "LDAP": {
-                                "operation": "AND",
-                                "conditions": [
-                                    {
-                                        "attribute": "member",
-                                        "operation": AuditOperation.LESS_THAN,
-                                        "result": True,
-                                        "value": None,
-                                    },
-                                ],
-                            }
-                        }
-                    ),
-                ])
+                add_member_policy = AuditPolicy(
+                    name=f"add_member_{object_class}_{line}"
+                )
+                trigger_1 = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    changes={"attribute": ["member"]},
+                    additional_info={
+                        "operation": ">",
+                        "result": True,
+                    },
+                )
+                trigger_2 = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class="user",
+                    operation_success=is_ok,
+                    changes={"attribute": ["memberOf"]},
+                    additional_info={
+                        "operation": ">",
+                        "result": True,
+                    },
+                )
+                add_member_policy.triggers.extend([trigger_1, trigger_2])
+                session.add_all([add_member_policy, trigger_1, trigger_2])
 
-    session.add_all(policies)
+                remove_member_policy = AuditPolicy(
+                    name=f"remove_member_{object_class}_{line}"
+                )
+                trigger_1 = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class=object_class,
+                    operation_success=is_ok,
+                    changes={"attribute": ["member"]},
+                    additional_info={
+                        "operation": "<",
+                        "result": True,
+                    },
+                )
+                trigger_2 = AuditPolicyTrigger(
+                    is_ldap=True,
+                    is_http=True,
+                    operation_code=OperationEvent.MODIFY,
+                    object_class="user",
+                    operation_success=is_ok,
+                    changes={"attribute": ["memberOf"]},
+                    additional_info={
+                        "operation": "<",
+                        "result": True,
+                    },
+                )
+                remove_member_policy.triggers.extend([trigger_1, trigger_2])
+                session.add_all([remove_member_policy, trigger_1, trigger_2])
+
+    await session.flush()
