@@ -9,7 +9,7 @@ from typing import AsyncGenerator, ClassVar
 
 from asn1 import Decoder
 from loguru import logger
-from pydantic import BaseModel, SecretStr, SerializeAsAny
+from pydantic import BaseModel, SecretStr, SerializeAsAny, field_validator
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,6 +38,14 @@ class BaseExtendedValue(ABC, BaseModel):
     """Base extended request body."""
 
     REQUEST_ID: ClassVar[LDAPOID]
+
+    @classmethod
+    @field_validator("REQUEST_ID")
+    def validate_oid(cls, v: str) -> str:
+        """Validate oid."""
+        if not LDAPOID.has_value(v):
+            raise ValueError(f"Invalid OID: {v}")
+        return v
 
     @classmethod
     @abstractmethod
@@ -92,7 +100,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
     RFC 4532;
     """
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.3"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.WHOAMI
     base: int = 123
 
     @classmethod
@@ -100,12 +108,12 @@ class WhoAmIRequestValue(BaseExtendedValue):
         """Create model from data, WhoAmIRequestValue data is empty."""
         return cls()
 
-    async def handle(  # type: ignore
+    async def handle(
         self,
         ldap_session: LDAPSession,
-        _: AsyncSession,
-        kadmin: AbstractKadmin,
-        settings: Settings,
+        session: AsyncSession,  # noqa: ARG002
+        kadmin: AbstractKadmin,  # noqa: ARG002
+        settings: Settings,  # noqa: ARG002
         *args: tuple,
         **kwargs: dict,
     ) -> "WhoAmIResponse":
@@ -130,7 +138,7 @@ class StartTLSResponse(BaseExtendedResponseValue):
 class StartTLSRequestValue(BaseExtendedValue):
     """Start tls request."""
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.1466.20037"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.START_TLS
 
     async def handle(
         self,
@@ -183,7 +191,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         newPasswd       [2]  OCTET STRING OPTIONAL }
     """
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.1"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.PASSWORD_MODIFY
     user_identity: str | None = None
     old_password: SecretStr
     new_password: SecretStr
