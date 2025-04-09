@@ -67,7 +67,7 @@ async def proxy_request(
                 return
         except MultifactorAPI.MFAMissconfiguredError:
             logger.error("MFA missconfigured error")
-            return  # TODO: add network_policy.bypass_missconfigured
+            return
         except MultifactorAPI.MultifactorError:
             logger.error("MFA service failure")
             if network_policy.bypass_service_failure:
