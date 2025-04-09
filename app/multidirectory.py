@@ -181,6 +181,7 @@ def ldap(settings: Settings) -> None:
 
 def event_handler(settings: Settings) -> None:
     """Run event handler."""
+
     async def _server(settings: Settings) -> None:
         container = make_async_container(
             MainProvider(),
