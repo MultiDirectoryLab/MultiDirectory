@@ -23,9 +23,7 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
-from ldap_protocol.ldap_schema.object_class_crud import (
-    get_object_classes_by_names,
-)
+from ldap_protocol.ldap_schema.flat_ldap_schema import get_flat_ldap_schema
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -356,10 +354,16 @@ class AddRequest(BaseRequest):
             _object_class_names.add(object_class_name)
 
         # 4
-        object_classes = await get_object_classes_by_names(
-            _object_class_names,
-            session,
-        )
+        # object_classes = await get_object_classes_by_names(
+        #     _object_class_names,
+        #     session,
+        # )
+        flat_ldap_schema = await get_flat_ldap_schema(session)
+        object_classes = [
+            object_class_attrs
+            for object_class_name, object_class_attrs in flat_ldap_schema.items()  # noqa: E501
+            if object_class_name in _object_class_names
+        ]
 
         # 5
         if len(object_classes) != len(object_class_names):
@@ -370,13 +374,18 @@ class AddRequest(BaseRequest):
         # 6
         ldap_schema_must_field_names = set()
         ldap_schema_may_field_names = set()
+        # for object_class in object_classes:
+        #     ldap_schema_must_field_names.update(
+        #         object_class.attribute_types_must_display
+        #     )
+        #     ldap_schema_may_field_names.update(
+        #         object_class.attribute_types_may_display
+        #     )
         for object_class in object_classes:
-            ldap_schema_must_field_names.update(
-                object_class.attribute_types_must_display
-            )
-            ldap_schema_may_field_names.update(
-                object_class.attribute_types_may_display
-            )
+            _must = {attr.name for attr in object_class[0]}
+            _may = {attr.name for attr in object_class[0]}
+            ldap_schema_must_field_names.update(_must)
+            ldap_schema_may_field_names.update(_may)
 
         # 6 lower
         ldap_schema_must_field_names = {

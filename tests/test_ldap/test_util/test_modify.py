@@ -616,7 +616,7 @@ async def test_ldap_modify_with_ap(
         "Grand Poobah3",
     ]
     assert directory.attributes_dict["jpegPhoto"] == ["modme.jpeg"]
-    # а откуда здесь юзер возьмется если у нас нет такого ("user") обжект класса у директории, и тем более не от куда взяться email атрибуту
+    # FIXME а откуда здесь юзер возьмется если у нас нет такого ("user") обжект класса у директории, и тем более не от куда взяться email атрибуту
     # assert directory.user.mail == "modme@student.of.life.edu"
 
     assert "posixEmail" not in directory.attributes_dict

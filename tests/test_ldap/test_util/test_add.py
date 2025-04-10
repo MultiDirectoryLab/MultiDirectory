@@ -225,9 +225,7 @@ async def test_add_bvalue_attr(
     """Test AddRequest with bytes data."""
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
-        attributes=[
-            {"type": "objectclass", "vals": [b"organizationalUnit"]}
-        ],  # TODO: Add bvalue attribute
+        attributes=[{"type": "objectclass", "vals": [b"organizationalUnit"]}],
         password=None,
     )
     result = await anext(request.handle(session, ldap_bound_session, kadmin))

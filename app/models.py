@@ -35,6 +35,7 @@ from sqlalchemy.orm import (
     relationship,
     synonym,
 )
+from sqlalchemy.orm.collections import InstrumentedList
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
@@ -679,20 +680,24 @@ class ObjectClass(Base):
     kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
     is_system: Mapped[bool]
 
-    attribute_types_must: Mapped[list[AttributeType]] = relationship(
-        "AttributeType",
-        secondary=ObjectClassAttributeTypeMustMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
-        lazy="selectin",
+    attribute_types_must: Mapped[InstrumentedList[AttributeType]] = (
+        relationship(
+            "AttributeType",
+            secondary=ObjectClassAttributeTypeMustMembership.__table__,
+            primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
+            secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+            lazy="selectin",
+        )
     )
 
-    attribute_types_may: Mapped[list[AttributeType]] = relationship(
-        "AttributeType",
-        secondary=ObjectClassAttributeTypeMayMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
-        lazy="selectin",
+    attribute_types_may: Mapped[InstrumentedList[AttributeType]] = (
+        relationship(
+            "AttributeType",
+            secondary=ObjectClassAttributeTypeMayMembership.__table__,
+            primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
+            secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+            lazy="selectin",
+        )
     )
 
     def get_raw_definition(self) -> str:
