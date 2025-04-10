@@ -203,7 +203,7 @@ services:
       cert_check2:
         condition: service_completed_successfully
     ports:
-      - 8001:8000
+      - 8002:8000
     working_dir: /server
     command: uvicorn --factory config_server:create_app
              --host 0.0.0.0 --ssl-keyfile=/certs/krbkey2.pem
