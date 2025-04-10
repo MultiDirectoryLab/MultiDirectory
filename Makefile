@@ -64,3 +64,7 @@ migrations:  ## generate migration file
 
 migrate:  ## upgrade db
 	docker compose run ldap_server alembic upgrade head
+
+cross_domain_setup:
+	docker exec -it kadmin_api kadmin.local -q "addprinc -e aes256-cts:normal krbtgt/MD2.LOCALHOST@MD.LOCALHOST"
+	docker exec -it kadmin_api2 kadmin.local -q "addprinc -e aes256-cts:normal krbtgt/MD.LOCALHOST@MD2.LOCALHOST"
