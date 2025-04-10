@@ -432,7 +432,7 @@ class SearchRequest(BaseRequest):
             )
 
             # 2
-            if not pipeline._object_class_names:
+            if not pipeline.has_object_class_names():
                 await session.rollback()
                 return
 
@@ -483,6 +483,9 @@ class CollectLdapTreeEntryPipeline:
             return self._fields_filtered
         else:
             raise Exception("Pipeline is not finished. Start it first.")
+
+    def has_object_class_names(self) -> bool:
+        return bool(self._object_class_names)
 
     async def _collect_unfiltered_fields(self) -> None:
         self._fields_unfiltered["distinguishedName"].append(
