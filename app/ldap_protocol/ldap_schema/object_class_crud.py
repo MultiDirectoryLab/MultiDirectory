@@ -33,7 +33,6 @@ class ObjectClassUpdateSchema(BaseModel):
     """Object Class Schema for modify/update."""
 
     kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
-    is_system: bool
     attribute_types_must: list[str]
     attribute_types_may: list[str]
 
@@ -148,7 +147,6 @@ async def modify_object_class(
     :return None.
     """
     object_class.kind = new_statement.kind
-    object_class.is_system = new_statement.is_system
 
     object_class.attribute_types_must.clear()
     object_class.attribute_types_must.extend(

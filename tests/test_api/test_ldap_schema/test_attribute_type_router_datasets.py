@@ -4,20 +4,19 @@ from fastapi import status
 
 test_modify_one_attribute_type_dataset = [
     {
-        "attribute_type_name": "testAttributeType1",
+        "attribute_type_name": "testAttributeType0",
         "attribute_type_data": {
             "oid": "1.2.3.4",
-            "name": "testAttributeType1",
-            "syntax": "testSyntax",
+            "name": "testAttributeType0",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": False,
             "no_user_modification": False,
             "is_system": False,
         },
         "attribute_type_changes": {
-            "syntax": "testSyntax",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": True,
             "no_user_modification": True,
-            "is_system": False,
         },
         "status_code": status.HTTP_200_OK,
     },
@@ -26,36 +25,34 @@ test_modify_one_attribute_type_dataset = [
         "attribute_type_data": {
             "oid": "1.2.3.4",
             "name": "testAttributeType1",
-            "syntax": "testSyntax",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": True,
             "no_user_modification": False,
             "is_system": False,
         },
         "attribute_type_changes": {
-            "syntax": "testSyntax",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": True,
             "no_user_modification": False,
-            "is_system": False,
         },
         "status_code": status.HTTP_404_NOT_FOUND,
     },
     {
-        "attribute_type_name": "testAttributeType1",
+        "attribute_type_name": "testAttributeType2",
         "attribute_type_data": {
             "oid": "1.2.3.4",
-            "name": "testAttributeType1",
-            "syntax": "testSyntax",
+            "name": "testAttributeType2",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": False,
             "no_user_modification": False,
             "is_system": True,
         },
         "attribute_type_changes": {
-            "syntax": "testSyntax",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": True,
             "no_user_modification": True,
-            "is_system": True,
         },
-        "status_code": status.HTTP_400_BAD_REQUEST,
+        "status_code": status.HTTP_200_OK,
     },
 ]
 
@@ -65,7 +62,7 @@ test_delete_bulk_attribute_types_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -73,7 +70,7 @@ test_delete_bulk_attribute_types_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testAttributeType2",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
@@ -90,7 +87,7 @@ test_delete_bulk_attribute_types_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
-                "syntax": "testSyntax",
+                "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
