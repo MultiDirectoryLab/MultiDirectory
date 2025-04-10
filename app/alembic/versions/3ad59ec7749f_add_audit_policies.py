@@ -1,7 +1,7 @@
 """Add Audit policies.
 
 Revision ID: e4d6d99d32bd
-Revises: 692ae64e0cc5
+Revises: 4442d1d982a4
 Create Date: 2025-03-26 08:04:54.853880
 
 """
@@ -15,7 +15,7 @@ from ldap_protocol.utils.queries import add_audit_pocilies
 
 # revision identifiers, used by Alembic.
 revision = "e4d6d99d32bd"
-down_revision = "692ae64e0cc5"
+down_revision = "4442d1d982a4"
 branch_labels = None
 depends_on = None
 
