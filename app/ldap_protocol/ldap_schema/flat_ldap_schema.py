@@ -4,13 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import pprint
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models import ObjectClass
+from models import AttributeType, ObjectClass
 
 
 async def get_flat_ldap_schema(
@@ -50,7 +48,6 @@ async def get_flat_ldap_schema(
     # 2 while loop
     while True:
         depth += 1
-        pprint.pprint(depth)
         # 3 query
         query = (
             select(ObjectClass)
@@ -88,5 +85,27 @@ async def get_flat_ldap_schema(
                 depth,
             )
 
-    # await session.commit()
     return flat_schema
+
+
+async def get_attribute_types_by_object_class_names(
+    session: AsyncSession,
+    object_class_names: list[str],
+) -> tuple[list, list]:
+    """Return the attribute types by object class name.
+
+    :return: The attribute types by object class name.
+    """
+    flat_ldap_schema = await get_flat_ldap_schema(session)
+    attrs = [
+        _ for name, _ in flat_ldap_schema.items() if name in object_class_names
+    ]
+
+    # 2 loop
+    attrs_must: list[AttributeType] = []
+    attrs_may: list[AttributeType] = []
+    for _must, _may, _ in attrs:
+        attrs_must.extend(_must)
+        attrs_may.extend(_may)
+
+    return (attrs_must, attrs_may)

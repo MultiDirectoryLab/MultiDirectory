@@ -383,7 +383,7 @@ class AddRequest(BaseRequest):
         #     )
         for object_class in object_classes:
             _must = {attr.name for attr in object_class[0]}
-            _may = {attr.name for attr in object_class[0]}
+            _may = {attr.name for attr in object_class[1]}
             ldap_schema_must_field_names.update(_must)
             ldap_schema_may_field_names.update(_may)
 
@@ -403,6 +403,7 @@ class AddRequest(BaseRequest):
         attributes_may: list[Attribute] = []
         attributes_dropped: list[Attribute] = []
         must_field_names_used = set()
+
         for attribute in attributes:
             if attribute.name.lower() in ldap_schema_must_field_names:
                 attributes_must.append(attribute)
