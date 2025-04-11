@@ -23,7 +23,9 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
-from ldap_protocol.ldap_schema.flat_ldap_schema import get_flat_ldap_schema
+from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_attribute_type_names_by_object_class_names,
+)
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -334,8 +336,13 @@ class AddRequest(BaseRequest):
         # Apply LDAP Schema START
         # Apply LDAP Schema START
         # Apply LDAP Schema START
-        # 1
-        object_class_names = set(self.attr_names.get("objectclass", []))
+        # 1, 3
+        object_class_values = set(self.attr_names.get("objectclass", []))
+        object_class_names = set()
+        for object_class_name in object_class_values:
+            if isinstance(object_class_name, bytes):
+                object_class_name = object_class_name.decode()
+            object_class_names.add(object_class_name)
 
         # 2
         if not object_class_names:
@@ -346,57 +353,22 @@ class AddRequest(BaseRequest):
             )
             return
 
-        # 3
-        _object_class_names = set()
-        for object_class_name in object_class_names:
-            if isinstance(object_class_name, bytes):
-                object_class_name = object_class_name.decode()
-            _object_class_names.add(object_class_name)
-
-        # 4
-        # object_classes = await get_object_classes_by_names(
-        #     _object_class_names,
-        #     session,
-        # )
-        flat_ldap_schema = await get_flat_ldap_schema(session)
-        object_classes = [
-            object_class_attrs
-            for object_class_name, object_class_attrs in flat_ldap_schema.items()  # noqa: E501
-            if object_class_name in _object_class_names
-        ]
-
-        # 5
-        if len(object_classes) != len(object_class_names):
-            raise Exception(
-                "Some object classes were not found in the database."
-            )
-
         # 6
-        ldap_schema_must_field_names = set()
-        ldap_schema_may_field_names = set()
-        # for object_class in object_classes:
-        #     ldap_schema_must_field_names.update(
-        #         object_class.attribute_types_must_display
-        #     )
-        #     ldap_schema_may_field_names.update(
-        #         object_class.attribute_types_may_display
-        #     )
-        for object_class in object_classes:
-            _must = {attr.name for attr in object_class[0]}
-            _may = {attr.name for attr in object_class[1]}
-            ldap_schema_must_field_names.update(_must)
-            ldap_schema_may_field_names.update(_may)
+        (
+            _ldap_schema_must_field_names,
+            _ldap_schema_may_field_names,
+        ) = await get_attribute_type_names_by_object_class_names(
+            session,
+            object_class_names,
+        )
 
         # 6 lower
         ldap_schema_must_field_names = {
-            field_name.lower() for field_name in ldap_schema_must_field_names
+            field_name.lower() for field_name in _ldap_schema_must_field_names
         }
         ldap_schema_may_field_names = {
-            field_name.lower() for field_name in ldap_schema_may_field_names
+            field_name.lower() for field_name in _ldap_schema_may_field_names
         }
-
-        # 6 may -= must
-        ldap_schema_may_field_names -= ldap_schema_must_field_names
 
         # 7
         attributes_must: list[Attribute] = []

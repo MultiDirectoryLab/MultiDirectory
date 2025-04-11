@@ -13,7 +13,7 @@ from models import AttributeType, ObjectClass
 
 async def get_flat_ldap_schema(
     session: AsyncSession,
-) -> dict[str, tuple[list, list, int]]:
+) -> dict[str, tuple[list[AttributeType], list[AttributeType], int]]:
     """Return the LDAP schema.
 
     :return: The LDAP schema.
@@ -91,21 +91,66 @@ async def get_flat_ldap_schema(
 async def get_attribute_types_by_object_class_names(
     session: AsyncSession,
     object_class_names: list[str],
-) -> tuple[list, list]:
+) -> tuple[list[AttributeType], list[AttributeType]]:
     """Return the attribute types by object class name.
 
     :return: The attribute types by object class name.
     """
     flat_ldap_schema = await get_flat_ldap_schema(session)
-    attrs = [
-        _ for name, _ in flat_ldap_schema.items() if name in object_class_names
+    flat_object_classes = [
+        tpl
+        for name, tpl in flat_ldap_schema.items()
+        if name in object_class_names
     ]
 
     # 2 loop
-    attrs_must: list[AttributeType] = []
-    attrs_may: list[AttributeType] = []
-    for _must, _may, _ in attrs:
-        attrs_must.extend(_must)
-        attrs_may.extend(_may)
+    attribute_types_must: list[AttributeType] = []
+    attribute_types_may: list[AttributeType] = []
+    for _attribute_types_must, _attribute_types_may, _ in flat_object_classes:
+        attribute_types_must.extend(_attribute_types_must)
+        attribute_types_may.extend(_attribute_types_may)
 
-    return (attrs_must, attrs_may)
+    return (attribute_types_must, attribute_types_may)
+
+
+async def get_attribute_type_names_by_object_class_names(
+    session: AsyncSession,
+    object_class_names: list[str] | set[str],
+) -> tuple[set[str], set[str]]:
+    """Return the attribute types by object class name.
+
+    :return: The attribute types by object class name.
+    """
+    flat_ldap_schema = await get_flat_ldap_schema(session)
+    flat_object_classes = [
+        tpl
+        for name, tpl in flat_ldap_schema.items()
+        if name in object_class_names
+    ]
+
+    if len(flat_object_classes) != len(object_class_names):
+        raise ValueError(
+            "Not all object class names are present in the schema."
+        )
+
+    # 2 loop
+    res_attribute_type_names_must: set[str] = set()
+    res_attribute_type_names_may: set[str] = set()
+    from pprint import pprint
+
+    pprint("asdasdasdasdasdasdasdasdasd")
+    pprint(flat_object_classes)
+    pprint("asdasdasdasdasdasdasdasdasd")
+    for attribute_types_must, attribute_types_may, _ in flat_object_classes:
+        attribute_type_names_must = {
+            attribute_type.name for attribute_type in attribute_types_must
+        }
+        res_attribute_type_names_must.update(attribute_type_names_must)
+
+        attribute_type_names_may = {
+            attribute_type.name for attribute_type in attribute_types_may
+        }
+        res_attribute_type_names_may.update(attribute_type_names_may)
+
+    attribute_type_names_may -= attribute_type_names_must
+    return (res_attribute_type_names_must, res_attribute_type_names_may)

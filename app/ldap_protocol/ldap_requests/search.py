@@ -31,8 +31,8 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
-from ldap_protocol.ldap_schema.object_class_crud import (
-    get_object_classes_by_names,
+from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_attribute_type_names_by_object_class_names,
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
@@ -295,8 +295,11 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self._paginate_query(query, session)
 
-        async for ldap_entry in self._get_ldap_tree_entries(query, session):
-            yield ldap_entry
+        async for ldap_tree_entry in self._get_ldap_tree_entries(
+            query,
+            session,
+        ):
+            yield ldap_tree_entry
 
         yield SearchResultDone(
             result_code=LDAPCodes.SUCCESS,
@@ -425,24 +428,109 @@ class SearchRequest(BaseRequest):
         directories = await session.stream_scalars(query)
 
         async for directory in directories:
+            # Apply LDAP Schema START
+            # Apply LDAP Schema START
+            # Apply LDAP Schema START
+            # Apply LDAP Schema START
+            # 1, 3
+            object_class_names = set()
+            for attribute in directory.attributes:
+                if attribute.name.lower() == "objectclass":
+                    if attribute.value:
+                        field_value = attribute.value
+                    elif attribute.bvalue:
+                        field_value = attribute.bvalue.decode()
+                    object_class_names.add(field_value)
+
+            # 2
+            if not object_class_names:
+                await session.rollback()
+                return
+
             pipeline = CollectLdapTreeEntryPipeline(
                 directory,
+                object_class_names,
                 session,
                 search_request=self,
             )
 
-            # 2
-            if not pipeline.has_object_class_names():
-                await session.rollback()
-                return
+            unfiltered_fields = await pipeline.get_unfiltered_fields()
 
-            await pipeline.start()
+            # 6
+            (
+                _ldap_schema_must_field_names,
+                _ldap_schema_may_field_names,
+            ) = await get_attribute_type_names_by_object_class_names(
+                session,
+                object_class_names,
+            )
+
+            # 6 lower
+            ldap_schema_must_field_names = {
+                field_name.lower()
+                for field_name in _ldap_schema_must_field_names
+            }
+            ldap_schema_may_field_names = {
+                field_name.lower()
+                for field_name in _ldap_schema_may_field_names
+            }
+
+            # 7
+            attributes_must = {}
+            attributes_may = {}
+            attributes_dropped = {}
+            must_field_names_used = set()
+            for name, values in unfiltered_fields.items():
+                if name.lower() in ldap_schema_must_field_names:
+                    attributes_must[name] = values
+                    must_field_names_used.add(name.lower())
+                    if not values:
+                        message = f"Attribute {name} must have a value"
+                        logger.warning(message)
+                        # yield AddResponse(
+                        #     result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                        #     message=message,
+                        # )
+                elif name.lower() in ldap_schema_may_field_names:
+                    attributes_may[name] = values
+                else:
+                    attributes_dropped[name] = values
+
+            if attributes_dropped:
+                message = f"Attributes {attributes_dropped} are not allowed"
+                logger.warning(message)
+                # yield AddResponse(
+                #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+                #     message=message,
+                # )
+
+            if len(must_field_names_used) != len(ldap_schema_must_field_names):
+                message = (
+                    f"ENTRY: pipeline"
+                    f"Object class must have all required attributes. "
+                    f"Expected: {ldap_schema_must_field_names}, "
+                    f"Got: {must_field_names_used}"
+                )
+                logger.warning(message)
+                # yield AddResponse(
+                #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+                #     message=message,
+                # )
+
+            fields_filtered = {
+                **attributes_must,
+                **attributes_may,
+            }
+            # Apply LDAP Schema END
+            # Apply LDAP Schema END
+            # Apply LDAP Schema END
+            # Apply LDAP Schema END
 
             yield SearchResultEntry(
                 object_name=directory.path_dn,
                 partial_attributes=[
                     PartialAttribute(type=key, vals=value)
-                    for key, value in pipeline.get_filtered_fields().items()
+                    for key, value in fields_filtered.items()
                 ],
             )
 
@@ -453,6 +541,7 @@ class CollectLdapTreeEntryPipeline:
     def __init__(
         self,
         directory: Directory,
+        object_class_names: set[str],
         session: AsyncSession,
         search_request: SearchRequest,
     ) -> None:
@@ -462,32 +551,17 @@ class CollectLdapTreeEntryPipeline:
         :param AsyncSession session: session
         :param SearchRequest search_request: search request
         """
-        self._directory = directory
         self._session = session
+        self._directory = directory
         self._search_request = search_request
 
-        # 1
-        self._object_class_names: set[str] = self._get_object_class_names()
+        self._object_class_names: set[str] = object_class_names
         self._fields_unfiltered: dict[str, list] = defaultdict(list)
         self._fields_filtered: dict[str, list] = defaultdict(list)
 
         self._is_finished: bool = False
 
-    async def start(self) -> None:
-        await self._collect_unfiltered_fields()
-        await self._apply_ldap_schema_to_unfiltered_fields()
-        self._is_finished = True
-
-    def get_filtered_fields(self) -> dict[str, list]:
-        if self._is_finished:
-            return self._fields_filtered
-        else:
-            raise Exception("Pipeline is not finished. Start it first.")
-
-    def has_object_class_names(self) -> bool:
-        return bool(self._object_class_names)
-
-    async def _collect_unfiltered_fields(self) -> None:
+    async def get_unfiltered_fields(self) -> dict[str, list]:
         self._fields_unfiltered["distinguishedName"].append(
             self._directory.path_dn
         )
@@ -515,6 +589,8 @@ class CollectLdapTreeEntryPipeline:
 
         if self._directory.search_fields:
             self._pick_around_directory_search_fields()
+
+        return self._fields_unfiltered
 
     def _expand_attr_memberof(self) -> None:
         for group in self._directory.groups:
@@ -658,106 +734,3 @@ class CollectLdapTreeEntryPipeline:
 
             self._fields_unfiltered[field_name].append(field_value)
         return self._fields_unfiltered
-
-    # 3
-    def _get_object_class_names(self) -> set[str]:
-        object_class_names = set()
-        for attribute in self._directory.attributes:
-            if attribute.name.lower() == "objectclass":
-                if attribute.value:
-                    field_value = attribute.value
-                elif attribute.bvalue:
-                    field_value = attribute.bvalue.decode()
-                object_class_names.add(field_value)
-        return object_class_names
-
-    async def _apply_ldap_schema_to_unfiltered_fields(self) -> None:
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-
-        # 4
-        object_classes = await get_object_classes_by_names(
-            self._object_class_names,  # type: ignore
-            self._session,
-        )
-
-        # 5
-        if len(object_classes) != len(self._object_class_names):
-            raise Exception(
-                "Some object classes were not found in the database."
-            )
-
-        # 6
-        ldap_schema_must_field_names = set()
-        ldap_schema_may_field_names = set()
-        for object_class in object_classes:
-            ldap_schema_must_field_names.update(
-                object_class.attribute_types_must_display
-            )
-            ldap_schema_may_field_names.update(
-                object_class.attribute_types_may_display
-            )
-
-        # 6 lower
-        ldap_schema_must_field_names = {
-            field_name.lower() for field_name in ldap_schema_must_field_names
-        }
-        ldap_schema_may_field_names = {
-            field_name.lower() for field_name in ldap_schema_may_field_names
-        }
-
-        # 6 may -= must
-        ldap_schema_may_field_names -= ldap_schema_must_field_names
-
-        # 7
-        attributes_must = {}
-        attributes_may = {}
-        attributes_dropped = {}
-        must_field_names_used = set()
-        for name, _values in self._fields_unfiltered.items():
-            if name.lower() in ldap_schema_must_field_names:
-                attributes_must[name] = _values
-                must_field_names_used.add(name.lower())
-                if not _values:
-                    message = f"Attribute {name} must have a value"
-                    logger.warning(message)
-                    # yield AddResponse(
-                    #     result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                    #     message=message,
-                    # )
-            elif name.lower() in ldap_schema_may_field_names:
-                attributes_may[name] = _values
-            else:
-                attributes_dropped[name] = _values
-
-        if attributes_dropped:
-            message = f"Attributes {attributes_dropped} are not allowed"
-            logger.warning(message)
-            # yield AddResponse(
-            #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-            #     message=message,
-            # )
-
-        if len(must_field_names_used) != len(ldap_schema_must_field_names):
-            message = (
-                f"ENTRY: pipeline"
-                f"Object class must have all required attributes. "
-                f"Expected: {ldap_schema_must_field_names}, "
-                f"Got: {must_field_names_used}"
-            )
-            logger.warning(message)
-            # yield AddResponse(
-            #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-            #     message=message,
-            # )
-
-        self._fields_filtered = {
-            **attributes_must,
-            **attributes_may,
-        }
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
