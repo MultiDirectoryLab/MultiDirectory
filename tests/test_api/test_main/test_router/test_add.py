@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from fastapi import status
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -114,6 +115,7 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_api_correct_add_double_member_of(
     http_client: AsyncClient,
+    session: AsyncSession,
 ) -> None:
     """Test api correct add a group with a register.
 
@@ -264,7 +266,10 @@ async def test_api_correct_add_double_member_of(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_user_inccorect_uac(http_client: AsyncClient) -> None:
+async def test_api_add_user_inccorect_uac(
+    session: AsyncSession,
+    http_client: AsyncClient,
+) -> None:
     """Test api add."""
     user = "cn=test0,dc=md,dc=test"
     un = "test0"

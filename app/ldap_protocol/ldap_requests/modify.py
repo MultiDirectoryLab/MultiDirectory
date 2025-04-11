@@ -25,6 +25,9 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
+from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_attribute_type_names_by_object_class_names,
+)
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -165,14 +168,103 @@ class ModifyRequest(BaseRequest):
 
         query = self._get_dir_query()
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        directory = await session.scalar(
+            mutate_ap(query, ldap_session.user)
+            .options(selectinload(Directory.attributes))
+        )  # fmt: skip
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        names = {change.get_name() for change in self.changes}
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # 1, 3
+        object_class_names = set()
+        for attribute in directory.attributes:
+            if attribute.name.lower() == "objectclass":
+                if attribute.value:
+                    field_value = attribute.value
+                elif attribute.bvalue:
+                    field_value = attribute.bvalue.decode()
+                object_class_names.add(field_value)
 
+        # 2
+        if not object_class_names:
+            await session.rollback()
+            return
+
+        # TODO почему тесты падают если класс не указан? это ведь правильно
+        # if not object_class_names: await session.rollback() yield ModifyResponse(...  # noqa: E501
+
+        # 6
+        (
+            _ldap_schema_must_field_names,
+            _ldap_schema_may_field_names,
+        ) = await get_attribute_type_names_by_object_class_names(
+            session,
+            object_class_names,
+        )
+
+        # 6 lower
+        ldap_schema_must_field_names = {
+            field_name.lower() for field_name in _ldap_schema_must_field_names
+        }
+        ldap_schema_may_field_names = {
+            field_name.lower() for field_name in _ldap_schema_may_field_names
+        }
+
+        # 7
+        attributes_must: list[Changes] = []
+        attributes_may: list[Changes] = []
+        attributes_dropped: list[Changes] = []
+        must_field_names_used = set()
+
+        for attribute in self.changes:
+            if attribute.get_name() in ldap_schema_must_field_names:
+                attributes_must.append(attribute)
+                must_field_names_used.add(attribute.get_name())
+                # if not attribute.value and not attribute.bvalue:
+                #     message = f"Attribute {attribute} must have a value"
+                #     logger.warning(message)
+                # yield AddResponse(
+                #     result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                #     message=message,
+                # )
+            elif attribute.get_name() in ldap_schema_may_field_names:
+                attributes_may.append(attribute)
+            else:
+                attributes_dropped.append(attribute)
+
+        if attributes_dropped:
+            message = f"Attributes {attributes_dropped} are not allowed"
+            logger.warning(message)
+            # yield AddResponse(
+            #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+            #     message=message,
+            # )
+
+        if len(must_field_names_used) != len(ldap_schema_must_field_names):
+            message = (
+                f"ENTRY: asdasdasdasd"
+                f"Object class must have all required attributes. "
+                f"Expected: {ldap_schema_must_field_names}, "
+                f"Got: {must_field_names_used}"
+            )
+            logger.warning(message)
+            # yield AddResponse(
+            #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+            #     message=message,
+            # )
+
+        self.changes = attributes_must + attributes_may
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        names = {change.get_name() for change in self.changes}
         password_change_requested = self._check_password_change_requested(
             names,
             directory,
@@ -181,7 +273,6 @@ class ModifyRequest(BaseRequest):
 
         mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
         can_modify = bool(await session.scalar(mutate_ap_q))
-
         if not can_modify and not password_change_requested:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
@@ -218,8 +309,9 @@ class ModifyRequest(BaseRequest):
 
                 await session.flush()
                 await session.execute(
-                    update(Directory).where(Directory.id == directory.id),
-                )
+                    update(Directory)
+                    .where(Directory.id == directory.id),
+                )  # fmt: skip
                 await session.commit()
             except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()

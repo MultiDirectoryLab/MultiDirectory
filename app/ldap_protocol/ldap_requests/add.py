@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from loguru import logger
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -21,6 +22,9 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     AddResponse,
     PartialAttribute,
+)
+from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_attribute_type_names_by_object_class_names,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
@@ -179,7 +183,7 @@ class AddRequest(BaseRequest):
         group = None
         user = None
         items_to_add: list[Group | User | Directory | Attribute] = []
-        attributes = []
+        attributes: list[Attribute] = []
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
@@ -197,16 +201,14 @@ class AddRequest(BaseRequest):
 
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
-            if lname == new_dir.rdname:
+            if (
+                lname == new_dir.rdname
+                or lname in Directory.ro_fields
+                or lname in ("userpassword", "unicodepwd")
+            ):
                 continue
 
             for value in attr.vals:
-                if lname in Directory.ro_fields or lname in (
-                    "userpassword",
-                    "unicodepwd",
-                ):
-                    continue
-
                 if lname in user_fields or lname == "useraccountcontrol":
                     if not isinstance(value, str):
                         raise TypeError
@@ -329,6 +331,93 @@ class AddRequest(BaseRequest):
                     directory=new_dir,
                 ),
             )
+
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # 1, 3
+        object_class_values = set(self.attr_names.get("objectclass", []))
+        object_class_names = set()
+        for object_class_name in object_class_values:
+            if isinstance(object_class_name, bytes):
+                object_class_name = object_class_name.decode()
+            object_class_names.add(object_class_name)
+
+        # 2
+        if not object_class_names:
+            await session.rollback()
+            yield AddResponse(
+                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                message="Directory object must have at least one object class",
+            )
+            return
+
+        # 6
+        (
+            _ldap_schema_must_field_names,
+            _ldap_schema_may_field_names,
+        ) = await get_attribute_type_names_by_object_class_names(
+            session,
+            object_class_names,
+        )
+
+        # 6 lower
+        ldap_schema_must_field_names = {
+            field_name.lower() for field_name in _ldap_schema_must_field_names
+        }
+        ldap_schema_may_field_names = {
+            field_name.lower() for field_name in _ldap_schema_may_field_names
+        }
+
+        # 7
+        attributes_must: list[Attribute] = []
+        attributes_may: list[Attribute] = []
+        attributes_dropped: list[Attribute] = []
+        must_field_names_used = set()
+
+        for attribute in attributes:
+            if attribute.name.lower() in ldap_schema_must_field_names:
+                attributes_must.append(attribute)
+                must_field_names_used.add(attribute.name.lower())
+                if not attribute.value and not attribute.bvalue:
+                    message = f"Attribute {attribute} must have a value"
+                    logger.warning(message)
+                    yield AddResponse(
+                        result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                        message=message,
+                    )
+            elif attribute.name.lower() in ldap_schema_may_field_names:
+                attributes_may.append(attribute)
+            else:
+                attributes_dropped.append(attribute)
+
+        if attributes_dropped:
+            message = f"Attributes {attributes_dropped} are not allowed"
+            logger.warning(message)
+            # yield AddResponse(
+            #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+            #     message=message,
+            # )
+
+        if len(must_field_names_used) != len(ldap_schema_must_field_names):
+            message = (
+                f"ENTRY: {self.entry}"
+                f"Object class must have all required attributes. "
+                f"Expected: {ldap_schema_must_field_names}, "
+                f"Got: {must_field_names_used}"
+            )
+            logger.warning(message)
+            # yield AddResponse(
+            #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+            #     message=message,
+            # )
+
+        attributes = attributes_must + attributes_may
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
 
         try:
             items_to_add.extend(attributes)

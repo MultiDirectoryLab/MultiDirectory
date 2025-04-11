@@ -72,10 +72,7 @@ async def setup_krb_catalogue(
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
 
-    krbadmin = "cn=krbadmin,ou=users," + base_dn
-    services_container = "ou=services," + base_dn
     krbgroup = "cn=krbadmin,cn=groups," + base_dn
-
     group = AddRequest.from_dict(
         krbgroup,
         {
@@ -87,11 +84,13 @@ async def setup_krb_catalogue(
         },
     )
 
+    services_container = "ou=services," + base_dn
     services = AddRequest.from_dict(
         services_container,
         {"objectClass": ["organizationalUnit", "top", "container"]},
     )
 
+    krbadmin = "cn=krbadmin,ou=users," + base_dn
     rkb_user = AddRequest.from_dict(
         krbadmin,
         password=krbadmin_password.get_secret_value(),
