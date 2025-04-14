@@ -61,10 +61,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
 
     def set_event_data(self, data: dict) -> None:
         """Set event data."""
-        if "LDAP" not in self.__event_data:
-            self.__event_data["LDAP"] = {}
-
-        self.__event_data["LDAP"] = data
+        self.__event_data = data
 
     def get_event_data(self) -> dict:
         """Get event data."""
@@ -75,10 +72,11 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         attributes: dict[str, list] = {}
 
         for attr in directory.attributes:
-            if attr.name not in attributes:
-                attributes[attr.name] = []  # type: ignore
+            attr_name = attr.name.lower()
+            if attr_name not in attributes:
+                attributes[attr_name] = []
 
-            attributes[attr.name].append(attr.value)
+            attributes[attr_name].append(attr.value)
 
         return attributes
 
