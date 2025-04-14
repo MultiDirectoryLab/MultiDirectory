@@ -225,13 +225,6 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             user.password is None
             or verify_password(old_password, user.password)
         ):
-            user.password = get_password_hash(new_password)
-            await post_save_password_actions(user, session)
-            await session.execute(
-                update(Directory).where(Directory.id == user.directory_id),
-            )
-            await session.commit()
-
             try:
                 await kadmin.create_or_update_principal_pw(
                     user.get_upn_prefix(),
@@ -240,6 +233,13 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             except KRBAPIError:
                 await session.rollback()
                 raise PermissionError("Kadmin Error")
+
+            user.password = get_password_hash(new_password)
+            await post_save_password_actions(user, session)
+            await session.execute(
+                update(Directory).where(Directory.id == user.directory_id),
+            )
+            await session.commit()
 
             return PasswdModifyResponse()
         raise PermissionError("No user provided")
