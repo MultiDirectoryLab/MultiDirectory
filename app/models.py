@@ -717,6 +717,7 @@ class AuditPolicy(Base):
         back_populates="audit_policies",
         cascade="all",
         passive_deletes=True,
+        lazy="selectin",
     )
 
 
@@ -730,7 +731,6 @@ class AuditPolicyTrigger(Base):
     is_http: Mapped[tbool]
     operation_code: Mapped[int]
     object_class: Mapped[str]
-    changes: Mapped[dict] = mapped_column(postgresql.JSON, nullable=True)
     additional_info: Mapped[dict] = mapped_column(
         postgresql.JSON, nullable=True
     )
@@ -740,4 +740,5 @@ class AuditPolicyTrigger(Base):
         "AuditPolicy",
         secondary=AuditPolicyTriggersMembership.__table__,
         back_populates="triggers",
+        lazy="selectin",
     )
