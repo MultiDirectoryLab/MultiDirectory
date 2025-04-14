@@ -174,7 +174,7 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        self.set_event_data(self.get_directory_attrs(directory))
+        before_attrs = self.get_directory_attrs(directory)
 
         names = {change.get_name() for change in self.changes}
 
@@ -193,46 +193,59 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        for change in self.changes:
-            if change.modification.type in Directory.ro_fields:
-                continue
+        try:
+            for change in self.changes:
+                if change.modification.type in Directory.ro_fields:
+                    continue
 
-            await self._update_password_expiration(change, session)
+                await self._update_password_expiration(change, session)
 
-            add_args = (
-                change,
-                directory,
-                session,
-                session_storage,
-                kadmin,
-                settings,
-            )
+                add_args = (
+                    change,
+                    directory,
+                    session,
+                    session_storage,
+                    kadmin,
+                    settings,
+                )
 
-            try:
-                if change.operation == Operation.ADD:
-                    await self._add(*add_args)
-
-                elif change.operation == Operation.DELETE:
-                    await self._delete(change, directory, session)
-
-                elif change.operation == Operation.REPLACE:
-                    async with session.begin_nested():
-                        await self._delete(change, directory, session, True)
-                        await session.flush()
+                try:
+                    if change.operation == Operation.ADD:
                         await self._add(*add_args)
 
-                await session.flush()
-                await session.execute(
-                    update(Directory).where(Directory.id == directory.id),
-                )
-                await session.commit()
-            except MODIFY_EXCEPTION_STACK as err:
-                await session.rollback()
-                result_code, message = self._match_bad_response(err)
-                yield ModifyResponse(result_code=result_code, message=message)
-                return
+                    elif change.operation == Operation.DELETE:
+                        await self._delete(change, directory, session)
 
-        yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+                    elif change.operation == Operation.REPLACE:
+                        async with session.begin_nested():
+                            await self._delete(
+                                change, directory, session, True
+                            )
+                            await session.flush()
+                            await self._add(*add_args)
+
+                    await session.flush()
+                    await session.execute(
+                        update(Directory).where(Directory.id == directory.id),
+                    )
+                    await session.commit()
+                except MODIFY_EXCEPTION_STACK as err:
+                    await session.rollback()
+                    result_code, message = self._match_bad_response(err)
+                    yield ModifyResponse(
+                        result_code=result_code, message=message
+                    )
+                    return
+
+            yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+        finally:
+            await session.refresh(directory)
+            self.set_event_data(
+                {
+                    "after_attrs": self.get_directory_attrs(directory),
+                    "before_attrs": before_attrs,
+                }
+            )
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:
