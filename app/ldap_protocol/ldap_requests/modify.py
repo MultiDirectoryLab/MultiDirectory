@@ -8,16 +8,14 @@ from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
-from config import Settings
 from loguru import logger
-from models import Attribute, Directory, Group, User
 from pydantic import BaseModel
-from security import get_password_hash
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
@@ -50,6 +48,8 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
+from models import Attribute, Directory, Group, User
+from security import get_password_hash
 
 from .base import BaseRequest
 
@@ -116,7 +116,10 @@ class ModifyRequest(BaseRequest):
                     operation=Operation(int(change.value[0].value)),
                     modification=PartialAttribute(
                         type=change.value[1].value[0].value,
-                        vals=[attr.value for attr in change.value[1].value[1].value],
+                        vals=[
+                            attr.value
+                            for attr in change.value[1].value[1].value
+                        ],
                     ),
                 ),
             )
@@ -173,7 +176,7 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        self.set_event_data(self.get_directory_attrs(directory))
+        before_attrs = self.get_directory_attrs(directory)
 
         names = {change.get_name() for change in self.changes}
 
@@ -192,58 +195,71 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        for change in self.changes:
-            if change.modification.type in Directory.ro_fields:
-                continue
+        try:
+            for change in self.changes:
+                if change.modification.type in Directory.ro_fields:
+                    continue
 
-            await self._update_password_expiration(change, session)
+                await self._update_password_expiration(change, session)
 
-            add_args = (
-                change,
-                directory,
-                session,
-                session_storage,
-                kadmin,
-                settings,
-            )
+                add_args = (
+                    change,
+                    directory,
+                    session,
+                    session_storage,
+                    kadmin,
+                    settings,
+                )
 
-            try:
-                if change.operation == Operation.ADD:
-                    await self._add(*add_args)
-
-                elif change.operation == Operation.DELETE:
-                    await self._delete(change, directory, session)
-
-                elif change.operation == Operation.REPLACE:
-                    async with session.begin_nested():
-                        await self._delete(change, directory, session, True)
-                        await session.flush()
+                try:
+                    if change.operation == Operation.ADD:
                         await self._add(*add_args)
 
-                await session.flush()
-                await session.execute(
-                    update(Directory).where(Directory.id == directory.id),
+                    elif change.operation == Operation.DELETE:
+                        await self._delete(change, directory, session)
+
+                    elif change.operation == Operation.REPLACE:
+                        async with session.begin_nested():
+                            await self._delete(
+                                change, directory, session, True
+                            )
+                            await session.flush()
+                            await self._add(*add_args)
+
+                    await session.flush()
+                    await session.execute(
+                        update(Directory).where(Directory.id == directory.id),
+                    )
+                    await session.commit()
+                except MODIFY_EXCEPTION_STACK as err:
+                    await session.rollback()
+                    result_code, message = self._match_bad_response(err)
+                    yield ModifyResponse(
+                        result_code=result_code, message=message
+                    )
+                    return
+
+            if "objectclass" in names:
+                await session.refresh(
+                    instance=directory,
+                    attribute_names=["attributes"],
+                    with_for_update=None,
+                )
+                await entity_type_dao.attach_entity_type_to_directory(
+                    directory=directory,
+                    is_system_entity_type=False,
                 )
                 await session.commit()
-            except MODIFY_EXCEPTION_STACK as err:
-                await session.rollback()
-                result_code, message = self._match_bad_response(err)
-                yield ModifyResponse(result_code=result_code, message=message)
-                return
 
-        if "objectclass" in names:
-            await session.refresh(
-                instance=directory,
-                attribute_names=["attributes"],
-                with_for_update=None,
+                yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+        finally:
+            await session.refresh(directory)
+            self.set_event_data(
+                {
+                    "after_attrs": self.get_directory_attrs(directory),
+                    "before_attrs": before_attrs,
+                }
             )
-            await entity_type_dao.attach_entity_type_to_directory(
-                directory=directory,
-                is_system_entity_type=False,
-            )
-            await session.commit()
-
-        yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:
@@ -367,7 +383,9 @@ class ModifyRequest(BaseRequest):
 
         if name == "memberof":
             groups = [
-                _directory.group for _directory in directories if _directory.group
+                _directory.group
+                for _directory in directories
+                if _directory.group
             ]
             new_groups = list(set(groups) - set(directory.groups))
             directories = [new_group.directory for new_group in new_groups]
@@ -389,7 +407,11 @@ class ModifyRequest(BaseRequest):
 
         if name == "memberof":
             directory.groups.extend(
-                [_directory.group for _directory in directories if _directory.group],
+                [
+                    _directory.group
+                    for _directory in directories
+                    if _directory.group
+                ],
             )
         else:
             directory.group.members.extend(directories)
@@ -541,7 +563,9 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                validator = await PasswordPolicySchema.get_policy_settings(session)
+                validator = await PasswordPolicySchema.get_policy_settings(
+                    session
+                )
 
                 p_last_set = await validator.get_pwd_last_set(
                     session,
