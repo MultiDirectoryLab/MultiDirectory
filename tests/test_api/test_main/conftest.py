@@ -51,6 +51,21 @@ async def adding_test_user(
                     "type": "objectClass",
                     "vals": ["organization", "top", "user"],
                 },
+                # FIXME исправь отсебятину в значениях
+                {
+                    "type": "nTSecurityDescriptor",
+                    "vals": ["0x0000000000000000"],
+                },
+                {"type": "instanceType", "vals": ["krbadmin"]},
+                {
+                    "type": "objectCategory",
+                    "vals": [
+                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
+                    ],
+                },
+                {"type": "nsAccountLock", "vals": ["False"]},
+                {"type": "shadowExpire", "vals": ["-1"]},
+                {"type": "o", "vals": ["o"]},
             ],
         },
     )

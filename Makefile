@@ -20,6 +20,7 @@ up:  ## run tty container with related services, use with run command
 	make down; docker compose up
 
 test:  ## run tests
+	clear
 	docker compose -f docker-compose.test.yml down --remove-orphans
 	make down;
 	docker compose -f docker-compose.test.yml up --no-log-prefix --attach test --exit-code-from test

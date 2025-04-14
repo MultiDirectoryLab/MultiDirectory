@@ -73,6 +73,7 @@ async def setup_krb_catalogue(
     base_dn = base_dn_list[0].path_dn
 
     krbgroup = "cn=krbadmin,cn=groups," + base_dn
+    # FIXME мб нам надо украсть из ldap3 _IGNORED_MANDATORY_ATTRIBUTES_IN_OBJECT_DEF = ['instanceType', 'nTSecurityDescriptor', 'objectCategory']
     group = AddRequest.from_dict(
         krbgroup,
         {
@@ -81,17 +82,33 @@ async def setup_krb_catalogue(
             "instanceType": ["4"],
             "description": ["Kerberos administrator's group."],
             "gidNumber": ["800"],
+            # FIXME исправь отсебятину в значениях
+            "objectCategory": [
+                "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
+            ],
+            "nTSecurityDescriptor": ["0x0000000000000000"],
         },
     )
 
     services_container = "ou=services," + base_dn
     services = AddRequest.from_dict(
         services_container,
-        {"objectClass": ["organizationalUnit", "top", "container"]},
+        {
+            # FIXME исправь отсебятину в значениях
+            "objectClass": ["organizationalUnit", "top", "container"],
+            "jpegphoto": ["jpegphoto.jpeg"],
+            "nTSecurityDescriptor": ["0x0000000000000000"],
+            "cn": ["ou=services,dc=md,dc=test"],
+            "instanceType": ["services_container"],
+            "title": ["Services."],
+            "objectCategory": [
+                "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
+            ],
+        },
     )
 
     krbadmin = "cn=krbadmin,ou=users," + base_dn
-    rkb_user = AddRequest.from_dict(
+    krb_user = AddRequest.from_dict(
         krbadmin,
         password=krbadmin_password.get_secret_value(),
         attributes={
@@ -116,6 +133,15 @@ async def setup_krb_catalogue(
             "sAMAccountName": ["krbadmin"],
             "userPrincipalName": ["krbadmin"],
             "displayName": ["Kerberos Administrator"],
+            # FIXME исправь отсебятину в значениях
+            "nTSecurityDescriptor": ["0x0000000000000000"],
+            "instanceType": ["krbadmin"],
+            "objectCategory": [
+                "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
+            ],
+            "nsAccountLock": ["False"],
+            "posixEmail": [mail],
+            "shadowExpire": ["-1"],
         },
     )
 
@@ -123,7 +149,7 @@ async def setup_krb_catalogue(
         results = (
             await anext(services.handle(session, ldap_session, kadmin)),
             await anext(group.handle(session, ldap_session, kadmin)),
-            await anext(rkb_user.handle(session, ldap_session, kadmin)),
+            await anext(krb_user.handle(session, ldap_session, kadmin)),
         )
         await session.flush()
         if not all(result.result_code == 0 for result in results):

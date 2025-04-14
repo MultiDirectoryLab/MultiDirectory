@@ -253,6 +253,11 @@ async def test_ldap_membersip_user_replace(
                 "objectClass: group\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                # FIXME исправь отсебятину в значениях
+                "nTSecurityDescriptor: 0x0000000000000000\n"
+                "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+                "instanceType: ldap_root\n"
+                "groupType: grouptype\n"
             )
         )
         file.seek(0)
@@ -346,6 +351,11 @@ async def test_ldap_membersip_grp_replace(
                 "cn: twisted\n"
                 "objectClass: group\n"
                 "objectClass: top\n"
+                # FIXME исправь отсебятину в значениях
+                "nTSecurityDescriptor: 0x0000000000000000\n"
+                "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+                "instanceType: ldap_root\n"
+                "groupType: grouptype\n"
             )
         )
         file.seek(0)

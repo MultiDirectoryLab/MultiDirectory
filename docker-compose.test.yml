@@ -20,7 +20,7 @@ services:
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
     command: bash -c "python -B -m pytest -x -W ignore::DeprecationWarning -vv"
-    # command: bash -c "python -B -m pytest tests/test_ldap/test_util/test_modify.py::test_ldap_modify_with_ap -x -W ignore::DeprecationWarning -vv"
+    # command: bash -c "python -B -m pytest tests/test_ldap/test_util/test_modify.py -x -W ignore::DeprecationWarning -vv"
     tty: true
 
   postgres:

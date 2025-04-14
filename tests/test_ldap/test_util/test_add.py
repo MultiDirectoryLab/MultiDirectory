@@ -43,6 +43,11 @@ async def test_ldap_root_add(
                 "objectClass: organization\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                # FIXME исправь отсебятину в значениях
+                "nTSecurityDescriptor: 0x0000000000000000\n"
+                "o: o\n"
+                "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+                "instanceType: ldap_root\n"
             )
         )
         file.seek(0)
@@ -107,7 +112,14 @@ async def test_ldap_user_add_with_group(
             "objectClass: person\n"
             "objectClass: posixAccount\n"
             "objectClass: top\n"
-            f"memberOf: {group_dn}\n",
+            f"memberOf: {group_dn}\n"
+            # FIXME исправь отсебятину в значениях
+            "nTSecurityDescriptor: 0x0000000000000000\n"
+            "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+            "instanceType: ldap_user\n"
+            "nsAccountLock: False\n"
+            "shadowExpire: -1\n"
+            "posixEmail: test@mail.ru\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -171,6 +183,11 @@ async def test_ldap_user_add_group_with_group(
                 "objectClass: group\n"
                 "objectClass: top\n"
                 f"memberOf: {group_dn}\n"
+                # FIXME исправь отсебятину в значениях
+                "nTSecurityDescriptor: 0x0000000000000000\n"
+                "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+                "instanceType: ldap_user\n"
+                "groupType: type\n"
             )
         )
         file.seek(0)
@@ -225,7 +242,24 @@ async def test_add_bvalue_attr(
     """Test AddRequest with bytes data."""
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
-        attributes=[{"type": "objectclass", "vals": [b"organizationalUnit"]}],
+        attributes=[
+            {"type": "objectclass", "vals": [b"organizationalUnit"]},
+            # FIXME исправь отсебятину в значениях
+            {
+                "type": "nTSecurityDescriptor",
+                "vals": ["0x0000000000000000"],
+            },
+            {"type": "instanceType", "vals": ["krbadmin"]},
+            {
+                "type": "objectCategory",
+                "vals": [
+                    "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
+                ],
+            },
+            {"type": "title", "vals": ["title test 123"]},
+            {"type": "ou", "vals": ["ouf"]},
+            {"type": "jpegPhoto", "vals": ["jpegPhoto.jpeg"]},
+        ],
         password=None,
     )
     result = await anext(request.handle(session, ldap_bound_session, kadmin))
@@ -251,6 +285,11 @@ async def test_ldap_add_access_control(
                     "cn: test\n"
                     "objectClass: organization\n"
                     "objectClass: top\n"
+                    # FIXME исправь отсебятину в значениях
+                    "nTSecurityDescriptor: 0x0000000000000000\n"
+                    "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+                    "instanceType: ldap_root\n"
+                    "o: o\n"
                 )
             )
             file.seek(0)

@@ -88,31 +88,6 @@ async def get_flat_ldap_schema(
     return flat_schema
 
 
-async def get_attribute_types_by_object_class_names(
-    session: AsyncSession,
-    object_class_names: list[str],
-) -> tuple[list[AttributeType], list[AttributeType]]:
-    """Return the attribute types by object class name.
-
-    :return: The attribute types by object class name.
-    """
-    flat_ldap_schema = await get_flat_ldap_schema(session)
-    flat_object_classes = [
-        tpl
-        for name, tpl in flat_ldap_schema.items()
-        if name in object_class_names
-    ]
-
-    # 2 loop
-    attribute_types_must: list[AttributeType] = []
-    attribute_types_may: list[AttributeType] = []
-    for _attribute_types_must, _attribute_types_may, _ in flat_object_classes:
-        attribute_types_must.extend(_attribute_types_must)
-        attribute_types_may.extend(_attribute_types_may)
-
-    return (attribute_types_must, attribute_types_may)
-
-
 async def get_attribute_type_names_by_object_class_names(
     session: AsyncSession,
     object_class_names: list[str] | set[str],
@@ -133,14 +108,9 @@ async def get_attribute_type_names_by_object_class_names(
             "Not all object class names are present in the schema."
         )
 
-    # 2 loop
     res_attribute_type_names_must: set[str] = set()
     res_attribute_type_names_may: set[str] = set()
-    from pprint import pprint
 
-    pprint("asdasdasdasdasdasdasdasdasd")
-    pprint(flat_object_classes)
-    pprint("asdasdasdasdasdasdasdasdasd")
     for attribute_types_must, attribute_types_may, _ in flat_object_classes:
         attribute_type_names_must = {
             attribute_type.name for attribute_type in attribute_types_must

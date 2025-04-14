@@ -37,6 +37,11 @@ async def test_ldap_delete(
                 "objectClass: organization\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                # FIXME исправь отсебятину в значениях
+                "nTSecurityDescriptor: 0x0000000000000000\n"
+                "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+                "instanceType: ldap_root\n"
+                "o: o\n"
             )
         )
         file.seek(0)
@@ -100,6 +105,11 @@ async def test_ldap_delete_w_access_control(
                 "cn: test\n"
                 "objectClass: organization\n"
                 "objectClass: top\n"
+                # FIXME исправь отсебятину в значениях
+                "nTSecurityDescriptor: 0x0000000000000000\n"
+                "objectCategory: CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB\n"
+                "instanceType: ldap_root\n"
+                "o: o\n"
             )
         )
         file.seek(0)

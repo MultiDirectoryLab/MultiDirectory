@@ -374,44 +374,53 @@ class AddRequest(BaseRequest):
         attributes_must: list[Attribute] = []
         attributes_may: list[Attribute] = []
         attributes_dropped: list[Attribute] = []
-        must_field_names_used = set()
+        must_field_names_used: set[str] = set()
 
         for attribute in attributes:
             if attribute.name.lower() in ldap_schema_must_field_names:
                 attributes_must.append(attribute)
                 must_field_names_used.add(attribute.name.lower())
-                if not attribute.value and not attribute.bvalue:
-                    message = f"Attribute {attribute} must have a value"
-                    logger.warning(message)
-                    yield AddResponse(
-                        result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                        message=message,
-                    )
+                # if not attribute.value and not attribute.bvalue:
+                #     message = f"Attribute {attribute} must have a value"
+                #     logger.warning(message)
+                #     yield AddResponse(
+                #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                #         errorMessage=message,
+                #     )
             elif attribute.name.lower() in ldap_schema_may_field_names:
                 attributes_may.append(attribute)
             else:
                 attributes_dropped.append(attribute)
 
-        if attributes_dropped:
-            message = f"Attributes {attributes_dropped} are not allowed"
-            logger.warning(message)
-            # yield AddResponse(
-            #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-            #     message=message,
-            # )
+        # DO NOT USE IT
+        # FIXME по идее их надо молча просто удалять
+        # if attributes_dropped:
+        #     message = f"Attributes {attributes_dropped} are not allowed"
+        #     logger.warning(message)
+        #     await session.rollback()
+        #     yield AddResponse(
+        #         result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+        #         errorMessage=message,
+        #     )
+        #     return
+        # DO NOT USE IT
 
         if len(must_field_names_used) != len(ldap_schema_must_field_names):
             message = (
-                f"ENTRY: {self.entry}"
-                f"Object class must have all required attributes. "
-                f"Expected: {ldap_schema_must_field_names}, "
-                f"Got: {must_field_names_used}"
+                f"\n\nENTRY: {self.entry}.\n"
+                f"Object class must have all required attributes.\n"
+                f"Expected: {ldap_schema_must_field_names}. | "
+                f"Got: {must_field_names_used}.\n"
+                f"Empty: {ldap_schema_must_field_names - must_field_names_used}.\n"
+                f"Attributes: {attributes_must}.\n\n"
             )
-            logger.warning(message)
-            # yield AddResponse(
-            #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-            #     message=message,
-            # )
+            logger.error(message)
+            # await session.rollback()
+            yield AddResponse(
+                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                errorMessage=message,
+            )
+            return
 
         attributes = attributes_must + attributes_may
         # Apply LDAP Schema END

@@ -476,17 +476,18 @@ class SearchRequest(BaseRequest):
             }
 
             # 7
-            attributes_must = {}
-            attributes_may = {}
-            attributes_dropped = {}
-            must_field_names_used = set()
+            attributes_must: dict[str, Any] = {}
+            attributes_may: dict[str, Any] = {}
+            attributes_dropped: dict[str, Any] = {}
+            # must_field_names_used: set[str] = set()
             for name, values in unfiltered_fields.items():
                 if name.lower() in ldap_schema_must_field_names:
                     attributes_must[name] = values
-                    must_field_names_used.add(name.lower())
+                    # must_field_names_used.add(name.lower())
                     if not values:
                         message = f"Attribute {name} must have a value"
                         logger.warning(message)
+                        # FIXME Это возможно тоже не нужно в SearchRequest
                         # yield AddResponse(
                         #     result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
                         #     message=message,
@@ -496,26 +497,32 @@ class SearchRequest(BaseRequest):
                 else:
                     attributes_dropped[name] = values
 
-            if attributes_dropped:
-                message = f"Attributes {attributes_dropped} are not allowed"
-                logger.warning(message)
-                # yield AddResponse(
-                #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-                #     message=message,
-                # )
+            # DO NOT USE IT
+            # FIXME Это возможно тоже не нужно в SearchRequest
+            # if attributes_dropped:
+            #     message = f"Attributes {attributes_dropped} are not allowed"
+            #     logger.warning(message)
+            #     yield AddResponse(
+            #         result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+            #         message=message,
+            #     )
+            # DO NOT USE IT
 
-            if len(must_field_names_used) != len(ldap_schema_must_field_names):
-                message = (
-                    f"ENTRY: pipeline"
-                    f"Object class must have all required attributes. "
-                    f"Expected: {ldap_schema_must_field_names}, "
-                    f"Got: {must_field_names_used}"
-                )
-                logger.warning(message)
-                # yield AddResponse(
-                #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-                #     message=message,
-                # )
+            # DO NOT USE IT
+            # FIXME Это не нужно в SearchRequest
+            # if len(must_field_names_used) != len(ldap_schema_must_field_names):
+            #     message = (
+            #         f"ENTRY: pipeline"
+            #         f"Object class must have all required attributes. "
+            #         f"Expected: {ldap_schema_must_field_names}, "
+            #         f"Got: {must_field_names_used}"
+            #     )
+            #     logger.warning(message)
+            #     yield AddResponse(
+            #         result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+            #         message=message,
+            #     )
+            # DO NOT USE IT
 
             fields_filtered = {
                 **attributes_must,

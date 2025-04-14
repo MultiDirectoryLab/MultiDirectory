@@ -220,7 +220,7 @@ class ModifyRequest(BaseRequest):
         attributes_must: list[Changes] = []
         attributes_may: list[Changes] = []
         attributes_dropped: list[Changes] = []
-        must_field_names_used = set()
+        must_field_names_used: set[str] = set()
 
         for attribute in self.changes:
             if attribute.get_name() in ldap_schema_must_field_names:
@@ -229,41 +229,46 @@ class ModifyRequest(BaseRequest):
                 # if not attribute.value and not attribute.bvalue:
                 #     message = f"Attribute {attribute} must have a value"
                 #     logger.warning(message)
-                # yield AddResponse(
-                #     result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                #     message=message,
-                # )
+                #     yield ModifyResponse(
+                #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                #         errorMessage=message,
+                #     )
             elif attribute.get_name() in ldap_schema_may_field_names:
                 attributes_may.append(attribute)
             else:
                 attributes_dropped.append(attribute)
 
-        if attributes_dropped:
-            message = f"Attributes {attributes_dropped} are not allowed"
-            logger.warning(message)
-            # yield AddResponse(
-            #     result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-            #     message=message,
-            # )
+        # DO NOT USE IT
+        # FIXME по идее их надо молча просто удалять
+        # if attributes_dropped:
+        #     message = f"Attributes {attributes_dropped} are not allowed"
+        #     logger.warning(message)
+        #     yield ModifyResponse(
+        #         result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
+        #         errorMessage=message,
+        #     )
+        # DO NOT USE IT
 
-        if len(must_field_names_used) != len(ldap_schema_must_field_names):
-            message = (
-                f"ENTRY: asdasdasdasd"
-                f"Object class must have all required attributes. "
-                f"Expected: {ldap_schema_must_field_names}, "
-                f"Got: {must_field_names_used}"
-            )
-            logger.warning(message)
-            # yield AddResponse(
-            #     result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-            #     message=message,
-            # )
+        # if len(must_field_names_used) != len(ldap_schema_must_field_names):
+        #     message = (
+        #         f"ENTRY: asdasdasdasd"
+        #         f"Object class must have all required attributes. "
+        #         f"Expected: {ldap_schema_must_field_names}, "
+        #         f"Got: {must_field_names_used}"
+        #     )
+        #     logger.warning(message)
+        #     yield ModifyResponse(
+        #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+        #         errorMessage=message,
+        #     )
+        #     return
 
         self.changes = attributes_must + attributes_may
         # Apply LDAP Schema END
         # Apply LDAP Schema END
         # Apply LDAP Schema END
         # Apply LDAP Schema END
+
         names = {change.get_name() for change in self.changes}
         password_change_requested = self._check_password_change_requested(
             names,
