@@ -9,7 +9,7 @@ from typing import AsyncGenerator, ClassVar
 
 from asn1 import Decoder
 from loguru import logger
-from pydantic import BaseModel, SerializeAsAny
+from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -178,8 +178,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
     REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.1"
     user_identity: str | None = None
-    old_password: str
-    new_password: str
+    old_password: SecretStr
+    new_password: SecretStr
 
     async def handle(
         self,
@@ -191,7 +191,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         """Update password of current or selected user."""
         if not settings.USE_CORE_TLS:
             raise PermissionError("TLS required")
+
         user: User
+        old_password = self.old_password.get_secret_value()
+        new_password = self.new_password.get_secret_value()
 
         if self.user_identity is not None:
             user = await get_user(session, self.user_identity)  # type: ignore
@@ -206,7 +209,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         validator = await PasswordPolicySchema.get_policy_settings(session)
 
         errors = await validator.validate_password_with_policy(
-            password=self.new_password,
+            password=new_password,
             user=user,
         )
 
@@ -220,23 +223,23 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
         if not errors and (
             user.password is None
-            or verify_password(self.old_password, user.password)
+            or verify_password(old_password, user.password)
         ):
-            user.password = get_password_hash(self.new_password)
+            try:
+                await kadmin.create_or_update_principal_pw(
+                    user.get_upn_prefix(),
+                    new_password,
+                )
+            except KRBAPIError:
+                await session.rollback()
+                raise PermissionError("Kadmin Error")
+
+            user.password = get_password_hash(new_password)
             await post_save_password_actions(user, session)
             await session.execute(
                 update(Directory).where(Directory.id == user.directory_id),
             )
             await session.commit()
-
-            try:
-                await kadmin.create_or_update_principal_pw(
-                    user.get_upn_prefix(),
-                    self.new_password,
-                )
-            except KRBAPIError:
-                await session.rollback()
-                raise PermissionError("Kadmin Error")
 
             return PasswdModifyResponse()
         raise PermissionError("No user provided")
