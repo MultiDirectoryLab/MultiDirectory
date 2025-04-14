@@ -403,7 +403,9 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
                     operation_success=is_ok,
-                    changes={"attributes": ["userPassword", "unicodePwd"]},
+                    additional_info={
+                        "change_attributes": ["userpassword", "unicodepwd"]
+                    },
                 )
                 trigger_2 = AuditPolicyTrigger(
                     is_ldap=True,
@@ -431,14 +433,15 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                 policy = AuditPolicy(
                     name=f"reset_password_{object_class}_{line}"
                 )
-                trigger = AuditPolicyTrigger(
+                trigger_1 = AuditPolicyTrigger(
                     is_ldap=True,
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
                     operation_success=is_ok,
-                    changes={"attributes": ["userAccountControl"]},
                     additional_info={
+                        "change_attributes": ["useraccountcontrol"],
+                        "operation": "&",
                         "value": UserAccountControlFlag.PASSWORD_EXPIRED,
                         "result": True,
                     },
@@ -449,9 +452,10 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
                     operation_success=is_ok,
-                    changes={"attributes": ["pwdLastSet"]},
                     additional_info={
-                        "value": "0",
+                        "change_attributes": ["pwdlastset"],
+                        "operation": "==",
+                        "value": 0,
                         "result": True,
                     },
                 )
@@ -468,10 +472,11 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
                     operation_success=is_ok,
-                    changes={"attribute": ["userAccountControl"]},
                     additional_info={
+                        "change_attributes": ["useraccountcontrol"],
+                        "operation": "&",
                         "value": UserAccountControlFlag.ACCOUNTDISABLE,
-                        "result": True,
+                        "result": False,
                     },
                 )
                 enable_policy.triggers.append(trigger)
@@ -486,10 +491,11 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
                     operation_success=is_ok,
-                    changes={"attribute": ["userAccountControl"]},
                     additional_info={
+                        "change_attributes": ["useraccountcontrol"],
+                        "operation": "&",
                         "value": UserAccountControlFlag.ACCOUNTDISABLE,
-                        "result": False,
+                        "result": True,
                     },
                 )
                 disable_policy.triggers.append(trigger)
@@ -505,8 +511,8 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
                     operation_success=is_ok,
-                    changes={"attribute": ["member"]},
                     additional_info={
+                        "change_attributes": ["member"],
                         "operation": ">",
                         "result": True,
                     },
@@ -517,8 +523,8 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class="user",
                     operation_success=is_ok,
-                    changes={"attribute": ["memberOf"]},
                     additional_info={
+                        "change_attributes": ["memberof"],
                         "operation": ">",
                         "result": True,
                     },
@@ -535,8 +541,8 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
                     operation_success=is_ok,
-                    changes={"attribute": ["member"]},
                     additional_info={
+                        "change_attributes": ["member"],
                         "operation": "<",
                         "result": True,
                     },
@@ -547,8 +553,8 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_code=OperationEvent.MODIFY,
                     object_class="user",
                     operation_success=is_ok,
-                    changes={"attribute": ["memberOf"]},
                     additional_info={
+                        "change_attributes": ["memberof"],
                         "operation": "<",
                         "result": True,
                     },

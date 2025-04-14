@@ -65,9 +65,6 @@ def upgrade() -> None:
         sa.Column("operation_code", sa.Integer(), nullable=False),
         sa.Column("object_class", sa.String(), nullable=False),
         sa.Column(
-            "changes", postgresql.JSON(astext_type=sa.Text()), nullable=True
-        ),
-        sa.Column(
             "additional_info",
             postgresql.JSON(astext_type=sa.Text()),
             nullable=True,
