@@ -80,7 +80,9 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        self.set_event_data(self.get_directory_attrs(directory))
+        self.set_event_data(
+            {"before_attrs": self.get_directory_attrs(directory)}
+        )
 
         if not await session.scalar(
             mutate_ap(query, ldap_session.user, "del"),
