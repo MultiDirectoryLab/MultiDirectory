@@ -6,20 +6,38 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import json
+import operator
 import os
 import socket
-from typing import Any
+from typing import Any, Callable
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
 from redis_client import RedisClient
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defaultload
 
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_codes import LDAPCodes
-from models import AuditPolicy
+from ldap_protocol.objects import OperationEvent
+from models import AuditPolicy, AuditPolicyTrigger
+
+operations: dict[str, Callable] = {
+    "<": operator.lt,
+    "<=": operator.le,
+    ">": operator.gt,
+    ">=": operator.ge,
+    "==": operator.eq,
+    "!=": operator.ne,
+    "&": operator.and_,
+    "|": operator.or_,
+    "^": operator.xor,
+    "<<": operator.lshift,
+    ">>": operator.rshift,
+    "~": operator.invert,
+}
 
 
 class EventHandler:
@@ -40,50 +58,71 @@ class EventHandler:
 
         return responses[-1]["context"]["result_code"] == LDAPCodes.SUCCESS
 
-    def _check_triggers(self, policy: AuditPolicy, event: dict) -> bool:
-        """Check if event triggers match policy."""
-        event_triggers = list()
-        for protocol in policy.triggers:
-            if protocol in event["help_data"]:  # noqa
-                if protocol == "LDAP":
-                    for attr_name, attr_list in policy.triggers[
-                        protocol
-                    ].items():  # noqa
-                        if attr_name in event["help_data"][protocol]:
-                            for attr in attr_list:
-                                event_triggers.append(
-                                    attr
-                                    in event["help_data"][protocol][attr_name]
-                                )  # noqa
+    def _check_modify_event(
+        self, trigger: AuditPolicyTrigger, event: dict
+    ) -> bool:
+        """Check if event is suitable for modify trigger."""
+        if (
+            trigger.object_class
+            not in event["help_data"]["after_attrs"]["objectclass"]
+        ):
+            return False
 
-        return all(event_triggers)
+        if trigger.additional_info is None:
+            return True  # type: ignore
 
-    def _check_changes(self, policy: AuditPolicy, event: dict) -> bool:
-        """Check if event changes match policy."""
-        if policy.changes is None:
+        for change in event["request"]["context"]["changes"]:
+            if (
+                change["modification"]["type"]
+                in trigger.additional_info["change_attributes"]
+            ):
+                break
+        else:
+            return False
+
+        if len(trigger.additional_info.keys()) == 1:
             return True
 
-        for protocol in policy.changes:
-            if protocol in event["help_data"]:
-                if protocol == "LDAP":
-                    return False
+        change_attribute = trigger.additional_info["change_attributes"][0]
 
-        return True
+        if change_attribute not in event["help_data"]["after_attrs"]:
+            raise ValueError
 
-    def is_match_policy(self, policy: AuditPolicy, event: dict) -> bool:
+        if change_attribute in {"useraccountcontrol", "pwdlastset"}:
+            first_value = int(
+                event["help_data"]["after_attrs"][change_attribute][0]
+            )
+            second_value = trigger.additional_info["value"]
+        elif change_attribute in {"member", "memberof"}:
+            first_value = event["help_data"]["before_attrs"][change_attribute]
+            second_value = event["help_data"]["after_attrs"][change_attribute]
+        else:
+            raise ValueError
+
+        operation = trigger.additional_info["operation"]
+        op = operations[operation]
+        result = trigger.additional_info["result"]
+
+        return bool(op(first_value, second_value)) == result
+
+    def is_match_trigger(
+        self, trigger: AuditPolicyTrigger, event: dict
+    ) -> bool:
         """Check if event is suitable for policy."""
-        from loguru import logger
+        if event["protocol"].endswith("LDAP"):
+            if event["request"]["protocol_op"] == OperationEvent.MODIFY:
+                return self._check_modify_event(trigger, event)
 
-        logger.debug(f"name - {policy.name}")
-        logger.debug(
-            f"_check_triggers - {(self._check_triggers(policy, event),)}"
-        )
-        return all(
-            [
-                self._check_triggers(policy, event),
-                self._check_changes(policy, event),
-            ]
-        )
+            elif event["request"]["protocol_op"] == OperationEvent.EXTENDED:
+                return (
+                    trigger.additional_info["oid"]
+                    == event["request"]["context"]["request_name"]
+                )
+
+            return trigger.additional_info is None
+
+        else:
+            raise ValueError
 
     async def get_event_by_data(
         self,
@@ -96,30 +135,40 @@ class EventHandler:
         is_success = self.is_success_request(event_data["responses"])
         operation_code = event_data["request"]["protocol_op"]
 
-        policies = (
+        triggers = (
             await session.scalars(
-                select(AuditPolicy).where(
+                select(AuditPolicyTrigger)
+                .join(AuditPolicyTrigger.audit_policies)
+                .where(
                     AuditPolicy.is_enabled.is_(True),
+                    AuditPolicyTrigger.operation_code == operation_code,
+                    AuditPolicyTrigger.operation_success.is_(is_success),
                     or_(
-                        AuditPolicy.is_ldap.is_(is_ldap),
-                        AuditPolicy.is_http.is_(is_http),
+                        AuditPolicyTrigger.is_ldap.is_(is_ldap),
+                        AuditPolicyTrigger.is_http.is_(is_http),
                     ),
-                    AuditPolicy.operation_success.is_(is_success),
-                    AuditPolicy.operation_code == operation_code,
-                ),
+                )
+                .options(defaultload(AuditPolicyTrigger.audit_policies))
             )
         ).all()
 
-        if not policies:
+        if not triggers:
             return None
 
         logger.debug(
-            f"Suitable policies: {[policy.name for policy in policies]}"
+            f"Suitable triggers: {[trigger.id for trigger in triggers]}"
         )
 
-        for policy in policies:
-            if self.is_match_policy(policy, event_data):
-                return policy
+        matched_policies = []
+        for trigger in triggers:
+            if self.is_match_trigger(trigger, event_data):
+                for policy in trigger.audit_policies:
+                    if policy.is_enabled:
+                        matched_policies.append(policy)
+
+        logger.debug(
+            f"Policies: {[policy.name for policy in matched_policies]}"
+        )
 
         return None
 
@@ -140,9 +189,7 @@ class EventHandler:
         redis_client: RedisClient,
     ) -> None:
         """Handle an event."""
-        if event_data["request"]["protocol_op"] != 3:
-            logger.debug(f"Event data: {event_data}")
-
+        logger.debug(f"Event data: {event_data}")
         policy = await self.get_event_by_data(event_data, session)
 
         if policy is None:
@@ -161,11 +208,6 @@ class EventHandler:
         )
         logger.debug(f"Normalized event data: {normalize_event_data}")
 
-        # await send_event_to_redis(
-        #     redis_client=redis_client,
-        #     stream_name=self.event_stream,
-        #     event_data=normalize_event_data,
-        # )
         await redis_client.ack_message(
             self.event_stream,
             self.group_name,
