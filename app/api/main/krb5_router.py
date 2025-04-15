@@ -238,21 +238,23 @@ async def setup_kdc(
         await session.commit()
 
         async with request.app.state.dishka_container() as dishka:
+            # Get new kadmin instance with new settings
             new_kadmin: AbstractKadmin = await dishka.get(AbstractKadmin)
 
-            return Response(  # type: ignore
-                background=BackgroundTask(
-                    backoff.on_exception(
-                        backoff.fibo,
-                        Exception,
-                        max_tries=10,
-                        logger=logger,  # type: ignore
-                        raise_on_giveup=False,
-                    )(new_kadmin.add_principal),
-                    user.user_principal_name.split("@")[0],
-                    data.admin_password.get_secret_value(),
-                ),
+            # retry creation on failure by backoff
+            task = BackgroundTask(
+                backoff.on_exception(
+                    backoff.fibo,
+                    Exception,
+                    max_tries=10,
+                    logger=logger,  # type: ignore
+                    raise_on_giveup=False,
+                )(new_kadmin.add_principal),
+                user.user_principal_name.split("@")[0],
+                data.admin_password.get_secret_value(),
             )
+
+        return Response(background=task)  # type: ignore
     finally:
         await session.commit()
 
