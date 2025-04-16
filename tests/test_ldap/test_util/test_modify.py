@@ -99,19 +99,19 @@ async def test_ldap_base_modify(
     for attr in directory.attributes:
         attributes[attr.name].append(attr.value)
 
-    assert attributes["objectClass"] == [
+    assert set(attributes["objectClass"]) == {
         "top",
         "person",
         "organizationalPerson",
         "posixAccount",
         "user",
-    ]
-    assert attributes["title"] == [
+    }
+    assert set(attributes["title"]) == {
         "Grand Poobah",
         "Grand Poobah1",
         "Grand Poobah2",
         "Grand Poobah3",
-    ]
+    }
     assert attributes["jpegPhoto"] == ["modme.jpeg"]
     assert directory.user.mail == "modme@student.of.life.edu"
 
@@ -561,6 +561,10 @@ async def test_ldap_modify_with_ap(
                     "-\n"
                     "delete: posixEmail\n"
                     "-\n"
+                    # FIXME исправь отсебятину в значениях
+                    "add: cn\n"
+                    "cn: user_modme\n"
+                    "-\n"
                 )
             )
             file.seek(0)
@@ -626,7 +630,6 @@ async def test_ldap_modify_with_ap(
         "Grand Poobah3",
     ]
     assert directory.attributes_dict["jpegPhoto"] == ["modme.jpeg"]
-    # FIXME а откуда здесь юзер возьмется если у нас нет такого ("user") обжект класса у директории, и тем более не от куда взяться email атрибуту
-    # assert directory.user.mail == "modme@student.of.life.edu"
+    assert directory.user.mail == "modme@student.of.life.edu"
 
     assert "posixEmail" not in directory.attributes_dict

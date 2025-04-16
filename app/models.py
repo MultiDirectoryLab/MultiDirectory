@@ -557,6 +557,12 @@ class Attribute(Base):
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
+    @property
+    def values(self) -> list[str | bytes]:
+        """Get attribute value."""
+        val = self.value or self.bvalue
+        return [val] if val else []
+
     directory: Mapped[Directory] = relationship(
         "Directory",
         back_populates="attributes",
@@ -719,6 +725,11 @@ class ObjectClass(Base):
             chunks.append(f"MAY ({' $ '.join(attribute_types_may_names)} )")
         chunks.append(")")
         return " ".join(chunks)
+
+    @property
+    def is_structural(self) -> bool:
+        """Is object class structural."""
+        return bool(self.kind == "STRUCTURAL")
 
     @property
     def attribute_types_must_display(self) -> list[str]:

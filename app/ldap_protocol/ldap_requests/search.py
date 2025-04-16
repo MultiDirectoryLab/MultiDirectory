@@ -32,7 +32,8 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
-    get_attribute_type_names_by_object_class_names,
+    apply_ldap_schema,
+    get_structural_object_class_names,
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
@@ -427,107 +428,76 @@ class SearchRequest(BaseRequest):
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
 
+        directory: Directory
         async for directory in directories:
             # Apply LDAP Schema START
             # Apply LDAP Schema START
             # Apply LDAP Schema START
             # Apply LDAP Schema START
-            # 1, 3
+
+            # 1
+            object_class_values = directory.attributes_dict.get(
+                "objectClass", []
+            )
             object_class_names = set()
-            for attribute in directory.attributes:
-                if attribute.name.lower() == "objectclass":
-                    if attribute.value:
-                        field_value = attribute.value
-                    elif attribute.bvalue:
-                        field_value = attribute.bvalue.decode()
-                    object_class_names.add(field_value)
+            for object_class_name in object_class_values:
+                if isinstance(object_class_name, bytes):
+                    object_class_name = object_class_name.decode()
+                object_class_names.add(object_class_name)
+
+            # 1.1
+            if not object_class_names:
+                continue
 
             # 2
-            if not object_class_names:
-                await session.rollback()
-                return
+            structural_object_class_names = (
+                await get_structural_object_class_names(
+                    session,
+                    object_class_names,
+                )
+            )
 
+            if not structural_object_class_names:
+                continue
+
+            # if len(structural_object_class_names) >= 2:
+            #     continue
+
+            # pipeline
             pipeline = CollectLdapTreeEntryPipeline(
                 directory,
                 object_class_names,
                 session,
                 search_request=self,
             )
+            directory_fields = await pipeline.collect_directory_fields()
+            # pipeline
 
-            unfiltered_fields = await pipeline.get_unfiltered_fields()
+            partial_attributes = [
+                PartialAttribute(type=n, vals=v)
+                for n, v in directory_fields.items()
+            ]
 
-            # 6
+            # 3
             (
-                _ldap_schema_must_field_names,
-                _ldap_schema_may_field_names,
-            ) = await get_attribute_type_names_by_object_class_names(
+                _errors,
+                dropped_attributes,
+                permitted_attributes,
+            ) = await apply_ldap_schema(
                 session,
+                directory,
+                partial_attributes,
                 object_class_names,
             )
 
-            # 6 lower
-            ldap_schema_must_field_names = {
-                field_name.lower()
-                for field_name in _ldap_schema_must_field_names
-            }
-            ldap_schema_may_field_names = {
-                field_name.lower()
-                for field_name in _ldap_schema_may_field_names
-            }
+            # 3.1
+            for _result_code, _messages in _errors.items():
+                pass
 
-            # 7
-            attributes_must: dict[str, Any] = {}
-            attributes_may: dict[str, Any] = {}
-            attributes_dropped: dict[str, Any] = {}
-            # must_field_names_used: set[str] = set()
-            for name, values in unfiltered_fields.items():
-                if name.lower() in ldap_schema_must_field_names:
-                    attributes_must[name] = values
-                    # must_field_names_used.add(name.lower())
-                    if not values:
-                        message = f"Attribute {name} must have a value"
-                        logger.warning(message)
-                        # FIXME Это возможно тоже не нужно в SearchRequest
-                        # yield AddResponse(
-                        #     result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                        #     message=message,
-                        # )
-                elif name.lower() in ldap_schema_may_field_names:
-                    attributes_may[name] = values
-                else:
-                    attributes_dropped[name] = values
+            # 3.2
+            for _attribute in dropped_attributes:
+                pass
 
-            # DO NOT USE IT
-            # FIXME Это возможно тоже не нужно в SearchRequest
-            # if attributes_dropped:
-            #     message = f"Attributes {attributes_dropped} are not allowed"
-            #     logger.warning(message)
-            #     yield AddResponse(
-            #         result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-            #         message=message,
-            #     )
-            # DO NOT USE IT
-
-            # DO NOT USE IT
-            # FIXME Это не нужно в SearchRequest
-            # if len(must_field_names_used) != len(ldap_schema_must_field_names):
-            #     message = (
-            #         f"ENTRY: pipeline"
-            #         f"Object class must have all required attributes. "
-            #         f"Expected: {ldap_schema_must_field_names}, "
-            #         f"Got: {must_field_names_used}"
-            #     )
-            #     logger.warning(message)
-            #     yield AddResponse(
-            #         result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-            #         message=message,
-            #     )
-            # DO NOT USE IT
-
-            fields_filtered = {
-                **attributes_must,
-                **attributes_may,
-            }
             # Apply LDAP Schema END
             # Apply LDAP Schema END
             # Apply LDAP Schema END
@@ -535,10 +505,7 @@ class SearchRequest(BaseRequest):
 
             yield SearchResultEntry(
                 object_name=directory.path_dn,
-                partial_attributes=[
-                    PartialAttribute(type=key, vals=value)
-                    for key, value in fields_filtered.items()
-                ],
+                partial_attributes=permitted_attributes,
             )
 
 
@@ -563,16 +530,13 @@ class CollectLdapTreeEntryPipeline:
         self._search_request = search_request
 
         self._object_class_names: set[str] = object_class_names
-        self._fields_unfiltered: dict[str, list] = defaultdict(list)
-        self._fields_filtered: dict[str, list] = defaultdict(list)
+        self._directory_fields: dict[str, list] = defaultdict(list)
 
-        self._is_finished: bool = False
-
-    async def get_unfiltered_fields(self) -> dict[str, list]:
-        self._fields_unfiltered["distinguishedName"].append(
+    async def collect_directory_fields(self) -> dict[str, list[str | bytes]]:
+        self._directory_fields["distinguishedName"].append(
             self._directory.path_dn
         )
-        self._fields_unfiltered["whenCreated"].append(
+        self._directory_fields["whenCreated"].append(
             self._directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
         )
 
@@ -597,11 +561,11 @@ class CollectLdapTreeEntryPipeline:
         if self._directory.search_fields:
             self._pick_around_directory_search_fields()
 
-        return self._fields_unfiltered
+        return self._directory_fields
 
     def _expand_attr_memberof(self) -> None:
         for group in self._directory.groups:
-            self._fields_unfiltered["memberOf"].append(group.directory.path_dn)
+            self._directory_fields["memberOf"].append(group.directory.path_dn)
 
     def _need_expand_attr_memberof(self) -> bool:
         return bool(
@@ -633,7 +597,7 @@ class CollectLdapTreeEntryPipeline:
             elif dir_field_name == "objectguid":
                 field_value = field_value.bytes_le
 
-            self._fields_unfiltered[field_name].append(field_value)
+            self._directory_fields[field_name].append(field_value)
 
     def _pick_around_group_fields(self) -> None:
         group_field_names = []
@@ -654,7 +618,7 @@ class CollectLdapTreeEntryPipeline:
         for group_field_name in group_field_names:
             field_name = self._directory.group.search_fields[group_field_name]
             field_value = getattr(self._directory.group, group_field_name)
-            self._fields_unfiltered[field_name].append(field_value)
+            self._directory_fields[field_name].append(field_value)
 
     def _pick_around_user_fields(self) -> None:
         user_field_names: list = []
@@ -679,28 +643,28 @@ class CollectLdapTreeEntryPipeline:
 
             field_name = self._directory.user.search_fields[user_field_name]
             field_value = getattr(self._directory.user, user_field_name)
-            self._fields_unfiltered[field_name].append(field_value)
+            self._directory_fields[field_name].append(field_value)
 
         if self._directory.user.account_exp is None:
-            self._fields_unfiltered["accountExpires"].append("0")
+            self._directory_fields["accountExpires"].append("0")
         else:
-            self._fields_unfiltered["accountExpires"].append(
+            self._directory_fields["accountExpires"].append(
                 str(dt_to_ft(self._directory.user.account_exp))
             )
 
         if self._directory.user.last_logon is None:
-            self._fields_unfiltered["lastLogon"].append("0")
+            self._directory_fields["lastLogon"].append("0")
         else:
-            self._fields_unfiltered["lastLogon"].append(
+            self._directory_fields["lastLogon"].append(
                 str(get_windows_timestamp(self._directory.user.last_logon))
             )
-            self._fields_unfiltered["authTimestamp"].append(
+            self._directory_fields["authTimestamp"].append(
                 str(self._directory.user.last_logon)
             )
 
     def _expand_attr_member(self) -> None:
         for member in self._directory.group.members:
-            self._fields_unfiltered["member"].append(member.path_dn)
+            self._directory_fields["member"].append(member.path_dn)
 
     def _need_expand_attr_member(self) -> bool:
         return bool(
@@ -710,7 +674,7 @@ class CollectLdapTreeEntryPipeline:
         )  # fmt: skip
 
     async def _expand_attr_token_groups(self) -> None:
-        self._fields_unfiltered["tokenGroups"].append(
+        self._directory_fields["tokenGroups"].append(
             str(string_to_sid(self._directory.object_sid))
         )
 
@@ -720,7 +684,7 @@ class CollectLdapTreeEntryPipeline:
         )
         if group_directories is not None:
             async for group_directory in group_directories:
-                self._fields_unfiltered["tokenGroups"].append(
+                self._directory_fields["tokenGroups"].append(
                     str(string_to_sid(group_directory.object_sid))
                 )
 
@@ -739,5 +703,5 @@ class CollectLdapTreeEntryPipeline:
             else:
                 field_value = attribute.bvalue  # type: ignore
 
-            self._fields_unfiltered[field_name].append(field_value)
-        return self._fields_unfiltered
+            self._directory_fields[field_name].append(field_value)
+        return self._directory_fields

@@ -69,46 +69,50 @@ def upgrade() -> None:
             object_class_name="user",
             session=session,
         )
-        attribute_types_must = await get_attribute_types_by_names(
+        user_attribute_types_may = await get_attribute_types_by_names(
             attribute_type_names=("nsAccountLock", "shadowExpire"),
             session=session,
         )
-        object_class_user.attribute_types_must.extend(attribute_types_must)
+        object_class_user.attribute_types_may.extend(user_attribute_types_may)
         await session.commit()
 
         object_class_computer = await get_object_class_by_name(
             object_class_name="computer",
             session=session,
         )
-        attribute_types_must = await get_attribute_types_by_names(
+        computer_attribute_types_may = await get_attribute_types_by_names(
             attribute_type_names=("userAccountControl",),
             session=session,
         )
-        object_class_computer.attribute_types_must.extend(attribute_types_must)
+        object_class_computer.attribute_types_may.extend(
+            computer_attribute_types_may
+        )
         await session.commit()
 
-        object_class_posix_account = await get_object_class_by_name(
+        object_class_paccount = await get_object_class_by_name(
             object_class_name="posixAccount",
             session=session,
         )
-        attribute_types_may = await get_attribute_types_by_names(
+        paccount_attribute_types_may = await get_attribute_types_by_names(
             attribute_type_names=("posixEmail",),
             session=session,
         )
-        object_class_posix_account.attribute_types_must.extend(
-            attribute_types_may
+        object_class_paccount.attribute_types_may.extend(
+            paccount_attribute_types_may
         )
         await session.commit()
 
-        object_class_org_unit = await get_object_class_by_name(
+        object_class_ounit = await get_object_class_by_name(
             object_class_name="organizationalUnit",
             session=session,
         )
-        attribute_types_may = await get_attribute_types_by_names(
+        ounit_attribute_types_may = await get_attribute_types_by_names(
             attribute_type_names=("title", "jpegPhoto"),
             session=session,
         )
-        object_class_org_unit.attribute_types_must.extend(attribute_types_may)
+        object_class_ounit.attribute_types_must.extend(
+            ounit_attribute_types_may
+        )
         await session.commit()
 
     op.run_async(_modify_object_classes)

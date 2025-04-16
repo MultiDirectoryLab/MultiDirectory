@@ -10,7 +10,7 @@ from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy import Select, and_, delete, or_, select, update
+from sqlalchemy import Select, and_, delete, inspect, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -26,7 +26,8 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
-    get_attribute_type_names_by_object_class_names,
+    apply_ldap_schema,
+    get_structural_object_class_names,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
@@ -168,7 +169,7 @@ class ModifyRequest(BaseRequest):
 
         query = self._get_dir_query()
 
-        directory = await session.scalar(
+        directory: Directory = await session.scalar(
             mutate_ap(query, ldap_session.user)
             .options(selectinload(Directory.attributes))
         )  # fmt: skip
@@ -176,98 +177,6 @@ class ModifyRequest(BaseRequest):
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
-
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # 1, 3
-        object_class_names = set()
-        for attribute in directory.attributes:
-            if attribute.name.lower() == "objectclass":
-                if attribute.value:
-                    field_value = attribute.value
-                elif attribute.bvalue:
-                    field_value = attribute.bvalue.decode()
-                object_class_names.add(field_value)
-
-        # 2
-        if not object_class_names:
-            await session.rollback()
-            return
-
-        # TODO почему тесты падают если класс не указан? это ведь правильно
-        # if not object_class_names: await session.rollback() yield ModifyResponse(...  # noqa: E501
-
-        # 6
-        (
-            _ldap_schema_must_field_names,
-            _ldap_schema_may_field_names,
-        ) = await get_attribute_type_names_by_object_class_names(
-            session,
-            object_class_names,
-        )
-
-        # 6 lower
-        ldap_schema_must_field_names = {
-            field_name.lower() for field_name in _ldap_schema_must_field_names
-        }
-        ldap_schema_may_field_names = {
-            field_name.lower() for field_name in _ldap_schema_may_field_names
-        }
-
-        # 7
-        attributes_must: list[Changes] = []
-        attributes_may: list[Changes] = []
-        attributes_dropped: list[Changes] = []
-        must_field_names_used: set[str] = set()
-
-        for attribute in self.changes:
-            if attribute.get_name() in ldap_schema_must_field_names:
-                attributes_must.append(attribute)
-                must_field_names_used.add(attribute.get_name())
-                # if not attribute.value and not attribute.bvalue:
-                #     message = f"Attribute {attribute} must have a value"
-                #     logger.warning(message)
-                #     yield ModifyResponse(
-                #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                #         errorMessage=message,
-                #     )
-            elif attribute.get_name() in ldap_schema_may_field_names:
-                attributes_may.append(attribute)
-            else:
-                attributes_dropped.append(attribute)
-
-        # DO NOT USE IT
-        # FIXME по идее их надо молча просто удалять
-        # if attributes_dropped:
-        #     message = f"Attributes {attributes_dropped} are not allowed"
-        #     logger.warning(message)
-        #     yield ModifyResponse(
-        #         result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-        #         errorMessage=message,
-        #     )
-        # DO NOT USE IT
-
-        # if len(must_field_names_used) != len(ldap_schema_must_field_names):
-        #     message = (
-        #         f"ENTRY: asdasdasdasd"
-        #         f"Object class must have all required attributes. "
-        #         f"Expected: {ldap_schema_must_field_names}, "
-        #         f"Got: {must_field_names_used}"
-        #     )
-        #     logger.warning(message)
-        #     yield ModifyResponse(
-        #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-        #         errorMessage=message,
-        #     )
-        #     return
-
-        self.changes = attributes_must + attributes_may
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
 
         names = {change.get_name() for change in self.changes}
         password_change_requested = self._check_password_change_requested(
@@ -313,17 +222,97 @@ class ModifyRequest(BaseRequest):
                         await self._add(*add_args)
 
                 await session.flush()
+
                 await session.execute(
                     update(Directory)
                     .where(Directory.id == directory.id),
                 )  # fmt: skip
-                await session.commit()
+
             except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()
                 result_code, message = self._match_bad_response(err)
-                yield ModifyResponse(result_code=result_code, message=message)
+                yield ModifyResponse(
+                    result_code=result_code,
+                    errorMessage=message,
+                )
                 return
 
+        await session.refresh(directory, attribute_names=["attributes"])
+
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+        # Apply LDAP Schema START
+
+        # 1
+        object_class_values = directory.attributes_dict.get("objectClass", [])
+        object_class_names = set()
+        for object_class_name in object_class_values:
+            if isinstance(object_class_name, bytes):
+                object_class_name = object_class_name.decode()
+            object_class_names.add(object_class_name)
+
+        # 1.1
+        if not object_class_names:
+            yield ModifyResponse(
+                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                error_message=f"Directory {directory} must have at least one object class",
+            )
+            return
+
+        # 2
+        structural_object_class_names = (
+            await get_structural_object_class_names(
+                session,
+                object_class_names,
+            )
+        )
+
+        if not structural_object_class_names:
+            yield ModifyResponse(
+                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                error_message=f"Entry {directory} must have exactly one structural object class. Object classes: {object_class_names}",
+            )
+            return
+
+        # if len(structural_object_class_names) >= 2:
+        #     yield ModifyResponse(
+        #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+        #         error_message=f"Entry {directory} must have exactly one structural object class. Structural object classes: {structural_object_class_names}",
+        #     )
+        #     return
+
+        # 3
+        (
+            _errors,
+            dropped_attributes,
+            permitted_attributes,
+        ) = await apply_ldap_schema(
+            session,
+            directory,
+            directory.attributes,
+            object_class_names,
+        )
+
+        # 3.1
+        for result_code, messages in _errors.items():
+            yield ModifyResponse(
+                result_code=result_code,
+                error_message=", ".join(messages),
+            )
+            return
+
+        # 3.2
+        for attribute in dropped_attributes:
+            if inspect(attribute).persistent:
+                await session.delete(attribute)
+
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+        # Apply LDAP Schema END
+
+        await session.commit()
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
@@ -506,9 +495,7 @@ class ModifyRequest(BaseRequest):
                     continue
 
                 elif (
-                    bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     await kadmin.lock_principal(
@@ -526,9 +513,7 @@ class ModifyRequest(BaseRequest):
                     )
 
                 elif (
-                    not bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    not bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     await unlock_principal(

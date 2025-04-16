@@ -243,7 +243,7 @@ async def test_add_bvalue_attr(
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
         attributes=[
-            {"type": "objectclass", "vals": [b"organizationalUnit"]},
+            {"type": "objectClass", "vals": [b"organizationalUnit"]},
             # FIXME исправь отсебятину в значениях
             {
                 "type": "nTSecurityDescriptor",

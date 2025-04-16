@@ -73,7 +73,6 @@ async def setup_krb_catalogue(
     base_dn = base_dn_list[0].path_dn
 
     krbgroup = "cn=krbadmin,cn=groups," + base_dn
-    # FIXME мб нам надо украсть из ldap3 _IGNORED_MANDATORY_ATTRIBUTES_IN_OBJECT_DEF = ['instanceType', 'nTSecurityDescriptor', 'objectCategory']
     group = AddRequest.from_dict(
         krbgroup,
         {
@@ -96,7 +95,7 @@ async def setup_krb_catalogue(
         {
             # FIXME исправь отсебятину в значениях
             "objectClass": ["organizationalUnit", "top", "container"],
-            "jpegphoto": ["jpegphoto.jpeg"],
+            "jpegPhoto": ["jpegphoto.jpeg"],
             "nTSecurityDescriptor": ["0x0000000000000000"],
             "cn": ["ou=services,dc=md,dc=test"],
             "instanceType": ["services_container"],

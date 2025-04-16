@@ -97,6 +97,14 @@ class PartialAttribute(BaseModel):
     type: Annotated[str, annotated_types.Len(max_length=8100)]
     vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
+    @property
+    def name(self) -> str:
+        return self.type
+
+    @property
+    def values(self) -> list[str | bytes]:
+        return self.vals
+
     @field_validator("type", mode="before")
     @classmethod
     def validate_type(cls, v: str | bytes | int) -> str:

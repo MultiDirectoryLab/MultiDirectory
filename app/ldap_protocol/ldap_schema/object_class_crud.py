@@ -98,7 +98,7 @@ async def get_object_class_by_name(
 
 
 async def get_object_classes_by_names(
-    object_class_names: list[str],
+    object_class_names: list[str] | set[str],
     session: AsyncSession,
 ) -> list[ObjectClass]:
     """Get list of Object Classes by names.

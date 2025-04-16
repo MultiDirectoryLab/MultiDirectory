@@ -7,9 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
-from loguru import logger
 from pydantic import Field, SecretStr
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -24,7 +23,8 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
-    get_attribute_type_names_by_object_class_names,
+    apply_ldap_schema,
+    get_structural_object_class_names,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
@@ -336,100 +336,77 @@ class AddRequest(BaseRequest):
         # Apply LDAP Schema START
         # Apply LDAP Schema START
         # Apply LDAP Schema START
-        # 1, 3
-        object_class_values = set(self.attr_names.get("objectclass", []))
+
+        # 1
+        object_class_values = self.attr_names.get("objectclass", [])
         object_class_names = set()
         for object_class_name in object_class_values:
             if isinstance(object_class_name, bytes):
                 object_class_name = object_class_name.decode()
             object_class_names.add(object_class_name)
 
-        # 2
+        # 1.1
         if not object_class_names:
-            await session.rollback()
             yield AddResponse(
                 result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                message="Directory object must have at least one object class",
+                error_message=f"Directory {new_dir} attributes must have at least one object class. Attributes: {self.attr_names}",
             )
             return
 
-        # 6
+        # 2
+        structural_object_class_names = (
+            await get_structural_object_class_names(
+                session,
+                object_class_names,
+            )
+        )
+
+        if not structural_object_class_names:
+            yield AddResponse(
+                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+                error_message=f"Entry {new_dir} must have exactly one structural object class. Object classes: {object_class_names}",
+            )
+            return
+
+        # if len(structural_object_class_names) >= 2:
+        #     yield AddResponse(
+        #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
+        #         error_message=f"Entry {new_dir} must have exactly one structural object class. Structural object classes: {structural_object_class_names}",
+        #     )
+        #     return
+
+        # 3
         (
-            _ldap_schema_must_field_names,
-            _ldap_schema_may_field_names,
-        ) = await get_attribute_type_names_by_object_class_names(
+            _errors,
+            dropped_attributes,
+            permitted_attributes,
+        ) = await apply_ldap_schema(
             session,
+            new_dir,
+            attributes,
             object_class_names,
         )
 
-        # 6 lower
-        ldap_schema_must_field_names = {
-            field_name.lower() for field_name in _ldap_schema_must_field_names
-        }
-        ldap_schema_may_field_names = {
-            field_name.lower() for field_name in _ldap_schema_may_field_names
-        }
-
-        # 7
-        attributes_must: list[Attribute] = []
-        attributes_may: list[Attribute] = []
-        attributes_dropped: list[Attribute] = []
-        must_field_names_used: set[str] = set()
-
-        for attribute in attributes:
-            if attribute.name.lower() in ldap_schema_must_field_names:
-                attributes_must.append(attribute)
-                must_field_names_used.add(attribute.name.lower())
-                # if not attribute.value and not attribute.bvalue:
-                #     message = f"Attribute {attribute} must have a value"
-                #     logger.warning(message)
-                #     yield AddResponse(
-                #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                #         errorMessage=message,
-                #     )
-            elif attribute.name.lower() in ldap_schema_may_field_names:
-                attributes_may.append(attribute)
-            else:
-                attributes_dropped.append(attribute)
-
-        # DO NOT USE IT
-        # FIXME по идее их надо молча просто удалять
-        # if attributes_dropped:
-        #     message = f"Attributes {attributes_dropped} are not allowed"
-        #     logger.warning(message)
-        #     await session.rollback()
-        #     yield AddResponse(
-        #         result_code=LDAPCodes.NO_SUCH_ATTRIBUTE,
-        #         errorMessage=message,
-        #     )
-        #     return
-        # DO NOT USE IT
-
-        if len(must_field_names_used) != len(ldap_schema_must_field_names):
-            message = (
-                f"\n\nENTRY: {self.entry}.\n"
-                f"Object class must have all required attributes.\n"
-                f"Expected: {ldap_schema_must_field_names}. | "
-                f"Got: {must_field_names_used}.\n"
-                f"Empty: {ldap_schema_must_field_names - must_field_names_used}.\n"
-                f"Attributes: {attributes_must}.\n\n"
-            )
-            logger.error(message)
-            # await session.rollback()
+        # 3.1
+        for result_code, messages in _errors.items():
             yield AddResponse(
-                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                errorMessage=message,
+                result_code=result_code,
+                error_message=", ".join(messages),
             )
             return
 
-        attributes = attributes_must + attributes_may
+        # 3.2
+        for attribute in dropped_attributes:
+            if inspect(attribute).persistent:
+                await session.delete(attribute)
+
         # Apply LDAP Schema END
         # Apply LDAP Schema END
         # Apply LDAP Schema END
         # Apply LDAP Schema END
 
         try:
-            items_to_add.extend(attributes)
+            items_to_add.extend(permitted_attributes)
             session.add_all(items_to_add)
             await session.flush()
         except IntegrityError:

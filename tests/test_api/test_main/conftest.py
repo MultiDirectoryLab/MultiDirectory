@@ -44,10 +44,6 @@ async def adding_test_user(
                     "vals": ["test"],
                 },
                 {
-                    "type": "testing_attr",
-                    "vals": ["test"],
-                },
-                {
                     "type": "objectClass",
                     "vals": ["organization", "top", "user"],
                 },
@@ -56,7 +52,7 @@ async def adding_test_user(
                     "type": "nTSecurityDescriptor",
                     "vals": ["0x0000000000000000"],
                 },
-                {"type": "instanceType", "vals": ["krbadmin"]},
+                {"type": "instanceType", "vals": ["3"]},
                 {
                     "type": "objectCategory",
                     "vals": [

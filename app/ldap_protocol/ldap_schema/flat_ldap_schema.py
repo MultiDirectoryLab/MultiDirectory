@@ -4,11 +4,18 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from collections import defaultdict
+from typing import Any, Iterable, Protocol
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models import AttributeType, ObjectClass
+from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_schema.object_class_crud import (
+    get_object_classes_by_names,
+)
+from models import AttributeType, Directory, ObjectClass
 
 
 async def get_flat_ldap_schema(
@@ -76,8 +83,9 @@ async def get_flat_ldap_schema(
             attrs_may = object_class.attribute_types_may[:]
 
             if object_class.superior_name:
-                attrs_must.extend(flat_schema[object_class.superior_name][0])
-                attrs_may.extend(flat_schema[object_class.superior_name][1])
+                parent_object_class = flat_schema[object_class.superior_name]
+                attrs_must.extend(parent_object_class[0])
+                attrs_may.extend(parent_object_class[1])
 
             flat_schema[object_class.name] = (
                 attrs_must,
@@ -97,16 +105,16 @@ async def get_attribute_type_names_by_object_class_names(
     :return: The attribute types by object class name.
     """
     flat_ldap_schema = await get_flat_ldap_schema(session)
-    flat_object_classes = [
-        tpl
-        for name, tpl in flat_ldap_schema.items()
-        if name in object_class_names
-    ]
 
-    if len(flat_object_classes) != len(object_class_names):
-        raise ValueError(
-            "Not all object class names are present in the schema."
-        )
+    flat_object_classes = []
+    for object_class_name in object_class_names:
+        flat_object_class = flat_ldap_schema.get(object_class_name)
+        if flat_object_class is None:
+            raise ValueError(
+                f"Object class {object_class_name} not found in schema."
+            )
+        else:
+            flat_object_classes.append(flat_object_class)
 
     res_attribute_type_names_must: set[str] = set()
     res_attribute_type_names_may: set[str] = set()
@@ -124,3 +132,76 @@ async def get_attribute_type_names_by_object_class_names(
 
     attribute_type_names_may -= attribute_type_names_must
     return (res_attribute_type_names_must, res_attribute_type_names_may)
+
+
+async def get_structural_object_class_names(
+    session: AsyncSession,
+    object_class_names: set[str],
+) -> list[str]:
+    """Check if object class names contains structural object class."""
+    object_classes = await get_object_classes_by_names(
+        object_class_names,
+        session,
+    )
+    object_class: ObjectClass
+
+    structural_object_class_names = []
+    for object_class in object_classes:
+        if object_class.is_structural:
+            structural_object_class_names.append(object_class.name)
+
+    return structural_object_class_names
+
+
+class PartialI(Protocol):
+    """Attribute interface."""
+
+    name: str
+    values: list[str | bytes]
+
+    # @property
+    # def name(self) -> str: ...
+
+    # @property
+    # def values(self) -> list[str | bytes]: ...
+
+
+async def apply_ldap_schema(
+    session: AsyncSession,
+    new_dir: Directory,
+    attributes: Iterable[PartialI],
+    object_class_names: set[str],
+) -> tuple[Any | dict[Any, list[str]], list, list]:
+    """Apply the LDAP schema to the directory."""
+    (
+        _ldap_schema_must_field_names,
+        _ldap_schema_may_field_names,
+    ) = await get_attribute_type_names_by_object_class_names(
+        session,
+        object_class_names,
+    )
+    _errors: dict[LDAPCodes, list[str]] = defaultdict(list)
+    dropped_attributes: list[PartialI] = []
+    permitted_attributes: list[PartialI] = []
+    must_field_names_used: set[str] = set()
+
+    for attribute in attributes:
+        if attribute.name in _ldap_schema_must_field_names:
+            permitted_attributes.append(attribute)
+            must_field_names_used.add(attribute.name)
+            if not attribute.values:
+                _errors[LDAPCodes.INVALID_ATTRIBUTE_SYNTAX].append(
+                    f"Attribute {attribute} must have a value;"
+                )
+        elif attribute.name in _ldap_schema_may_field_names:
+            permitted_attributes.append(attribute)
+        else:
+            dropped_attributes.append(attribute)
+
+    empty = _ldap_schema_must_field_names - must_field_names_used
+    if empty:
+        _errors[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
+            f"Directory {new_dir} must have all required attributes. Attributes ({empty}) is empty;"
+        )
+
+    return _errors, dropped_attributes, permitted_attributes
