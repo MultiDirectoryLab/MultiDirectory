@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncGenerator, ClassVar
+from typing import AsyncGenerator, ClassVar, cast
 
 import httpx
 from pydantic import Field, SecretStr
@@ -23,8 +23,8 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
-    apply_ldap_schema,
-    get_structural_object_class_names,
+    validate_attributes_by_ldap_schema,
+    validate_object_class_by_ldap_schema,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
@@ -332,81 +332,51 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-
-        # 1
-        object_class_values = self.attr_names.get("objectclass", [])
-        object_class_names = set()
-        for object_class_name in object_class_values:
-            if isinstance(object_class_name, bytes):
-                object_class_name = object_class_name.decode()
-            object_class_names.add(object_class_name)
-
-        # 1.1
+        object_class_names = self._get_object_class_names()
         if not object_class_names:
             yield AddResponse(
                 result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                error_message=f"Directory {new_dir} attributes must have at least one object class. Attributes: {self.attr_names}",
+                error_message=f"Directory {new_dir} attributes must have\
+                at least one object class. Attributes: {self.attr_names}",
             )
             return
 
-        # 2
-        structural_object_class_names = (
-            await get_structural_object_class_names(
-                session,
-                object_class_names,
-            )
-        )
-
-        if not structural_object_class_names:
-            yield AddResponse(
-                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                error_message=f"Entry {new_dir} must have exactly one structural object class. Object classes: {object_class_names}",
-            )
-            return
-
-        # if len(structural_object_class_names) >= 2:
-        #     yield AddResponse(
-        #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-        #         error_message=f"Entry {new_dir} must have exactly one structural object class. Structural object classes: {structural_object_class_names}",
-        #     )
-        #     return
-
-        # 3
-        (
-            _errors,
-            dropped_attributes,
-            permitted_attributes,
-        ) = await apply_ldap_schema(
+        classes_validation_result = await validate_object_class_by_ldap_schema(
             session,
             new_dir,
-            attributes,
             object_class_names,
         )
-
-        # 3.1
-        for result_code, messages in _errors.items():
+        for result_code, messages in classes_validation_result.errors.items():
             yield AddResponse(
                 result_code=result_code,
                 error_message=", ".join(messages),
             )
             return
 
-        # 3.2
-        for attribute in dropped_attributes:
-            if inspect(attribute).persistent:
-                await session.delete(attribute)
+        attrs_validation_result = await validate_attributes_by_ldap_schema(
+            session,
+            new_dir,
+            attributes,
+            object_class_names,
+        )
+        for result_code, messages in attrs_validation_result.errors.items():
+            yield AddResponse(
+                result_code=result_code,
+                error_message=", ".join(messages),
+            )
+            return
 
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
+        for useless_attribute in attrs_validation_result.useless_attributes:
+            useless_attribute = cast(Attribute, useless_attribute)
+            if inspect(useless_attribute).persistent:
+                await session.delete(useless_attribute)
 
         try:
-            items_to_add.extend(permitted_attributes)
+            items = cast(
+                list[Attribute],
+                attrs_validation_result.correct_attributes,
+            )
+            items_to_add.extend(items)
             session.add_all(items_to_add)
             await session.flush()
         except IntegrityError:
@@ -440,6 +410,15 @@ class AddRequest(BaseRequest):
                 pass
 
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
+
+    def _get_object_class_names(self) -> set[str]:
+        object_class_values = self.attr_names.get("objectclass", [])
+        object_class_names = set()
+        for object_class_name in object_class_values:
+            if isinstance(object_class_name, bytes):
+                object_class_name = object_class_name.decode()
+            object_class_names.add(object_class_name)
+        return object_class_names
 
     @classmethod
     def from_dict(

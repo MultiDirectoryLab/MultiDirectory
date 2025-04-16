@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from datetime import datetime, timedelta, timezone
 from enum import IntEnum
-from typing import AsyncGenerator, ClassVar
+from typing import AsyncGenerator, ClassVar, cast
 
 from loguru import logger
 from pydantic import BaseModel
@@ -26,8 +26,8 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
-    apply_ldap_schema,
-    get_structural_object_class_names,
+    validate_attributes_by_ldap_schema,
+    validate_object_class_by_ldap_schema,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
@@ -239,81 +239,56 @@ class ModifyRequest(BaseRequest):
 
         await session.refresh(directory, attribute_names=["attributes"])
 
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-        # Apply LDAP Schema START
-
-        # 1
-        object_class_values = directory.attributes_dict.get("objectClass", [])
-        object_class_names = set()
-        for object_class_name in object_class_values:
-            if isinstance(object_class_name, bytes):
-                object_class_name = object_class_name.decode()
-            object_class_names.add(object_class_name)
-
-        # 1.1
+        object_class_names = self._get_object_class_names(directory)
         if not object_class_names:
             yield ModifyResponse(
                 result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                error_message=f"Directory {directory} must have at least one object class",
+                error_message=f"Directory {directory} must have\
+                at least one object class",
             )
             return
 
-        # 2
-        structural_object_class_names = (
-            await get_structural_object_class_names(
-                session,
-                object_class_names,
-            )
-        )
-
-        if not structural_object_class_names:
-            yield ModifyResponse(
-                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                error_message=f"Entry {directory} must have exactly one structural object class. Object classes: {object_class_names}",
-            )
-            return
-
-        # if len(structural_object_class_names) >= 2:
-        #     yield ModifyResponse(
-        #         result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-        #         error_message=f"Entry {directory} must have exactly one structural object class. Structural object classes: {structural_object_class_names}",
-        #     )
-        #     return
-
-        # 3
-        (
-            _errors,
-            dropped_attributes,
-            permitted_attributes,
-        ) = await apply_ldap_schema(
+        classes_validation_result = await validate_object_class_by_ldap_schema(
             session,
             directory,
-            directory.attributes,
             object_class_names,
         )
-
-        # 3.1
-        for result_code, messages in _errors.items():
+        for result_code, messages in classes_validation_result.errors.items():
             yield ModifyResponse(
                 result_code=result_code,
                 error_message=", ".join(messages),
             )
             return
 
-        # 3.2
-        for attribute in dropped_attributes:
-            if inspect(attribute).persistent:
-                await session.delete(attribute)
+        attrs_validation_result = await validate_attributes_by_ldap_schema(
+            session,
+            directory,
+            directory.attributes,
+            object_class_names,
+        )
+        for result_code, messages in attrs_validation_result.errors.items():
+            yield ModifyResponse(
+                result_code=result_code,
+                error_message=", ".join(messages),
+            )
+            return
 
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
-        # Apply LDAP Schema END
+        for useless_attribute in attrs_validation_result.useless_attributes:
+            useless_attribute = cast(Attribute, useless_attribute)
+            if inspect(useless_attribute).persistent:
+                await session.delete(useless_attribute)
 
         await session.commit()
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+
+    def _get_object_class_names(self, directory: Directory) -> set[str]:
+        object_class_values = directory.attributes_dict.get("objectClass", [])
+        object_class_names = set()
+        for object_class_name in object_class_values:
+            if isinstance(object_class_name, bytes):
+                object_class_name = object_class_name.decode()
+            object_class_names.add(object_class_name)
+        return object_class_names
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:

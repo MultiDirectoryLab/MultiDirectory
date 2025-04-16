@@ -32,8 +32,8 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
-    apply_ldap_schema,
-    get_structural_object_class_names,
+    validate_attributes_by_ldap_schema,
+    validate_object_class_by_ldap_schema,
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
@@ -430,86 +430,56 @@ class SearchRequest(BaseRequest):
 
         directory: Directory
         async for directory in directories:
-            # Apply LDAP Schema START
-            # Apply LDAP Schema START
-            # Apply LDAP Schema START
-            # Apply LDAP Schema START
-
-            # 1
-            object_class_values = directory.attributes_dict.get(
-                "objectClass", []
-            )
-            object_class_names = set()
-            for object_class_name in object_class_values:
-                if isinstance(object_class_name, bytes):
-                    object_class_name = object_class_name.decode()
-                object_class_names.add(object_class_name)
-
-            # 1.1
+            object_class_names = self._get_object_class_names(directory)
             if not object_class_names:
                 continue
 
-            # 2
-            structural_object_class_names = (
-                await get_structural_object_class_names(
+            classes_validation_result = (
+                await validate_object_class_by_ldap_schema(
                     session,
+                    directory,
                     object_class_names,
                 )
             )
-
-            if not structural_object_class_names:
+            if classes_validation_result.errors:
                 continue
 
-            # if len(structural_object_class_names) >= 2:
-            #     continue
-
-            # pipeline
-            pipeline = CollectLdapTreeEntryPipeline(
+            pipeline = CollectLdapTreeEntryFieldsPipeline(
                 directory,
                 object_class_names,
                 session,
                 search_request=self,
             )
-            directory_fields = await pipeline.collect_directory_fields()
-            # pipeline
+            entry_fields = await pipeline.collect_entry_fields()
 
             partial_attributes = [
-                PartialAttribute(type=n, vals=v)
-                for n, v in directory_fields.items()
+                PartialAttribute(type=name, vals=values)
+                for name, values in entry_fields.items()
             ]
 
-            # 3
-            (
-                _errors,
-                dropped_attributes,
-                permitted_attributes,
-            ) = await apply_ldap_schema(
+            attrs_validation_result = await validate_attributes_by_ldap_schema(
                 session,
                 directory,
                 partial_attributes,
                 object_class_names,
             )
 
-            # 3.1
-            for _result_code, _messages in _errors.items():
-                pass
-
-            # 3.2
-            for _attribute in dropped_attributes:
-                pass
-
-            # Apply LDAP Schema END
-            # Apply LDAP Schema END
-            # Apply LDAP Schema END
-            # Apply LDAP Schema END
-
             yield SearchResultEntry(
                 object_name=directory.path_dn,
-                partial_attributes=permitted_attributes,
+                partial_attributes=attrs_validation_result.correct_attributes,
             )
 
+    def _get_object_class_names(self, directory: Directory) -> set[str]:
+        object_class_values = directory.attributes_dict.get("objectClass", [])
+        object_class_names = set()
+        for object_class_name in object_class_values:
+            if isinstance(object_class_name, bytes):
+                object_class_name = object_class_name.decode()
+            object_class_names.add(object_class_name)
+        return object_class_names
 
-class CollectLdapTreeEntryPipeline:
+
+class CollectLdapTreeEntryFieldsPipeline:
     """Collect Entry for LDAP tree according to the LDAP schema."""
 
     def __init__(
@@ -532,7 +502,7 @@ class CollectLdapTreeEntryPipeline:
         self._object_class_names: set[str] = object_class_names
         self._directory_fields: dict[str, list] = defaultdict(list)
 
-    async def collect_directory_fields(self) -> dict[str, list[str | bytes]]:
+    async def collect_entry_fields(self) -> dict[str, list[str | bytes]]:
         self._directory_fields["distinguishedName"].append(
             self._directory.path_dn
         )
