@@ -21,8 +21,11 @@ RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --with linters --
 # The runtime image, used to just run the code provided its virtual environment
 FROM python:3.12.6-slim-bookworm AS runtime
 
-WORKDIR /app
 WORKDIR /tests
+COPY tests /tests
+COPY pyproject.toml ./
+
+WORKDIR /app
 RUN set -eux;
 
 ENV VIRTUAL_ENV=/venvs/.venv \
@@ -33,5 +36,4 @@ ENV VIRTUAL_ENV=/venvs/.venv \
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY app /app
-COPY tests /tests
 COPY pyproject.toml ./
