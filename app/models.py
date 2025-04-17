@@ -34,7 +34,6 @@ from sqlalchemy.orm import (
     relationship,
     synonym,
 )
-from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
@@ -60,7 +59,7 @@ UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
 @compiles(UniqueConstraint, "postgresql")
 def compile_create_uc(
-    create: DDLElement,
+    create: UniqueConstraint,
     compiler: DDLCompiler,
     **kw: dict,
 ) -> str:
