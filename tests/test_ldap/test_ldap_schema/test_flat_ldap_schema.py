@@ -17,8 +17,3 @@ async def test_get_flat_ldap_schema(session: AsyncSession) -> None:
     all_object_classes = await get_all_object_classes(session)
     flat_ldap_schema = await get_flat_ldap_schema(session)
     assert len(all_object_classes) == len(flat_ldap_schema)
-    {
-        key: (value[2], len(value[0]) + len(value[1]))
-        for key, value in flat_ldap_schema.items()
-    }
-    # print("Test linter")

@@ -128,7 +128,7 @@ async def get_attribute_type_names_by_object_class_names(
         }
         res_attribute_type_names_may.update(attribute_type_names_may)
 
-    attribute_type_names_may -= attribute_type_names_must
+    res_attribute_type_names_may -= res_attribute_type_names_must
     return (res_attribute_type_names_must, res_attribute_type_names_may)
 
 
