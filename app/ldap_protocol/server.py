@@ -12,13 +12,14 @@ from contextlib import suppress
 from io import BytesIO
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from traceback import format_exc
-from typing import Literal, cast, overload
+from typing import Any, Literal, cast, overload
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
 from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
+from redis_client import RedisClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -26,7 +27,6 @@ from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
-from ldap_protocol.utils.helpers import send_event_to_redis
 
 log = logger.bind(name="ldap")
 
@@ -350,12 +350,17 @@ class PoolClientHandler:
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
+        redis_client: RedisClient = await container.get(RedisClient)
         addr = str(ldap_session.ip)
 
         while True:
             try:
                 message: LDAPRequestMessage = await ldap_session.queue.get()
                 self.req_log(addr, message)
+
+                to_process_event = await redis_client.is_enable_proc_events(
+                    message
+                )
 
                 async with container(scope=Scope.REQUEST) as request_container:
                     # NOTE: Automatically provides requested arguments
@@ -365,12 +370,14 @@ class PoolClientHandler:
                     )
                     handler = message.context.handle(**kwargs)
 
-                    responses: list = []
-                    event_data = {
-                        "request": message.model_dump(),
-                        "responses": responses,
-                        "protocol": "TCP_LDAP",
-                    }
+                    if to_process_event:
+                        responses: list = []
+                        event_data: dict[str, Any] = {
+                            "request": message.model_dump(),
+                            "responses": responses,
+                            "protocol": "TCP_LDAP",
+                        }
+
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
 
@@ -382,26 +389,26 @@ class PoolClientHandler:
 
                         writer.write(data)
                         await writer.drain()
-                        responses.append(response.model_dump())
+
+                        if to_process_event:
+                            responses.append(response.model_dump())
 
                 ldap_session.queue.task_done()
 
-                event_data["help_data"] = message.context.get_event_data()
+                if to_process_event:
+                    event_data["help_data"] = message.context.get_event_data()
+                    event_data["username"] = (
+                        ldap_session.user.dn if ldap_session.user else ""
+                    )
+                    event_data["source_ip"] = str(ldap_session.ip)
+                    event_data["dest_port"] = self.settings.PORT
 
-                kwargs = await resolve_deps(
-                    func=send_event_to_redis,
-                    container=request_container,
-                )
-                # logger.critical(f"Sending event to redis: {event_data}")
-
-                asyncio.create_task(
-                    send_event_to_redis(
-                        event_data,
-                        stream_name=self.settings.EVENT_STREAM_NAME,
-                        need_to_serialize=True,
-                        **kwargs,
-                    ),
-                )
+                    asyncio.create_task(
+                        redis_client.send_to_processing(
+                            message=event_data,
+                            stream_name=self.settings.EVENT_STREAM_NAME,
+                        ),
+                    )
             except Exception as err:
                 raise RuntimeError(err) from err
 
