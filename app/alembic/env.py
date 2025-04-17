@@ -15,6 +15,9 @@ from models import Base as MainBase
 db_type = context.get_x_argument(as_dictionary=True).get("db")
 config = context.config
 
+if db_type is None:
+    db_type = context.config.attributes.get("db_type")
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
