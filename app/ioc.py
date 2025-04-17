@@ -56,7 +56,7 @@ class MainProvider(Provider):
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
         return create_async_engine(
-            str(settings.POSTGRES_URI),
+            str(settings.MAIN_POSTGRES_URI),
             pool_size=settings.INSTANCE_DB_POOL_SIZE,
             max_overflow=settings.INSTANCE_DB_POOL_LIMIT,
             pool_timeout=settings.INSTANCE_DB_POOL_TIMEOUT,
