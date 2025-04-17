@@ -49,6 +49,7 @@ class Settings(BaseModel):
     POSTGRES_DB: str = "postgres"
 
     POSTGRES_HOST: str = "postgres"
+    EVENT_POSTGRES_HOST: str = "event_postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
@@ -74,13 +75,23 @@ class Settings(BaseModel):
 
     @computed_field  # type: ignore
     @cached_property
-    def POSTGRES_URI(self) -> PostgresDsn:  # noqa: N802
+    def MAIN_POSTGRES_URI(self) -> PostgresDsn:  # noqa: N802
+        """Build postgres DSN."""
+        return self._get_db_uri(self.POSTGRES_HOST)
+
+    @computed_field  # type: ignore
+    @cached_property
+    def EVENT_POSTGRES_URI(self) -> PostgresDsn:  # noqa: N802
+        """Build postgres DSN."""
+        return self._get_db_uri(self.EVENT_POSTGRES_HOST)
+
+    def _get_db_uri(self, host: str) -> PostgresDsn:
         """Build postgres DSN."""
         return PostgresDsn(
             f"{self.POSTGRES_SCHEMA}://"
             f"{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@"
-            f"{self.POSTGRES_HOST}/"
+            f"{host}/"
             f"{self.POSTGRES_DB}"
         )
 
