@@ -297,13 +297,8 @@ TEST_DATA = [
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
-                    # FIXME исправь отсебятину в значениях
-                    "nsAccountLock": [
-                        "TRUE"
-                    ],  # FIXME почему тут true? почему иначе тесты падают
-                    "shadowExpire": [
-                        "0"
-                    ],  # FIXME почему именно такое значение надо
+                    "nsAccountLock": ["TRUE"],
+                    "shadowExpire": ["0"],
                 },
             },
             {
