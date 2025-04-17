@@ -178,7 +178,9 @@ class TestProvider(Provider):
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
-        return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
+        return create_async_engine(
+            str(settings.MAIN_POSTGRES_URI), pool_size=10
+        )
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
     def get_session_factory(
