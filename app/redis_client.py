@@ -4,11 +4,17 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import json
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any
 
 from loguru import logger
+from pydantic import SecretStr
 from redis.asyncio import Redis
+
+from ldap_protocol import LDAPRequestMessage
+from ldap_protocol.objects import OperationEvent
 
 
 class AbstractClient(ABC):
@@ -17,7 +23,7 @@ class AbstractClient(ABC):
     _client: Any
 
     @abstractmethod
-    async def add(
+    async def send_to_processing(
         self,
         stream_name: str,
         message: dict[str, str],
@@ -97,13 +103,51 @@ class RedisClient(AbstractClient):
         """
         self._client = redis_url
 
-    async def add(
+    async def is_enable_proc_events(self, message: LDAPRequestMessage) -> bool:
+        """Check if events need to be processed.
+
+        :return: True if events need to be processed, False otherwise.
+        """
+        if message.protocol_op == OperationEvent.SEARCH:
+            return False
+
+        data = await self._client.get("is_proc_events")
+        if data is None:
+            return False
+
+        return bool(data) == 1
+
+    async def enable_proc_events(self) -> None:
+        """Set events to be processed."""
+        await self._client.set("is_proc_events", 1)
+
+    async def disable_proc_events(self) -> None:
+        """Set events to not be processed."""
+        await self._client.set("is_proc_events", 0)
+
+    async def send_to_processing(
         self,
         stream_name: str,
         message: dict[str, Any],
     ) -> None:
-        if not self._client:
-            raise ConnectionError("Redis client is not connected.")
+        def custom_serializer(obj: Any) -> Any:
+            """Serialize custom objects for json.dumps."""
+            if isinstance(obj, SecretStr):
+                return "********"
+
+            if hasattr(obj, "isoformat"):
+                return obj.isoformat()
+
+            if isinstance(obj, bytes):
+                return obj.decode(errors="replace")
+            return obj
+
+        message["datetime"] = datetime.now().timestamp()
+        for key, value in message.items():
+            if isinstance(value, str):
+                continue
+
+            message[key] = json.dumps(value, default=custom_serializer)
 
         return await self._client.xadd(stream_name, message)  # type: ignore
 
@@ -113,8 +157,6 @@ class RedisClient(AbstractClient):
         group_name: str,
         last_id: str = "0",
     ) -> None:
-        if not self._client:
-            raise ConnectionError("Redis client is not connected.")
         try:
             await self._client.xgroup_create(
                 stream_name,
@@ -136,8 +178,6 @@ class RedisClient(AbstractClient):
         count: int = 10,
         block: int | None = None,
     ) -> list[tuple[str, list[tuple[str, dict[bytes, bytes]]]]]:
-        if not self._client:
-            raise ConnectionError("Redis client is not connected.")
         return await self._client.xreadgroup(
             group_name,
             consumer_name,
@@ -152,9 +192,6 @@ class RedisClient(AbstractClient):
         group_name: str,
         message_id: str,
     ) -> None:
-        if not self._client:
-            raise ConnectionError("Redis client is not connected.")
-
         await self._client.xack(stream_name, group_name, message_id)
 
     async def remove(
@@ -162,7 +199,4 @@ class RedisClient(AbstractClient):
         stream_name: str,
         message_id: str,
     ) -> None:
-        if not self._client:
-            raise ConnectionError("Redis client is not connected.")
-
         await self._client.xdel(stream_name, message_id)
