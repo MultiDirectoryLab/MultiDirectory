@@ -8,7 +8,7 @@ env:
   REPO: ${{ github.repository }}
 
 jobs:
-  ruff_linter:
+  ruff_linter_base:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
           NEW_TAG: linter
         run: docker run $NEW_TAG ruff check --output-format=github .
 
-  ruff_linter_preview:
+  ruff_linter_extended:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -21,3 +21,4 @@ async def test_get_flat_ldap_schema(session: AsyncSession) -> None:
         key: (value[2], len(value[0]) + len(value[1]))
         for key, value in flat_ldap_schema.items()
     }
+    print("Test linter")
