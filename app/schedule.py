@@ -13,6 +13,7 @@ from loguru import logger
 
 from config import Settings
 from extra.scripts.check_ldap_principal import check_ldap_principal
+from extra.scripts.need_to_proc_events import check_events_to_process
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_krb5_config import update_krb5_config
@@ -26,6 +27,7 @@ _TASKS: set[tuple[task_type, float]] = {
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
     (update_krb5_config, -1.0),
+    (check_events_to_process, 300),
 }
 
 
