@@ -22,6 +22,7 @@ RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --with linters --
 FROM python:3.12.6-slim-bookworm AS runtime
 
 WORKDIR /app
+WORKDIR /tests
 RUN set -eux;
 
 ENV VIRTUAL_ENV=/venvs/.venv \

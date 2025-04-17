@@ -9,7 +9,7 @@ import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Any, Awaitable, Callable
 
 from dns.asyncquery import inbound_xfr as make_inbound_xfr, tcp as asynctcp
@@ -77,7 +77,7 @@ class DNSConnectionError(ConnectionError):
     """API Error."""
 
 
-class DNSRecordType(str, Enum):
+class DNSRecordType(StrEnum):
     """DNS record types."""
 
     a = "A"

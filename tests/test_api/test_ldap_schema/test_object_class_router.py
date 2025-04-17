@@ -93,10 +93,10 @@ async def test_modify_one_object_class(
     assert object_class.get("kind") == new_statement.get("kind")
     assert set(object_class.get("attribute_types_must")) == set(
         new_statement.get("attribute_types_must")
-    )  # type: ignore
+    )
     assert set(object_class.get("attribute_types_may")) == set(
         new_statement.get("attribute_types_may")
-    )  # type: ignore
+    )
 
 
 @pytest.mark.parametrize(

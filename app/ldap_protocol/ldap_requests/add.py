@@ -367,13 +367,13 @@ class AddRequest(BaseRequest):
             return
 
         for useless_attribute in attrs_validation_result.useless_attributes:
-            useless_attribute = cast(Attribute, useless_attribute)
+            useless_attribute = cast("Attribute", useless_attribute)
             if inspect(useless_attribute).persistent:
                 await session.delete(useless_attribute)
 
         try:
             items = cast(
-                list[Attribute],
+                "list[Attribute]",
                 attrs_validation_result.correct_attributes,
             )
             items_to_add.extend(items)
