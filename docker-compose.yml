@@ -118,6 +118,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      event_postgres:
+        condition: service_healthy
 
   cert_check:
     image: multidirectory
@@ -148,6 +150,26 @@ services:
        - postgres:/data/postgres
     ports:
       - 5432:5432
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
+
+  event_postgres:
+    container_name: event_postgres
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: password123
+      PGDATA: /data/postgres
+    volumes:
+       - event_postgres:/data/postgres
+    ports:
+      - 5433:5432
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
@@ -338,6 +360,10 @@ services:
     container_name: dragonfly
     expose:
       - 6379
+    # command: >
+    #   --dbfilename=dump
+    #   --dir=/data
+    #   --snapshot_cron="* * * * *"
     deploy:
       resources:
         limits:
@@ -377,6 +403,7 @@ services:
 
 volumes:
   postgres:
+  event_postgres:
   pgadmin:
   wireshark:
   kdc:
