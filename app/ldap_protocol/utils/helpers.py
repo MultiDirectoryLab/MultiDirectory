@@ -131,7 +131,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import hashlib
-import json
 import random
 import re
 import struct
@@ -139,11 +138,7 @@ from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
 from operator import attrgetter
-from typing import Any
 from zoneinfo import ZoneInfo
-
-from pydantic import SecretStr
-from redis_client import RedisClient
 
 from models import Directory
 
@@ -306,43 +301,6 @@ def create_user_name(directory_id: int) -> str:
     NOTE: keycloak
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
-
-
-def custom_serializer(obj: Any) -> Any:
-    """Serialize custom objects for json.dumps."""
-    if isinstance(obj, SecretStr):
-        return "********"
-
-    if obj is None:
-        return "None"
-
-    if hasattr(obj, "isoformat"):
-        return obj.isoformat()
-
-    if isinstance(obj, bytes):
-        return obj.decode(errors="replace")
-    return obj
-
-
-async def send_event_to_redis(
-    event_data: dict[str, Any],
-    stream_name: str,
-    redis_client: RedisClient,
-    need_to_serialize: bool = False,
-) -> None:
-    """Send an event to a Redis stream."""
-    if need_to_serialize:
-        for key, value in event_data.items():
-            if key == "protocol":
-                continue
-            event_data[key] = json.dumps(value, default=custom_serializer)
-
-        event_data["datetime"] = datetime.now().timestamp()
-
-    await redis_client.add(
-        stream_name,
-        event_data,
-    )
 
 
 get_class_name = attrgetter("__class__.__name__")
