@@ -68,7 +68,7 @@ def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
     return BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
         matchedDN="",
-        errorMessage=str(error_message),
+        error_message=str(error_message),
     )
 
 

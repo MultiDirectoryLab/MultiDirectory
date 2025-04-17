@@ -65,20 +65,8 @@ async def adding_mfa_user_and_group(
                     "type": "objectClass",
                     "vals": ["organization", "top", "group"],
                 },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "instanceType", "vals": ["krbadmin"]},
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "groupType", "vals": ["group type: admin"]},
-                {"type": "o", "vals": ["o"]},
+                {"type": "groupType", "vals": ["-2147483646"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )
@@ -137,21 +125,9 @@ async def adding_mfa_user_and_group(
                     "type": "objectClass",
                     "vals": ["organization", "top", "user"],
                 },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "instanceType", "vals": ["krbadmin"]},
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "nsAccountLock", "vals": ["False"]},
-                {"type": "shadowExpire", "vals": ["-1"]},
-                {"type": "o", "vals": ["o"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
+                {"type": "shadowExpire", "vals": ["0"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )

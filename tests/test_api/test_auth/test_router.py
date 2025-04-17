@@ -389,7 +389,7 @@ async def test_lock_and_unlock_user(
         for attr in data["search_result"][0]["partial_attributes"]
     }
     shadow_expire = attrs.get("shadowExpire")
-    assert attrs.get("nsAccountLock") == "true"
+    assert attrs.get("nsAccountLock") == "TRUE"
     assert isinstance(shadow_expire, str)
     assert shadow_expire.isdigit()
 

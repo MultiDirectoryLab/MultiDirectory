@@ -444,13 +444,13 @@ class SearchRequest(BaseRequest):
             if classes_validation_result.errors:
                 continue
 
-            pipeline = CollectLdapTreeEntryFieldsPipeline(
+            pipeline = _CollectLdapTreeEntryFieldsPipeline(
                 directory,
                 object_class_names,
                 session,
                 search_request=self,
             )
-            entry_fields = await pipeline.collect_entry_fields()
+            entry_fields = await pipeline.collect_ldap_entry_fields()
 
             partial_attributes = [
                 PartialAttribute(type=name, vals=values)
@@ -470,7 +470,9 @@ class SearchRequest(BaseRequest):
             )
 
     def _get_object_class_names(self, directory: Directory) -> set[str]:
-        object_class_values = directory.attributes_dict.get("objectClass", [])
+        object_class_values: list[str | bytes] = directory.attributes_dict.get(
+            "objectClass", []
+        )
         object_class_names = set()
         for object_class_name in object_class_values:
             if isinstance(object_class_name, bytes):
@@ -479,8 +481,8 @@ class SearchRequest(BaseRequest):
         return object_class_names
 
 
-class CollectLdapTreeEntryFieldsPipeline:
-    """Collect Entry for LDAP tree according to the LDAP schema."""
+class _CollectLdapTreeEntryFieldsPipeline:
+    """Collect Entry`s fields for LDAP tree."""
 
     def __init__(
         self,
@@ -502,7 +504,7 @@ class CollectLdapTreeEntryFieldsPipeline:
         self._object_class_names: set[str] = object_class_names
         self._directory_fields: dict[str, list] = defaultdict(list)
 
-    async def collect_entry_fields(self) -> dict[str, list[str | bytes]]:
+    async def collect_ldap_entry_fields(self) -> dict[str, list[str | bytes]]:
         self._directory_fields["distinguishedName"].append(
             self._directory.path_dn
         )

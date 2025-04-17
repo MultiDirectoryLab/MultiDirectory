@@ -231,10 +231,10 @@ class Directory(Base):
     )
 
     @property
-    def attributes_dict(self) -> defaultdict[str, list]:
+    def attributes_dict(self) -> defaultdict[str, list[str | bytes]]:
         attributes = defaultdict(list)
         for attribute in self.attributes:
-            attributes[attribute.name].append(attribute.value)
+            attributes[attribute.name].extend(attribute.values)
         return attributes
 
     group: Mapped[Group] = relationship(

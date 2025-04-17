@@ -220,7 +220,7 @@ async def validate_attributes_by_ldap_schema(
             must_names_touched.add(attribute.name)
             if not attribute.values:
                 result.errors[LDAPCodes.INVALID_ATTRIBUTE_SYNTAX].append(
-                    f"Attribute {attribute} must have a value;"
+                    f"Attribute {attribute} don`t have a value;"
                 )
         elif attribute.name in may_names:
             result.correct_attributes.append(attribute)
@@ -229,8 +229,8 @@ async def validate_attributes_by_ldap_schema(
 
     if names := must_names - must_names_touched:
         result.errors[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
-            f"Directory {directory} must have all required attributes.\
-            Attributes ({names}) is empty;"
+            f"Directory {directory} must have all required (MUST) attributes.\
+            Attributes ({names}) missing;"
         )
 
     return result

@@ -233,7 +233,7 @@ class ModifyRequest(BaseRequest):
                 result_code, message = self._match_bad_response(err)
                 yield ModifyResponse(
                     result_code=result_code,
-                    errorMessage=message,
+                    error_message=message,
                 )
                 return
 
@@ -243,8 +243,8 @@ class ModifyRequest(BaseRequest):
         if not object_class_names:
             yield ModifyResponse(
                 result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                error_message=f"Directory {directory} must have\
-                at least one object class",
+                error_message=f"Directory {directory} attributes must have at\
+                least one 'objectClass'.",
             )
             return
 

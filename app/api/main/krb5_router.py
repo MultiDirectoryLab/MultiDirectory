@@ -83,11 +83,6 @@ async def setup_krb_catalogue(
             "instanceType": ["4"],
             "description": ["Kerberos administrator's group."],
             "gidNumber": ["800"],
-            # FIXME исправь отсебятину в значениях
-            "objectCategory": [
-                "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-            ],
-            "nTSecurityDescriptor": ["0x0000000000000000"],
         },
     )
 
@@ -95,16 +90,10 @@ async def setup_krb_catalogue(
     services = AddRequest.from_dict(
         services_container,
         {
-            # FIXME исправь отсебятину в значениях
             "objectClass": ["organizationalUnit", "top", "container"],
             "jpegPhoto": ["jpegphoto.jpeg"],
-            "nTSecurityDescriptor": ["0x0000000000000000"],
-            "cn": ["ou=services,dc=md,dc=test"],
-            "instanceType": ["services_container"],
-            "title": ["Services."],
-            "objectCategory": [
-                "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-            ],
+            "cn": ["cn=krbadmin,dc=md,dc=test"],
+            "title": ["Services container."],
         },
     )
 
@@ -134,15 +123,9 @@ async def setup_krb_catalogue(
             "sAMAccountName": ["krbadmin"],
             "userPrincipalName": ["krbadmin"],
             "displayName": ["Kerberos Administrator"],
-            # FIXME исправь отсебятину в значениях
-            "nTSecurityDescriptor": ["0x0000000000000000"],
-            "instanceType": ["krbadmin"],
-            "objectCategory": [
-                "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-            ],
-            "nsAccountLock": ["False"],
+            "nsAccountLock": ["FALSE"],
             "posixEmail": [mail],
-            "shadowExpire": ["-1"],
+            "shadowExpire": ["0"],
         },
     )
 

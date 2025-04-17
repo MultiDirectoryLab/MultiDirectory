@@ -143,7 +143,7 @@ class LDAPRequestMessage(LDAPMessage):
             context=LDAPResult(
                 result_code=LDAPCodes.PROTOCOL_ERROR,
                 matchedDN="",
-                errorMessage=str(err),
+                error_message=str(err),
             ),
         )
 

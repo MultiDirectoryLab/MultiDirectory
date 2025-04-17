@@ -40,19 +40,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
                         "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "instanceType", "vals": ["krbadmin"]},
-                {"type": "o", "vals": ["o"]},
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )
@@ -62,7 +50,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
     assert isinstance(data, dict)
     assert response.status_code == status.HTTP_200_OK
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert data.get("errorMessage") == ""
+    assert data.get("error_message") == ""
 
 
 @pytest.mark.asyncio
@@ -88,20 +76,8 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
                     "type": "objectClass",
                     "vals": ["computer", "top"],
                 },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "shadowExpire", "vals": ["-1"]},
-                {"type": "nsAccountLock", "vals": ["False"]},
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "instanceType", "vals": ["Personalniy Computer"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
+                {"type": "shadowExpire", "vals": ["0"]},
             ],
         },
     )
@@ -172,17 +148,6 @@ async def test_api_correct_add_double_member_of(
                 {
                     "type": "instanceType",
                     "vals": ["4"],
-                },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
                 },
             ],
         },
@@ -255,21 +220,9 @@ async def test_api_correct_add_double_member_of(
                     "type": "userAccountControl",
                     "vals": ["514"],
                 },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "o", "vals": ["o"]},
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "shadowExpire", "vals": ["-1"]},
-                {"type": "nsAccountLock", "vals": ["False"]},
-                {"type": "instanceType", "vals": ["krbadmin"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
+                {"type": "shadowExpire", "vals": ["0"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
             ],
         },
     )
@@ -362,21 +315,9 @@ async def test_api_add_user_inccorect_uac(
                     "type": "userAccountControl",
                     "vals": ["516"],
                 },
-                # FIXME исправь отсебятину в значениях
-                {"type": "instanceType", "vals": ["krbadmin"]},
-                {"type": "o", "vals": ["o"]},
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "nsAccountLock", "vals": ["False"]},
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "shadowExpire", "vals": ["-1"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
+                {"type": "shadowExpire", "vals": ["0"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
             ],
         },
     )
@@ -484,19 +425,7 @@ async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
                     "type": "objectClass",
                     "vals": ["organization", "top"],
                 },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "instanceType", "vals": ["krbadmin"]},
-                {"type": "o", "vals": ["o"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )
@@ -611,19 +540,7 @@ async def test_api_add_double_case_insensetive(
                         "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "instanceType", "vals": ["krbadmin"]},
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "o", "vals": ["o"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )

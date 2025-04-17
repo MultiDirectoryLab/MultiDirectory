@@ -272,14 +272,8 @@ TEST_DATA = [
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
                     "description": ["123 desc"],
-                    # FIXME исправь отсебятину в значениях
-                    "nsAccountLock": ["False"],
-                    "shadowExpire": ["-1"],
-                    "nTSecurityDescriptor": ["0x0000000000000000"],
-                    "instanceType": ["user0"],
-                    "objectCategory": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
+                    "nsAccountLock": ["FALSE"],
+                    "shadowExpire": ["0"],
                 },
             },
             {
@@ -305,10 +299,10 @@ TEST_DATA = [
                     "userAccountControl": ["512"],
                     # FIXME исправь отсебятину в значениях
                     "nsAccountLock": [
-                        "true"
+                        "TRUE"
                     ],  # FIXME почему тут true? почему иначе тесты падают
                     "shadowExpire": [
-                        "100"
+                        "0"
                     ],  # FIXME почему именно такое значение надо
                 },
             },
@@ -348,9 +342,8 @@ TEST_DATA = [
                                     ],
                                     "posixEmail": ["user1@mail.com"],
                                     "userAccountControl": ["512"],
-                                    # FIXME исправь отсебятину в значениях
-                                    "nsAccountLock": ["False"],
-                                    "shadowExpire": ["-1"],
+                                    "nsAccountLock": ["FALSE"],
+                                    "shadowExpire": ["0"],
                                 },
                             },
                         ],

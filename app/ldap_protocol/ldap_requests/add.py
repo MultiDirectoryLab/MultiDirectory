@@ -156,7 +156,7 @@ class AddRequest(BaseRequest):
             if errors:
                 yield AddResponse(
                     result_code=LDAPCodes.OPERATIONS_ERROR,
-                    errorMessage="; ".join(errors),
+                    error_message="; ".join(errors),
                 )
                 return
 
@@ -337,7 +337,7 @@ class AddRequest(BaseRequest):
             yield AddResponse(
                 result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
                 error_message=f"Directory {new_dir} attributes must have\
-                at least one object class. Attributes: {self.attr_names}",
+                at least one 'objectClass'.",
             )
             return
 
@@ -403,7 +403,7 @@ class AddRequest(BaseRequest):
                 await session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
-                    errorMessage="KerberosError",
+                    error_message="KerberosError",
                 )
                 return
             except httpx.TimeoutException:

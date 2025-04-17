@@ -26,7 +26,7 @@ def _create_test_user_data(
         "entry": "cn=ktest,dc=md,dc=test",
         "password": pw,
         "attributes": [
-            {"type": "mail", "vals": ["123@mil.com"]},
+            {"type": "mail", "vals": ["kadmintest123@mail.com"]},
             {
                 "type": "objectClass",
                 "vals": [
@@ -49,18 +49,9 @@ def _create_test_user_data(
             {"type": "userPrincipalName", "vals": ["ktest"]},
             {"type": "displayName", "vals": ["Kerberos Administrator"]},
             {"type": "userAccountControl", "vals": ["512"]},
-            # FIXME исправь отсебятину в значениях
-            {"type": "nTSecurityDescriptor", "vals": ["0x0000000000000000"]},
-            {"type": "instanceType", "vals": ["krbadmin"]},
-            {
-                "type": "objectCategory",
-                "vals": [
-                    "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                ],
-            },
-            {"type": "nsAccountLock", "vals": ["False"]},
-            {"type": "posixEmail", "vals": ["123@mil.com"]},
-            {"type": "shadowExpire", "vals": ["-1"]},
+            {"type": "nsAccountLock", "vals": ["FALSE"]},
+            {"type": "posixEmail", "vals": ["kadmintest123@mail.com"]},
+            {"type": "shadowExpire", "vals": ["0"]},
         ],
     }
 
@@ -320,20 +311,8 @@ async def test_ldap_kadmin_delete_computer(
             "password": None,
             "attributes": [
                 {"type": "objectClass", "vals": ["computer", "top"]},
-                # FIXME исправь отсебятину в значениях
-                {
-                    "type": "nTSecurityDescriptor",
-                    "vals": ["0x0000000000000000"],
-                },
-                {"type": "instanceType", "vals": ["krbadmin"]},
-                {
-                    "type": "objectCategory",
-                    "vals": [
-                        "CN=SubSchema,CN=Schema,CN=Configuration,DC=FOREST,DC=LAB"
-                    ],
-                },
-                {"type": "nsAccountLock", "vals": ["False"]},
-                {"type": "shadowExpire", "vals": ["-1"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
+                {"type": "shadowExpire", "vals": ["0"]},
             ],
         },
     )
