@@ -5,6 +5,7 @@ help: ## show help message
 before_pr:
 	ruff format .
 	ruff check . --fix --unsafe-fixes
+	ruff check . --preview
 	mypy app
 
 poetry:
