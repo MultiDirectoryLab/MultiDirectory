@@ -12,7 +12,7 @@ from models import Base as MainBase
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-db_type = context.get_x_argument(as_dictionary=True).get("db", "main")
+db_type = context.get_x_argument(as_dictionary=True).get("db")
 config = context.config
 
 # Interpret the config file for Python logging.
@@ -25,7 +25,7 @@ if db_type == "main":
 elif db_type == "audit":
     target_metadata = AuditBase.metadata
 else:
-    raise ValueError
+    raise ValueError(f"Invalid db_type: {db_type}. Must be 'main' or 'audit'.")
 
 
 def run_sync_migrations(connection):
