@@ -46,7 +46,7 @@ async def run_async_migrations(settings):
     if db_type == "main":
         url = settings.MAIN_POSTGRES_URI
     else:
-        url = settings.AUDIT_POSTGRES_URI
+        url = settings.EVENT_POSTGRES_URI
 
     engine = create_async_engine(str(url))
 
