@@ -179,8 +179,8 @@ ignore-variadic-names = true
 "alembic/*.py" = ["I001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
 
 [tool.ruff.lint.mccabe]
-# 22 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.
-max-complexity = 15
+# 16 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.
+max-complexity = 16
 
 [tool.ruff.lint.isort]
 known-first-party = [
