@@ -6,13 +6,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Annotated
 
+import backoff
 from annotated_types import Len
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Body, HTTPException, Response, status
+from fastapi import Body, HTTPException, Request, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
+from loguru import logger
 from pydantic import SecretStr
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -151,6 +153,7 @@ async def setup_kdc(
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
     kadmin: FromDishka[AbstractKadmin],
+    request: Request,
 ) -> None:
     """Set up KDC server.
 
@@ -232,6 +235,26 @@ async def setup_kdc(
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
     else:
         await set_state(session, KerberosState.READY)
+        await session.commit()
+
+        async with request.app.state.dishka_container() as dishka:
+            # Get new kadmin instance with new settings
+            new_kadmin: AbstractKadmin = await dishka.get(AbstractKadmin)
+
+            # retry creation on failure by backoff
+            task = BackgroundTask(
+                backoff.on_exception(
+                    backoff.fibo,
+                    Exception,
+                    max_tries=10,
+                    logger=logger,  # type: ignore
+                    raise_on_giveup=False,
+                )(new_kadmin.add_principal),
+                user.user_principal_name.split("@")[0],
+                data.admin_password.get_secret_value(),
+            )
+
+        return Response(background=task)  # type: ignore
     finally:
         await session.commit()
 

@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import math
 import socket
+import ssl
 from contextlib import suppress
 from io import BytesIO
 from ipaddress import IPv4Address, IPv6Address, ip_address
@@ -53,6 +54,8 @@ class PoolClientHandler:
     uses callable object for a single connection.
     """
 
+    ssl_context: ssl.SSLContext | None = None
+
     def __init__(self, settings: Settings, container: AsyncContainer):
         """Set workers number for single client concurrent handling."""
         self.container = container
@@ -61,13 +64,13 @@ class PoolClientHandler:
         self.num_workers = self.settings.COROUTINES_NUM_PER_CLIENT
         self._size = self.settings.TCP_PACKET_SIZE
 
+        self._load_ssl_context()
+
         if settings.DEBUG:
             self.req_log = self._req_log_full
             self.rsp_log = self._resp_log_full
         else:
             self.req_log = self.rsp_log = self._log_short
-
-        self.ssl_context = None
 
     async def __call__(
         self,
@@ -119,6 +122,19 @@ class PoolClientHandler:
                     await ldap_session.queue.join()
                     writer.close()
                     await writer.wait_closed()
+
+    def _load_ssl_context(self) -> None:
+        """Load SSL context for LDAPS."""
+        if self.settings.USE_CORE_TLS and self.settings.LDAP_LOAD_SSL_CERT:
+            if not self.settings.check_certs_exist():
+                log.critical("Certs not found, exiting...")
+                raise SystemExit(1)
+
+            cert_name = self.settings.SSL_CERT
+            key_name = self.settings.SSL_KEY
+            log.success("Found existing cert and key, loading...")
+            self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+            self.ssl_context.load_cert_chain(cert_name, key_name)
 
     def _extract_proxy_protocol_address(
         self,
@@ -422,6 +438,7 @@ class PoolClientHandler:
             str(self.settings.HOST),
             self.settings.PORT,
             flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
+            ssl=self.ssl_context,
         )
 
     @staticmethod

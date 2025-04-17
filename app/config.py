@@ -39,6 +39,7 @@ class Settings(BaseModel):
     TLS_PORT: int = 636
     HTTP_PORT: int = 8000
     USE_CORE_TLS: bool = False
+    LDAP_LOAD_SSL_CERT: bool = False
 
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
