@@ -99,9 +99,6 @@ async def test_api_search(http_client: AsyncClient) -> None:
     )
 
 
-# Directory(users) oc: {'container', 'organizationalUnit', 'top'} has invalid attributes: defaultdict(<class 'list'>, {<LDAPCodes.OBJECT_CLASS_VIOLATION: 65>: ["Directory must have all required (MUST) attributes.            Attributes ({'cn'}) missing;"]})
-
-
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_api_search_filter_memberof(http_client: AsyncClient) -> None:
@@ -206,10 +203,6 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     assert data["search_result"][0]["object_name"] == entry_dn, (
         "User with required objectGUID not found"
     )
-
-
-# Directory(md.test) oc: {'domain', 'domainDNS', 'top'} has invalid attributes: defaultdict(<class 'list'>, {<LDAPCodes.OBJECT_CLASS_VIOLATION: 65>: ["Directory must have all required (MUST) attributes.            Attributes ({'dc'}) missing;"]})
-# Directory(users) oc: {'organizationalUnit', 'top', 'container'} has invalid attributes: defaultdict(<class 'list'>, {<LDAPCodes.OBJECT_CLASS_VIOLATION: 65>: ["Directory must have all required (MUST) attributes.            Attributes ({'cn'}) missing;"]})
 
 
 @pytest.mark.asyncio

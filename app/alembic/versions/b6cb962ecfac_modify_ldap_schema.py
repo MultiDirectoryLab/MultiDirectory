@@ -23,7 +23,7 @@ from ldap_protocol.ldap_schema.flat_ldap_schema import (
 from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_class_by_name,
 )
-from models import Attribute, Directory
+from models import Directory
 
 # revision identifiers, used by Alembic.
 revision = "b6cb962ecfac"
@@ -93,60 +93,56 @@ def upgrade() -> None:
 
     op.run_async(_modify_object_classes)
 
-    # async def _fix_exists_directories(connection):
-    #     session = AsyncSession(bind=connection)
+    async def _fix_exists_directories(connection):
+        session = AsyncSession(bind=connection)
 
-    #     query = await session.scalars(
-    #         select(Directory)
-    #         .options(selectinload(Directory.attributes))
-    #     )  # fmt: skip
-    #     directories = list(query.all())
+        query = await session.scalars(
+            select(Directory)
+            .options(selectinload(Directory.attributes))
+        )  # fmt: skip
+        directories = list(query.all())
 
-    #     directory: Directory
-    #     for directory in directories:
-    #         object_class_values = directory.attributes_dict.get(
-    #             "objectClass", []
-    #         )
-    #         object_class_names = set()
-    #         for object_class_name in object_class_values:
-    #             if isinstance(object_class_name, bytes):
-    #                 object_class_name = object_class_name.decode()
-    #             object_class_names.add(object_class_name)
+        directory: Directory
+        for directory in directories:
+            object_class_values = directory.attributes_dict.get(
+                "objectClass", []
+            )
+            object_class_names = set()
+            for object_class_name in object_class_values:
+                if isinstance(object_class_name, bytes):
+                    object_class_name = object_class_name.decode()
+                object_class_names.add(object_class_name)
 
-    #         if not object_class_names:
-    #             continue
+            if not object_class_names:
+                continue
 
-    #         classes_validation_result = (
-    #             await validate_chunck_object_classes_by_ldap_schema(
-    #                 session,
-    #                 object_class_names,
-    #             )
-    #         )
-    #         if classes_validation_result.errors:
-    #             continue
+            classes_validation_result = (
+                await validate_chunck_object_classes_by_ldap_schema(
+                    session,
+                    object_class_names,
+                )
+            )
+            if classes_validation_result.errors:
+                continue
 
-    #         partial_attributes = [
-    #             PartialAttribute(type=name, vals=values)
-    #             for name, values in directory.attributes_dict.items()
-    #         ]
-    #         attrs_validation_result = await validate_attributes_by_ldap_schema(
-    #             session,
-    #             partial_attributes,
-    #             object_class_names,
-    #         )
+            partial_attributes = [
+                PartialAttribute(type=name, vals=values)
+                for name, values in directory.attributes_dict.items()
+            ]
+            attrs_validation_result = await validate_attributes_by_ldap_schema(
+                session,
+                partial_attributes,
+                object_class_names,
+            )
 
-    #         for _attr_name in attrs_validation_result.empty_must_attrs_names:
-    #             session.add(
-    #                 Attribute(
-    #                     name=_attr_name,
-    #                     value="Some data",
-    #                     directory_id=directory.id,
-    #                 )
-    #             )
+            for _attr_name in attrs_validation_result.empty_must_attrs_names:
+                # FIXME delete objectClass=='container'  # noqa: FIX001
+                # where directory has objectClass=='user'
+                pass
 
-    #         session.commit()
+            session.commit()
 
-    # op.run_async(_fix_exists_directories)
+    op.run_async(_fix_exists_directories)
 
 
 def downgrade() -> None:

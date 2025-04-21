@@ -228,7 +228,6 @@ class Directory(Base):
         "Attribute",
         cascade="all",
         passive_deletes=True,
-        # lazy="subquery",
     )
 
     @property
