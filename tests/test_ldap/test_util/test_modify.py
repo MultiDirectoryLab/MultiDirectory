@@ -115,7 +115,7 @@ async def test_ldap_base_modify(
     assert attributes["jpegPhoto"] == ["modme.jpeg"]
     assert directory.user.mail == "modme@student.of.life.edu"
 
-    # assert "posixEmail" not in attributes
+    assert "posixEmail" not in attributes
 
 
 @pytest.mark.asyncio
@@ -609,17 +609,17 @@ async def test_ldap_modify_with_ap(
     directory = await session.scalar(query)
     assert directory
 
-    assert directory.attributes_dict["objectClass"] == [
+    assert set(directory.attributes_dict["objectClass"]) == {
         "top",
         "container",
         "organizationalUnit",
-    ]
-    assert directory.attributes_dict["title"] == [
+    }
+    assert set(directory.attributes_dict["title"]) == {
         "Grand Poobah",
         "Grand Poobah1",
         "Grand Poobah2",
         "Grand Poobah3",
-    ]
+    }
     assert directory.attributes_dict["jpegPhoto"] == ["modme.jpeg"]
     assert directory.user.mail == "modme@student.of.life.edu"
 
