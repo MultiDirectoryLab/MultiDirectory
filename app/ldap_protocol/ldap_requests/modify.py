@@ -27,7 +27,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
     validate_attributes_by_ldap_schema,
-    validate_object_class_by_ldap_schema,
+    validate_chunck_object_classes_by_ldap_schema,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
@@ -248,10 +248,11 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        classes_validation_result = await validate_object_class_by_ldap_schema(
-            session,
-            directory,
-            object_class_names,
+        classes_validation_result = (
+            await validate_chunck_object_classes_by_ldap_schema(
+                session,
+                object_class_names,
+            )
         )
         for result_code, messages in classes_validation_result.errors.items():
             yield ModifyResponse(
@@ -262,7 +263,6 @@ class ModifyRequest(BaseRequest):
 
         attrs_validation_result = await validate_attributes_by_ldap_schema(
             session,
-            directory,
             directory.attributes,
             object_class_names,
         )

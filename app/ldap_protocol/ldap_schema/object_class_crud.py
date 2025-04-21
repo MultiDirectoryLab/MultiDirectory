@@ -59,11 +59,19 @@ async def create_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
+    if kind not in ["STRUCTURAL", "ABSTRACT", "AUXILIARY"]:
+        raise ValueError(f"Object class kind is not valid: {kind}.")
+
     superior = (
         await get_object_class_by_name(superior_name, session)
         if superior_name
         else None
     )
+
+    if superior_name and not superior:
+        raise ValueError(
+            f"Superior Object class {superior_name} not found in schema."
+        )
 
     object_class = ObjectClass(
         oid=oid,
@@ -146,6 +154,10 @@ async def modify_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
+    if new_statement.kind not in ["STRUCTURAL", "ABSTRACT", "AUXILIARY"]:
+        raise ValueError(
+            f"Object class kind is not valid: {new_statement.kind}."
+        )
     object_class.kind = new_statement.kind
 
     object_class.attribute_types_must.clear()

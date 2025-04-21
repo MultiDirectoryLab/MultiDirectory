@@ -16,7 +16,7 @@ from ldap_protocol.ldap_responses import PartialAttribute
 from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_classes_by_names,
 )
-from models import Attribute, AttributeType, Directory, ObjectClass
+from models import Attribute, AttributeType, ObjectClass
 
 
 async def get_flat_ldap_schema(
@@ -114,22 +114,23 @@ async def get_attribute_type_names_by_object_class_names(
         else:
             flat_object_classes.append(flat_object_class)
 
-    res_attribute_type_names_must: set[str] = set()
-    res_attribute_type_names_may: set[str] = set()
+    attribute_type_names_must: set[str] = set()
+    attribute_type_names_may: set[str] = set()
 
-    for attribute_types_must, attribute_types_may, _ in flat_object_classes:
-        attribute_type_names_must = {
-            attribute_type.name for attribute_type in attribute_types_must
-        }
-        res_attribute_type_names_must.update(attribute_type_names_must)
+    for (
+        attribute_types_must,
+        attribute_types_may,
+        _depth,
+    ) in flat_object_classes:
+        attribute_type_names_must.update(
+            {attribute_type.name for attribute_type in attribute_types_must}
+        )
+        attribute_type_names_may.update(
+            {attribute_type.name for attribute_type in attribute_types_may}
+        )
 
-        attribute_type_names_may = {
-            attribute_type.name for attribute_type in attribute_types_may
-        }
-        res_attribute_type_names_may.update(attribute_type_names_may)
-
-    res_attribute_type_names_may -= res_attribute_type_names_must
-    return (res_attribute_type_names_must, res_attribute_type_names_may)
+    attribute_type_names_may -= attribute_type_names_must
+    return (attribute_type_names_must, attribute_type_names_may)
 
 
 @dataclass
@@ -142,19 +143,23 @@ class ObjectClassValidationResult:
     structural_object_class_names: list[str] = field(default_factory=list)
 
 
-async def validate_object_class_by_ldap_schema(
+async def validate_chunck_object_classes_by_ldap_schema(
     session: AsyncSession,
-    directory: Directory,
     object_class_names: set[str],
 ) -> ObjectClassValidationResult:
     """Apply the LDAP schema to the directory Object Classes.
 
     :param session: The database session.
-    :param directory: The directory.
     :param object_class_names: The object class names.
     :return: The validation result.
     """
     result = ObjectClassValidationResult()
+
+    if not object_class_names:
+        result.errors[LDAPCodes.NO_SUCH_OBJECT].append(
+            "Object class names is empty."
+        )
+        return result
 
     object_classes = await get_object_classes_by_names(
         object_class_names,
@@ -167,7 +172,7 @@ async def validate_object_class_by_ldap_schema(
 
     if not result.structural_object_class_names:
         result.errors[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
-            f"Entry {directory} must have exactly one structural object class.\
+            f"Entry must have exactly one structural object class.\
             Object classes: {object_class_names}"
         )
 
@@ -187,11 +192,11 @@ class AttributesValidationResult:
     correct_attributes: list[Attribute | PartialAttribute] = field(
         default_factory=list
     )
+    empty_must_attrs_names: set[str] = field(default_factory=set)
 
 
 async def validate_attributes_by_ldap_schema(
     session: AsyncSession,
-    directory: Directory,
     attributes: list[Attribute] | list[PartialAttribute],
     object_class_names: set[str],
 ) -> AttributesValidationResult:
@@ -204,6 +209,18 @@ async def validate_attributes_by_ldap_schema(
     :return: The validation result.
     """
     result = AttributesValidationResult()
+
+    if not attributes:
+        result.errors[LDAPCodes.NO_SUCH_ATTRIBUTE].append(
+            "Attributes is empty."
+        )
+        return result
+
+    if not object_class_names:
+        result.errors[LDAPCodes.NO_SUCH_OBJECT].append(
+            "Object class names is empty."
+        )
+        return result
 
     (
         must_names,
@@ -229,8 +246,9 @@ async def validate_attributes_by_ldap_schema(
 
     if names := must_names - must_names_touched:
         result.errors[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
-            f"Directory {directory} must have all required (MUST) attributes.\
+            f"Directory must have all required (MUST) attributes.\
             Attributes ({names}) missing;"
         )
+        result.empty_must_attrs_names = names
 
     return result

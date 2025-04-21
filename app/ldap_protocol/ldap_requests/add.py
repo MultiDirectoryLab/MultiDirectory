@@ -24,7 +24,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
     validate_attributes_by_ldap_schema,
-    validate_object_class_by_ldap_schema,
+    validate_chunck_object_classes_by_ldap_schema,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
@@ -341,10 +341,11 @@ class AddRequest(BaseRequest):
             )
             return
 
-        classes_validation_result = await validate_object_class_by_ldap_schema(
-            session,
-            new_dir,
-            object_class_names,
+        classes_validation_result = (
+            await validate_chunck_object_classes_by_ldap_schema(
+                session,
+                object_class_names,
+            )
         )
         for result_code, messages in classes_validation_result.errors.items():
             yield AddResponse(
@@ -355,7 +356,6 @@ class AddRequest(BaseRequest):
 
         attrs_validation_result = await validate_attributes_by_ldap_schema(
             session,
-            new_dir,
             attributes,
             object_class_names,
         )

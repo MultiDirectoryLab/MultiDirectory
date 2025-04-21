@@ -33,7 +33,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
     validate_attributes_by_ldap_schema,
-    validate_object_class_by_ldap_schema,
+    validate_chunck_object_classes_by_ldap_schema,
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
@@ -435,31 +435,29 @@ class SearchRequest(BaseRequest):
                 continue
 
             classes_validation_result = (
-                await validate_object_class_by_ldap_schema(
+                await validate_chunck_object_classes_by_ldap_schema(
                     session,
-                    directory,
                     object_class_names,
                 )
             )
             if classes_validation_result.errors:
                 continue
 
-            pipeline = _CollectLdapTreeEntryFieldsPipeline(
+            strategy = _CollectLdapTreeEntityFieldsStrategy(
                 directory,
                 object_class_names,
                 session,
                 search_request=self,
             )
-            entry_fields = await pipeline.collect_ldap_entry_fields()
+            entity_fields = await strategy.collect_ldap_entity_fields()
 
             partial_attributes = [
                 PartialAttribute(type=name, vals=values)
-                for name, values in entry_fields.items()
+                for name, values in entity_fields.items()
             ]
 
             attrs_validation_result = await validate_attributes_by_ldap_schema(
                 session,
-                directory,
                 partial_attributes,
                 object_class_names,
             )
@@ -481,7 +479,7 @@ class SearchRequest(BaseRequest):
         return object_class_names
 
 
-class _CollectLdapTreeEntryFieldsPipeline:
+class _CollectLdapTreeEntityFieldsStrategy:
     """Collect Entry`s fields for LDAP tree."""
 
     def __init__(
@@ -504,7 +502,11 @@ class _CollectLdapTreeEntryFieldsPipeline:
         self._object_class_names: set[str] = object_class_names
         self._directory_fields: dict[str, list] = defaultdict(list)
 
-    async def collect_ldap_entry_fields(self) -> dict[str, list[str | bytes]]:
+    async def collect_ldap_entity_fields(self) -> dict[str, list[str | bytes]]:
+        self._directory_fields[f"{self._directory.rdname}"].append(
+            self._directory.name
+        )
+
         self._directory_fields["distinguishedName"].append(
             self._directory.path_dn
         )

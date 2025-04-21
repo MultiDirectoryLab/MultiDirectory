@@ -7,15 +7,23 @@ Create Date: 2025-03-21 09:45:59.460969
 """
 
 from alembic import op
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from ldap_protocol.ldap_responses import PartialAttribute
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     create_attribute_type,
     get_attribute_types_by_names,
 )
+from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    validate_attributes_by_ldap_schema,
+    validate_chunck_object_classes_by_ldap_schema,
+)
 from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_class_by_name,
 )
+from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
 revision = "b6cb962ecfac"
@@ -65,57 +73,80 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        object_class_user = await get_object_class_by_name(
-            object_class_name="user",
-            session=session,
-        )
-        user_attribute_types_may = await get_attribute_types_by_names(
-            attribute_type_names=("nsAccountLock", "shadowExpire"),
-            session=session,
-        )
-        object_class_user.attribute_types_may.extend(user_attribute_types_may)
-        await session.commit()
+        for object_class_name, attribute_type_may_names in (
+            ("user", ("nsAccountLock", "shadowExpire")),
+            ("computer", ("userAccountControl",)),
+            ("posixAccount", ("posixEmail",)),
+            ("organizationalUnit", ("title", "jpegPhoto")),
+        ):
+            object_class = await get_object_class_by_name(
+                object_class_name=object_class_name,
+                session=session,
+            )
+            attribute_types_may = await get_attribute_types_by_names(
+                attribute_type_names=attribute_type_may_names,
+                session=session,
+            )
+            object_class.attribute_types_may.extend(attribute_types_may)
 
-        object_class_computer = await get_object_class_by_name(
-            object_class_name="computer",
-            session=session,
-        )
-        computer_attribute_types_may = await get_attribute_types_by_names(
-            attribute_type_names=("userAccountControl",),
-            session=session,
-        )
-        object_class_computer.attribute_types_may.extend(
-            computer_attribute_types_may
-        )
-        await session.commit()
-
-        object_class_paccount = await get_object_class_by_name(
-            object_class_name="posixAccount",
-            session=session,
-        )
-        paccount_attribute_types_may = await get_attribute_types_by_names(
-            attribute_type_names=("posixEmail",),
-            session=session,
-        )
-        object_class_paccount.attribute_types_may.extend(
-            paccount_attribute_types_may
-        )
-        await session.commit()
-
-        object_class_ounit = await get_object_class_by_name(
-            object_class_name="organizationalUnit",
-            session=session,
-        )
-        ounit_attribute_types_may = await get_attribute_types_by_names(
-            attribute_type_names=("title", "jpegPhoto"),
-            session=session,
-        )
-        object_class_ounit.attribute_types_must.extend(
-            ounit_attribute_types_may
-        )
         await session.commit()
 
     op.run_async(_modify_object_classes)
+
+    # async def _fix_exists_directories(connection):
+    #     session = AsyncSession(bind=connection)
+
+    #     query = await session.scalars(
+    #         select(Directory)
+    #         .options(selectinload(Directory.attributes))
+    #     )  # fmt: skip
+    #     directories = list(query.all())
+
+    #     directory: Directory
+    #     for directory in directories:
+    #         object_class_values = directory.attributes_dict.get(
+    #             "objectClass", []
+    #         )
+    #         object_class_names = set()
+    #         for object_class_name in object_class_values:
+    #             if isinstance(object_class_name, bytes):
+    #                 object_class_name = object_class_name.decode()
+    #             object_class_names.add(object_class_name)
+
+    #         if not object_class_names:
+    #             continue
+
+    #         classes_validation_result = (
+    #             await validate_chunck_object_classes_by_ldap_schema(
+    #                 session,
+    #                 object_class_names,
+    #             )
+    #         )
+    #         if classes_validation_result.errors:
+    #             continue
+
+    #         partial_attributes = [
+    #             PartialAttribute(type=name, vals=values)
+    #             for name, values in directory.attributes_dict.items()
+    #         ]
+    #         attrs_validation_result = await validate_attributes_by_ldap_schema(
+    #             session,
+    #             partial_attributes,
+    #             object_class_names,
+    #         )
+
+    #         for _attr_name in attrs_validation_result.empty_must_attrs_names:
+    #             session.add(
+    #                 Attribute(
+    #                     name=_attr_name,
+    #                     value="Some data",
+    #                     directory_id=directory.id,
+    #                 )
+    #             )
+
+    #         session.commit()
+
+    # op.run_async(_fix_exists_directories)
 
 
 def downgrade() -> None:
