@@ -68,22 +68,10 @@ class AbstractClient(ABC):
         """
 
     @abstractmethod
-    async def remove(self, stream_name: str, message_id: str) -> None:
-        """Remove a message from stream.
-
-        :param stream_name: Name of the stream.
-        :param group_name: Name of the consumer group.
-        :param message_id: ID of the message to acknowledge.
-        """
-
-    @abstractmethod
-    async def ack_message(
-        self,
-        stream_name: str,
-        group_name: str,
-        message_id: str,
+    async def remove(
+        self, stream_name: str, group_name: str, message_id: str
     ) -> None:
-        """Acknowledge a message in a consumer group.
+        """Remove a message from stream.
 
         :param stream_name: Name of the stream.
         :param group_name: Name of the consumer group.
@@ -186,17 +174,11 @@ class RedisClient(AbstractClient):
             block=block,
         )
 
-    async def ack_message(
+    async def remove(
         self,
         stream_name: str,
         group_name: str,
         message_id: str,
     ) -> None:
         await self._client.xack(stream_name, group_name, message_id)
-
-    async def remove(
-        self,
-        stream_name: str,
-        message_id: str,
-    ) -> None:
         await self._client.xdel(stream_name, message_id)
