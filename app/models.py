@@ -289,6 +289,7 @@ class Directory(Base):
     attributes: Mapped[list[Attribute]] = relationship(
         "Attribute",
         cascade="all",
+        lazy="selectin",
         passive_deletes=True,
     )
 
