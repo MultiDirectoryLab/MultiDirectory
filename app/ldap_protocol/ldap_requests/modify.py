@@ -193,6 +193,7 @@ class ModifyRequest(BaseRequest):
             )
             return
 
+        modifiued_attribute_names = set()
         for change in self.changes:
             if change.modification.type in Directory.ro_fields:
                 continue
@@ -228,6 +229,8 @@ class ModifyRequest(BaseRequest):
                     .where(Directory.id == directory.id),
                 )  # fmt: skip
 
+                modifiued_attribute_names.add(change.modification.type)
+
             except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()
                 result_code, message = self._match_bad_response(err)
@@ -254,7 +257,7 @@ class ModifyRequest(BaseRequest):
                 object_class_names,
             )
         )
-        for result_code, messages in classes_validation_result.errors.items():
+        for result_code, messages in classes_validation_result.alerts.items():
             yield ModifyResponse(
                 result_code=result_code,
                 error_message=", ".join(messages),
@@ -266,17 +269,31 @@ class ModifyRequest(BaseRequest):
             directory.attributes,
             object_class_names,
         )
-        for result_code, messages in attrs_validation_result.errors.items():
+        if attrs := (
+            set(
+                attrs_validation_result.alerts.pop(
+                    LDAPCodes.INVALID_ATTRIBUTE_SYNTAX, []
+                )
+            )
+            & modifiued_attribute_names
+        ):
+            yield ModifyResponse(
+                result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+                error_message=f"Invalid attributes: {attrs}, for {directory}",
+            )
+            return
+
+        for result_code, messages in attrs_validation_result.alerts.items():
             yield ModifyResponse(
                 result_code=result_code,
                 error_message=", ".join(messages),
             )
             return
 
-        for useless_attribute in attrs_validation_result.useless_attributes:
-            useless_attribute = cast("Attribute", useless_attribute)
-            if inspect(useless_attribute).persistent:
-                await session.delete(useless_attribute)
+        for attribute in attrs_validation_result.attributes_rejected:
+            attribute = cast("Attribute", attribute)
+            if inspect(attribute).persistent:
+                await session.delete(attribute)
 
         await session.commit()
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)

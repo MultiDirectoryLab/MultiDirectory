@@ -558,7 +558,7 @@ class Attribute(Base):
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     @property
-    def decoded_value(self) -> str | None:
+    def _decoded_value(self) -> str | None:
         """Get attribute value."""
         if self.value:
             return self.value
@@ -569,7 +569,7 @@ class Attribute(Base):
     @property
     def values(self) -> list[str]:
         """Get attribute value by list."""
-        return [self.decoded_value] if self.decoded_value else []
+        return [self._decoded_value] if self._decoded_value else []
 
     directory: Mapped[Directory] = relationship(
         "Directory",
@@ -579,11 +579,11 @@ class Attribute(Base):
 
     def __str__(self) -> str:
         """Attribute name and value."""
-        return f"Attribute({self.name}:{self.decoded_value})"
+        return f"Attribute({self.name}:{self._decoded_value})"
 
     def __repr__(self) -> str:
         """Attribute name and value."""
-        return f"Attribute({self.name}:{self.decoded_value})"
+        return f"Attribute({self.name}:{self._decoded_value})"
 
 
 class AttributeType(Base):

@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -100,7 +101,7 @@ async def get_attribute_type_names_by_object_class_names(
     """
     flat_ldap_schema = await get_flat_ldap_schema(session)
 
-    flat_object_classes = []
+    flat_object_classes: list[tuple[list, list]] = []
     for object_class_name in object_class_names:
         flat_object_class = flat_ldap_schema.get(object_class_name)
         if flat_object_class is None:
@@ -129,10 +130,9 @@ async def get_attribute_type_names_by_object_class_names(
 class ObjectClassValidationResult:
     """Result of validation Object Classes."""
 
-    errors: dict[LDAPCodes, list[str]] = field(
+    alerts: dict[LDAPCodes, list[str]] = field(
         default_factory=lambda: defaultdict(list)
     )
-    structural_object_class_names: list[str] = field(default_factory=list)
 
 
 async def validate_chunck_object_classes_by_ldap_schema(
@@ -148,11 +148,11 @@ async def validate_chunck_object_classes_by_ldap_schema(
     result = ObjectClassValidationResult()
 
     if not object_class_names:
-        result.errors[LDAPCodes.NO_SUCH_OBJECT].append(
+        result.alerts[LDAPCodes.NO_SUCH_OBJECT].append(
             "Object class names is empty."
         )
 
-    if result.errors:
+    if result.alerts:
         return result
 
     object_classes = await get_object_classes_by_names(
@@ -162,11 +162,10 @@ async def validate_chunck_object_classes_by_ldap_schema(
 
     for object_class in object_classes:
         if object_class.is_structural:
-            result.structural_object_class_names.append(object_class.name)
-
-    if not result.structural_object_class_names:
-        result.errors[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
-            f"Entry must have exactly one structural object class.\
+            break
+    else:
+        result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
+            f"Entry must have one structural object class.\
             Object classes: {object_class_names}"
         )
 
@@ -177,16 +176,21 @@ async def validate_chunck_object_classes_by_ldap_schema(
 class AttributesValidationResult:
     """Result of validation Attributes or Partial Attributes."""
 
-    errors: dict[LDAPCodes, list[str]] = field(
-        default_factory=lambda: defaultdict(list)
-    )
-    useless_attributes: list[Attribute | PartialAttribute] = field(
+    alerts: dict[
+        Literal[
+            LDAPCodes.NO_SUCH_ATTRIBUTE,
+            LDAPCodes.NO_SUCH_OBJECT,
+            LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+            LDAPCodes.OBJECT_CLASS_VIOLATION,
+        ],
+        list[str],
+    ] = field(default_factory=lambda: defaultdict(list))
+    attributes_rejected: list[Attribute | PartialAttribute] = field(
         default_factory=list
     )
-    correct_attributes: list[Attribute | PartialAttribute] = field(
+    attributes_accepted: list[Attribute | PartialAttribute] = field(
         default_factory=list
     )
-    empty_must_attrs_names: set[str] = field(default_factory=set)
 
 
 async def validate_attributes_by_ldap_schema(
@@ -205,16 +209,16 @@ async def validate_attributes_by_ldap_schema(
     result = AttributesValidationResult()
 
     if not attributes:
-        result.errors[LDAPCodes.NO_SUCH_ATTRIBUTE].append(
+        result.alerts[LDAPCodes.NO_SUCH_ATTRIBUTE].append(
             "Attributes is empty."
         )
 
     if not object_class_names:
-        result.errors[LDAPCodes.NO_SUCH_OBJECT].append(
+        result.alerts[LDAPCodes.NO_SUCH_OBJECT].append(
             "Object class names is empty."
         )
 
-    if result.errors:
+    if result.alerts:
         return result
 
     (
@@ -225,25 +229,27 @@ async def validate_attributes_by_ldap_schema(
         object_class_names,
     )
 
-    must_names_touched: set[str] = set()
     for attribute in attributes:
-        if attribute.name in must_names:
-            result.correct_attributes.append(attribute)
-            must_names_touched.add(attribute.name)
-            if not attribute.values:
-                result.errors[LDAPCodes.INVALID_ATTRIBUTE_SYNTAX].append(
-                    f"Attribute {attribute} don`t have a value;"
-                )
-        elif attribute.name in may_names:
-            result.correct_attributes.append(attribute)
-        else:
-            result.useless_attributes.append(attribute)
+        if not attribute.values:
+            result.alerts[LDAPCodes.INVALID_ATTRIBUTE_SYNTAX].append(
+                attribute.name
+            )
 
-    if names := must_names - must_names_touched:
-        result.errors[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
+        if attribute.name in must_names or attribute.name in may_names:
+            result.attributes_accepted.append(attribute)
+
+        else:
+            result.attributes_rejected.append(attribute)
+
+    empty = {
+        name
+        for name in must_names
+        if name not in {attr.name for attr in result.attributes_accepted}
+    }
+    if empty:
+        result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
             f"Directory must have all required (MUST) attributes.\
-            Attributes ({names}) missing;"
+            Attributes ({empty}) missing;"
         )
-        result.empty_must_attrs_names = names
 
     return result

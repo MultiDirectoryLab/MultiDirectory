@@ -440,7 +440,7 @@ class SearchRequest(BaseRequest):
                     object_class_names,
                 )
             )
-            if classes_validation_result.errors:
+            if classes_validation_result.alerts:
                 continue
 
             strategy = _CollectLdapTreeEntityFieldsStrategy(
@@ -464,7 +464,7 @@ class SearchRequest(BaseRequest):
 
             yield SearchResultEntry(
                 object_name=directory.path_dn,
-                partial_attributes=attrs_validation_result.correct_attributes,
+                partial_attributes=attrs_validation_result.attributes_accepted,
             )
 
     def _get_object_class_names(self, directory: Directory) -> set[str]:

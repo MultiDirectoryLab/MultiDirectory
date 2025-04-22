@@ -91,8 +91,7 @@ async def test_validate_chunck_object_classes_by_ldap_schema(
         dataset["object_class_names"],
     )
 
-    assert not result.errors
-    assert set(result.structural_object_class_names) == dataset["structural"]
+    assert not result.alerts
 
 
 @pytest.mark.parametrize(
@@ -113,8 +112,7 @@ async def test_validate_chunck_object_classes_by_ldap_schema_error(
         dataset["object_class_names"],
     )
 
-    assert dataset["error"] in result.errors
-    assert not result.structural_object_class_names
+    assert dataset["error"] in result.alerts
 
 
 @pytest.mark.parametrize(
@@ -143,10 +141,9 @@ async def test_validate_attributes_by_ldap_schema(
         dataset["object_class_names"],
     )
 
-    assert not result.errors
-    for correct_attribute in result.correct_attributes:
+    assert not result.alerts
+    for correct_attribute in result.attributes_accepted:
         assert correct_attribute.name in dataset["correct_attributes"]
-    for correct_attribute in result.correct_attributes:
         assert correct_attribute.name not in dataset["useless_attributes"]
 
 
@@ -176,5 +173,5 @@ async def test_validate_attributes_by_ldap_schema_error(
         dataset["object_class_names"],
     )
 
-    assert len(result.errors) == 1
-    assert dataset["error"] in result.errors
+    assert len(result.alerts) == 1
+    assert dataset["error"] in result.alerts
