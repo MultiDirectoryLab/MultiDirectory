@@ -107,11 +107,7 @@ def upgrade() -> None:
             object_class_values = directory.attributes_dict.get(
                 "objectClass", []
             )
-            object_class_names = set()
-            for object_class_name in object_class_values:
-                if isinstance(object_class_name, bytes):
-                    object_class_name = object_class_name.decode()
-                object_class_names.add(object_class_name)
+            object_class_names = set(object_class_values)
 
             if not object_class_names:
                 continue

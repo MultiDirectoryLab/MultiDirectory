@@ -231,7 +231,7 @@ class Directory(Base):
     )
 
     @property
-    def attributes_dict(self) -> defaultdict[str, list[str | bytes]]:
+    def attributes_dict(self) -> defaultdict[str, list[str]]:
         attributes = defaultdict(list)
         for attribute in self.attributes:
             attributes[attribute.name].extend(attribute.values)
@@ -558,10 +558,18 @@ class Attribute(Base):
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     @property
-    def values(self) -> list[str | bytes]:
+    def decoded_value(self) -> str | None:
         """Get attribute value."""
-        val = self.value or self.bvalue
-        return [val] if val else []
+        if self.value:
+            return self.value
+        if self.bvalue:
+            return self.bvalue.decode()
+        return None
+
+    @property
+    def values(self) -> list[str]:
+        """Get attribute value by list."""
+        return [self.decoded_value] if self.decoded_value else []
 
     directory: Mapped[Directory] = relationship(
         "Directory",
@@ -571,21 +579,11 @@ class Attribute(Base):
 
     def __str__(self) -> str:
         """Attribute name and value."""
-        val = None
-        if self.bvalue:
-            val = self.bvalue.decode()
-        elif self.value:
-            val = self.value
-        return f"Attribute({self.name}:{val})"
+        return f"Attribute({self.name}:{self.decoded_value})"
 
     def __repr__(self) -> str:
         """Attribute name and value."""
-        val = None
-        if self.bvalue:
-            val = self.bvalue.decode()
-        elif self.value:
-            val = self.value
-        return f"Attribute({self.name}:{val})"
+        return f"Attribute({self.name}:{self.decoded_value})"
 
 
 class AttributeType(Base):

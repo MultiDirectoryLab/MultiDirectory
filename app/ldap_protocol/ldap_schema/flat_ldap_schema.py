@@ -21,14 +21,13 @@ from models import Attribute, AttributeType, ObjectClass
 
 async def get_flat_ldap_schema(
     session: AsyncSession,
-) -> dict[str, tuple[list[AttributeType], list[AttributeType], int]]:
+) -> dict[str, tuple[list[AttributeType], list[AttributeType]]]:
     """Return the LDAP schema.
 
     :return: The LDAP schema.
     """
-    flat_schema: dict[str, tuple[list, list, int]] = dict()
+    flat_schema: dict[str, tuple[list, list]] = dict()
     object_class_names: list[str] = []
-    depth: int = 0
 
     query = (
         select(ObjectClass)
@@ -47,12 +46,10 @@ async def get_flat_ldap_schema(
         flat_schema[object_class.name] = (
             object_class.attribute_types_must,
             object_class.attribute_types_may,
-            depth,
         )
         object_class_names.append(object_class.name)
 
     while True:
-        depth += 1
         query = (
             select(ObjectClass)
             .where(
@@ -85,7 +82,6 @@ async def get_flat_ldap_schema(
             flat_schema[object_class.name] = (
                 attrs_must,
                 attrs_may,
-                depth,
             )
 
     return flat_schema
@@ -117,11 +113,7 @@ async def get_attribute_type_names_by_object_class_names(
     attribute_type_names_must: set[str] = set()
     attribute_type_names_may: set[str] = set()
 
-    for (
-        attribute_types_must,
-        attribute_types_may,
-        _depth,
-    ) in flat_object_classes:
+    for attribute_types_must, attribute_types_may in flat_object_classes:
         attribute_type_names_must.update(
             {attribute_type.name for attribute_type in attribute_types_must}
         )
@@ -159,6 +151,8 @@ async def validate_chunck_object_classes_by_ldap_schema(
         result.errors[LDAPCodes.NO_SUCH_OBJECT].append(
             "Object class names is empty."
         )
+
+    if result.errors:
         return result
 
     object_classes = await get_object_classes_by_names(
@@ -214,12 +208,13 @@ async def validate_attributes_by_ldap_schema(
         result.errors[LDAPCodes.NO_SUCH_ATTRIBUTE].append(
             "Attributes is empty."
         )
-        return result
 
     if not object_class_names:
         result.errors[LDAPCodes.NO_SUCH_OBJECT].append(
             "Object class names is empty."
         )
+
+    if result.errors:
         return result
 
     (

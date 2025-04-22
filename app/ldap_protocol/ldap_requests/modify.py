@@ -282,13 +282,8 @@ class ModifyRequest(BaseRequest):
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _get_object_class_names(self, directory: Directory) -> set[str]:
-        object_class_values = directory.attributes_dict.get("objectClass", [])
-        object_class_names = set()
-        for object_class_name in object_class_values:
-            if isinstance(object_class_name, bytes):
-                object_class_name = object_class_name.decode()
-            object_class_names.add(object_class_name)
-        return object_class_names
+        object_class_names = directory.attributes_dict.get("objectClass", [])
+        return set(object_class_names)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:

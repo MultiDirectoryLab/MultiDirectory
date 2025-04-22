@@ -468,15 +468,10 @@ class SearchRequest(BaseRequest):
             )
 
     def _get_object_class_names(self, directory: Directory) -> set[str]:
-        object_class_values: list[str | bytes] = directory.attributes_dict.get(
+        object_class_names: list[str] = directory.attributes_dict.get(
             "objectClass", []
         )
-        object_class_names = set()
-        for object_class_name in object_class_values:
-            if isinstance(object_class_name, bytes):
-                object_class_name = object_class_name.decode()
-            object_class_names.add(object_class_name)
-        return object_class_names
+        return set(object_class_names)
 
 
 class _CollectLdapTreeEntityFieldsStrategy:

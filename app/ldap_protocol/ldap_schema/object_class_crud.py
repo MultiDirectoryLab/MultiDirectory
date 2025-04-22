@@ -16,6 +16,14 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
 )
 from models import ObjectClass
 
+type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
+
+OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, KindType, KindType] = (
+    "STRUCTURAL",
+    "ABSTRACT",
+    "AUXILIARY",
+)
+
 
 class ObjectClassSchema(BaseModel):
     """Object Class Schema."""
@@ -23,7 +31,7 @@ class ObjectClassSchema(BaseModel):
     oid: str
     name: str
     superior_name: str | None
-    kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
+    kind: KindType
     is_system: bool
     attribute_types_must: list[str]
     attribute_types_may: list[str]
@@ -32,16 +40,16 @@ class ObjectClassSchema(BaseModel):
 class ObjectClassUpdateSchema(BaseModel):
     """Object Class Schema for modify/update."""
 
-    kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
-    attribute_types_must: list[str]
+    kind: KindType
     attribute_types_may: list[str]
+    attribute_types_must: list[str]
 
 
 async def create_object_class(
     oid: str,
     name: str,
     superior_name: str | None,
-    kind: Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"],
+    kind: KindType,
     is_system: bool,
     attribute_types_must: list[str],
     attribute_types_may: list[str],
@@ -59,7 +67,7 @@ async def create_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
-    if kind not in ["STRUCTURAL", "ABSTRACT", "AUXILIARY"]:
+    if kind not in OBJECT_CLASS_KINDS_ALLOWED:
         raise ValueError(f"Object class kind is not valid: {kind}.")
 
     superior = (
@@ -67,12 +75,16 @@ async def create_object_class(
         if superior_name
         else None
     )
-
     if superior_name and not superior:
         raise ValueError(
             f"Superior Object class {superior_name} not found in schema."
         )
 
+    attribute_types_may_filtered = [
+        name
+        for name in attribute_types_may
+        if name not in attribute_types_must
+    ]
     object_class = ObjectClass(
         oid=oid,
         name=name,
@@ -84,7 +96,7 @@ async def create_object_class(
             session,
         ),
         attribute_types_may=await get_attribute_types_by_names(
-            attribute_types_may,
+            attribute_types_may_filtered,
             session,
         ),
     )
@@ -154,7 +166,7 @@ async def modify_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
-    if new_statement.kind not in ["STRUCTURAL", "ABSTRACT", "AUXILIARY"]:
+    if new_statement.kind not in OBJECT_CLASS_KINDS_ALLOWED:
         raise ValueError(
             f"Object class kind is not valid: {new_statement.kind}."
         )
@@ -182,7 +194,7 @@ async def delete_object_classes_by_names(
     object_classes_names: list[str],
     session: AsyncSession,
 ) -> None:
-    """Delete Object Classes by Names.
+    """Delete not system Object Classes by Names.
 
     :param list[str] object_classes_names: Object classes names.
     :param AsyncSession session: Database session.
