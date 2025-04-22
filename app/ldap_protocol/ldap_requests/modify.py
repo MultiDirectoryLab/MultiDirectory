@@ -186,16 +186,16 @@ class ModifyRequest(BaseRequest):
             ldap_session.user.directory_id,
         )
 
-        mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
-        can_modify = bool(await session.scalar(mutate_ap_q))
-
-        if not can_modify and not password_change_requested:
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
-            return
-
         try:
+            mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
+            can_modify = bool(await session.scalar(mutate_ap_q))
+
+            if not can_modify and not password_change_requested:
+                yield ModifyResponse(
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                )
+                return
+
             for change in self.changes:
                 if change.modification.type in Directory.ro_fields:
                     continue
