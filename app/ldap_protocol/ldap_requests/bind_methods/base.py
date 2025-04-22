@@ -83,6 +83,11 @@ class AbstractLDAPAuth(ABC, BaseModel):
     def METHOD_ID(self) -> int:  # noqa: N802
         """Abstract method id."""
 
+    @property
+    @abstractmethod
+    def _name(self) -> str:
+        """Abstract name auth choice."""
+
     @abstractmethod
     def is_valid(self, user: User) -> bool:
         """Validate state."""
@@ -106,3 +111,7 @@ class SaslAuthentication(AbstractLDAPAuth):
     @abstractmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
         """Get auth from data."""
+
+    @property
+    def _name(self) -> str:
+        return f"SASL/{self.mechanism.value}"

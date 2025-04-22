@@ -41,3 +41,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
     async def get_user(self, session: AsyncSession, username: str) -> User:
         """Get user."""
         return await get_user(session, username)  # type: ignore
+
+    @property
+    def _name(self) -> str:
+        return "Simple"
