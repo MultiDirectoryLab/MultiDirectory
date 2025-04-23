@@ -18,7 +18,7 @@ from models import ObjectClass
 
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
 
-OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, KindType, KindType] = (
+OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
     "STRUCTURAL",
     "ABSTRACT",
     "AUXILIARY",

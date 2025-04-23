@@ -70,13 +70,14 @@ class Changes(BaseModel):
     operation: Operation
     modification: PartialAttribute
 
-    def get_lower_name(self) -> str:
-        """Get change's lower name."""
+    @property
+    def lower_attribute_name(self) -> str:
+        """Get attribute lower name."""
         return self.modification.type.lower()
 
     @property
-    def name(self) -> str:
-        """Get change's name."""
+    def attribute_name(self) -> str:
+        """Get attribute name."""
         return self.modification.type
 
 
@@ -139,7 +140,7 @@ class ModifyRequest(BaseRequest):
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
-            change.name == "krbpasswordexpiration"
+            change.lower_attribute_name == "krbpasswordexpiration"
             and change.modification.vals[0] == "19700101000000Z"
         ):
             return
@@ -206,7 +207,7 @@ class ModifyRequest(BaseRequest):
 
         changed_attr_names = set()
         for change in self.changes:
-            if change.name in Directory.ro_fields:
+            if change.attribute_name in Directory.ro_fields:
                 continue
 
             await self._update_password_expiration(change, session)
@@ -240,7 +241,7 @@ class ModifyRequest(BaseRequest):
                     .where(Directory.id == directory.id),
                 )  # fmt: skip
 
-                changed_attr_names.add(change.name)
+                changed_attr_names.add(change.attribute_name)
 
             except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()
@@ -340,7 +341,7 @@ class ModifyRequest(BaseRequest):
         directory_id: int,
         user_directory_id: int,
     ) -> bool:
-        change_names = {change.get_lower_name() for change in self.changes}
+        change_names = {change.lower_attribute_name for change in self.changes}
         return (
             ("userpassword" in change_names or "unicodepwd" in change_names)
             and len(change_names) == 1
@@ -355,7 +356,7 @@ class ModifyRequest(BaseRequest):
         name_only: bool = False,
     ) -> None:
         attrs = []
-        name = change.get_lower_name()
+        name = change.lower_attribute_name
 
         if name == "memberof":
             groups = await get_groups(change.modification.vals, session)  # type: ignore
@@ -389,7 +390,7 @@ class ModifyRequest(BaseRequest):
             return
 
         if name_only or not change.modification.vals:
-            attrs.append(Attribute.name == change.name)
+            attrs.append(Attribute.name == change.attribute_name)
         else:
             for value in change.modification.vals:
                 if name not in (Directory.search_fields | User.search_fields):
@@ -400,7 +401,7 @@ class ModifyRequest(BaseRequest):
 
                     attrs.append(
                         and_(
-                            Attribute.name == change.name,
+                            Attribute.name == change.attribute_name,
                             condition,
                         ),
                     )
@@ -419,7 +420,7 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         session: AsyncSession,
     ) -> None:
-        name = change.get_lower_name()
+        name = change.lower_attribute_name
         directories = await get_directories(change.modification.vals, session)  # type: ignore
 
         if name == "memberof":
@@ -469,7 +470,7 @@ class ModifyRequest(BaseRequest):
         settings: Settings,
     ) -> None:
         attrs = []
-        name = change.get_lower_name()
+        name = change.lower_attribute_name
 
         if name in {"memberof", "member"}:
             await self._add_group_attrs(change, directory, session)
@@ -632,7 +633,7 @@ class ModifyRequest(BaseRequest):
             else:
                 attrs.append(
                     Attribute(
-                        name=change.name,
+                        name=change.attribute_name,
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory=directory,

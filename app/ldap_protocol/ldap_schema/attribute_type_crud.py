@@ -126,7 +126,7 @@ async def delete_attribute_types_by_names(
     attribute_types_names: list[str],
     session: AsyncSession,
 ) -> None:
-    """Delete Attribute Types by names.
+    """Delete not system Attribute Types by names.
 
     :param list[str] attribute_types_names: List of Attribute Types OIDs.
     :param AsyncSession session: Database session.

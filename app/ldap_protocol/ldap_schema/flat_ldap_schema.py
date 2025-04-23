@@ -126,11 +126,17 @@ async def get_attribute_type_names_by_object_class_names(
     return (attribute_type_names_must, attribute_type_names_may)
 
 
+type ObjectClassValidationResultAlerts = dict[
+    Literal[LDAPCodes.OBJECT_CLASS_VIOLATION],
+    list[str],
+]
+
+
 @dataclass
 class ObjectClassValidationResult:
     """Result of validation Object Classes."""
 
-    alerts: dict[LDAPCodes, list[str]] = field(
+    alerts: ObjectClassValidationResultAlerts = field(
         default_factory=lambda: defaultdict(list)
     )
 
@@ -172,19 +178,24 @@ async def validate_chunck_object_classes_by_ldap_schema(
     return result
 
 
+type AttributesValidationResultAlerts = dict[
+    Literal[
+        LDAPCodes.NO_SUCH_ATTRIBUTE,
+        LDAPCodes.NO_SUCH_OBJECT,
+        LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+        LDAPCodes.OBJECT_CLASS_VIOLATION,
+    ],
+    list[str],
+]
+
+
 @dataclass
 class AttributesValidationResult:
     """Result of validation Attributes or Partial Attributes."""
 
-    alerts: dict[
-        Literal[
-            LDAPCodes.NO_SUCH_ATTRIBUTE,
-            LDAPCodes.NO_SUCH_OBJECT,
-            LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-            LDAPCodes.OBJECT_CLASS_VIOLATION,
-        ],
-        list[str],
-    ] = field(default_factory=lambda: defaultdict(list))
+    alerts: AttributesValidationResultAlerts = field(
+        default_factory=lambda: defaultdict(list)
+    )
     attributes_rejected: list[Attribute | PartialAttribute] = field(
         default_factory=list
     )
