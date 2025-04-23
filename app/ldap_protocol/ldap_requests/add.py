@@ -354,9 +354,9 @@ class AddRequest(BaseRequest):
             object_class_names,
         )
         if attrs_validation_result.alerts:
-            for code, messages in attrs_validation_result.alerts.items():
+            for code_, messages in attrs_validation_result.alerts.items():
                 yield AddResponse(
-                    result_code=code,
+                    result_code=code_,
                     error_message=", ".join(messages),
                 )
             return
