@@ -14,6 +14,7 @@ from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from ldap_protocol.ldap_schema.object_class_crud import create_object_class
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -178,6 +179,38 @@ def upgrade() -> None:
                 object_class_info=object_class_info,
             )
             session.add(object_class)
+
+        object_class_datas = (
+            {
+                "oid": "1.3.6.1.4.1.9999.1.1",
+                "name": "extObjectClassUsers",
+                "superior_name": None,
+                "kind": "AUXILIARY",
+                "is_system": False,
+                "attribute_types_must": [],
+                "attribute_types_may": [],
+            },
+            {
+                "oid": "1.3.6.1.4.1.9999.1.2",
+                "name": "extObjectClassComputers",
+                "superior_name": None,
+                "kind": "AUXILIARY",
+                "is_system": False,
+                "attribute_types_must": [],
+                "attribute_types_may": [],
+            },
+            {
+                "oid": "1.3.6.1.4.1.9999.1.3",
+                "name": "extObjectClassGroups",
+                "superior_name": None,
+                "kind": "AUXILIARY",
+                "is_system": False,
+                "attribute_types_must": [],
+                "attribute_types_may": [],
+            },
+        )
+        for object_class_data in object_class_datas:
+            await create_object_class(**object_class_data, session=session)
 
         await session.commit()
         await session.close()
