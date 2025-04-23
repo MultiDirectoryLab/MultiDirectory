@@ -333,13 +333,6 @@ class AddRequest(BaseRequest):
             )
 
         object_class_names = self._get_object_class_names()
-        if not object_class_names:
-            yield AddResponse(
-                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                error_message=f"Directory {new_dir} attributes must have\
-                at least one 'objectClass'.",
-            )
-            return
 
         classes_validation_result = (
             await validate_chunck_object_classes_by_ldap_schema(
@@ -347,11 +340,12 @@ class AddRequest(BaseRequest):
                 object_class_names,
             )
         )
-        for result_code, messages in classes_validation_result.alerts.items():
-            yield AddResponse(
-                result_code=result_code,
-                error_message=", ".join(messages),
-            )
+        if classes_validation_result.alerts:
+            for code, messages in classes_validation_result.alerts.items():
+                yield AddResponse(
+                    result_code=code,
+                    error_message=", ".join(messages),
+                )
             return
 
         attrs_validation_result = await validate_attributes_by_ldap_schema(
@@ -359,11 +353,12 @@ class AddRequest(BaseRequest):
             attributes,
             object_class_names,
         )
-        for result_code, messages in attrs_validation_result.alerts.items():
-            yield AddResponse(
-                result_code=result_code,
-                error_message=", ".join(messages),
-            )
+        if attrs_validation_result.alerts:
+            for code, messages in attrs_validation_result.alerts.items():
+                yield AddResponse(
+                    result_code=code,
+                    error_message=", ".join(messages),
+                )
             return
 
         for attribute in attrs_validation_result.attributes_rejected:

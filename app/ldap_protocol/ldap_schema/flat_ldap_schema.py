@@ -148,7 +148,7 @@ async def validate_chunck_object_classes_by_ldap_schema(
     result = ObjectClassValidationResult()
 
     if not object_class_names:
-        result.alerts[LDAPCodes.NO_SUCH_OBJECT].append(
+        result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
             "Object class names is empty."
         )
 
@@ -214,7 +214,7 @@ async def validate_attributes_by_ldap_schema(
         )
 
     if not object_class_names:
-        result.alerts[LDAPCodes.NO_SUCH_OBJECT].append(
+        result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
             "Object class names is empty."
         )
 

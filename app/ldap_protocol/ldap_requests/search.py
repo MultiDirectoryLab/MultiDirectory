@@ -431,8 +431,6 @@ class SearchRequest(BaseRequest):
         directory: Directory
         async for directory in directories:
             object_class_names = self._get_object_class_names(directory)
-            if not object_class_names:
-                continue
 
             classes_validation_result = (
                 await validate_chunck_object_classes_by_ldap_schema(
@@ -494,7 +492,7 @@ class _CollectLdapTreeEntityFieldsStrategy:
         self._directory = directory
         self._search_request = search_request
 
-        self._object_class_names: set[str] = object_class_names
+        self._object_class_names = object_class_names
         self._directory_fields: dict[str, list] = defaultdict(list)
 
     async def collect_ldap_entity_fields(self) -> dict[str, list[str | bytes]]:

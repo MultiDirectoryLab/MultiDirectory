@@ -364,7 +364,7 @@ test_validate_chunck_object_classes_by_ldap_schema_error_dataset = [
     {
         "object_classes": [],
         "object_class_names": [],
-        "error": LDAPCodes.NO_SUCH_OBJECT,
+        "error": LDAPCodes.OBJECT_CLASS_VIOLATION,
     },
 ]
 
@@ -428,7 +428,7 @@ test_validate_attributes_by_ldap_schema_error_dataset = [
         "object_classes": [],
         "attributes": [("testAttributeType1", ["val1"])],
         "object_class_names": [],
-        "error": LDAPCodes.NO_SUCH_OBJECT,
+        "error": LDAPCodes.OBJECT_CLASS_VIOLATION,
     },
     {
         "attribute_types": [

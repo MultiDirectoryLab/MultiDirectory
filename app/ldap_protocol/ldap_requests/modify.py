@@ -70,9 +70,14 @@ class Changes(BaseModel):
     operation: Operation
     modification: PartialAttribute
 
-    def get_name(self) -> str:
-        """Get mod name."""
+    def get_lower_name(self) -> str:
+        """Get change's lower name."""
         return self.modification.type.lower()
+
+    @property
+    def name(self) -> str:
+        """Get change's name."""
+        return self.modification.type
 
 
 MODIFY_EXCEPTION_STACK = (
@@ -134,7 +139,7 @@ class ModifyRequest(BaseRequest):
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
-            change.modification.type == "krbpasswordexpiration"
+            change.name == "krbpasswordexpiration"
             and change.modification.vals[0] == "19700101000000Z"
         ):
             return
@@ -148,7 +153,7 @@ class ModifyRequest(BaseRequest):
         now += timedelta(days=policy.maximum_password_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         ldap_session: LDAPSession,
         session: AsyncSession,
@@ -160,11 +165,15 @@ class ModifyRequest(BaseRequest):
         if not ldap_session.user:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                error_message="User not found",
             )
             return
 
         if not validate_entry(self.object.lower()):
-            yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
+            yield ModifyResponse(
+                result_code=LDAPCodes.INVALID_DN_SYNTAX,
+                error_message="Invalid DN syntax",
+            )
             return
 
         query = self._get_dir_query()
@@ -175,13 +184,14 @@ class ModifyRequest(BaseRequest):
         )  # fmt: skip
 
         if not directory:
-            yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            yield ModifyResponse(
+                result_code=LDAPCodes.NO_SUCH_OBJECT,
+                error_message="Directory not found",
+            )
             return
 
-        names = {change.get_name() for change in self.changes}
         password_change_requested = self._check_password_change_requested(
-            names,
-            directory,
+            directory.id,
             ldap_session.user.directory_id,
         )
 
@@ -190,12 +200,13 @@ class ModifyRequest(BaseRequest):
         if not can_modify and not password_change_requested:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                error_message="Has no access rights",
             )
             return
 
-        modifiued_attribute_names = set()
+        changed_attr_names = set()
         for change in self.changes:
-            if change.modification.type in Directory.ro_fields:
+            if change.name in Directory.ro_fields:
                 continue
 
             await self._update_password_expiration(change, session)
@@ -229,13 +240,13 @@ class ModifyRequest(BaseRequest):
                     .where(Directory.id == directory.id),
                 )  # fmt: skip
 
-                modifiued_attribute_names.add(change.modification.type)
+                changed_attr_names.add(change.name)
 
             except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()
-                result_code, message = self._match_bad_response(err)
+                code, message = self._match_bad_response(err)
                 yield ModifyResponse(
-                    result_code=result_code,
+                    result_code=code,
                     error_message=message,
                 )
                 return
@@ -243,13 +254,6 @@ class ModifyRequest(BaseRequest):
         await session.refresh(directory, attribute_names=["attributes"])
 
         object_class_names = self._get_object_class_names(directory)
-        if not object_class_names:
-            yield ModifyResponse(
-                result_code=LDAPCodes.OBJECT_CLASS_VIOLATION,
-                error_message=f"Directory {directory} attributes must have at\
-                least one 'objectClass'.",
-            )
-            return
 
         classes_validation_result = (
             await validate_chunck_object_classes_by_ldap_schema(
@@ -257,11 +261,12 @@ class ModifyRequest(BaseRequest):
                 object_class_names,
             )
         )
-        for result_code, messages in classes_validation_result.alerts.items():
-            yield ModifyResponse(
-                result_code=result_code,
-                error_message=", ".join(messages),
-            )
+        if classes_validation_result.alerts:
+            for code, messages in classes_validation_result.alerts.items():
+                yield ModifyResponse(
+                    result_code=code,
+                    error_message=", ".join(messages),
+                )
             return
 
         attrs_validation_result = await validate_attributes_by_ldap_schema(
@@ -269,25 +274,21 @@ class ModifyRequest(BaseRequest):
             directory.attributes,
             object_class_names,
         )
-        if attrs := (
-            set(
-                attrs_validation_result.alerts.pop(
-                    LDAPCodes.INVALID_ATTRIBUTE_SYNTAX, []
+        if attrs_validation_result.alerts:
+            invalid_attr_names = attrs_validation_result.alerts.pop(
+                LDAPCodes.INVALID_ATTRIBUTE_SYNTAX, []
+            )
+            if attrs := (set(invalid_attr_names) & changed_attr_names):
+                yield ModifyResponse(
+                    result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+                    error_message=f"Invalid attributes: {attrs}.",
                 )
-            )
-            & modifiued_attribute_names
-        ):
-            yield ModifyResponse(
-                result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-                error_message=f"Invalid attributes: {attrs}, for {directory}",
-            )
-            return
 
-        for result_code, messages in attrs_validation_result.alerts.items():
-            yield ModifyResponse(
-                result_code=result_code,
-                error_message=", ".join(messages),
-            )
+            for code, messages in attrs_validation_result.alerts.items():
+                yield ModifyResponse(
+                    result_code=code,
+                    error_message=", ".join(messages),
+                )
             return
 
         for attribute in attrs_validation_result.attributes_rejected:
@@ -336,14 +337,14 @@ class ModifyRequest(BaseRequest):
 
     def _check_password_change_requested(
         self,
-        names: set[str],
-        directory: Directory,
-        user_dir_id: int,
+        directory_id: int,
+        user_directory_id: int,
     ) -> bool:
+        change_names = {change.get_lower_name() for change in self.changes}
         return (
-            ("userpassword" in names or "unicodepwd" in names)
-            and len(names) == 1
-            and directory.id == user_dir_id
+            ("userpassword" in change_names or "unicodepwd" in change_names)
+            and len(change_names) == 1
+            and directory_id == user_directory_id
         )
 
     async def _delete(
@@ -354,7 +355,7 @@ class ModifyRequest(BaseRequest):
         name_only: bool = False,
     ) -> None:
         attrs = []
-        name = change.modification.type.lower()
+        name = change.get_lower_name()
 
         if name == "memberof":
             groups = await get_groups(change.modification.vals, session)  # type: ignore
@@ -388,7 +389,7 @@ class ModifyRequest(BaseRequest):
             return
 
         if name_only or not change.modification.vals:
-            attrs.append(Attribute.name == change.modification.type)
+            attrs.append(Attribute.name == change.name)
         else:
             for value in change.modification.vals:
                 if name not in (Directory.search_fields | User.search_fields):
@@ -399,7 +400,7 @@ class ModifyRequest(BaseRequest):
 
                     attrs.append(
                         and_(
-                            Attribute.name == change.modification.type,
+                            Attribute.name == change.name,
                             condition,
                         ),
                     )
@@ -418,7 +419,7 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         session: AsyncSession,
     ) -> None:
-        name = change.get_name()
+        name = change.get_lower_name()
         directories = await get_directories(change.modification.vals, session)  # type: ignore
 
         if name == "memberof":
@@ -468,7 +469,7 @@ class ModifyRequest(BaseRequest):
         settings: Settings,
     ) -> None:
         attrs = []
-        name = change.get_name()
+        name = change.get_lower_name()
 
         if name in {"memberof", "member"}:
             await self._add_group_attrs(change, directory, session)
@@ -631,7 +632,7 @@ class ModifyRequest(BaseRequest):
             else:
                 attrs.append(
                     Attribute(
-                        name=change.modification.type,
+                        name=change.name,
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory=directory,

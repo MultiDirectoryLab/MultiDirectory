@@ -147,7 +147,6 @@ def validate_entry(entry: str) -> bool:
     """Validate entry str.
 
     cn=first,dc=example,dc=com -> valid
-    cn=first,dc=example,dc=com -> valid
     :param str entry: any str
     :return bool: result
     """
