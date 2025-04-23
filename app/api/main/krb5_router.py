@@ -74,9 +74,9 @@ async def setup_krb_catalogue(
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
 
-    krbgroup = "cn=krbadmin,cn=groups," + base_dn
+    krbgroup_entry = "cn=krbadmin,cn=groups," + base_dn
     group = AddRequest.from_dict(
-        krbgroup,
+        krbgroup_entry,
         {
             "objectClass": ["group", "top", "posixGroup"],
             "groupType": ["-2147483646"],
@@ -86,20 +86,19 @@ async def setup_krb_catalogue(
         },
     )
 
-    services_container = "ou=services," + base_dn
+    services_entry = "ou=services," + base_dn
     services = AddRequest.from_dict(
-        services_container,
+        services_entry,
         {
-            "objectClass": ["organizationalUnit", "top", "container"],
+            "objectClass": ["organizationalUnit", "top"],
             "jpegPhoto": ["jpegphoto.jpeg"],
-            "cn": ["cn=krbadmin,dc=md,dc=test"],
             "title": ["Services container."],
         },
     )
 
-    krbadmin = "cn=krbadmin,ou=users," + base_dn
+    krbadmin_entry = "cn=krbadmin,ou=users," + base_dn
     krb_user = AddRequest.from_dict(
-        krbadmin,
+        krbadmin_entry,
         password=krbadmin_password.get_secret_value(),
         attributes={
             "mail": [mail],
@@ -119,7 +118,7 @@ async def setup_krb_catalogue(
             "sn": ["krbadmin"],
             "uid": ["krbadmin"],
             "homeDirectory": ["/home/krbadmin"],
-            "memberOf": [krbgroup],
+            "memberOf": [krbgroup_entry],
             "sAMAccountName": ["krbadmin"],
             "userPrincipalName": ["krbadmin"],
             "displayName": ["Kerberos Administrator"],
@@ -146,8 +145,8 @@ async def setup_krb_catalogue(
             can_modify=True,
             can_read=True,
             can_delete=True,
-            grant_dn=services_container,
-            groups=[krbgroup],
+            grant_dn=services_entry,
+            groups=[krbgroup_entry],
             session=session,
         )
         await session.commit()
