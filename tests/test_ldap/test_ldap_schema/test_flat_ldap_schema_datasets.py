@@ -471,6 +471,6 @@ test_validate_attributes_by_ldap_schema_error_dataset = [
         ],
         "object_class_names": ["testObjectClass1"],
         "attributes": [("testAttributeType2", ["val2"])],
-        "error": LDAPCodes.OBJECT_CLASS_VIOLATION,
+        "error": LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
     },
 ]

@@ -252,15 +252,12 @@ async def validate_attributes_by_ldap_schema(
         else:
             result.attributes_rejected.append(attribute)
 
-    empty = {
+    empty = [
         name
         for name in must_names
         if name not in {attr.name for attr in result.attributes_accepted}
-    }
+    ]
     if empty:
-        result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
-            f"Directory must have all required (MUST) attributes.\
-            Attributes ({empty}) missing;"
-        )
+        result.alerts[LDAPCodes.INVALID_ATTRIBUTE_SYNTAX].extend(empty)
 
     return result
