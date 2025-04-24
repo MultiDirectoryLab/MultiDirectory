@@ -485,7 +485,7 @@ class UDPConnectionHandler(asyncio.DatagramProtocol, ServerLogMixin):
         transport: asyncio.BaseTransport,
     ) -> None:
         """Set up transport."""
-        if  not isinstance(transport, asyncio.DatagramTransport):
+        if not isinstance(transport, asyncio.DatagramTransport):
             raise TypeError("transport must be a DatagramTransport")
         self.transport = transport
         log.debug("UDP connection made")
