@@ -43,7 +43,34 @@ infinity = cast(int, math.inf)
 pp_v2 = ProxyProtocolV2()
 
 
-class PoolClientHandler:
+class ServerLogMixin:
+    """Logging mixin for server handlers."""
+
+    @staticmethod
+    def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
+        log.debug(
+            f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
+            f"{msg.model_dump_json()}\n",
+        )
+
+    @staticmethod
+    def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
+        log.debug(
+            f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
+            f"{msg.model_dump_json()}"[:3000],
+        )
+
+    @staticmethod
+    def _log_short(addr: str, msg: LDAPMessage) -> None:
+        log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
+
+    @staticmethod
+    def log_addrs(server: asyncio.base_events.Server) -> None:
+        addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
+        log.info(f"Server on {addrs}")
+
+
+class PoolClientHandler(ServerLogMixin):
     """Async client handler.
 
     Don't need to wait until client sends
@@ -324,24 +351,6 @@ class PoolClientHandler:
 
         return data
 
-    @staticmethod
-    def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
-        log.debug(
-            f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}\n",
-        )
-
-    @staticmethod
-    def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
-        log.debug(
-            f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}"[:3000],
-        )
-
-    @staticmethod
-    def _log_short(addr: str, msg: LDAPMessage) -> None:
-        log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
-
     async def _handle_single_response(
         self,
         writer: asyncio.StreamWriter,
@@ -447,11 +456,6 @@ class PoolClientHandler:
         async with server:
             await server.serve_forever()
 
-    @staticmethod
-    def log_addrs(server: asyncio.base_events.Server) -> None:
-        addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
-        log.info(f"Server on {addrs}")
-
     async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
@@ -466,3 +470,80 @@ class PoolClientHandler:
             server.close()
             await server.wait_closed()
             await self.container.close()
+
+
+class UDPConnectionHandler(asyncio.DatagramProtocol, ServerLogMixin):
+    """UDP server for CLDAP protocol."""
+
+    def __init__(self, settings: Settings, container: AsyncContainer):
+        """Set up serrver."""
+        self.settings = settings
+        self.container = container
+
+    def connection_made(
+        self,
+        transport: asyncio.DatagramTransport,
+    ) -> None:
+        """Set up transport."""
+        self.transport = transport
+        log.debug("UDP connection made")
+
+    async def _handle_datagram(
+        self,
+        data: bytes,
+        addr: tuple[str, int],
+    ) -> None:
+        """Handle datagram."""
+        async with self.container(scope=Scope.REQUEST) as request_scope:
+            log.debug(f"Datagram recieved: {data}")
+            try:
+                request = LDAPRequestMessage.from_bytes(data)
+
+            except (ValidationError, IndexError, KeyError, ValueError) as err:
+                log.error(f"Invalid schema {format_exc()}")
+
+                self.transport.sendto(
+                    LDAPRequestMessage.from_err(data, err).encode(),
+                    addr,
+                )
+
+            except Exception as err:
+                raise RuntimeError(err) from err
+
+            handler = await resolve_deps(
+                func=request.context.handle,
+                container=request_scope,
+            )
+
+            resp_gen = request.create_response(handler)
+
+            async for response in resp_gen:
+                self._resp_log_full(str(addr), response)
+
+                data = response.encode()
+                self.transport.sendto(data, addr)
+                break
+
+            await resp_gen.aclose()
+
+    def datagram_received(
+        self,
+        data: bytes,
+        addr: tuple[str, int],
+    ) -> None:
+        """Handle received datagram."""
+        loop = asyncio.get_running_loop()
+        loop.create_task(self._handle_datagram(data, addr))
+
+    async def start_server(self) -> None:
+        """Start UDP server for CLDAP protocol."""
+        loop = asyncio.get_running_loop()
+        log.info("CLDAP server starting...")
+        self.transport, _ = await loop.create_datagram_endpoint(
+            lambda: self,
+            local_addr=(
+                str(self.settings.HOST),
+                self.settings.PORT,
+            ),
+        )
+        log.info("CLDAP server started!")

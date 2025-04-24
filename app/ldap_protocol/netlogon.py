@@ -3,6 +3,7 @@
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 import ipaddress
 import socket
 import struct
@@ -86,7 +87,6 @@ class NetLogonAttributeFilter:
     async def is_netlogon_filter(cls, expr: ASN1Row) -> bool:
         """Check if filter is requesting NetLogon attribute."""
         has_ntver = False
-
         if expr.tag_id == 0:
             for item in expr.value:
                 if item.tag_id in range(3):
@@ -139,26 +139,22 @@ class NetLogonAttributeFilter:
 
         user_obj = await get_user(session, info["user"])
         if user_obj is not None:
-            if filter_obj.aac is not None:
-                aac = filter_obj.aac
-            else:
-                aac = 0
+            aac = filter_obj.aac if filter_obj.aac is not None else 0
 
             uac_check = await get_check_uac(session, user_obj.directory_id)
             if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
                 info["has_user"] = False
             else:
                 if aac and (
-                    uac_check(
-                        UserAccountControlFlag.TEMP_DUPLICATE_ACCOUNT) or
-                    uac_check(
-                        UserAccountControlFlag.NORMAL_ACCOUNT) or
-                    uac_check(
-                        UserAccountControlFlag.INTERDOMAIN_TRUST_ACCOUNT) or
-                    uac_check(
-                        UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT) or
-                    uac_check(
-                        UserAccountControlFlag.SERVER_TRUST_ACCOUNT)
+                    uac_check(UserAccountControlFlag.TEMP_DUPLICATE_ACCOUNT)
+                    or uac_check(UserAccountControlFlag.NORMAL_ACCOUNT)
+                    or uac_check(
+                        UserAccountControlFlag.INTERDOMAIN_TRUST_ACCOUNT
+                    )
+                    or uac_check(
+                        UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
+                    )
+                    or uac_check(UserAccountControlFlag.SERVER_TRUST_ACCOUNT)
                 ):
                     info["has_user"] = False
                 else:
@@ -227,17 +223,17 @@ class NetLogonAttributeHandler:
             root_dse,
         )
         if bool(
-            cls._convert_little_endian_string_to_int(info["ntver"]) &
-            NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
+            cls._convert_little_endian_string_to_int(info["ntver"])
+            & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
         ) or bool(
-            cls._convert_little_endian_string_to_int(info["ntver"]) &
-            NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
+            cls._convert_little_endian_string_to_int(info["ntver"])
+            & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
         ):
             return await cls._get_netlogon_response_5_ex(info, root_dse)
 
         if bool(
-            cls._convert_little_endian_string_to_int(info["ntver"]) &
-            NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
+            cls._convert_little_endian_string_to_int(info["ntver"])
+            & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
         ):
             return await cls._get_netlogon_response_5(
                 info,
@@ -313,8 +309,9 @@ class NetLogonAttributeHandler:
                 (ipaddress.IPv4Address("127.0.0.1").packed, None),
                 (DSFlag.DS_PDC_FLAG | DSFlag.DS_DS_FLAG, "<I"),
                 (
-                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1 |
-                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5, "<I",
+                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1
+                    | NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
+                    "<I",
                 ),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
@@ -334,17 +331,26 @@ class NetLogonAttributeHandler:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE_EX
 
         ds_flags = 0
+        # for flag in [
+        #     DSFlag.DS_PDC_FLAG, DSFlag.DS_GC_FLAG,
+        #     DSFlag.DS_LDAP_FLAG, DSFlag.DS_DS_FLAG,
+        #     DSFlag.DS_KDC_FLAG, DSFlag.DS_TIMESERV_FLAG,
+        #     DSFlag.DS_CLOSEST_FLAG, DSFlag.DS_WRITABLE_FLAG,
+        #     DSFlag.DS_GOOD_TIMESERV_FLAG,
+        # ]:
         for flag in [
-            DSFlag.DS_PDC_FLAG, DSFlag.DS_GC_FLAG,
-            DSFlag.DS_LDAP_FLAG, DSFlag.DS_DS_FLAG,
-            DSFlag.DS_KDC_FLAG, DSFlag.DS_TIMESERV_FLAG,
-            DSFlag.DS_CLOSEST_FLAG, DSFlag.DS_WRITABLE_FLAG,
+            DSFlag.DS_PDC_FLAG,
+            DSFlag.DS_LDAP_FLAG,
+            DSFlag.DS_DS_FLAG,
+            DSFlag.DS_TIMESERV_FLAG,
+            DSFlag.DS_CLOSEST_FLAG,
+            DSFlag.DS_WRITABLE_FLAG,
             DSFlag.DS_GOOD_TIMESERV_FLAG,
         ]:
             ds_flags |= flag
 
         domain_guid = uuid.UUID(root_dse["domainGuid"][0])
-        netbios_name = socket.gethostname()
+        socket.gethostname()
 
         return cls._pack_value(
             (
@@ -355,14 +361,15 @@ class NetLogonAttributeHandler:
                 (root_dse["dnsForestName"][0], "utf-8"),
                 (root_dse["dnsDomainName"][0], "utf-8"),
                 (root_dse["dnsHostName"][0], "utf-8"),
-                (netbios_name, "utf-8"),
-                (netbios_name, "utf-8"),
+                ("DC", "utf-8"),
+                ("DC.ad.local", "utf-8"),
                 (info["user"], "utf-8"),
                 (info["site"], "utf-8"),
                 (info["site"], "utf-8"),
                 (
-                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1 |
-                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX, "<I",
+                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1
+                    | NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
+                    "<I",
                 ),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
