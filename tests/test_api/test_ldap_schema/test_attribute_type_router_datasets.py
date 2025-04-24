@@ -16,7 +16,7 @@ test_modify_one_attribute_type_dataset = [
         "attribute_type_changes": {
             "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": True,
-            "no_user_modification": True,
+            "no_user_modification": False,
         },
         "status_code": status.HTTP_200_OK,
     },
@@ -50,7 +50,7 @@ test_modify_one_attribute_type_dataset = [
         "attribute_type_changes": {
             "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
             "single_value": True,
-            "no_user_modification": True,
+            "no_user_modification": False,
         },
         "status_code": status.HTTP_200_OK,
     },

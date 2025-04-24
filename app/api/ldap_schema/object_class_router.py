@@ -21,6 +21,8 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     modify_object_class,
 )
 
+DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
+
 
 @ldap_schema_router.post(
     "/object_class",
@@ -41,7 +43,7 @@ async def create_one_object_class(
         name=request_data.name,
         superior_name=request_data.superior_name,
         kind=request_data.kind,
-        is_system=False,
+        is_system=DEFAULT_OBJECT_CLASS_IS_SYSTEM,
         attribute_types_must=request_data.attribute_types_must,
         attribute_types_may=request_data.attribute_types_may,
         session=session,

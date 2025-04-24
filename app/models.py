@@ -543,7 +543,11 @@ class Attribute(Base):
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(nullable=False, index=True)
+    name: Mapped[str] = mapped_column(
+        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 

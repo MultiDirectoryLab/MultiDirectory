@@ -59,7 +59,7 @@ async def create_attribute_type(
         is_system=is_system,
     )
     session.add(attribute_type)
-    await session.commit()
+    await session.flush()
 
 
 async def get_attribute_type_by_name(
@@ -76,7 +76,7 @@ async def get_attribute_type_by_name(
 
 
 async def get_attribute_types_by_names(
-    attribute_type_names: list[str],
+    attribute_type_names: list[str] | set[str],
     session: AsyncSession,
 ) -> list[AttributeType]:
     """Get list of Attribute Types by names.
@@ -85,6 +85,9 @@ async def get_attribute_types_by_names(
     :param AsyncSession session: Database session.
     :return list[AttributeType]: List of Attribute Types.
     """
+    if not attribute_type_names:
+        return []
+
     query = await session.scalars(
         select(AttributeType)
         .where(AttributeType.name.in_(attribute_type_names)),
@@ -100,8 +103,8 @@ async def get_all_attribute_types(
     :param AsyncSession session: Database session.
     :return list[AttributeType]: List of Attribute Types.
     """
-    query = await session.scalars(select(AttributeType))
-    return list(query.all())
+    result = await session.scalars(select(AttributeType))
+    return list(result.all())
 
 
 async def modify_attribute_type(
@@ -123,19 +126,22 @@ async def modify_attribute_type(
 
 
 async def delete_attribute_types_by_names(
-    attribute_types_names: list[str],
+    attribute_type_names: list[str],
     session: AsyncSession,
 ) -> None:
-    """Delete Attribute Types by names.
+    """Delete not system Attribute Types by names.
 
-    :param list[str] attribute_types_names: List of Attribute Types OIDs.
+    :param list[str] attribute_type_names: List of Attribute Types OIDs.
     :param AsyncSession session: Database session.
     :return None: None.
     """
+    if not attribute_type_names:
+        return None
+
     await session.execute(
         delete(AttributeType)
         .where(
-            AttributeType.name.in_(attribute_types_names),
+            AttributeType.name.in_(attribute_type_names),
             AttributeType.is_system.is_(False),
         ),
     )  # fmt: skip
