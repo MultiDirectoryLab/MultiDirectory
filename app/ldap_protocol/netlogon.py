@@ -84,7 +84,7 @@ class NetLogonAttributeFilter:
     ntver: int = 0x00000000
 
     @classmethod
-    async def is_netlogon_filter(cls, expr: ASN1Row) -> bool:
+    def is_netlogon_filter(cls, expr: ASN1Row) -> bool:
         """Check if filter is requesting NetLogon attribute."""
         has_ntver = False
         if expr.tag_id == 0:
@@ -269,14 +269,14 @@ class NetLogonAttributeHandler:
 
         return packed_value
 
-    @classmethod
-    def _get_pointer(cls, packed_string: bytes, packed_value: bytes) -> bytes:
+    @staticmethod
+    def _get_pointer(packed_string: bytes, packed_value: bytes) -> bytes:
         """Get pointer, reference RFC 1035 section 4.1.4."""
         pointer = packed_value.find(packed_string)
         return struct.pack(">H", 0xC000 | pointer)
 
-    @classmethod
-    def _pack_string(cls, value: str, string_type: str) -> bytes:
+    @staticmethod
+    def _pack_string(value: str, string_type: str) -> bytes:
         """Pack utf-8 string."""
         bytes_value = value.encode(string_type)
         value_length = len(bytes_value)
@@ -331,13 +331,6 @@ class NetLogonAttributeHandler:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE_EX
 
         ds_flags = 0
-        # for flag in [
-        #     DSFlag.DS_PDC_FLAG, DSFlag.DS_GC_FLAG,
-        #     DSFlag.DS_LDAP_FLAG, DSFlag.DS_DS_FLAG,
-        #     DSFlag.DS_KDC_FLAG, DSFlag.DS_TIMESERV_FLAG,
-        #     DSFlag.DS_CLOSEST_FLAG, DSFlag.DS_WRITABLE_FLAG,
-        #     DSFlag.DS_GOOD_TIMESERV_FLAG,
-        # ]:
         for flag in [
             DSFlag.DS_PDC_FLAG,
             DSFlag.DS_LDAP_FLAG,

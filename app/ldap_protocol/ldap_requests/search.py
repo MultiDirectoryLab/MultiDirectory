@@ -226,9 +226,9 @@ class SearchRequest(BaseRequest):
         """
         return cast_filter2sql(self.filter)
 
-    async def check_netlogon_filter(self) -> bool:
+    def check_netlogon_filter(self) -> bool:
         """Check if search request is for netLogon."""
-        return await NetLogonAttributeFilter.is_netlogon_filter(self.filter)
+        return NetLogonAttributeFilter.is_netlogon_filter(self.filter)
 
     async def handle(
         self,
@@ -268,7 +268,7 @@ class SearchRequest(BaseRequest):
             return
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
-            if await self.check_netlogon_filter():
+            if self.check_netlogon_filter():
                 logger.warning("Netlogon filter")
                 root_dse = await self.get_root_dse(session, settings)
                 net_logon = await NetLogonAttributeHandler.get_netlogon_attr(
