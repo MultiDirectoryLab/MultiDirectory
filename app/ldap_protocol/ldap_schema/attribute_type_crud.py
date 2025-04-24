@@ -59,7 +59,7 @@ async def create_attribute_type(
         is_system=is_system,
     )
     session.add(attribute_type)
-    await session.flush()
+    await session.commit()
 
 
 async def get_attribute_type_by_name(

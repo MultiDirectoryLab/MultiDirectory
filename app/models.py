@@ -557,6 +557,28 @@ class Attribute(Base):
         uselist=False,
     )
 
+    @property
+    def _decoded_value(self) -> str | None:
+        """Get attribute value."""
+        if self.value:
+            return self.value
+        if self.bvalue:
+            return self.bvalue.decode()
+        return None
+
+    @property
+    def values(self) -> list[str]:
+        """Get attribute value by list."""
+        return [self._decoded_value] if self._decoded_value else []
+
+    def __str__(self) -> str:
+        """Attribute name and value."""
+        return f"Attribute({self.name}:{self._decoded_value})"
+
+    def __repr__(self) -> str:
+        """Attribute name and value."""
+        return f"Attribute({self.name}:{self._decoded_value})"
+
 
 class AttributeType(Base):
     """Attribute Type."""

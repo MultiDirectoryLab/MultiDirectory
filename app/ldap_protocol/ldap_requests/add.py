@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from loguru import logger
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -108,7 +109,9 @@ class AddRequest(BaseRequest):
             .filter(get_path_filter(root_dn)).exists()
         )  # fmt: skip
 
-        if await session.scalar(exists_q) is True:
+        res = await session.scalar(exists_q)
+        if res is True:
+            logger.info(f"1 ENTRY_ALREADY_EXISTS {res}")
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
@@ -173,6 +176,7 @@ class AddRequest(BaseRequest):
             await session.flush()
         except IntegrityError:
             await session.rollback()
+            logger.info("2 ENTRY_ALREADY_EXISTS IntegrityError")
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
@@ -332,9 +336,14 @@ class AddRequest(BaseRequest):
 
         try:
             items_to_add.extend(attributes)
-            session.add_all(items_to_add)
-            await session.flush()
+            for item in items_to_add:
+                logger.info(f"3.0 item {item}")
+                session.add(item)
+                logger.info(f"3.1 item {item}")
+                await session.flush()
+                logger.info(f"3.2 item {item}")
         except IntegrityError:
+            logger.info("3 ENTRY_ALREADY_EXISTS IntegrityError")
             await session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:
