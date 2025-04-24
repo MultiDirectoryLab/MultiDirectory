@@ -459,44 +459,44 @@ async def test_api_add_with_non_exist_parent(http_client: AsyncClient) -> None:
     assert data.get("resultCode") == LDAPCodes.NO_SUCH_OBJECT
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.usefixtures("adding_test_user")
-# @pytest.mark.usefixtures("setup_session")
-# @pytest.mark.usefixtures("session")
-# async def test_api_double_add(http_client: AsyncClient) -> None:
-#     """Test API for adding a user who already exists."""
-#     response = await http_client.post(
-#         "/entry/add",
-#         json={
-#             "entry": "cn=test,dc=md,dc=test",
-#             "password": None,
-#             "attributes": [
-#                 {
-#                     "type": "name",
-#                     "vals": ["test"],
-#                 },
-#                 {
-#                     "type": "cn",
-#                     "vals": ["test"],
-#                 },
-#                 {
-#                     "type": "objectClass",
-#                     "vals": ["organization", "top"],
-#                 },
-#                 {
-#                     "type": "memberOf",
-#                     "vals": [
-#                         "cn=domain admins,cn=groups,dc=md,dc=test",
-#                     ],
-#                 },
-#             ],
-#         },
-#     )
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_double_add(http_client: AsyncClient) -> None:
+    """Test API for adding a user who already exists."""
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=test,dc=md,dc=test",
+            "password": None,
+            "attributes": [
+                {
+                    "type": "name",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "cn",
+                    "vals": ["test"],
+                },
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top"],
+                },
+                {
+                    "type": "memberOf",
+                    "vals": [
+                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                    ],
+                },
+            ],
+        },
+    )
 
-#     data = response.json()
+    data = response.json()
 
-#     assert isinstance(data, dict)
-#     assert data.get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS
 
 
 @pytest.mark.asyncio
