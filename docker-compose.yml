@@ -11,6 +11,7 @@ services:
       - "80:80"
       - "8080:8080"
       - "389:389"
+      - "389:389/udp"
       - "636:636"
       - "749:749"
       - "464:464"
@@ -54,8 +55,12 @@ services:
     labels:
       - traefik.enable=true
 
+      - traefik.udp.routers.ldap.entrypoints=udpldap
+      - traefik.udp.routers.ldap.service=ldap
+      - traefik.udp.services.ldap.loadbalancer.server.port=389
+
       - traefik.tcp.routers.ldap.rule=HostSNI(`*`)
-      - traefik.tcp.routers.ldap.entrypoints=ldap
+      - traefik.tcp.routers.ldap.entrypoints=tcpldap
       - traefik.tcp.routers.ldap.service=ldap
       - traefik.tcp.services.ldap.loadbalancer.server.port=389
       - traefik.tcp.services.ldap.loadbalancer.proxyprotocol.version=2
@@ -211,12 +216,9 @@ services:
         condition: service_healthy
         restart: true
     command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
-    labels:
-      - traefik.enable=true
-      - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
-      - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
-      - traefik.tcp.routers.bind_dns.service=bind_dns
-      - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
+    ports:
+      - "53:53"
+      - "53:53/udp"
 
   kdc:
     build:

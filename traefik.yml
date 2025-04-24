@@ -12,10 +12,12 @@ entryPoints:
     address: ":8800"
   web:
     address: ":80"
-  ldap:
+  tcpldap:
     address: ":389"
     proxyProtocol:
       insecure: true
+  udpldap:
+    address: ":389/udp"
   ldaps:
     address: ":636"
     proxyProtocol:

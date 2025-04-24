@@ -43,7 +43,7 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dns import DNSConnectionError
-from ldap_protocol.server import PoolClientHandler
+from ldap_protocol.server import PoolClientHandler, UDPConnectionHandler
 from schedule import scheduler
 
 
@@ -157,8 +157,18 @@ def ldap(settings: Settings) -> None:
                 context={Settings: setting},
             )
 
-            settings = await container.get(Settings)
-            servers.append(PoolClientHandler(settings, container).start())
+            cont_settings = await container.get(Settings)
+            servers.append(PoolClientHandler(cont_settings, container).start())
+
+        container = make_async_container(
+            LDAPServerProvider(),
+            MainProvider(),
+            context={Settings: settings},
+        )
+        settings = await container.get(Settings)
+        servers.append(
+            UDPConnectionHandler(settings, container).start_server(),
+        )
 
         await asyncio.gather(*servers)
 
