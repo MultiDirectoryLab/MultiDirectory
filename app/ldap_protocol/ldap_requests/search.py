@@ -269,7 +269,6 @@ class SearchRequest(BaseRequest):
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
             if self.check_netlogon_filter():
-                logger.warning("Netlogon filter")
                 root_dse = await self.get_root_dse(session, settings)
                 net_logon = await NetLogonAttributeHandler.get_netlogon_attr(
                     session,
