@@ -482,9 +482,11 @@ class UDPConnectionHandler(asyncio.DatagramProtocol, ServerLogMixin):
 
     def connection_made(
         self,
-        transport: asyncio.DatagramTransport,
+        transport: asyncio.BaseTransport,
     ) -> None:
         """Set up transport."""
+        if  not isinstance(transport, asyncio.DatagramTransport):
+            raise TypeError("transport must be a DatagramTransport")
         self.transport = transport
         log.debug("UDP connection made")
 
@@ -495,7 +497,7 @@ class UDPConnectionHandler(asyncio.DatagramProtocol, ServerLogMixin):
     ) -> None:
         """Handle datagram."""
         async with self.container(scope=Scope.REQUEST) as request_scope:
-            log.debug(f"Datagram recieved: {data}")
+            log.debug(f"Datagram recieved: {data!r}")
             try:
                 request = LDAPRequestMessage.from_bytes(data)
 
