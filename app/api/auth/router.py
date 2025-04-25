@@ -20,6 +20,7 @@ from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.policies.audit_policy import add_audit_pocilies
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -34,10 +35,7 @@ from ldap_protocol.user_account_control import (
     get_check_uac,
 )
 from ldap_protocol.utils.helpers import ft_now
-from ldap_protocol.utils.queries import (
-    add_audit_pocilies,
-    get_base_directories,
-)
+from ldap_protocol.utils.queries import get_base_directories
 from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
