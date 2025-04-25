@@ -43,6 +43,7 @@ from extra.dump_acme_certs import dump_acme_cert
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from ioc import (
+    EventHandlerProvider,
     HTTPProvider,
     LDAPServerProvider,
     MainProvider,
@@ -203,15 +204,13 @@ def event_handler(settings: Settings) -> None:
     """Run event handler."""
 
     async def _server(settings: Settings) -> None:
-        container = make_async_container(
+        main_container = make_async_container(
             MainProvider(),
-            MFAProvider(),
-            HTTPProvider(),
-            MFACredsProvider(),
+            EventHandlerProvider(),
             context={Settings: settings},
         )
 
-        await asyncio.gather(EventHandler(settings, container).start())
+        await asyncio.gather(EventHandler(settings, main_container).start())
 
     def _run() -> None:
         uvloop.run(_server(settings))
