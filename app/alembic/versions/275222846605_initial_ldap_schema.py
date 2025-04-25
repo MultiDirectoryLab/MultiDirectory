@@ -11,8 +11,9 @@ import json
 import sqlalchemy as sa
 from alembic import op
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     create_attribute_type,
@@ -25,6 +26,7 @@ from ldap_protocol.ldap_schema.object_class_crud import (
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
+from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
 revision = "275222846605"
@@ -238,24 +240,19 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        await create_attribute_type(
-            oid="2.16.840.1.113730.3.1.610",
-            name="nsAccountLock",
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-            session=session,
-        )
-        await create_attribute_type(
-            oid="1.3.6.1.4.1.99999.1.1",
-            name="posixEmail",
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-            session=session,
-        )
+        for oid, name in (
+            ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
+            ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
+        ):
+            await create_attribute_type(
+                oid=oid,
+                name=name,
+                syntax="1.3.6.1.4.1.1466.115.121.1.15",
+                single_value=True,
+                no_user_modification=False,
+                is_system=True,
+                session=session,
+            )
 
         await session.commit()
 
@@ -284,6 +281,65 @@ def upgrade() -> None:
         await session.commit()
 
     op.run_async(_modify_object_classes)
+
+    async def _add_extend_object_class_to_directory(connection):
+        def _is_user(directory: Directory) -> bool:
+            return bool(
+                "sAMAccountName" in directory.attributes_dict
+                or "userPrincipalName" in directory.attributes_dict
+            )
+
+        def _is_computer(directory: Directory) -> bool:
+            return bool(
+                "computer" in directory.attributes_dict.get("objectClass", [])
+            )
+
+        def _is_group(directory: Directory) -> bool:
+            return bool(
+                "group" in directory.attributes_dict.get("objectClass", [])
+            )
+
+        session = AsyncSession(bind=connection)
+        await session.begin()
+
+        query = await session.scalars(
+            select(Directory)
+            .options(selectinload(Directory.attributes))
+        )  # fmt: skip
+        directories = list(query.all())
+        attributes = []
+        for directory in directories:
+            if _is_user(directory):
+                attributes.append(
+                    Attribute(
+                        name="objectClass",
+                        value="extObjectClassUsers",
+                        directory=directory,
+                    )
+                )
+            elif _is_computer(directory):
+                attributes.append(
+                    Attribute(
+                        name="objectClass",
+                        value="extObjectClassComputers",
+                        directory=directory,
+                    )
+                )
+            elif _is_group(directory):
+                attributes.append(
+                    Attribute(
+                        name="objectClass",
+                        value="extObjectClassGroups",
+                        directory=directory,
+                    )
+                )
+            else:
+                continue
+
+        session.add_all(attributes)
+        await session.commit()
+
+    op.run_async(_add_extend_object_class_to_directory)
 
 
 def downgrade() -> None:
