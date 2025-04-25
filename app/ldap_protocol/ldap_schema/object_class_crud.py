@@ -40,7 +40,6 @@ class ObjectClassSchema(BaseModel):
 class ObjectClassUpdateSchema(BaseModel):
     """Object Class Schema for modify/update."""
 
-    kind: KindType
     attribute_types_may: list[str]
     attribute_types_must: list[str]
 
@@ -60,7 +59,7 @@ async def create_object_class(
     :param str oid: OID.
     :param str name: Name.
     :param str | None superior_name: Parent Object Class.
-    :param Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"] kind: Kind.
+    :param KindType kind: Kind.
     :param bool is_system: Object Class is system.
     :param list[str] attribute_types_must: Attribute Types must.
     :param list[str] attribute_types_may: Attribute Types may.
@@ -166,12 +165,6 @@ async def modify_object_class(
     :param AsyncSession session: Database session.
     :return None.
     """
-    if new_statement.kind not in OBJECT_CLASS_KINDS_ALLOWED:
-        raise ValueError(
-            f"Object class kind is not valid: {new_statement.kind}."
-        )
-    object_class.kind = new_statement.kind
-
     object_class.attribute_types_must.clear()
     object_class.attribute_types_must.extend(
         await get_attribute_types_by_names(
@@ -180,10 +173,15 @@ async def modify_object_class(
         ),
     )
 
+    attribute_types_may_filtered = [
+        name
+        for name in new_statement.attribute_types_may
+        if name not in new_statement.attribute_types_must
+    ]
     object_class.attribute_types_may.clear()
     object_class.attribute_types_may.extend(
         await get_attribute_types_by_names(
-            new_statement.attribute_types_may,
+            attribute_types_may_filtered,
             session,
         ),
     )

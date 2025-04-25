@@ -77,6 +77,10 @@ class AddRequest(BaseRequest):
     def attr_names(self) -> dict[str, list[str | bytes]]:
         return {attr.type.lower(): attr.vals for attr in self.attributes}
 
+    @property
+    def attributes_dict(self) -> dict[str, list[str | bytes]]:
+        return {attr.type: attr.vals for attr in self.attributes}
+
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
         """Deserialize."""
@@ -112,7 +116,8 @@ class AddRequest(BaseRequest):
             .filter(get_path_filter(root_dn)).exists()
         )  # fmt: skip
 
-        if await session.scalar(exists_q) is True:
+        res = await session.scalar(exists_q)
+        if res is True:
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
@@ -188,6 +193,7 @@ class AddRequest(BaseRequest):
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.keys() | User.fields.keys()
+
         attributes.append(
             Attribute(
                 name=new_dn,
@@ -197,19 +203,24 @@ class AddRequest(BaseRequest):
         )
 
         for attr in self.attributes:
-            lname = attr.type.lower()
-
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
             if (
-                lname == new_dir.rdname
-                or lname in Directory.ro_fields
-                or lname in ("userpassword", "unicodepwd")
+                attr.type.lower() in Directory.ro_fields
+                or attr.type
+                in (
+                    "userPassword",
+                    "unicodePwd",
+                )
+                or attr.type.lower() == new_dir.rdname
             ):
                 continue
 
             for value in attr.vals:
-                if lname in user_fields or lname == "useraccountcontrol":
+                if (
+                    attr.type.lower() in user_fields
+                    or attr.type == "userAccountControl"
+                ):
                     if not isinstance(value, str):
                         raise TypeError
                     user_attributes[attr.type] = value
@@ -230,12 +241,12 @@ class AddRequest(BaseRequest):
                     )
 
         parent_groups = await get_groups(group_attributes, session)
-        is_group = "group" in self.attr_names.get("objectclass", [])
+        is_group = "group" in self.attributes_dict.get("objectClass", [])
         is_user = (
             "sAMAccountName" in user_attributes
             or "userPrincipalName" in user_attributes
         )
-        is_computer = "computer" in self.attr_names.get("objectclass", [])
+        is_computer = "computer" in self.attributes_dict.get("objectClass", [])
 
         if is_user:
             parent_groups.append(

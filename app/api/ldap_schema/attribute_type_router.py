@@ -21,6 +21,10 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
     modify_attribute_type,
 )
 
+DEFAULT_ATTRIBUTE_TYPE_SYNTAX = "1.3.6.1.4.1.1466.115.121.1.15"
+DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD = False
+DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM = False
+
 
 @ldap_schema_router.post(
     "/attribute_type",
@@ -39,10 +43,10 @@ async def create_one_attribute_type(
     await create_attribute_type(
         oid=request_data.oid,
         name=request_data.name,
-        syntax=request_data.syntax,
+        syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
         single_value=request_data.single_value,
-        no_user_modification=request_data.no_user_modification,
-        is_system=False,
+        no_user_modification=DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
+        is_system=DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
         session=session,
     )
 
@@ -144,6 +148,8 @@ async def modify_one_attribute_type(
             "System attribute type cannot be modified.",
         )
 
+    request_data.syntax = DEFAULT_ATTRIBUTE_TYPE_SYNTAX
+    request_data.no_user_modification = DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD
     await modify_attribute_type(
         attribute_type=attribute_type,
         new_statement=request_data,
