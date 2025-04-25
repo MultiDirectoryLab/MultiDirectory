@@ -34,7 +34,7 @@ async def test_delete_attribute_types_by_names(session: AsyncSession) -> None:
     assert attribute_type is not None
 
     await delete_attribute_types_by_names(
-        session=session, attribute_types_names=[attribute_type_name]
+        session=session, attribute_type_names=[attribute_type_name]
     )
     attribute_type = await get_attribute_type_by_name(
         session=session, attribute_type_name=attribute_type_name

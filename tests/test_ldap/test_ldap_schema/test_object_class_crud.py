@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest
-from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.ldap_schema.attribute_type_crud import create_attribute_type
@@ -16,7 +15,6 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_class_by_name,
     modify_object_class,
 )
-from models import ObjectClass
 
 
 @pytest.mark.asyncio
@@ -124,7 +122,6 @@ async def test_modify_object_class(session: AsyncSession) -> None:
     assert object_class is not None
 
     new_statement = ObjectClassUpdateSchema(
-        kind="STRUCTURAL",
         attribute_types_must=[],
         attribute_types_may=["customTestAttribute"],
     )
@@ -139,7 +136,6 @@ async def test_modify_object_class(session: AsyncSession) -> None:
         session=session,
     )
     assert object_class is not None
-    assert object_class.kind == new_statement.kind
     assert object_class.is_structural is True
     assert set(object_class.attribute_types_must_display) == set(
         new_statement.attribute_types_must
@@ -147,36 +143,6 @@ async def test_modify_object_class(session: AsyncSession) -> None:
     assert set(object_class.attribute_types_may_display) == set(
         new_statement.attribute_types_may
     )
-
-
-@pytest.mark.asyncio
-async def test_object_class_update_schema() -> None:
-    """Test ValidationError by ObjectClassUpdateSchema."""
-    with pytest.raises(ValidationError):
-        ObjectClassUpdateSchema(
-            kind="STRUCTURAQWL1",
-            attribute_types_must=[],
-            attribute_types_may=[],
-        )
-
-
-@pytest.mark.asyncio
-async def test_modify_object_class_error1(session: AsyncSession) -> None:
-    """Test ValueError by modify Object Class."""
-    new_statement = ObjectClassUpdateSchema.model_construct(
-        kind="STRUCTURAQWL1",  # type: ignore # NOTE: skip validation for crud testing
-        attribute_types_must=[],
-        attribute_types_may=[],
-    )
-    with pytest.raises(
-        ValueError,
-        match=f"Object class kind is not valid: {new_statement.kind}.",
-    ):
-        await modify_object_class(
-            session=session,
-            object_class=ObjectClass(),
-            new_statement=new_statement,
-        )
 
 
 @pytest.mark.asyncio
