@@ -17,14 +17,14 @@ from models import AuditPolicy
 
 from .schema import AuditPolicySchema
 
-audit_router = APIRouter(prefix="/audit", tags=["Audit policy"])
-
-
-@audit_router.get(
-    "",
-    status_code=status.HTTP_201_CREATED,
+audit_router = APIRouter(
+    prefix="/audit",
+    tags=["Audit policy"],
     dependencies=[Depends(get_current_user)],
 )
+
+
+@audit_router.get("", status_code=status.HTTP_201_CREATED)
 @inject
 async def get_audit_policies(
     session: FromDishka[AsyncSession],
@@ -40,7 +40,7 @@ async def get_audit_policies(
     ]
 
 
-@audit_router.put("", dependencies=[Depends(get_current_user)])
+@audit_router.put("")
 @inject
 async def update_network_policy(
     policy: AuditPolicySchema,
