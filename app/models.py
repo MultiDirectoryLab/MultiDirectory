@@ -960,21 +960,6 @@ class AccessPolicy(Base):
     )
 
 
-class AuditPolicyTriggersMembership(Base):
-    """Audit policy triggers membership."""
-
-    __tablename__ = "AuditPolicyTriggersMemberships"
-
-    policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AuditPolicies.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    trigger_id: Mapped[int] = mapped_column(
-        ForeignKey("AuditPolicyTriggers.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
 class AuditPolicy(Base):
     """Audit policy."""
 
@@ -989,10 +974,7 @@ class AuditPolicy(Base):
 
     triggers: Mapped[list[AuditPolicyTrigger]] = relationship(
         "AuditPolicyTrigger",
-        secondary=AuditPolicyTriggersMembership.__table__,
-        primaryjoin="AuditPolicy.id == AuditPolicyTriggersMembership.policy_id",  # noqa
-        secondaryjoin="AuditPolicyTriggersMembership.trigger_id == AuditPolicyTrigger.id",  # noqa
-        back_populates="audit_policies",
+        back_populates="audit_policy",
         cascade="all",
         passive_deletes=True,
         lazy="selectin",
@@ -1014,9 +996,32 @@ class AuditPolicyTrigger(Base):
     )
     operation_success: Mapped[nbool]
 
-    audit_policies: Mapped[list[AuditPolicy]] = relationship(
+    audit_policy_id: Mapped[int] = mapped_column(
+        "audit_policy_id",
+        ForeignKey("AuditPolicies.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    audit_policy: Mapped[AuditPolicy] = relationship(
         "AuditPolicy",
-        secondary=AuditPolicyTriggersMembership.__table__,
+        uselist=False,
         back_populates="triggers",
         lazy="selectin",
     )
+
+
+class AuditDestination(Base):
+    """Audit destinations."""
+
+    __tablename__ = "AuditDestinations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    type: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    is_enable: Mapped[tbool]
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    port: Mapped[int] = mapped_column(nullable=False)
+    username: Mapped[str] = mapped_column(String(255))
+    password: Mapped[str] = mapped_column(String(255))
+    protocol: Mapped[str] = mapped_column(String(10))
+    auth_token: Mapped[str] = mapped_column(String(512))
