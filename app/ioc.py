@@ -44,6 +44,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
+EventAsyncSession = NewType("EventAsyncSession", AsyncSession)
 
 
 class MainProvider(Provider):
@@ -258,6 +259,34 @@ class LDAPServerProvider(Provider):
     async def get_session(self, storage: SessionStorage) -> LDAPSession:
         """Create ldap session."""
         return LDAPSession(storage=storage)
+
+
+class EventHandlerProvider(Provider):
+    """Event handler provider."""
+
+    scope = Scope.REQUEST
+
+    @provide()
+    async def create_session_1(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[EventAsyncSession]:
+        """Create session for request."""
+        async with async_sessionmaker(
+            create_async_engine(
+                str(settings.EVENT_POSTGRES_URI),
+                pool_size=settings.INSTANCE_DB_POOL_SIZE,
+                max_overflow=settings.INSTANCE_DB_POOL_LIMIT,
+                pool_timeout=settings.INSTANCE_DB_POOL_TIMEOUT,
+                poolclass=FallbackAsyncAdaptedQueuePool,
+                future=True,
+                pool_pre_ping=True,
+                pool_use_lifo=False,
+            ),
+            expire_on_commit=False,
+        )() as session:
+            yield EventAsyncSession(session)
+            await session.commit()
 
 
 class MFACredsProvider(Provider):
