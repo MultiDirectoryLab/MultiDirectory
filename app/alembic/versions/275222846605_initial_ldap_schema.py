@@ -127,15 +127,6 @@ def upgrade() -> None:
         "ObjectClassAttributeTypeMustMemberships",
         ["attribute_type_name", "object_class_name"],
     )
-
-    op.create_foreign_key(
-        "Attributes_name_fkey",
-        "Attributes",
-        "AttributeTypes",
-        ["name"],
-        ["name"],
-        ondelete="CASCADE",
-    )
     # ### end Alembic commands ###
 
     # NOTE: Load attributeTypes into the database
@@ -316,11 +307,6 @@ def downgrade() -> None:
     op.drop_constraint("ObjectClasses_oid_uc", "ObjectClasses", type_="unique")
     op.drop_table("ObjectClasses")
 
-    op.drop_constraint(
-        "Attributes_name_fkey",
-        "Attributes",
-        type_="foreignkey",
-    )
     op.drop_constraint(
         "AttributeTypes_oid_uc",
         "AttributeTypes",
