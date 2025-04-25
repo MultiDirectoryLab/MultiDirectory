@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
-from loguru import logger
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -74,6 +73,10 @@ class AddRequest(BaseRequest):
     def attr_names(self) -> dict[str, list[str | bytes]]:
         return {attr.type.lower(): attr.vals for attr in self.attributes}
 
+    @property
+    def attributes_dict(self) -> dict[str, list[str | bytes]]:
+        return {attr.type: attr.vals for attr in self.attributes}
+
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
         """Deserialize."""
@@ -111,7 +114,6 @@ class AddRequest(BaseRequest):
 
         res = await session.scalar(exists_q)
         if res is True:
-            logger.info(f"1 ENTRY_ALREADY_EXISTS {res}")
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
@@ -176,7 +178,6 @@ class AddRequest(BaseRequest):
             await session.flush()
         except IntegrityError:
             await session.rollback()
-            logger.info("2 ENTRY_ALREADY_EXISTS IntegrityError")
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
@@ -188,6 +189,7 @@ class AddRequest(BaseRequest):
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.keys() | User.fields.keys()
+
         attributes.append(
             Attribute(
                 name=new_dn,
@@ -197,21 +199,24 @@ class AddRequest(BaseRequest):
         )
 
         for attr in self.attributes:
-            lname = attr.type.lower()
-
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
-            if lname == new_dir.rdname:
+            if (
+                attr.type.lower() in Directory.ro_fields
+                or attr.type
+                in (
+                    "userPassword",
+                    "unicodePwd",
+                )
+                or attr.type.lower() == new_dir.rdname
+            ):
                 continue
 
             for value in attr.vals:
-                if lname in Directory.ro_fields or lname in (
-                    "userpassword",
-                    "unicodepwd",
+                if (
+                    attr.type.lower() in user_fields
+                    or attr.type == "userAccountControl"
                 ):
-                    continue
-
-                if lname in user_fields or lname == "useraccountcontrol":
                     if not isinstance(value, str):
                         raise TypeError
                     user_attributes[attr.type] = value
@@ -232,12 +237,12 @@ class AddRequest(BaseRequest):
                     )
 
         parent_groups = await get_groups(group_attributes, session)
-        is_group = "group" in self.attr_names.get("objectclass", [])
+        is_group = "group" in self.attributes_dict.get("objectClass", [])
         is_user = (
             "sAMAccountName" in user_attributes
             or "userPrincipalName" in user_attributes
         )
-        is_computer = "computer" in self.attr_names.get("objectclass", [])
+        is_computer = "computer" in self.attributes_dict.get("objectClass", [])
 
         if is_user:
             parent_groups.append(
@@ -336,14 +341,9 @@ class AddRequest(BaseRequest):
 
         try:
             items_to_add.extend(attributes)
-            for item in items_to_add:
-                logger.info(f"3.0 item {item}")
-                session.add(item)
-                logger.info(f"3.1 item {item}")
-                await session.flush()
-                logger.info(f"3.2 item {item}")
+            session.add_all(items_to_add)
+            await session.flush()
         except IntegrityError:
-            logger.info("3 ENTRY_ALREADY_EXISTS IntegrityError")
             await session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:

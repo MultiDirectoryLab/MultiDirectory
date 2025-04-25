@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import enum
 import uuid
+from collections import defaultdict
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
@@ -227,6 +228,14 @@ class Directory(Base):
         cascade="all",
         passive_deletes=True,
     )
+
+    @property
+    def attributes_dict(self) -> defaultdict[str, list[str]]:
+        attributes = defaultdict(list)
+        for attribute in self.attributes:
+            attributes[attribute.name].extend(attribute.values)
+        return attributes
+
     group: Mapped[Group] = relationship(
         "Group",
         uselist=False,
