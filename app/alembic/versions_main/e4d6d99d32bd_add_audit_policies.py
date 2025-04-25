@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.queries import add_audit_pocilies
+from ldap_protocol.policies.audit_policy import add_audit_pocilies
 
 # revision identifiers, used by Alembic.
 revision = "e4d6d99d32bd"
@@ -70,25 +70,39 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("operation_success", sa.Boolean(), nullable=False),
+        sa.Column("audit_policy_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["audit_policy_id"],
+            ["AuditPolicies.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
-        "AuditPolicyTriggersMemberships",
-        sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.Column("trigger_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["policy_id"], ["AuditPolicies.id"], ondelete="CASCADE"
+        "AuditDestinations",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("type", sa.String(length=50), nullable=False),
+        sa.Column(
+            "is_enable",
+            sa.Boolean(),
+            server_default=sa.text("true"),
+            nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["trigger_id"], ["AuditPolicyTriggers.id"], ondelete="CASCADE"
-        ),
-        sa.PrimaryKeyConstraint("policy_id", "trigger_id"),
+        sa.Column("host", sa.String(length=255), nullable=False),
+        sa.Column("port", sa.Integer(), nullable=False),
+        sa.Column("username", sa.String(length=255), nullable=False),
+        sa.Column("password", sa.String(length=255), nullable=False),
+        sa.Column("protocol", sa.String(length=10), nullable=False),
+        sa.Column("auth_token", sa.String(length=512), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("name"),
+        sa.UniqueConstraint("type"),
     )
     op.run_async(_create_audit_policies)
 
 
 def downgrade() -> None:
     """Downgrade."""
-    op.drop_table("AuditPolicyTriggersMemberships")
     op.drop_table("AuditPolicyTriggers")
     op.drop_table("AuditPolicies")
+    op.drop_table("AuditDestinations")
