@@ -567,7 +567,7 @@ class Attribute(Base):
         if self.value:
             return self.value
         if self.bvalue:
-            return self.bvalue.decode()
+            return self.bvalue.decode("latin-1")
         return None
 
     @property

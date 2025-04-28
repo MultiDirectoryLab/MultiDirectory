@@ -19,7 +19,6 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
 from ldap_protocol.ldap_schema.object_class_crud import (
-    create_object_class,
     get_object_class_by_name,
 )
 from ldap_protocol.utils.raw_definition_parser import (
@@ -197,38 +196,6 @@ def upgrade() -> None:
             )
             session.add(object_class)
 
-        object_class_datas = (
-            {
-                "oid": "1.3.6.1.4.1.9999.1.1",
-                "name": "extObjectClassUsers",
-                "superior_name": None,
-                "kind": "AUXILIARY",
-                "is_system": True,
-                "attribute_types_must": [],
-                "attribute_types_may": [],
-            },
-            {
-                "oid": "1.3.6.1.4.1.9999.1.2",
-                "name": "extObjectClassComputers",
-                "superior_name": None,
-                "kind": "AUXILIARY",
-                "is_system": True,
-                "attribute_types_must": [],
-                "attribute_types_may": [],
-            },
-            {
-                "oid": "1.3.6.1.4.1.9999.1.3",
-                "name": "extObjectClassGroups",
-                "superior_name": None,
-                "kind": "AUXILIARY",
-                "is_system": True,
-                "attribute_types_must": [],
-                "attribute_types_may": [],
-            },
-        )
-        for object_class_data in object_class_datas:
-            await create_object_class(**object_class_data, session=session)
-
         await session.commit()
         await session.close()
 
@@ -238,24 +205,19 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        await create_attribute_type(
-            oid="2.16.840.1.113730.3.1.610",
-            name="nsAccountLock",
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-            session=session,
-        )
-        await create_attribute_type(
-            oid="1.3.6.1.4.1.99999.1.1",
-            name="posixEmail",
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-            session=session,
-        )
+        for oid, name in (
+            ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
+            ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
+        ):
+            await create_attribute_type(
+                oid=oid,
+                name=name,
+                syntax="1.3.6.1.4.1.1466.115.121.1.15",
+                single_value=True,
+                no_user_modification=False,
+                is_system=True,
+                session=session,
+            )
 
         await session.commit()
 
