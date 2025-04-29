@@ -13,9 +13,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from models import AuditPolicy
+from models import AuditDestination, AuditPolicy
 
-from .schema import AuditPolicySchema
+from .schema import (
+    AuditDestinationSchema,
+    AuditDestinationSchemaRequest,
+    AuditPolicySchema,
+)
 
 audit_router = APIRouter(
     prefix="/audit",
@@ -24,7 +28,7 @@ audit_router = APIRouter(
 )
 
 
-@audit_router.get("", status_code=status.HTTP_201_CREATED)
+@audit_router.get("/policies", status_code=status.HTTP_201_CREATED)
 @inject
 async def get_audit_policies(
     session: FromDishka[AsyncSession],
@@ -40,7 +44,7 @@ async def get_audit_policies(
     ]
 
 
-@audit_router.put("")
+@audit_router.put("/policy")
 @inject
 async def update_network_policy(
     policy: AuditPolicySchema,
@@ -75,3 +79,132 @@ async def update_network_policy(
         )
 
     return policy
+
+
+@audit_router.get("/destinations")
+@inject
+async def get_audit_destinations(
+    session: FromDishka[AsyncSession],
+) -> list[AuditDestinationSchema]:
+    """Get audit destinations.
+
+    :return list[AuditDestinationSchema]: List of destinations.
+    """
+    return [
+        AuditDestinationSchema(
+            id=model.id,
+            name=model.name,
+            type=model.type,
+            is_enable=model.is_enable,
+            host=model.host,
+            port=model.port,
+            username=model.username,
+            password=model.password,
+            protocol=model.protocol,
+            auth_token=model.auth_token,
+        )
+        for model in await session.scalars(select(AuditDestination))
+    ]
+
+
+@audit_router.post("/destination", status_code=status.HTTP_201_CREATED)
+@inject
+async def add_audit_destination(
+    model: AuditDestinationSchemaRequest,
+    session: FromDishka[AsyncSession],
+) -> AuditDestinationSchema:
+    """Add audit destination."""
+    try:
+        new_destination = AuditDestination(
+            name=model.name,
+            type=model.type,
+            is_enable=model.is_enable,
+            host=model.host,
+            port=model.port,
+            username=model.username,
+            password=model.password,
+            protocol=model.protocol,
+            auth_token=model.auth_token,
+        )
+        session.add(new_destination)
+        await session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Entry already exists",
+        )
+
+    return AuditDestinationSchema(
+        id=new_destination.id,
+        name=new_destination.name,
+        type=new_destination.type,
+        is_enable=new_destination.is_enable,
+        host=new_destination.host,
+        port=new_destination.port,
+        username=new_destination.username,
+        password=new_destination.password,
+        protocol=new_destination.protocol,
+        auth_token=new_destination.auth_token,
+    )
+
+
+@audit_router.put("/destination")
+@inject
+async def update_audit_destination(
+    model: AuditDestinationSchema,
+    session: FromDishka[AsyncSession],
+) -> AuditDestinationSchema:
+    """Update audit destination."""
+    selected_destination = await session.get(
+        AuditDestination,
+        model.id,
+        with_for_update=True,
+    )
+
+    if not selected_destination:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Destination not found")
+
+    try:
+        selected_destination.name = model.name
+        selected_destination.type = model.type
+        selected_destination.is_enable = model.is_enable
+        selected_destination.host = model.host
+        selected_destination.port = model.port
+        selected_destination.username = model.username
+        selected_destination.password = model.password
+        selected_destination.protocol = model.protocol
+        selected_destination.auth_token = model.auth_token
+
+        await session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Entry already exists",
+        )
+
+    return model
+
+
+@audit_router.delete("/destination/{destination_id}")
+@inject
+async def delete_audit_destination(
+    destination_id: int,
+    session: FromDishka[AsyncSession],
+) -> None:
+    """Update network policy.
+
+    :param AuditPolicySchema policy: update request
+    :raises HTTPException: 404 policy not found
+    :raises HTTPException: 422 Entry already exists
+    :return AuditPolicySchema: Policy from database.
+    """
+    selected_destination = await session.get(
+        AuditDestination,
+        destination_id,
+    )
+
+    if not selected_destination:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Destination not found")
+
+    await session.delete(selected_destination)
+    await session.commit()
