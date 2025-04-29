@@ -112,3 +112,21 @@ class AuditPolicySchema(BaseModel):
     id: int
     name: str
     is_enabled: bool
+
+
+class AuditDestinationSchemaRequest(BaseModel):
+    """Audit destination request schema."""
+
+    name: str
+    type: str
+    is_enable: bool
+    host: str
+    port: int
+    username: str | None
+    password: str | None
+    protocol: str
+    auth_token: str | None
+
+
+class AuditDestinationSchema(_MaterialFields, AuditDestinationSchemaRequest):
+    """Audit destination schema."""
