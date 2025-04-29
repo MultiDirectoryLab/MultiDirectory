@@ -1021,7 +1021,7 @@ class AuditDestination(Base):
     is_enable: Mapped[tbool]
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(nullable=False)
-    username: Mapped[str] = mapped_column(String(255))
-    password: Mapped[str] = mapped_column(String(255))
+    username: Mapped[str | None] = mapped_column(String(255))
+    password: Mapped[str | None] = mapped_column(String(255))
     protocol: Mapped[str] = mapped_column(String(10))
-    auth_token: Mapped[str] = mapped_column(String(512))
+    auth_token: Mapped[str | None] = mapped_column(String(512))
