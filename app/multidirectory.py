@@ -9,11 +9,19 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import AsyncIterator, Callable
+from typing import AsyncIterator, Callable, Coroutine
 
 import uvicorn
 import uvloop
 from alembic.config import Config, command
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka
+from dns.exception import DNSException
+from event_handler import EventHandler
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import exc as sa_exc
+
 from api import (
     access_policy_router,
     audit_router,
@@ -35,13 +43,7 @@ from api.exception_handlers import (
     handle_instance_not_found_error,
 )
 from config import Settings
-from dishka import make_async_container
-from dishka.integrations.fastapi import setup_dishka
-from dns.exception import DNSException
-from event_handler import EventHandler
 from extra.dump_acme_certs import dump_acme_cert
-from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 from ioc import (
     EventHandlerProvider,
     HTTPProvider,
@@ -56,8 +58,7 @@ from ldap_protocol.exceptions import (
     InstanceNotFoundError,
 )
 from ldap_protocol.server import PoolClientHandler
-from schedule import scheduler
-from sqlalchemy import exc as sa_exc
+from schedule import EVENTS_TASKS, MAINTENCE_TASKS, _schedule
 
 
 async def proc_time_header_middleware(
@@ -163,31 +164,14 @@ def create_prod_app(
     return app
 
 
-create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
-
-
-def ldap(settings: Settings) -> None:
+def run_server(
+    factory: Callable[[Settings], Coroutine],
+    settings: Settings,
+) -> None:
     """Run server."""
 
-    async def _servers(settings: Settings) -> None:
-        servers = []
-
-        for setting in (settings, settings.get_copy_4_tls()):
-            container = make_async_container(
-                LDAPServerProvider(),
-                MainProvider(),
-                MFAProvider(),
-                MFACredsProvider(),
-                context={Settings: setting},
-            )
-
-            settings = await container.get(Settings)
-            servers.append(PoolClientHandler(settings, container).start())
-
-        await asyncio.gather(*servers)
-
     def _run() -> None:
-        uvloop.run(_servers(settings), debug=settings.DEBUG)
+        uvloop.run(factory(settings), debug=settings.DEBUG)
 
     try:
         import py_hot_reload
@@ -200,31 +184,65 @@ def ldap(settings: Settings) -> None:
             _run()
 
 
-def event_handler(settings: Settings) -> None:
-    """Run event handler."""
+async def ldap_factory(settings: Settings) -> None:
+    """LDAP server factory."""
+    servers = []
 
-    async def _server(settings: Settings) -> None:
-        main_container = make_async_container(
+    for setting in (settings, settings.get_copy_4_tls()):
+        container = make_async_container(
+            LDAPServerProvider(),
             MainProvider(),
-            EventHandlerProvider(),
-            context={Settings: settings},
+            MFAProvider(),
+            MFACredsProvider(),
+            context={Settings: setting},
         )
 
-        await asyncio.gather(EventHandler(settings, main_container).start())
+        settings = await container.get(Settings)
+        servers.append(PoolClientHandler(settings, container).start())
 
-    def _run() -> None:
-        uvloop.run(_server(settings))
+    await asyncio.gather(*servers)
 
-    try:
-        import py_hot_reload
-    except ImportError:
-        _run()
-    else:
-        if settings.DEBUG:
-            py_hot_reload.run_with_reloader(_run)
-        else:
-            _run()
 
+async def maintence_scheduler_factory(settings: Settings) -> None:
+    """Script entrypoint for maintence scheduler."""
+    container = make_async_container(
+        MainProvider(),
+        context={Settings: settings},
+    )
+
+    async with asyncio.TaskGroup() as tg:
+        for task, timeout in MAINTENCE_TASKS:
+            tg.create_task(_schedule(task, timeout, container))
+
+
+async def events_scheduler_factory(settings: Settings) -> None:
+    """Script entrypoint for maintence scheduler."""
+    container = make_async_container(
+        MainProvider(),
+        context={Settings: settings},
+    )
+
+    async with asyncio.TaskGroup() as tg:
+        for task, timeout in EVENTS_TASKS:
+            tg.create_task(_schedule(task, timeout, container))
+
+
+async def event_handler_factory(settings: Settings) -> None:
+    """Run event handler."""
+    main_container = make_async_container(
+        MainProvider(),
+        EventHandlerProvider(),
+        context={Settings: settings},
+    )
+
+    await asyncio.gather(EventHandler(settings, main_container).start())
+
+
+create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
+ldap_server = partial(run_server, factory=ldap_factory)
+maintence_scheduler = partial(run_server, factory=maintence_scheduler_factory)
+events_scheduler = partial(run_server, factory=events_scheduler_factory)
+event_handler = partial(run_server, factory=event_handler_factory)
 
 if __name__ == "__main__":
     settings = Settings.from_os()
@@ -249,7 +267,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ldap:
-        ldap(settings)
+        ldap_server(settings=settings)
 
     elif args.shadow:
         uvicorn.run(
@@ -271,10 +289,10 @@ if __name__ == "__main__":
             factory=True,
         )
     elif args.scheduler:
-        scheduler(settings)
+        maintence_scheduler(settings=settings)
     elif args.certs_dumper:
         dump_acme_cert()
     elif args.migrate:
         command.upgrade(Config("alembic.ini"), "head")
     elif args.event_handler:
-        event_handler(settings)
+        event_handler(settings=settings)
