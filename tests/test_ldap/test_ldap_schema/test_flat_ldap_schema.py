@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.ldap_responses import PartialAttribute
 from ldap_protocol.ldap_schema.attribute_type_crud import create_attribute_type
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
-    get_attribute_type_names_by_object_class_names,
-    get_flat_ldap_schema,
+    _get_flat_attribute_type_names_by_object_class_names,
+    _get_flat_ldap_schema,
     validate_attributes_by_ldap_schema,
     validate_chunck_object_classes_by_ldap_schema,
 )
@@ -32,7 +32,7 @@ from tests.test_ldap.test_ldap_schema.test_flat_ldap_schema_datasets import (
 async def test_get_flat_ldap_schema(session: AsyncSession) -> None:
     """Get flat schema."""
     all_object_classes = await get_all_object_classes(session)
-    flat_ldap_schema = await get_flat_ldap_schema(session)
+    flat_ldap_schema = await _get_flat_ldap_schema(session)
     assert len(all_object_classes) == len(flat_ldap_schema)
 
 
@@ -52,7 +52,7 @@ async def test_get_attribute_type_names_by_object_class_names(
     for object_class in dataset["object_classes"]:
         await create_object_class(**object_class, session=session)
 
-    must, may = await get_attribute_type_names_by_object_class_names(
+    must, may = await _get_flat_attribute_type_names_by_object_class_names(
         session,
         dataset["object_class_names"],
     )
@@ -67,7 +67,7 @@ async def test_get_attribute_type_names_by_object_class_names_valerror(
 ) -> None:
     """Test raises ValueError for not exists ObjectClass."""
     with pytest.raises(ValueError):  # noqa: PT011
-        await get_attribute_type_names_by_object_class_names(
+        await _get_flat_attribute_type_names_by_object_class_names(
             session,
             ["DoesNotExistObjectClassName"],
         )

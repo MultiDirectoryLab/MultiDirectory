@@ -83,8 +83,8 @@ async def get_one_object_class(
         superior_name=object_class.superior_name,
         kind=object_class.kind,
         is_system=object_class.is_system,
-        attribute_types_must=object_class.attribute_types_must_display,
-        attribute_types_may=object_class.attribute_types_may_display,
+        attribute_types_must=object_class.attribute_type_names_must,
+        attribute_types_may=object_class.attribute_type_names_may,
     )
 
 
@@ -108,8 +108,8 @@ async def get_list_object_classes(
             superior_name=object_class.superior_name,
             kind=object_class.kind,
             is_system=object_class.is_system,
-            attribute_types_must=object_class.attribute_types_must_display,
-            attribute_types_may=object_class.attribute_types_may_display,
+            attribute_types_must=object_class.attribute_type_names_must,
+            attribute_types_may=object_class.attribute_type_names_may,
         )
         for object_class in await get_all_object_classes(session)
     ]

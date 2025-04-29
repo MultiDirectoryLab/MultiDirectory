@@ -14,21 +14,86 @@ from sqlalchemy.orm import selectinload
 
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import PartialAttribute
-from ldap_protocol.ldap_schema.object_class_crud import (
-    get_object_classes_by_names,
-)
 from models import Attribute, AttributeType, ObjectClass
 
+type ObjectClassNameLowerCaseType = str
 
-async def get_flat_ldap_schema(
+
+class FlatObjectClass:
+    """Flat Object Class."""
+
+    oid: str
+    name: str
+
+    @property
+    def name_lower(self) -> ObjectClassNameLowerCaseType:
+        """Return the name in lower case."""
+        return self.name.lower()
+
+    superior_name: str | None
+
+    @property
+    def superior_name_lower(self) -> ObjectClassNameLowerCaseType | None:
+        """Return the superior name in lower case."""
+        if self.superior_name:
+            return self.superior_name.lower()
+        return None
+
+    @property
+    def superior(self) -> None:
+        raise NotImplementedError("superior dont touchable")
+
+    kind: Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]
+    is_system: bool
+    attribute_types_must: list[AttributeType]
+    attribute_types_may: list[AttributeType]
+
+    @property
+    def attribute_type_names_must(self) -> set[str]:
+        """Display attribute types must."""
+        return {attr.name for attr in self.attribute_types_must}
+
+    @property
+    def attribute_type_names_may(self) -> set[str]:
+        """Display attribute types may."""
+        return {attr.name for attr in self.attribute_types_may}
+
+    def __str__(self) -> str:
+        """FlatObjectClass name."""
+        return f"FlatObjectClass({self.name})"
+
+    def __repr__(self) -> str:
+        """FlatObjectClass oid and name."""
+        return f"FlatObjectClass({self.oid}:{self.name})"
+
+    def __init__(  # noqa: D107
+        self,
+        object_class: ObjectClass,
+    ) -> None:
+        self.oid = object_class.oid
+        self.name = object_class.name
+        self.superior_name = object_class.superior_name
+        self.kind = object_class.kind
+        self.is_structural = object_class.is_structural
+        self.is_system = object_class.is_system
+        self.attribute_types_must = object_class.attribute_types_must[:]
+        self.attribute_types_may = object_class.attribute_types_may[:]
+
+
+async def _get_flat_ldap_schema(
     session: AsyncSession,
-) -> dict[str, tuple[list[AttributeType], list[AttributeType]]]:
+) -> dict[
+    ObjectClassNameLowerCaseType,
+    FlatObjectClass,
+]:
     """Return the LDAP schema.
 
     :return: The LDAP schema.
     """
-    flat_schema: dict[str, tuple[list, list]] = dict()
-    object_class_names: list[str] = []
+    flat_schema: dict[ObjectClassNameLowerCaseType, FlatObjectClass] = dict()
+
+    type ObjectClassNameCamelCaseType = str
+    object_class_names: list[ObjectClassNameCamelCaseType] = []
 
     query = (
         select(ObjectClass)
@@ -44,11 +109,9 @@ async def get_flat_ldap_schema(
     object_classes = list(result.all())
 
     for object_class in object_classes:
-        flat_schema[object_class.name] = (
-            object_class.attribute_types_must,
-            object_class.attribute_types_may,
-        )
-        object_class_names.append(object_class.name)
+        flat_object_class = FlatObjectClass(object_class)
+        flat_schema[flat_object_class.name_lower] = flat_object_class
+        object_class_names.append(flat_object_class.name)
 
     while True:
         query = (
@@ -68,27 +131,27 @@ async def get_flat_ldap_schema(
         if not object_classes:
             break
 
-        object_class_names.extend(
-            [object_class.name for object_class in object_classes]
-        )
         for object_class in object_classes:
-            attrs_must = object_class.attribute_types_must[:]
-            attrs_may = object_class.attribute_types_may[:]
+            flat_object_class = FlatObjectClass(object_class)
 
-            if object_class.superior_name:
-                parent_object_class = flat_schema[object_class.superior_name]
-                attrs_must.extend(parent_object_class[0])
-                attrs_may.extend(parent_object_class[1])
+            if flat_object_class.superior_name_lower:
+                parent_flat_object_class = flat_schema[
+                    flat_object_class.superior_name_lower
+                ]
+                flat_object_class.attribute_types_must.extend(
+                    parent_flat_object_class.attribute_types_must
+                )
+                flat_object_class.attribute_types_may.extend(
+                    parent_flat_object_class.attribute_types_may
+                )
 
-            flat_schema[object_class.name] = (
-                attrs_must,
-                attrs_may,
-            )
+            flat_schema[flat_object_class.name_lower] = flat_object_class
+            object_class_names.append(flat_object_class.name)
 
     return flat_schema
 
 
-async def get_attribute_type_names_by_object_class_names(
+async def _get_flat_attribute_type_names_by_object_class_names(
     session: AsyncSession,
     object_class_names: list[str] | set[str],
 ) -> tuple[set[str], set[str]]:
@@ -99,11 +162,11 @@ async def get_attribute_type_names_by_object_class_names(
     :raises ValueError: If the object class name is not found in the schema.
     :return: The attribute types by object class name.
     """
-    flat_ldap_schema = await get_flat_ldap_schema(session)
+    flat_ldap_schema = await _get_flat_ldap_schema(session)
 
-    flat_object_classes: list[tuple[list, list]] = []
+    flat_object_classes: list[FlatObjectClass] = []
     for object_class_name in object_class_names:
-        flat_object_class = flat_ldap_schema.get(object_class_name)
+        flat_object_class = flat_ldap_schema.get(object_class_name.lower())
         if flat_object_class is None:
             raise ValueError(
                 f"Object class {object_class_name} not found in schema."
@@ -114,19 +177,22 @@ async def get_attribute_type_names_by_object_class_names(
     attribute_type_names_must: set[str] = set()
     attribute_type_names_may: set[str] = set()
 
-    for attribute_types_must, attribute_types_may in flat_object_classes:
+    for flat_object_class in flat_object_classes:
         attribute_type_names_must.update(
-            {attribute_type.name for attribute_type in attribute_types_must}
+            flat_object_class.attribute_type_names_must
         )
         attribute_type_names_may.update(
-            {attribute_type.name for attribute_type in attribute_types_may}
+            flat_object_class.attribute_type_names_may
         )
 
     attribute_type_names_may -= attribute_type_names_must
-    return (attribute_type_names_must, attribute_type_names_may)
+    return (
+        {n.lower() for n in attribute_type_names_must},
+        {n.lower() for n in attribute_type_names_may},
+    )
 
 
-type ObjectClassValidationResultAlerts = dict[
+type ObjectClassValidationResultAlertsType = dict[
     Literal[LDAPCodes.OBJECT_CLASS_VIOLATION],
     list[str],
 ]
@@ -136,7 +202,7 @@ type ObjectClassValidationResultAlerts = dict[
 class ObjectClassValidationResult:
     """Result of validation Object Classes."""
 
-    alerts: ObjectClassValidationResultAlerts = field(
+    alerts: ObjectClassValidationResultAlertsType = field(
         default_factory=lambda: defaultdict(list)
     )
 
@@ -161,13 +227,25 @@ async def validate_chunck_object_classes_by_ldap_schema(
     if result.alerts:
         return result
 
-    object_classes = await get_object_classes_by_names(
-        object_class_names,
-        session,
-    )
+    flat_ldap_schema = await _get_flat_ldap_schema(session)
+    flat_object_classes: list[FlatObjectClass] = []
+    for object_class_name in object_class_names:
+        flat_object_class = flat_ldap_schema.get(object_class_name.lower())
+        if flat_object_class is None:
+            result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
+                f"Object class {object_class_name} not found in schema."
+            )
+        else:
+            flat_object_classes.append(flat_object_class)
 
-    for object_class in object_classes:
-        if object_class.is_structural:
+    if len(flat_object_classes) != len(object_class_names):
+        result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
+            f"Object classes not all found in schema: {object_class_names}.\
+            Found: {flat_object_classes}"
+        )
+
+    for flat_object_class in flat_object_classes:
+        if flat_object_class.is_structural:
             break
     else:
         result.alerts[LDAPCodes.OBJECT_CLASS_VIOLATION].append(
@@ -178,7 +256,7 @@ async def validate_chunck_object_classes_by_ldap_schema(
     return result
 
 
-type AttributesValidationResultAlerts = dict[
+type AttributesValidationResultAlertsType = dict[
     Literal[
         LDAPCodes.NO_SUCH_ATTRIBUTE,
         LDAPCodes.NO_SUCH_OBJECT,
@@ -193,7 +271,7 @@ type AttributesValidationResultAlerts = dict[
 class AttributesValidationResult:
     """Result of validation Attributes or Partial Attributes."""
 
-    alerts: AttributesValidationResultAlerts = field(
+    alerts: AttributesValidationResultAlertsType = field(
         default_factory=lambda: defaultdict(list)
     )
     attributes_rejected: list[Attribute | PartialAttribute] = field(
@@ -235,7 +313,7 @@ async def validate_attributes_by_ldap_schema(
     (
         must_names,
         may_names,
-    ) = await get_attribute_type_names_by_object_class_names(
+    ) = await _get_flat_attribute_type_names_by_object_class_names(
         session,
         object_class_names,
     )
@@ -246,16 +324,20 @@ async def validate_attributes_by_ldap_schema(
                 attribute.name
             )
 
-        if attribute.name in must_names or attribute.name in may_names:
+        if (
+            attribute.name.lower() in must_names
+            or attribute.name.lower() in may_names
+        ):
             result.attributes_accepted.append(attribute)
 
         else:
             result.attributes_rejected.append(attribute)
 
     empty = [
-        name
+        name.lower()
         for name in must_names
-        if name not in {attr.name for attr in result.attributes_accepted}
+        if name
+        not in {attr.name.lower() for attr in result.attributes_accepted}
     ]
     if empty:
         result.alerts[LDAPCodes.INVALID_ATTRIBUTE_SYNTAX].extend(empty)

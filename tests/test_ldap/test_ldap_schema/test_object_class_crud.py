@@ -43,10 +43,10 @@ async def test_create_object_class(session: AsyncSession) -> None:
     assert object_class.kind == object_class_data["kind"]
     assert object_class.is_structural is True
     assert object_class.is_system == object_class_data["is_system"]
-    assert set(object_class.attribute_types_must_display) == set(
+    assert set(object_class.attribute_type_names_must) == set(
         object_class_data["attribute_types_must"]
     )
-    assert set(object_class.attribute_types_may_display) == set(
+    assert set(object_class.attribute_type_names_may) == set(
         object_class_data["attribute_types_may"]
     )
 
@@ -137,10 +137,10 @@ async def test_modify_object_class(session: AsyncSession) -> None:
     )
     assert object_class is not None
     assert object_class.is_structural is True
-    assert set(object_class.attribute_types_must_display) == set(
+    assert set(object_class.attribute_type_names_must) == set(
         new_statement.attribute_types_must
     )
-    assert set(object_class.attribute_types_may_display) == set(
+    assert set(object_class.attribute_type_names_may) == set(
         new_statement.attribute_types_may
     )
 

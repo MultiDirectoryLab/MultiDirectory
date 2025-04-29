@@ -553,11 +553,7 @@ class Attribute(Base):
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(
-        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    name: Mapped[str] = mapped_column(nullable=False, index=True)
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
@@ -715,16 +711,14 @@ class ObjectClass(Base):
             chunks.append(f"SUP {self.superior_name}")
         if self.kind:
             chunks.append(self.kind)
-        if self.attribute_types_must:
-            attribute_types_must_names = [
-                attr.name for attr in self.attribute_types_must
-            ]
-            chunks.append(f"MUST ({' $ '.join(attribute_types_must_names)} )")
-        if self.attribute_types_may:
-            attribute_types_may_names = [
-                attr.name for attr in self.attribute_types_may
-            ]
-            chunks.append(f"MAY ({' $ '.join(attribute_types_may_names)} )")
+        if self.attribute_type_names_must:
+            chunks.append(
+                f"MUST ({' $ '.join(self.attribute_type_names_must)} )"
+            )
+        if self.attribute_type_names_may:
+            chunks.append(
+                f"MAY ({' $ '.join(self.attribute_type_names_may)} )"
+            )
         chunks.append(")")
         return " ".join(chunks)
 
@@ -734,12 +728,12 @@ class ObjectClass(Base):
         return bool(self.kind == "STRUCTURAL")
 
     @property
-    def attribute_types_must_display(self) -> list[str]:
+    def attribute_type_names_must(self) -> list[str]:
         """Display attribute types must."""
         return [attr.name for attr in self.attribute_types_must]
 
     @property
-    def attribute_types_may_display(self) -> list[str]:
+    def attribute_type_names_may(self) -> list[str]:
         """Display attribute types may."""
         return [attr.name for attr in self.attribute_types_may]
 
