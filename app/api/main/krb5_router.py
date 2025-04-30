@@ -90,9 +90,12 @@ async def setup_krb_catalogue(
     services = AddRequest.from_dict(
         services_entry,
         {
-            "objectClass": ["organizationalUnit", "top"],
+            "objectClass": ["organizationalUnit", "top", "container"],
             "jpegPhoto": ["jpegphoto.jpeg"],
             "title": ["Services container."],
+            "cn": [
+                "cn=services"
+            ],  # FIXME удали этот атрибут и container класс
         },
     )
 
@@ -215,29 +218,29 @@ async def setup_kdc(
             ldap_keytab_path=settings.KRB5_LDAP_KEYTAB,
         )
     except KRBAPIError as err:
-        direstories_query = (
-            select(Directory)
-            .where(
-                or_(
-                    get_filter_from_path(krbadmin),
-                    get_filter_from_path(services_container),
-                    get_filter_from_path(krbgroup),
-                )
-            )
-        )  # fmt: skip
-        direstories = await session.scalars(direstories_query)
+        # direstories_query = (
+        #     select(Directory)
+        #     .where(
+        #         or_(
+        #             get_filter_from_path(krbadmin),
+        #             get_filter_from_path(services_container),
+        #             get_filter_from_path(krbgroup),
+        #         )
+        #     )
+        # )  # fmt: skip
+        # direstories = await session.scalars(direstories_query)
 
-        if direstories:
-            await session.execute(
-                delete(Directory)
-                .where(Directory.id.in_([dir_.id for dir_ in direstories]))
-            )  # fmt: skip
+        # if direstories:
+        #     await session.execute(
+        #         delete(Directory)
+        #         .where(Directory.id.in_([dir_.id for dir_ in direstories]))
+        #     )  # fmt: skip
 
-        await session.execute(
-            delete(AccessPolicy)
-            .where(AccessPolicy.name == KERBEROS_POLICY_NAME)
-        )  # fmt: skip
-        await kadmin.reset_setup()
+        # await session.execute(
+        #     delete(AccessPolicy)
+        #     .where(AccessPolicy.name == KERBEROS_POLICY_NAME)
+        # )  # fmt: skip
+        # await kadmin.reset_setup()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
     else:
         await set_state(session, KerberosState.READY)

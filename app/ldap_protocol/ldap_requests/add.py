@@ -23,6 +23,7 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_flat_ldap_schema,
     validate_attributes_by_ldap_schema,
     validate_chunck_object_classes_by_ldap_schema,
 )
@@ -74,12 +75,8 @@ class AddRequest(BaseRequest):
     password: SecretStr | None = Field(None, examples=["password"])
 
     @property
-    def attr_names(self) -> dict[str, list[str | bytes]]:
-        return {attr.type.lower(): attr.vals for attr in self.attributes}
-
-    @property
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
-        return {attr.type: attr.vals for attr in self.attributes}
+        return {attr.type.lower(): attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
@@ -240,14 +237,15 @@ class AddRequest(BaseRequest):
                         ),
                     )
 
-        parent_groups = await get_groups(group_attributes, session)
-        is_group = "group" in self.attributes_dict.get("objectClass", [])
+        object_class_names = self._get_object_class_names()
+        is_group = "group" in object_class_names
         is_user = (
             "sAMAccountName" in user_attributes
             or "userPrincipalName" in user_attributes
         )
-        is_computer = "computer" in self.attributes_dict.get("objectClass", [])
+        is_computer = "computer" in object_class_names
 
+        parent_groups = await get_groups(group_attributes, session)
         if is_user:
             parent_groups.append(
                 (await get_group("domain users", session)).group,
@@ -319,7 +317,7 @@ class AddRequest(BaseRequest):
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
 
-        elif is_computer and "useraccountcontrol" not in self.attr_names:
+        elif is_computer and "useraccountcontrol" not in self.attributes_dict:
             attributes.append(
                 Attribute(
                     name="userAccountControl",
@@ -330,7 +328,7 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        if (is_user or is_group) and "gidnumber" not in self.attr_names:
+        if (is_user or is_group) and "gidnumber" not in self.attributes_dict:
             reverse_d_name = new_dir.name[::-1]
             value = (
                 "513" if is_user else str(create_integer_hash(reverse_d_name))
@@ -343,12 +341,11 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        object_class_names = self._get_object_class_names()
-
+        flat_ldap_schema = await get_flat_ldap_schema(session)
         classes_validation_result = (
             await validate_chunck_object_classes_by_ldap_schema(
-                session,
                 object_class_names,
+                flat_ldap_schema,
             )
         )
         if classes_validation_result.alerts:
@@ -360,9 +357,9 @@ class AddRequest(BaseRequest):
             return
 
         attrs_validation_result = await validate_attributes_by_ldap_schema(
-            session,
             attributes,
             object_class_names,
+            flat_ldap_schema,
         )
         if attrs_validation_result.alerts:
             for code_, messages in attrs_validation_result.alerts.items():
@@ -418,7 +415,7 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
     def _get_object_class_names(self) -> set[str]:
-        object_class_values = self.attr_names.get("objectclass", [])
+        object_class_values = self.attributes_dict.get("objectclass", [])
         object_class_names = set()
         for object_class_name in object_class_values:
             if isinstance(object_class_name, bytes):

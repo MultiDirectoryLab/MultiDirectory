@@ -11,7 +11,7 @@ from ldap_protocol.ldap_responses import PartialAttribute
 from ldap_protocol.ldap_schema.attribute_type_crud import create_attribute_type
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
     _get_flat_attribute_type_names_by_object_class_names,
-    _get_flat_ldap_schema,
+    get_flat_ldap_schema,
     validate_attributes_by_ldap_schema,
     validate_chunck_object_classes_by_ldap_schema,
 )
@@ -32,7 +32,7 @@ from tests.test_ldap.test_ldap_schema.test_flat_ldap_schema_datasets import (
 async def test_get_flat_ldap_schema(session: AsyncSession) -> None:
     """Get flat schema."""
     all_object_classes = await get_all_object_classes(session)
-    flat_ldap_schema = await _get_flat_ldap_schema(session)
+    flat_ldap_schema = await get_flat_ldap_schema(session)
     assert len(all_object_classes) == len(flat_ldap_schema)
 
 
@@ -52,13 +52,14 @@ async def test_get_attribute_type_names_by_object_class_names(
     for object_class in dataset["object_classes"]:
         await create_object_class(**object_class, session=session)
 
+    flat_ldap_schema = await get_flat_ldap_schema(session)
     must, may = await _get_flat_attribute_type_names_by_object_class_names(
-        session,
         dataset["object_class_names"],
+        flat_ldap_schema,
     )
 
-    assert must == dataset["result"]["must"]
-    assert may == dataset["result"]["may"]
+    assert must == {i.lower() for i in dataset["result"]["must"]}
+    assert may == {i.lower() for i in dataset["result"]["may"]}
 
 
 @pytest.mark.asyncio
@@ -66,10 +67,11 @@ async def test_get_attribute_type_names_by_object_class_names_valerror(
     session: AsyncSession,
 ) -> None:
     """Test raises ValueError for not exists ObjectClass."""
+    flat_ldap_schema = await get_flat_ldap_schema(session)
     with pytest.raises(ValueError):  # noqa: PT011
         await _get_flat_attribute_type_names_by_object_class_names(
-            session,
             ["DoesNotExistObjectClassName"],
+            flat_ldap_schema,
         )
 
 
@@ -86,9 +88,10 @@ async def test_validate_chunck_object_classes_by_ldap_schema(
     for object_class in dataset["object_classes"]:
         await create_object_class(**object_class, session=session)
 
+    flat_ldap_schema = await get_flat_ldap_schema(session)
     result = await validate_chunck_object_classes_by_ldap_schema(
-        session,
         dataset["object_class_names"],
+        flat_ldap_schema,
     )
 
     assert not result.alerts
@@ -107,9 +110,10 @@ async def test_validate_chunck_object_classes_by_ldap_schema_error(
     for object_class in dataset["object_classes"]:
         await create_object_class(**object_class, session=session)
 
+    flat_ldap_schema = await get_flat_ldap_schema(session)
     result = await validate_chunck_object_classes_by_ldap_schema(
-        session,
         dataset["object_class_names"],
+        flat_ldap_schema,
     )
 
     assert dataset["error"] in result.alerts
@@ -135,10 +139,11 @@ async def test_validate_attributes_by_ldap_schema(
         PartialAttribute(type=name, vals=values)
         for name, values in dataset["attributes"]
     ]
+    flat_ldap_schema = await get_flat_ldap_schema(session)
     result = await validate_attributes_by_ldap_schema(
-        session,
         attributes,
         dataset["object_class_names"],
+        flat_ldap_schema,
     )
 
     assert not result.alerts
@@ -167,10 +172,11 @@ async def test_validate_attributes_by_ldap_schema_error(
         PartialAttribute(type=name, vals=values)
         for name, values in dataset["attributes"]
     ]
+    flat_ldap_schema = await get_flat_ldap_schema(session)
     result = await validate_attributes_by_ldap_schema(
-        session,
         attributes,
         dataset["object_class_names"],
+        flat_ldap_schema,
     )
 
     assert len(result.alerts) == 1

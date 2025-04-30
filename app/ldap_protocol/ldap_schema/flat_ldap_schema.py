@@ -80,12 +80,9 @@ class FlatObjectClass:
         self.attribute_types_may = object_class.attribute_types_may[:]
 
 
-async def _get_flat_ldap_schema(
+async def get_flat_ldap_schema(
     session: AsyncSession,
-) -> dict[
-    ObjectClassNameLowerCaseType,
-    FlatObjectClass,
-]:
+) -> dict[ObjectClassNameLowerCaseType, FlatObjectClass]:
     """Return the LDAP schema.
 
     :return: The LDAP schema.
@@ -152,8 +149,8 @@ async def _get_flat_ldap_schema(
 
 
 async def _get_flat_attribute_type_names_by_object_class_names(
-    session: AsyncSession,
     object_class_names: list[str] | set[str],
+    flat_ldap_schema: dict[ObjectClassNameLowerCaseType, FlatObjectClass],
 ) -> tuple[set[str], set[str]]:
     """Return the attribute types by object class name.
 
@@ -162,8 +159,6 @@ async def _get_flat_attribute_type_names_by_object_class_names(
     :raises ValueError: If the object class name is not found in the schema.
     :return: The attribute types by object class name.
     """
-    flat_ldap_schema = await _get_flat_ldap_schema(session)
-
     flat_object_classes: list[FlatObjectClass] = []
     for object_class_name in object_class_names:
         flat_object_class = flat_ldap_schema.get(object_class_name.lower())
@@ -208,8 +203,8 @@ class ObjectClassValidationResult:
 
 
 async def validate_chunck_object_classes_by_ldap_schema(
-    session: AsyncSession,
     object_class_names: set[str],
+    flat_ldap_schema: dict[ObjectClassNameLowerCaseType, FlatObjectClass],
 ) -> ObjectClassValidationResult:
     """Apply the LDAP schema to the directory Object Classes.
 
@@ -227,7 +222,6 @@ async def validate_chunck_object_classes_by_ldap_schema(
     if result.alerts:
         return result
 
-    flat_ldap_schema = await _get_flat_ldap_schema(session)
     flat_object_classes: list[FlatObjectClass] = []
     for object_class_name in object_class_names:
         flat_object_class = flat_ldap_schema.get(object_class_name.lower())
@@ -283,9 +277,9 @@ class AttributesValidationResult:
 
 
 async def validate_attributes_by_ldap_schema(
-    session: AsyncSession,
     attributes: list[Attribute] | list[PartialAttribute],
     object_class_names: set[str],
+    flat_ldap_schema: dict[ObjectClassNameLowerCaseType, FlatObjectClass],
 ) -> AttributesValidationResult:
     """Apply the LDAP schema to the directory Attributes or Partial Attributes.
 
@@ -314,8 +308,8 @@ async def validate_attributes_by_ldap_schema(
         must_names,
         may_names,
     ) = await _get_flat_attribute_type_names_by_object_class_names(
-        session,
         object_class_names,
+        flat_ldap_schema,
     )
 
     for attribute in attributes:

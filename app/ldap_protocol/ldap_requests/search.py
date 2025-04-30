@@ -32,6 +32,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_flat_ldap_schema,
     validate_attributes_by_ldap_schema,
     validate_chunck_object_classes_by_ldap_schema,
 )
@@ -429,13 +430,14 @@ class SearchRequest(BaseRequest):
         directories = await session.stream_scalars(query)
 
         directory: Directory
+        flat_ldap_schema = await get_flat_ldap_schema(session)
         async for directory in directories:
             object_class_names = self._get_object_class_names(directory)
 
             classes_validation_result = (
                 await validate_chunck_object_classes_by_ldap_schema(
-                    session,
                     object_class_names,
+                    flat_ldap_schema,
                 )
             )
             if classes_validation_result.alerts:
@@ -455,9 +457,9 @@ class SearchRequest(BaseRequest):
             ]
 
             attrs_validation_result = await validate_attributes_by_ldap_schema(
-                session,
                 partial_attributes,
                 object_class_names,
+                flat_ldap_schema,
             )
 
             yield SearchResultEntry(
@@ -466,10 +468,7 @@ class SearchRequest(BaseRequest):
             )
 
     def _get_object_class_names(self, directory: Directory) -> set[str]:
-        object_class_names: list[str] = directory.attributes_dict.get(
-            "objectClass", []
-        )
-        return set(object_class_names)
+        return directory.attributes_dict.get("objectclass", set())
 
 
 class _CollectLdapTreeEntityFieldsStrategy:

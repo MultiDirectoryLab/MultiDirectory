@@ -26,6 +26,7 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_flat_ldap_schema,
     validate_attributes_by_ldap_schema,
     validate_chunck_object_classes_by_ldap_schema,
 )
@@ -256,10 +257,11 @@ class ModifyRequest(BaseRequest):
 
         object_class_names = self._get_object_class_names(directory)
 
+        flat_ldap_schema = await get_flat_ldap_schema(session)
         classes_validation_result = (
             await validate_chunck_object_classes_by_ldap_schema(
-                session,
                 object_class_names,
+                flat_ldap_schema,
             )
         )
         if classes_validation_result.alerts:
@@ -271,9 +273,9 @@ class ModifyRequest(BaseRequest):
             return
 
         attrs_validation_result = await validate_attributes_by_ldap_schema(
-            session,
             directory.attributes,
             object_class_names,
+            flat_ldap_schema,
         )
         if attrs_validation_result.alerts:
             invalid_attr_names = attrs_validation_result.alerts.pop(
@@ -301,8 +303,7 @@ class ModifyRequest(BaseRequest):
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _get_object_class_names(self, directory: Directory) -> set[str]:
-        object_class_names = directory.attributes_dict.get("objectClass", [])
-        return set(object_class_names)
+        return directory.attributes_dict.get("objectclass", set())
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:

@@ -609,18 +609,18 @@ async def test_ldap_modify_with_ap(
     directory = await session.scalar(query)
     assert directory
 
-    assert set(directory.attributes_dict["objectClass"]) == {
+    assert directory.attributes_dict["objectclass"] == {
         "top",
         "container",
         "organizationalUnit",
     }
-    assert set(directory.attributes_dict["title"]) == {
+    assert directory.attributes_dict["title"] == {
         "Grand Poobah",
         "Grand Poobah1",
         "Grand Poobah2",
         "Grand Poobah3",
     }
-    assert directory.attributes_dict["jpegPhoto"] == ["modme.jpeg"]
+    assert directory.attributes_dict["jpegphoto"] == {"modme.jpeg"}
     assert directory.user.mail == "modme@student.of.life.edu"
 
-    assert "posixEmail" not in directory.attributes_dict
+    assert "posixemail" not in directory.attributes_dict

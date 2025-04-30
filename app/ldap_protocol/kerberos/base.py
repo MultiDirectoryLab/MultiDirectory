@@ -113,7 +113,11 @@ class AbstractKadmin(ABC):
                 "stash_password": stash_password,
             },
         )
+        import loguru
 
+        loguru.logger.error(
+            f"SOSAI setup_subtree {response.status_code} {response.text}"
+        )
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
