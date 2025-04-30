@@ -496,10 +496,7 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
-    from loguru import logger
 
-    logger.debug(f"1 {data.get('resultCode')}")
-    logger.debug(f"2 {LDAPCodes.ENTRY_ALREADY_EXISTS}")
     assert data.get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS
 
 
