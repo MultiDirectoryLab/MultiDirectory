@@ -441,7 +441,7 @@ class SearchRequest(BaseRequest):
                 )
             )
             if classes_validation_result.alerts:
-                continue
+                pass  # TODO: do we need it?
 
             strategy = _CollectLdapTreeEntityFieldsStrategy(
                 directory,
