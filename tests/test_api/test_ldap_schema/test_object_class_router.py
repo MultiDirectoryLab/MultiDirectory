@@ -43,14 +43,14 @@ async def test_create_one_object_class(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_get_list_object_classes(
+async def test_get_list_object_classes_with_pagination(
     http_client: AsyncClient,
 ) -> None:
-    """Test retrieving a list of object classes."""
-    response = await http_client.get("/schema/object_classes")
+    """Test retrieving a list of attribute types."""
+    response = await http_client.get("/schema/object_classes/1")
     assert response.status_code == status.HTTP_200_OK
-    assert isinstance(response.json(), list)
+    assert isinstance(response.json(), dict)
+    assert len(response.json().get("items")) > 0
 
 
 @pytest.mark.parametrize(

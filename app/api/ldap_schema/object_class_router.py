@@ -16,10 +16,11 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     ObjectClassUpdateSchema,
     create_object_class,
     delete_object_classes_by_names,
-    get_all_object_classes,
     get_object_class_by_name,
+    get_object_classes_paginator,
     modify_object_class,
 )
+from ldap_protocol.utils.helpers import Paginator
 
 _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
@@ -89,19 +90,25 @@ async def get_one_object_class(
 
 
 @ldap_schema_router.get(
-    "/object_classes",
-    response_model=list[ObjectClassSchema],
+    "/object_classes/{page_number}",
+    response_model=Paginator,
     status_code=status.HTTP_200_OK,
 )
-async def get_list_object_classes(
+async def get_list_object_classes_with_pagination(
+    page_number: int,
     session: FromDishka[AsyncSession],
-) -> list[ObjectClassSchema]:
-    """Retrieve a list of all Object Classes.
+) -> Paginator:
+    """Retrieve a list of all attribute types with paginate.
 
+    :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
-    :return list[ObjectClassSchema]: List of object class schemas.
+    :return Paginator: Paginator.
     """
-    return [
+    paginator = await get_object_classes_paginator(
+        session,
+        page_number,
+    )
+    paginator.items = [
         ObjectClassSchema(
             oid=object_class.oid,
             name=object_class.name,
@@ -111,8 +118,9 @@ async def get_list_object_classes(
             attribute_types_must=object_class.attribute_types_must_display,
             attribute_types_may=object_class.attribute_types_may_display,
         )
-        for object_class in await get_all_object_classes(session)
+        for object_class in paginator.items
     ]
+    return paginator
 
 
 @ldap_schema_router.patch(

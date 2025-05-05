@@ -112,8 +112,7 @@ class AddRequest(BaseRequest):
             .filter(get_path_filter(root_dn)).exists()
         )  # fmt: skip
 
-        res = await session.scalar(exists_q)
-        if res is True:
+        if await session.scalar(exists_q) is True:
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
