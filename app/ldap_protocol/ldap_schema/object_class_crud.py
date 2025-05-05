@@ -141,6 +141,7 @@ async def get_object_classes_by_names(
 async def get_object_classes_paginator(
     session: AsyncSession,
     page_number: int,
+    page_size: int,
 ) -> Paginator:
     """Retrieve paginated object_classes.
 
@@ -152,7 +153,7 @@ async def get_object_classes_paginator(
         raise ValueError("Page number must be greater than 0.")
 
     return await get_paginator(
-        page_size=25,
+        page_size=page_size,
         page_number=page_number,
         session=session,
         query=select(ObjectClass).order_by(ObjectClass.name),

@@ -96,17 +96,20 @@ async def get_one_attribute_type(
 )
 async def get_list_attribute_types_with_pagination(
     page_number: int,
+    page_size: int,
     session: FromDishka[AsyncSession],
 ) -> Paginator:
     """Retrieve a list of all attribute types with paginate.
 
     :param int page_number: number of page.
+    :param int page_size: number of items per page.
     :param FromDishka[AsyncSession] session: Database session.
     :return Paginator: Paginator.
     """
     paginator = await get_attribute_types_paginator(
-        session,
-        page_number,
+        session=session,
+        page_number=page_number,
+        page_size=page_size,
     )
     paginator.items = [
         AttributeTypeSchema(

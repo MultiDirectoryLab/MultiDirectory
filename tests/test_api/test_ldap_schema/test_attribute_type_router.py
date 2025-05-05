@@ -41,10 +41,13 @@ async def test_get_list_attribute_types_with_pagination(
     http_client: AsyncClient,
 ) -> None:
     """Test retrieving a list of attribute types."""
-    response = await http_client.get("/schema/attribute_types/1")
+    page_size = 50
+    response = await http_client.get(
+        f"/schema/attribute_types/1?page_size={page_size}"
+    )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
-    assert len(response.json().get("items")) > 0
+    assert len(response.json().get("items")) == page_size
 
 
 @pytest.mark.asyncio

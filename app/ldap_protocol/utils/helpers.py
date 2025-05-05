@@ -329,15 +329,7 @@ async def get_paginator(
     session: AsyncSession,
 ) -> Paginator:
     """Get paginator."""
-
-    def _has_order_by(query: Select) -> bool:
-        """Check if the SQLAlchemy query has an order_by clause."""
-        return (
-            query._order_by_clause is not None
-            and len(query._order_by_clause) > 0
-        )
-
-    if not _has_order_by(query):
+    if query._order_by_clause is None or len(query._order_by_clause) == 0:
         raise ValueError("SelectQuery must have an order_by clause.")
 
     total_count_query = select(func.count()).select_from(model)

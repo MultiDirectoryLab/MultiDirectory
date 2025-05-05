@@ -96,17 +96,20 @@ async def get_one_object_class(
 )
 async def get_list_object_classes_with_pagination(
     page_number: int,
+    page_size: int,
     session: FromDishka[AsyncSession],
 ) -> Paginator:
-    """Retrieve a list of all attribute types with paginate.
+    """Retrieve a list of all object classes with paginate.
 
     :param int page_number: number of page.
+    :param int page_size: number of items per page.
     :param FromDishka[AsyncSession] session: Database session.
     :return Paginator: Paginator.
     """
     paginator = await get_object_classes_paginator(
-        session,
-        page_number,
+        session=session,
+        page_number=page_number,
+        page_size=page_size,
     )
     paginator.items = [
         ObjectClassSchema(
