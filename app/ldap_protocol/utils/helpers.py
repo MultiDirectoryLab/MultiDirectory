@@ -137,10 +137,16 @@ import struct
 from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
+from math import ceil
 from operator import attrgetter
 from zoneinfo import ZoneInfo
 
-from models import Directory
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import Select
+
+from models import Base, Directory
 
 
 def validate_entry(entry: str) -> bool:
@@ -303,3 +309,48 @@ def create_user_name(directory_id: int) -> str:
 
 
 get_class_name = attrgetter("__class__.__name__")
+
+
+class Paginator(BaseModel):
+    """Paginator."""
+
+    page_number: int
+    page_size: int
+    total_pages: int
+    items: list
+
+
+async def get_paginator(
+    query: Select,
+    model: type[Base],
+    page_number: int,
+    page_size: int,
+    session: AsyncSession,
+) -> Paginator:
+    """Get paginator."""
+
+    def _has_order_by(query: Select) -> bool:
+        """Check if the SQLAlchemy query has an order_by clause."""
+        return (
+            query._order_by_clause is not None
+            and len(query._order_by_clause) > 0
+        )
+
+    if not _has_order_by(query):
+        raise ValueError("SelectQuery must have an order_by clause.")
+
+    total_count_query = select(func.count()).select_from(model)
+    total_count = (await session.scalars(total_count_query)).one()
+
+    offset = (page_number - 1) * page_size
+    query = query.offset(offset).limit(page_size)
+    result = await session.scalars(query)
+
+    total_pages = ceil(total_count / page_size)
+
+    return Paginator(
+        page_number=page_number,
+        page_size=page_size,
+        total_pages=total_pages,
+        items=list(result.all()),
+    )

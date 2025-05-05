@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.ldap_responses import PartialAttribute
@@ -15,10 +16,8 @@ from ldap_protocol.ldap_schema.flat_ldap_schema import (
     validate_attributes_by_ldap_schema,
     validate_chunck_object_classes_by_ldap_schema,
 )
-from ldap_protocol.ldap_schema.object_class_crud import (
-    create_object_class,
-    get_all_object_classes,
-)
+from ldap_protocol.ldap_schema.object_class_crud import create_object_class
+from models import ObjectClass
 from tests.test_ldap.test_ldap_schema.test_flat_ldap_schema_datasets import (
     test_get_attribute_type_names_by_object_class_names_dataset,
     test_validate_attributes_by_ldap_schema_dataset,
@@ -31,7 +30,8 @@ from tests.test_ldap.test_ldap_schema.test_flat_ldap_schema_datasets import (
 @pytest.mark.asyncio
 async def test_get_flat_ldap_schema(session: AsyncSession) -> None:
     """Get flat schema."""
-    all_object_classes = await get_all_object_classes(session)
+    result = await session.scalars(select(ObjectClass))
+    all_object_classes = list(result.all())
     flat_ldap_schema = await get_flat_ldap_schema(session)
     assert len(all_object_classes) == len(flat_ldap_schema)
 

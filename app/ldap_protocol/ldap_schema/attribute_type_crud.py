@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.utils.helpers import Paginator, get_paginator
 from models import AttributeType
 
 
@@ -95,16 +96,26 @@ async def get_attribute_types_by_names(
     return list(query.all())
 
 
-async def get_all_attribute_types(
+async def get_attribute_types_paginator(
     session: AsyncSession,
-) -> list[AttributeType]:
-    """Retrieve a list of all Attribute Types.
+    page_number: int,
+) -> Paginator:
+    """Retrieve paginated attribute_types.
 
     :param AsyncSession session: Database session.
-    :return list[AttributeType]: List of Attribute Types.
+    :param int page_number: Current page number.
+    :return Paginator: Paginated result with attribute_types and metadata.
     """
-    result = await session.scalars(select(AttributeType))
-    return list(result.all())
+    if page_number < 1:
+        raise ValueError("Page number must be greater than 0.")
+
+    return await get_paginator(
+        page_size=50,
+        page_number=page_number,
+        session=session,
+        query=select(AttributeType).order_by(AttributeType.name),
+        model=AttributeType,
+    )
 
 
 async def modify_attribute_type(

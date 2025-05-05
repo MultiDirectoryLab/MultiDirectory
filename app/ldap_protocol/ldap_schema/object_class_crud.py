@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
+from ldap_protocol.utils.helpers import Paginator, get_paginator
 from models import ObjectClass
 
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
@@ -40,8 +41,8 @@ class ObjectClassSchema(BaseModel):
 class ObjectClassUpdateSchema(BaseModel):
     """Object Class Schema for modify/update."""
 
-    attribute_types_may: list[str]
     attribute_types_must: list[str]
+    attribute_types_may: list[str]
 
 
 async def create_object_class(
@@ -137,20 +138,26 @@ async def get_object_classes_by_names(
     return list(query.all())
 
 
-async def get_all_object_classes(session: AsyncSession) -> list[ObjectClass]:
-    """Retrieve a list of all Object Classes.
+async def get_object_classes_paginator(
+    session: AsyncSession,
+    page_number: int,
+) -> Paginator:
+    """Retrieve paginated object_classes.
 
     :param AsyncSession session: Database session.
-    :return list[ObjectClass]: List of Object Classes.
+    :param int page_number: Current page number.
+    :return Paginator: Paginated result with object_classes and metadata.
     """
-    query = await session.scalars(
-        select(ObjectClass)
-        .options(
-            selectinload(ObjectClass.attribute_types_must),
-            selectinload(ObjectClass.attribute_types_may),
-        )
-    )  # fmt: skip
-    return list(query.all())
+    if page_number < 1:
+        raise ValueError("Page number must be greater than 0.")
+
+    return await get_paginator(
+        page_size=25,
+        page_number=page_number,
+        session=session,
+        query=select(ObjectClass).order_by(ObjectClass.name),
+        model=ObjectClass,
+    )
 
 
 async def modify_object_class(
