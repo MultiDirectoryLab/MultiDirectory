@@ -96,8 +96,8 @@ async def get_one_attribute_type(
 )
 async def get_list_attribute_types_with_pagination(
     page_number: int,
-    page_size: int,
     session: FromDishka[AsyncSession],
+    page_size: int = 50,
 ) -> Paginator:
     """Retrieve a list of all attribute types with paginate.
 

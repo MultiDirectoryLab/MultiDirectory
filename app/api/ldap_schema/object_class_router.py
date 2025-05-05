@@ -96,8 +96,8 @@ async def get_one_object_class(
 )
 async def get_list_object_classes_with_pagination(
     page_number: int,
-    page_size: int,
     session: FromDishka[AsyncSession],
+    page_size: int = 25,
 ) -> Paginator:
     """Retrieve a list of all object classes with paginate.
 
