@@ -312,26 +312,25 @@ def create_user_name(directory_id: int) -> str:
 
 get_class_name = attrgetter("__class__.__name__")
 
-D = TypeVar("D", contravariant=True, bound=Base)
-BM = TypeVar("BM", contravariant=True, bound=BaseModel)
+T = TypeVar("T", contravariant=True, bound=Base)
 
 
 @runtime_checkable
-class SchemaProtocol(Protocol[D]):
+class SchemaProtocol(Protocol[T]):
     """Protocol for Schema."""
 
     @classmethod
-    def from_db(cls, sqla_object: D) -> "SchemaProtocol":
+    def from_db(cls, sqla_object: T) -> "SchemaProtocol":
         """Create an instance from database."""
 
 
-class PaginationResult(BaseModel, Generic[D]):
+class PaginationResult(BaseModel, Generic[T]):
     """Paginator."""
 
     page_number: int
     page_size: int
     total_pages: int
-    items: list[SchemaProtocol[D]]
+    items: list[SchemaProtocol[T]]
 
     class Config:
         """Config for Paginator."""
@@ -344,7 +343,7 @@ async def get_pagination(
     page_number: int,
     page_size: int,
     sqla_model: type[Base],
-    schema_model: type[SchemaProtocol[D]],
+    schema_model: type[SchemaProtocol[T]],
     session: AsyncSession,
 ) -> PaginationResult:
     """Get paginator."""

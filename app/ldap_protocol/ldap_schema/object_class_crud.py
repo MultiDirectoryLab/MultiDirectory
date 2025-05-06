@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel
@@ -16,7 +15,7 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
 from ldap_protocol.utils.helpers import PaginationResult, get_pagination
-from models import Base, ObjectClass
+from models import ObjectClass
 
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
 
@@ -50,157 +49,6 @@ class ObjectClassSchema(BaseModel):
             attribute_types_must=object_class.attribute_types_must_display,
             attribute_types_may=object_class.attribute_types_may_display,
         )
-
-
-class CustomSqlaInstanse:
-    """Custom Instance Schema."""
-
-    oid: str
-    name: str
-    description: str
-
-
-@dataclass
-class CustomSchema:
-    """Object Class Schema."""
-
-    oid: str
-    name: str
-    description: str
-
-    @classmethod
-    def from_db(cls, object_class: CustomSqlaInstanse) -> "CustomSchema":
-        """Create an instance from database."""
-        return cls(
-            oid=object_class.oid,
-            name=object_class.name,
-            description="asdasd",
-        )
-
-
-async def sume_func(session: AsyncSession) -> None:
-    """Test function."""
-    await get_pagination(
-        page_size=20,
-        page_number=1,
-        query=select(ObjectClass).order_by(ObjectClass.name),
-        sqla_model=ObjectClass,
-        schema_model=CustomSchema,  # error here: CustomSqlaInstanse must be subclass of Base
-        session=session,
-    )
-
-
-class CustomSqlaInstanse2(Base):
-    """Custom Instance Schema."""
-
-    oid: str
-    name: str
-    description: str
-
-
-@dataclass
-class CustomSchema2:
-    """Object Class Schema."""
-
-    oid: str
-    name: str
-    description: str
-
-    @classmethod
-    def from_db(cls, object_class: CustomSqlaInstanse2, desc: str) -> "CustomSchema2":  # fmt: skip
-        """Create an instance from database."""
-        return cls(
-            oid=object_class.oid,
-            name=object_class.name,
-            description=desc,
-        )
-
-
-async def sume_func2(session: AsyncSession) -> None:
-    """Test function."""
-    await get_pagination(
-        page_size=20,
-        page_number=1,
-        query=select(ObjectClass).order_by(ObjectClass.name),
-        sqla_model=CustomSqlaInstanse2,
-        schema_model=CustomSchema2,  # error here: CustomSchema2.from_db != Protocol.from_db
-        session=session,
-    )
-
-
-class CustomSqlaInstanse3:
-    """Custom Instance Schema."""
-
-    oid: str
-    name: str
-    description: str
-
-
-@dataclass
-class CustomSchema3:
-    """Object Class Schema."""
-
-    oid: str
-    name: str
-    description: str
-
-    @classmethod
-    def from_db(cls, object_class: ObjectClass) -> "CustomSchema3":
-        """Create an instance from database."""
-        return cls(
-            oid=object_class.oid,
-            name=object_class.name,
-            description="desc",
-        )
-
-
-async def sume_func3(session: AsyncSession) -> None:
-    """Test function."""
-    await get_pagination(
-        page_size=20,
-        page_number=1,
-        query=select(ObjectClass).order_by(ObjectClass.name),
-        sqla_model=CustomSqlaInstanse3,  # error here: CustomSqlaInstanse3 must be subclass of Base
-        schema_model=CustomSchema3,
-        session=session,
-    )
-
-
-# class CustomSqlaInstanse4:
-#     """Custom Instance Schema."""
-
-#     oid: str
-#     name: str
-#     description: str
-
-
-class CustomSchema4(BaseModel):
-    """Object Class Schema."""
-
-    oid: str
-    name: str
-    description: str
-
-    @classmethod
-    def from_db(cls, object_class: ObjectClass) -> "CustomSchema4":
-        """Create an instance from database."""
-        return cls(
-            oid=object_class.oid,
-            name=object_class.name,
-            description="desc",
-        )
-
-
-async def sume_func4(session: AsyncSession) -> None:
-    """Test function."""
-    await get_pagination(
-        page_size=20,
-        page_number=1,
-        query=select(ObjectClass).order_by(ObjectClass.name),
-        sqla_model=ObjectClass,
-        schema_model=CustomSchema4,  # error here: CustomSchema4 must be subclass of pydantic.BaseModel
-        session=session,
-    )
 
 
 async def get_object_classes_paginator(

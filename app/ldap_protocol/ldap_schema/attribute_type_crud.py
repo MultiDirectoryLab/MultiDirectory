@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Protocol
-
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,39 +130,6 @@ async def get_attribute_types_by_names(
         .where(AttributeType.name.in_(attribute_type_names)),
     )  # fmt: skip
     return list(query.all())
-
-
-class A(BaseModel):
-    """Example class A."""
-
-    @classmethod
-    def meth(cls, arg: int) -> str:
-        return f"A: {arg}"
-
-
-class B(BaseModel):
-    """Example class B."""
-
-    @classmethod
-    def meth(cls, arg: int) -> str:
-        return f"B: {arg}"
-
-
-class SchProtocol(Protocol):
-    """Protocol for classes with a class method."""
-
-    @classmethod
-    def meth(cls, arg: int) -> str:
-        """Take."""
-
-
-def func(sch: SchProtocol, chislo: int) -> str:
-    """Take a class with a class method and an argument."""
-    return sch.meth(chislo)
-
-
-func(A, 1)  # A: 1
-func(B, 2)  # B: 2
 
 
 async def modify_attribute_type(
