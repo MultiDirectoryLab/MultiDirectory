@@ -134,6 +134,7 @@ import hashlib
 import random
 import re
 import struct
+import sys
 from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
@@ -142,7 +143,7 @@ from operator import attrgetter
 from typing import Generic, Protocol, TypeVar, runtime_checkable
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import Select
@@ -315,6 +316,23 @@ get_class_name = attrgetter("__class__.__name__")
 T = TypeVar("T", contravariant=True, bound=Base)
 
 
+class PaginationParams(BaseModel):
+    """Модель для параметров пагинации."""
+
+    page_number: int = Field(
+        ...,
+        ge=1,
+        le=sys.maxsize,
+        description="Page number.",
+    )
+    page_size: int = Field(
+        ...,
+        ge=1,
+        le=100,
+        description="Page size.",
+    )
+
+
 @runtime_checkable
 class SchemaProtocol(Protocol[T]):
     """Protocol for Schema."""
@@ -327,8 +345,7 @@ class SchemaProtocol(Protocol[T]):
 class PaginationResult(BaseModel, Generic[T]):
     """Paginator."""
 
-    page_number: int
-    page_size: int
+    params: PaginationParams
     total_pages: int
     items: list[SchemaProtocol[T]]
 
@@ -340,8 +357,7 @@ class PaginationResult(BaseModel, Generic[T]):
 
 async def get_pagination(
     query: Select,
-    page_number: int,
-    page_size: int,
+    params: PaginationParams,
     sqla_model: type[Base],
     schema_model: type[SchemaProtocol[T]],
     session: AsyncSession,
@@ -352,15 +368,14 @@ async def get_pagination(
 
     total_count_query = select(func.count()).select_from(sqla_model)
     total_count = (await session.scalars(total_count_query)).one()
-    total_pages = ceil(total_count / page_size)
+    total_pages = ceil(total_count / params.page_size)
 
-    offset = (page_number - 1) * page_size
-    query = query.offset(offset).limit(page_size)
+    offset = (params.page_number - 1) * params.page_size
+    query = query.offset(offset).limit(params.page_size)
     result = await session.scalars(query)
 
     return PaginationResult(
-        page_number=page_number,
-        page_size=page_size,
+        params=params,
         total_pages=total_pages,
         items=[schema_model.from_db(item) for item in result.all()],
     )

@@ -21,6 +21,7 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_paginator,
     modify_attribute_type,
 )
+from ldap_protocol.utils.helpers import PaginationParams
 
 _DEFAULT_ATTRIBUTE_TYPE_SYNTAX = "1.3.6.1.4.1.1466.115.121.1.15"
 _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD = False
@@ -106,11 +107,12 @@ async def get_list_attribute_types_with_pagination(
     :param int page_size: number of items per page.
     :return Paginator: Paginator.
     """
-    return await get_attribute_types_paginator(
-        session=session,
+    params = PaginationParams(
         page_number=page_number,
         page_size=page_size,
     )
+
+    return await get_attribute_types_paginator(params=params, session=session)
 
 
 @ldap_schema_router.patch(

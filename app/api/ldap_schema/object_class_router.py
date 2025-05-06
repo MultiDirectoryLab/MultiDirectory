@@ -20,7 +20,7 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_classes_paginator,
     modify_object_class,
 )
-from ldap_protocol.utils.helpers import PaginationResult
+from ldap_protocol.utils.helpers import PaginationParams, PaginationResult
 
 _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
@@ -106,11 +106,12 @@ async def get_list_object_classes_with_pagination(
     :param int page_size: number of items per page.
     :return Paginator: Paginator.
     """
-    return await get_object_classes_paginator(
-        session=session,
+    params = PaginationParams(
         page_number=page_number,
         page_size=page_size,
     )
+
+    return await get_object_classes_paginator(params=params, session=session)
 
 
 @ldap_schema_router.patch(

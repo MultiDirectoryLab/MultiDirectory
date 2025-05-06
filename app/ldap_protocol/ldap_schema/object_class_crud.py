@@ -14,7 +14,11 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
-from ldap_protocol.utils.helpers import PaginationResult, get_pagination
+from ldap_protocol.utils.helpers import (
+    PaginationParams,
+    PaginationResult,
+    get_pagination,
+)
 from models import ObjectClass
 
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
@@ -52,22 +56,17 @@ class ObjectClassSchema(BaseModel):
 
 
 async def get_object_classes_paginator(
+    params: PaginationParams,
     session: AsyncSession,
-    page_number: int,
-    page_size: int,
 ) -> PaginationResult:
     """Retrieve paginated object_classes.
 
+    :param PaginationParams params: page_size and page_number.
     :param AsyncSession session: Database session.
-    :param int page_number: Current page number.
     :return Paginator: Paginated result with object_classes and metadata.
     """
-    if page_number < 1:
-        raise ValueError("Page number must be greater than 0.")
-
     return await get_pagination(
-        page_size=page_size,
-        page_number=page_number,
+        params=params,
         query=select(ObjectClass).order_by(ObjectClass.name),
         sqla_model=ObjectClass,
         schema_model=ObjectClassSchema,
