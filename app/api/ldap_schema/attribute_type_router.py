@@ -14,7 +14,7 @@ from api.ldap_schema import ldap_schema_router
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
-    Paginator,
+    PaginationResult,
     create_attribute_type,
     delete_attribute_types_by_names,
     get_attribute_type_by_name,
@@ -91,38 +91,26 @@ async def get_one_attribute_type(
 
 @ldap_schema_router.get(
     "/attribute_types/{page_number}",
-    response_model=Paginator,
+    response_model=PaginationResult,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_attribute_types_with_pagination(
     page_number: int,
     session: FromDishka[AsyncSession],
     page_size: int = 50,
-) -> Paginator:
+) -> PaginationResult:
     """Retrieve a list of all attribute types with paginate.
 
     :param int page_number: number of page.
-    :param int page_size: number of items per page.
     :param FromDishka[AsyncSession] session: Database session.
+    :param int page_size: number of items per page.
     :return Paginator: Paginator.
     """
-    paginator = await get_attribute_types_paginator(
+    return await get_attribute_types_paginator(
         session=session,
         page_number=page_number,
         page_size=page_size,
     )
-    paginator.items = [
-        AttributeTypeSchema(
-            oid=attribute_type.oid,
-            name=attribute_type.name,
-            syntax=attribute_type.syntax,
-            single_value=attribute_type.single_value,
-            no_user_modification=attribute_type.no_user_modification,
-            is_system=attribute_type.is_system,
-        )
-        for attribute_type in paginator.items
-    ]
-    return paginator
 
 
 @ldap_schema_router.patch(

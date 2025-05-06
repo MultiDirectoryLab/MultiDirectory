@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel
@@ -14,8 +15,8 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
-from ldap_protocol.utils.helpers import Paginator, get_paginator
-from models import ObjectClass
+from ldap_protocol.utils.helpers import PaginationResult, get_pagination
+from models import Base, ObjectClass
 
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
 
@@ -36,6 +37,194 @@ class ObjectClassSchema(BaseModel):
     is_system: bool
     attribute_types_must: list[str]
     attribute_types_may: list[str]
+
+    @classmethod
+    def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
+        """Create an instance from database."""
+        return cls(
+            oid=object_class.oid,
+            name=object_class.name,
+            superior_name=object_class.superior_name,
+            kind=object_class.kind,
+            is_system=object_class.is_system,
+            attribute_types_must=object_class.attribute_types_must_display,
+            attribute_types_may=object_class.attribute_types_may_display,
+        )
+
+
+class CustomSqlaInstanse:
+    """Custom Instance Schema."""
+
+    oid: str
+    name: str
+    description: str
+
+
+@dataclass
+class CustomSchema:
+    """Object Class Schema."""
+
+    oid: str
+    name: str
+    description: str
+
+    @classmethod
+    def from_db(cls, object_class: CustomSqlaInstanse) -> "CustomSchema":
+        """Create an instance from database."""
+        return cls(
+            oid=object_class.oid,
+            name=object_class.name,
+            description="asdasd",
+        )
+
+
+async def sume_func(session: AsyncSession) -> None:
+    """Test function."""
+    await get_pagination(
+        page_size=20,
+        page_number=1,
+        query=select(ObjectClass).order_by(ObjectClass.name),
+        sqla_model=ObjectClass,
+        schema_model=CustomSchema,  # error here: CustomSqlaInstanse must be subclass of Base
+        session=session,
+    )
+
+
+class CustomSqlaInstanse2(Base):
+    """Custom Instance Schema."""
+
+    oid: str
+    name: str
+    description: str
+
+
+@dataclass
+class CustomSchema2:
+    """Object Class Schema."""
+
+    oid: str
+    name: str
+    description: str
+
+    @classmethod
+    def from_db(cls, object_class: CustomSqlaInstanse2, desc: str) -> "CustomSchema2":  # fmt: skip
+        """Create an instance from database."""
+        return cls(
+            oid=object_class.oid,
+            name=object_class.name,
+            description=desc,
+        )
+
+
+async def sume_func2(session: AsyncSession) -> None:
+    """Test function."""
+    await get_pagination(
+        page_size=20,
+        page_number=1,
+        query=select(ObjectClass).order_by(ObjectClass.name),
+        sqla_model=CustomSqlaInstanse2,
+        schema_model=CustomSchema2,  # error here: CustomSchema2.from_db != Protocol.from_db
+        session=session,
+    )
+
+
+class CustomSqlaInstanse3:
+    """Custom Instance Schema."""
+
+    oid: str
+    name: str
+    description: str
+
+
+@dataclass
+class CustomSchema3:
+    """Object Class Schema."""
+
+    oid: str
+    name: str
+    description: str
+
+    @classmethod
+    def from_db(cls, object_class: ObjectClass) -> "CustomSchema3":
+        """Create an instance from database."""
+        return cls(
+            oid=object_class.oid,
+            name=object_class.name,
+            description="desc",
+        )
+
+
+async def sume_func3(session: AsyncSession) -> None:
+    """Test function."""
+    await get_pagination(
+        page_size=20,
+        page_number=1,
+        query=select(ObjectClass).order_by(ObjectClass.name),
+        sqla_model=CustomSqlaInstanse3,  # error here: CustomSqlaInstanse3 must be subclass of Base
+        schema_model=CustomSchema3,
+        session=session,
+    )
+
+
+# class CustomSqlaInstanse4:
+#     """Custom Instance Schema."""
+
+#     oid: str
+#     name: str
+#     description: str
+
+
+class CustomSchema4(BaseModel):
+    """Object Class Schema."""
+
+    oid: str
+    name: str
+    description: str
+
+    @classmethod
+    def from_db(cls, object_class: ObjectClass) -> "CustomSchema4":
+        """Create an instance from database."""
+        return cls(
+            oid=object_class.oid,
+            name=object_class.name,
+            description="desc",
+        )
+
+
+async def sume_func4(session: AsyncSession) -> None:
+    """Test function."""
+    await get_pagination(
+        page_size=20,
+        page_number=1,
+        query=select(ObjectClass).order_by(ObjectClass.name),
+        sqla_model=ObjectClass,
+        schema_model=CustomSchema4,  # error here: CustomSchema4 must be subclass of pydantic.BaseModel
+        session=session,
+    )
+
+
+async def get_object_classes_paginator(
+    session: AsyncSession,
+    page_number: int,
+    page_size: int,
+) -> PaginationResult:
+    """Retrieve paginated object_classes.
+
+    :param AsyncSession session: Database session.
+    :param int page_number: Current page number.
+    :return Paginator: Paginated result with object_classes and metadata.
+    """
+    if page_number < 1:
+        raise ValueError("Page number must be greater than 0.")
+
+    return await get_pagination(
+        page_size=page_size,
+        page_number=page_number,
+        query=select(ObjectClass).order_by(ObjectClass.name),
+        sqla_model=ObjectClass,
+        schema_model=ObjectClassSchema,
+        session=session,
+    )
 
 
 class ObjectClassUpdateSchema(BaseModel):
@@ -136,29 +325,6 @@ async def get_object_classes_by_names(
         )
     )  # fmt: skip
     return list(query.all())
-
-
-async def get_object_classes_paginator(
-    session: AsyncSession,
-    page_number: int,
-    page_size: int,
-) -> Paginator:
-    """Retrieve paginated object_classes.
-
-    :param AsyncSession session: Database session.
-    :param int page_number: Current page number.
-    :return Paginator: Paginated result with object_classes and metadata.
-    """
-    if page_number < 1:
-        raise ValueError("Page number must be greater than 0.")
-
-    return await get_paginator(
-        page_size=page_size,
-        page_number=page_number,
-        session=session,
-        query=select(ObjectClass).order_by(ObjectClass.name),
-        model=ObjectClass,
-    )
 
 
 async def modify_object_class(

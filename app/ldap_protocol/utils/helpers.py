@@ -139,6 +139,7 @@ from datetime import datetime
 from hashlib import blake2b
 from math import ceil
 from operator import attrgetter
+from typing import Generic, Protocol, TypeVar, runtime_checkable
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
@@ -311,39 +312,56 @@ def create_user_name(directory_id: int) -> str:
 
 get_class_name = attrgetter("__class__.__name__")
 
+D = TypeVar("D", contravariant=True, bound=Base)
+BM = TypeVar("BM", contravariant=True, bound=BaseModel)
 
-class Paginator(BaseModel):
+
+@runtime_checkable
+class SchemaProtocol(Protocol[D]):
+    """Protocol for Schema."""
+
+    @classmethod
+    def from_db(cls, sqla_object: D) -> "SchemaProtocol":
+        """Create an instance from database."""
+
+
+class PaginationResult(BaseModel, Generic[D]):
     """Paginator."""
 
     page_number: int
     page_size: int
     total_pages: int
-    items: list
+    items: list[SchemaProtocol[D]]
+
+    class Config:
+        """Config for Paginator."""
+
+        arbitrary_types_allowed = True
 
 
-async def get_paginator(
+async def get_pagination(
     query: Select,
-    model: type[Base],
     page_number: int,
     page_size: int,
+    sqla_model: type[Base],
+    schema_model: type[SchemaProtocol[D]],
     session: AsyncSession,
-) -> Paginator:
+) -> PaginationResult:
     """Get paginator."""
     if query._order_by_clause is None or len(query._order_by_clause) == 0:
-        raise ValueError("SelectQuery must have an order_by clause.")
+        raise ValueError("Select query must have an order_by clause.")
 
-    total_count_query = select(func.count()).select_from(model)
+    total_count_query = select(func.count()).select_from(sqla_model)
     total_count = (await session.scalars(total_count_query)).one()
+    total_pages = ceil(total_count / page_size)
 
     offset = (page_number - 1) * page_size
     query = query.offset(offset).limit(page_size)
     result = await session.scalars(query)
 
-    total_pages = ceil(total_count / page_size)
-
-    return Paginator(
+    return PaginationResult(
         page_number=page_number,
         page_size=page_size,
         total_pages=total_pages,
-        items=list(result.all()),
+        items=[schema_model.from_db(item) for item in result.all()],
     )

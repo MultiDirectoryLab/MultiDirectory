@@ -4,11 +4,13 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Protocol
+
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.helpers import Paginator, get_paginator
+from ldap_protocol.utils.helpers import PaginationResult, get_pagination
 from models import AttributeType
 
 
@@ -21,6 +23,42 @@ class AttributeTypeSchema(BaseModel):
     single_value: bool
     no_user_modification: bool
     is_system: bool
+
+    @classmethod
+    def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
+        """Create an instance from database."""
+        return cls(
+            oid=attribute_type.oid,
+            name=attribute_type.name,
+            syntax=attribute_type.syntax,
+            single_value=attribute_type.single_value,
+            no_user_modification=attribute_type.no_user_modification,
+            is_system=attribute_type.is_system,
+        )
+
+
+async def get_attribute_types_paginator(
+    session: AsyncSession,
+    page_number: int,
+    page_size: int,
+) -> PaginationResult:
+    """Retrieve paginated attribute_types.
+
+    :param AsyncSession session: Database session.
+    :param int page_number: Current page number.
+    :return Paginator: Paginated result with attribute_types and metadata.
+    """
+    if page_number < 1:
+        raise ValueError("Page number must be greater than 0.")
+
+    return await get_pagination(
+        page_size=page_size,
+        page_number=page_number,
+        query=select(AttributeType).order_by(AttributeType.name),
+        sqla_model=AttributeType,
+        schema_model=AttributeTypeSchema,
+        session=session,
+    )
 
 
 class AttributeTypeUpdateSchema(BaseModel):
@@ -96,27 +134,37 @@ async def get_attribute_types_by_names(
     return list(query.all())
 
 
-async def get_attribute_types_paginator(
-    session: AsyncSession,
-    page_number: int,
-    page_size: int,
-) -> Paginator:
-    """Retrieve paginated attribute_types.
+class A(BaseModel):
+    """Example class A."""
 
-    :param AsyncSession session: Database session.
-    :param int page_number: Current page number.
-    :return Paginator: Paginated result with attribute_types and metadata.
-    """
-    if page_number < 1:
-        raise ValueError("Page number must be greater than 0.")
+    @classmethod
+    def meth(cls, arg: int) -> str:
+        return f"A: {arg}"
 
-    return await get_paginator(
-        page_size=page_size,
-        page_number=page_number,
-        session=session,
-        query=select(AttributeType).order_by(AttributeType.name),
-        model=AttributeType,
-    )
+
+class B(BaseModel):
+    """Example class B."""
+
+    @classmethod
+    def meth(cls, arg: int) -> str:
+        return f"B: {arg}"
+
+
+class SchProtocol(Protocol):
+    """Protocol for classes with a class method."""
+
+    @classmethod
+    def meth(cls, arg: int) -> str:
+        """Take."""
+
+
+def func(sch: SchProtocol, chislo: int) -> str:
+    """Take a class with a class method and an argument."""
+    return sch.meth(chislo)
+
+
+func(A, 1)  # A: 1
+func(B, 2)  # B: 2
 
 
 async def modify_attribute_type(
