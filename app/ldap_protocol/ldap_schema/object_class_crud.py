@@ -150,7 +150,10 @@ async def get_object_class_by_name(
     :param AsyncSession session: Database session.
     :return ObjectClass | None: Object Class.
     """
-    return await session.get(ObjectClass, object_class_name)
+    return await session.scalar(
+        select(ObjectClass)
+        .where(ObjectClass.name == object_class_name)
+    )  # fmt: skip
 
 
 async def get_object_classes_by_names(

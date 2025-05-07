@@ -108,7 +108,10 @@ async def get_attribute_type_by_name(
     :param AsyncSession session: Database session.
     :return AttributeType | None: Attribute Type.
     """
-    return await session.get(AttributeType, attribute_type_name)
+    return await session.scalar(
+        select(AttributeType)
+        .where(AttributeType.name == attribute_type_name)
+    )  # fmt: skip
 
 
 async def get_attribute_types_by_names(
