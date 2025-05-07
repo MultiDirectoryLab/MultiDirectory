@@ -8,11 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.helpers import (
-    PaginationParams,
-    PaginationResult,
-    get_pagination,
-)
+from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from models import AttributeType
 
 
@@ -49,9 +45,9 @@ async def get_attribute_types_paginator(
     :param AsyncSession session: Database session.
     :return Paginator: Paginated result with attribute_types and metadata.
     """
-    return await get_pagination(
+    return await PaginationResult.get(
         params=params,
-        query=select(AttributeType).order_by(AttributeType.name),
+        query=select(AttributeType).order_by(AttributeType.id),
         sqla_model=AttributeType,
         schema_model=AttributeTypeSchema,
         session=session,

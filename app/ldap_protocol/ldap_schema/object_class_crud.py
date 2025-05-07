@@ -12,11 +12,7 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
-from ldap_protocol.utils.helpers import (
-    PaginationParams,
-    PaginationResult,
-    get_pagination,
-)
+from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from models import KindType, ObjectClass
 
 OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
@@ -61,9 +57,9 @@ async def get_object_classes_paginator(
     :param AsyncSession session: Database session.
     :return Paginator: Paginated result with object_classes and metadata.
     """
-    return await get_pagination(
+    return await PaginationResult.get(
         params=params,
-        query=select(ObjectClass).order_by(ObjectClass.name),
+        query=select(ObjectClass).order_by(ObjectClass.id),
         sqla_model=ObjectClass,
         schema_model=ObjectClassSchema,
         session=session,
