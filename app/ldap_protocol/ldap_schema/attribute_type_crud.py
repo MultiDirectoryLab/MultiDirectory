@@ -8,7 +8,11 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.helpers import Paginator, get_paginator
+from ldap_protocol.utils.helpers import (
+    PaginationParams,
+    PaginationResult,
+    get_pagination,
+)
 from models import AttributeType
 
 
@@ -21,6 +25,37 @@ class AttributeTypeSchema(BaseModel):
     single_value: bool
     no_user_modification: bool
     is_system: bool
+
+    @classmethod
+    def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
+        """Create an instance from database."""
+        return cls(
+            oid=attribute_type.oid,
+            name=attribute_type.name,
+            syntax=attribute_type.syntax,
+            single_value=attribute_type.single_value,
+            no_user_modification=attribute_type.no_user_modification,
+            is_system=attribute_type.is_system,
+        )
+
+
+async def get_attribute_types_paginator(
+    params: PaginationParams,
+    session: AsyncSession,
+) -> PaginationResult:
+    """Retrieve paginated attribute_types.
+
+    :param PaginationParams params: page_size and page_number.
+    :param AsyncSession session: Database session.
+    :return Paginator: Paginated result with attribute_types and metadata.
+    """
+    return await get_pagination(
+        params=params,
+        query=select(AttributeType).order_by(AttributeType.name),
+        sqla_model=AttributeType,
+        schema_model=AttributeTypeSchema,
+        session=session,
+    )
 
 
 class AttributeTypeUpdateSchema(BaseModel):
@@ -73,7 +108,10 @@ async def get_attribute_type_by_name(
     :param AsyncSession session: Database session.
     :return AttributeType | None: Attribute Type.
     """
-    return await session.get(AttributeType, attribute_type_name)
+    return await session.scalar(
+        select(AttributeType)
+        .where(AttributeType.name == attribute_type_name)
+    )  # fmt: skip
 
 
 async def get_attribute_types_by_names(
@@ -94,28 +132,6 @@ async def get_attribute_types_by_names(
         .where(AttributeType.name.in_(attribute_type_names)),
     )  # fmt: skip
     return list(query.all())
-
-
-async def get_attribute_types_paginator(
-    session: AsyncSession,
-    page_number: int,
-) -> Paginator:
-    """Retrieve paginated attribute_types.
-
-    :param AsyncSession session: Database session.
-    :param int page_number: Current page number.
-    :return Paginator: Paginated result with attribute_types and metadata.
-    """
-    if page_number < 1:
-        raise ValueError("Page number must be greater than 0.")
-
-    return await get_paginator(
-        page_size=50,
-        page_number=page_number,
-        session=session,
-        query=select(AttributeType).order_by(AttributeType.name),
-        model=AttributeType,
-    )
 
 
 async def modify_attribute_type(

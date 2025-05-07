@@ -14,7 +14,11 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
-from ldap_protocol.utils.helpers import Paginator, get_paginator
+from ldap_protocol.utils.helpers import (
+    PaginationParams,
+    PaginationResult,
+    get_pagination,
+)
 from models import ObjectClass
 
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
@@ -36,6 +40,38 @@ class ObjectClassSchema(BaseModel):
     is_system: bool
     attribute_types_must: list[str]
     attribute_types_may: list[str]
+
+    @classmethod
+    def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
+        """Create an instance from database."""
+        return cls(
+            oid=object_class.oid,
+            name=object_class.name,
+            superior_name=object_class.superior_name,
+            kind=object_class.kind,
+            is_system=object_class.is_system,
+            attribute_types_must=object_class.attribute_types_must_display,
+            attribute_types_may=object_class.attribute_types_may_display,
+        )
+
+
+async def get_object_classes_paginator(
+    params: PaginationParams,
+    session: AsyncSession,
+) -> PaginationResult:
+    """Retrieve paginated object_classes.
+
+    :param PaginationParams params: page_size and page_number.
+    :param AsyncSession session: Database session.
+    :return Paginator: Paginated result with object_classes and metadata.
+    """
+    return await get_pagination(
+        params=params,
+        query=select(ObjectClass).order_by(ObjectClass.name),
+        sqla_model=ObjectClass,
+        schema_model=ObjectClassSchema,
+        session=session,
+    )
 
 
 class ObjectClassUpdateSchema(BaseModel):
@@ -114,7 +150,10 @@ async def get_object_class_by_name(
     :param AsyncSession session: Database session.
     :return ObjectClass | None: Object Class.
     """
-    return await session.get(ObjectClass, object_class_name)
+    return await session.scalar(
+        select(ObjectClass)
+        .where(ObjectClass.name == object_class_name)
+    )  # fmt: skip
 
 
 async def get_object_classes_by_names(
@@ -136,28 +175,6 @@ async def get_object_classes_by_names(
         )
     )  # fmt: skip
     return list(query.all())
-
-
-async def get_object_classes_paginator(
-    session: AsyncSession,
-    page_number: int,
-) -> Paginator:
-    """Retrieve paginated object_classes.
-
-    :param AsyncSession session: Database session.
-    :param int page_number: Current page number.
-    :return Paginator: Paginated result with object_classes and metadata.
-    """
-    if page_number < 1:
-        raise ValueError("Page number must be greater than 0.")
-
-    return await get_paginator(
-        page_size=25,
-        page_number=page_number,
-        session=session,
-        query=select(ObjectClass).order_by(ObjectClass.name),
-        model=ObjectClass,
-    )
 
 
 async def modify_object_class(

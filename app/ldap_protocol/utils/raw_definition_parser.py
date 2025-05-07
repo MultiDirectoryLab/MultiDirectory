@@ -65,7 +65,10 @@ class RawDefinitionParser:
         object_class_name: str,
         session: AsyncSession,
     ) -> ObjectClass | None:
-        return await session.get(ObjectClass, object_class_name)
+        return await session.scalar(
+            select(ObjectClass)
+            .where(ObjectClass.name == object_class_name)
+        )  # fmt: skip
 
     @staticmethod
     async def create_object_class_by_info(

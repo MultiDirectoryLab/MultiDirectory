@@ -591,8 +591,9 @@ class AttributeType(Base):
 
     __tablename__ = "AttributeTypes"
 
+    id: Mapped[int] = mapped_column(primary_key=True)
     oid: Mapped[str] = mapped_column(nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
     syntax: Mapped[str]
     single_value: Mapped[bool]
     no_user_modification: Mapped[bool]
@@ -670,8 +671,9 @@ class ObjectClass(Base):
 
     __tablename__ = "ObjectClasses"
 
+    id: Mapped[int] = mapped_column(primary_key=True)
     oid: Mapped[str] = mapped_column(nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
     superior_name: Mapped[str | None] = mapped_column(
         ForeignKey("ObjectClasses.name", ondelete="SET NULL"),
         nullable=True,

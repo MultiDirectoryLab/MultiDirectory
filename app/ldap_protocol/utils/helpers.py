@@ -134,14 +134,16 @@ import hashlib
 import random
 import re
 import struct
+import sys
 from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
 from math import ceil
 from operator import attrgetter
+from typing import Generic, Protocol, TypeVar, runtime_checkable
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import Select
@@ -310,47 +312,69 @@ def create_user_name(directory_id: int) -> str:
 
 get_class_name = attrgetter("__class__.__name__")
 
+T = TypeVar("T", contravariant=True, bound=Base)
 
-class Paginator(BaseModel):
+
+class PaginationParams(BaseModel):
+    """Модель для параметров пагинации."""
+
+    page_number: int = Field(
+        ...,
+        ge=1,
+        le=sys.maxsize,
+        description="Page number.",
+    )
+    page_size: int = Field(
+        ...,
+        ge=1,
+        le=100,
+        description="Page size.",
+    )
+
+
+@runtime_checkable
+class SchemaProtocol(Protocol[T]):
+    """Protocol for Schema."""
+
+    @classmethod
+    def from_db(cls, sqla_object: T) -> "SchemaProtocol":
+        """Create an instance from database."""
+
+
+class PaginationResult(BaseModel, Generic[T]):
     """Paginator."""
 
-    page_number: int
-    page_size: int
+    params: PaginationParams
     total_pages: int
-    items: list
+    items: list[SchemaProtocol[T]]
+
+    class Config:
+        """Config for Paginator."""
+
+        arbitrary_types_allowed = True
 
 
-async def get_paginator(
+async def get_pagination(
     query: Select,
-    model: type[Base],
-    page_number: int,
-    page_size: int,
+    params: PaginationParams,
+    sqla_model: type[Base],
+    schema_model: type[SchemaProtocol[T]],
     session: AsyncSession,
-) -> Paginator:
+) -> PaginationResult:
     """Get paginator."""
+    if query._order_by_clause is None or len(query._order_by_clause) == 0:
+        raise ValueError("Select query must have an order_by clause.")
 
-    def _has_order_by(query: Select) -> bool:
-        """Check if the SQLAlchemy query has an order_by clause."""
-        return (
-            query._order_by_clause is not None
-            and len(query._order_by_clause) > 0
-        )
-
-    if not _has_order_by(query):
-        raise ValueError("SelectQuery must have an order_by clause.")
-
-    total_count_query = select(func.count()).select_from(model)
+    total_count_query = select(func.count()).select_from(sqla_model)
     total_count = (await session.scalars(total_count_query)).one()
+    total_pages = ceil(total_count / params.page_size)
 
-    offset = (page_number - 1) * page_size
-    query = query.offset(offset).limit(page_size)
+    offset = (params.page_number - 1) * params.page_size
+    query = query.offset(offset).limit(params.page_size)
     result = await session.scalars(query)
 
-    total_pages = ceil(total_count / page_size)
-
-    return Paginator(
-        page_number=page_number,
-        page_size=page_size,
+    return PaginationResult(
+        params=params,
         total_pages=total_pages,
-        items=list(result.all()),
+        items=[schema_model.from_db(item) for item in result.all()],
     )
