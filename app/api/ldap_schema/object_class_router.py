@@ -20,7 +20,7 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_classes_paginator,
     modify_object_class,
 )
-from ldap_protocol.utils.helpers import PaginationParams, PaginationResult
+from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 

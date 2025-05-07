@@ -21,7 +21,7 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_paginator,
     modify_attribute_type,
 )
-from ldap_protocol.utils.helpers import PaginationParams
+from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_ATTRIBUTE_TYPE_SYNTAX = "1.3.6.1.4.1.1466.115.121.1.15"
 _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD = False
