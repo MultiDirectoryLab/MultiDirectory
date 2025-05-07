@@ -110,6 +110,7 @@ async def get_list_object_classes_with_pagination(
         page_number=page_number,
         page_size=page_size,
     )
+
     return await get_object_classes_paginator(params=params, session=session)
 
 
