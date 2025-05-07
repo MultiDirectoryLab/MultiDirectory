@@ -553,11 +553,7 @@ class Attribute(Base):
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(
-        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    name: Mapped[str] = mapped_column(nullable=False, index=True)
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
@@ -729,25 +725,25 @@ class ObjectClass(Base):
         if self.kind:
             chunks.append(self.kind)
         if self.attribute_types_must:
-            attribute_types_must_names = [
+            attribute_type_names_must = [
                 attr.name for attr in self.attribute_types_must
             ]
-            chunks.append(f"MUST ({' $ '.join(attribute_types_must_names)} )")
+            chunks.append(f"MUST ({' $ '.join(attribute_type_names_must)} )")
         if self.attribute_types_may:
-            attribute_types_may_names = [
+            attribute_type_names_may = [
                 attr.name for attr in self.attribute_types_may
             ]
-            chunks.append(f"MAY ({' $ '.join(attribute_types_may_names)} )")
+            chunks.append(f"MAY ({' $ '.join(attribute_type_names_may)} )")
         chunks.append(")")
         return " ".join(chunks)
 
     @property
-    def attribute_types_must_display(self) -> list[str]:
+    def attribute_type_names_must(self) -> list[str]:
         """Display attribute types must."""
         return [attr.name for attr in self.attribute_types_must]
 
     @property
-    def attribute_types_may_display(self) -> list[str]:
+    def attribute_type_names_may(self) -> list[str]:
         """Display attribute types may."""
         return [attr.name for attr in self.attribute_types_may]
 

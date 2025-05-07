@@ -45,8 +45,8 @@ async def create_one_object_class(
         superior_name=request_data.superior_name,
         kind=request_data.kind,
         is_system=_DEFAULT_OBJECT_CLASS_IS_SYSTEM,
-        attribute_type_names_must=request_data.attribute_types_must,
-        attribute_type_names_may=request_data.attribute_types_may,
+        attribute_type_names_must=request_data.attribute_type_names_must,
+        attribute_type_names_may=request_data.attribute_type_names_may,
         session=session,
     )
 

@@ -34,8 +34,8 @@ class ObjectClassSchema(BaseModel):
     superior_name: str | None
     kind: KindType
     is_system: bool
-    attribute_types_must: list[str]
-    attribute_types_may: list[str]
+    attribute_type_names_must: list[str]
+    attribute_type_names_may: list[str]
 
     @classmethod
     def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
@@ -46,8 +46,8 @@ class ObjectClassSchema(BaseModel):
             superior_name=object_class.superior_name,
             kind=object_class.kind,
             is_system=object_class.is_system,
-            attribute_types_must=object_class.attribute_types_must_display,
-            attribute_types_may=object_class.attribute_types_may_display,
+            attribute_type_names_must=object_class.attribute_type_names_must,
+            attribute_type_names_may=object_class.attribute_type_names_may,
         )
 
 
