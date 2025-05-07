@@ -120,7 +120,7 @@ async def modify_one_object_class(
     :param str object_class_name: Name of the Object Class for modifying.
     :param ObjectClassUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
-    :raise HTTP_400_BAD_REQUEST: If nothing to delete.
+    :raise HTTP_404_NOT_FOUND: If nothing to delete.
     :raise HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
     :return None.
     """
@@ -134,7 +134,7 @@ async def modify_one_object_class(
     if object_class.is_system:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "System object class cannot be modified.",
+            "System Object Class cannot be modified.",
         )
 
     await modify_object_class(

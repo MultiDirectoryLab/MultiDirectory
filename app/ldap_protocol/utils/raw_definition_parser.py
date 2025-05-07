@@ -62,9 +62,12 @@ class RawDefinitionParser:
 
     @staticmethod
     async def _get_object_class_by_name(
-        object_class_name: str,
+        object_class_name: str | None,
         session: AsyncSession,
     ) -> ObjectClass | None:
+        if not object_class_name:
+            return None
+
         return await session.scalar(
             select(ObjectClass)
             .where(ObjectClass.name == object_class_name)
@@ -79,15 +82,13 @@ class RawDefinitionParser:
         superior_name = RawDefinitionParser._list_to_string(
             object_class_info.superior
         )
-        if superior_name:
-            superior_object_class = (
-                await RawDefinitionParser._get_object_class_by_name(
-                    superior_name,
-                    session,
-                )
+
+        superior_object_class = (
+            await RawDefinitionParser._get_object_class_by_name(
+                superior_name,
+                session,
             )
-        else:
-            superior_object_class = None
+        )
 
         object_class = ObjectClass(
             oid=object_class_info.oid,

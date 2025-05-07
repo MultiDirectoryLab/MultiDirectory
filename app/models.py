@@ -605,10 +605,18 @@ class AttributeType(Base):
     is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
 
     def get_raw_definition(self) -> str:
-        """SQLAlchemy object format to LDAP definition."""
-        chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
-        if self.syntax:
-            chunks.append(f"SYNTAX '{self.syntax}'")
+        """Format SQLAlchemy Attribute Type object to LDAP definition."""
+        if not self.oid or not self.name or not self.syntax:
+            err_msg = f"{self}: Fields 'oid', 'name', and 'syntax' are required for LDAP definition."  # noqa: E501
+            raise ValueError(err_msg)
+
+        chunks = [
+            "(",
+            f"{self.oid}",
+            f"NAME '{self.name}'",
+            f"SYNTAX '{self.syntax}'",
+        ]
+
         if self.single_value:
             chunks.append("SINGLE-VALUE")
         if self.no_user_modification:
@@ -718,22 +726,26 @@ class ObjectClass(Base):
     )
 
     def get_raw_definition(self) -> str:
-        """SQLAlchemy object format to LDAP definition."""
+        """Format SQLAlchemy Object Class object to LDAP definition."""
+        if not self.oid or not self.name or not self.kind:
+            err_msg = f"{self}: Fields 'oid', 'name', and 'kind' are required for LDAP definition."  # noqa: E501
+            raise ValueError(err_msg)
+
         chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
+
         if self.superior_name:
             chunks.append(f"SUP {self.superior_name}")
-        if self.kind:
-            chunks.append(self.kind)
-        if self.attribute_types_must:
-            attribute_type_names_must = [
-                attr.name for attr in self.attribute_types_must
-            ]
-            chunks.append(f"MUST ({' $ '.join(attribute_type_names_must)} )")
-        if self.attribute_types_may:
-            attribute_type_names_may = [
-                attr.name for attr in self.attribute_types_may
-            ]
-            chunks.append(f"MAY ({' $ '.join(attribute_type_names_may)} )")
+
+        chunks.append(self.kind)
+
+        if self.attribute_type_names_must:
+            chunks.append(
+                f"MUST ({' $ '.join(self.attribute_type_names_must)} )"
+            )
+        if self.attribute_type_names_may:
+            chunks.append(
+                f"MAY ({' $ '.join(self.attribute_type_names_may)} )"
+            )
         chunks.append(")")
         return " ".join(chunks)
 
