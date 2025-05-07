@@ -83,8 +83,8 @@ test_modify_one_object_class_dataset = [
             "attribute_types_may": [],
         },
         "new_statement": {
-            "attribute_types_must": [],
-            "attribute_types_may": [],
+            "attribute_type_names_must": [],
+            "attribute_type_names_may": [],
         },
     },
     {
@@ -108,8 +108,8 @@ test_modify_one_object_class_dataset = [
             "attribute_types_may": [],
         },
         "new_statement": {
-            "attribute_types_must": [],
-            "attribute_types_may": ["testAttributeType1"],
+            "attribute_type_names_must": [],
+            "attribute_type_names_may": ["testAttributeType1"],
         },
     },
     {
@@ -141,11 +141,11 @@ test_modify_one_object_class_dataset = [
             "attribute_types_may": [],
         },
         "new_statement": {
-            "attribute_types_must": [
+            "attribute_type_names_must": [
                 "testAttributeType1",
                 "testAttributeType2",
             ],
-            "attribute_types_may": [],
+            "attribute_type_names_may": [],
         },
     },
     {
@@ -186,8 +186,8 @@ test_modify_one_object_class_dataset = [
         },
         "new_statement": {
             "kind": "STRUCTURAL",
-            "attribute_types_must": [],
-            "attribute_types_may": ["testAttributeType3"],
+            "attribute_type_names_must": [],
+            "attribute_type_names_may": ["testAttributeType3"],
         },
     },
 ]

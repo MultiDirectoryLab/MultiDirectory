@@ -94,10 +94,10 @@ async def test_modify_one_object_class(
     assert isinstance(response.json(), dict)
     object_class = response.json()
     assert set(object_class.get("attribute_types_must")) == set(
-        new_statement.get("attribute_types_must")
+        new_statement.get("attribute_type_names_must")
     )  # type: ignore
     assert set(object_class.get("attribute_types_may")) == set(
-        new_statement.get("attribute_types_may")
+        new_statement.get("attribute_type_names_may")
     )  # type: ignore
 
 
