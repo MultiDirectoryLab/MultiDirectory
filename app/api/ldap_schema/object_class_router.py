@@ -45,8 +45,8 @@ async def create_one_object_class(
         superior_name=request_data.superior_name,
         kind=request_data.kind,
         is_system=_DEFAULT_OBJECT_CLASS_IS_SYSTEM,
-        attribute_types_must=request_data.attribute_types_must,
-        attribute_types_may=request_data.attribute_types_may,
+        attribute_type_names_must=request_data.attribute_type_names_must,
+        attribute_type_names_may=request_data.attribute_type_names_may,
         session=session,
     )
 
@@ -62,10 +62,10 @@ async def get_one_object_class(
 ) -> ObjectClassSchema:
     """Retrieve a one object class.
 
-    :param str object_class_name: name of the Attribute Type.
+    :param str object_class_name: name of the Object Class.
     :param FromDishka[AsyncSession] session: Database session.
-    :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
-    :return AttributeTypeSchema: One Attribute Type Schemas.
+    :raise HTTP_404_NOT_FOUND: If Object Class not found.
+    :return ObjectClassSchema: One Object Class Schemas.
     """
     object_class = await get_object_class_by_name(
         object_class_name,
@@ -78,15 +78,7 @@ async def get_one_object_class(
             "Object Class not found.",
         )
 
-    return ObjectClassSchema(
-        oid=object_class.oid,
-        name=object_class.name,
-        superior_name=object_class.superior_name,
-        kind=object_class.kind,
-        is_system=object_class.is_system,
-        attribute_types_must=object_class.attribute_type_names_must,
-        attribute_types_may=object_class.attribute_type_names_may,
-    )
+    return ObjectClassSchema.from_db(object_class)
 
 
 @ldap_schema_router.get(
@@ -128,7 +120,7 @@ async def modify_one_object_class(
     :param str object_class_name: Name of the Object Class for modifying.
     :param ObjectClassUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
-    :raise HTTP_400_BAD_REQUEST: If nothing to delete.
+    :raise HTTP_404_NOT_FOUND: If nothing to delete.
     :raise HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
     :return None.
     """
@@ -142,7 +134,7 @@ async def modify_one_object_class(
     if object_class.is_system:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "System object class cannot be modified.",
+            "System Object Class cannot be modified.",
         )
 
     await modify_object_class(

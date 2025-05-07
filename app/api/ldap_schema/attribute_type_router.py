@@ -80,14 +80,7 @@ async def get_one_attribute_type(
             "Attribute Type not found.",
         )
 
-    return AttributeTypeSchema(
-        oid=attribute_type.oid,
-        name=attribute_type.name,
-        syntax=attribute_type.syntax,
-        single_value=attribute_type.single_value,
-        no_user_modification=attribute_type.no_user_modification,
-        is_system=attribute_type.is_system,
-    )
+    return AttributeTypeSchema.from_db(attribute_type)
 
 
 @ldap_schema_router.get(

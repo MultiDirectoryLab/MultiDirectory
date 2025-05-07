@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Literal
-
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,9 +17,7 @@ from ldap_protocol.utils.helpers import (
     PaginationResult,
     get_pagination,
 )
-from models import ObjectClass
-
-type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
+from models import KindType, ObjectClass
 
 OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
     "STRUCTURAL",
@@ -38,8 +34,8 @@ class ObjectClassSchema(BaseModel):
     superior_name: str | None
     kind: KindType
     is_system: bool
-    attribute_types_must: list[str]
-    attribute_types_may: list[str]
+    attribute_type_names_must: list[str]
+    attribute_type_names_may: list[str]
 
     @classmethod
     def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
@@ -50,8 +46,8 @@ class ObjectClassSchema(BaseModel):
             superior_name=object_class.superior_name,
             kind=object_class.kind,
             is_system=object_class.is_system,
-            attribute_types_must=object_class.attribute_type_names_must,
-            attribute_types_may=object_class.attribute_type_names_may,
+            attribute_type_names_must=object_class.attribute_type_names_must,
+            attribute_type_names_may=object_class.attribute_type_names_may,
         )
 
 
@@ -77,8 +73,8 @@ async def get_object_classes_paginator(
 class ObjectClassUpdateSchema(BaseModel):
     """Object Class Schema for modify/update."""
 
-    attribute_types_must: list[str]
-    attribute_types_may: list[str]
+    attribute_type_names_must: list[str]
+    attribute_type_names_may: list[str]
 
 
 async def create_object_class(
@@ -87,8 +83,8 @@ async def create_object_class(
     superior_name: str | None,
     kind: KindType,
     is_system: bool,
-    attribute_types_must: list[str],
-    attribute_types_may: list[str],
+    attribute_type_names_must: list[str],
+    attribute_type_names_may: list[str],
     session: AsyncSession,
 ) -> None:
     """Create a new Object Class.
@@ -98,8 +94,8 @@ async def create_object_class(
     :param str | None superior_name: Parent Object Class.
     :param KindType kind: Kind.
     :param bool is_system: Object Class is system.
-    :param list[str] attribute_types_must: Attribute Types must.
-    :param list[str] attribute_types_may: Attribute Types may.
+    :param list[str] attribute_type_names_must: Attribute Types must.
+    :param list[str] attribute_type_names_may: Attribute Types may.
     :param AsyncSession session: Database session.
     :return None.
     """
@@ -118,8 +114,8 @@ async def create_object_class(
 
     attribute_types_may_filtered = [
         name
-        for name in attribute_types_may
-        if name not in attribute_types_must
+        for name in attribute_type_names_may
+        if name not in attribute_type_names_must
     ]
     object_class = ObjectClass(
         oid=oid,
@@ -128,7 +124,7 @@ async def create_object_class(
         kind=kind,
         is_system=is_system,
         attribute_types_must=await get_attribute_types_by_names(
-            attribute_types_must,
+            attribute_type_names_must,
             session,
         ),
         attribute_types_may=await get_attribute_types_by_names(
@@ -192,15 +188,15 @@ async def modify_object_class(
     object_class.attribute_types_must.clear()
     object_class.attribute_types_must.extend(
         await get_attribute_types_by_names(
-            new_statement.attribute_types_must,
+            new_statement.attribute_type_names_must,
             session,
         ),
     )
 
     attribute_types_may_filtered = [
         name
-        for name in new_statement.attribute_types_may
-        if name not in new_statement.attribute_types_must
+        for name in new_statement.attribute_type_names_may
+        if name not in new_statement.attribute_type_names_must
     ]
     object_class.attribute_types_may.clear()
     object_class.attribute_types_may.extend(

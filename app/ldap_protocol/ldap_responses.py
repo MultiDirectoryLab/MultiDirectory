@@ -102,6 +102,11 @@ class PartialAttribute(BaseModel):
         return self.type
 
     @property
+    def l_name(self) -> str:
+        """Get lower case name."""
+        return self.type.lower()
+
+    @property
     def values(self) -> list[str | bytes]:
         return self.vals
 

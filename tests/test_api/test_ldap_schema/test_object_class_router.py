@@ -93,12 +93,12 @@ async def test_modify_one_object_class(
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     object_class = response.json()
-    assert set(object_class.get("attribute_types_must")) == set(
-        new_statement.get("attribute_types_must")
-    )
-    assert set(object_class.get("attribute_types_may")) == set(
-        new_statement.get("attribute_types_may")
-    )
+    assert set(object_class.get("attribute_type_names_must")) == set(
+        new_statement.get("attribute_type_names_must")
+    )  # type: ignore
+    assert set(object_class.get("attribute_type_names_may")) == set(
+        new_statement.get("attribute_type_names_may")
+    )  # type: ignore
 
 
 @pytest.mark.parametrize(

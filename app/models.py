@@ -40,7 +40,8 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
+type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
+type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
 
 
 class Base(DeclarativeBase, AsyncAttrs):
@@ -592,18 +593,31 @@ class AttributeType(Base):
     __tablename__ = "AttributeTypes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    oid: Mapped[str] = mapped_column(nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
-    syntax: Mapped[str]
+    oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    syntax: Mapped[str] = mapped_column(String(255), nullable=False)
     single_value: Mapped[bool]
     no_user_modification: Mapped[bool]
     is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
 
     def get_raw_definition(self) -> str:
-        """SQLAlchemy object format to LDAP definition."""
-        chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
-        if self.syntax:
-            chunks.append(f"SYNTAX '{self.syntax}'")
+        """Format SQLAlchemy Attribute Type object to LDAP definition."""
+        if not self.oid or not self.name or not self.syntax:
+            err_msg = f"{self}: Fields 'oid', 'name', and 'syntax' are required for LDAP definition."  # noqa: E501
+            raise ValueError(err_msg)
+
+        chunks = [
+            "(",
+            f"{self.oid}",
+            f"NAME '{self.name}'",
+            f"SYNTAX '{self.syntax}'",
+        ]
+
         if self.single_value:
             chunks.append("SINGLE-VALUE")
         if self.no_user_modification:
@@ -634,10 +648,12 @@ class ObjectClassAttributeTypeMustMembership(Base):
     )
 
     attribute_type_name: Mapped[str] = mapped_column(
+        String(255),
         ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
         primary_key=True,
     )
     object_class_name: Mapped[str] = mapped_column(
+        String(255),
         ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
         primary_key=True,
     )
@@ -657,10 +673,12 @@ class ObjectClassAttributeTypeMayMembership(Base):
     )
 
     attribute_type_name: Mapped[str] = mapped_column(
+        String(255),
         ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
         primary_key=True,
     )
     object_class_name: Mapped[str] = mapped_column(
+        String(255),
         ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
         primary_key=True,
     )
@@ -672,9 +690,15 @@ class ObjectClass(Base):
     __tablename__ = "ObjectClasses"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    oid: Mapped[str] = mapped_column(nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
+    oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     superior_name: Mapped[str | None] = mapped_column(
+        String(255),
         ForeignKey("ObjectClasses.name", ondelete="SET NULL"),
         nullable=True,
     )
@@ -683,7 +707,7 @@ class ObjectClass(Base):
         remote_side="ObjectClass.name",
         uselist=False,
     )
-    kind: Mapped[Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]]
+    kind: Mapped[KindType] = mapped_column(nullable=False)
     is_system: Mapped[bool]
 
     attribute_types_must: Mapped[InstrumentedList[AttributeType]] = (
@@ -707,12 +731,18 @@ class ObjectClass(Base):
     )
 
     def get_raw_definition(self) -> str:
-        """SQLAlchemy object format to LDAP definition."""
+        """Format SQLAlchemy Object Class object to LDAP definition."""
+        if not self.oid or not self.name or not self.kind:
+            err_msg = f"{self}: Fields 'oid', 'name', and 'kind' are required for LDAP definition."  # noqa: E501
+            raise ValueError(err_msg)
+
         chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
+
         if self.superior_name:
             chunks.append(f"SUP {self.superior_name}")
-        if self.kind:
-            chunks.append(self.kind)
+
+        chunks.append(self.kind)
+
         if self.attribute_type_names_must:
             chunks.append(
                 f"MUST ({' $ '.join(self.attribute_type_names_must)} )"

@@ -44,9 +44,9 @@ def upgrade() -> None:
     op.create_table(
         "AttributeTypes",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("oid", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("syntax", sa.String(), nullable=False),
+        sa.Column("oid", sa.String(length=255), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("syntax", sa.String(length=255), nullable=False),
         sa.Column("single_value", sa.Boolean(), nullable=False),
         sa.Column("no_user_modification", sa.Boolean(), nullable=False),
         sa.Column("is_system", sa.Boolean(), nullable=False),
@@ -68,9 +68,9 @@ def upgrade() -> None:
     op.create_table(
         "ObjectClasses",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("oid", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("superior_name", sa.String(), nullable=True),
+        sa.Column("oid", sa.String(length=255), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("superior_name", sa.String(length=255), nullable=True),
         sa.ForeignKeyConstraint(
             ["superior_name"],
             ["ObjectClasses.name"],
@@ -78,7 +78,12 @@ def upgrade() -> None:
         ),
         sa.Column(
             "kind",
-            sa.Enum("AUXILIARY", "STRUCTURAL", "ABSTRACT", native_enum=False),
+            sa.Enum(
+                "AUXILIARY",
+                "STRUCTURAL",
+                "ABSTRACT",
+                name="objectclasskinds",
+            ),
             nullable=False,
         ),
         sa.Column("is_system", sa.Boolean(), nullable=False),
@@ -100,8 +105,16 @@ def upgrade() -> None:
 
     op.create_table(
         "ObjectClassAttributeTypeMayMemberships",
-        sa.Column("attribute_type_name", sa.String(), nullable=False),
-        sa.Column("object_class_name", sa.String(), nullable=False),
+        sa.Column(
+            "attribute_type_name",
+            sa.String(length=255),
+            nullable=False,
+        ),
+        sa.Column(
+            "object_class_name",
+            sa.String(length=255),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(
             ["attribute_type_name"],
             ["AttributeTypes.name"],
@@ -122,8 +135,16 @@ def upgrade() -> None:
 
     op.create_table(
         "ObjectClassAttributeTypeMustMemberships",
-        sa.Column("attribute_type_name", sa.String(), nullable=False),
-        sa.Column("object_class_name", sa.String(), nullable=False),
+        sa.Column(
+            "attribute_type_name",
+            sa.String(length=255),
+            nullable=False,
+        ),
+        sa.Column(
+            "object_class_name",
+            sa.String(length=255),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(
             ["attribute_type_name"],
             ["AttributeTypes.name"],

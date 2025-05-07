@@ -26,8 +26,8 @@ async def test_create_object_class(session: AsyncSession) -> None:
         "superior_name": None,
         "kind": "STRUCTURAL",
         "is_system": True,
-        "attribute_types_must": [],
-        "attribute_types_may": [],
+        "attribute_type_names_must": [],
+        "attribute_type_names_may": [],
     }
     object_class_name = object_class_data["name"]
     await create_object_class(session=session, **object_class_data)
@@ -44,10 +44,10 @@ async def test_create_object_class(session: AsyncSession) -> None:
     assert object_class.is_structural is True
     assert object_class.is_system == object_class_data["is_system"]
     assert set(object_class.attribute_type_names_must) == set(
-        object_class_data["attribute_types_must"]
+        object_class_data["attribute_type_names_must"]
     )
     assert set(object_class.attribute_type_names_may) == set(
-        object_class_data["attribute_types_may"]
+        object_class_data["attribute_type_names_may"]
     )
 
 
@@ -60,8 +60,8 @@ async def test_create_object_class_errors1(session: AsyncSession) -> None:
         "superior_name": None,
         "kind": "STRUCTURAAAAAL",
         "is_system": True,
-        "attribute_types_must": [],
-        "attribute_types_may": [],
+        "attribute_type_names_must": [],
+        "attribute_type_names_may": [],
     }
     object_class_kind = object_class_data["kind"]
     with pytest.raises(
@@ -80,8 +80,8 @@ async def test_create_object_class_errors2(session: AsyncSession) -> None:
         "superior_name": "NotExistingSuperiorName",
         "kind": "STRUCTURAL",
         "is_system": True,
-        "attribute_types_must": [],
-        "attribute_types_may": [],
+        "attribute_type_names_must": [],
+        "attribute_type_names_may": [],
     }
     superior_name = object_class_data["superior_name"]
     with pytest.raises(
@@ -110,8 +110,8 @@ async def test_modify_object_class(session: AsyncSession) -> None:
         "superior_name": None,
         "kind": "STRUCTURAL",
         "is_system": True,
-        "attribute_types_must": [],
-        "attribute_types_may": [],
+        "attribute_type_names_must": [],
+        "attribute_type_names_may": [],
     }
     await create_object_class(session=session, **object_class_data)
 
@@ -122,8 +122,8 @@ async def test_modify_object_class(session: AsyncSession) -> None:
     assert object_class is not None
 
     new_statement = ObjectClassUpdateSchema(
-        attribute_types_must=[],
-        attribute_types_may=["customTestAttribute"],
+        attribute_type_names_must=[],
+        attribute_type_names_may=["customTestAttribute"],
     )
     await modify_object_class(
         session=session,
@@ -138,10 +138,10 @@ async def test_modify_object_class(session: AsyncSession) -> None:
     assert object_class is not None
     assert object_class.is_structural is True
     assert set(object_class.attribute_type_names_must) == set(
-        new_statement.attribute_types_must
+        new_statement.attribute_type_names_must
     )
     assert set(object_class.attribute_type_names_may) == set(
-        new_statement.attribute_types_may
+        new_statement.attribute_type_names_may
     )
 
 
@@ -154,8 +154,8 @@ async def test_delete_object_class(session: AsyncSession) -> None:
         "superior_name": None,
         "kind": "STRUCTURAL",
         "is_system": False,
-        "attribute_types_must": [],
-        "attribute_types_may": [],
+        "attribute_type_names_must": [],
+        "attribute_type_names_may": [],
     }
     object_class_name = object_class_data["name"]
 

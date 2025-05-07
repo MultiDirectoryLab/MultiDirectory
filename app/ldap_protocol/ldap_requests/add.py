@@ -76,7 +76,7 @@ class AddRequest(BaseRequest):
 
     @property
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
-        return {attr.type.lower(): attr.vals for attr in self.attributes}
+        return {attr.l_name: attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
@@ -202,19 +202,19 @@ class AddRequest(BaseRequest):
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
             if (
-                attr.type.lower() in Directory.ro_fields
-                or attr.type
+                attr.l_name in Directory.ro_fields
+                or attr.l_name
                 in (
-                    "userPassword",
-                    "unicodePwd",
+                    "userpassword",
+                    "unicodepwd",
                 )
-                or attr.type.lower() == new_dir.rdname
+                or attr.l_name == new_dir.rdname
             ):
                 continue
 
             for value in attr.vals:
                 if (
-                    attr.type.lower() in user_fields
+                    attr.l_name in user_fields
                     or attr.type == "userAccountControl"
                 ):
                     if not isinstance(value, str):
