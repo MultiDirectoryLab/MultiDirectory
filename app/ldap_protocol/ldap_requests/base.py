@@ -28,7 +28,7 @@ log_api.add(
 )
 
 type handler = Callable[..., AsyncGenerator[BaseResponse, None]]
-type serializer = Callable[..., "BaseRequest"]
+type serializer = Callable[..., BaseRequest]
 
 
 if TYPE_CHECKING:

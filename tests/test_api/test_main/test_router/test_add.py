@@ -40,6 +40,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
                         "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )
@@ -49,7 +50,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
     assert isinstance(data, dict)
     assert response.status_code == status.HTTP_200_OK
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert data.get("errorMessage") == ""
+    assert data.get("error_message") == ""
 
 
 @pytest.mark.asyncio
@@ -75,6 +76,8 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
                     "type": "objectClass",
                     "vals": ["computer", "top"],
                 },
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
+                {"type": "shadowExpire", "vals": ["0"]},
             ],
         },
     )
@@ -217,6 +220,9 @@ async def test_api_correct_add_double_member_of(
                     "type": "userAccountControl",
                     "vals": ["514"],
                 },
+                {"type": "o", "vals": ["MultiDirectory"]},
+                {"type": "shadowExpire", "vals": ["0"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
             ],
         },
     )
@@ -264,7 +270,9 @@ async def test_api_correct_add_double_member_of(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_user_inccorect_uac(http_client: AsyncClient) -> None:
+async def test_api_add_user_inccorect_uac(
+    http_client: AsyncClient,
+) -> None:
     """Test api add."""
     user = "cn=test0,dc=md,dc=test"
     un = "test0"
@@ -307,6 +315,9 @@ async def test_api_add_user_inccorect_uac(http_client: AsyncClient) -> None:
                     "type": "userAccountControl",
                     "vals": ["516"],
                 },
+                {"type": "o", "vals": ["MultiDirectory"]},
+                {"type": "shadowExpire", "vals": ["0"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
             ],
         },
     )
@@ -414,6 +425,7 @@ async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
                     "type": "objectClass",
                     "vals": ["organization", "top"],
                 },
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )
@@ -529,6 +541,7 @@ async def test_api_add_double_case_insensetive(
                         "cn=domain admins,cn=groups,dc=md,dc=test",
                     ],
                 },
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )

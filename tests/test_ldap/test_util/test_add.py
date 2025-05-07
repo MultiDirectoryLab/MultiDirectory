@@ -43,6 +43,7 @@ async def test_ldap_root_add(
                 "objectClass: organization\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "o: MultiDirectory\n"
             )
         )
         file.seek(0)
@@ -107,7 +108,10 @@ async def test_ldap_user_add_with_group(
             "objectClass: person\n"
             "objectClass: posixAccount\n"
             "objectClass: top\n"
-            f"memberOf: {group_dn}\n",
+            f"memberOf: {group_dn}\n"
+            "nsAccountLock: FALSE\n"
+            "shadowExpire: 0\n"
+            "posixEmail: testldapuser@mail.ru\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -171,6 +175,7 @@ async def test_ldap_user_add_group_with_group(
                 "objectClass: group\n"
                 "objectClass: top\n"
                 f"memberOf: {group_dn}\n"
+                "groupType: -2147483646\n"
             )
         )
         file.seek(0)
@@ -225,7 +230,12 @@ async def test_add_bvalue_attr(
     """Test AddRequest with bytes data."""
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
-        attributes=[{"type": "objectClass", "vals": [b"test"]}],
+        attributes=[
+            {"type": "objectClass", "vals": [b"organizationalUnit"]},
+            {"type": "title", "vals": ["Custom test title."]},
+            {"type": "ou", "vals": ["ouf"]},
+            {"type": "jpegPhoto", "vals": ["jpegPhoto.jpeg"]},
+        ],
         password=None,
     )
     result = await anext(request.handle(session, ldap_bound_session, kadmin))
@@ -251,6 +261,7 @@ async def test_ldap_add_access_control(
                     "cn: test\n"
                     "objectClass: organization\n"
                     "objectClass: top\n"
+                    "o: MultiDirectory\n"
                 )
             )
             file.seek(0)

@@ -107,7 +107,7 @@ class DeleteRequest(BaseRequest):
         except KRBAPIError:
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,
-                errorMessage="KerberosError",
+                error_message="KerberosError",
             )
             return
 

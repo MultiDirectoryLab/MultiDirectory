@@ -65,6 +65,8 @@ async def adding_mfa_user_and_group(
                     "type": "objectClass",
                     "vals": ["organization", "top", "group"],
                 },
+                {"type": "groupType", "vals": ["-2147483646"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )
@@ -123,6 +125,9 @@ async def adding_mfa_user_and_group(
                     "type": "objectClass",
                     "vals": ["organization", "top", "user"],
                 },
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
+                {"type": "shadowExpire", "vals": ["0"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )

@@ -35,6 +35,7 @@ from sqlalchemy.orm import (
     relationship,
     synonym,
 )
+from sqlalchemy.orm.collections import InstrumentedList
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
@@ -231,10 +232,10 @@ class Directory(Base):
     )
 
     @property
-    def attributes_dict(self) -> defaultdict[str, list[str]]:
-        attributes = defaultdict(list)
+    def attributes_dict(self) -> defaultdict[str, set[str]]:
+        attributes = defaultdict(set)
         for attribute in self.attributes:
-            attributes[attribute.name].extend(attribute.values)
+            attributes[attribute.name.lower()].update(attribute.values)
         return attributes
 
     group: Mapped[Group] = relationship(
@@ -557,12 +558,6 @@ class Attribute(Base):
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
-    directory: Mapped[Directory] = relationship(
-        "Directory",
-        back_populates="attributes",
-        uselist=False,
-    )
-
     @property
     def _decoded_value(self) -> str | None:
         """Get attribute value."""
@@ -576,6 +571,12 @@ class Attribute(Base):
     def values(self) -> list[str]:
         """Get attribute value by list."""
         return [self._decoded_value] if self._decoded_value else []
+
+    directory: Mapped[Directory] = relationship(
+        "Directory",
+        back_populates="attributes",
+        uselist=False,
+    )
 
     def __str__(self) -> str:
         """Attribute name and value."""
@@ -709,20 +710,24 @@ class ObjectClass(Base):
     kind: Mapped[KindType] = mapped_column(nullable=False)
     is_system: Mapped[bool]
 
-    attribute_types_must: Mapped[list[AttributeType]] = relationship(
-        "AttributeType",
-        secondary=ObjectClassAttributeTypeMustMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
-        lazy="selectin",
+    attribute_types_must: Mapped[InstrumentedList[AttributeType]] = (
+        relationship(
+            "AttributeType",
+            secondary=ObjectClassAttributeTypeMustMembership.__table__,
+            primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
+            secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+            lazy="selectin",
+        )
     )
 
-    attribute_types_may: Mapped[list[AttributeType]] = relationship(
-        "AttributeType",
-        secondary=ObjectClassAttributeTypeMayMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
-        lazy="selectin",
+    attribute_types_may: Mapped[InstrumentedList[AttributeType]] = (
+        relationship(
+            "AttributeType",
+            secondary=ObjectClassAttributeTypeMayMembership.__table__,
+            primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
+            secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+            lazy="selectin",
+        )
     )
 
     def get_raw_definition(self) -> str:
@@ -748,6 +753,11 @@ class ObjectClass(Base):
             )
         chunks.append(")")
         return " ".join(chunks)
+
+    @property
+    def is_structural(self) -> bool:
+        """Is object class structural."""
+        return bool(self.kind == "STRUCTURAL")
 
     @property
     def attribute_type_names_must(self) -> list[str]:

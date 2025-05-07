@@ -246,7 +246,7 @@ async def test_bind_invalid_password_or_user(
     bad_response = BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
         matchedDN="",
-        errorMessage=(
+        error_message=(
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "
             "data 52e, v893"
@@ -394,7 +394,7 @@ async def test_bind_disabled_user(
     bad_response = BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
         matchedDn="",
-        errorMessage=(
+        error_message=(
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "
             "data 533, v893"

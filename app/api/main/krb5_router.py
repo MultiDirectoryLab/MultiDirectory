@@ -74,12 +74,9 @@ async def setup_krb_catalogue(
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
 
-    krbadmin = "cn=krbadmin,ou=users," + base_dn
-    services_container = "ou=services," + base_dn
-    krbgroup = "cn=krbadmin,cn=groups," + base_dn
-
+    krbgroup_entry = "cn=krbadmin,cn=groups," + base_dn
     group = AddRequest.from_dict(
-        krbgroup,
+        krbgroup_entry,
         {
             "objectClass": ["group", "top", "posixGroup"],
             "groupType": ["-2147483646"],
@@ -89,13 +86,23 @@ async def setup_krb_catalogue(
         },
     )
 
+    services_entry = "ou=services," + base_dn
     services = AddRequest.from_dict(
-        services_container,
-        {"objectClass": ["organizationalUnit", "top", "container"]},
+        services_entry,
+        {
+            "objectClass": ["organizationalUnit", "top", "container"],
+            "jpegPhoto": ["jpegphoto.jpeg"],
+            "title": ["Services container."],
+            "cn": [
+                "cn=services"
+            ],  # FIXME its not correct. the directory has dn, but cn need for
+            # container class, but the class need for search query.
+        },
     )
 
-    rkb_user = AddRequest.from_dict(
-        krbadmin,
+    krbadmin_entry = "cn=krbadmin,ou=users," + base_dn
+    krb_user = AddRequest.from_dict(
+        krbadmin_entry,
         password=krbadmin_password.get_secret_value(),
         attributes={
             "mail": [mail],
@@ -115,10 +122,13 @@ async def setup_krb_catalogue(
             "sn": ["krbadmin"],
             "uid": ["krbadmin"],
             "homeDirectory": ["/home/krbadmin"],
-            "memberOf": [krbgroup],
+            "memberOf": [krbgroup_entry],
             "sAMAccountName": ["krbadmin"],
             "userPrincipalName": ["krbadmin"],
             "displayName": ["Kerberos Administrator"],
+            "nsAccountLock": ["FALSE"],
+            "posixEmail": [mail],
+            "shadowExpire": ["0"],
         },
     )
 
@@ -126,7 +136,7 @@ async def setup_krb_catalogue(
         results = (
             await anext(services.handle(session, ldap_session, kadmin)),
             await anext(group.handle(session, ldap_session, kadmin)),
-            await anext(rkb_user.handle(session, ldap_session, kadmin)),
+            await anext(krb_user.handle(session, ldap_session, kadmin)),
         )
         await session.flush()
         if not all(result.result_code == 0 for result in results):
@@ -139,8 +149,8 @@ async def setup_krb_catalogue(
             can_modify=True,
             can_read=True,
             can_delete=True,
-            grant_dn=services_container,
-            groups=[krbgroup],
+            grant_dn=services_entry,
+            groups=[krbgroup_entry],
             session=session,
         )
         await session.commit()

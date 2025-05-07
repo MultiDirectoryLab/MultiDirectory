@@ -44,13 +44,12 @@ async def adding_test_user(
                     "vals": ["test"],
                 },
                 {
-                    "type": "testing_attr",
-                    "vals": ["test"],
-                },
-                {
                     "type": "objectClass",
                     "vals": ["organization", "top", "user"],
                 },
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
+                {"type": "shadowExpire", "vals": ["0"]},
+                {"type": "o", "vals": ["MultiDirectory"]},
             ],
         },
     )

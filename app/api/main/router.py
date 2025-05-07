@@ -39,7 +39,7 @@ async def search(
     return SearchResponse(
         result_code=metadata.result_code,
         matchedDN=metadata.matched_dn,
-        errorMessage=metadata.error_message,
+        error_message=metadata.error_message,
         search_result=responses,
         total_objects=metadata.total_objects,
         total_pages=metadata.total_pages,

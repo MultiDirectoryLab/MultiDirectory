@@ -96,23 +96,22 @@ async def test_ldap_base_modify(
     directory = (await session.scalars(query)).one()
 
     attributes = defaultdict(list)
-
     for attr in directory.attributes:
         attributes[attr.name].append(attr.value)
 
-    assert attributes["objectClass"] == [
+    assert set(attributes["objectClass"]) == {
         "top",
         "person",
         "organizationalPerson",
         "posixAccount",
         "user",
-    ]
-    assert attributes["title"] == [
+    }
+    assert set(attributes["title"]) == {
         "Grand Poobah",
         "Grand Poobah1",
         "Grand Poobah2",
         "Grand Poobah3",
-    ]
+    }
     assert attributes["jpegPhoto"] == ["modme.jpeg"]
     assert directory.user.mail == "modme@student.of.life.edu"
 
@@ -254,6 +253,7 @@ async def test_ldap_membersip_user_replace(
                 "objectClass: group\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "groupType: -2147483646\n"
             )
         )
         file.seek(0)
@@ -347,6 +347,7 @@ async def test_ldap_membersip_grp_replace(
                 "cn: twisted\n"
                 "objectClass: group\n"
                 "objectClass: top\n"
+                "groupType: -2147483646\n"
             )
         )
         file.seek(0)
@@ -552,6 +553,9 @@ async def test_ldap_modify_with_ap(
                     "-\n"
                     "delete: posixEmail\n"
                     "-\n"
+                    "add: cn\n"
+                    "cn: users\n"
+                    "-\n"
                 )
             )
             file.seek(0)
@@ -605,23 +609,18 @@ async def test_ldap_modify_with_ap(
     directory = await session.scalar(query)
     assert directory
 
-    attributes = defaultdict(list)
-
-    for attr in directory.attributes:
-        attributes[attr.name].append(attr.value)
-
-    assert attributes["objectClass"] == [
+    assert directory.attributes_dict["objectclass"] == {
         "top",
         "container",
         "organizationalUnit",
-    ]
-    assert attributes["title"] == [
+    }
+    assert directory.attributes_dict["title"] == {
         "Grand Poobah",
         "Grand Poobah1",
         "Grand Poobah2",
         "Grand Poobah3",
-    ]
-    assert attributes["jpegPhoto"] == ["modme.jpeg"]
+    }
+    assert directory.attributes_dict["jpegphoto"] == {"modme.jpeg"}
     assert directory.user.mail == "modme@student.of.life.edu"
 
-    assert "posixEmail" not in attributes
+    assert "posixemail" not in directory.attributes_dict

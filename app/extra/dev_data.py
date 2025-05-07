@@ -272,6 +272,8 @@ TEST_DATA = [
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
                     "description": ["123 desc"],
+                    "nsAccountLock": ["FALSE"],
+                    "shadowExpire": ["0"],
                 },
             },
             {
@@ -295,6 +297,8 @@ TEST_DATA = [
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
+                    "nsAccountLock": ["TRUE"],
+                    "shadowExpire": ["0"],
                 },
             },
             {
@@ -333,6 +337,8 @@ TEST_DATA = [
                                     ],
                                     "posixEmail": ["user1@mail.com"],
                                     "userAccountControl": ["512"],
+                                    "nsAccountLock": ["FALSE"],
+                                    "shadowExpire": ["0"],
                                 },
                             },
                         ],

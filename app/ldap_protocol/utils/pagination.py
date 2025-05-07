@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 
 import sys
 from math import ceil
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from typing import Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -44,7 +44,7 @@ class SchemaProtocol(Protocol[T]):
         """Create an instance from database."""
 
 
-class PaginationResult(BaseModel, Generic[T]):
+class PaginationResult[T: Base](BaseModel):
     """Paginator."""
 
     params: PaginationParams

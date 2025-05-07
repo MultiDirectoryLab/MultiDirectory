@@ -31,7 +31,7 @@ class LDAPResult(BaseModel):
 
     result_code: LDAPCodes = Field(..., alias="resultCode")
     matched_dn: str = Field("", alias="matchedDN")
-    error_message: str = Field("", alias="errorMessage")
+    error_message: str = ""
 
     class Config:
         """Allow class to use property."""
@@ -98,9 +98,17 @@ class PartialAttribute(BaseModel):
     vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
     @property
+    def name(self) -> str:
+        return self.type
+
+    @property
     def l_name(self) -> str:
         """Get lower case name."""
         return self.type.lower()
+
+    @property
+    def values(self) -> list[str | bytes]:
+        return self.vals
 
     @field_validator("type", mode="before")
     @classmethod
@@ -177,7 +185,7 @@ class SearchResultDone(LDAPResult, BaseResponse):
 
 INVALID_ACCESS_RESPONSE = {
     "result_code": LDAPCodes.OPERATIONS_ERROR,
-    "errorMessage": (
+    "error_message": (
         "000004DC: LdapErr: DSID-0C090A71, "
         "comment: In order to perform this operation "
         "a successful bind must be "

@@ -94,8 +94,8 @@ async def test_api_modify_many(http_client: AsyncClient) -> None:
                     {
                         "operation": Operation.REPLACE,
                         "modification": {
-                            "type": "testing_attr",
-                            "vals": ["test1"],
+                            "type": "instanceType",
+                            "vals": ["4"],
                         },
                     },
                 ],
@@ -132,8 +132,16 @@ async def test_api_modify_many(http_client: AsyncClient) -> None:
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "accountExpires":
             assert attr["vals"][0] == new_value
-        if attr["type"] == "testing_attr":
-            assert attr["vals"][0] == "test1"
+            break
+    else:
+        raise Exception("No accountExpires")
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "instanceType":
+            assert attr["vals"][0] == "4"
+            break
+    else:
+        raise Exception("No instanceType")
 
 
 @pytest.mark.asyncio

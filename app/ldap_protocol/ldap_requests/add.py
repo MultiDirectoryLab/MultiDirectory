@@ -4,11 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncGenerator, ClassVar
+from typing import AsyncGenerator, ClassVar, cast
 
 import httpx
 from pydantic import Field, SecretStr
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,6 +21,11 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     AddResponse,
     PartialAttribute,
+)
+from ldap_protocol.ldap_schema.flat_ldap_schema import (
+    get_flat_ldap_schema,
+    validate_attributes_by_ldap_schema,
+    validate_chunck_object_classes_by_ldap_schema,
 )
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
@@ -70,12 +75,8 @@ class AddRequest(BaseRequest):
     password: SecretStr | None = Field(None, examples=["password"])
 
     @property
-    def attr_names(self) -> dict[str, list[str | bytes]]:
-        return {attr.l_name: attr.vals for attr in self.attributes}
-
-    @property
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
-        return {attr.type: attr.vals for attr in self.attributes}
+        return {attr.l_name: attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
@@ -156,7 +157,7 @@ class AddRequest(BaseRequest):
             if errors:
                 yield AddResponse(
                     result_code=LDAPCodes.OPERATIONS_ERROR,
-                    errorMessage="; ".join(errors),
+                    error_message="; ".join(errors),
                 )
                 return
 
@@ -183,7 +184,7 @@ class AddRequest(BaseRequest):
         group = None
         user = None
         items_to_add: list[Group | User | Directory | Attribute] = []
-        attributes = []
+        attributes: list[Attribute] = []
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
@@ -235,14 +236,15 @@ class AddRequest(BaseRequest):
                         ),
                     )
 
-        parent_groups = await get_groups(group_attributes, session)
-        is_group = "group" in self.attributes_dict.get("objectClass", [])
+        object_class_names = self._get_object_class_names()
+        is_group = "group" in object_class_names
         is_user = (
             "sAMAccountName" in user_attributes
             or "userPrincipalName" in user_attributes
         )
-        is_computer = "computer" in self.attributes_dict.get("objectClass", [])
+        is_computer = "computer" in object_class_names
 
+        parent_groups = await get_groups(group_attributes, session)
         if is_user:
             parent_groups.append(
                 (await get_group("domain users", session)).group,
@@ -314,7 +316,7 @@ class AddRequest(BaseRequest):
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
 
-        elif is_computer and "useraccountcontrol" not in self.attr_names:
+        elif is_computer and "useraccountcontrol" not in self.attributes_dict:
             attributes.append(
                 Attribute(
                     name="userAccountControl",
@@ -325,7 +327,7 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        if (is_user or is_group) and "gidnumber" not in self.attr_names:
+        if (is_user or is_group) and "gidnumber" not in self.attributes_dict:
             reverse_d_name = new_dir.name[::-1]
             value = (
                 "513" if is_user else str(create_integer_hash(reverse_d_name))
@@ -338,8 +340,45 @@ class AddRequest(BaseRequest):
                 ),
             )
 
+        flat_ldap_schema = await get_flat_ldap_schema(session)
+        classes_validation_result = (
+            await validate_chunck_object_classes_by_ldap_schema(
+                object_class_names,
+                flat_ldap_schema,
+            )
+        )
+        if classes_validation_result.alerts:
+            for code, messages in classes_validation_result.alerts.items():
+                yield AddResponse(
+                    result_code=code,
+                    error_message=", ".join(messages),
+                )
+            return
+
+        attrs_validation_result = await validate_attributes_by_ldap_schema(
+            attributes,
+            object_class_names,
+            flat_ldap_schema,
+        )
+        if attrs_validation_result.alerts:
+            for code_, messages in attrs_validation_result.alerts.items():
+                yield AddResponse(
+                    result_code=code_,
+                    error_message=", ".join(messages),
+                )
+            return
+
+        for attribute in attrs_validation_result.attributes_rejected:
+            attribute = cast("Attribute", attribute)
+            if inspect(attribute).persistent:
+                await session.delete(attribute)
+
         try:
-            items_to_add.extend(attributes)
+            items = cast(
+                "list[Attribute]",
+                attrs_validation_result.attributes_accepted,
+            )
+            items_to_add.extend(items)
             session.add_all(items_to_add)
             await session.flush()
         except IntegrityError:
@@ -366,13 +405,22 @@ class AddRequest(BaseRequest):
                 await session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
-                    errorMessage="KerberosError",
+                    error_message="KerberosError",
                 )
                 return
             except httpx.TimeoutException:
                 pass
 
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
+
+    def _get_object_class_names(self) -> set[str]:
+        object_class_values = self.attributes_dict.get("objectclass", [])
+        object_class_names = set()
+        for object_class_name in object_class_values:
+            if isinstance(object_class_name, bytes):
+                object_class_name = object_class_name.decode()
+            object_class_names.add(object_class_name)
+        return object_class_names
 
     @classmethod
     def from_dict(

@@ -26,7 +26,7 @@ def _create_test_user_data(
         "entry": "cn=ktest,dc=md,dc=test",
         "password": pw,
         "attributes": [
-            {"type": "mail", "vals": ["123@mil.com"]},
+            {"type": "mail", "vals": ["kadmintest123@mail.com"]},
             {
                 "type": "objectClass",
                 "vals": [
@@ -49,6 +49,9 @@ def _create_test_user_data(
             {"type": "userPrincipalName", "vals": ["ktest"]},
             {"type": "displayName", "vals": ["Kerberos Administrator"]},
             {"type": "userAccountControl", "vals": ["512"]},
+            {"type": "nsAccountLock", "vals": ["FALSE"]},
+            {"type": "posixEmail", "vals": ["kadmintest123@mail.com"]},
+            {"type": "shadowExpire", "vals": ["0"]},
         ],
     }
 
@@ -307,7 +310,9 @@ async def test_ldap_kadmin_delete_computer(
             "entry": "cn=ktest,dc=md,dc=test",
             "password": None,
             "attributes": [
-                {"type": "objectClass", "vals": ["computer", "top"]}
+                {"type": "objectClass", "vals": ["computer", "top"]},
+                {"type": "nsAccountLock", "vals": ["FALSE"]},
+                {"type": "shadowExpire", "vals": ["0"]},
             ],
         },
     )
