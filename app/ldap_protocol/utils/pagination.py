@@ -40,8 +40,8 @@ class SchemaProtocol(Protocol[T]):
     """Protocol for Schema."""
 
     @classmethod
-    def from_db(cls, sqla_object: T) -> "SchemaProtocol":
-        """Create an instance from database."""
+    def from_db(cls, sqla_instance: T) -> "SchemaProtocol":
+        """Create an instance of Schema from instance of SQLA model."""
 
 
 class PaginationResult(BaseModel, Generic[T]):

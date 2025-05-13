@@ -39,7 +39,7 @@ log.add(
 )
 
 
-infinity = cast(int, math.inf)
+infinity = cast("int", math.inf)
 pp_v2 = ProxyProtocolV2()
 
 
