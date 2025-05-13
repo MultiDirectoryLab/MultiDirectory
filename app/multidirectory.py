@@ -142,10 +142,12 @@ def create_prod_app(
 
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 
+
 def make_migrations() -> None:
     """Make migrations."""
     alembic_cfg = Config("alembic.ini")
     command.upgrade(alembic_cfg, "head")
+
 
 def ldap(settings: Settings) -> None:
     """Run server."""
