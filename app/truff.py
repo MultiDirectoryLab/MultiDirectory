@@ -9,11 +9,6 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import AsyncIterator, Callable
-
-import uvicorn
-import uvloop
-from alembic.config import Config
 
 
 async def aboba() -> None:
@@ -25,8 +20,3 @@ async def aboba() -> None:
     logger.info(time)
     logger.info(asynccontextmanager)
     logger.info(partial)
-    logger.info(AsyncIterator)
-    logger.info(Callable)
-    logger.info(uvicorn)
-    logger.info(uvloop)
-    logger.info(Config)
