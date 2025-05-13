@@ -95,7 +95,7 @@ target-version = "py312"
 line-length = 79
 output-format = "grouped"
 unsafe-fixes = true
-namespace-packages = ["app/alembic"] # Mark the directory as a namespace package
+namespace-packages = ["alembic"] # Mark the directory as a namespace package
 
 [tool.ruff.format]
 docstring-code-format = true
