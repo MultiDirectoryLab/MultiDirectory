@@ -95,13 +95,16 @@ target-version = "py312"
 line-length = 79
 output-format = "grouped"
 unsafe-fixes = true
-namespace-packages = ["alembic"] # Mark the directory as a namespace package
 
 [tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = 79
 line-ending = "lf"
 skip-magic-trailing-comma = false  # default: false
+
+[tool.ruff.isort]
+# stop automatically marking imports from within the same package as first-party (masking the issue)
+detect-same-package = false
 
 [tool.ruff.lint]
 select = [
