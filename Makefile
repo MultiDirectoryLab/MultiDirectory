@@ -7,11 +7,6 @@ before_pr:
 	ruff check . --fix --unsafe-fixes
 	mypy app
 
-poetry:
-	poetry self add poetry-plugin-sort@latest
-	poetry lock --no-update
-	poetry install
-
 build:  ## build app and manually generate self-signed cert
 	make down
 	docker compose build
