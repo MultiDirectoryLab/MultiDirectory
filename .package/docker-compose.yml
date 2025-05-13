@@ -72,7 +72,7 @@ services:
     restart: "no"
     env_file:
       .env
-    command: alembic upgrade head
+    command: python multidirectory.py --migrations
     depends_on:
       postgres:
         condition: service_healthy

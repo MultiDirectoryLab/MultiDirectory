@@ -13,6 +13,7 @@ from typing import AsyncIterator, Callable
 
 import uvicorn
 import uvloop
+from alembic.config import Config, command
 from dishka import make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
@@ -141,6 +142,10 @@ def create_prod_app(
 
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 
+def make_migrations() -> None:
+    """Make migrations."""
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
 
 def ldap(settings: Settings) -> None:
     """Run server."""
@@ -188,6 +193,9 @@ if __name__ == "__main__":
     group.add_argument(
         "--certs_dumper", action="store_true", help="Dump certs"
     )
+    group.add_argument(
+        "--migrations", action="store_true", help="Make migrations"
+    )
 
     args = parser.parse_args()
 
@@ -199,7 +207,7 @@ if __name__ == "__main__":
             "__main__:create_shadow_app",
             host=str(settings.HOST),
             port=settings.HTTP_PORT,
-            reload=settings.DEBUG,
+            reload=settings.AUTO_RELOAD,
             loop="uvloop",
             factory=True,
         )
@@ -209,7 +217,7 @@ if __name__ == "__main__":
             "__main__:create_prod_app",
             host=str(settings.HOST),
             port=settings.HTTP_PORT,
-            reload=settings.DEBUG,
+            reload=settings.AUTO_RELOAD,
             loop="uvloop",
             factory=True,
         )
@@ -217,3 +225,5 @@ if __name__ == "__main__":
         scheduler(settings)
     elif args.certs_dumper:
         dump_acme_cert()
+    elif args.migrations:
+        make_migrations()
