@@ -94,7 +94,6 @@ concurrency = ["thread", "gevent"]
 target-version = "py312"
 line-length = 79
 output-format = "grouped"
-unsafe-fixes = true
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -176,7 +175,7 @@ ignore-variadic-names = true
 "alembic/*.py" = ["I001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
 
 [tool.ruff.lint.mccabe]
-# 22 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.
+# 15 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.
 max-complexity = 15
 
 [tool.ruff.lint.isort]
@@ -193,10 +192,12 @@ known-first-party = [
     "schedule",
     "extra",
 ]
+known-third-party = [
+    "alembic",  # https://github.com/astral-sh/ruff/issues/10519
+]
+
 split-on-trailing-comma = false
 combine-as-imports = true
-# stop automatically marking imports from within the same package as first-party (masking the issue)
-detect-same-package = false
 
 [tool.ruff.lint.flake8-annotations]
 suppress-dummy-args = true
