@@ -102,10 +102,6 @@ docstring-code-line-length = 79
 line-ending = "lf"
 skip-magic-trailing-comma = false  # default: false
 
-[tool.ruff.isort]
-# stop automatically marking imports from within the same package as first-party (masking the issue)
-detect-same-package = false
-
 [tool.ruff.lint]
 select = [
     "F",  # Pyflakes. Must have
@@ -199,6 +195,8 @@ known-first-party = [
 ]
 split-on-trailing-comma = false
 combine-as-imports = true
+# stop automatically marking imports from within the same package as first-party (masking the issue)
+detect-same-package = false
 
 [tool.ruff.lint.flake8-annotations]
 suppress-dummy-args = true
