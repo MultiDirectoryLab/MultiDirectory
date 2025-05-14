@@ -114,7 +114,7 @@ services:
       - ./app:/app
     env_file:
       local.env
-    command: alembic upgrade head
+    command: python multidirectory.py --migrate
     depends_on:
       postgres:
         condition: service_healthy

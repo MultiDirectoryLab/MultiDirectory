@@ -34,6 +34,7 @@ class Settings(BaseModel):
     DOMAIN: str
 
     DEBUG: bool = False
+    AUTO_RELOAD: bool = False
     HOST: IPvAnyAddress = "0.0.0.0"  # type: ignore  # noqa
     PORT: int = 389
     TLS_PORT: int = 636
