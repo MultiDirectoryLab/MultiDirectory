@@ -196,7 +196,7 @@ if __name__ == "__main__":
         "--certs_dumper", action="store_true", help="Dump certs"
     )
     group.add_argument(
-        "--migrations", action="store_true", help="Make migrations"
+        "--migrate", action="store_true", help="Make migrations"
     )
 
     args = parser.parse_args()
@@ -227,5 +227,5 @@ if __name__ == "__main__":
         scheduler(settings)
     elif args.certs_dumper:
         dump_acme_cert()
-    elif args.migrations:
+    elif args.migrate:
         make_migrations()
