@@ -143,12 +143,6 @@ def create_prod_app(
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 
 
-def make_migrations() -> None:
-    """Make migrations."""
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
-
-
 def ldap(settings: Settings) -> None:
     """Run server."""
 
@@ -228,4 +222,4 @@ if __name__ == "__main__":
     elif args.certs_dumper:
         dump_acme_cert()
     elif args.migrate:
-        make_migrations()
+        command.upgrade(Config("alembic.ini"), "head")
