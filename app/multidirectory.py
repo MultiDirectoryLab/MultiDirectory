@@ -27,6 +27,7 @@ from api import (
     dns_router,
     entry_router,
     krb5_router,
+    ldap_schema_router,
     mfa_router,
     network_router,
     pwd_router,
@@ -91,6 +92,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(dns_router)
     app.include_router(session_router)
     app.include_router(access_policy_router)
+    app.include_router(ldap_schema_router)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

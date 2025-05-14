@@ -97,6 +97,11 @@ class PartialAttribute(BaseModel):
     type: Annotated[str, annotated_types.Len(max_length=8100)]
     vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
+    @property
+    def l_name(self) -> str:
+        """Get lower case name."""
+        return self.type.lower()
+
     @field_validator("type", mode="before")
     @classmethod
     def validate_type(cls, v: str | bytes | int) -> str:

@@ -21,6 +21,7 @@ gssapi = "^1.9.0"
 httpx = "^0.28.1"
 jinja2 = "^3.1.4"
 ldap-filter = "^1.0.1"
+ldap3 = "^2.9.1"
 loguru = "^0.7.2"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 proxy-protocol = "^0.11.3"
@@ -43,7 +44,6 @@ types-pytz = "^2022.7.1.0"
 [tool.poetry.group.test.dependencies]
 coverage = "7.8.0"
 gevent = "^24.10.3"
-ldap3 = "^2.9.1"
 pytest = "^8.3.3"
 pytest-asyncio = "^0.26.0"
 pytest-cov = "^4.1.0"
@@ -128,7 +128,8 @@ select = [
     "SIM",  # flake8-simplify. Must have
     "TC",  # flake8-type-checking, check flake8-type-checking
     "ARG",  # flake8-unused-arguments
-    # "TD",  # flake8-todos TODO uncomment, ruff fix and fix error
+    "FIX", # flake8-fixme
+    "T20", # flake8-print
     "ERA",  # eradicate
     # "PGH",  # pygrep-hooks TODO does we need it? uncomment, ruff fix and fix error
     # "PL",  # Pylint TODO uncomment, ruff fix and fix error
@@ -166,7 +167,9 @@ ignore = [
 extend-select = []
 
 fixable = ["ALL"]
-unfixable = []
+unfixable = [
+    "T20", # dont auto delete print/pprint lines in code
+]
 
 [tool.ruff.lint.flake8-unused-arguments]
 ignore-variadic-names = true

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import enum
 import uuid
+from collections import defaultdict
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
@@ -38,7 +39,8 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
+type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
+type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
 
 
 class Base(DeclarativeBase, AsyncAttrs):
@@ -227,6 +229,14 @@ class Directory(Base):
         cascade="all",
         passive_deletes=True,
     )
+
+    @property
+    def attributes_dict(self) -> defaultdict[str, list[str]]:
+        attributes = defaultdict(list)
+        for attribute in self.attributes:
+            attributes[attribute.name].extend(attribute.values)
+        return attributes
+
     group: Mapped[Group] = relationship(
         "Group",
         uselist=False,
@@ -552,6 +562,210 @@ class Attribute(Base):
         back_populates="attributes",
         uselist=False,
     )
+
+    @property
+    def _decoded_value(self) -> str | None:
+        """Get attribute value."""
+        if self.value:
+            return self.value
+        if self.bvalue:
+            return self.bvalue.decode("latin-1")
+        return None
+
+    @property
+    def values(self) -> list[str]:
+        """Get attribute value by list."""
+        return [self._decoded_value] if self._decoded_value else []
+
+    def __str__(self) -> str:
+        """Attribute name and value."""
+        return f"Attribute({self.name}:{self._decoded_value})"
+
+    def __repr__(self) -> str:
+        """Attribute name and value."""
+        return f"Attribute({self.name}:{self._decoded_value})"
+
+
+class AttributeType(Base):
+    """Attribute Type."""
+
+    __tablename__ = "AttributeTypes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    syntax: Mapped[str] = mapped_column(String(255), nullable=False)
+    single_value: Mapped[bool]
+    no_user_modification: Mapped[bool]
+    is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
+
+    def get_raw_definition(self) -> str:
+        """Format SQLAlchemy Attribute Type object to LDAP definition."""
+        if not self.oid or not self.name or not self.syntax:
+            err_msg = f"{self}: Fields 'oid', 'name', and 'syntax' are required for LDAP definition."  # noqa: E501
+            raise ValueError(err_msg)
+
+        chunks = [
+            "(",
+            f"{self.oid}",
+            f"NAME '{self.name}'",
+            f"SYNTAX '{self.syntax}'",
+        ]
+
+        if self.single_value:
+            chunks.append("SINGLE-VALUE")
+        if self.no_user_modification:
+            chunks.append("NO-USER-MODIFICATION")
+        chunks.append(")")
+        return " ".join(chunks)
+
+    def __str__(self) -> str:
+        """AttributeType name."""
+        return f"AttributeType({self.name})"
+
+    def __repr__(self) -> str:
+        """AttributeType oid and name."""
+        return f"AttributeType({self.oid}:{self.name})"
+
+
+class ObjectClassAttributeTypeMustMembership(Base):
+    """ObjectClass - MustAttributeType m2m relationship."""
+
+    __tablename__ = "ObjectClassAttributeTypeMustMemberships"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "attribute_type_name",
+            "object_class_name",
+            name="object_class_must_attribute_type_uc",
+        ),
+    )
+
+    attribute_type_name: Mapped[str] = mapped_column(
+        String(255),
+        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    object_class_name: Mapped[str] = mapped_column(
+        String(255),
+        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class ObjectClassAttributeTypeMayMembership(Base):
+    """ObjectClass - MayAttributeType m2m relationship."""
+
+    __tablename__ = "ObjectClassAttributeTypeMayMemberships"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "attribute_type_name",
+            "object_class_name",
+            name="object_class_may_attribute_type_uc",
+        ),
+    )
+
+    attribute_type_name: Mapped[str] = mapped_column(
+        String(255),
+        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    object_class_name: Mapped[str] = mapped_column(
+        String(255),
+        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class ObjectClass(Base):
+    """Object Class."""
+
+    __tablename__ = "ObjectClasses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    superior_name: Mapped[str | None] = mapped_column(
+        String(255),
+        ForeignKey("ObjectClasses.name", ondelete="SET NULL"),
+        nullable=True,
+    )
+    superior: Mapped[ObjectClass | None] = relationship(
+        "ObjectClass",
+        remote_side="ObjectClass.name",
+        uselist=False,
+    )
+    kind: Mapped[KindType] = mapped_column(nullable=False)
+    is_system: Mapped[bool]
+
+    attribute_types_must: Mapped[list[AttributeType]] = relationship(
+        "AttributeType",
+        secondary=ObjectClassAttributeTypeMustMembership.__table__,
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
+        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+        lazy="selectin",
+    )
+
+    attribute_types_may: Mapped[list[AttributeType]] = relationship(
+        "AttributeType",
+        secondary=ObjectClassAttributeTypeMayMembership.__table__,
+        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
+        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
+        lazy="selectin",
+    )
+
+    def get_raw_definition(self) -> str:
+        """Format SQLAlchemy Object Class object to LDAP definition."""
+        if not self.oid or not self.name or not self.kind:
+            err_msg = f"{self}: Fields 'oid', 'name', and 'kind' are required for LDAP definition."  # noqa: E501
+            raise ValueError(err_msg)
+
+        chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
+
+        if self.superior_name:
+            chunks.append(f"SUP {self.superior_name}")
+
+        chunks.append(self.kind)
+
+        if self.attribute_type_names_must:
+            chunks.append(
+                f"MUST ({' $ '.join(self.attribute_type_names_must)} )"
+            )
+        if self.attribute_type_names_may:
+            chunks.append(
+                f"MAY ({' $ '.join(self.attribute_type_names_may)} )"
+            )
+        chunks.append(")")
+        return " ".join(chunks)
+
+    @property
+    def attribute_type_names_must(self) -> list[str]:
+        """Display attribute types must."""
+        return [attr.name for attr in self.attribute_types_must]
+
+    @property
+    def attribute_type_names_may(self) -> list[str]:
+        """Display attribute types may."""
+        return [attr.name for attr in self.attribute_types_may]
+
+    def __str__(self) -> str:
+        """ObjectClass name."""
+        return f"ObjectClass({self.name})"
+
+    def __repr__(self) -> str:
+        """ObjectClass oid and name."""
+        return f"ObjectClass({self.oid}:{self.name})"
 
 
 class MFAFlags(int, enum.Enum):

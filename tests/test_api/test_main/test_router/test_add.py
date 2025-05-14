@@ -496,6 +496,7 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert isinstance(data, dict)
+
     assert data.get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS
 
 

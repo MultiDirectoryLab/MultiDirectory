@@ -71,7 +71,11 @@ class AddRequest(BaseRequest):
 
     @property
     def attr_names(self) -> dict[str, list[str | bytes]]:
-        return {attr.type.lower(): attr.vals for attr in self.attributes}
+        return {attr.l_name: attr.vals for attr in self.attributes}
+
+    @property
+    def attributes_dict(self) -> dict[str, list[str | bytes]]:
+        return {attr.type: attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
@@ -184,6 +188,7 @@ class AddRequest(BaseRequest):
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
         user_fields = User.search_fields.keys() | User.fields.keys()
+
         attributes.append(
             Attribute(
                 name=new_dn,
@@ -193,21 +198,24 @@ class AddRequest(BaseRequest):
         )
 
         for attr in self.attributes:
-            lname = attr.type.lower()
-
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
-            if lname == new_dir.rdname:
+            if (
+                attr.l_name in Directory.ro_fields
+                or attr.l_name
+                in (
+                    "userpassword",
+                    "unicodepwd",
+                )
+                or attr.l_name == new_dir.rdname
+            ):
                 continue
 
             for value in attr.vals:
-                if lname in Directory.ro_fields or lname in (
-                    "userpassword",
-                    "unicodepwd",
+                if (
+                    attr.l_name in user_fields
+                    or attr.type == "userAccountControl"
                 ):
-                    continue
-
-                if lname in user_fields or lname == "useraccountcontrol":
                     if not isinstance(value, str):
                         raise TypeError
                     user_attributes[attr.type] = value
@@ -228,12 +236,12 @@ class AddRequest(BaseRequest):
                     )
 
         parent_groups = await get_groups(group_attributes, session)
-        is_group = "group" in self.attr_names.get("objectclass", [])
+        is_group = "group" in self.attributes_dict.get("objectClass", [])
         is_user = (
             "sAMAccountName" in user_attributes
             or "userPrincipalName" in user_attributes
         )
-        is_computer = "computer" in self.attr_names.get("objectclass", [])
+        is_computer = "computer" in self.attributes_dict.get("objectClass", [])
 
         if is_user:
             parent_groups.append(
