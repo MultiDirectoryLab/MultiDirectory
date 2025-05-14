@@ -56,14 +56,14 @@ trio = ["trio (>=0.26.1)"]
 
 [[package]]
 name = "asn1"
-version = "2.8.0"
+version = "3.0.1"
 description = "Python-ASN1 is a simple ASN.1 encoder and decoder for Python 2.7+ and 3.5+."
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "asn1-2.8.0-py2.py3-none-any.whl", hash = "sha256:1438ac9a53cbc4064330af43b054ae042374f7c8ab46c55358241c15e29f1461"},
-    {file = "asn1-2.8.0.tar.gz", hash = "sha256:adf77ddc2707cf420c0eae3b99ee30e913afcf0936467d42669820ce6b7d150a"},
+    {file = "asn1-3.0.1-py2.py3-none-any.whl", hash = "sha256:733a460de22904640ddecf8a95f2f4005adf3623a1c51e48428a7aa2bd493cd0"},
+    {file = "asn1-3.0.1.tar.gz", hash = "sha256:ff96b971ddc276a479c66efd67a91d3d83e4a45425f1f657833ed399eab7fc45"},
 ]
 
 [package.dependencies]
@@ -1995,4 +1995,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.12.6"
-content-hash = "88979a9aac74a2953bd8144bbb7db7d7da913381b49fa151b431e8fbb271a238"
+content-hash = "5573265c742f841c6ab9f05d4532e03ce5d86d9061c10a6a252db676c4b3f01c"
