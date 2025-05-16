@@ -12,7 +12,12 @@ from sqlalchemy.orm import selectinload
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     get_attribute_types_by_names,
 )
-from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    BaseSchemaModel,
+    PaginationParams,
+    PaginationResult,
+)
 from models import KindType, ObjectClass
 
 OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
@@ -22,7 +27,7 @@ OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
 )
 
 
-class ObjectClassSchema(BaseModel):
+class ObjectClassSchema(BaseSchemaModel):
     """Object Class Schema."""
 
     oid: str
@@ -47,22 +52,34 @@ class ObjectClassSchema(BaseModel):
         )
 
 
+class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
+    """Attribute Type Schema with pagination result."""
+
+    items: list[ObjectClassSchema]
+
+
 async def get_object_classes_paginator(
     params: PaginationParams,
     session: AsyncSession,
-) -> PaginationResult:
+) -> ObjectClassPaginationSchema:
     """Retrieve paginated object_classes.
 
     :param PaginationParams params: page_size and page_number.
     :param AsyncSession session: Database session.
-    :return Paginator: Paginated result with object_classes and metadata.
+    :return ObjectClassPaginationSchema: Paginated result with object_classes and metadata.
     """
-    return await PaginationResult.get(
+    pagination_result = await PaginationResult[ObjectClass].get(
         params=params,
         query=select(ObjectClass).order_by(ObjectClass.id),
         sqla_model=ObjectClass,
-        schema_model=ObjectClassSchema,
         session=session,
+    )
+    items = [
+        ObjectClassSchema.from_db(item) for item in pagination_result.items
+    ]
+    return ObjectClassPaginationSchema(
+        metadata=pagination_result.metadata,
+        items=items,
     )
 
 

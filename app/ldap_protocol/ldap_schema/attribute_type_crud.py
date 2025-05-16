@@ -8,11 +8,16 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    BaseSchemaModel,
+    PaginationParams,
+    PaginationResult,
+)
 from models import AttributeType
 
 
-class AttributeTypeSchema(BaseModel):
+class AttributeTypeSchema(BaseSchemaModel):
     """Attribute Type Schema."""
 
     oid: str
@@ -35,22 +40,34 @@ class AttributeTypeSchema(BaseModel):
         )
 
 
+class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
+    """Attribute Type Schema with pagination result."""
+
+    items: list[AttributeTypeSchema]
+
+
 async def get_attribute_types_paginator(
     params: PaginationParams,
     session: AsyncSession,
-) -> PaginationResult:
+) -> AttributeTypePaginationSchema:
     """Retrieve paginated attribute_types.
 
     :param PaginationParams params: page_size and page_number.
     :param AsyncSession session: Database session.
-    :return Paginator: Paginated result with attribute_types and metadata.
+    :return AttributeTypePaginationSchema: Paginated result with attribute_types and metadata.
     """
-    return await PaginationResult.get(
+    pagination_result = await PaginationResult[AttributeType].get(
         params=params,
         query=select(AttributeType).order_by(AttributeType.id),
         sqla_model=AttributeType,
-        schema_model=AttributeTypeSchema,
         session=session,
+    )
+    items = [
+        AttributeTypeSchema.from_db(item) for item in pagination_result.items
+    ]
+    return AttributeTypePaginationSchema(
+        metadata=pagination_result.metadata,
+        items=items,
     )
 
 

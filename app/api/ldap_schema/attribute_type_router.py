@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import ldap_schema_router
 from ldap_protocol.ldap_schema.attribute_type_crud import (
+    AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
-    PaginationResult,
     create_attribute_type,
     delete_attribute_types_by_names,
     get_attribute_type_by_name,
@@ -85,20 +85,20 @@ async def get_one_attribute_type(
 
 @ldap_schema_router.get(
     "/attribute_types/{page_number}",
-    response_model=PaginationResult,
+    response_model=AttributeTypePaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_attribute_types_with_pagination(
     page_number: int,
     session: FromDishka[AsyncSession],
     page_size: int = 50,
-) -> PaginationResult:
+) -> AttributeTypePaginationSchema:
     """Retrieve a list of all attribute types with paginate.
 
     :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
-    :return Paginator: Paginator.
+    :return AttributeTypePaginationSchema: Paginator.
     """
     params = PaginationParams(
         page_number=page_number,

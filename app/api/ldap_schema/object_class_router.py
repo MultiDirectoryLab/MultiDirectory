@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema.attribute_type_router import ldap_schema_router
 from ldap_protocol.ldap_schema.object_class_crud import (
+    ObjectClassPaginationSchema,
     ObjectClassSchema,
     ObjectClassUpdateSchema,
     create_object_class,
@@ -20,7 +21,7 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_classes_paginator,
     modify_object_class,
 )
-from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
+from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
@@ -83,20 +84,20 @@ async def get_one_object_class(
 
 @ldap_schema_router.get(
     "/object_classes/{page_number}",
-    response_model=PaginationResult,
+    response_model=ObjectClassPaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_object_classes_with_pagination(
     page_number: int,
     session: FromDishka[AsyncSession],
     page_size: int = 25,
-) -> PaginationResult:
+) -> ObjectClassPaginationSchema:
     """Retrieve a list of all object classes with paginate.
 
     :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
-    :return Paginator: Paginator.
+    :return ObjectClassPaginationSchema: Paginator.
     """
     params = PaginationParams(
         page_number=page_number,
