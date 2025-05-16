@@ -104,8 +104,18 @@ async def get_list_attribute_types_with_pagination(
         page_number=page_number,
         page_size=page_size,
     )
+    pagination_result = await get_attribute_types_paginator(
+        params=params,
+        session=session,
+    )
 
-    return await get_attribute_types_paginator(params=params, session=session)
+    items = [
+        AttributeTypeSchema.from_db(item) for item in pagination_result.items
+    ]
+    return AttributeTypePaginationSchema(
+        metadata=pagination_result.metadata,
+        items=items,
+    )
 
 
 @ldap_schema_router.patch(

@@ -103,8 +103,18 @@ async def get_list_object_classes_with_pagination(
         page_number=page_number,
         page_size=page_size,
     )
+    pagination_result = await get_object_classes_paginator(
+        params=params,
+        session=session,
+    )
 
-    return await get_object_classes_paginator(params=params, session=session)
+    items = [
+        ObjectClassSchema.from_db(item) for item in pagination_result.items
+    ]
+    return ObjectClassPaginationSchema(
+        metadata=pagination_result.metadata,
+        items=items,
+    )
 
 
 @ldap_schema_router.patch(

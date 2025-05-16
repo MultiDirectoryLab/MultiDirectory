@@ -49,25 +49,18 @@ class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
 async def get_attribute_types_paginator(
     params: PaginationParams,
     session: AsyncSession,
-) -> AttributeTypePaginationSchema:
+) -> PaginationResult:
     """Retrieve paginated attribute_types.
 
     :param PaginationParams params: page_size and page_number.
     :param AsyncSession session: Database session.
-    :return AttributeTypePaginationSchema: Paginated result with attribute_types and metadata.
+    :return PaginationResult: Chunk of attribute_types and metadata.
     """
-    pagination_result = await PaginationResult[AttributeType].get(
+    return await PaginationResult[AttributeType].get(
         params=params,
         query=select(AttributeType).order_by(AttributeType.id),
         sqla_model=AttributeType,
         session=session,
-    )
-    items = [
-        AttributeTypeSchema.from_db(item) for item in pagination_result.items
-    ]
-    return AttributeTypePaginationSchema(
-        metadata=pagination_result.metadata,
-        items=items,
     )
 
 

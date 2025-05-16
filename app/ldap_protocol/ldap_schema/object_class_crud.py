@@ -61,25 +61,18 @@ class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
 async def get_object_classes_paginator(
     params: PaginationParams,
     session: AsyncSession,
-) -> ObjectClassPaginationSchema:
+) -> PaginationResult:
     """Retrieve paginated object_classes.
 
     :param PaginationParams params: page_size and page_number.
     :param AsyncSession session: Database session.
-    :return ObjectClassPaginationSchema: Paginated result with object_classes and metadata.
+    :return PaginationResult: Chunk of object_classes and metadata.
     """
-    pagination_result = await PaginationResult[ObjectClass].get(
+    return await PaginationResult[ObjectClass].get(
         params=params,
         query=select(ObjectClass).order_by(ObjectClass.id),
         sqla_model=ObjectClass,
         session=session,
-    )
-    items = [
-        ObjectClassSchema.from_db(item) for item in pagination_result.items
-    ]
-    return ObjectClassPaginationSchema(
-        metadata=pagination_result.metadata,
-        items=items,
     )
 
 
