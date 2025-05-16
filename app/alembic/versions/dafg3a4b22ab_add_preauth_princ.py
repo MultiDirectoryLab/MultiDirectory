@@ -25,6 +25,8 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    # TODO 5 its custom fix. почему мы на юзерах падаем.
+    # return
     for user in session.query(User):
         if user.sam_accout_name == "krbadmin":
             continue

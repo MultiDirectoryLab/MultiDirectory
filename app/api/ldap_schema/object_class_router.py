@@ -1,4 +1,4 @@
-"""Attribute Type management routers.
+"""Object Class management routers.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -145,7 +145,7 @@ async def modify_one_object_class(
 
 
 @ldap_schema_router.post(
-    "/object_classes/delete",
+    "/object_class/delete",
     status_code=status.HTTP_200_OK,
 )
 async def delete_bulk_object_classes(

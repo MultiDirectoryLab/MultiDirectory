@@ -1,4 +1,4 @@
-"""Datasets for testing the ObjectClassRouter."""
+"""Datasets for testing the object class router."""
 
 from fastapi import status
 

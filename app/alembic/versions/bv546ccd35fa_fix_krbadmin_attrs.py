@@ -24,6 +24,8 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    # TODO 4 its custom fix
+    # return
     krb_admin_user = session.scalar(
         sa.select(Directory)
         .join(Directory.user)

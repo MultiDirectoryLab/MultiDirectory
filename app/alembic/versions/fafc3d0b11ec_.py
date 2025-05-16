@@ -75,6 +75,7 @@ def upgrade() -> None:
         await session.commit()
         await session.close()
 
+    # TODO 2 uncomment this
     op.run_async(_create_readonly_grp_and_plcy)
 
 
@@ -105,4 +106,5 @@ def downgrade() -> None:
 
         await session.commit()
 
+    # TODO 2 uncomment this
     op.run_async(_delete_readonly_grp_and_plcy)

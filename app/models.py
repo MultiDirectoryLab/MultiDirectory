@@ -161,6 +161,56 @@ class GroupAccessPolicyMembership(Base):
     )
 
 
+class EntryObjectClassMembership(Base):
+    """Entry - ObjectClass m2m relationship."""
+
+    __tablename__ = "EntryObjectClassMemberships"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "entry_id",
+            "object_class_id",
+            name="entry_object_class_uc",
+        ),
+    )
+
+    entry_id: Mapped[int] = mapped_column(
+        ForeignKey("Entries.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    object_class_id: Mapped[str] = mapped_column(
+        ForeignKey("ObjectClasses.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class Entry(Base):
+    """LDAP entry."""
+
+    __tablename__ = "Entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    is_system: Mapped[bool] = mapped_column(nullable=False)
+    object_classes: Mapped[list[ObjectClass]] = relationship(
+        "ObjectClass",
+        secondary=EntryObjectClassMembership.__table__,
+        primaryjoin="Entry.id == EntryObjectClassMembership.entry_id",
+        secondaryjoin="EntryObjectClassMembership.object_class_id == ObjectClass.id",  # noqa: E501
+        lazy="selectin",
+    )
+
+    @property
+    def object_class_names(self) -> list[str]:
+        """Get object class names."""
+        return [obj_class.name for obj_class in self.object_classes]
+
+
 class Directory(Base):
     """Chierarcy of catalogue unit."""
 
@@ -181,6 +231,33 @@ class Directory(Base):
         backref=backref("directories", cascade="all,delete", viewonly=True),
         uselist=False,
     )
+
+    # TODO uncomment this
+    entry_id: Mapped[int] = mapped_column(
+        ForeignKey("Entries.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    entry: Mapped[Entry | None] = relationship(
+        Entry,
+        remote_side=Entry.id,
+        uselist=False,
+        lazy="selectin",
+    )
+
+    @property
+    def entry_name(self) -> str:
+        """Get entry name."""
+        return self.entry.name if self.entry else ""
+
+    @property
+    def entry_object_classes(self) -> list[str]:
+        """Get object class names of entry."""
+        return (
+            [object_class.name for object_class in self.entry.object_classes]
+            if self.entry
+            else []
+        )
 
     object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
     objectclass: Mapped[str] = synonym("object_class")

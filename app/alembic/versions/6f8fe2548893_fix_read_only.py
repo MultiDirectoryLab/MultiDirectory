@@ -25,6 +25,8 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    # TODO 3 delete the line
+    # return
     ro_dir = session.scalar(
         select(Directory)
         .where(Directory.name == "readonly domain controllers")

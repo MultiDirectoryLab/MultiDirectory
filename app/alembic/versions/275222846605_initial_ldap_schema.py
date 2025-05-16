@@ -164,6 +164,8 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
 
+    # TODO 7 its custom fix
+    # return
     # NOTE: Load attributeTypes into the database
     at_raw_definitions = ad_2012_r2_schema_json["raw"]["attributeTypes"]
     at_raw_definitions_filtered = [
