@@ -5,8 +5,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
 import sys
+from abc import abstractmethod
+from dataclasses import dataclass
 from math import ceil
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from typing import Generic, Sequence, TypeVar
 
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -15,11 +17,9 @@ from sqlalchemy.sql.expression import Select
 
 from models import Base
 
-T = TypeVar("T", contravariant=True, bound=Base)
-
 
 class PaginationParams(BaseModel):
-    """Модель для параметров пагинации."""
+    """Pagination parameters."""
 
     page_number: int = Field(
         ...,
@@ -35,50 +35,86 @@ class PaginationParams(BaseModel):
     )
 
 
-@runtime_checkable
-class SchemaProtocol(Protocol[T]):
-    """Protocol for Schema."""
+@dataclass
+class PaginationMetadata:
+    """Pagination metadata."""
 
-    @classmethod
-    def from_db(cls, sqla_instance: T) -> "SchemaProtocol":
-        """Create an instance of Schema from instance of SQLA model."""
+    page_number: int
+    page_size: int
+    total_count: int | None = None
+    total_pages: int | None = None
 
 
-class PaginationResult(BaseModel, Generic[T]):
-    """Paginator."""
+P = TypeVar("P", contravariant=True, bound=BaseModel)
 
-    params: PaginationParams
-    total_pages: int
-    items: list[SchemaProtocol[T]]
+
+class BasePaginationSchema(BaseModel, Generic[P]):
+    """Paginator Schema."""
+
+    metadata: PaginationMetadata
+    items: list[P]
 
     class Config:
         """Config for Paginator."""
 
         arbitrary_types_allowed = True
 
+
+S = TypeVar("S", contravariant=True, bound=Base)
+
+
+class BaseSchemaModel(BaseModel, Generic[S]):
+    """Model for Schema.
+
+    Schema is used for serialization and deserialization.
+    """
+
+    @classmethod
+    @abstractmethod
+    def from_db(cls, sqla_instance: S) -> "BaseSchemaModel[S]":
+        """Create an instance of Schema from instance of SQLA model."""
+        raise NotImplementedError(
+            "'from_db' method must be implemented in subclasses."
+        )
+
+
+@dataclass
+class PaginationResult(Generic[S]):
+    """Paginator.
+
+    Paginator contains metadata about pagination and chunk of items.
+    """
+
+    metadata: PaginationMetadata
+    items: Sequence[S]
+
     @classmethod
     async def get(
         cls,
-        query: Select,
+        query: Select[tuple[S]],
         params: PaginationParams,
-        sqla_model: type[Base],
-        schema_model: type[SchemaProtocol[T]],
+        sqla_model: type[S],
         session: AsyncSession,
-    ) -> "PaginationResult":
+    ) -> "PaginationResult[S]":
         """Get paginator."""
         if query._order_by_clause is None or len(query._order_by_clause) == 0:
             raise ValueError("Select query must have an order_by clause.")
 
+        metadata = PaginationMetadata(
+            page_number=params.page_number,
+            page_size=params.page_size,
+        )
+
         total_count_query = select(func.count()).select_from(sqla_model)
-        total_count = (await session.scalars(total_count_query)).one()
-        total_pages = ceil(total_count / params.page_size)
+        metadata.total_count = (await session.scalars(total_count_query)).one()
+        metadata.total_pages = ceil(metadata.total_count / params.page_size)
 
         offset = (params.page_number - 1) * params.page_size
         query = query.offset(offset).limit(params.page_size)
         result = await session.scalars(query)
+        items = result.all()
 
         return cls(
-            params=params,
-            total_pages=total_pages,
-            items=[schema_model.from_db(item) for item in result.all()],
+            metadata=metadata,
+            items=items,
         )
