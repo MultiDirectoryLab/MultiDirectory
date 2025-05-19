@@ -38,6 +38,7 @@ async def create_one_attribute_type(
 ) -> None:
     """Create a new attribute type.
 
+    \f
     :param AttributeTypeSchema request_data: Data for creating attribute type.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
@@ -64,6 +65,7 @@ async def get_one_attribute_type(
 ) -> AttributeTypeSchema:
     """Retrieve a one attribute types.
 
+    \f
     :param str attribute_type_name: name of the Attribute Type.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
@@ -95,6 +97,7 @@ async def get_list_attribute_types_with_pagination(
 ) -> AttributeTypePaginationSchema:
     """Retrieve a list of all attribute types with paginate.
 
+    \f
     :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
@@ -129,6 +132,7 @@ async def modify_one_attribute_type(
 ) -> None:
     """Modify an Attribute Type.
 
+    \f
     :param str attribute_type_name: name of the attribute type for modifying.
     :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
@@ -171,6 +175,7 @@ async def delete_bulk_attribute_types(
 ) -> None:
     """Delete attribute types by their names.
 
+    \f
     :param list[str] attribute_types_names: List of attribute types names.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.

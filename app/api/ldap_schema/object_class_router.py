@@ -36,6 +36,7 @@ async def create_one_object_class(
 ) -> None:
     """Create a new Object Class.
 
+    \f
     :param ObjectClassSchema request_data: Data for creating Object Class.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
@@ -63,6 +64,7 @@ async def get_one_object_class(
 ) -> ObjectClassSchema:
     """Retrieve a one object class.
 
+    \f
     :param str object_class_name: name of the Object Class.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If Object Class not found.
@@ -94,6 +96,7 @@ async def get_list_object_classes_with_pagination(
 ) -> ObjectClassPaginationSchema:
     """Retrieve a list of all object classes with paginate.
 
+    \f
     :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
@@ -128,6 +131,7 @@ async def modify_one_object_class(
 ) -> None:
     """Modify an Object Class.
 
+    \f
     :param str object_class_name: Name of the Object Class for modifying.
     :param ObjectClassUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
@@ -165,6 +169,7 @@ async def delete_bulk_object_classes(
 ) -> None:
     """Delete Object Classes by their names.
 
+    \f
     :param list[str] object_classes_names: List of Object Classes names.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
