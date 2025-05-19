@@ -17,6 +17,9 @@ from sqlalchemy.sql.expression import Select
 
 from models import Base
 
+P = TypeVar("P", contravariant=True, bound=BaseModel)
+S = TypeVar("S", contravariant=True, bound=Base)
+
 
 class PaginationParams(BaseModel):
     """Pagination parameters."""
@@ -45,9 +48,6 @@ class PaginationMetadata:
     total_pages: int | None = None
 
 
-P = TypeVar("P", contravariant=True, bound=BaseModel)
-
-
 class BasePaginationSchema(BaseModel, Generic[P]):
     """Paginator Schema."""
 
@@ -60,9 +60,6 @@ class BasePaginationSchema(BaseModel, Generic[P]):
         arbitrary_types_allowed = True
 
 
-S = TypeVar("S", contravariant=True, bound=Base)
-
-
 class BaseSchemaModel(BaseModel, Generic[S]):
     """Model for Schema.
 
@@ -73,9 +70,6 @@ class BaseSchemaModel(BaseModel, Generic[S]):
     @abstractmethod
     def from_db(cls, sqla_instance: S) -> "BaseSchemaModel[S]":
         """Create an instance of Schema from instance of SQLA model."""
-        raise NotImplementedError(
-            "'from_db' method must be implemented in subclasses."
-        )
 
 
 @dataclass
