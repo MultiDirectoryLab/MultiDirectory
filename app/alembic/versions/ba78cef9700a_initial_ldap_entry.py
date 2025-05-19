@@ -86,25 +86,6 @@ def upgrade() -> None:
         ["oid"],
     )
 
-    # TODO а это нужно?
-    # op.alter_column(
-    #     "ObjectClasses",
-    #     "kind",
-    #     existing_type=postgresql.ENUM(
-    #         "AUXILIARY",
-    #         "STRUCTURAL",
-    #         "ABSTRACT",
-    #         name="objectclasskinds",
-    #     ),
-    #     type_=sa.Enum(
-    #         "STRUCTURAL",
-    #         "ABSTRACT",
-    #         "AUXILIARY",
-    #         native_enum=False,
-    #         name="objectclasskinds",
-    #     ),
-    #     existing_nullable=False,
-    # )
     op.drop_index("ix_ObjectClasses_oid", table_name="ObjectClasses")
     op.create_unique_constraint(
         "ObjectClasses_oid_uc",
@@ -164,36 +145,15 @@ def downgrade() -> None:
         unique=True,
     )
 
-    # TODO а это нужно?
-    # op.alter_column(
-    #     "ObjectClasses",
-    #     "kind",
-    #     existing_type=sa.Enum(
-    #         "STRUCTURAL",
-    #         "ABSTRACT",
-    #         "AUXILIARY",
-    #         native_enum=False,
-    #     ),
-    #     type_=postgresql.ENUM(
-    #         "AUXILIARY",
-    #         "STRUCTURAL",
-    #         "ABSTRACT",
-    #         name="objectclasskinds",
-    #     ),
-    #     existing_nullable=False,
-    # )
     op.drop_constraint(
         "Directory_entry_id_fkey",
         "Directory",
         type_="foreignkey",
     )
     op.drop_index(op.f("ix_Directory_entry_id"), table_name="Directory")
-
     if has_column("Directory", "entry_id", op.get_bind()):
-        op.add_column(
-            "Directory",
-            sa.Column("entry_id", sa.Integer(), nullable=True),
-        )
+        op.drop_column("Directory", "entry_id")
+
     op.drop_constraint(
         "AttributeTypes_oid_uc",
         "AttributeTypes",

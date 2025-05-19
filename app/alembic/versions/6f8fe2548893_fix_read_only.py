@@ -6,8 +6,9 @@ Create Date: 2024-11-14 13:02:33.899640
 
 """
 
+import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, inspect, select, update
 from sqlalchemy.orm import Session
 
 from ldap_protocol.utils.helpers import create_integer_hash
@@ -20,13 +21,24 @@ branch_labels = None
 depends_on = None
 
 
+def has_column(table_name: str, column_name: str, bind) -> bool:
+    """Check if a column exists in a table."""
+    inspector = inspect(bind)
+    columns = [col["name"] for col in inspector.get_columns(table_name)]
+    return bool(column_name in columns)
+
+
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    # TODO 3 delete the line
-    # return
+    if not has_column("Directory", "entry_id", op.get_bind()):
+        op.add_column(
+            "Directory",
+            sa.Column("entry_id", sa.Integer(), nullable=True),
+        )
+
     ro_dir = session.scalar(
         select(Directory)
         .where(Directory.name == "readonly domain controllers")
@@ -83,8 +95,13 @@ def upgrade() -> None:
     domain_sid = "-".join(ro_dir.object_sid.split("-")[:-1])
     ro_dir.object_sid = domain_sid + "-521"
 
+    if has_column("Directory", "entry_id", op.get_bind()):
+        op.drop_column("Directory", "entry_id")
+
     session.commit()
 
 
 def downgrade() -> None:
     """Downgrade."""
+    if has_column("Directory", "entry_id", op.get_bind()):
+        op.drop_column("Directory", "entry_id")

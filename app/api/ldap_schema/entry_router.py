@@ -10,8 +10,9 @@ from dishka.integrations.fastapi import FromDishka
 from fastapi import Body, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.ldap_schema.attribute_type_router import ldap_schema_router
+from api.ldap_schema.object_class_router import ldap_schema_router
 from ldap_protocol.ldap_schema.entry_crud import (
+    EntryPaginationSchema,
     EntrySchema,
     EntryUpdateSchema,
     create_entry,
@@ -20,7 +21,7 @@ from ldap_protocol.ldap_schema.entry_crud import (
     get_entry_by_name,
     modify_entry,
 )
-from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
+from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_ENTRY_IS_SYSTEM = False
 
@@ -35,6 +36,7 @@ async def create_one_entry(
 ) -> None:
     """Create a new Entry.
 
+    \f
     :param EntrySchema request_data: Data for creating Entry.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
@@ -58,6 +60,7 @@ async def get_one_entry(
 ) -> EntrySchema:
     """Retrieve a one entry.
 
+    \f
     :param str entry_name: name of the entry.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If entry not found.
@@ -79,27 +82,36 @@ async def get_one_entry(
 
 @ldap_schema_router.get(
     "/entries/{page_number}",
-    response_model=PaginationResult,
+    response_model=EntryPaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_entries_with_pagination(
     page_number: int,
     session: FromDishka[AsyncSession],
     page_size: int = 25,
-) -> PaginationResult:
+) -> EntryPaginationSchema:
     """Retrieve a list of all entries with paginate.
 
+    \f
     :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
-    :return Paginator: Paginator.
+    :return EntryPaginationSchema: Paginator.
     """
     params = PaginationParams(
         page_number=page_number,
         page_size=page_size,
     )
 
-    return await get_entries_paginator(params=params, session=session)
+    pagination_result = await get_entries_paginator(
+        params=params, session=session
+    )
+
+    items = [EntrySchema.from_db(item) for item in pagination_result.items]
+    return EntryPaginationSchema(
+        metadata=pagination_result.metadata,
+        items=items,
+    )
 
 
 @ldap_schema_router.patch(
@@ -113,6 +125,7 @@ async def modify_one_entry(
 ) -> None:
     """Modify an Entry.
 
+    \f
     :param str entry_name: Name of the Entry for modifying.
     :param EntryUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
@@ -150,6 +163,7 @@ async def delete_bulk_entries(
 ) -> None:
     """Delete Entries by their names.
 
+    \f
     :param list[str] entry_names: List of Entries names.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.

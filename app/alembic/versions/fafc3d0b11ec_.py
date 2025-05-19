@@ -6,8 +6,9 @@ Create Date: 2024-11-11 15:21:23.568233
 
 """
 
+import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import delete, exists, select
+from sqlalchemy import delete, exists, inspect, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,12 +27,20 @@ branch_labels = None
 depends_on = None
 
 
+def has_column(table_name: str, column_name: str, bind) -> bool:
+    """Check if a column exists in a table."""
+    inspector = inspect(bind)
+    columns = [col["name"] for col in inspector.get_columns(table_name)]
+    return bool(column_name in columns)
+
+
 def upgrade() -> None:
     """Upgrade."""
 
     async def _create_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
+
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
@@ -75,8 +84,16 @@ def upgrade() -> None:
         await session.commit()
         await session.close()
 
-    # TODO 2 uncomment this
+    if not has_column("Directory", "entry_id", op.get_bind()):
+        op.add_column(
+            "Directory",
+            sa.Column("entry_id", sa.Integer(), nullable=True),
+        )
+
     op.run_async(_create_readonly_grp_and_plcy)
+
+    if has_column("Directory", "entry_id", op.get_bind()):
+        op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:
@@ -85,6 +102,7 @@ def downgrade() -> None:
     async def _delete_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
+
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
@@ -106,5 +124,13 @@ def downgrade() -> None:
 
         await session.commit()
 
-    # TODO 2 uncomment this
+    if not has_column("Directory", "entry_id", op.get_bind()):
+        op.add_column(
+            "Directory",
+            sa.Column("entry_id", sa.Integer(), nullable=True),
+        )
+
     op.run_async(_delete_readonly_grp_and_plcy)
+
+    if has_column("Directory", "entry_id", op.get_bind()):
+        op.drop_column("Directory", "entry_id")

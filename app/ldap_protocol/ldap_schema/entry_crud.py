@@ -11,7 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_classes_by_names,
 )
-from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    PaginationParams,
+    PaginationResult,
+)
 from models import Entry
 
 
@@ -32,6 +36,19 @@ class EntrySchema(BaseModel):
         )
 
 
+class EntryUpdateSchema(BaseModel):
+    """Entry Schema for modify/update."""
+
+    name: str
+    object_class_names: list[str]
+
+
+class EntryPaginationSchema(BasePaginationSchema[EntrySchema]):
+    """Attribute Type Schema with pagination result."""
+
+    items: list[EntrySchema]
+
+
 async def get_entries_paginator(
     params: PaginationParams,
     session: AsyncSession,
@@ -40,22 +57,14 @@ async def get_entries_paginator(
 
     :param PaginationParams params: page_size and page_number.
     :param AsyncSession session: Database session.
-    :return Paginator: Paginated result with entry and metadata.
+    :return PaginationResult: Chunk of entries and metadata.
     """
-    return await PaginationResult.get(
+    return await PaginationResult[Entry].get(
         params=params,
         query=select(Entry).order_by(Entry.id),
         sqla_model=Entry,
-        schema_model=EntrySchema,
         session=session,
     )
-
-
-class EntryUpdateSchema(BaseModel):
-    """Entry Schema for modify/update."""
-
-    name: str
-    object_class_names: list[str]
 
 
 async def create_entry(

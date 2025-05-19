@@ -1,22 +1,150 @@
 """Datasets for testing the entry router."""
 
-from fastapi import status
+test_create_one_entry_dataset = [
+    {
+        "object_classes": [
+            {
+                "oid": "1.2.3.4",
+                "name": "testObjectClass1",
+                "superior_name": None,
+                "kind": "STRUCTURAL",
+                "is_system": False,
+                "attribute_type_names_must": [],
+                "attribute_type_names_may": [],
+            },
+            {
+                "oid": "1.2.3.4.5",
+                "name": "testObjectClass2",
+                "superior_name": None,
+                "kind": "ABSTRACT",
+                "is_system": False,
+                "attribute_type_names_must": [],
+                "attribute_type_names_may": [],
+            },
+        ],
+        "entry": {
+            "name": "testEntry1",
+            "object_class_names": ["testObjectClass1", "testObjectClass2"],
+            "is_system": False,
+        },
+    },
+    {
+        "object_classes": [],
+        "entry": {
+            "name": "testEntry1",
+            "object_class_names": [],
+            "is_system": False,
+        },
+    },
+]
 
+test_get_list_entries_with_pagination_dataset = [
+    {
+        "entries": [
+            {
+                "name": "testEntry1",
+                "object_class_names": [],
+                "is_system": False,
+            },
+            {
+                "name": "testEntry2",
+                "object_class_names": [],
+                "is_system": False,
+            },
+            {
+                "name": "testEntry3",
+                "object_class_names": [],
+                "is_system": False,
+            },
+        ],
+    }
+]
 
-# test_create_one_entry_dataset = [
-#     {},
-#     {},
-#     {},
-# ]
+test_modify_one_entry_dataset = [
+    {
+        "object_classes": [
+            {
+                "oid": "1.2.3.4",
+                "name": "testObjectClass1",
+                "superior_name": None,
+                "kind": "STRUCTURAL",
+                "is_system": False,
+                "attribute_type_names_must": [],
+                "attribute_type_names_may": [],
+            },
+            {
+                "oid": "1.2.3.4.5",
+                "name": "testObjectClass2",
+                "superior_name": None,
+                "kind": "ABSTRACT",
+                "is_system": False,
+                "attribute_type_names_must": [],
+                "attribute_type_names_may": [],
+            },
+        ],
+        "entry": {
+            "name": "testEntry1",
+            "object_class_names": ["testObjectClass1"],
+            "is_system": False,
+        },
+        "new_statement": {
+            "name": "testEntry1",
+            "object_class_names": ["testObjectClass2"],
+        },
+    },
+    {
+        "object_classes": [],
+        "entry": {
+            "name": "testEntry1",
+            "object_class_names": [],
+            "is_system": False,
+        },
+        "new_statement": {
+            "name": "testEntry2",
+            "object_class_names": [],
+        },
+    },
+]
 
-# test_delete_bulk_entries_dataset = [
-#     {},
-#     {},
-#     {},
-# ]
-
-# test_modify_one_entry_dataset = [
-#     {},
-#     {},
-#     {},
-# ]
+test_delete_bulk_entries_dataset = [
+    {
+        "entry_datas": [
+            {
+                "name": "testEntry1",
+                "object_class_names": [],
+                "is_system": False,
+            },
+            {
+                "name": "testEntry2",
+                "object_class_names": [],
+                "is_system": False,
+            },
+        ],
+        "entries_deleted": ["testEntry1", "testEntry2"],
+    },
+    {
+        "entry_datas": [
+            {
+                "name": "testEntry1",
+                "object_class_names": [],
+                "is_system": False,
+            },
+            {
+                "name": "testEntry2",
+                "object_class_names": [],
+                "is_system": False,
+            },
+        ],
+        "entries_deleted": ["testEntry1"],
+    },
+    {
+        "entry_datas": [
+            {
+                "name": "testEntry1",
+                "object_class_names": [],
+                "is_system": False,
+            },
+        ],
+        "entries_deleted": ["testEntry1", "testEntry2", "testEntry3"],
+    },
+]
