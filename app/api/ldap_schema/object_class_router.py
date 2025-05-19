@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema.attribute_type_router import ldap_schema_router
 from ldap_protocol.ldap_schema.object_class_crud import (
+    ObjectClassPaginationSchema,
     ObjectClassSchema,
     ObjectClassUpdateSchema,
     create_object_class,
@@ -20,7 +21,7 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_classes_paginator,
     modify_object_class,
 )
-from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
+from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
@@ -35,6 +36,7 @@ async def create_one_object_class(
 ) -> None:
     """Create a new Object Class.
 
+    \f
     :param ObjectClassSchema request_data: Data for creating Object Class.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
@@ -62,6 +64,7 @@ async def get_one_object_class(
 ) -> ObjectClassSchema:
     """Retrieve a one object class.
 
+    \f
     :param str object_class_name: name of the Object Class.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If Object Class not found.
@@ -83,27 +86,38 @@ async def get_one_object_class(
 
 @ldap_schema_router.get(
     "/object_classes/{page_number}",
-    response_model=PaginationResult,
+    response_model=ObjectClassPaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_object_classes_with_pagination(
     page_number: int,
     session: FromDishka[AsyncSession],
     page_size: int = 25,
-) -> PaginationResult:
+) -> ObjectClassPaginationSchema:
     """Retrieve a list of all object classes with paginate.
 
+    \f
     :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
-    :return Paginator: Paginator.
+    :return ObjectClassPaginationSchema: Paginator.
     """
     params = PaginationParams(
         page_number=page_number,
         page_size=page_size,
     )
+    pagination_result = await get_object_classes_paginator(
+        params=params,
+        session=session,
+    )
 
-    return await get_object_classes_paginator(params=params, session=session)
+    items = [
+        ObjectClassSchema.from_db(item) for item in pagination_result.items
+    ]
+    return ObjectClassPaginationSchema(
+        metadata=pagination_result.metadata,
+        items=items,
+    )
 
 
 @ldap_schema_router.patch(
@@ -117,6 +131,7 @@ async def modify_one_object_class(
 ) -> None:
     """Modify an Object Class.
 
+    \f
     :param str object_class_name: Name of the Object Class for modifying.
     :param ObjectClassUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
@@ -154,6 +169,7 @@ async def delete_bulk_object_classes(
 ) -> None:
     """Delete Object Classes by their names.
 
+    \f
     :param list[str] object_classes_names: List of Object Classes names.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.

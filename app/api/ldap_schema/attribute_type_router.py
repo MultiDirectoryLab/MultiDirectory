@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import ldap_schema_router
 from ldap_protocol.ldap_schema.attribute_type_crud import (
+    AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
-    PaginationResult,
     create_attribute_type,
     delete_attribute_types_by_names,
     get_attribute_type_by_name,
@@ -38,6 +38,7 @@ async def create_one_attribute_type(
 ) -> None:
     """Create a new attribute type.
 
+    \f
     :param AttributeTypeSchema request_data: Data for creating attribute type.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
@@ -64,6 +65,7 @@ async def get_one_attribute_type(
 ) -> AttributeTypeSchema:
     """Retrieve a one attribute types.
 
+    \f
     :param str attribute_type_name: name of the Attribute Type.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
@@ -85,27 +87,38 @@ async def get_one_attribute_type(
 
 @ldap_schema_router.get(
     "/attribute_types/{page_number}",
-    response_model=PaginationResult,
+    response_model=AttributeTypePaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_attribute_types_with_pagination(
     page_number: int,
     session: FromDishka[AsyncSession],
     page_size: int = 50,
-) -> PaginationResult:
+) -> AttributeTypePaginationSchema:
     """Retrieve a list of all attribute types with paginate.
 
+    \f
     :param int page_number: number of page.
     :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
-    :return Paginator: Paginator.
+    :return AttributeTypePaginationSchema: Paginator.
     """
     params = PaginationParams(
         page_number=page_number,
         page_size=page_size,
     )
+    pagination_result = await get_attribute_types_paginator(
+        params=params,
+        session=session,
+    )
 
-    return await get_attribute_types_paginator(params=params, session=session)
+    items = [
+        AttributeTypeSchema.from_db(item) for item in pagination_result.items
+    ]
+    return AttributeTypePaginationSchema(
+        metadata=pagination_result.metadata,
+        items=items,
+    )
 
 
 @ldap_schema_router.patch(
@@ -119,6 +132,7 @@ async def modify_one_attribute_type(
 ) -> None:
     """Modify an Attribute Type.
 
+    \f
     :param str attribute_type_name: name of the attribute type for modifying.
     :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
@@ -161,6 +175,7 @@ async def delete_bulk_attribute_types(
 ) -> None:
     """Delete attribute types by their names.
 
+    \f
     :param list[str] attribute_types_names: List of attribute types names.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
