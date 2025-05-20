@@ -100,10 +100,11 @@ class RedisClient(AbstractClient):
             return False
 
         data = await self._client.get("is_proc_events")
+
         if data is None:
             return False
 
-        return bool(data) == 1
+        return int(data) == 1
 
     async def enable_proc_events(self) -> None:
         """Set events to be processed."""
