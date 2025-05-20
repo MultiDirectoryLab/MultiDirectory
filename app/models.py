@@ -6,10 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from __future__ import annotations
 
-import enum
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
+from enum import IntEnum
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -832,7 +832,7 @@ class ObjectClass(Base):
         return f"ObjectClass({self.oid}:{self.name})"
 
 
-class MFAFlags(int, enum.Enum):
+class MFAFlags(IntEnum):
     """Two-Factor auth action."""
 
     DISABLED = 0
@@ -960,6 +960,19 @@ class AccessPolicy(Base):
     )
 
 
+class AuditSeverity(IntEnum):
+    """Audit policy severity."""
+
+    EMERGENCY = 0
+    ALERT = 1
+    CRITICAL = 2
+    ERROR = 3
+    WARNING = 4
+    NOTICE = 5
+    INFO = 6
+    DEBUG = 7
+
+
 class AuditPolicy(Base):
     """Audit policy."""
 
@@ -970,6 +983,10 @@ class AuditPolicy(Base):
 
     is_enabled: Mapped[bool] = mapped_column(
         nullable=False, server_default=expression.false()
+    )
+    severity: Mapped[AuditSeverity] = mapped_column(
+        Enum(AuditSeverity),
+        nullable=False,
     )
 
     triggers: Mapped[list[AuditPolicyTrigger]] = relationship(
@@ -1018,7 +1035,7 @@ class AuditDestination(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     type: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    is_enable: Mapped[tbool]
+    is_enabled: Mapped[tbool]
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(nullable=False)
     username: Mapped[str | None] = mapped_column(String(255))
