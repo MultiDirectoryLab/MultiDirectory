@@ -8,7 +8,7 @@ from redis_client import RedisClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import AuditPolicy
+from models import AuditDestination, AuditPolicy
 
 
 async def check_events_to_process(
@@ -20,7 +20,12 @@ async def check_events_to_process(
         .where(AuditPolicy.is_enabled.is_(True))
     )).all()  # fmt: skip
 
-    if enabled_audit_policies:
+    enabled_audit_destination = (await session.scalars(
+        select(AuditDestination)
+        .where(AuditDestination.is_enabled.is_(True))
+    )).all()  # fmt: skip
+
+    if enabled_audit_policies and enabled_audit_destination:
         await redis_client.enable_proc_events()
         return
 
