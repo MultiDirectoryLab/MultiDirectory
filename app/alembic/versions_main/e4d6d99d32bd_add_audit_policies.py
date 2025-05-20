@@ -44,6 +44,21 @@ def upgrade() -> None:
             server_default=sa.text("false"),
             nullable=False,
         ),
+        sa.Column(
+            "severity",
+            sa.Enum(
+                "EMERGENCY",
+                "ALERT",
+                "CRITICAL",
+                "ERROR",
+                "WARNING",
+                "NOTICE",
+                "INFO",
+                "DEBUG",
+                name="auditseverity",
+            ),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
@@ -83,17 +98,17 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("type", sa.String(length=50), nullable=False),
         sa.Column(
-            "is_enable",
+            "is_enabled",
             sa.Boolean(),
             server_default=sa.text("true"),
             nullable=False,
         ),
         sa.Column("host", sa.String(length=255), nullable=False),
         sa.Column("port", sa.Integer(), nullable=False),
-        sa.Column("username", sa.String(length=255), nullable=False),
-        sa.Column("password", sa.String(length=255), nullable=False),
+        sa.Column("username", sa.String(length=255), nullable=True),
+        sa.Column("password", sa.String(length=255), nullable=True),
         sa.Column("protocol", sa.String(length=10), nullable=False),
-        sa.Column("auth_token", sa.String(length=512), nullable=False),
+        sa.Column("auth_token", sa.String(length=512), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
         sa.UniqueConstraint("type"),
@@ -106,3 +121,5 @@ def downgrade() -> None:
     op.drop_table("AuditPolicyTriggers")
     op.drop_table("AuditPolicies")
     op.drop_table("AuditDestinations")
+
+    op.execute(sa.text("DROP TYPE auditseverity"))
