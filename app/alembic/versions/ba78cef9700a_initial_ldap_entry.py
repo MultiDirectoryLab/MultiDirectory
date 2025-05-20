@@ -8,7 +8,15 @@ Create Date: 2025-05-15 11:54:03.712099
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import inspect
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session, defaultload
+
+from ldap_protocol.ldap_schema.entry_crud import (
+    create_entry,
+    get_entry_by_name,
+)
+from models import Directory
 
 # revision identifiers, used by Alembic.
 revision = "ba78cef9700a"
@@ -17,11 +25,53 @@ branch_labels = None
 depends_on = None
 
 
-def has_column(table_name: str, column_name: str, bind) -> bool:
-    """Check if a column exists in a table."""
-    inspector = inspect(bind)
-    columns = [col["name"] for col in inspector.get_columns(table_name)]
-    return bool(column_name in columns)
+def calculate_entry(
+    directory_name: str, object_class_names: list[str]
+) -> list[str]:
+    """Calc entry."""
+    res = []
+    if "domain" in object_class_names:
+        res.append("Домен")
+    if "computer" in object_class_names:
+        res.append("Компьютер")
+    if {"top", "container"}.issubset(object_class_names):
+        res.append("Группа_1")
+    if "catalog" in object_class_names:
+        res.append("Каталог")
+    if "organizationalUnit" in object_class_names:
+        res.append("Организационное подразделение")
+    if {
+        "top",
+        "user",
+        "person",
+        "organizationalPerson",
+        "posixAccount",
+        "shadowAccount",
+    }.issubset(object_class_names) and directory_name == "admin":
+        res.append("Админ")
+    if {"top", "posixGroup", "group"}.issubset(object_class_names):
+        res.append("Группа_2")
+    if "sudoRole" in object_class_names:
+        res.append("Роль")
+    if {
+        "top",
+        "user",
+        "person",
+        "organizationalPerson",
+        "posixAccount",
+        "shadowAccount",
+    }.issubset(object_class_names) and directory_name != "admin":
+        res.append("Пользователь")
+    if {
+        "top",
+        "user",
+        "person",
+        "organizationalPerson",
+        "posixAccount",
+        "shadowAccount",
+        "inetOrgPerson",
+    }.issubset(object_class_names):
+        res.append("KRB Админ")
 
 
 def upgrade() -> None:
@@ -58,12 +108,10 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("entry_id", "object_class_id"),
     )
 
-    if not has_column("Directory", "entry_id", op.get_bind()):
-        op.add_column(
-            "Directory",
-            sa.Column("entry_id", sa.Integer(), nullable=True),
-        )
-
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
     op.create_index(
         op.f("ix_Directory_entry_id"),
         "Directory",
@@ -93,45 +141,76 @@ def upgrade() -> None:
         ["oid"],
     )
     # ### end Alembic commands ###
+    bind = op.get_bind()
+    Session(bind=bind)
 
-    # 1 create entries()
-    #   private static TypeNameMap = new Map<LdapEntryType, () => string>([
-    #     [LdapEntryType.None, () => ''],
-    #     [LdapEntryType.Folder, () => translate('entity-info-resolver.catalog')],
-    #     [LdapEntryType.Root, () => translate('entity-info-resolver.root')],
-    #     [LdapEntryType.Server, () => translate('entity-info-resolver.domain-controller')],
-    #     [LdapEntryType.User, () => translate('entity-info-resolver.user')],
-    #     [LdapEntryType.Group, () => translate('entity-info-resolver.security-group')],
-    #     [LdapEntryType.OU, () => translate('entity-info-resolver.organizational-unit')],
-    #     [LdapEntryType.Computer, () => translate('entity-info-resolver.computer')],
-    #     [LdapEntryType.Rule, () => translate('entity-info-resolver.rule')],
-    #   ]);
+    entry_datas = (
+        ("Домен", "md.localhost", "top, domain, domainDNS"),
+        ("Компьютер", "computer_123", "top, computer"),
+        ("Группа_1", "groups", "top, container"),
+        ("Каталог", "catalog_123", "top, container, catalog"),
+        (
+            "Организационное подразделение",
+            "org_unit_123",
+            "top, container, organizationalUnit",
+        ),
+        (
+            "Админ",
+            "admin",
+            "top, person, organizationalPerson, posixAccount, shadowAccount, user",
+        ),
+        ("Группа_2", "group", "top, posixGroup, group"),
+        ("Роль", "role_123", "top, sudoRole"),
+        (
+            "Пользователь",
+            "user_123",
+            "top, user, person, organizationalPerson, posixAccount, shadowAccount",
+        ),
+        (
+            "KRB Админ",
+            "krbadmin",
+            "top, user, person, organizationalPerson, posixAccount, shadowAccount, inetOrgPerson",
+        ),
+    )
 
-    #   private static TypeMap = new Map<string, LdapEntryType>([
-    #     ['user', LdapEntryType.User],
-    #     ['group', LdapEntryType.Group],
-    #     ['organizationalUnit', LdapEntryType.OU],
-    #     ['computer', LdapEntryType.Computer],
-    #     ['sudoRole', LdapEntryType.Rule],
-    #   ]);
+    async def _create_entry(connection):
+        session = AsyncSession(bind=connection)
+        await session.begin()
 
-    # entry_data = [
-    #     {
-    #         "name": "Root",
-    #         "is_system": True,
-    #         "object_class_names": [str, str, str],
-    #     },
-    # ]
-    # for entry_data in entries_data:
-    #     entry = Entry(entry_data["name"], entry_data["is_system"])
-    #     object_classes = get_object_class_names(entry_data["object_class_names"])
-    #     entry.object_classes.extend(object_classes)
+        for entry_data in entry_datas:
+            await create_entry(
+                name=entry_data[0],
+                is_system=True,
+                object_class_names=entry_data[2].split(", "),
+                session=session,
+            )
 
-    # 2 map entry and directory
-    # directories = Directory.all()
-    # for directory in directories:
-    #     calculate entry()
-    #     directory.entry_id = entry.id
+    op.run_async(_create_entry)
+
+    async def _attach_entry_to_directories(connection):
+        session = AsyncSession(bind=connection)
+        await session.begin()
+
+        query = select(Directory).options(
+            defaultload(Directory.attributes),
+        )
+        result = await session.scalars(query)
+        directories: list[Directory] = result.all()
+
+        for directory in directories:
+            object_class_names = [
+                attribute.value
+                for attribute in directory.attributes
+                if attribute.name == "objectClass"
+            ]
+            entry_names = calculate_entry(directory.name, object_class_names)
+
+            if len(entry_names) > 1:
+                raise Exception(f"entry_names to long: {entry_names}")
+
+            directory.entry = await get_entry_by_name(entry_names[0], session)
+
+    op.run_async(_attach_entry_to_directories)
 
 
 def downgrade() -> None:
@@ -151,8 +230,7 @@ def downgrade() -> None:
         type_="foreignkey",
     )
     op.drop_index(op.f("ix_Directory_entry_id"), table_name="Directory")
-    if has_column("Directory", "entry_id", op.get_bind()):
-        op.drop_column("Directory", "entry_id")
+    op.drop_column("Directory", "entry_id")
 
     op.drop_constraint(
         "AttributeTypes_oid_uc",
