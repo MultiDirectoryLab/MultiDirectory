@@ -8,9 +8,6 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.ldap_schema.object_class_crud import (
-    get_object_classes_by_names,
-)
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
@@ -69,8 +66,8 @@ async def get_entries_paginator(
 
 async def create_entry(
     name: str,
-    is_system: bool,
     object_class_names: list[str],
+    is_system: bool,
     session: AsyncSession,
 ) -> None:
     """Create a new Entry.
@@ -83,11 +80,8 @@ async def create_entry(
     """
     entry = Entry(
         name=name,
+        object_class_names=object_class_names,
         is_system=is_system,
-        object_classes=await get_object_classes_by_names(
-            object_class_names,
-            session,
-        ),
     )
     session.add(entry)
     await session.commit()
@@ -109,6 +103,22 @@ async def get_entry_by_name(
     )  # fmt: skip
 
 
+async def get_entry_by_object_class_names(
+    object_class_names: list[str],
+    session: AsyncSession,
+) -> Entry | None:
+    """Get single Entry by object class names.
+
+    :param list[str] object_class_names: object class names.
+    :param AsyncSession session: Database session.
+    :return Entry | None: Entry.
+    """
+    return await session.scalar(
+        select(Entry)
+        .where(Entry.object_class_names.contains(object_class_names))
+    )  # fmt: skip
+
+
 async def modify_entry(
     entry: Entry,
     new_statement: EntryUpdateSchema,
@@ -122,15 +132,9 @@ async def modify_entry(
     :return None.
     """
     entry.name = new_statement.name
+    entry.object_class_names = new_statement.object_class_names
 
-    entry.object_classes.clear()
-    entry.object_classes.extend(
-        await get_object_classes_by_names(
-            new_statement.object_class_names,
-            session,
-        ),
-    )
-
+    # TODO сделай здесь изменение атрибутов у всех директорий с этой сущностью
     await session.commit()
 
 

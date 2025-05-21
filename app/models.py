@@ -161,29 +161,6 @@ class GroupAccessPolicyMembership(Base):
     )
 
 
-class EntryObjectClassMembership(Base):
-    """Entry - ObjectClass m2m relationship."""
-
-    __tablename__ = "EntryObjectClassMemberships"
-
-    __table_args__ = (
-        UniqueConstraint(
-            "entry_id",
-            "object_class_id",
-            name="entry_object_class_uc",
-        ),
-    )
-
-    entry_id: Mapped[int] = mapped_column(
-        ForeignKey("Entries.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    object_class_id: Mapped[str] = mapped_column(
-        ForeignKey("ObjectClasses.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
 class Entry(Base):
     """LDAP entry."""
 
@@ -196,19 +173,16 @@ class Entry(Base):
         unique=True,
         index=True,
     )
-    is_system: Mapped[bool] = mapped_column(nullable=False)
-    object_classes: Mapped[list[ObjectClass]] = relationship(
-        "ObjectClass",
-        secondary=EntryObjectClassMembership.__table__,
-        primaryjoin="Entry.id == EntryObjectClassMembership.entry_id",
-        secondaryjoin="EntryObjectClassMembership.object_class_id == ObjectClass.id",  # noqa: E501
-        lazy="selectin",
+    object_class_names: Mapped[list[str]] = mapped_column(
+        postgresql.ARRAY(String),
+        index=True,
     )
+    is_system: Mapped[bool] = mapped_column(nullable=False)
 
     @property
-    def object_class_names(self) -> list[str]:
+    def object_class_names_set(self) -> set[str]:
         """Get object class names."""
-        return [obj_class.name for obj_class in self.object_classes]
+        return set(self.object_class_names)
 
 
 class Directory(Base):
@@ -251,13 +225,9 @@ class Directory(Base):
         return self.entry.name if self.entry else ""
 
     @property
-    def entry_object_classes(self) -> list[str]:
+    def entry_object_class_names_set(self) -> set[str]:
         """Get object class names of entry."""
-        return (
-            [object_class.name for object_class in self.entry.object_classes]
-            if self.entry
-            else []
-        )
+        return self.entry.object_class_names_set if self.entry else set()
 
     object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
     objectclass: Mapped[str] = synonym("object_class")
@@ -410,7 +380,7 @@ class Directory(Base):
 
     def __str__(self) -> str:
         """Dir name."""
-        return f"Directory({self.name})"
+        return "Directory()"
 
     def __repr__(self) -> str:
         """Dir id and name."""
