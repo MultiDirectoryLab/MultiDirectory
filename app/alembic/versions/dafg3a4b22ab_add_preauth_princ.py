@@ -8,7 +8,6 @@ Create Date: 2024-12-20 16:28:24.419163
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
@@ -21,23 +20,15 @@ branch_labels = None
 depends_on = None
 
 
-def has_column(table_name: str, column_name: str, bind) -> bool:
-    """Check if a column exists in a table."""
-    inspector = inspect(bind)
-    columns = [col["name"] for col in inspector.get_columns(table_name)]
-    return bool(column_name in columns)
-
-
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    if not has_column("Directory", "entry_id", op.get_bind()):
-        op.add_column(
-            "Directory",
-            sa.Column("entry_id", sa.Integer(), nullable=True),
-        )
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
 
     for user in session.query(User):
         if user.sam_accout_name == "krbadmin":
@@ -89,8 +80,7 @@ def upgrade() -> None:
         unique=True,
     )
 
-    if has_column("Directory", "entry_id", op.get_bind()):
-        op.drop_column("Directory", "entry_id")
+    op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:
@@ -102,5 +92,3 @@ def downgrade() -> None:
         ["name"],
         unique=False,
     )
-    if has_column("Directory", "entry_id", op.get_bind()):
-        op.drop_column("Directory", "entry_id")

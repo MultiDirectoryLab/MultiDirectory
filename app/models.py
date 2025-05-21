@@ -206,7 +206,6 @@ class Directory(Base):
         uselist=False,
     )
 
-    # TODO uncomment this
     entry_id: Mapped[int] = mapped_column(
         ForeignKey("Entries.id", ondelete="SET NULL"),
         index=True,
@@ -275,6 +274,8 @@ class Directory(Base):
         "Attribute",
         cascade="all",
         passive_deletes=True,
+        lazy="selectin",
+        uselist=True,
     )
 
     @property
@@ -380,7 +381,7 @@ class Directory(Base):
 
     def __str__(self) -> str:
         """Dir name."""
-        return "Directory()"
+        return f"Directory({self.name})"
 
     def __repr__(self) -> str:
         """Dir id and name."""

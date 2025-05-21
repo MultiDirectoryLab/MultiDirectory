@@ -13,7 +13,7 @@ from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
 )
-from models import Entry
+from models import Directory, Entry
 
 
 class EntrySchema(BaseModel):
@@ -84,7 +84,7 @@ async def create_entry(
         is_system=is_system,
     )
     session.add(entry)
-    await session.commit()
+    # await session.commit()  # TODO 123
 
 
 async def get_entry_by_name(
@@ -113,10 +113,15 @@ async def get_entry_by_object_class_names(
     :param AsyncSession session: Database session.
     :return Entry | None: Entry.
     """
-    return await session.scalar(
+    result = await session.execute(
         select(Entry)
-        .where(Entry.object_class_names.contains(object_class_names))
+        .where(
+            Entry.object_class_names.contains(object_class_names),
+            Entry.object_class_names.contained_by(object_class_names)
+        )
     )  # fmt: skip
+
+    return result.scalar_one_or_none()
 
 
 async def modify_entry(
@@ -156,3 +161,32 @@ async def delete_entries_by_names(
         ),
     )  # fmt: skip
     await session.commit()
+
+
+async def attach_entry_to_directory(
+    directory: Directory,
+    session: AsyncSession,
+) -> None:
+    """Attach."""
+    object_class_names = [
+        attribute.value
+        for attribute in directory.attributes
+        if attribute.name in ("objectClass", "objectclass") and attribute.value
+    ]
+
+    entry = await get_entry_by_object_class_names(
+        object_class_names,
+        session,
+    )
+    if not entry:
+        entry_name = f"{directory.name}_custom_{directory.id}"
+        await create_entry(
+            name=entry_name,
+            object_class_names=object_class_names,
+            is_system=True,
+            session=session,
+        )
+        entry = await get_entry_by_name(entry_name, session)
+
+    directory.entry = entry
+    # await session.commit() # TODO 123

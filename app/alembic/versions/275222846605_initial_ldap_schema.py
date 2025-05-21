@@ -11,7 +11,6 @@ import json
 import sqlalchemy as sa
 from alembic import op
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
-from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
@@ -34,13 +33,6 @@ depends_on = None
 
 # NOTE: ad_2012_r2_schema_json is AD schema for Windows Server 2012 R2
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
-
-
-def has_column(table_name: str, column_name: str, bind) -> bool:
-    """Check if a column exists in a table."""
-    inspector = inspect(bind)
-    columns = [col["name"] for col in inspector.get_columns(table_name)]
-    return bool(column_name in columns)
 
 
 def upgrade() -> None:
@@ -172,11 +164,10 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
 
-    if not has_column("Directory", "entry_id", op.get_bind()):
-        op.add_column(
-            "Directory",
-            sa.Column("entry_id", sa.Integer(), nullable=True),
-        )
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
 
     # NOTE: Load attributeTypes into the database
     at_raw_definitions = ad_2012_r2_schema_json["raw"]["attributeTypes"]
@@ -297,8 +288,7 @@ def upgrade() -> None:
 
     op.run_async(_modify_object_classes)
 
-    if has_column("Directory", "entry_id", op.get_bind()):
-        op.drop_column("Directory", "entry_id")
+    op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:
@@ -327,6 +317,3 @@ def downgrade() -> None:
     op.drop_index("ix_AttributeTypes_oid", table_name="AttributeTypes")
     op.drop_table("AttributeTypes")
     # ### end Alembic commands ###
-
-    if has_column("Directory", "entry_id", op.get_bind()):
-        op.drop_column("Directory", "entry_id")
