@@ -85,7 +85,6 @@ async def create_entry(
         is_system=is_system,
     )
     session.add(entry)
-    # await session.commit()  # TODO 123
 
 
 async def get_entry_by_name(
@@ -144,8 +143,6 @@ async def modify_entry(
         entry.object_class_names = new_statement.object_class_names
         # TODO сделай здесь изменение атрибутов у всех директорий с этой сущностью
 
-    await session.commit()
-
 
 async def delete_entries_by_names(
     entry_names: list[str],
@@ -164,7 +161,6 @@ async def delete_entries_by_names(
             Entry.is_system.is_(False),
         ),
     )  # fmt: skip
-    await session.commit()
 
 
 async def attach_entry_to_directories(session: AsyncSession) -> None:
@@ -209,4 +205,3 @@ async def attach_entry_to_directory(
         entry = await get_entry_by_name(entry_name, session)
 
     directory.entry = entry
-    # await session.commit() # TODO 123

@@ -344,6 +344,8 @@ class AddRequest(BaseRequest):
             session.add_all(items_to_add)
             await session.flush()
 
+            # TODO uncomment that
+            await session.refresh(new_dir)
             await attach_entry_to_directory(
                 directory=new_dir,
                 session=session,

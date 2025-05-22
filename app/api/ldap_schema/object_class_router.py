@@ -51,6 +51,7 @@ async def create_one_object_class(
         attribute_type_names_may=request_data.attribute_type_names_may,
         session=session,
     )
+    await session.commit()
 
 
 @ldap_schema_router.get(
@@ -157,6 +158,7 @@ async def modify_one_object_class(
         new_statement=request_data,
         session=session,
     )
+    await session.commit()
 
 
 @ldap_schema_router.post(
@@ -182,3 +184,4 @@ async def delete_bulk_object_classes(
         )
 
     await delete_object_classes_by_names(object_classes_names, session)
+    await session.commit()

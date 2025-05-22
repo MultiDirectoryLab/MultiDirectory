@@ -52,6 +52,7 @@ async def create_one_attribute_type(
         is_system=_DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
         session=session,
     )
+    await session.commit()
 
 
 @ldap_schema_router.get(
@@ -163,6 +164,7 @@ async def modify_one_attribute_type(
         new_statement=request_data,
         session=session,
     )
+    await session.commit()
 
 
 @ldap_schema_router.post(
@@ -188,3 +190,4 @@ async def delete_bulk_attribute_types(
         )
 
     await delete_attribute_types_by_names(attribute_types_names, session)
+    await session.commit()
