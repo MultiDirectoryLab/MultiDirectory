@@ -343,7 +343,7 @@ class AddRequest(BaseRequest):
             session.add_all(items_to_add)
             await session.flush()
 
-            await session.refresh(new_dir)
+            # await session.refresh(new_dir)
             # TODO uncomment that
             # await attach_entry_to_directory(
             #     directory=new_dir,
