@@ -308,10 +308,10 @@ def downgrade() -> None:
     )
     op.drop_table("ObjectClassAttributeTypeMayMemberships")
 
-    op.execute(sa.text("DROP TYPE objectclasskinds"))
     op.drop_index("ix_ObjectClasses_name", table_name="ObjectClasses")
     op.drop_index("ix_ObjectClasses_oid", table_name="ObjectClasses")
     op.drop_table("ObjectClasses")
+    op.execute(sa.text("DROP TYPE objectclasskinds"))
 
     op.drop_index("ix_AttributeTypes_name", table_name="AttributeTypes")
     op.drop_index("ix_AttributeTypes_oid", table_name="AttributeTypes")

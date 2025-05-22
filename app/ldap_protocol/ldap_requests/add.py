@@ -22,6 +22,7 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
+from ldap_protocol.ldap_schema.entry_crud import attach_entry_to_directory
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -342,6 +343,11 @@ class AddRequest(BaseRequest):
             items_to_add.extend(attributes)
             session.add_all(items_to_add)
             await session.flush()
+
+            await attach_entry_to_directory(
+                directory=new_dir,
+                session=session,
+            )
         except IntegrityError:
             await session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)

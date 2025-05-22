@@ -8,16 +8,13 @@ Create Date: 2025-05-15 11:54:03.712099
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from ldap_protocol.ldap_schema.entry_crud import (
-    attach_entry_to_directory,
+    attach_entry_to_directories,
     create_entry,
 )
-from models import Directory
 
 # revision identifiers, used by Alembic.
 revision = "ba78cef9700a"
@@ -165,20 +162,15 @@ def upgrade() -> None:
 
     op.run_async(_create_entry)
 
-    # async def _attach_entry_to_directories(connection) -> None:
-    #     session = AsyncSession(bind=connection)
-    #     await session.begin()
+    async def _attach_entry_to_directories(connection) -> None:
+        session = AsyncSession(bind=connection)
+        session.begin()
 
-    #     result = await session.execute(
-    #         select(Directory)
-    #         .where(Directory.entry_id.is_(None), Directory.id < 23)
-    #         .options(selectinload(Directory.attributes))
-    #     )
+        await attach_entry_to_directories(session)
 
-    #     for directory in list(result.scalars().all()):
-    #         await attach_entry_to_directory(directory, session)
+        await session.commit()  # TODO 123 как унести этот коммит внутрь функции и не закрывать транзакцию?
 
-    # op.run_async(_attach_entry_to_directories)
+    op.run_async(_attach_entry_to_directories)
 
 
 def downgrade() -> None:

@@ -14,6 +14,7 @@ from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_krb5_config import update_krb5_config
 from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.ldap_schema.entry_crud import attach_entry_to_directories
 
 type task_type = Callable[..., Coroutine]
 
@@ -22,6 +23,7 @@ _TASKS: set[tuple[task_type, float]] = {
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
     (update_krb5_config, -1.0),
+    (attach_entry_to_directories, 900),
 }
 
 

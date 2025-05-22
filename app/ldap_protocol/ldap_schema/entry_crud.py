@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
@@ -136,10 +137,13 @@ async def modify_entry(
     :param AsyncSession session: Database session.
     :return None.
     """
-    entry.name = new_statement.name
-    entry.object_class_names = new_statement.object_class_names
+    if entry.name != new_statement.name:
+        entry.name = new_statement.name
 
-    # TODO сделай здесь изменение атрибутов у всех директорий с этой сущностью
+    if set(entry.object_class_names) != set(new_statement.object_class_names):
+        entry.object_class_names = new_statement.object_class_names
+        # TODO сделай здесь изменение атрибутов у всех директорий с этой сущностью
+
     await session.commit()
 
 
@@ -163,16 +167,32 @@ async def delete_entries_by_names(
     await session.commit()
 
 
+async def attach_entry_to_directories(session: AsyncSession) -> None:
+    """Attach."""
+    result = await session.execute(
+        select(Directory)
+        .where(Directory.entry_id.is_(None))
+        .options(
+            selectinload(Directory.attributes),
+            selectinload(Directory.entry),
+        )
+    )
+
+    for directory in result.scalars().all():
+        await attach_entry_to_directory(
+            directory=directory,
+            session=session,
+        )
+
+
 async def attach_entry_to_directory(
     directory: Directory,
     session: AsyncSession,
 ) -> None:
     """Attach."""
-    object_class_names = [
-        attribute.value
-        for attribute in directory.attributes
-        if attribute.name in ("objectClass", "objectclass") and attribute.value
-    ]
+    object_class_names = directory.attributes_dict.get(
+        "objectClass", []
+    ) + directory.attributes_dict.get("objectclass", [])
 
     entry = await get_entry_by_object_class_names(
         object_class_names,
