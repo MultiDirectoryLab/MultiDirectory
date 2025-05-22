@@ -101,6 +101,7 @@ async def create_attribute_type(
         is_system=is_system,
     )
     session.add(attribute_type)
+    await session.commit()
 
 
 async def get_attribute_type_by_name(
@@ -154,6 +155,7 @@ async def modify_attribute_type(
     attribute_type.syntax = new_statement.syntax
     attribute_type.single_value = new_statement.single_value
     attribute_type.no_user_modification = new_statement.no_user_modification
+    await session.commit()
 
 
 async def delete_attribute_types_by_names(
@@ -176,3 +178,4 @@ async def delete_attribute_types_by_names(
             AttributeType.is_system.is_(False),
         ),
     )  # fmt: skip
+    await session.commit()
