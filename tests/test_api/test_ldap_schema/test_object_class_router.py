@@ -120,7 +120,7 @@ async def test_delete_bulk_object_classes(
         assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/schema/object_class/delete",
+        "/schema/object_classes/delete",
         json={"object_classes_names": dataset["object_classes_deleted"]},
     )
     assert response.status_code == dataset["status_code"]

@@ -133,7 +133,7 @@ async def test_api_modify_many(http_client: AsyncClient) -> None:
         if attr["type"] == "accountExpires":
             assert attr["vals"][0] == new_value
         if attr["type"] == "testing_attr":
-            assert attr["vals"][0] == "test1"
+            assert attr["vals"] == ["test1"]
 
 
 @pytest.mark.asyncio
