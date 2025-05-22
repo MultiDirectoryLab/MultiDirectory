@@ -47,6 +47,7 @@ async def create_one_entry(
         object_class_names=request_data.object_class_names,
         session=session,
     )
+    await session.commit()
 
 
 @ldap_schema_router.get(
@@ -151,6 +152,7 @@ async def modify_one_entry(
         new_statement=request_data,
         session=session,
     )
+    await session.commit()
 
 
 @ldap_schema_router.post(
@@ -176,3 +178,4 @@ async def delete_bulk_entries(
         )
 
     await delete_entries_by_names(entry_names, session)
+    await session.commit()

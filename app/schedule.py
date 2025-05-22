@@ -23,7 +23,7 @@ _TASKS: set[tuple[task_type, float]] = {
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
     (update_krb5_config, -1.0),
-    (attach_entry_to_directories, 900),
+    (attach_entry_to_directories, 900.0),
 }
 
 

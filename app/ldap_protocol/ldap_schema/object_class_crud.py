@@ -139,7 +139,6 @@ async def create_object_class(
         ),
     )
     session.add(object_class)
-    await session.commit()
 
 
 async def get_object_class_by_name(
@@ -211,7 +210,6 @@ async def modify_object_class(
             session,
         ),
     )
-    await session.commit()
 
 
 async def delete_object_classes_by_names(
@@ -231,4 +229,3 @@ async def delete_object_classes_by_names(
             ObjectClass.is_system.is_(False),
         ),
     )  # fmt: skip
-    await session.commit()

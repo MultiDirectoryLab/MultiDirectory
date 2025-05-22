@@ -274,8 +274,6 @@ class Directory(Base):
         "Attribute",
         cascade="all",
         passive_deletes=True,
-        lazy="selectin",
-        uselist=True,
     )
 
     @property
