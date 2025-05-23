@@ -43,6 +43,21 @@ async def test_create_one_entry(
     assert isinstance(response.json(), dict)
 
 
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_create_one_entry_value_400(http_client: AsyncClient) -> None:
+    """Test bad request error while creating a single entry."""
+    response = await http_client.post(
+        "/schema/entry",
+        json={
+            "name": "testEntry1",
+            "object_class_names": ["testObjectClass1"],
+            "is_system": False,
+        },
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
 @pytest.mark.parametrize(
     "dataset",
     test_get_list_entries_with_pagination_dataset,
@@ -53,6 +68,21 @@ async def test_get_list_entries_with_pagination(
     http_client: AsyncClient,
 ) -> None:
     """Test retrieving a list of entries."""
+    for oid, object_class_name in dataset["object_class_names"]:
+        response = await http_client.post(
+            "/schema/object_class",
+            json={
+                "oid": oid,
+                "name": object_class_name,
+                "superior_name": None,
+                "kind": "STRUCTURAL",
+                "is_system": False,
+                "attribute_type_names_must": [],
+                "attribute_type_names_may": [],
+            },
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
     for entry_data in dataset["entries"]:
         response = await http_client.post(
             "/schema/entry",
@@ -123,6 +153,13 @@ async def test_delete_bulk_entries(
     http_client: AsyncClient,
 ) -> None:
     """Test deleting multiple entries."""
+    for object_class_data in dataset["object_classes"]:
+        response = await http_client.post(
+            "/schema/object_class",
+            json=object_class_data,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
     for entry_data in dataset["entry_datas"]:
         response = await http_client.post(
             "/schema/entry",

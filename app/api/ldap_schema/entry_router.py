@@ -21,6 +21,9 @@ from ldap_protocol.ldap_schema.entry_crud import (
     get_entry_by_name,
     modify_entry,
 )
+from ldap_protocol.ldap_schema.object_class_crud import (
+    count_exists_object_class_by_names,
+)
 from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_ENTRY_IS_SYSTEM = False
@@ -39,8 +42,20 @@ async def create_one_entry(
     \f
     :param EntrySchema request_data: Data for creating Entry.
     :param FromDishka[AsyncSession] session: Database session.
+    :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
+    count_exists_object_classes = await count_exists_object_class_by_names(
+        request_data.object_class_names,
+        session,
+    )
+
+    if count_exists_object_classes != len(request_data.object_class_names):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Object Classes not found.",
+        )
+
     await create_entry(
         name=request_data.name,
         is_system=_DEFAULT_ENTRY_IS_SYSTEM,
@@ -132,6 +147,7 @@ async def modify_one_entry(
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If nothing to delete.
     :raise HTTP_400_BAD_REQUEST: If Entry is system->cannot be changed
+    :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
     entry = await get_entry_by_name(entry_name, session)
@@ -145,6 +161,16 @@ async def modify_one_entry(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "System Entry cannot be modified.",
+        )
+
+    count_exists_object_classes = await count_exists_object_class_by_names(
+        request_data.object_class_names,
+        session,
+    )
+    if count_exists_object_classes != len(request_data.object_class_names):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Object Classes not found.",
         )
 
     await modify_entry(

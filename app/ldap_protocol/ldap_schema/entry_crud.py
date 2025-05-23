@@ -14,7 +14,7 @@ from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
 )
-from models import Directory, Entry
+from models import Attribute, Directory, Entry
 
 
 class EntrySchema(BaseModel):
@@ -136,19 +136,36 @@ async def modify_entry(
     :param AsyncSession session: Database session.
     :return None.
     """
-    if entry.name != new_statement.name:
-        entry.name = new_statement.name
+    entry.name = new_statement.name
+    entry.object_class_names = new_statement.object_class_names
 
-    if set(entry.object_class_names) != set(new_statement.object_class_names):
-        entry.object_class_names = new_statement.object_class_names
-        # TODO сделай здесь изменение атрибутов у всех директорий с этой сущностью
+    result = await session.execute(
+        select(Directory)
+        .where(Directory.id == entry.id)
+        .options(selectinload(Directory.attributes))
+    )  # fmt: skip
+
+    for directory in result.scalars().all():
+        await session.execute(
+            delete(Attribute)
+            .where(Attribute.directory == directory)
+        )  # fmt: skip
+
+        for object_class_name in entry.object_class_names:
+            session.add(
+                Attribute(
+                    directory=directory,
+                    value=object_class_name,
+                    name="objectClass",
+                )
+            )
 
 
 async def delete_entries_by_names(
     entry_names: list[str],
     session: AsyncSession,
 ) -> None:
-    """Delete not system Entry by Names.
+    """Delete not system and not used Entry by Names.
 
     :param list[str] entry_names: Entry names.
     :param AsyncSession session: Database session.
@@ -159,6 +176,10 @@ async def delete_entries_by_names(
         .where(
             Entry.name.in_(entry_names),
             Entry.is_system.is_(False),
+            Entry.id.notin_(
+                select(Directory.entry_id)
+                .where(Directory.entry_id.isnot(None))
+            ),
         ),
     )  # fmt: skip
 
