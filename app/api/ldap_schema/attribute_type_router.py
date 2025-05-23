@@ -162,7 +162,6 @@ async def modify_one_attribute_type(
     await modify_attribute_type(
         attribute_type=attribute_type,
         new_statement=request_data,
-        session=session,
     )
     await session.commit()
 

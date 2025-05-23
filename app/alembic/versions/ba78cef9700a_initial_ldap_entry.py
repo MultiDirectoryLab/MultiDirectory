@@ -168,7 +168,7 @@ def upgrade() -> None:
 
         await attach_entry_to_directories(session)
 
-        await session.commit()  # TODO 123 как унести этот коммит внутрь функции и не закрывать транзакцию?
+        await session.commit()
 
     op.run_async(_attach_entry_to_directories)
 

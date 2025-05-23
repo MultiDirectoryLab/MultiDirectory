@@ -142,7 +142,6 @@ async def get_attribute_types_by_names(
 async def modify_attribute_type(
     attribute_type: AttributeType,
     new_statement: AttributeTypeUpdateSchema,
-    session: AsyncSession,
 ) -> None:
     """Modify Attribute Type.
 
