@@ -22,12 +22,15 @@ depends_on = None
 def upgrade() -> None:
     """Upgrade."""
     op.add_column("Directory", sa.Column("rdname", sa.String(length=64)))
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
 
     bind = op.get_bind()
     session = Session(bind=bind)
 
     attrs = []
-
     for directory in session.query(Directory):
         if directory.is_domain:
             directory.rdname = ""
@@ -50,6 +53,7 @@ def upgrade() -> None:
     session.add_all(attrs)
     session.commit()
 
+    op.drop_column("Directory", "entry_id")
     op.alter_column("Directory", "rdname", nullable=False)
 
 
@@ -57,6 +61,11 @@ def downgrade() -> None:
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
+
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
 
     for directory in session.query(Directory):
         if directory.is_domain:
@@ -72,4 +81,5 @@ def downgrade() -> None:
             ),
         )  # fmt: skip
 
+    op.drop_column("Directory", "entry_id")
     op.drop_column("Directory", "rdname")

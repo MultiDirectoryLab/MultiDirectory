@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -18,7 +18,7 @@ from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
 )
-from models import KindType, ObjectClass
+from models import Entry, KindType, ObjectClass
 
 OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
     "STRUCTURAL",
@@ -139,7 +139,20 @@ async def create_object_class(
         ),
     )
     session.add(object_class)
-    await session.commit()
+
+
+async def count_exists_object_class_by_names(
+    object_class_names: list[str],
+    session: AsyncSession,
+) -> int:
+    """Count exists ObjectClass by names."""
+    count_query = (
+        select(func.count())
+        .select_from(ObjectClass)
+        .where(ObjectClass.name.in_(object_class_names))
+    )
+    result = await session.scalars(count_query)
+    return result.one()
 
 
 async def get_object_class_by_name(
@@ -211,7 +224,6 @@ async def modify_object_class(
             session,
         ),
     )
-    await session.commit()
 
 
 async def delete_object_classes_by_names(
@@ -229,6 +241,9 @@ async def delete_object_classes_by_names(
         .where(
             ObjectClass.name.in_(object_classes_names),
             ObjectClass.is_system.is_(False),
+            ~ObjectClass.name.in_(
+                select(func.unnest(Entry.object_class_names))
+                .where(Entry.object_class_names.isnot(None))
+            ),
         ),
     )  # fmt: skip
-    await session.commit()

@@ -161,6 +161,30 @@ class GroupAccessPolicyMembership(Base):
     )
 
 
+class Entry(Base):
+    """LDAP entry."""
+
+    __tablename__ = "Entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    object_class_names: Mapped[list[str]] = mapped_column(
+        postgresql.ARRAY(String),
+        index=True,
+    )
+    is_system: Mapped[bool] = mapped_column(nullable=False)
+
+    @property
+    def object_class_names_set(self) -> set[str]:
+        """Get object class names."""
+        return set(self.object_class_names)
+
+
 class Directory(Base):
     """Chierarcy of catalogue unit."""
 
@@ -181,6 +205,28 @@ class Directory(Base):
         backref=backref("directories", cascade="all,delete", viewonly=True),
         uselist=False,
     )
+
+    entry_id: Mapped[int] = mapped_column(
+        ForeignKey("Entries.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    entry: Mapped[Entry | None] = relationship(
+        Entry,
+        remote_side=Entry.id,
+        uselist=False,
+        lazy="selectin",
+    )
+
+    @property
+    def entry_name(self) -> str:
+        """Get entry name."""
+        return self.entry.name if self.entry else ""
+
+    @property
+    def entry_object_class_names_set(self) -> set[str]:
+        """Get object class names of entry."""
+        return self.entry.object_class_names_set if self.entry else set()
 
     object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
     objectclass: Mapped[str] = synonym("object_class")

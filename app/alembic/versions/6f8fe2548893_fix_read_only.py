@@ -6,6 +6,7 @@ Create Date: 2024-11-14 13:02:33.899640
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
@@ -25,13 +26,24 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
+
     ro_dir = session.scalar(
         select(Directory)
         .where(Directory.name == "readonly domain controllers")
     )  # fmt: skip
 
+    op.drop_column("Directory", "entry_id")
     if not ro_dir:
         return
+
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
 
     session.execute(
         delete(Attribute)
@@ -82,6 +94,8 @@ def upgrade() -> None:
     ro_dir.object_sid = domain_sid + "-521"
 
     session.commit()
+
+    op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:

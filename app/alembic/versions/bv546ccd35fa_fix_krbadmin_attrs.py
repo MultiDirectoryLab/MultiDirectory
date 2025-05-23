@@ -24,6 +24,11 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
+
     krb_admin_user = session.scalar(
         sa.select(Directory)
         .join(Directory.user)
@@ -74,6 +79,7 @@ def upgrade() -> None:
         )
 
     session.commit()
+    op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:

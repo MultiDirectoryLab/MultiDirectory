@@ -25,6 +25,11 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    op.add_column(
+        "Directory",
+        sa.Column("entry_id", sa.Integer(), nullable=True),
+    )
+
     for user in session.query(User):
         if user.sam_accout_name == "krbadmin":
             continue
@@ -74,6 +79,8 @@ def upgrade() -> None:
         ["name"],
         unique=True,
     )
+
+    op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:
