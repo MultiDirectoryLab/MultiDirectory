@@ -141,7 +141,7 @@ async def modify_entry(
 
     result = await session.execute(
         select(Directory)
-        .where(Directory.id == entry.id)
+        .where(Directory.entry_id == entry.id)
         .options(selectinload(Directory.attributes))
     )  # fmt: skip
 
