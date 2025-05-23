@@ -244,3 +244,23 @@ test_delete_bulk_object_classes_dataset = [
         "status_code": status.HTTP_200_OK,
     },
 ]
+
+test_delete_bulk_used_object_classes_dataset = [
+    {
+        "object_class_data": {
+            "oid": "1.2.3.4",
+            "name": "testObjectClass1",
+            "superior_name": "top",
+            "kind": "STRUCTURAL",
+            "is_system": False,
+            "attribute_type_names_must": [],
+            "attribute_type_names_may": [],
+        },
+        "entry_data": {
+            "name": "testEntry",
+            "is_system": False,
+            "object_class_names": ["testObjectClass1"],
+        },
+        "object_class_deleted": "testObjectClass1",
+    },
+]

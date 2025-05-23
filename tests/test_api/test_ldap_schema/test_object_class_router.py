@@ -7,6 +7,7 @@ from httpx import AsyncClient
 from .test_object_class_router_datasets import (
     test_create_one_object_class_dataset,
     test_delete_bulk_object_classes_dataset,
+    test_delete_bulk_used_object_classes_dataset,
     test_modify_one_object_class_dataset,
 )
 
@@ -131,3 +132,39 @@ async def test_delete_bulk_object_classes(
                 f"/schema/object_class/{object_class_name}",
             )
             assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    "dataset",
+    test_delete_bulk_used_object_classes_dataset,
+)
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_delete_bulk_used_object_classes(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test of removing object classes during use."""
+    response = await http_client.post(
+        "/schema/object_class",
+        json=dataset["object_class_data"],
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.post(
+        "/schema/entry",
+        json=dataset["entry_data"],
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.post(
+        "/schema/object_class/delete",
+        json={"object_classes_names": [dataset["object_class_deleted"]]},
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await http_client.get(
+        f"/schema/object_class/{dataset['object_class_deleted']}",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json().get("name") == dataset["object_class_deleted"]
