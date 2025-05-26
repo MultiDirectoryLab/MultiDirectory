@@ -102,6 +102,7 @@ async def test_ldap_user_add_with_group(
             "cn: test\n"
             "userPrincipalName: test\n"
             "sAMAccountName: test\n"
+            "objectClass: inetOrgPerson\n"
             "objectClass: organizationalPerson\n"
             "objectClass: user\n"
             "objectClass: person\n"
