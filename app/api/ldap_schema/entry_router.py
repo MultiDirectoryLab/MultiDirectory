@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
 from fastapi import Body, HTTPException, status
@@ -22,7 +22,7 @@ from ldap_protocol.ldap_schema.entry_crud import (
     modify_entry,
 )
 from ldap_protocol.ldap_schema.object_class_crud import (
-    count_exists_object_class_by_names,
+    is_all_object_classes_exists,
 )
 from ldap_protocol.utils.pagination import PaginationParams
 
@@ -45,7 +45,10 @@ async def create_one_entry(
     :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
-    if await is_all_object_classes_exists(request_data, session):
+    if not await is_all_object_classes_exists(
+        request_data.object_class_names,
+        session,
+    ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Object Classes not found.",
@@ -158,7 +161,10 @@ async def modify_one_entry(
             "System Entry cannot be modified.",
         )
 
-    if await is_all_object_classes_exists(request_data, session):
+    if not await is_all_object_classes_exists(
+        request_data.object_class_names,
+        session,
+    ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Object Classes not found.",
@@ -170,21 +176,6 @@ async def modify_one_entry(
         session=session,
     )
     await session.commit()
-
-
-async def is_all_object_classes_exists(
-    request_data: Any,
-    session: AsyncSession,
-) -> bool:
-    """Check if all Object Classes exist."""
-    count_exists_object_classes = await count_exists_object_class_by_names(
-        request_data.object_class_names,
-        session,
-    )
-
-    return bool(
-        count_exists_object_classes != len(request_data.object_class_names)
-    )
 
 
 @ldap_schema_router.post(

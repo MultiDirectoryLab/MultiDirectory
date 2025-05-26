@@ -29,7 +29,7 @@ class AttributeTypeSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
-        """Create an instance from database."""
+        """Create an instance of Attribute Type Schema from database."""
         return cls(
             oid=attribute_type.oid,
             name=attribute_type.name,

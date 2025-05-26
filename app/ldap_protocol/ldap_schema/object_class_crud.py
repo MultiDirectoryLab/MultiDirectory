@@ -40,7 +40,7 @@ class ObjectClassSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
-        """Create an instance from database."""
+        """Create an instance of Object Class Schema from database."""
         return cls(
             oid=object_class.oid,
             name=object_class.name,
@@ -53,7 +53,7 @@ class ObjectClassSchema(BaseSchemaModel):
 
 
 class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
-    """Attribute Type Schema with pagination result."""
+    """Object Class Schema with pagination result."""
 
     items: list[ObjectClassSchema]
 
@@ -153,6 +153,19 @@ async def count_exists_object_class_by_names(
     )
     result = await session.scalars(count_query)
     return result.one()
+
+
+async def is_all_object_classes_exists(
+    object_class_names: list[str],
+    session: AsyncSession,
+) -> bool:
+    """Check if all Object Classes exist."""
+    count_exists_object_classes = await count_exists_object_class_by_names(
+        object_class_names,
+        session,
+    )
+
+    return bool(count_exists_object_classes == len(object_class_names))
 
 
 async def get_object_class_by_name(

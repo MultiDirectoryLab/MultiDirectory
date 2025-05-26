@@ -42,7 +42,7 @@ class EntryUpdateSchema(BaseModel):
 
 
 class EntryPaginationSchema(BasePaginationSchema[EntrySchema]):
-    """Attribute Type Schema with pagination result."""
+    """Entry Schema with pagination result."""
 
     items: list[EntrySchema]
 
