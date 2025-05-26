@@ -153,7 +153,7 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         session.begin()
 
-        await attach_entry_to_directories(session)
+        await attach_entry_to_directories(session=session)
 
         await session.commit()
 

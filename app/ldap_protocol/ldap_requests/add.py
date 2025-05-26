@@ -345,12 +345,13 @@ class AddRequest(BaseRequest):
             await session.flush()
 
             await session.refresh(
-                new_dir,
+                instance=new_dir,
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
             await attach_entry_to_directory(
                 directory=new_dir,
+                is_system_entry=False,
                 session=session,
             )
             await session.flush()

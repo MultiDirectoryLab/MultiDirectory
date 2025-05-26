@@ -13,7 +13,6 @@ from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_krb5_config import update_krb5_config
 from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.ldap_schema.entry_crud import attach_entry_to_directories
 
 
 @pytest.mark.asyncio
@@ -76,11 +75,3 @@ async def test_update_krb5_config(
         kadmin=kadmin,
         settings=settings,
     )
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-@pytest.mark.usefixtures("setup_session")
-async def test_attach_entry_to_directories(session: AsyncSession) -> None:
-    """Test attach_entry_to_directories."""
-    await attach_entry_to_directories(session=session)

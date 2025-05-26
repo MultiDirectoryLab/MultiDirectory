@@ -416,7 +416,7 @@ async def get_dns_manager_settings(
                 CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME,
                 CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME,
             )
-        ),  # fmt: skip
+        )
     ):
         settings_dict[setting.name] = setting.value
 

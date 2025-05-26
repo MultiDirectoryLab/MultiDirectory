@@ -184,6 +184,14 @@ class Entry(Base):
         """Get object class names."""
         return set(self.object_class_names)
 
+    @classmethod
+    def generate_entry_name(
+        cls,
+        directory: Directory,
+    ) -> str:
+        """Generate entry name based on Directory."""
+        return f"{directory.name}_entry_{directory.id}"
+
 
 class Directory(Base):
     """Chierarcy of catalogue unit."""
@@ -227,6 +235,13 @@ class Directory(Base):
     def entry_object_class_names_set(self) -> set[str]:
         """Get object class names of entry."""
         return self.entry.object_class_names_set if self.entry else set()
+
+    @property
+    def object_class_names(self) -> set[str]:
+        return set(
+            self.attributes_dict.get("objectClass", [])
+            + self.attributes_dict.get("objectclass", [])
+        )
 
     object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
     objectclass: Mapped[str] = synonym("object_class")

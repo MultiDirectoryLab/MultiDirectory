@@ -4,6 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Iterable
+
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -67,7 +69,7 @@ async def get_entries_paginator(
 
 async def create_entry(
     name: str,
-    object_class_names: list[str],
+    object_class_names: Iterable[str],
     is_system: bool,
     session: AsyncSession,
 ) -> None:
@@ -75,7 +77,7 @@ async def create_entry(
 
     :param str name: Name.
     :param bool is_system: Is system.
-    :param list[str] object_class_names: Entry names.
+    :param Iterable[str] object_class_names: Object Class names.
     :param AsyncSession session: Database session.
     :return None.
     """
@@ -104,12 +106,12 @@ async def get_entry_by_name(
 
 
 async def get_entry_by_object_class_names(
-    object_class_names: list[str],
+    object_class_names: Iterable[str],
     session: AsyncSession,
 ) -> Entry | None:
     """Get single Entry by object class names.
 
-    :param list[str] object_class_names: object class names.
+    :param Iterable[str] object_class_names: object class names.
     :param AsyncSession session: Database session.
     :return Entry | None: Entry.
     """
@@ -145,7 +147,7 @@ async def modify_entry(
         .options(selectinload(Directory.attributes))
     )  # fmt: skip
 
-    for directory in result.scalars().all():
+    for directory in result.scalars():
         await session.execute(
             delete(Attribute)
             .where(Attribute.directory == directory)
@@ -195,34 +197,37 @@ async def attach_entry_to_directories(session: AsyncSession) -> None:
         )
     )
 
-    for directory in result.scalars().all():
+    for directory in result.scalars():
         await attach_entry_to_directory(
             directory=directory,
+            is_system_entry=False,
             session=session,
         )
+
+    return None
 
 
 async def attach_entry_to_directory(
     directory: Directory,
+    is_system_entry: bool,
     session: AsyncSession,
 ) -> None:
     """Attach."""
-    object_class_names = directory.attributes_dict.get(
-        "objectClass", []
-    ) + directory.attributes_dict.get("objectclass", [])
+    object_class_names = directory.object_class_names
 
     entry = await get_entry_by_object_class_names(
         object_class_names,
         session,
     )
     if not entry:
-        entry_name = f"{directory.name}_custom_{directory.id}"
+        entry_name = Entry.generate_entry_name(directory=directory)
         await create_entry(
             name=entry_name,
             object_class_names=object_class_names,
-            is_system=True,
+            is_system=is_system_entry,
             session=session,
         )
+        await session.flush()
         entry = await get_entry_by_name(entry_name, session)
 
     directory.entry = entry

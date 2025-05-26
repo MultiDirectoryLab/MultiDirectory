@@ -21,6 +21,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from ldap_protocol.ldap_schema.entry_crud import attach_entry_to_directory
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
 from models import (
@@ -139,6 +140,18 @@ async def _create_dir(
 
     await session.flush()
 
+    await session.refresh(
+        instance=dir_,
+        attribute_names=["attributes"],
+        with_for_update=None,
+    )
+    await attach_entry_to_directory(
+        directory=dir_,
+        is_system_entry=True,
+        session=session,
+    )
+    await session.flush()
+
     if "children" in data:
         for n_data in data["children"]:
             await _create_dir(n_data, session, domain, dir_)
@@ -198,6 +211,18 @@ async def setup_enviroment(
             ),
         )
         session.add_all(list(get_domain_object_class(domain)))
+        await session.flush()
+
+        await session.refresh(
+            instance=domain,
+            attribute_names=["attributes"],
+            with_for_update=None,
+        )
+        await attach_entry_to_directory(
+            directory=domain,
+            is_system_entry=True,
+            session=session,
+        )
         await session.flush()
 
     try:
