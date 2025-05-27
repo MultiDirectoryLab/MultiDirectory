@@ -34,7 +34,6 @@ def upgrade() -> None:
     async def _create_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
-
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
@@ -88,7 +87,6 @@ def downgrade() -> None:
     async def _delete_readonly_grp_and_plcy(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
-
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return

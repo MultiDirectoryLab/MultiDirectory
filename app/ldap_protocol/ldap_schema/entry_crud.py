@@ -76,8 +76,8 @@ async def create_entry(
     """Create a new Entry.
 
     :param str name: Name.
-    :param bool is_system: Is system.
     :param Iterable[str] object_class_names: Object Class names.
+    :param bool is_system: Is system.
     :param AsyncSession session: Database session.
     :return None.
     """
@@ -97,7 +97,7 @@ async def get_entry_by_name(
 
     :param str entry_name: Entry name.
     :param AsyncSession session: Database session.
-    :return Entry | None: Entry.
+    :return Entry | None: Instance of Entry.
     """
     return await session.scalar(
         select(Entry)
@@ -193,7 +193,11 @@ async def delete_entries_by_names(
 
 
 async def attach_entry_to_directories(session: AsyncSession) -> None:
-    """Attach."""
+    """Find all directories without an entry and attach an entry to them.
+
+    :param AsyncSession session: Database session.
+    :return None.
+    """
     result = await session.execute(
         select(Directory)
         .where(Directory.entry_id.is_(None))
@@ -218,7 +222,13 @@ async def attach_entry_to_directory(
     is_system_entry: bool,
     session: AsyncSession,
 ) -> None:
-    """Attach."""
+    """Try to find the Entry, attach this Entry to the Directory.
+
+    :param Directory directory: Directory to attach entry.
+    :param bool is_system_entry: Is system entry.
+    :param AsyncSession session: Database session.
+    :return None.
+    """
     object_class_names = directory.object_class_names
 
     entry = await get_entry_by_object_class_names(

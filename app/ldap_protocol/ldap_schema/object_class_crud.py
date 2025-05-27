@@ -145,7 +145,12 @@ async def count_exists_object_class_by_names(
     object_class_names: list[str],
     session: AsyncSession,
 ) -> int:
-    """Count exists ObjectClass by names."""
+    """Count exists ObjectClass by names.
+
+    :param list[str] object_class_names: object class names.
+    :param AsyncSession session: Database session.
+    :return int.
+    """
     count_query = (
         select(func.count())
         .select_from(ObjectClass)
@@ -159,7 +164,12 @@ async def is_all_object_classes_exists(
     object_class_names: list[str],
     session: AsyncSession,
 ) -> bool:
-    """Check if all Object Classes exist."""
+    """Check if all Object Classes exist.
+
+    :param list[str] object_class_names: object class names.
+    :param AsyncSession session: Database session.
+    :return bool.
+    """
     count_exists_object_classes = await count_exists_object_class_by_names(
         object_class_names,
         session,

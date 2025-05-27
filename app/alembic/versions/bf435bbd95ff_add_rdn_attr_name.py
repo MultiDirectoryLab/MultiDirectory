@@ -29,6 +29,7 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     attrs = []
+
     for directory in session.query(Directory):
         if directory.is_domain:
             directory.rdname = ""

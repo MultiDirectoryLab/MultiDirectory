@@ -144,7 +144,6 @@ async def modify_one_entry(
     :param EntryUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If nothing to delete.
-    :raise HTTP_400_BAD_REQUEST: If Entry is system->cannot be changed
     :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """

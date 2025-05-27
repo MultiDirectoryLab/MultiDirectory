@@ -25,7 +25,6 @@ def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
-
     session.execute(delete(Directory).filter_by(name="default_policy"))
     session.execute(delete(Attribute).filter_by(name="krbpwdpolicyreference"))
 
