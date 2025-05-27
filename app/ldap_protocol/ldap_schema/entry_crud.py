@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Iterable
 
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -150,7 +150,13 @@ async def modify_entry(
     for directory in result.scalars():
         await session.execute(
             delete(Attribute)
-            .where(Attribute.directory == directory)
+            .where(
+                Attribute.directory == directory,
+                or_(
+                    Attribute.name == "objectclass",
+                    Attribute.name == "objectClass"
+                ),
+            )
         )  # fmt: skip
 
         for object_class_name in entry.object_class_names:

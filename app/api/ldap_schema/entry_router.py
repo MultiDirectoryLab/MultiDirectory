@@ -155,12 +155,6 @@ async def modify_one_entry(
             "Entry not found.",
         )
 
-    if entry.is_system:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "System Entry cannot be modified.",
-        )
-
     if not await is_all_object_classes_exists(
         request_data.object_class_names,
         session,

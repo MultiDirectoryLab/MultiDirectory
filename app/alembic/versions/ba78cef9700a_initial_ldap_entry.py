@@ -8,6 +8,7 @@ Create Date: 2025-05-15 11:54:03.712099
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,7 @@ from ldap_protocol.ldap_schema.entry_crud import (
     attach_entry_to_directories,
     create_entry,
 )
+from models import Attribute, Directory, User
 
 # revision identifiers, used by Alembic.
 revision = "ba78cef9700a"
@@ -148,6 +150,41 @@ def upgrade() -> None:
         await session.commit()
 
     op.run_async(_create_entry)
+
+    async def _append_object_class_to_user_dir(connection) -> None:
+        session = AsyncSession(bind=connection)
+        session.begin()
+
+        query = (
+            select(User)
+            .join(Directory)
+            .where(
+                ~exists(
+                    select(Attribute.id)
+                    .where(
+                        Attribute.directory_id == Directory.id,
+                        or_(
+                            Attribute.name == "objectClass",
+                            Attribute.name == "objectclass",
+                        ),
+                        Attribute.value == "inetOrgPerson",
+                    )
+                ),
+            )
+        )  # fmt: skip
+
+        for user in await session.scalars(query):
+            session.add(
+                Attribute(
+                    directory=user.directory,
+                    name="objectClass",
+                    value="inetOrgPerson",
+                )
+            )
+
+        await session.commit()
+
+    op.run_async(_append_object_class_to_user_dir)
 
     async def _attach_entry_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)

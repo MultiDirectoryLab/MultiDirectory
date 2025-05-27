@@ -608,6 +608,11 @@ class Attribute(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
+    directory: Mapped[Directory] = relationship(
+        "Directory",
+        back_populates="attributes",
+        uselist=False,
+    )
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
         ForeignKey("Directory.id", ondelete="CASCADE"),
@@ -617,12 +622,6 @@ class Attribute(Base):
     name: Mapped[str] = mapped_column(nullable=False, index=True)
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
-
-    directory: Mapped[Directory] = relationship(
-        "Directory",
-        back_populates="attributes",
-        uselist=False,
-    )
 
     @property
     def _decoded_value(self) -> str | None:
