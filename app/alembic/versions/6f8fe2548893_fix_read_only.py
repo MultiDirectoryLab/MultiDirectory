@@ -35,7 +35,10 @@ def upgrade() -> None:
     if ro_dir:
         session.execute(
             delete(Attribute)
-            .where(Attribute.name == "objectSid", Attribute.directory == ro_dir)
+            .where(
+                Attribute.name == "objectSid",
+                Attribute.directory == ro_dir,
+            )
         )  # fmt: skip
         session.execute(
             update(Attribute)
