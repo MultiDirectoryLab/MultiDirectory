@@ -10,6 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
+from extra.alembic_utils import add_and_drop_entry_id
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
 from models import Attribute, CatalogueSetting, User
 
@@ -20,15 +21,11 @@ branch_labels = None
 depends_on = None
 
 
+@add_and_drop_entry_id
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
-
-    op.add_column(
-        "Directory",
-        sa.Column("entry_id", sa.Integer(), nullable=True),
-    )
 
     for user in session.query(User):
         if user.sam_accout_name == "krbadmin":
@@ -79,8 +76,6 @@ def upgrade() -> None:
         ["name"],
         unique=True,
     )
-
-    op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:

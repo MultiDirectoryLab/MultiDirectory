@@ -10,6 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
+from extra.alembic_utils import add_and_drop_entry_id
 from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
@@ -19,13 +20,10 @@ branch_labels = None
 depends_on = None
 
 
+@add_and_drop_entry_id
 def upgrade() -> None:
     """Upgrade."""
     op.add_column("Directory", sa.Column("rdname", sa.String(length=64)))
-    op.add_column(
-        "Directory",
-        sa.Column("entry_id", sa.Integer(), nullable=True),
-    )
 
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -53,19 +51,14 @@ def upgrade() -> None:
     session.add_all(attrs)
     session.commit()
 
-    op.drop_column("Directory", "entry_id")
     op.alter_column("Directory", "rdname", nullable=False)
 
 
+@add_and_drop_entry_id
 def downgrade() -> None:
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
-
-    op.add_column(
-        "Directory",
-        sa.Column("entry_id", sa.Integer(), nullable=True),
-    )
 
     for directory in session.query(Directory):
         if directory.is_domain:
@@ -81,5 +74,4 @@ def downgrade() -> None:
             ),
         )  # fmt: skip
 
-    op.drop_column("Directory", "entry_id")
     op.drop_column("Directory", "rdname")

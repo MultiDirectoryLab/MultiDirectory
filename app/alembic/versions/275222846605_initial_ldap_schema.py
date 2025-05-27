@@ -14,6 +14,7 @@ from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from extra.alembic_utils import add_and_drop_entry_id
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     create_attribute_type,
     get_attribute_types_by_names,
@@ -35,6 +36,7 @@ depends_on = None
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
+@add_and_drop_entry_id
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
@@ -164,11 +166,6 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
 
-    op.add_column(
-        "Directory",
-        sa.Column("entry_id", sa.Integer(), nullable=True),
-    )
-
     # NOTE: Load attributeTypes into the database
     at_raw_definitions = ad_2012_r2_schema_json["raw"]["attributeTypes"]
     at_raw_definitions_filtered = [
@@ -287,8 +284,6 @@ def upgrade() -> None:
         await session.commit()
 
     op.run_async(_modify_object_classes)
-
-    op.drop_column("Directory", "entry_id")
 
 
 def downgrade() -> None:

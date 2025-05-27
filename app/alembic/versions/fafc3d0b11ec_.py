@@ -6,12 +6,12 @@ Create Date: 2024-11-11 15:21:23.568233
 
 """
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extra.alembic_utils import add_and_drop_entry_id
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.queries import (
     create_group,
@@ -27,6 +27,7 @@ branch_labels = None
 depends_on = None
 
 
+@add_and_drop_entry_id
 def upgrade() -> None:
     """Upgrade."""
 
@@ -77,14 +78,10 @@ def upgrade() -> None:
         await session.commit()
         await session.close()
 
-    op.add_column(
-        "Directory",
-        sa.Column("entry_id", sa.Integer(), nullable=True),
-    )
     op.run_async(_create_readonly_grp_and_plcy)
-    op.drop_column("Directory", "entry_id")
 
 
+@add_and_drop_entry_id
 def downgrade() -> None:
     """Downgrade."""
 
@@ -113,9 +110,4 @@ def downgrade() -> None:
 
         await session.commit()
 
-    op.add_column(
-        "Directory",
-        sa.Column("entry_id", sa.Integer(), nullable=True),
-    )
     op.run_async(_delete_readonly_grp_and_plcy)
-    op.drop_column("Directory", "entry_id")
