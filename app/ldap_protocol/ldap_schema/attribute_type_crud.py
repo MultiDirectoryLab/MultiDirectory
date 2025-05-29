@@ -40,30 +40,6 @@ class AttributeTypeSchema(BaseSchemaModel):
         )
 
 
-class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
-    """Attribute Type Schema with pagination result."""
-
-    items: list[AttributeTypeSchema]
-
-
-async def get_attribute_types_paginator(
-    params: PaginationParams,
-    session: AsyncSession,
-) -> PaginationResult:
-    """Retrieve paginated attribute_types.
-
-    :param PaginationParams params: page_size and page_number.
-    :param AsyncSession session: Database session.
-    :return PaginationResult: Chunk of attribute_types and metadata.
-    """
-    return await PaginationResult[AttributeType].get(
-        params=params,
-        query=select(AttributeType).order_by(AttributeType.id),
-        sqla_model=AttributeType,
-        session=session,
-    )
-
-
 class AttributeTypeUpdateSchema(BaseModel):
     """Attribute Type Schema for modify/update."""
 
@@ -72,71 +48,97 @@ class AttributeTypeUpdateSchema(BaseModel):
     no_user_modification: bool
 
 
-async def create_attribute_type(
-    oid: str,
-    name: str,
-    syntax: str,
-    single_value: bool,
-    no_user_modification: bool,
-    is_system: bool,
-    session: AsyncSession,
-) -> None:
-    """Create a new Attribute Type.
+class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
+    """Attribute Type Schema with pagination result."""
 
-    :param str oid: OID.
-    :param str name: Name.
-    :param str syntax: Syntax.
-    :param bool single_value: Single value.
-    :param bool no_user_modification: User can't modify it.
-    :param bool is_system: Attribute Type is system.
-    :param AsyncSession session: Database session.
-    :return None.
-    """
-    attribute_type = AttributeType(
-        oid=oid,
-        name=name,
-        syntax=syntax,
-        single_value=single_value,
-        no_user_modification=no_user_modification,
-        is_system=is_system,
-    )
-    session.add(attribute_type)
+    items: list[AttributeTypeSchema]
 
 
-async def get_attribute_type_by_name(
-    attribute_type_name: str,
-    session: AsyncSession,
-) -> AttributeType | None:
-    """Get single Attribute Type by name.
+class AttributeTypeDAO:
+    """Attribute Type manager."""
 
-    :param str attribute_type_name: Attribute Type name.
-    :param AsyncSession session: Database session.
-    :return AttributeType | None: Attribute Type.
-    """
-    return await session.scalar(
-        select(AttributeType)
-        .where(AttributeType.name == attribute_type_name)
-    )  # fmt: skip
+    _session: AsyncSession
 
+    def __init__(self, session: AsyncSession) -> None:
+        """Initialize Attribute Type DAO with session."""
+        self._session = session
 
-async def get_attribute_types_by_names(
-    attribute_type_names: list[str] | set[str],
-    session: AsyncSession,
-) -> list[AttributeType]:
-    """Get list of Attribute Types by names.
+    async def get_attribute_types_paginator(
+        self,
+        params: PaginationParams,
+    ) -> PaginationResult:
+        """Retrieve paginated attribute_types.
 
-    :param list[str] attribute_type_names: Attribute Type names.
-    :param AsyncSession session: Database session.
-    :return list[AttributeType]: List of Attribute Types.
-    """
-    if not attribute_type_names:
-        return []
+        :param PaginationParams params: page_size and page_number.
+        :return PaginationResult: Chunk of attribute_types and metadata.
+        """
+        return await PaginationResult[AttributeType].get(
+            params=params,
+            query=select(AttributeType).order_by(AttributeType.id),
+            sqla_model=AttributeType,
+            session=self._session,
+        )
 
-    query = await session.scalars(
-        select(AttributeType)
-        .where(AttributeType.name.in_(attribute_type_names)),
-    )  # fmt: skip
-    return list(query.all())
+    async def create_attribute_type(
+        self,
+        oid: str,
+        name: str,
+        syntax: str,
+        single_value: bool,
+        no_user_modification: bool,
+        is_system: bool,
+    ) -> None:
+        """Create a new Attribute Type.
+
+        :param str oid: OID.
+        :param str name: Name.
+        :param str syntax: Syntax.
+        :param bool single_value: Single value.
+        :param bool no_user_modification: User can't modify it.
+        :param bool is_system: Attribute Type is system.
+        :return None.
+        """
+        attribute_type = AttributeType(
+            oid=oid,
+            name=name,
+            syntax=syntax,
+            single_value=single_value,
+            no_user_modification=no_user_modification,
+            is_system=is_system,
+        )
+        self._session.add(attribute_type)
+
+    async def get_attribute_type_by_name(
+        self,
+        attribute_type_name: str,
+    ) -> AttributeType | None:
+        """Get single Attribute Type by name.
+
+        :param str attribute_type_name: Attribute Type name.
+        :return AttributeType | None: Attribute Type.
+        """
+        return await self._session.scalar(
+            select(AttributeType)
+            .where(AttributeType.name == attribute_type_name)
+        )  # fmt: skip
+
+    async def get_attribute_types_by_names(
+        self,
+        attribute_type_names: list[str] | set[str],
+    ) -> list[AttributeType]:
+        """Get list of Attribute Types by names.
+
+        :param list[str] attribute_type_names: Attribute Type names.
+        :return list[AttributeType]: List of Attribute Types.
+        """
+        if not attribute_type_names:
+            return []
+
+        query = await self._session.scalars(
+            select(AttributeType)
+            .where(AttributeType.name.in_(attribute_type_names)),
+        )  # fmt: skip
+        return list(query.all())
 
 
 async def modify_attribute_type(

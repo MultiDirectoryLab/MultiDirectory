@@ -52,6 +52,7 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
+from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
@@ -143,6 +144,14 @@ class TestProvider(Provider):
         resolver = resolve()
         yield await get_dns_manager_settings(session, resolver)
         weakref.finalize(resolver, resolver.close)
+
+    @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
+    def get_attribute_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeDAO:
+        """Get AttributeTypeDAO manager."""
+        return AttributeTypeDAO(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:

@@ -10,13 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
 from ldap_protocol.ldap_schema.attribute_type_crud import (
+    AttributeTypeDAO,
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
-    create_attribute_type,
     delete_attribute_types_by_names,
-    get_attribute_type_by_name,
-    get_attribute_types_paginator,
     modify_attribute_type,
 )
 from ldap_protocol.utils.pagination import PaginationParams
@@ -33,6 +31,7 @@ _DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM = False
 async def create_one_attribute_type(
     request_data: AttributeTypeSchema,
     session: FromDishka[AsyncSession],
+    attribute_type_manager: FromDishka[AttributeTypeDAO],
 ) -> None:
     """Create a new attribute type.
 
@@ -41,14 +40,13 @@ async def create_one_attribute_type(
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    await create_attribute_type(
+    await attribute_type_manager.create_attribute_type(
         oid=request_data.oid,
         name=request_data.name,
         syntax=_DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
         single_value=request_data.single_value,
         no_user_modification=_DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
         is_system=_DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-        session=session,
     )
     await session.commit()
 
@@ -61,6 +59,7 @@ async def create_one_attribute_type(
 async def get_one_attribute_type(
     attribute_type_name: str,
     session: FromDishka[AsyncSession],
+    attribute_type_manager: FromDishka[AttributeTypeDAO],
 ) -> AttributeTypeSchema:
     """Retrieve a one attribute types.
 
@@ -70,9 +69,8 @@ async def get_one_attribute_type(
     :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
     :return AttributeTypeSchema: One Attribute Type Schemas.
     """
-    attribute_type = await get_attribute_type_by_name(
+    attribute_type = await attribute_type_manager.get_attribute_type_by_name(
         attribute_type_name,
-        session,
     )
 
     if not attribute_type:
@@ -92,6 +90,7 @@ async def get_one_attribute_type(
 async def get_list_attribute_types_with_pagination(
     page_number: int,
     session: FromDishka[AsyncSession],
+    attribute_type_manager: FromDishka[AttributeTypeDAO],
     page_size: int = 50,
 ) -> AttributeTypePaginationSchema:
     """Retrieve a list of all attribute types with paginate.
@@ -106,9 +105,11 @@ async def get_list_attribute_types_with_pagination(
         page_number=page_number,
         page_size=page_size,
     )
-    pagination_result = await get_attribute_types_paginator(
-        params=params,
-        session=session,
+
+    pagination_result = (
+        await attribute_type_manager.get_attribute_types_paginator(
+            params=params
+        )
     )
 
     items = [
@@ -128,6 +129,7 @@ async def modify_one_attribute_type(
     attribute_type_name: str,
     request_data: AttributeTypeUpdateSchema,
     session: FromDishka[AsyncSession],
+    attribute_type_manager: FromDishka[AttributeTypeDAO],
 ) -> None:
     """Modify an Attribute Type.
 
@@ -139,9 +141,8 @@ async def modify_one_attribute_type(
     :raise HTTP_400_BAD_REQUEST: If attribute type is system->cannot be changed
     :return None.
     """
-    attribute_type = await get_attribute_type_by_name(
-        attribute_type_name,
-        session,
+    attribute_type = await attribute_type_manager.get_attribute_type_by_name(
+        attribute_type_name
     )
     if not attribute_type:
         raise HTTPException(

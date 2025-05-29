@@ -27,6 +27,7 @@ from ldap_protocol.dns import (
     resolve_dns_server_ip,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
+from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -194,6 +195,14 @@ class HTTPProvider(Provider):
     async def get_session(self) -> LDAPSession:
         """Create ldap session."""
         return LDAPSession()
+
+    @provide(provides=AttributeTypeDAO)
+    def get_attribute_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeDAO:
+        """Get AttributeTypeDAO manager."""
+        return AttributeTypeDAO(session)
 
 
 class LDAPServerProvider(Provider):

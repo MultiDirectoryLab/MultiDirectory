@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.attribute_type_router import ldap_schema_router
+from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
 from ldap_protocol.ldap_schema.object_class_crud import (
     ObjectClassPaginationSchema,
     ObjectClassSchema,
@@ -32,6 +33,7 @@ _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 async def create_one_object_class(
     request_data: ObjectClassSchema,
     session: FromDishka[AsyncSession],
+    attribute_type_manager: FromDishka[AttributeTypeDAO],
 ) -> None:
     """Create a new Object Class.
 
@@ -49,6 +51,7 @@ async def create_one_object_class(
         attribute_type_names_must=request_data.attribute_type_names_must,
         attribute_type_names_may=request_data.attribute_type_names_may,
         session=session,
+        attribute_type_manager=attribute_type_manager,
     )
     await session.commit()
 
@@ -128,6 +131,7 @@ async def modify_one_object_class(
     object_class_name: str,
     request_data: ObjectClassUpdateSchema,
     session: FromDishka[AsyncSession],
+    attribute_type_manager: FromDishka[AttributeTypeDAO],
 ) -> None:
     """Modify an Object Class.
 
@@ -155,7 +159,7 @@ async def modify_one_object_class(
     await modify_object_class(
         object_class=object_class,
         new_statement=request_data,
-        session=session,
+        attribute_type_manager=attribute_type_manager,
     )
     await session.commit()
 

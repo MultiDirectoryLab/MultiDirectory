@@ -15,10 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from extra.alembic_utils import add_and_drop_entry_id
-from ldap_protocol.ldap_schema.attribute_type_crud import (
-    create_attribute_type,
-    get_attribute_types_by_names,
-)
+from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
 from ldap_protocol.ldap_schema.object_class_crud import (
     get_object_class_by_name,
 )
@@ -242,18 +239,18 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
+        attribute_type_manager = AttributeTypeDAO(session)
         for oid, name in (
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await create_attribute_type(
+            await attribute_type_manager.create_attribute_type(
                 oid=oid,
                 name=name,
                 syntax="1.3.6.1.4.1.1466.115.121.1.15",
                 single_value=True,
                 no_user_modification=False,
                 is_system=True,
-                session=session,
             )
 
         await session.commit()
@@ -264,6 +261,7 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
+        attribute_type_manager = AttributeTypeDAO(session)
         for object_class_name, attribute_type_may_names in (
             ("user", ("nsAccountLock", "shadowExpire")),
             ("computer", ("userAccountControl",)),
@@ -274,9 +272,10 @@ def upgrade() -> None:
                 object_class_name=object_class_name,
                 session=session,
             )
-            attribute_types_may = await get_attribute_types_by_names(
-                attribute_type_names=attribute_type_may_names,
-                session=session,
+            attribute_types_may = (
+                await attribute_type_manager.get_attribute_types_by_names(
+                    attribute_type_names=attribute_type_may_names
+                )
             )
             object_class.attribute_types_may.extend(attribute_types_may)
 

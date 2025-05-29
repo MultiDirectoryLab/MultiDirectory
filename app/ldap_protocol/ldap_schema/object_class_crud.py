@@ -9,9 +9,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.ldap_schema.attribute_type_crud import (
-    get_attribute_types_by_names,
-)
+from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     BaseSchemaModel,
@@ -92,6 +90,7 @@ async def create_object_class(
     attribute_type_names_must: list[str],
     attribute_type_names_may: list[str],
     session: AsyncSession,
+    attribute_type_manager: AttributeTypeDAO,
 ) -> None:
     """Create a new Object Class.
 
@@ -123,20 +122,26 @@ async def create_object_class(
         for name in attribute_type_names_may
         if name not in attribute_type_names_must
     ]
+
+    attribute_types_must = (
+        await attribute_type_manager.get_attribute_types_by_names(
+            attribute_type_names_must
+        )
+    )
+    attribute_types_may = (
+        await attribute_type_manager.get_attribute_types_by_names(
+            attribute_types_may_filtered
+        )
+    )
+
     object_class = ObjectClass(
         oid=oid,
         name=name,
         superior=superior,
         kind=kind,
         is_system=is_system,
-        attribute_types_must=await get_attribute_types_by_names(
-            attribute_type_names_must,
-            session,
-        ),
-        attribute_types_may=await get_attribute_types_by_names(
-            attribute_types_may_filtered,
-            session,
-        ),
+        attribute_types_must=attribute_types_must,
+        attribute_types_may=attribute_types_may,
     )
     session.add(object_class)
 
@@ -218,7 +223,7 @@ async def get_object_classes_by_names(
 async def modify_object_class(
     object_class: ObjectClass,
     new_statement: ObjectClassUpdateSchema,
-    session: AsyncSession,
+    attribute_type_manager: AttributeTypeDAO,
 ) -> None:
     """Modify Object Class.
 
@@ -229,9 +234,8 @@ async def modify_object_class(
     """
     object_class.attribute_types_must.clear()
     object_class.attribute_types_must.extend(
-        await get_attribute_types_by_names(
-            new_statement.attribute_type_names_must,
-            session,
+        await attribute_type_manager.get_attribute_types_by_names(
+            new_statement.attribute_type_names_must
         ),
     )
 
@@ -242,9 +246,8 @@ async def modify_object_class(
     ]
     object_class.attribute_types_may.clear()
     object_class.attribute_types_may.extend(
-        await get_attribute_types_by_names(
-            attribute_types_may_filtered,
-            session,
+        await attribute_type_manager.get_attribute_types_by_names(
+            attribute_types_may_filtered
         ),
     )
 
