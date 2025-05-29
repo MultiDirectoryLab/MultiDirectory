@@ -197,7 +197,7 @@ test_delete_bulk_object_classes_dataset = [
     {
         "object_class_datas": [],
         "object_classes_deleted": [],
-        "status_code": status.HTTP_400_BAD_REQUEST,
+        "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
     },
     {
         "object_class_datas": [

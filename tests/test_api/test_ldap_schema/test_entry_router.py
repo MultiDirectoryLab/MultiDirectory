@@ -58,6 +58,21 @@ async def test_create_one_entry_value_400(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_create_one_entry_value_422(http_client: AsyncClient) -> None:
+    """Test bad request error while creating a single entry."""
+    response = await http_client.post(
+        "/schema/entry",
+        json={
+            "name": "testEntry1",
+            "object_class_names": [],
+            "is_system": False,
+        },
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
 @pytest.mark.parametrize(
     "dataset",
     test_get_list_entries_with_pagination_dataset,

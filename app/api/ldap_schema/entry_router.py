@@ -4,12 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated
-
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Body, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.ldap_schema import LimitedListType
 from api.ldap_schema.object_class_router import ldap_schema_router
 from ldap_protocol.ldap_schema.entry_crud import (
     EntryPaginationSchema,
@@ -118,7 +117,8 @@ async def get_list_entries_with_pagination(
     )
 
     pagination_result = await get_entries_paginator(
-        params=params, session=session
+        params=params,
+        session=session,
     )
 
     items = [EntrySchema.from_db(item) for item in pagination_result.items]
@@ -176,7 +176,7 @@ async def modify_one_entry(
     status_code=status.HTTP_200_OK,
 )
 async def delete_bulk_entries(
-    entry_names: Annotated[list[str], Body(embed=True)],
+    entry_names: LimitedListType,
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete Entries by their names.
@@ -187,11 +187,5 @@ async def delete_bulk_entries(
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    if not entry_names:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Entries not found.",
-        )
-
     await delete_entries_by_names(entry_names, session)
     await session.commit()

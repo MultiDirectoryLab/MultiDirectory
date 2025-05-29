@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Iterable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -24,7 +24,7 @@ class EntrySchema(BaseModel):
 
     name: str
     is_system: bool
-    object_class_names: list[str]
+    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
 
     @classmethod
     def from_db(cls, entry: Entry) -> "EntrySchema":
@@ -40,7 +40,7 @@ class EntryUpdateSchema(BaseModel):
     """Entry Schema for modify/update."""
 
     name: str
-    object_class_names: list[str]
+    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
 
 
 class EntryPaginationSchema(BasePaginationSchema[EntrySchema]):

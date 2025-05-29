@@ -4,12 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated
-
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Body, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.ldap_schema import LimitedListType
 from api.ldap_schema.attribute_type_router import ldap_schema_router
 from ldap_protocol.ldap_schema.object_class_crud import (
     ObjectClassPaginationSchema,
@@ -166,7 +165,7 @@ async def modify_one_object_class(
     status_code=status.HTTP_200_OK,
 )
 async def delete_bulk_object_classes(
-    object_classes_names: Annotated[list[str], Body(embed=True)],
+    object_classes_names: LimitedListType,
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete Object Classes by their names.
@@ -177,11 +176,5 @@ async def delete_bulk_object_classes(
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    if not object_classes_names:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Object Classes not found.",
-        )
-
     await delete_object_classes_by_names(object_classes_names, session)
     await session.commit()

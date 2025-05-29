@@ -12,6 +12,7 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extra.dev_data import ENTRY_DATAS
 from ldap_protocol.ldap_schema.entry_crud import (
     attach_entry_to_directories,
     create_entry,
@@ -23,56 +24,6 @@ revision = "ba78cef9700a"
 down_revision = "275222846605"
 branch_labels = None
 depends_on = None
-
-ENTRY_DATAS = [
-    {
-        "name": "Домен",
-        "object_class_names": ["top", "domain", "domainDNS"],
-    },
-    {"name": "Компьютер", "object_class_names": ["top", "computer"]},
-    {"name": "Контейнер", "object_class_names": ["top", "container"]},
-    {
-        "name": "Каталог",
-        "object_class_names": ["top", "container", "catalog"],
-    },
-    {
-        "name": "Организационное подразделение",
-        "object_class_names": ["top", "container", "organizationalUnit"],
-    },
-    {
-        "name": "Группа",
-        "object_class_names": ["top", "group", "posixGroup"],
-    },
-    {
-        "name": "Пользователь",
-        "object_class_names": [
-            "top",
-            "user",
-            "person",
-            "organizationalPerson",
-            "posixAccount",
-            "shadowAccount",
-            "inetOrgPerson",
-        ],
-    },
-    {"name": "KRB Контейнер", "object_class_names": ["krbContainer"]},
-    {
-        "name": "KRB Принципал",
-        "object_class_names": [
-            "krbprincipal",
-            "krbprincipalaux",
-            "krbTicketPolicyAux",
-        ],
-    },
-    {
-        "name": "KRB Realm Контейнер",
-        "object_class_names": [
-            "top",
-            "krbrealmcontainer",
-            "krbticketpolicyaux",
-        ],
-    },
-]
 
 
 def upgrade() -> None:

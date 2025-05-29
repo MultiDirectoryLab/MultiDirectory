@@ -4,13 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated
-
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Body, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.ldap_schema import ldap_schema_router
+from api.ldap_schema import LimitedListType, ldap_schema_router
 from ldap_protocol.ldap_schema.attribute_type_crud import (
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
@@ -171,7 +169,7 @@ async def modify_one_attribute_type(
     status_code=status.HTTP_200_OK,
 )
 async def delete_bulk_attribute_types(
-    attribute_types_names: Annotated[list[str], Body(embed=True)],
+    attribute_types_names: LimitedListType,
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete attribute types by their names.
@@ -182,11 +180,5 @@ async def delete_bulk_attribute_types(
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    if not attribute_types_names:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Attribute Type names not found.",
-        )
-
     await delete_attribute_types_by_names(attribute_types_names, session)
     await session.commit()
