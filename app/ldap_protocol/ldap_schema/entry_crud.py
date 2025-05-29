@@ -229,7 +229,7 @@ async def attach_entry_to_directory(
     :param AsyncSession session: Database session.
     :return None.
     """
-    object_class_names = directory.object_class_names
+    object_class_names = directory.object_class_names_set
 
     entry = await get_entry_by_object_class_names(
         object_class_names,

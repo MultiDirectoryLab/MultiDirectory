@@ -237,7 +237,7 @@ class Directory(Base):
         return self.entry.object_class_names_set if self.entry else set()
 
     @property
-    def object_class_names(self) -> set[str]:
+    def object_class_names_set(self) -> set[str]:
         return set(
             self.attributes_dict.get("objectClass", [])
             + self.attributes_dict.get("objectclass", [])
