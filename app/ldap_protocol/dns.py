@@ -6,12 +6,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import functools
 import re
+import socket
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any, Awaitable, Callable
 
+import httpx
 from dns.asyncquery import inbound_xfr as make_inbound_xfr, tcp as asynctcp
 from dns.asyncresolver import Resolver as AsyncResolver
 from dns.message import Message, make_query as make_dns_query
@@ -20,7 +22,7 @@ from dns.rdataclass import IN
 from dns.rdatatype import AXFR
 from dns.tsig import Key as TsigKey
 from dns.update import Update
-from dns.zone import Zone as DNSZone
+from dns.zone import Zone
 from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,6 +75,21 @@ def logger_wraps(is_stub: bool = False) -> Callable:
     return wrapper
 
 
+class DNSZoneType(str, Enum):
+    """DNS zone types."""
+
+    MASTER = "master"
+    FORWARD = "forward"
+
+
+class DNSForwarderServerStatus(str, Enum):
+    """Forwarder DNS server statuses."""
+
+    VALIDATED = "validated"
+    NOT_VALIDATED = "not validated"
+    NOT_FOUND = "not found"
+
+
 class DNSConnectionError(ConnectionError):
     """API Error."""
 
@@ -112,6 +129,44 @@ class DNSManagerSettings:
         self.tsig_key = tsig_key
 
 
+class DNSZoneParamName(str, Enum):
+    """Possible DNS zone option names."""
+
+    acl = "acl"
+    forwarders = "forwarders"
+    ttl = "ttl"
+
+
+class DNSServerParamName(str, Enum):
+    """Possible DNS server option names."""
+
+    dnssec = "dnssec-validation"
+
+
+@dataclass
+class DNSZoneParam:
+    """DNS zone parameter."""
+
+    name: DNSZoneParamName
+    value: str | list[str]
+
+
+@dataclass
+class DNSServerParam:
+    """DNS zone parameter."""
+
+    name: DNSServerParamName
+    value: str | list[str]
+
+
+@dataclass
+class DNSForwardServerStatus:
+    """Forward DNS server status."""
+
+    status: DNSForwarderServerStatus
+    FQDN: str | None
+
+
 @dataclass
 class DNSRecord:
     """Single dns record."""
@@ -127,6 +182,15 @@ class DNSRecords:
 
     record_type: str
     records: list[DNSRecord]
+
+
+@dataclass
+class DNSZone:
+    """DNS zone."""
+
+    zone_name: str
+    zone_type: DNSZoneType
+    records: list[DNSRecords]
 
 
 class DNSManagerState(StrEnum):
@@ -148,33 +212,25 @@ class AbstractDNSManager(ABC):
     async def setup(
         self,
         session: AsyncSession,
-        settings: Settings,
+        dns_status: str,
         domain: str,
         dns_ip_address: str | None,
-        zone_file: str | None,
-        reverse_zone_file: str | None,
         tsig_key: str | None,
-        named_conf_local_part: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        if zone_file is not None and reverse_zone_file is not None and\
-            named_conf_local_part is not None:
-            with open(settings.DNS_ZONE_FILE, "w") as f:
-                f.write(zone_file)
+        if dns_status == DNSManagerState.SELFHOSTED:
+            async with httpx.AsyncClient(
+                timeout=30, base_url=f"http://{dns_ip_address}:8000"
+            ) as client:
+                await client.post(
+                    "/setup",
+                    json={
+                        "zone_name": domain,
+                        "dns_ip_address": dns_ip_address,
+                    }
+                )
 
-            with open(settings.DNS_REVERSE_ZONE_FILE, "w") as f:
-                f.write(reverse_zone_file)
-
-            with open(settings.DNS_SERVER_NAMED_CONF_LOCAL, "a") as f:
-                f.write(named_conf_local_part)
-
-            with open(settings.DNS_SERVER_NAMED_CONF, "a") as f:
-                f.write('\ninclude "/opt/zone.key";')
-
-            with open(settings.DNS_TSIG_KEY) as f:
-                key_file_content = f.read()
-
-            tsig_key = re.findall(r"\ssecret \"(\S+)\"", key_file_content)[0]
+            tsig_key = None
 
         new_settings = {
             DNS_MANAGER_IP_ADDRESS_NAME: dns_ip_address,
@@ -203,6 +259,7 @@ class AbstractDNSManager(ABC):
         ip: str,
         record_type: str,
         ttl: int | None,
+        zone_name: str | None = None,
     ) -> None: ...
 
     @abstractmethod
@@ -212,6 +269,7 @@ class AbstractDNSManager(ABC):
         ip: str | None,
         record_type: str,
         ttl: int | None,
+        zone_name: str | None = None,
     ) -> None: ...
 
     @abstractmethod
@@ -220,10 +278,247 @@ class AbstractDNSManager(ABC):
         hostname: str,
         ip: str,
         record_type: str,
+        zone_name: str | None = None,
     ) -> None: ...
 
     @abstractmethod
     async def get_all_records(self) -> list[DNSRecords]: ...
+
+    @abstractmethod
+    async def get_zone_by_name(
+        self, zone_name: str | None
+    ) -> list[DNSZone]: ...
+
+    @abstractmethod
+    async def create_zone(
+        self,
+        zone_name: str,
+        zone_type: DNSZoneType,
+        acl: list[str] | None,
+        params: list[DNSZoneParam],
+    ) -> None: ...
+
+    @abstractmethod
+    async def update_zone(
+        self,
+        zone_name: str,
+        acl: list[str] | None,
+        params: list[DNSZoneParam] | None,
+    ) -> None: ...
+
+    @abstractmethod
+    async def delete_zone(
+        self,
+        zone_name: str,
+    ) -> None: ...
+
+    @abstractmethod
+    async def check_forward_dns_server(
+        self,
+        dns_server_ip: str,
+    ) -> DNSForwardServerStatus: ...
+
+    @abstractmethod
+    async def update_server_options(
+        self,
+        params: list[DNSServerParam],
+    ) -> None: ...
+
+    @abstractmethod
+    async def restart_server(
+        self,
+    ) -> None: ...
+
+    @abstractmethod
+    async def reload_zone(
+        self,
+        zone_name: str,
+    ) -> None: ...
+
+
+class SelfHostedDNSManager(AbstractDNSManager):
+    """Manager for selfhosted Bind9 DNS server."""
+
+    _http_client: httpx.AsyncClient
+
+    def __init__(self, settings: DNSManagerSettings) -> None:
+        super().__init__(settings=settings)
+        self._http_client = httpx.AsyncClient(
+            timeout=30, base_url=f"http://{settings.dns_server_ip}:8000"
+        )
+
+    @logger_wraps()
+    async def create_record(
+        self,
+        hostname: str,
+        ip: str,
+        record_type: DNSRecordType,
+        ttl: int,
+        zone_name: str | None = None,
+    ) -> None:
+        """Create DNS record."""
+        async with self._http_client:
+            await self._http_client.post(
+                "/record",
+                json={
+                    "zone_name": zone_name,
+                    "record_name": hostname,
+                    "record_type": record_type,
+                    "record_value": ip,
+                    "ttl": ttl,
+                },
+            )
+
+    @logger_wraps()
+    async def update_record(
+        self,
+        hostname: str,
+        ip: str | None,
+        record_type: str,
+        ttl: int | None,
+        zone_name: str | None = None,
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.patch(
+                "/record",
+                json={
+                    "zone_name": zone_name,
+                    "record_name": hostname,
+                    "record_type": record_type,
+                    "record_value": ip,
+                    "ttl": ttl,
+                },
+            )
+
+    @logger_wraps()
+    async def delete_record(
+        self,
+        hostname: str,
+        ip: str,
+        record_type: str,
+        zone_name: str | None = None,
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.request(
+                "delete",
+                "/record",
+                json={
+                    "zone_name": zone_name,
+                    "record_name": hostname,
+                    "record_type": record_type,
+                    "record_value": ip,
+                },
+            )
+
+    @logger_wraps()
+    async def get_all_records(self) -> list[DNSRecords]:
+        response = None
+        async with self._http_client:
+            response = await self._http_client.get("/zone")
+
+        return response.json()[0].get("records")
+
+    @logger_wraps()
+    async def get_zone_by_name(self, zone_name: str | None) -> list[DNSZone]:
+        response = None
+        async with self._http_client:
+            response = await self._http_client.get(
+                f"/zone/{zone_name if zone_name is not None else ''}"
+            )
+
+        return response.json()
+
+    @logger_wraps()
+    async def create_zone(
+        self,
+        zone_name: str,
+        zone_type: DNSZoneType,
+        nameserver_ip: str,
+        acl: list[str] | None,
+        params: list[DNSZoneParam],
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.post(
+                "/zone",
+                json={
+                    "zone_name": zone_name,
+                    "zone_type": zone_type,
+                    "nameserver_ip": nameserver_ip,
+                    "acl": acl,
+                    "params": params
+                }
+            )
+
+    @logger_wraps()
+    async def update_zone(
+        self,
+        zone_name: str,
+        params: list[DNSZoneParam] | None,
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.patch(
+                "/zone",
+                json={
+                    "zone_name": zone_name,
+                    "params": params,
+                },
+            )
+
+    @logger_wraps()
+    async def delete_zone(
+        self,
+        zone_name: str,
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.request(
+                "delete",
+                "/zone",
+                json={"zone_name": zone_name},
+            )
+
+    @logger_wraps()
+    async def check_forward_dns_server(
+        self,
+        dns_server_ip: str,
+    ) -> DNSForwardServerStatus:
+        try:
+            hostname, _, _ = socket.gethostbyaddr(dns_server_ip)
+            fqdn = socket.getfqdn(hostname)
+        except socket.herror:
+            return DNSForwardServerStatus(
+                DNSForwarderServerStatus.NOT_FOUND,
+                None,
+            )
+        return DNSForwardServerStatus(
+                DNSForwarderServerStatus.VALIDATED,
+                fqdn,
+            )
+
+    @logger_wraps()
+    async def update_server_options(
+        self,
+        params: list[DNSServerParam],
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.patch(
+                "/server/settings",
+                json=params,
+            )
+
+    @logger_wraps()
+    async def restart_server(
+        self,
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.get("/server/restart")
+
+    @logger_wraps()
+    async def reload_zone(
+        self,
+        zone_name: str,
+    ) -> None:
+        async with self._http_client:
+            await self._http_client.get(f"/zone/{zone_name}")
 
 
 class DNSManager(AbstractDNSManager):
@@ -249,9 +544,10 @@ class DNSManager(AbstractDNSManager):
         ip: str,
         record_type: str,
         ttl: int | None,
+        zone_name: str | None = None,
     ) -> None:
         """Create DNS record."""
-        action = Update(self._dns_settings.zone_name)
+        action = Update(self._dns_settings.zone_name or zone_name)
         action.add(hostname, ttl, record_type, ip)
 
         await self._send(action)
@@ -266,7 +562,7 @@ class DNSManager(AbstractDNSManager):
             raise DNSConnectionError
 
         zone = from_text(self._dns_settings.zone_name)
-        zone_tm = DNSZone(zone)
+        zone_tm = Zone(zone)
         query = make_dns_query(zone, AXFR, IN)
 
         if self._dns_settings.tsig_key is not None:
@@ -309,9 +605,10 @@ class DNSManager(AbstractDNSManager):
         ip: str | None,
         record_type: str,
         ttl: int | None,
+        zone_name: str | None = None,
     ) -> None:
         """Update DNS record."""
-        action = Update(self._dns_settings.zone_name)
+        action = Update(self._dns_settings.zone_name or zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
         await self._send(action)
@@ -322,12 +619,70 @@ class DNSManager(AbstractDNSManager):
         hostname: str,
         ip: str,
         record_type: str,
+        zone_name: str | None = None,
     ) -> None:
         """Delete DNS record."""
-        action = Update(self._dns_settings.zone_name)
+        action = Update(self._dns_settings.zone_name or zone_name)
         action.delete(hostname, record_type, ip)
 
         await self._send(action)
+
+    @logger_wraps()
+    async def get_zone_by_name(self, zone_name: str | None) -> list[DNSZone]:
+        raise NotImplementedError
+
+    @logger_wraps()
+    async def create_zone(
+        self,
+        zone_name: str,
+        zone_type: DNSZoneType,
+        acl: list[str] | None,
+        params: list[DNSZoneParam],
+    ) -> None:
+        raise NotImplementedError
+
+    @logger_wraps()
+    async def update_zone(
+        self,
+        zone_name: str,
+        acl: list[str] | None,
+        params: list[DNSZoneParam] | None,
+    ) -> None:
+        raise NotImplementedError
+
+    @logger_wraps()
+    async def delete_zone(
+        self,
+        zone_name: str,
+    ) -> None:
+        raise NotImplementedError
+
+    @logger_wraps()
+    async def check_forward_dns_server(
+        self,
+        dns_server_ip: str,
+    ) -> DNSForwardServerStatus:
+        raise NotImplementedError
+
+    @logger_wraps()
+    async def update_server_options(
+        self,
+        params: list[DNSServerParam],
+    ) -> None:
+        raise NotImplementedError
+
+    @logger_wraps()
+    async def restart_server(
+        self,
+    ) -> None:
+        raise NotImplementedError
+
+    @logger_wraps()
+    async def reload_zone(
+        self,
+        zone_name: str,
+    ) -> None:
+        raise NotImplementedError
 
 
 class StubDNSManager(AbstractDNSManager):
@@ -340,6 +695,7 @@ class StubDNSManager(AbstractDNSManager):
         ip: str,
         record_type: str,
         ttl: int | None,
+        zone_name: str | None = None,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -349,6 +705,7 @@ class StubDNSManager(AbstractDNSManager):
         ip: str,
         record_type: str,
         ttl: int,
+        zone_name: str | None = None,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -357,6 +714,56 @@ class StubDNSManager(AbstractDNSManager):
         hostname: str,
         ip: str,
         record_type: str,
+        zone_name: str | None = None,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def get_zone_by_name(self, zone_name: str | None) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def create_zone(
+        self,
+        zone_name: str,
+        zone_type: DNSZoneType,
+        acl: list[str] | None,
+        params: list[DNSZoneParam],
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def update_zone(
+        self,
+        zone_name: str,
+        acl: list[str] | None,
+        params: list[DNSZoneParam] | None,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def delete_zone(
+        self,
+        zone_name: str,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def check_forward_dns_server(
+        self,
+        dns_server_ip: str,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def update_server_options(
+        self,
+        params: list[DNSServerParam],
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def restart_server(
+        self,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def reload_zone(
+        self,
+        zone_name: str,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -441,6 +848,9 @@ async def get_dns_manager_class(
     session: AsyncSession,
 ) -> type[AbstractDNSManager]:
     """Get DNS manager class."""
-    if await get_dns_state(session) != DNSManagerState.NOT_CONFIGURED:
+    dns_state = await get_dns_state(session)
+    if dns_state == DNSManagerState.SELFHOSTED:
+        return SelfHostedDNSManager
+    elif dns_state == DNSManagerState.HOSTED:
         return DNSManager
     return StubDNSManager

@@ -10,7 +10,7 @@ from dishka import AsyncContainer
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
-from ldap_protocol.dns import DNSManagerState
+from ldap_protocol.dns import DNSManagerState, DNSZoneParam, DNSZoneType
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
@@ -84,7 +84,7 @@ class DNSServiceRecordBaseRequest(BaseModel):
 
     record_name: str
     record_type: str
-
+    zone_name: str | None = Field(None)
 
 class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
     """DNS create request schema."""
@@ -104,3 +104,45 @@ class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
 
     record_value: str | None = Field(None)
     ttl: int | None = Field(None)
+
+
+class DNSServiceZoneCreateRequest(BaseModel):
+    """DNS zone create request scheme."""
+
+    zone_name: str
+    zone_type: DNSZoneType
+    acl: list[str]
+    params: list[DNSZoneParam]
+
+
+class DNSServiceZoneUpdateRequest(BaseModel):
+    """DNS zone update request scheme."""
+
+    zone_name: str
+    acl: list[str]
+    params: list[DNSZoneParam] | None = Field(None)
+
+
+class DNSServiceZoneDeleteRequest(BaseModel):
+    """DNS zone delete request scheme."""
+
+    zone_name: str
+
+
+class DNSServiceReloadZoneRequest(BaseModel):
+    """DNS zone reload request scheme."""
+
+    zone_name: str
+
+
+class DNSServiceForwardZoneCheckRequest(BaseModel):
+    """Forwarder DNS server check request scheme."""
+
+    dns_server_ip: str
+
+
+class DNSServiceOptionsUpdateRequest(BaseModel):
+    """DNS server options update request scheme."""
+
+    name: str
+    value: str | list[str] = Field("")
