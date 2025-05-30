@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal, TypeVar
 
+from pydantic import BaseModel
 from sqlalchemy import ARRAY, String, bindparam, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -13,6 +14,12 @@ from sqlalchemy.sql.expression import Select, and_, or_
 
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.utils.const import ENTRY_TYPE
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    BaseSchemaModel,
+    PaginationParams,
+    PaginationResult,
+)
 from ldap_protocol.utils.queries import (
     get_groups,
     get_path_filter,
@@ -21,21 +28,83 @@ from ldap_protocol.utils.queries import (
 from models import AccessPolicy, Directory, Group
 
 T = TypeVar("T", bound=Select)
-__all__ = ["get_policies", "create_access_policy", "mutate_ap"]
+__all__ = ["get_access_policy_paginator", "create_access_policy", "mutate_ap"]
 
 
-async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
-    """Get policies.
+class _PolicyFields:
+    name: str
+    can_read: bool
+    can_add: bool
+    can_modify: bool
+    directories: list[str]
+    groups: list[str]
 
-    :param AsyncSession session: db
-    :return list[AccessPolicy]: result
+
+class _MaterialFields:
+    id: int
+
+
+class AccessPolicySchema(_PolicyFields, BaseModel):
+    """AP Schema w/o id."""
+
+
+class MaterialAccessPolicySchema(
+    _PolicyFields,
+    _MaterialFields,
+    BaseSchemaModel,
+):
+    """AP Schema with id."""
+
+    @classmethod
+    def from_db(
+        cls,
+        access_policy: AccessPolicy,
+    ) -> "MaterialAccessPolicySchema":
+        """Create an instance from database."""
+        return cls(
+            id=access_policy.id,
+            name=access_policy.name,
+            can_read=access_policy.can_read,
+            can_add=access_policy.can_add,
+            can_modify=access_policy.can_modify,
+            directories=(d.path_dn for d in access_policy.directories),
+            groups=(g.directory.path_dn for g in access_policy.groups),
+        )
+
+
+class AccessPolicyPaginationSchema(
+    BasePaginationSchema[MaterialAccessPolicySchema]
+):
+    """Attribute Type Schema with pagination result."""
+
+    items: list[MaterialAccessPolicySchema]
+
+
+async def get_access_policy_paginator(
+    params: PaginationParams,
+    session: AsyncSession,
+) -> PaginationResult:
+    """Retrieve paginated AccessPolicies.
+
+    :param PaginationParams params: page_size and page_number.
+    :param AsyncSession session: Database session.
+    :return PaginationResult: Chunk of AccessPolicies. and metadata.
     """
-    query = select(AccessPolicy).options(
-        selectinload(AccessPolicy.groups).selectinload(Group.directory),
-        selectinload(AccessPolicy.directories),
+    query = (
+        select(AccessPolicy)
+        .options(
+            selectinload(AccessPolicy.groups).selectinload(Group.directory),
+            selectinload(AccessPolicy.directories),
+        )
+        .order_by(AccessPolicy.id)
     )
 
-    return list((await session.scalars(query)).all())
+    return await PaginationResult[AccessPolicy].get(
+        params=params,
+        query=query,
+        sqla_model=AccessPolicy,
+        session=session,
+    )
 
 
 async def create_access_policy(

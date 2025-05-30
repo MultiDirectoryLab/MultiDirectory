@@ -49,27 +49,6 @@ class KerberosSetupRequest(BaseModel):
     stash_password: SecretStr
 
 
-class _PolicyFields:
-    name: str
-    can_read: bool
-    can_add: bool
-    can_modify: bool
-    directories: list[str]
-    groups: list[str]
-
-
-class _MaterialFields:
-    id: int
-
-
-class AccessPolicySchema(_PolicyFields, BaseModel):
-    """AP Schema w/o id."""
-
-
-class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
-    """AP Schema with id."""
-
-
 class DNSServiceSetupRequest(BaseModel):
     """DNS setup request schema."""
 
