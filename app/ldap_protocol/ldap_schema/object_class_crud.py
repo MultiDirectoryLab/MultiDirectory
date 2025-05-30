@@ -16,7 +16,7 @@ from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
 )
-from models import Entry, KindType, ObjectClass
+from models import EntityType, KindType, ObjectClass
 
 OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
     "STRUCTURAL",
@@ -266,8 +266,8 @@ class ObjectClassDAO:
                 ObjectClass.name.in_(object_classes_names),
                 ObjectClass.is_system.is_(False),
                 ~ObjectClass.name.in_(
-                    select(func.unnest(Entry.object_class_names))
-                    .where(Entry.object_class_names.isnot(None))
+                    select(func.unnest(EntityType.object_class_names))
+                    .where(EntityType.object_class_names.isnot(None))
                 ),
             ),
         )  # fmt: skip

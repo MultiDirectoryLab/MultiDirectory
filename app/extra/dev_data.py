@@ -352,7 +352,7 @@ TEST_DATA = [
     },
 ]
 
-ENTRY_DATAS = [
+ENTITY_TYPE_DATAS = [
     {
         "name": "Домен",
         "object_class_names": ["top", "domain", "domainDNS"],

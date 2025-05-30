@@ -53,7 +53,7 @@ from ldap_protocol.dns import (
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
-from ldap_protocol.ldap_schema.entry_crud import EntryDAO
+from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
@@ -167,13 +167,13 @@ class TestProvider(Provider):
             session=session,
         )
 
-    @provide(scope=Scope.REQUEST, provides=EntryDAO, cache=False)
-    def get_entry_manager(
+    @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
+    def get_entity_type_manager(
         self,
         session: AsyncSession,
-    ) -> EntryDAO:
-        """Get EntryDAO manager."""
-        return EntryDAO(session)
+    ) -> EntityTypeDAO:
+        """Get EntityTypeDAO manager."""
+        return EntityTypeDAO(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:

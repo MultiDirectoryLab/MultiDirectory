@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, and_, or_
 
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.utils.const import ENTRY_TYPE
+from ldap_protocol.utils.const import GRANT_DN_STRING
 from ldap_protocol.utils.queries import (
     get_groups,
     get_path_filter,
@@ -44,15 +44,11 @@ async def create_access_policy(
     can_add: bool,
     can_modify: bool,
     can_delete: bool,
-    grant_dn: ENTRY_TYPE,
-    groups: list[ENTRY_TYPE],
+    grant_dn: GRANT_DN_STRING,
+    groups: list[GRANT_DN_STRING],
     session: AsyncSession,
 ) -> None:
-    """Get policies.
-
-    :param ENTRY_TYPE grant_dn: main dn
-    :param AsyncSession session: session
-    """
+    """Get policies."""
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
         column=Directory.path[1 : len(path)],

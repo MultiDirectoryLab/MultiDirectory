@@ -25,7 +25,7 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
-from ldap_protocol.ldap_schema.entry_crud import EntryDAO
+from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -229,15 +229,15 @@ class ModifyRequest(BaseRequest):
                 return
 
         if "objectclass" in names:
-            entry_manager = EntryDAO(session)
+            entity_type_manager = EntityTypeDAO(session)
             await session.refresh(
                 instance=directory,
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await entry_manager.attach_entry_to_directory(
+            await entity_type_manager.attach_entity_type_to_directory(
                 directory=directory,
-                is_system_entry=False,
+                is_system_entity_type=False,
             )
             await session.commit()
 

@@ -1,4 +1,4 @@
-"""Initial LDAP entry.
+"""Initial Entity Type.
 
 Revision ID: ba78cef9700a
 Revises: 275222846605
@@ -12,8 +12,8 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from extra.dev_data import ENTRY_DATAS
-from ldap_protocol.ldap_schema.entry_crud import EntryDAO
+from extra.dev_data import ENTITY_TYPE_DATAS
+from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
 from models import Attribute, Directory, User
 
 # revision identifiers, used by Alembic.
@@ -24,9 +24,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """Upgrade database schema and data, creating LDAP entries."""
+    """Upgrade database schema and data, creating Entity Types."""
     op.create_table(
-        "Entries",
+        "EntityTypes",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column(
@@ -38,33 +38,33 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_Entries_name"),
-        "Entries",
+        op.f("ix_Entity_Type_name"),
+        "EntityTypes",
         ["name"],
         unique=True,
     )
     op.create_index(
-        op.f("ix_Entries_object_class_names"),
-        "Entries",
+        op.f("ix_Entity_Type_object_class_names"),
+        "EntityTypes",
         ["object_class_names"],
         unique=True,
     )
 
     op.add_column(
         "Directory",
-        sa.Column("entry_id", sa.Integer(), nullable=True),
+        sa.Column("entity_type_id", sa.Integer(), nullable=True),
     )
     op.create_index(
-        op.f("ix_Directory_entry_id"),
+        op.f("ix_Directory_entity_type_id"),
         "Directory",
-        ["entry_id"],
+        ["entity_type_id"],
         unique=False,
     )
     op.create_foreign_key(
-        "Directory_entry_id_fkey",
+        "Directory_entity_type_id_fkey",
         "Directory",
-        "Entries",
-        ["entry_id"],
+        "EntityTypes",
+        ["entity_type_id"],
         ["id"],
         ondelete="SET NULL",
     )
@@ -83,21 +83,21 @@ def upgrade() -> None:
         ["oid"],
     )
 
-    async def _create_entries(connection) -> None:
+    async def _create_entity_types(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
-        entry_manager = EntryDAO(session)
+        entity_type_manager = EntityTypeDAO(session)
 
-        for entry_data in ENTRY_DATAS:
-            await entry_manager.create_one(
-                name=entry_data["name"],
-                object_class_names=entry_data["object_class_names"],
+        for entity_type_data in ENTITY_TYPE_DATAS:
+            await entity_type_manager.create_one(
+                name=entity_type_data["name"],
+                object_class_names=entity_type_data["object_class_names"],
                 is_system=True,
             )
 
         await session.commit()
 
-    op.run_async(_create_entries)
+    op.run_async(_create_entity_types)
 
     async def _append_object_class_to_user_dirs(connection) -> None:
         session = AsyncSession(bind=connection)
@@ -134,16 +134,16 @@ def upgrade() -> None:
 
     op.run_async(_append_object_class_to_user_dirs)
 
-    async def _attach_entry_to_directories(connection) -> None:
+    async def _attach_entity_type_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)
         session.begin()
-        entry_manager = EntryDAO(session)
+        entity_type_manager = EntityTypeDAO(session)
 
-        await entry_manager.attach_entry_to_directories()
+        await entity_type_manager.attach_entity_type_to_directories()
 
         await session.commit()
 
-    op.run_async(_attach_entry_to_directories)
+    op.run_async(_attach_entity_type_to_directories)
 
 
 def downgrade() -> None:
@@ -169,13 +169,15 @@ def downgrade() -> None:
     )
 
     op.drop_constraint(
-        "Directory_entry_id_fkey",
+        "Directory_entity_type_id_fkey",
         "Directory",
         type_="foreignkey",
     )
-    op.drop_index(op.f("ix_Directory_entry_id"), table_name="Directory")
-    op.drop_column("Directory", "entry_id")
+    op.drop_index(op.f("ix_Directory_entity_type_id"), table_name="Directory")
+    op.drop_column("Directory", "entity_type_id")
 
-    op.drop_index(op.f("ix_Entries_object_class_names"), table_name="Entries")
-    op.drop_index(op.f("ix_Entries_name"), table_name="Entries")
-    op.drop_table("Entries")
+    op.drop_index(
+        op.f("ix_Entity_Type_object_class_names"), table_name="EntityTypes"
+    )
+    op.drop_index(op.f("ix_Entity_Type_name"), table_name="EntityTypes")
+    op.drop_table("EntityTypes")

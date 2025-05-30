@@ -256,8 +256,8 @@ test_delete_bulk_used_object_classes_dataset = [
             "attribute_type_names_must": [],
             "attribute_type_names_may": [],
         },
-        "entry_data": {
-            "name": "testEntry",
+        "entity_type_data": {
+            "name": "testEntityType1",
             "is_system": False,
             "object_class_names": ["testObjectClass1"],
         },

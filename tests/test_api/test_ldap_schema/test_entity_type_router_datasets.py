@@ -1,6 +1,6 @@
-"""Datasets for testing the entry router."""
+"""Datasets for testing the entity type router."""
 
-test_create_one_entry_dataset = [
+test_create_one_entity_type_dataset = [
     {
         "object_classes": [
             {
@@ -22,34 +22,34 @@ test_create_one_entry_dataset = [
                 "attribute_type_names_may": [],
             },
         ],
-        "entry": {
-            "name": "testEntry1",
+        "entity_type": {
+            "name": "testEntityType1",
             "object_class_names": ["testObjectClass1", "testObjectClass2"],
             "is_system": False,
         },
     },
 ]
 
-test_get_list_entries_with_pagination_dataset = [
+test_get_list_entity_types_with_pagination_dataset = [
     {
         "object_class_names": [
             ("1.2.3.4.5", "objClassName1"),
             ("1.2.3.4.5.6", "objClassName2"),
             ("1.2.3.4.5.6.7", "objClassName3"),
         ],
-        "entries": [
+        "entity_types": [
             {
-                "name": "testEntry1",
+                "name": "testEntityType1",
                 "object_class_names": ["objClassName1"],
                 "is_system": False,
             },
             {
-                "name": "testEntry2",
+                "name": "testEntityType2",
                 "object_class_names": ["objClassName2"],
                 "is_system": False,
             },
             {
-                "name": "testEntry3",
+                "name": "testEntityType3",
                 "object_class_names": ["objClassName3"],
                 "is_system": False,
             },
@@ -57,7 +57,7 @@ test_get_list_entries_with_pagination_dataset = [
     }
 ]
 
-test_modify_one_entry_dataset = [
+test_modify_one_entity_type_dataset = [
     {
         "object_classes": [
             {
@@ -79,13 +79,13 @@ test_modify_one_entry_dataset = [
                 "attribute_type_names_may": [],
             },
         ],
-        "entry": {
-            "name": "testEntry1",
+        "entity_type": {
+            "name": "testEntityType1",
             "object_class_names": ["testObjectClass1"],
             "is_system": False,
         },
         "new_statement": {
-            "name": "testEntry1",
+            "name": "testEntityType1",
             "object_class_names": ["testObjectClass2"],
         },
     },
@@ -101,19 +101,19 @@ test_modify_one_entry_dataset = [
                 "attribute_type_names_may": [],
             },
         ],
-        "entry": {
-            "name": "testEntry1",
+        "entity_type": {
+            "name": "testEntityType1",
             "object_class_names": ["testObjectClass3"],
             "is_system": False,
         },
         "new_statement": {
-            "name": "testEntry2",
+            "name": "testEntityType2",
             "object_class_names": ["testObjectClass3"],
         },
     },
 ]
 
-test_delete_bulk_entries_dataset = [
+test_delete_bulk_entity_types_dataset = [
     {
         "object_classes": [
             {
@@ -135,19 +135,19 @@ test_delete_bulk_entries_dataset = [
                 "attribute_type_names_may": [],
             },
         ],
-        "entry_datas": [
+        "entity_types": [
             {
-                "name": "testEntry1",
+                "name": "testEntityType1",
                 "object_class_names": ["testObjectClass1"],
                 "is_system": False,
             },
             {
-                "name": "testEntry2",
+                "name": "testEntityType2",
                 "object_class_names": ["testObjectClass2"],
                 "is_system": False,
             },
         ],
-        "entries_deleted": ["testEntry1", "testEntry2"],
+        "entity_type_names_deleted": ["testEntityType1", "testEntityType2"],
     },
     {
         "object_classes": [
@@ -170,19 +170,19 @@ test_delete_bulk_entries_dataset = [
                 "attribute_type_names_may": [],
             },
         ],
-        "entry_datas": [
+        "entity_types": [
             {
-                "name": "testEntry1",
+                "name": "testEntityType1",
                 "object_class_names": ["objClassName1"],
                 "is_system": False,
             },
             {
-                "name": "testEntry2",
+                "name": "testEntityType2",
                 "object_class_names": ["testObjectClass2"],
                 "is_system": False,
             },
         ],
-        "entries_deleted": ["testEntry1"],
+        "entity_type_names_deleted": ["testEntityType1"],
     },
     {
         "object_classes": [
@@ -196,13 +196,17 @@ test_delete_bulk_entries_dataset = [
                 "attribute_type_names_may": [],
             },
         ],
-        "entry_datas": [
+        "entity_types": [
             {
-                "name": "testEntry1",
+                "name": "testEntityType1",
                 "object_class_names": ["objClassName1"],
                 "is_system": False,
             },
         ],
-        "entries_deleted": ["testEntry1", "testEntry2", "testEntry3"],
+        "entity_type_names_deleted": [
+            "testEntityType1",
+            "testEntityType2",
+            "testEntityType3",
+        ],
     },
 ]

@@ -152,8 +152,8 @@ async def test_delete_bulk_used_object_classes(
     assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/schema/entry",
-        json=dataset["entry_data"],
+        "/schema/entity_type",
+        json=dataset["entity_type_data"],
     )
     assert response.status_code == status.HTTP_201_CREATED
 

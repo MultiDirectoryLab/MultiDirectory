@@ -161,10 +161,10 @@ class GroupAccessPolicyMembership(Base):
     )
 
 
-class Entry(Base):
-    """LDAP entry."""
+class EntityType(Base):
+    """Entity Type."""
 
-    __tablename__ = "Entries"
+    __tablename__ = "EntityTypes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(
@@ -185,12 +185,9 @@ class Entry(Base):
         return set(self.object_class_names)
 
     @classmethod
-    def generate_entry_name(
-        cls,
-        directory: Directory,
-    ) -> str:
-        """Generate entry name based on Directory."""
-        return f"{directory.name}_entry_{directory.id}"
+    def generate_entity_type_name(cls, directory: Directory) -> str:
+        """Generate entity type name based on Directory."""
+        return f"{directory.name}_entity_type_{directory.id}"
 
 
 class Directory(Base):
@@ -214,27 +211,31 @@ class Directory(Base):
         uselist=False,
     )
 
-    entry_id: Mapped[int] = mapped_column(
-        ForeignKey("Entries.id", ondelete="SET NULL"),
+    entity_type_id: Mapped[int] = mapped_column(
+        ForeignKey("EntityTypes.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
     )
-    entry: Mapped[Entry | None] = relationship(
-        Entry,
-        remote_side=Entry.id,
+    entity_type: Mapped[EntityType | None] = relationship(
+        EntityType,
+        remote_side=EntityType.id,
         uselist=False,
         lazy="selectin",
     )
 
     @property
-    def entry_name(self) -> str:
-        """Get entry name."""
-        return self.entry.name if self.entry else ""
+    def entity_type_name(self) -> str:
+        """Get entity type name."""
+        return self.entity_type.name if self.entity_type else ""
 
     @property
-    def entry_object_class_names_set(self) -> set[str]:
-        """Get object class names of entry."""
-        return self.entry.object_class_names_set if self.entry else set()
+    def entity_type_object_class_names_set(self) -> set[str]:
+        """Get object class names of entity type."""
+        return (
+            self.entity_type.object_class_names_set
+            if self.entity_type
+            else set()
+        )
 
     @property
     def object_class_names_set(self) -> set[str]:

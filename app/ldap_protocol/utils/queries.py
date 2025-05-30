@@ -17,7 +17,7 @@ from sqlalchemy.sql.expression import ColumnElement
 
 from models import Attribute, Directory, Group, User
 
-from .const import EMAIL_RE, ENTRY_TYPE
+from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
     create_integer_hash,
     create_object_sid,
@@ -62,7 +62,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 
 
 async def get_directories(
-    dn_list: list[ENTRY_TYPE],
+    dn_list: list[GRANT_DN_STRING],
     session: AsyncSession,
 ) -> list[Directory]:
     """Get directories by dn list."""
@@ -98,7 +98,9 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     ]
 
 
-async def get_group(dn: str | ENTRY_TYPE, session: AsyncSession) -> Directory:
+async def get_group(
+    dn: str | GRANT_DN_STRING, session: AsyncSession
+) -> Directory:
     """Get dir with group by dn.
 
     :param str dn: Distinguished Name
