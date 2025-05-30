@@ -28,6 +28,49 @@ ZONE_FILES_DIR = "/opt"
 NAMED_LOCAL = "/etc/bind/named.conf.local"
 NAMED_OPTIONS = "/etc/bind/named.conf.options"
 
+FIRST_SETUP_RECORDS = [
+    {
+        "name": "_ldap._tcp.",
+        "value": "0 0 389 ",
+        "type": "SRV"
+    },
+    {
+        "name": "_ldaps._tcp.",
+        "value": "0 0 636 ",
+        "type": "SRV"
+    },
+    {
+        "name": "_kerberos._tcp.",
+        "value": "0 0 88 ",
+        "type": "SRV"
+    },
+    {
+        "name": "_kerberos._udp.",
+        "value": "0 0 88 ",
+        "type": "SRV"
+    },
+    {
+        "name": "_kdc._tcp.",
+        "value": "0 0 88 ",
+        "type": "SRV"
+    },
+    {
+        "name": "_kdc._udp.",
+        "value": "0 0 88 ",
+        "type": "SRV"
+    },
+    {
+        "name": "_kpasswd._tcp.",
+        "value": "0 0 464 ",
+        "type": "SRV"
+    },
+    {
+        "name": "_kpasswd._udp.",
+        "value": "0 0 464 ",
+        "type": "SRV"
+    },
+]
+
 
 class DNSZoneType(str, Enum):
     """DNS zone types."""
@@ -149,6 +192,13 @@ class DNSRecordDeleteRequest(BaseModel):
     record_type: DNSRecordType
 
 
+class DnsServerSetupRequest(BaseModel):
+    """DNS server setup request schem."""
+
+    zone_name: str
+    dns_ip_address: str
+
+
 @dataclass
 class DNSServerParam:
     """DNS zone parameter."""
@@ -228,7 +278,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
         zone_file = zf_template.render_async(
             domain=zone_name,
             nameserver_ip=nameserver_ip,
-            ttl=params_dict.get("ttl"),
+            ttl=params_dict.get("ttl", 604800),
         )
         with open(
             os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"),
@@ -305,17 +355,24 @@ class BindDNSServerManager(AbstractDNSServerManager):
             stderr=asyncio.subprocess.PIPE,
         )
 
-    async def first_setup(self, zone_name: str) -> str:
+    async def first_setup(self, zone_name: str, dns_server_ip: str) -> str:
         """Perform first setup of Bind9 server."""
-        # TODO: переделать на датакласс
-        self.add_zone(
+        await self.add_zone(
             zone_name,
-            zone_settings={
-                "zone_type": "master",
-                "nameserver_ip": self._get_server_ip(),
-                "ttl": 604800,
-            },
+            "master",
+            dns_server_ip,
+            params=[],
         )
+        for record in FIRST_SETUP_RECORDS:
+            await self.add_record(
+                    DNSRecord(
+                        record_name=record.get("name"),
+                        record_value=record.get("value"),
+                        ttl=604800,
+                    ),
+                    record.get("type"),
+                    zone_name,
+            )
 
     @staticmethod
     def get_zone_type_by_zone_name(zone_name: str) -> DNSZoneType:
@@ -544,6 +601,12 @@ async def update_dns_server_settings(settings: list[DNSServerParam]) -> None:
     """Update settings of DNS server."""
     dns_manager = BindDNSServerManager()
     await dns_manager.update_dns_settings(settings)
+
+@server_router.post("/setup")
+async def setup_server(data: DnsServerSetupRequest):
+    """Initial setup of DNS server."""
+    dns_manager = BindDNSServerManager()
+    await dns_manager.first_setup(data.zone_name, data.dns_ip_address)
 
 
 def create_app() -> FastAPI:
