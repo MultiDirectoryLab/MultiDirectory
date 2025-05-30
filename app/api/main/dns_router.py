@@ -13,17 +13,25 @@ from starlette import status
 
 from api.auth import get_current_user
 from api.main.schema import (
+    DNSServiceForwardZoneCheckRequest,
     DNSServiceRecordCreateRequest,
     DNSServiceRecordDeleteRequest,
     DNSServiceRecordUpdateRequest,
+    DNSServiceReloadZoneRequest,
     DNSServiceSetupRequest,
+    DNSServiceZoneCreateRequest,
+    DNSServiceZoneDeleteRequest,
+    DNSServiceZoneUpdateRequest,
 )
 from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
+    DNSForwardServerStatus,
     DNSManagerSettings,
     DNSManagerState,
     DNSRecords,
+    DNSServerParam,
+    DNSZone,
     get_dns_state,
     set_dns_manager_state,
 )
@@ -104,46 +112,104 @@ async def setup_dns(
     data: DNSServiceSetupRequest,
     dns_manager: FromDishka[AbstractDNSManager],
     session: FromDishka[AsyncSession],
-    settings: FromDishka[Settings],
 ) -> None:
     """Set up DNS service.
 
     Create zone file, get TSIG key, reload DNS server if selfhosted.
     """
-    zone_file = None
-    conf_part = None
     dns_ip_address = data.dns_ip_address
     tsig_key = data.tsig_key
-
-    if data.dns_status == DNSManagerState.SELFHOSTED:
-        zone_file_template = settings.TEMPLATES.get_template("zone.template")
-        zone_file = await zone_file_template.render_async(domain=data.domain)
-
-        reverse_zone_file_template = settings.TEMPLATES.get_template(
-            "reverse_zone.template",
-        )
-        reverse_zone_file = await reverse_zone_file_template.render_async(
-            domain=data.domain,
-        )
-
-        tmpl = settings.TEMPLATES.get_template(
-            "named_conf_local_zone_part.template",
-        )
-        conf_part = await tmpl.render_async(domain=data.domain)
 
     try:
         await dns_manager.setup(
             session=session,
-            settings=settings,
+            dns_status=data.dns_status,
             domain=data.domain,
             dns_ip_address=dns_ip_address,
-            zone_file=zone_file,
-            reverse_zone_file=reverse_zone_file,
             tsig_key=tsig_key,
-            named_conf_local_part=conf_part,
         )
     except Exception as e:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, e)
 
     await set_dns_manager_state(session, data.dns_status)
     await session.commit()
+
+
+@dns_router.get("/zone/{zone_name}")
+async def get_dns_zone(
+    zone_name: str,
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> list[DNSZone]:
+    """Get all DNS records of given zone or all zones if none given."""
+    return await dns_manager.get_zone_by_name(zone_name)
+
+
+@dns_router.post("/zone")
+async def create_zone(
+    data: DNSServiceZoneCreateRequest,
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> None:
+    """Create new DNS zone."""
+    await dns_manager.create_zone(
+        data.zone_name,
+        data.zone_type,
+        data.acl,
+        data.params,
+    )
+
+
+@dns_router.patch("/zone")
+async def update_zone(
+    data: DNSServiceZoneUpdateRequest,
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> None:
+    """Update DNS zone with given params."""
+    await dns_manager.update_zone(
+        data.zone_name,
+        data.acl,
+        data.params,
+    )
+
+
+@dns_router.delete("/zone")
+async def delete_zone(
+    data: DNSServiceZoneDeleteRequest,
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> None:
+    """Delete DNS zone."""
+    await dns_manager.delete_zone(data.zone_name)
+
+
+@dns_router.post("/forward_check")
+async def check_dns_forward_zone(
+    data: DNSServiceForwardZoneCheckRequest,
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> DNSForwardServerStatus:
+    """Check given DNS forward zone for availability."""
+    return await dns_manager.check_forward_dns_server(data.dns_server_ip)
+
+
+@dns_router.get("/zone/reload/{zone_name}")
+async def reload_zone(
+    zone_name: str,
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> None:
+    """Reload given DNS zone."""
+    await dns_manager.reload_zone(zone_name)
+
+
+@dns_router.patch("/server/options")
+async def update_server_options(
+    data: list[DNSServerParam],
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> None:
+    """Update DNS server options."""
+    await dns_manager.update_server_options(data)
+
+
+@dns_router.get("/server/restart")
+async def restart_server(
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> None:
+    """Restart entire DNS server."""
+    await dns_manager.restart_server()
