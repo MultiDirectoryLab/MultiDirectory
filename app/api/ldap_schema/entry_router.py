@@ -50,7 +50,7 @@ async def create_one_entry(
             "Object Classes not found.",
         )
 
-    await entry_manager.create_entry(
+    await entry_manager.create_one(
         name=request_data.name,
         is_system=_DEFAULT_ENTRY_IS_SYSTEM,
         object_class_names=request_data.object_class_names,
@@ -75,7 +75,7 @@ async def get_one_entry(
     :raise HTTP_404_NOT_FOUND: If entry not found.
     :return EntrySchema: One entry Schemas.
     """
-    entry = await entry_manager.get_entry_by_name(entry_name)
+    entry = await entry_manager.get_one_by_name(entry_name)
 
     if not entry:
         raise HTTPException(
@@ -109,9 +109,7 @@ async def get_list_entries_with_pagination(
         page_size=page_size,
     )
 
-    pagination_result = await entry_manager.get_entries_paginator(
-        params=params
-    )
+    pagination_result = await entry_manager.get_paginator(params=params)
 
     items = [EntrySchema.from_db(item) for item in pagination_result.items]
     return EntryPaginationSchema(
@@ -143,7 +141,7 @@ async def modify_one_entry(
     :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
-    entry = await entry_manager.get_entry_by_name(entry_name)
+    entry = await entry_manager.get_one_by_name(entry_name)
     if not entry:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
@@ -158,7 +156,7 @@ async def modify_one_entry(
             "Object Classes not found.",
         )
 
-    await entry_manager.modify_entry(
+    await entry_manager.modify_one(
         entry=entry,
         new_statement=request_data,
     )
@@ -177,11 +175,11 @@ async def delete_bulk_entries(
     """Delete Entries by their names.
 
     \f
-    :param list[str] entry_names: List of Entries names.
+    :param LimitedListType entry_names: List of Entries names.
     :param FromDishka[EntryDAO] entry_manager: Entry manager.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    await entry_manager.delete_entries_by_names(entry_names)
+    await entry_manager.delete_all_by_names(entry_names)
     await session.commit()

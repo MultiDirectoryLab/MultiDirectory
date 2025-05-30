@@ -38,7 +38,7 @@ async def create_one_object_class(
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    await object_class_manager.create_object_class(
+    await object_class_manager.create_one(
         oid=request_data.oid,
         name=request_data.name,
         superior_name=request_data.superior_name,
@@ -67,7 +67,7 @@ async def get_one_object_class(
     :raise HTTP_404_NOT_FOUND: If Object Class not found.
     :return ObjectClassSchema: One Object Class Schemas.
     """
-    object_class = await object_class_manager.get_object_class_by_name(
+    object_class = await object_class_manager.get_one_by_name(
         object_class_name
     )
 
@@ -102,9 +102,7 @@ async def get_list_object_classes_with_pagination(
         page_number=page_number,
         page_size=page_size,
     )
-    pagination_result = (
-        await object_class_manager.get_object_classes_paginator(params=params)
-    )
+    pagination_result = await object_class_manager.get_paginator(params=params)
 
     items = [
         ObjectClassSchema.from_db(item) for item in pagination_result.items
@@ -136,7 +134,7 @@ async def modify_one_object_class(
     :raise HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
     :return None.
     """
-    object_class = await object_class_manager.get_object_class_by_name(
+    object_class = await object_class_manager.get_one_by_name(
         object_class_name
     )
     if not object_class:
@@ -151,7 +149,7 @@ async def modify_one_object_class(
             "System Object Class cannot be modified.",
         )
 
-    await object_class_manager.modify_object_class(
+    await object_class_manager.modify_one(
         object_class=object_class,
         new_statement=request_data,
     )
@@ -170,13 +168,11 @@ async def delete_bulk_object_classes(
     """Delete Object Classes by their names.
 
     \f
-    :param list[str] object_classes_names: List of Object Classes names.
+    :param LimitedListType object_classes_names: List of Object Classes names.
     :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    await object_class_manager.delete_object_classes_by_names(
-        object_classes_names
-    )
+    await object_class_manager.delete_all_by_names(object_classes_names)
     await session.commit()

@@ -151,10 +151,10 @@ async def test_modify_one_entry(
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     entry = response.json()
-    assert set(entry.get("name")) == set(new_statement.get("name"))  # type: ignore
+    assert set(entry.get("name")) == set(new_statement.get("name"))
     assert set(entry.get("object_class_names")) == set(
         new_statement.get("object_class_names")
-    )  # type: ignore
+    )
 
 
 @pytest.mark.parametrize(

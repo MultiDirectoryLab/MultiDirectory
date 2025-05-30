@@ -35,10 +35,11 @@ async def create_one_attribute_type(
 
     \f
     :param AttributeTypeSchema request_data: Data for creating attribute type.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    await attribute_type_manager.create_attribute_type(
+    await attribute_type_manager.create_one(
         oid=request_data.oid,
         name=request_data.name,
         syntax=_DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
@@ -62,10 +63,11 @@ async def get_one_attribute_type(
 
     \f
     :param str attribute_type_name: name of the Attribute Type.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
     :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
     :return AttributeTypeSchema: One Attribute Type Schemas.
     """
-    attribute_type = await attribute_type_manager.get_attribute_type_by_name(
+    attribute_type = await attribute_type_manager.get_one_by_name(
         attribute_type_name,
     )
 
@@ -92,6 +94,7 @@ async def get_list_attribute_types_with_pagination(
 
     \f
     :param int page_number: number of page.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
     :param int page_size: number of items per page.
     :return AttributeTypePaginationSchema: Paginator.
     """
@@ -100,10 +103,8 @@ async def get_list_attribute_types_with_pagination(
         page_size=page_size,
     )
 
-    pagination_result = (
-        await attribute_type_manager.get_attribute_types_paginator(
-            params=params
-        )
+    pagination_result = await attribute_type_manager.get_paginator(
+        params=params
     )
 
     items = [
@@ -131,11 +132,12 @@ async def modify_one_attribute_type(
     :param str attribute_type_name: name of the attribute type for modifying.
     :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
     :raise HTTP_404_NOT_FOUND: If attribute type not found.
     :raise HTTP_400_BAD_REQUEST: If attribute type is system->cannot be changed
     :return None.
     """
-    attribute_type = await attribute_type_manager.get_attribute_type_by_name(
+    attribute_type = await attribute_type_manager.get_one_by_name(
         attribute_type_name
     )
     if not attribute_type:
@@ -152,7 +154,7 @@ async def modify_one_attribute_type(
 
     request_data.syntax = _DEFAULT_ATTRIBUTE_TYPE_SYNTAX
     request_data.no_user_modification = _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD
-    await attribute_type_manager.modify_attribute_type(
+    await attribute_type_manager.modify_one(
         attribute_type=attribute_type,
         new_statement=request_data,
     )
@@ -171,12 +173,11 @@ async def delete_bulk_attribute_types(
     """Delete attribute types by their names.
 
     \f
-    :param list[str] attribute_types_names: List of attribute types names.
+    :param LimitedListType attribute_types_names: List of attribute types names.
     :param FromDishka[AsyncSession] session: Database session.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute type manager.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    await attribute_type_manager.delete_attribute_types_by_names(
-        attribute_types_names
-    )
+    await attribute_type_manager.delete_all_by_names(attribute_types_names)
     await session.commit()

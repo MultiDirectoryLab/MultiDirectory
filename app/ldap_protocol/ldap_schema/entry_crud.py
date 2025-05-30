@@ -58,7 +58,7 @@ class EntryDAO:
         """Initialize EntryDAO with a database session."""
         self._session = session
 
-    async def get_entries_paginator(
+    async def get_paginator(
         self,
         params: PaginationParams,
     ) -> PaginationResult:
@@ -74,7 +74,7 @@ class EntryDAO:
             session=self._session,
         )
 
-    async def create_entry(
+    async def create_one(
         self,
         name: str,
         object_class_names: Iterable[str],
@@ -94,7 +94,7 @@ class EntryDAO:
         )
         self._session.add(entry)
 
-    async def get_entry_by_name(
+    async def get_one_by_name(
         self,
         entry_name: str,
     ) -> Entry | None:
@@ -127,7 +127,7 @@ class EntryDAO:
 
         return result.scalar_one_or_none()
 
-    async def modify_entry(
+    async def modify_one(
         self,
         entry: Entry,
         new_statement: EntryUpdateSchema,
@@ -168,7 +168,7 @@ class EntryDAO:
                     )
                 )
 
-    async def delete_entries_by_names(
+    async def delete_all_by_names(
         self,
         entry_names: list[str],
     ) -> None:
@@ -227,12 +227,12 @@ class EntryDAO:
         entry = await self.get_entry_by_object_class_names(object_class_names)
         if not entry:
             entry_name = Entry.generate_entry_name(directory=directory)
-            await self.create_entry(
+            await self.create_one(
                 name=entry_name,
                 object_class_names=object_class_names,
                 is_system=is_system_entry,
             )
             await self._session.flush()
-            entry = await self.get_entry_by_name(entry_name)
+            entry = await self.get_one_by_name(entry_name)
 
         directory.entry = entry

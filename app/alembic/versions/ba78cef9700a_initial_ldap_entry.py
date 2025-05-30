@@ -89,7 +89,7 @@ def upgrade() -> None:
         entry_manager = EntryDAO(session)
 
         for entry_data in ENTRY_DATAS:
-            await entry_manager.create_entry(
+            await entry_manager.create_one(
                 name=entry_data["name"],
                 object_class_names=entry_data["object_class_names"],
                 is_system=True,

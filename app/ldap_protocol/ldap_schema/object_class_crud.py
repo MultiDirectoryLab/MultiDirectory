@@ -78,7 +78,7 @@ class ObjectClassDAO:
         self._session = session
         self._attribute_type_manager = attribute_type_manager
 
-    async def get_object_classes_paginator(
+    async def get_paginator(
         self,
         params: PaginationParams,
     ) -> PaginationResult:
@@ -94,7 +94,7 @@ class ObjectClassDAO:
             session=self._session,
         )
 
-    async def create_object_class(
+    async def create_one(
         self,
         oid: str,
         name: str,
@@ -119,7 +119,7 @@ class ObjectClassDAO:
             raise ValueError(f"Object class kind is not valid: {kind}.")
 
         superior = (
-            await self.get_object_class_by_name(superior_name)
+            await self.get_one_by_name(superior_name)
             if superior_name
             else None
         )
@@ -135,12 +135,12 @@ class ObjectClassDAO:
         ]
 
         attribute_types_must = (
-            await self._attribute_type_manager.get_attribute_types_by_names(
+            await self._attribute_type_manager.get_all_by_names(
                 attribute_type_names_must
             )
         )
         attribute_types_may = (
-            await self._attribute_type_manager.get_attribute_types_by_names(
+            await self._attribute_type_manager.get_all_by_names(
                 attribute_types_may_filtered
             )
         )
@@ -182,13 +182,13 @@ class ObjectClassDAO:
         :param list[str] object_class_names: object class names.
         :return bool.
         """
-        count_exists_object_classes = (
-            await self.count_exists_object_class_by_names(object_class_names)
+        count_ = await self.count_exists_object_class_by_names(
+            object_class_names
         )
 
-        return bool(count_exists_object_classes == len(object_class_names))
+        return bool(count_ == len(object_class_names))
 
-    async def get_object_class_by_name(
+    async def get_one_by_name(
         self,
         object_class_name: str,
     ) -> ObjectClass | None:
@@ -202,7 +202,7 @@ class ObjectClassDAO:
             .where(ObjectClass.name == object_class_name)
         )  # fmt: skip
 
-    async def get_object_classes_by_names(
+    async def get_all_by_names(
         self,
         object_class_names: list[str] | set[str],
     ) -> list[ObjectClass]:
@@ -221,7 +221,7 @@ class ObjectClassDAO:
         )  # fmt: skip
         return list(query.all())
 
-    async def modify_object_class(
+    async def modify_one(
         self,
         object_class: ObjectClass,
         new_statement: ObjectClassUpdateSchema,
@@ -234,7 +234,7 @@ class ObjectClassDAO:
         """
         object_class.attribute_types_must.clear()
         object_class.attribute_types_must.extend(
-            await self._attribute_type_manager.get_attribute_types_by_names(
+            await self._attribute_type_manager.get_all_by_names(
                 new_statement.attribute_type_names_must
             ),
         )
@@ -246,12 +246,12 @@ class ObjectClassDAO:
         ]
         object_class.attribute_types_may.clear()
         object_class.attribute_types_may.extend(
-            await self._attribute_type_manager.get_attribute_types_by_names(
+            await self._attribute_type_manager.get_all_by_names(
                 attribute_types_may_filtered
             ),
         )
 
-    async def delete_object_classes_by_names(
+    async def delete_all_by_names(
         self,
         object_classes_names: list[str],
     ) -> None:

@@ -63,7 +63,7 @@ class AttributeTypeDAO:
         """Initialize Attribute Type DAO with session."""
         self._session = session
 
-    async def get_attribute_types_paginator(
+    async def get_paginator(
         self,
         params: PaginationParams,
     ) -> PaginationResult:
@@ -79,7 +79,7 @@ class AttributeTypeDAO:
             session=self._session,
         )
 
-    async def create_attribute_type(
+    async def create_one(
         self,
         oid: str,
         name: str,
@@ -108,7 +108,7 @@ class AttributeTypeDAO:
         )
         self._session.add(attribute_type)
 
-    async def get_attribute_type_by_name(
+    async def get_one_by_name(
         self,
         attribute_type_name: str,
     ) -> AttributeType | None:
@@ -122,7 +122,7 @@ class AttributeTypeDAO:
             .where(AttributeType.name == attribute_type_name)
         )  # fmt: skip
 
-    async def get_attribute_types_by_names(
+    async def get_all_by_names(
         self,
         attribute_type_names: list[str] | set[str],
     ) -> list[AttributeType]:
@@ -140,7 +140,7 @@ class AttributeTypeDAO:
         )  # fmt: skip
         return list(query.all())
 
-    async def modify_attribute_type(
+    async def modify_one(
         self,
         attribute_type: AttributeType,
         new_statement: AttributeTypeUpdateSchema,
@@ -149,7 +149,6 @@ class AttributeTypeDAO:
 
         :param AttributeType attribute_type: Attribute Type.
         :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
-        :param AsyncSession session: Database session.
         :return None.
         """
         attribute_type.syntax = new_statement.syntax
@@ -158,7 +157,7 @@ class AttributeTypeDAO:
             new_statement.no_user_modification
         )
 
-    async def delete_attribute_types_by_names(
+    async def delete_all_by_names(
         self,
         attribute_type_names: list[str],
     ) -> None:

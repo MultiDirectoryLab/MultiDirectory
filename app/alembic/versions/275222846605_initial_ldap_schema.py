@@ -242,7 +242,7 @@ def upgrade() -> None:
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await attribute_type_manager.create_attribute_type(
+            await attribute_type_manager.create_one(
                 oid=oid,
                 name=name,
                 syntax="1.3.6.1.4.1.1466.115.121.1.15",
@@ -268,11 +268,11 @@ def upgrade() -> None:
             ("posixAccount", ("posixEmail",)),
             ("organizationalUnit", ("title", "jpegPhoto")),
         ):
-            object_class = await object_class_manager.get_object_class_by_name(
+            object_class = await object_class_manager.get_one_by_name(
                 object_class_name=object_class_name,
             )
             attribute_types_may = (
-                await attribute_type_manager.get_attribute_types_by_names(
+                await attribute_type_manager.get_all_by_names(
                     attribute_type_names=attribute_type_may_names
                 )
             )
