@@ -53,6 +53,8 @@ from ldap_protocol.dns import (
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
+from ldap_protocol.ldap_schema.entry_crud import EntryDAO
+from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
@@ -146,12 +148,32 @@ class TestProvider(Provider):
         weakref.finalize(resolver, resolver.close)
 
     @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
-    def get_attribute_type_dao(
+    def get_attribute_type_manager(
         self,
         session: AsyncSession,
     ) -> AttributeTypeDAO:
         """Get AttributeTypeDAO manager."""
         return AttributeTypeDAO(session)
+
+    @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
+    def get_object_class_manager(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassDAO:
+        """Get ObjectClassDAO manager."""
+        attribute_type_manager = AttributeTypeDAO(session)
+        return ObjectClassDAO(
+            attribute_type_manager=attribute_type_manager,
+            session=session,
+        )
+
+    @provide(scope=Scope.REQUEST, provides=EntryDAO, cache=False)
+    def get_entry_manager(
+        self,
+        session: AsyncSession,
+    ) -> EntryDAO:
+        """Get EntryDAO manager."""
+        return EntryDAO(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:

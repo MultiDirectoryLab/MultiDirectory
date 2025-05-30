@@ -11,18 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.object_class_router import ldap_schema_router
 from ldap_protocol.ldap_schema.entry_crud import (
+    EntryDAO,
     EntryPaginationSchema,
     EntrySchema,
     EntryUpdateSchema,
-    create_entry,
-    delete_entries_by_names,
-    get_entries_paginator,
-    get_entry_by_name,
-    modify_entry,
 )
-from ldap_protocol.ldap_schema.object_class_crud import (
-    is_all_object_classes_exists,
-)
+from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_ENTRY_IS_SYSTEM = False
@@ -34,30 +28,32 @@ _DEFAULT_ENTRY_IS_SYSTEM = False
 )
 async def create_one_entry(
     request_data: EntrySchema,
+    entry_manager: FromDishka[EntryDAO],
+    object_class_manager: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Create a new Entry.
 
     \f
     :param EntrySchema request_data: Data for creating Entry.
+    :param FromDishka[EntryDAO] entry_manager: Entry manager.
+    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
-    if not await is_all_object_classes_exists(
-        request_data.object_class_names,
-        session,
+    if not await object_class_manager.is_all_object_classes_exists(
+        request_data.object_class_names
     ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Object Classes not found.",
         )
 
-    await create_entry(
+    await entry_manager.create_entry(
         name=request_data.name,
         is_system=_DEFAULT_ENTRY_IS_SYSTEM,
         object_class_names=request_data.object_class_names,
-        session=session,
     )
     await session.commit()
 
@@ -69,20 +65,17 @@ async def create_one_entry(
 )
 async def get_one_entry(
     entry_name: str,
-    session: FromDishka[AsyncSession],
+    entry_manager: FromDishka[EntryDAO],
 ) -> EntrySchema:
     """Retrieve a one entry.
 
     \f
     :param str entry_name: name of the entry.
-    :param FromDishka[AsyncSession] session: Database session.
+    :param FromDishka[EntryDAO] entry_manager: Entry manager.
     :raise HTTP_404_NOT_FOUND: If entry not found.
     :return EntrySchema: One entry Schemas.
     """
-    entry = await get_entry_by_name(
-        entry_name,
-        session,
-    )
+    entry = await entry_manager.get_entry_by_name(entry_name)
 
     if not entry:
         raise HTTPException(
@@ -100,14 +93,14 @@ async def get_one_entry(
 )
 async def get_list_entries_with_pagination(
     page_number: int,
-    session: FromDishka[AsyncSession],
+    entry_manager: FromDishka[EntryDAO],
     page_size: int = 25,
 ) -> EntryPaginationSchema:
     """Retrieve a list of all entries with paginate.
 
     \f
     :param int page_number: number of page.
-    :param FromDishka[AsyncSession] session: Database session.
+    :param FromDishka[EntryDAO] entry_manager: Entry manager.
     :param int page_size: number of items per page.
     :return EntryPaginationSchema: Paginator.
     """
@@ -116,9 +109,8 @@ async def get_list_entries_with_pagination(
         page_size=page_size,
     )
 
-    pagination_result = await get_entries_paginator(
-        params=params,
-        session=session,
+    pagination_result = await entry_manager.get_entries_paginator(
+        params=params
     )
 
     items = [EntrySchema.from_db(item) for item in pagination_result.items]
@@ -135,6 +127,8 @@ async def get_list_entries_with_pagination(
 async def modify_one_entry(
     entry_name: str,
     request_data: EntryUpdateSchema,
+    entry_manager: FromDishka[EntryDAO],
+    object_class_manager: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Modify an Entry.
@@ -142,31 +136,31 @@ async def modify_one_entry(
     \f
     :param str entry_name: Name of the Entry for modifying.
     :param EntryUpdateSchema request_data: Changed data.
+    :param FromDishka[EntryDAO] entry_manager: Entry manager.
+    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If nothing to delete.
     :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
-    entry = await get_entry_by_name(entry_name, session)
+    entry = await entry_manager.get_entry_by_name(entry_name)
     if not entry:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Entry not found.",
         )
 
-    if not await is_all_object_classes_exists(
-        request_data.object_class_names,
-        session,
+    if not await object_class_manager.is_all_object_classes_exists(
+        request_data.object_class_names
     ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Object Classes not found.",
         )
 
-    await modify_entry(
+    await entry_manager.modify_entry(
         entry=entry,
         new_statement=request_data,
-        session=session,
     )
     await session.commit()
 
@@ -177,15 +171,17 @@ async def modify_one_entry(
 )
 async def delete_bulk_entries(
     entry_names: LimitedListType,
+    entry_manager: FromDishka[EntryDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete Entries by their names.
 
     \f
     :param list[str] entry_names: List of Entries names.
+    :param FromDishka[EntryDAO] entry_manager: Entry manager.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    await delete_entries_by_names(entry_names, session)
+    await entry_manager.delete_entries_by_names(entry_names)
     await session.commit()

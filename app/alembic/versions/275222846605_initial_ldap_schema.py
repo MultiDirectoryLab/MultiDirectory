@@ -16,9 +16,7 @@ from sqlalchemy.orm import Session
 
 from extra.alembic_utils import add_and_drop_entry_id
 from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
-from ldap_protocol.ldap_schema.object_class_crud import (
-    get_object_class_by_name,
-)
+from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -261,16 +259,17 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
+        object_class_manager = ObjectClassDAO(session)
         attribute_type_manager = AttributeTypeDAO(session)
+
         for object_class_name, attribute_type_may_names in (
             ("user", ("nsAccountLock", "shadowExpire")),
             ("computer", ("userAccountControl",)),
             ("posixAccount", ("posixEmail",)),
             ("organizationalUnit", ("title", "jpegPhoto")),
         ):
-            object_class = await get_object_class_by_name(
+            object_class = await object_class_manager.get_object_class_by_name(
                 object_class_name=object_class_name,
-                session=session,
             )
             attribute_types_may = (
                 await attribute_type_manager.get_attribute_types_by_names(

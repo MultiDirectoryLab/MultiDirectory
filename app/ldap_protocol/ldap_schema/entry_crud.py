@@ -49,201 +49,190 @@ class EntryPaginationSchema(BasePaginationSchema[EntrySchema]):
     items: list[EntrySchema]
 
 
-async def get_entries_paginator(
-    params: PaginationParams,
-    session: AsyncSession,
-) -> PaginationResult:
-    """Retrieve paginated Entries.
+class EntryDAO:
+    """Entry manager."""
 
-    :param PaginationParams params: page_size and page_number.
-    :param AsyncSession session: Database session.
-    :return PaginationResult: Chunk of entries and metadata.
-    """
-    return await PaginationResult[Entry].get(
-        params=params,
-        query=select(Entry).order_by(Entry.id),
-        sqla_model=Entry,
-        session=session,
-    )
+    _session: AsyncSession
 
+    def __init__(self, session: AsyncSession) -> None:
+        """Initialize EntryDAO with a database session."""
+        self._session = session
 
-async def create_entry(
-    name: str,
-    object_class_names: Iterable[str],
-    is_system: bool,
-    session: AsyncSession,
-) -> None:
-    """Create a new Entry.
+    async def get_entries_paginator(
+        self,
+        params: PaginationParams,
+    ) -> PaginationResult:
+        """Retrieve paginated Entries.
 
-    :param str name: Name.
-    :param Iterable[str] object_class_names: Object Class names.
-    :param bool is_system: Is system.
-    :param AsyncSession session: Database session.
-    :return None.
-    """
-    entry = Entry(
-        name=name,
-        object_class_names=object_class_names,
-        is_system=is_system,
-    )
-    session.add(entry)
-
-
-async def get_entry_by_name(
-    entry_name: str,
-    session: AsyncSession,
-) -> Entry | None:
-    """Get single Entry by name.
-
-    :param str entry_name: Entry name.
-    :param AsyncSession session: Database session.
-    :return Entry | None: Instance of Entry.
-    """
-    return await session.scalar(
-        select(Entry)
-        .where(Entry.name == entry_name)
-    )  # fmt: skip
-
-
-async def get_entry_by_object_class_names(
-    object_class_names: Iterable[str],
-    session: AsyncSession,
-) -> Entry | None:
-    """Get single Entry by object class names.
-
-    :param Iterable[str] object_class_names: object class names.
-    :param AsyncSession session: Database session.
-    :return Entry | None: Entry.
-    """
-    result = await session.execute(
-        select(Entry)
-        .where(
-            Entry.object_class_names.contains(object_class_names),
-            Entry.object_class_names.contained_by(object_class_names)
+        :param PaginationParams params: page_size and page_number.
+        :return PaginationResult: Chunk of entries and metadata.
+        """
+        return await PaginationResult[Entry].get(
+            params=params,
+            query=select(Entry).order_by(Entry.id),
+            sqla_model=Entry,
+            session=self._session,
         )
-    )  # fmt: skip
 
-    return result.scalar_one_or_none()
+    async def create_entry(
+        self,
+        name: str,
+        object_class_names: Iterable[str],
+        is_system: bool,
+    ) -> None:
+        """Create a new Entry.
 
+        :param str name: Name.
+        :param Iterable[str] object_class_names: Object Class names.
+        :param bool is_system: Is system.
+        :return None.
+        """
+        entry = Entry(
+            name=name,
+            object_class_names=object_class_names,
+            is_system=is_system,
+        )
+        self._session.add(entry)
 
-async def modify_entry(
-    entry: Entry,
-    new_statement: EntryUpdateSchema,
-    session: AsyncSession,
-) -> None:
-    """Modify Entry.
+    async def get_entry_by_name(
+        self,
+        entry_name: str,
+    ) -> Entry | None:
+        """Get single Entry by name.
 
-    :param Entry entry: Entry.
-    :param EntryUpdateSchema new_statement: New statement of entry
-    :param AsyncSession session: Database session.
-    :return None.
-    """
-    entry.name = new_statement.name
-    entry.object_class_names = new_statement.object_class_names
+        :param str entry_name: Entry name.
+        :return Entry | None: Instance of Entry.
+        """
+        return await self._session.scalar(
+            select(Entry)
+            .where(Entry.name == entry_name)
+        )  # fmt: skip
 
-    result = await session.execute(
-        select(Directory)
-        .where(Directory.entry_id == entry.id)
-        .options(selectinload(Directory.attributes))
-    )  # fmt: skip
+    async def get_entry_by_object_class_names(
+        self,
+        object_class_names: Iterable[str],
+    ) -> Entry | None:
+        """Get single Entry by object class names.
 
-    for directory in result.scalars():
-        await session.execute(
-            delete(Attribute)
+        :param Iterable[str] object_class_names: object class names.
+        :return Entry | None: Entry.
+        """
+        result = await self._session.execute(
+            select(Entry)
             .where(
-                Attribute.directory == directory,
-                or_(
-                    Attribute.name == "objectclass",
-                    Attribute.name == "objectClass"
-                ),
+                Entry.object_class_names.contains(object_class_names),
+                Entry.object_class_names.contained_by(object_class_names)
             )
         )  # fmt: skip
 
-        for object_class_name in entry.object_class_names:
-            session.add(
-                Attribute(
-                    directory=directory,
-                    value=object_class_name,
-                    name="objectClass",
+        return result.scalar_one_or_none()
+
+    async def modify_entry(
+        self,
+        entry: Entry,
+        new_statement: EntryUpdateSchema,
+    ) -> None:
+        """Modify Entry.
+
+        :param Entry entry: Entry.
+        :param EntryUpdateSchema new_statement: New statement of entry
+        :return None.
+        """
+        entry.name = new_statement.name
+        entry.object_class_names = new_statement.object_class_names
+
+        result = await self._session.execute(
+            select(Directory)
+            .where(Directory.entry_id == entry.id)
+            .options(selectinload(Directory.attributes))
+        )  # fmt: skip
+
+        for directory in result.scalars():
+            await self._session.execute(
+                delete(Attribute)
+                .where(
+                    Attribute.directory == directory,
+                    or_(
+                        Attribute.name == "objectclass",
+                        Attribute.name == "objectClass"
+                    ),
                 )
+            )  # fmt: skip
+
+            for object_class_name in entry.object_class_names:
+                self._session.add(
+                    Attribute(
+                        directory=directory,
+                        value=object_class_name,
+                        name="objectClass",
+                    )
+                )
+
+    async def delete_entries_by_names(
+        self,
+        entry_names: list[str],
+    ) -> None:
+        """Delete not system and not used Entry by Names.
+
+        :param list[str] entry_names: Entry names.
+        :return None.
+        """
+        await self._session.execute(
+            delete(Entry)
+            .where(
+                Entry.name.in_(entry_names),
+                Entry.is_system.is_(False),
+                Entry.id.notin_(
+                    select(Directory.entry_id)
+                    .where(Directory.entry_id.isnot(None))
+                ),
+            ),
+        )  # fmt: skip
+
+    async def attach_entry_to_directories(self) -> None:
+        """Find all directories without an entry and attach an entry to them.
+
+        :return None.
+        """
+        result = await self._session.execute(
+            select(Directory)
+            .where(Directory.entry_id.is_(None))
+            .options(
+                selectinload(Directory.attributes),
+                selectinload(Directory.entry),
+            )
+        )
+
+        for directory in result.scalars():
+            await self.attach_entry_to_directory(
+                directory=directory,
+                is_system_entry=False,
             )
 
+        return None
 
-async def delete_entries_by_names(
-    entry_names: list[str],
-    session: AsyncSession,
-) -> None:
-    """Delete not system and not used Entry by Names.
+    async def attach_entry_to_directory(
+        self,
+        directory: Directory,
+        is_system_entry: bool,
+    ) -> None:
+        """Try to find the Entry, attach this Entry to the Directory.
 
-    :param list[str] entry_names: Entry names.
-    :param AsyncSession session: Database session.
-    :return None.
-    """
-    await session.execute(
-        delete(Entry)
-        .where(
-            Entry.name.in_(entry_names),
-            Entry.is_system.is_(False),
-            Entry.id.notin_(
-                select(Directory.entry_id)
-                .where(Directory.entry_id.isnot(None))
-            ),
-        ),
-    )  # fmt: skip
+        :param Directory directory: Directory to attach entry.
+        :param bool is_system_entry: Is system entry.
+        :return None.
+        """
+        object_class_names = directory.object_class_names_set
 
+        entry = await self.get_entry_by_object_class_names(object_class_names)
+        if not entry:
+            entry_name = Entry.generate_entry_name(directory=directory)
+            await self.create_entry(
+                name=entry_name,
+                object_class_names=object_class_names,
+                is_system=is_system_entry,
+            )
+            await self._session.flush()
+            entry = await self.get_entry_by_name(entry_name)
 
-async def attach_entry_to_directories(session: AsyncSession) -> None:
-    """Find all directories without an entry and attach an entry to them.
-
-    :param AsyncSession session: Database session.
-    :return None.
-    """
-    result = await session.execute(
-        select(Directory)
-        .where(Directory.entry_id.is_(None))
-        .options(
-            selectinload(Directory.attributes),
-            selectinload(Directory.entry),
-        )
-    )
-
-    for directory in result.scalars():
-        await attach_entry_to_directory(
-            directory=directory,
-            is_system_entry=False,
-            session=session,
-        )
-
-    return None
-
-
-async def attach_entry_to_directory(
-    directory: Directory,
-    is_system_entry: bool,
-    session: AsyncSession,
-) -> None:
-    """Try to find the Entry, attach this Entry to the Directory.
-
-    :param Directory directory: Directory to attach entry.
-    :param bool is_system_entry: Is system entry.
-    :param AsyncSession session: Database session.
-    :return None.
-    """
-    object_class_names = directory.object_class_names_set
-
-    entry = await get_entry_by_object_class_names(
-        object_class_names,
-        session,
-    )
-    if not entry:
-        entry_name = Entry.generate_entry_name(directory=directory)
-        await create_entry(
-            name=entry_name,
-            object_class_names=object_class_names,
-            is_system=is_system_entry,
-            session=session,
-        )
-        await session.flush()
-        entry = await get_entry_by_name(entry_name, session)
-
-    directory.entry = entry
+        directory.entry = entry

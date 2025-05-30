@@ -13,10 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from extra.dev_data import ENTRY_DATAS
-from ldap_protocol.ldap_schema.entry_crud import (
-    attach_entry_to_directories,
-    create_entry,
-)
+from ldap_protocol.ldap_schema.entry_crud import EntryDAO
 from models import Attribute, Directory, User
 
 # revision identifiers, used by Alembic.
@@ -89,13 +86,13 @@ def upgrade() -> None:
     async def _create_entry(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
+        entry_manager = EntryDAO(session)
 
         for entry_data in ENTRY_DATAS:
-            await create_entry(
+            await entry_manager.create_entry(
                 name=entry_data["name"],
                 object_class_names=entry_data["object_class_names"],
                 is_system=True,
-                session=session,
             )
 
         await session.commit()
@@ -140,8 +137,9 @@ def upgrade() -> None:
     async def _attach_entry_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)
         session.begin()
+        entry_manager = EntryDAO(session)
 
-        await attach_entry_to_directories(session=session)
+        await entry_manager.attach_entry_to_directories()
 
         await session.commit()
 

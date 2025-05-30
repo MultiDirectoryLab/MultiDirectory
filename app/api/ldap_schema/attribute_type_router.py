@@ -14,8 +14,6 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
-    delete_attribute_types_by_names,
-    modify_attribute_type,
 )
 from ldap_protocol.utils.pagination import PaginationParams
 
@@ -58,14 +56,12 @@ async def create_one_attribute_type(
 )
 async def get_one_attribute_type(
     attribute_type_name: str,
-    session: FromDishka[AsyncSession],
     attribute_type_manager: FromDishka[AttributeTypeDAO],
 ) -> AttributeTypeSchema:
     """Retrieve a one attribute types.
 
     \f
     :param str attribute_type_name: name of the Attribute Type.
-    :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
     :return AttributeTypeSchema: One Attribute Type Schemas.
     """
@@ -89,7 +85,6 @@ async def get_one_attribute_type(
 )
 async def get_list_attribute_types_with_pagination(
     page_number: int,
-    session: FromDishka[AsyncSession],
     attribute_type_manager: FromDishka[AttributeTypeDAO],
     page_size: int = 50,
 ) -> AttributeTypePaginationSchema:
@@ -97,7 +92,6 @@ async def get_list_attribute_types_with_pagination(
 
     \f
     :param int page_number: number of page.
-    :param FromDishka[AsyncSession] session: Database session.
     :param int page_size: number of items per page.
     :return AttributeTypePaginationSchema: Paginator.
     """
@@ -158,7 +152,7 @@ async def modify_one_attribute_type(
 
     request_data.syntax = _DEFAULT_ATTRIBUTE_TYPE_SYNTAX
     request_data.no_user_modification = _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD
-    await modify_attribute_type(
+    await attribute_type_manager.modify_attribute_type(
         attribute_type=attribute_type,
         new_statement=request_data,
     )
@@ -172,6 +166,7 @@ async def modify_one_attribute_type(
 async def delete_bulk_attribute_types(
     attribute_types_names: LimitedListType,
     session: FromDishka[AsyncSession],
+    attribute_type_manager: FromDishka[AttributeTypeDAO],
 ) -> None:
     """Delete attribute types by their names.
 
@@ -181,5 +176,7 @@ async def delete_bulk_attribute_types(
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    await delete_attribute_types_by_names(attribute_types_names, session)
+    await attribute_type_manager.delete_attribute_types_by_names(
+        attribute_types_names
+    )
     await session.commit()

@@ -28,6 +28,8 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
+from ldap_protocol.ldap_schema.entry_crud import EntryDAO
+from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -197,12 +199,32 @@ class HTTPProvider(Provider):
         return LDAPSession()
 
     @provide(provides=AttributeTypeDAO)
-    def get_attribute_type_dao(
+    def get_attribute_type_manager(
         self,
         session: AsyncSession,
     ) -> AttributeTypeDAO:
         """Get AttributeTypeDAO manager."""
         return AttributeTypeDAO(session)
+
+    @provide(provides=ObjectClassDAO)
+    def get_object_class_manager(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassDAO:
+        """Get ObjectClassDAO manager."""
+        attribute_type_manager = AttributeTypeDAO(session)
+        return ObjectClassDAO(
+            attribute_type_manager=attribute_type_manager,
+            session=session,
+        )
+
+    @provide(provides=EntryDAO)
+    def get_entry_manager(
+        self,
+        session: AsyncSession,
+    ) -> EntryDAO:
+        """Get EntryDAO manager."""
+        return EntryDAO(session)
 
 
 class LDAPServerProvider(Provider):

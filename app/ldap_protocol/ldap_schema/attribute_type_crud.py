@@ -140,40 +140,41 @@ class AttributeTypeDAO:
         )  # fmt: skip
         return list(query.all())
 
+    async def modify_attribute_type(
+        self,
+        attribute_type: AttributeType,
+        new_statement: AttributeTypeUpdateSchema,
+    ) -> None:
+        """Modify Attribute Type.
 
-async def modify_attribute_type(
-    attribute_type: AttributeType,
-    new_statement: AttributeTypeUpdateSchema,
-) -> None:
-    """Modify Attribute Type.
+        :param AttributeType attribute_type: Attribute Type.
+        :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
+        :param AsyncSession session: Database session.
+        :return None.
+        """
+        attribute_type.syntax = new_statement.syntax
+        attribute_type.single_value = new_statement.single_value
+        attribute_type.no_user_modification = (
+            new_statement.no_user_modification
+        )
 
-    :param AttributeType attribute_type: Attribute Type.
-    :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
-    :param AsyncSession session: Database session.
-    :return None.
-    """
-    attribute_type.syntax = new_statement.syntax
-    attribute_type.single_value = new_statement.single_value
-    attribute_type.no_user_modification = new_statement.no_user_modification
+    async def delete_attribute_types_by_names(
+        self,
+        attribute_type_names: list[str],
+    ) -> None:
+        """Delete not system Attribute Types by names.
 
+        :param list[str] attribute_type_names: List of Attribute Types OIDs.
+        :param AsyncSession session: Database session.
+        :return None: None.
+        """
+        if not attribute_type_names:
+            return None
 
-async def delete_attribute_types_by_names(
-    attribute_type_names: list[str],
-    session: AsyncSession,
-) -> None:
-    """Delete not system Attribute Types by names.
-
-    :param list[str] attribute_type_names: List of Attribute Types OIDs.
-    :param AsyncSession session: Database session.
-    :return None: None.
-    """
-    if not attribute_type_names:
-        return None
-
-    await session.execute(
-        delete(AttributeType)
-        .where(
-            AttributeType.name.in_(attribute_type_names),
-            AttributeType.is_system.is_(False),
-        ),
-    )  # fmt: skip
+        await self._session.execute(
+            delete(AttributeType)
+            .where(
+                AttributeType.name.in_(attribute_type_names),
+                AttributeType.is_system.is_(False),
+            ),
+        )  # fmt: skip
