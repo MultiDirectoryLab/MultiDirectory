@@ -344,13 +344,13 @@ class AddRequest(BaseRequest):
             session.add_all(items_to_add)
             await session.flush()
 
-            entity_type_manager = EntityTypeDAO(session)
+            entity_type_dao = EntityTypeDAO(session)
             await session.refresh(
                 instance=new_dir,
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await entity_type_manager.attach_entity_type_to_directory(
+            await entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
             )

@@ -229,13 +229,13 @@ class ModifyRequest(BaseRequest):
                 return
 
         if "objectclass" in names:
-            entity_type_manager = EntityTypeDAO(session)
+            entity_type_dao = EntityTypeDAO(session)
             await session.refresh(
                 instance=directory,
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await entity_type_manager.attach_entity_type_to_directory(
+            await entity_type_dao.attach_entity_type_to_directory(
                 directory=directory,
                 is_system_entity_type=False,
             )

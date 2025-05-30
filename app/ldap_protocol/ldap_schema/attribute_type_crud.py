@@ -55,7 +55,7 @@ class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
 
 
 class AttributeTypeDAO:
-    """Attribute Type manager."""
+    """Attribute Type DAO."""
 
     _session: AsyncSession
 
@@ -67,10 +67,10 @@ class AttributeTypeDAO:
         self,
         params: PaginationParams,
     ) -> PaginationResult:
-        """Retrieve paginated attribute_types.
+        """Retrieve paginated Attribute Types.
 
         :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of attribute_types and metadata.
+        :return PaginationResult: Chunk of Attribute Types and metadata.
         """
         return await PaginationResult[AttributeType].get(
             params=params,
@@ -115,7 +115,7 @@ class AttributeTypeDAO:
         """Get single Attribute Type by name.
 
         :param str attribute_type_name: Attribute Type name.
-        :return AttributeType | None: Attribute Type.
+        :return AttributeType | None: Instance of Attribute Type or None.
         """
         return await self._session.scalar(
             select(AttributeType)
@@ -163,7 +163,7 @@ class AttributeTypeDAO:
     ) -> None:
         """Delete not system Attribute Types by names.
 
-        :param list[str] attribute_type_names: List of Attribute Types OIDs.
+        :param list[str] attribute_type_names: List of Attribute Types names.
         :param AsyncSession session: Database session.
         :return None: None.
         """

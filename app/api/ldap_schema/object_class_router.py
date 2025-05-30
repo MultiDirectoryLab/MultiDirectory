@@ -27,18 +27,18 @@ _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 )
 async def create_one_object_class(
     request_data: ObjectClassSchema,
-    object_class_manager: FromDishka[ObjectClassDAO],
+    object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Create a new Object Class.
 
     \f
     :param ObjectClassSchema request_data: Data for creating Object Class.
-    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
+    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    await object_class_manager.create_one(
+    await object_class_dao.create_one(
         oid=request_data.oid,
         name=request_data.name,
         superior_name=request_data.superior_name,
@@ -57,19 +57,17 @@ async def create_one_object_class(
 )
 async def get_one_object_class(
     object_class_name: str,
-    object_class_manager: FromDishka[ObjectClassDAO],
+    object_class_dao: FromDishka[ObjectClassDAO],
 ) -> ObjectClassSchema:
     """Retrieve a one object class.
 
     \f
     :param str object_class_name: name of the Object Class.
-    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
+    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :raise HTTP_404_NOT_FOUND: If Object Class not found.
     :return ObjectClassSchema: One Object Class Schemas.
     """
-    object_class = await object_class_manager.get_one_by_name(
-        object_class_name
-    )
+    object_class = await object_class_dao.get_one_by_name(object_class_name)
 
     if not object_class:
         raise HTTPException(
@@ -87,14 +85,14 @@ async def get_one_object_class(
 )
 async def get_list_object_classes_with_pagination(
     page_number: int,
-    object_class_manager: FromDishka[ObjectClassDAO],
+    object_class_dao: FromDishka[ObjectClassDAO],
     page_size: int = 25,
 ) -> ObjectClassPaginationSchema:
     """Retrieve a list of all object classes with paginate.
 
     \f
     :param int page_number: number of page.
-    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
+    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param int page_size: number of items per page.
     :return ObjectClassPaginationSchema: Paginator.
     """
@@ -102,7 +100,7 @@ async def get_list_object_classes_with_pagination(
         page_number=page_number,
         page_size=page_size,
     )
-    pagination_result = await object_class_manager.get_paginator(params=params)
+    pagination_result = await object_class_dao.get_paginator(params=params)
 
     items = [
         ObjectClassSchema.from_db(item) for item in pagination_result.items
@@ -120,7 +118,7 @@ async def get_list_object_classes_with_pagination(
 async def modify_one_object_class(
     object_class_name: str,
     request_data: ObjectClassUpdateSchema,
-    object_class_manager: FromDishka[ObjectClassDAO],
+    object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Modify an Object Class.
@@ -128,15 +126,13 @@ async def modify_one_object_class(
     \f
     :param str object_class_name: Name of the Object Class for modifying.
     :param ObjectClassUpdateSchema request_data: Changed data.
-    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
+    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If nothing to delete.
     :raise HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
     :return None.
     """
-    object_class = await object_class_manager.get_one_by_name(
-        object_class_name
-    )
+    object_class = await object_class_dao.get_one_by_name(object_class_name)
     if not object_class:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
@@ -149,7 +145,7 @@ async def modify_one_object_class(
             "System Object Class cannot be modified.",
         )
 
-    await object_class_manager.modify_one(
+    await object_class_dao.modify_one(
         object_class=object_class,
         new_statement=request_data,
     )
@@ -162,17 +158,17 @@ async def modify_one_object_class(
 )
 async def delete_bulk_object_classes(
     object_classes_names: LimitedListType,
-    object_class_manager: FromDishka[ObjectClassDAO],
+    object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete Object Classes by their names.
 
     \f
     :param LimitedListType object_classes_names: List of Object Classes names.
-    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
+    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    await object_class_manager.delete_all_by_names(object_classes_names)
+    await object_class_dao.delete_all_by_names(object_classes_names)
     await session.commit()

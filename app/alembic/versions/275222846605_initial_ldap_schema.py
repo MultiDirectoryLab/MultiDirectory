@@ -237,12 +237,12 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        attribute_type_manager = AttributeTypeDAO(session)
+        attribute_type_dao = AttributeTypeDAO(session)
         for oid, name in (
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await attribute_type_manager.create_one(
+            await attribute_type_dao.create_one(
                 oid=oid,
                 name=name,
                 syntax="1.3.6.1.4.1.1466.115.121.1.15",
@@ -259,8 +259,11 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        object_class_manager = ObjectClassDAO(session)
-        attribute_type_manager = AttributeTypeDAO(session)
+        attribute_type_dao = AttributeTypeDAO(session)
+        object_class_dao = ObjectClassDAO(
+            session,
+            attribute_type_dao=attribute_type_dao,
+        )
 
         for object_class_name, attribute_type_may_names in (
             ("user", ("nsAccountLock", "shadowExpire")),
@@ -268,13 +271,11 @@ def upgrade() -> None:
             ("posixAccount", ("posixEmail",)),
             ("organizationalUnit", ("title", "jpegPhoto")),
         ):
-            object_class = await object_class_manager.get_one_by_name(
+            object_class = await object_class_dao.get_one_by_name(
                 object_class_name=object_class_name,
             )
-            attribute_types_may = (
-                await attribute_type_manager.get_all_by_names(
-                    attribute_type_names=attribute_type_may_names
-                )
+            attribute_types_may = await attribute_type_dao.get_all_by_names(
+                attribute_type_names=attribute_type_may_names
             )
             object_class.attribute_types_may.extend(attribute_types_may)
 

@@ -64,28 +64,28 @@ class ObjectClassUpdateSchema(BaseModel):
 
 
 class ObjectClassDAO:
-    """Object Class manager."""
+    """Object Class DAO."""
 
     _session: AsyncSession
-    _attribute_type_manager: AttributeTypeDAO | None
+    _attribute_type_dao: AttributeTypeDAO
 
     def __init__(
         self,
         session: AsyncSession,
-        attribute_type_manager: AttributeTypeDAO | None = None,
+        attribute_type_dao: AttributeTypeDAO,
     ) -> None:
         """Initialize Object Class DAO with session."""
         self._session = session
-        self._attribute_type_manager = attribute_type_manager
+        self._attribute_type_dao = attribute_type_dao
 
     async def get_paginator(
         self,
         params: PaginationParams,
     ) -> PaginationResult:
-        """Retrieve paginated object_classes.
+        """Retrieve paginated Object Classes.
 
         :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of object_classes and metadata.
+        :return PaginationResult: Chunk of Object Classes and metadata.
         """
         return await PaginationResult[ObjectClass].get(
             params=params,
@@ -134,15 +134,11 @@ class ObjectClassDAO:
             if name not in attribute_type_names_must
         ]
 
-        attribute_types_must = (
-            await self._attribute_type_manager.get_all_by_names(  # type: ignore
-                attribute_type_names_must
-            )
+        attribute_types_must = await self._attribute_type_dao.get_all_by_names(
+            attribute_type_names_must
         )
-        attribute_types_may = (
-            await self._attribute_type_manager.get_all_by_names(  # type: ignore
-                attribute_types_may_filtered
-            )
+        attribute_types_may = await self._attribute_type_dao.get_all_by_names(
+            attribute_types_may_filtered
         )
 
         object_class = ObjectClass(
@@ -160,9 +156,9 @@ class ObjectClassDAO:
         self,
         object_class_names: list[str],
     ) -> int:
-        """Count exists ObjectClass by names.
+        """Count exists Object Class by names.
 
-        :param list[str] object_class_names: object class names.
+        :param list[str] object_class_names: Object Class names.
         :return int.
         """
         count_query = (
@@ -179,7 +175,7 @@ class ObjectClassDAO:
     ) -> bool:
         """Check if all Object Classes exist.
 
-        :param list[str] object_class_names: object class names.
+        :param list[str] object_class_names: Object Class names.
         :return bool.
         """
         count_ = await self.count_exists_object_class_by_names(
@@ -195,7 +191,7 @@ class ObjectClassDAO:
         """Get single Object Class by name.
 
         :param str object_class_name: Object Class name.
-        :return ObjectClass | None: Object Class.
+        :return ObjectClass | None: Instance of Object Class or None.
         """
         return await self._session.scalar(
             select(ObjectClass)
@@ -234,7 +230,7 @@ class ObjectClassDAO:
         """
         object_class.attribute_types_must.clear()
         object_class.attribute_types_must.extend(
-            await self._attribute_type_manager.get_all_by_names(  # type: ignore
+            await self._attribute_type_dao.get_all_by_names(
                 new_statement.attribute_type_names_must
             ),
         )
@@ -246,7 +242,7 @@ class ObjectClassDAO:
         ]
         object_class.attribute_types_may.clear()
         object_class.attribute_types_may.extend(
-            await self._attribute_type_manager.get_all_by_names(  # type: ignore
+            await self._attribute_type_dao.get_all_by_names(
                 attribute_types_may_filtered
             ),
         )
@@ -257,7 +253,7 @@ class ObjectClassDAO:
     ) -> None:
         """Delete not system Object Classes by Names.
 
-        :param list[str] object_classes_names: Object classes names.
+        :param list[str] object_classes_names: Object Classes names.
         :return None.
         """
         await self._session.execute(

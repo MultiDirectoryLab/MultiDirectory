@@ -28,21 +28,21 @@ _DEFAULT_ENTITY_TYPE_IS_SYSTEM = False
 )
 async def create_one_entity_type(
     request_data: EntityTypeSchema,
-    entity_type_manager: FromDishka[EntityTypeDAO],
-    object_class_manager: FromDishka[ObjectClassDAO],
+    entity_type_dao: FromDishka[EntityTypeDAO],
+    object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Create a new EntityType.
 
     \f
     :param EntityTypeSchema request_data: Data for creating EntityType.
-    :param FromDishka[EntityTypeDAO] entity_type_manager: EntityType manager.
-    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
+    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
+    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
-    if not await object_class_manager.is_all_object_classes_exists(
+    if not await object_class_dao.is_all_object_classes_exists(
         request_data.object_class_names
     ):
         raise HTTPException(
@@ -50,7 +50,7 @@ async def create_one_entity_type(
             "Object Classes not found.",
         )
 
-    await entity_type_manager.create_one(
+    await entity_type_dao.create_one(
         name=request_data.name,
         is_system=_DEFAULT_ENTITY_TYPE_IS_SYSTEM,
         object_class_names=request_data.object_class_names,
@@ -65,17 +65,17 @@ async def create_one_entity_type(
 )
 async def get_one_entity_type(
     entity_type_name: str,
-    entity_type_manager: FromDishka[EntityTypeDAO],
+    entity_type_dao: FromDishka[EntityTypeDAO],
 ) -> EntityTypeSchema:
     """Retrieve a one Entity Type.
 
     \f
     :param str entity_type_name: name of the Entity Type.
-    :param FromDishka[EntityTypeDAO] entity_type_manager: EntityType manager.
+    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
     :raise HTTP_404_NOT_FOUND: If Entity Type not found.
     :return EntityTypeSchema: One Entity Type Schemas.
     """
-    entity_type = await entity_type_manager.get_one_by_name(entity_type_name)
+    entity_type = await entity_type_dao.get_one_by_name(entity_type_name)
 
     if not entity_type:
         raise HTTPException(
@@ -93,14 +93,14 @@ async def get_one_entity_type(
 )
 async def get_list_entity_types_with_pagination(
     page_number: int,
-    entity_type_manager: FromDishka[EntityTypeDAO],
+    entity_type_dao: FromDishka[EntityTypeDAO],
     page_size: int = 25,
 ) -> EntityTypePaginationSchema:
     """Retrieve a list of all entity types with pagination.
 
     \f
     :param int page_number: number of page.
-    :param FromDishka[EntityTypeDAO] entity_type_manager: EntityType manager.
+    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
     :param int page_size: number of items per page.
     :return EntityTypePaginationSchema: Paginator.
     """
@@ -109,7 +109,7 @@ async def get_list_entity_types_with_pagination(
         page_size=page_size,
     )
 
-    pagination_result = await entity_type_manager.get_paginator(params=params)
+    pagination_result = await entity_type_dao.get_paginator(params=params)
 
     items = [
         EntityTypeSchema.from_db(item) for item in pagination_result.items
@@ -127,8 +127,8 @@ async def get_list_entity_types_with_pagination(
 async def modify_one_entity_type(
     entity_type_name: str,
     request_data: EntityTypeUpdateSchema,
-    entity_type_manager: FromDishka[EntityTypeDAO],
-    object_class_manager: FromDishka[ObjectClassDAO],
+    entity_type_dao: FromDishka[EntityTypeDAO],
+    object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Modify an EntityType.
@@ -136,21 +136,21 @@ async def modify_one_entity_type(
     \f
     :param str entity_type_name: Name of the EntityType for modifying.
     :param EntityTypeUpdateSchema request_data: Changed data.
-    :param FromDishka[EntityTypeDAO] entity_type_manager: EntityType manager.
-    :param FromDishka[ObjectClassDAO] object_class_manager: Object Class DAO.
+    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
+    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_404_NOT_FOUND: If nothing to delete.
     :raise HTTP_400_BAD_REQUEST: If Object Classes not found.
     :return None.
     """
-    entity_type = await entity_type_manager.get_one_by_name(entity_type_name)
+    entity_type = await entity_type_dao.get_one_by_name(entity_type_name)
     if not entity_type:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "EntityType not found.",
         )
 
-    if not await object_class_manager.is_all_object_classes_exists(
+    if not await object_class_dao.is_all_object_classes_exists(
         request_data.object_class_names
     ):
         raise HTTPException(
@@ -158,7 +158,7 @@ async def modify_one_entity_type(
             "Object Classes not found.",
         )
 
-    await entity_type_manager.modify_one(
+    await entity_type_dao.modify_one(
         entity_type=entity_type,
         new_statement=request_data,
     )
@@ -171,17 +171,17 @@ async def modify_one_entity_type(
 )
 async def delete_bulk_entity_types(
     entity_type_names: LimitedListType,
-    entity_type_manager: FromDishka[EntityTypeDAO],
+    entity_type_dao: FromDishka[EntityTypeDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete EntityTypes by their names.
 
     \f
     :param LimitedListType entity_type_names: List of EntityTypes names.
-    :param FromDishka[EntityTypeDAO] entity_type_manager: EntityType manager.
+    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
     :param FromDishka[AsyncSession] session: Database session.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
-    await entity_type_manager.delete_all_by_names(entity_type_names)
+    await entity_type_dao.delete_all_by_names(entity_type_names)
     await session.commit()

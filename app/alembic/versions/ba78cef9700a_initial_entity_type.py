@@ -86,10 +86,10 @@ def upgrade() -> None:
     async def _create_entity_types(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
-        entity_type_manager = EntityTypeDAO(session)
+        entity_type_dao = EntityTypeDAO(session)
 
         for entity_type_data in ENTITY_TYPE_DATAS:
-            await entity_type_manager.create_one(
+            await entity_type_dao.create_one(
                 name=entity_type_data["name"],
                 object_class_names=entity_type_data["object_class_names"],
                 is_system=True,
@@ -137,9 +137,9 @@ def upgrade() -> None:
     async def _attach_entity_type_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)
         session.begin()
-        entity_type_manager = EntityTypeDAO(session)
+        entity_type_dao = EntityTypeDAO(session)
 
-        await entity_type_manager.attach_entity_type_to_directories()
+        await entity_type_dao.attach_entity_type_to_directories()
 
         await session.commit()
 

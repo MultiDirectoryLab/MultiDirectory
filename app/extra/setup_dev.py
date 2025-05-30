@@ -140,13 +140,13 @@ async def _create_dir(
 
     await session.flush()
 
-    entity_type_manager = EntityTypeDAO(session)
+    entity_type_dao = EntityTypeDAO(session)
     await session.refresh(
         instance=dir_,
         attribute_names=["attributes"],
         with_for_update=None,
     )
-    await entity_type_manager.attach_entity_type_to_directory(
+    await entity_type_dao.attach_entity_type_to_directory(
         directory=dir_,
         is_system_entity_type=True,
     )
@@ -213,13 +213,13 @@ async def setup_enviroment(
         session.add_all(list(get_domain_object_class(domain)))
         await session.flush()
 
-        entity_type_manager = EntityTypeDAO(session)
+        entity_type_dao = EntityTypeDAO(session)
         await session.refresh(
             instance=domain,
             attribute_names=["attributes"],
             with_for_update=None,
         )
-        await entity_type_manager.attach_entity_type_to_directory(
+        await entity_type_dao.attach_entity_type_to_directory(
             directory=domain,
             is_system_entity_type=True,
         )

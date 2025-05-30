@@ -354,25 +354,25 @@ TEST_DATA = [
 
 ENTITY_TYPE_DATAS = [
     {
-        "name": "Домен",
+        "name": "Domen",
         "object_class_names": ["top", "domain", "domainDNS"],
     },
-    {"name": "Компьютер", "object_class_names": ["top", "computer"]},
-    {"name": "Контейнер", "object_class_names": ["top", "container"]},
+    {"name": "Computer", "object_class_names": ["top", "computer"]},
+    {"name": "Container", "object_class_names": ["top", "container"]},
     {
-        "name": "Каталог",
+        "name": "Catalog",
         "object_class_names": ["top", "container", "catalog"],
     },
     {
-        "name": "Организационное подразделение",
+        "name": "Organizational Unit",
         "object_class_names": ["top", "container", "organizationalUnit"],
     },
     {
-        "name": "Группа",
+        "name": "Group",
         "object_class_names": ["top", "group", "posixGroup"],
     },
     {
-        "name": "Пользователь",
+        "name": "User",
         "object_class_names": [
             "top",
             "user",
@@ -383,9 +383,9 @@ ENTITY_TYPE_DATAS = [
             "inetOrgPerson",
         ],
     },
-    {"name": "KRB Контейнер", "object_class_names": ["krbContainer"]},
+    {"name": "KRB Container", "object_class_names": ["krbContainer"]},
     {
-        "name": "KRB Принципал",
+        "name": "KRB Principal",
         "object_class_names": [
             "krbprincipal",
             "krbprincipalaux",
@@ -393,7 +393,7 @@ ENTITY_TYPE_DATAS = [
         ],
     },
     {
-        "name": "KRB Realm Контейнер",
+        "name": "KRB Realm Container",
         "object_class_names": [
             "top",
             "krbrealmcontainer",

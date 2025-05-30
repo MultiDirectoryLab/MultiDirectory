@@ -148,31 +148,31 @@ class TestProvider(Provider):
         weakref.finalize(resolver, resolver.close)
 
     @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
-    def get_attribute_type_manager(
+    def get_attribute_type_dao(
         self,
         session: AsyncSession,
     ) -> AttributeTypeDAO:
-        """Get AttributeTypeDAO manager."""
+        """Get Attribute Type DAO."""
         return AttributeTypeDAO(session)
 
     @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
-    def get_object_class_manager(
+    def get_object_class_dao(
         self,
         session: AsyncSession,
     ) -> ObjectClassDAO:
-        """Get ObjectClassDAO manager."""
-        attribute_type_manager = AttributeTypeDAO(session)
+        """Get Object Class DAO."""
+        attribute_type_dao = AttributeTypeDAO(session)
         return ObjectClassDAO(
-            attribute_type_manager=attribute_type_manager,
+            attribute_type_dao=attribute_type_dao,
             session=session,
         )
 
     @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
-    def get_entity_type_manager(
+    def get_entity_type_dao(
         self,
         session: AsyncSession,
     ) -> EntityTypeDAO:
-        """Get EntityTypeDAO manager."""
+        """Get Entity Type DAO."""
         return EntityTypeDAO(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)

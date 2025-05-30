@@ -61,7 +61,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     2. Intermediate Requests:
     - The client sends kerberos AP-REQ token
     - The server processes token
-    - Сontinues until context is established
+    - Continues until context is established
     - The client sends empty token
 
     3. Final Handshake:
