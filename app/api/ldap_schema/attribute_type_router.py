@@ -35,7 +35,8 @@ async def create_one_attribute_type(
 
     \f
     :param AttributeTypeSchema request_data: Data for creating attribute type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type\
+          manager.
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
@@ -63,7 +64,8 @@ async def get_one_attribute_type(
 
     \f
     :param str attribute_type_name: name of the Attribute Type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type\
+        manager.
     :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
     :return AttributeTypeSchema: One Attribute Type Schemas.
     """
@@ -94,7 +96,8 @@ async def get_list_attribute_types_with_pagination(
 
     \f
     :param int page_number: number of page.
-    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type\
+        manager.
     :param int page_size: number of items per page.
     :return AttributeTypePaginationSchema: Paginator.
     """
@@ -132,7 +135,8 @@ async def modify_one_attribute_type(
     :param str attribute_type_name: name of the attribute type for modifying.
     :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type manager.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute Type\
+        manager.
     :raise HTTP_404_NOT_FOUND: If attribute type not found.
     :raise HTTP_400_BAD_REQUEST: If attribute type is system->cannot be changed
     :return None.
@@ -173,9 +177,10 @@ async def delete_bulk_attribute_types(
     """Delete attribute types by their names.
 
     \f
-    :param LimitedListType attribute_types_names: List of attribute types names.
+    :param LimitedListType attribute_types_names: List of attribute types names
     :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute type manager.
+    :param FromDishka[AttributeTypeDAO] attribute_type_manager: Attribute type\
+        manager.
     :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """

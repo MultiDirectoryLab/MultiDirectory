@@ -67,12 +67,12 @@ class ObjectClassDAO:
     """Object Class manager."""
 
     _session: AsyncSession
-    _attribute_type_manager: AttributeTypeDAO
+    _attribute_type_manager: AttributeTypeDAO | None
 
     def __init__(
         self,
         session: AsyncSession,
-        attribute_type_manager: AttributeTypeDAO = None,  # type: ignore # FIXME
+        attribute_type_manager: AttributeTypeDAO | None = None,
     ) -> None:
         """Initialize Object Class DAO with session."""
         self._session = session
@@ -135,12 +135,12 @@ class ObjectClassDAO:
         ]
 
         attribute_types_must = (
-            await self._attribute_type_manager.get_all_by_names(
+            await self._attribute_type_manager.get_all_by_names(  # type: ignore
                 attribute_type_names_must
             )
         )
         attribute_types_may = (
-            await self._attribute_type_manager.get_all_by_names(
+            await self._attribute_type_manager.get_all_by_names(  # type: ignore
                 attribute_types_may_filtered
             )
         )
@@ -234,7 +234,7 @@ class ObjectClassDAO:
         """
         object_class.attribute_types_must.clear()
         object_class.attribute_types_must.extend(
-            await self._attribute_type_manager.get_all_by_names(
+            await self._attribute_type_manager.get_all_by_names(  # type: ignore
                 new_statement.attribute_type_names_must
             ),
         )
@@ -246,7 +246,7 @@ class ObjectClassDAO:
         ]
         object_class.attribute_types_may.clear()
         object_class.attribute_types_may.extend(
-            await self._attribute_type_manager.get_all_by_names(
+            await self._attribute_type_manager.get_all_by_names(  # type: ignore
                 attribute_types_may_filtered
             ),
         )
