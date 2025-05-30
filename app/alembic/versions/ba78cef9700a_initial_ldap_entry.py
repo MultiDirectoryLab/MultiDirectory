@@ -83,7 +83,7 @@ def upgrade() -> None:
         ["oid"],
     )
 
-    async def _create_entry(connection) -> None:
+    async def _create_entries(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
         entry_manager = EntryDAO(session)
@@ -97,9 +97,9 @@ def upgrade() -> None:
 
         await session.commit()
 
-    op.run_async(_create_entry)
+    op.run_async(_create_entries)
 
-    async def _append_object_class_to_user_dir(connection) -> None:
+    async def _append_object_class_to_user_dirs(connection) -> None:
         session = AsyncSession(bind=connection)
         session.begin()
 
@@ -132,7 +132,7 @@ def upgrade() -> None:
 
         await session.commit()
 
-    op.run_async(_append_object_class_to_user_dir)
+    op.run_async(_append_object_class_to_user_dirs)
 
     async def _attach_entry_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)
