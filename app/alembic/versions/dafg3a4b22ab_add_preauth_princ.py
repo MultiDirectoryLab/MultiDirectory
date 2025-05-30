@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from extra.alembic_utils import add_and_drop_entity_type_id
+from extra.alembic_utils import temporary_stub_entity_type_id
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
 from models import Attribute, CatalogueSetting, User
 
@@ -21,7 +21,7 @@ branch_labels = None
 depends_on = None
 
 
-@add_and_drop_entity_type_id
+@temporary_stub_entity_type_id
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()

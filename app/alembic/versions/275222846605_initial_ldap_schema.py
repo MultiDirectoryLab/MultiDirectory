@@ -14,7 +14,7 @@ from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from extra.alembic_utils import add_and_drop_entity_type_id
+from extra.alembic_utils import temporary_stub_entity_type_id
 from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
 from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
@@ -31,7 +31,7 @@ depends_on = None
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
-@add_and_drop_entity_type_id
+@temporary_stub_entity_type_id
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()

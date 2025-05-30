@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from alembic import op
 
 
-def add_and_drop_entity_type_id(func: Callable) -> Callable:
+def temporary_stub_entity_type_id(func: Callable) -> Callable:
     """Add and drop the 'entity_type_id' column in the 'Directory' table.
 
     State of the database at the time of migration

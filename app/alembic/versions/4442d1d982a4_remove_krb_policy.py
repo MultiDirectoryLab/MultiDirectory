@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from extra.alembic_utils import add_and_drop_entity_type_id
+from extra.alembic_utils import temporary_stub_entity_type_id
 from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
@@ -20,7 +20,7 @@ branch_labels = None
 depends_on = None
 
 
-@add_and_drop_entity_type_id
+@temporary_stub_entity_type_id
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
