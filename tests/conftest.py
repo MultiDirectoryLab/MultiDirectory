@@ -13,7 +13,6 @@ from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
 import httpx
-import ldap3
 import pytest
 import pytest_asyncio
 import redis.asyncio as redis
@@ -40,6 +39,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+import aioldap3
 from api import shadow_router
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
@@ -463,11 +463,15 @@ def _server(
 
 
 @pytest.fixture
-def ldap_client(settings: Settings) -> ldap3.Connection:
+async def ldap_client(
+    settings: Settings,
+) -> AsyncIterator[aioldap3.LDAPConnection]:
     """Get ldap clinet without a creds."""
-    return ldap3.Connection(
-        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
+    conn = aioldap3.LDAPConnection(
+        aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
     )
+    yield conn
+    return
 
 
 @pytest_asyncio.fixture(scope="function")
