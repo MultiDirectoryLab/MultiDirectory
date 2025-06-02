@@ -48,9 +48,10 @@ async def test_get_list_object_classes_with_pagination(
     http_client: AsyncClient,
 ) -> None:
     """Test retrieving a list of object classes."""
+    page_number = 1
     page_size = 25
     response = await http_client.get(
-        f"/schema/object_classes/1?page_size={page_size}"
+        f"/schema/object_classes?page_number={page_number}&page_size={page_size}"
     )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)

@@ -439,6 +439,16 @@ async def handler(
         yield PoolClientHandler(settings, app_scope)
 
 
+@pytest_asyncio.fixture(scope="function")
+async def entity_type_dao(
+    container: AsyncContainer,
+) -> AsyncIterator[EntityTypeDAO]:
+    """Get session and aquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield EntityTypeDAO(session)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _server(
     event_loop: asyncio.BaseEventLoop,

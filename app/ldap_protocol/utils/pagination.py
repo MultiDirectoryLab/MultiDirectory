@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Generic, Sequence, TypeVar
 
+from fastapi import Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,11 +32,29 @@ class PaginationParams(BaseModel):
         description="Page number.",
     )
     page_size: int = Field(
-        ...,
+        25,
         ge=1,
         le=100,
         description="Page size.",
     )
+
+
+def get_pagination_params(
+    page_number: int = Query(
+        ...,
+        ge=1,
+        le=sys.maxsize,
+        description="Page number.",
+    ),
+    page_size: int = Query(
+        25,
+        ge=1,
+        le=100,
+        description="Page size.",
+    ),
+) -> PaginationParams:
+    """Get pagination parameters."""
+    return PaginationParams(page_number=page_number, page_size=page_size)
 
 
 @dataclass

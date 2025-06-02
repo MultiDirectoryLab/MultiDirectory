@@ -4,8 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Annotated
+
 from dishka.integrations.fastapi import FromDishka
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
@@ -16,7 +18,10 @@ from ldap_protocol.ldap_schema.object_class_crud import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from ldap_protocol.utils.pagination import PaginationParams
+from ldap_protocol.utils.pagination import (
+    PaginationParams,
+    get_pagination_params,
+)
 
 _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
@@ -79,27 +84,21 @@ async def get_one_object_class(
 
 
 @ldap_schema_router.get(
-    "/object_classes/{page_number}",
+    "/object_classes",
     response_model=ObjectClassPaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_object_classes_with_pagination(
-    page_number: int,
     object_class_dao: FromDishka[ObjectClassDAO],
-    page_size: int = 25,
+    params: Annotated[PaginationParams, Depends(get_pagination_params)],
 ) -> ObjectClassPaginationSchema:
     """Retrieve a list of all object classes with paginate.
 
     \f
-    :param int page_number: number of page.
     :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param int page_size: number of items per page.
+    :param PaginationParams params: Pagination parameters.
     :return ObjectClassPaginationSchema: Paginator.
     """
-    params = PaginationParams(
-        page_number=page_number,
-        page_size=page_size,
-    )
     pagination_result = await object_class_dao.get_paginator(params=params)
 
     items = [

@@ -152,6 +152,7 @@ class ModifyRequest(BaseRequest):
         session_storage: SessionStorage,
         kadmin: AbstractKadmin,
         settings: Settings,
+        entity_type_dao: EntityTypeDAO,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
@@ -229,7 +230,6 @@ class ModifyRequest(BaseRequest):
                 return
 
         if "objectclass" in names:
-            entity_type_dao = EntityTypeDAO(session)
             await session.refresh(
                 instance=directory,
                 attribute_names=["attributes"],

@@ -96,6 +96,7 @@ class AddRequest(BaseRequest):
         session: AsyncSession,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
+        entity_type_dao: EntityTypeDAO,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
@@ -344,7 +345,6 @@ class AddRequest(BaseRequest):
             session.add_all(items_to_add)
             await session.flush()
 
-            entity_type_dao = EntityTypeDAO(session)
             await session.refresh(
                 instance=new_dir,
                 attribute_names=["attributes"],

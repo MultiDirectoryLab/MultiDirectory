@@ -4,8 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Annotated
+
 from dishka.integrations.fastapi import FromDishka
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
@@ -17,7 +19,10 @@ from ldap_protocol.ldap_schema.entity_type_crud import (
     EntityTypeUpdateSchema,
 )
 from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
-from ldap_protocol.utils.pagination import PaginationParams
+from ldap_protocol.utils.pagination import (
+    PaginationParams,
+    get_pagination_params,
+)
 
 _DEFAULT_ENTITY_TYPE_IS_SYSTEM = False
 
@@ -87,28 +92,21 @@ async def get_one_entity_type(
 
 
 @ldap_schema_router.get(
-    "/entity_types/{page_number}",
+    "/entity_types",
     response_model=EntityTypePaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_entity_types_with_pagination(
-    page_number: int,
     entity_type_dao: FromDishka[EntityTypeDAO],
-    page_size: int = 25,
+    params: Annotated[PaginationParams, Depends(get_pagination_params)],
 ) -> EntityTypePaginationSchema:
     """Retrieve a list of all entity types with pagination.
 
     \f
-    :param int page_number: number of page.
     :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
-    :param int page_size: number of items per page.
+    :param PaginationParams params: Pagination parameters.
     :return EntityTypePaginationSchema: Paginator.
     """
-    params = PaginationParams(
-        page_number=page_number,
-        page_size=page_size,
-    )
-
     pagination_result = await entity_type_dao.get_paginator(params=params)
 
     items = [

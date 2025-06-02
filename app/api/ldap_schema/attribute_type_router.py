@@ -4,8 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Annotated
+
 from dishka.integrations.fastapi import FromDishka
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
@@ -15,7 +17,10 @@ from ldap_protocol.ldap_schema.attribute_type_crud import (
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from ldap_protocol.utils.pagination import PaginationParams
+from ldap_protocol.utils.pagination import (
+    PaginationParams,
+    get_pagination_params,
+)
 
 _DEFAULT_ATTRIBUTE_TYPE_SYNTAX = "1.3.6.1.4.1.1466.115.121.1.15"
 _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD = False
@@ -83,29 +88,22 @@ async def get_one_attribute_type(
 
 
 @ldap_schema_router.get(
-    "/attribute_types/{page_number}",
+    "/attribute_types",
     response_model=AttributeTypePaginationSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_list_attribute_types_with_pagination(
-    page_number: int,
     attribute_type_dao: FromDishka[AttributeTypeDAO],
-    page_size: int = 50,
+    params: Annotated[PaginationParams, Depends(get_pagination_params)],
 ) -> AttributeTypePaginationSchema:
     """Retrieve a list of all attribute types with paginate.
 
     \f
-    :param int page_number: number of page.
     :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
         manager.
-    :param int page_size: number of items per page.
+    :param PaginationParams params: Pagination parameters.
     :return AttributeTypePaginationSchema: Paginator.
     """
-    params = PaginationParams(
-        page_number=page_number,
-        page_size=page_size,
-    )
-
     pagination_result = await attribute_type_dao.get_paginator(params=params)
 
     items = [
