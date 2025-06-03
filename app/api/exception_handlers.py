@@ -45,18 +45,6 @@ async def handle_instance_not_found_error(
     )
 
 
-async def handle_object_class_kind_not_valid(
-    request: Request,  # noqa: ARG001
-    exc: Exception,
-) -> NoReturn:
-    """Handle Object Class Kind Not Valid error."""
-    logger.error("Object Class kind is not valid.", exc)
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Object Class kind is not valid.",
-    )
-
-
 async def handle_instance_cant_modify_error(
     request: Request,  # noqa: ARG001
     exc: Exception,

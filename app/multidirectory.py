@@ -39,7 +39,6 @@ from api.exception_handlers import (
     handle_dns_error,
     handle_instance_cant_modify_error,
     handle_instance_not_found_error,
-    handle_object_class_kind_not_valid,
 )
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
@@ -54,9 +53,6 @@ from ldap_protocol.dns import DNSConnectionError
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
-)
-from ldap_protocol.ldap_schema.object_class_dao import (
-    ObjectClassKindNotValidError,
 )
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler
@@ -127,10 +123,6 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.add_exception_handler(
         InstanceCantModifyError,
         handle_instance_cant_modify_error,
-    )
-    app.add_exception_handler(
-        ObjectClassKindNotValidError,
-        handle_object_class_kind_not_valid,
     )
 
     return app

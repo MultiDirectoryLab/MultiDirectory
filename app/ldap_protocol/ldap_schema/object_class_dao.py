@@ -24,16 +24,6 @@ from ldap_protocol.utils.pagination import (
 )
 from models import EntityType, KindType, ObjectClass
 
-OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
-    "STRUCTURAL",
-    "ABSTRACT",
-    "AUXILIARY",
-)
-
-
-class ObjectClassKindNotValidError(Exception):
-    """Object Class Kind is not valid."""
-
 
 class ObjectClassSchema(BaseSchemaModel):
     """Object Class Schema."""
@@ -80,7 +70,6 @@ class ObjectClassDAO:
     _attribute_type_dao: AttributeTypeDAO
 
     ObjectClassNotFoundError = InstanceNotFoundError
-    ObjectClassKindNotValid = ObjectClassKindNotValidError
     ObjectClassCantModifyError = InstanceCantModifyError
 
     def __init__(
@@ -128,14 +117,8 @@ class ObjectClassDAO:
         :param list[str] attribute_type_names_must: Attribute Types must.
         :param list[str] attribute_type_names_may: Attribute Types may.
         :raise ObjectClassNotFoundError: If superior Object Class not found.
-        :raise ObjectClassKindNotValid: If Object Class kind is not valid.
         :return None.
         """
-        if kind not in OBJECT_CLASS_KINDS_ALLOWED:
-            raise self.ObjectClassKindNotValid(
-                f"Object class kind is not valid: {kind}."
-            )
-
         superior = (
             await self.get_one_by_name(superior_name)
             if superior_name
