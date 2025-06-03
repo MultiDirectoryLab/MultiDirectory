@@ -168,7 +168,7 @@ class AbstractKadmin(ABC):
         self,
         name: str,
         password: str | None,
-        timeout: int | float = 1,
+        timeout: float = 1,
     ) -> None: ...
 
     @abstractmethod

@@ -32,4 +32,4 @@ protocol_id_map: dict[int, type[BaseRequest]] = {
 }
 
 
-__all__ = ["protocol_id_map", "BaseRequest"]
+__all__ = ["BaseRequest", "protocol_id_map"]

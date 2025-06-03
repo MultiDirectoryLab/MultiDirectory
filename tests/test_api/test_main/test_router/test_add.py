@@ -245,7 +245,7 @@ async def test_api_correct_add_double_member_of(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user
 
-    created_groups = groups + ["cn=domain users,cn=groups,dc=md,dc=test"]
+    created_groups = [*groups, "cn=domain users,cn=groups,dc=md,dc=test"]
 
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "memberOf":

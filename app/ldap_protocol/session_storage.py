@@ -7,7 +7,7 @@ import hmac
 import json
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from secrets import token_hex
 from typing import Iterable, Literal, Self
 
@@ -203,7 +203,7 @@ class SessionStorage(ABC):
         signature = self._sign(session_id, settings)
 
         data = {"id": uid, "sign": signature} | extra_data
-        data["issued"] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(UTC).isoformat()
         return session_id, signature, data
 
     @abstractmethod
@@ -693,7 +693,7 @@ class RedisSessionStorage(SessionStorage):
         :param str key: session key
         :param dict data: any data
         """
-        data["issued"] = datetime.now(timezone.utc).isoformat()
+        data["issued"] = datetime.now(UTC).isoformat()
         ldap_sessions_key = self._get_user_session_key(uid, "ldap")
 
         ip_sessions_key = None
@@ -723,7 +723,7 @@ class RedisSessionStorage(SessionStorage):
         data = await self.get(session_id)
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
-        return (datetime.now(timezone.utc) - issued).seconds > rekey_interval
+        return (datetime.now(UTC) - issued).seconds > rekey_interval
 
     async def _rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.

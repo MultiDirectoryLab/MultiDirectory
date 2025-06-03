@@ -242,9 +242,9 @@ class PasswordPolicySchema(BaseModel):
             errors.append("password minimum length violation")
 
         regex = (
-            re.search("[A-ZА-Я]", password) is not None,
-            re.search("[a-zа-я]", password) is not None,
-            re.search("[0-9]", password) is not None,
+            re.search(r"[A-ZА-Я]", password) is not None,  # noqa: RUF001
+            re.search(r"[a-zа-я]", password) is not None,  # noqa: RUF001
+            re.search(r"[0-9]", password) is not None,
             password.lower() not in _COMMON_PASSWORDS,
         )
 

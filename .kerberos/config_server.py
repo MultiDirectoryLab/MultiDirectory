@@ -120,7 +120,11 @@ class AbstractKRBManager(ABC):
         """
 
     @abstractmethod
-    async def create_or_update_princ_pw(self, name: str, new_password) -> None:
+    async def create_or_update_princ_pw(
+        self,
+        name: str,
+        new_password: str,
+    ) -> None:
         """Create new principal or update password.
 
         :param str name: principal
@@ -262,7 +266,11 @@ class KAdminLocalManager(AbstractKRBManager):
             new_password,
         )
 
-    async def create_or_update_princ_pw(self, name: str, new_password) -> None:
+    async def create_or_update_princ_pw(
+        self,
+        name: str,
+        new_password: str,
+    ) -> None:
         """Create new principal or update password.
 
         :param str name: principal
@@ -343,7 +351,7 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
                 logging.info("Successfully connected to kadmin local")
                 return
 
-    loop.create_task(try_set_kadmin(app))
+    await loop.create_task(try_set_kadmin(app))
     yield
     if kadmind := getattr(app.state, "kadmind", None):
         await kadmind.disconnect()

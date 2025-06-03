@@ -27,8 +27,8 @@ log_api.add(
     colorize=False,
 )
 
-type handler = Callable[..., AsyncGenerator[BaseResponse, None]]
-type serializer = Callable[..., "BaseRequest"]
+type Handler = Callable[..., AsyncGenerator[BaseResponse, None]]
+type Serializer = Callable[..., BaseRequest]
 
 
 if TYPE_CHECKING:
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
             self,
             container: AsyncContainer,
         ) -> list[BaseResponse] | BaseResponse: ...
+
 else:
 
     class _APIProtocol: ...
@@ -48,8 +49,8 @@ else:
 class BaseRequest(ABC, _APIProtocol, BaseModel):
     """Base request builder."""
 
-    handle: ClassVar[handler]
-    from_data: ClassVar[serializer]
+    handle: ClassVar[Handler]
+    from_data: ClassVar[Serializer]
 
     @property
     @abstractmethod

@@ -184,7 +184,7 @@ class PoolClientHandler:
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
-        return_addr: Literal[True, False] | bool = False,
+        return_addr: bool = False,
     ) -> tuple[IPv4Address | IPv6Address, bytes] | bytes:
         """Read N packets by 1kB.
 

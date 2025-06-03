@@ -9,8 +9,8 @@ import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import Enum, StrEnum
-from typing import Any, Awaitable, Callable
+from enum import StrEnum
+from typing import Awaitable, Callable
 
 from dns.asyncquery import inbound_xfr as make_inbound_xfr, tcp as asynctcp
 from dns.asyncresolver import Resolver as AsyncResolver
@@ -53,7 +53,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         bus_type = " stub " if is_stub else " "
 
         @functools.wraps(func)
-        async def wrapped(*args: str, **kwargs: str) -> Any:
+        async def wrapped(*args: str, **kwargs: str) -> object:
             logger = log.opt(depth=1)
 
             logger.info(f"Calling{bus_type}'{name}'")
@@ -77,7 +77,7 @@ class DNSConnectionError(ConnectionError):
     """API Error."""
 
 
-class DNSRecordType(str, Enum):
+class DNSRecordType(StrEnum):
     """DNS record types."""
 
     a = "A"
@@ -416,7 +416,7 @@ async def get_dns_manager_settings(
                 CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME,
                 CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME,
             )
-        ),  # fmt: skip
+        ),
     ):
         settings_dict[setting.name] = setting.value
 

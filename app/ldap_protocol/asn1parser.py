@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, TypeVar
 
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 from pydantic import AfterValidator
@@ -65,7 +65,7 @@ T = TypeVar(
 
 
 @dataclass
-class ASN1Row(Generic[T]):
+class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
     """Row with metadata."""
 
     class_id: int
@@ -218,7 +218,7 @@ class ASN1Row(Generic[T]):
         elif isinstance(obj, str):
             return obj
 
-        elif isinstance(obj, int) or isinstance(obj, float):
+        elif isinstance(obj, int | float):
             return str(obj)
 
         else:

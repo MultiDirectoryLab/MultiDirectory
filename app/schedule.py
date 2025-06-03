@@ -15,9 +15,9 @@ from extra.scripts.update_krb5_config import update_krb5_config
 from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
 
-type task_type = Callable[..., Coroutine]
+type TaskType = Callable[..., Coroutine]
 
-_TASKS: set[tuple[task_type, float]] = {
+_TASKS: set[tuple[TaskType, float]] = {
     (disable_accounts, 600.0),
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
@@ -26,7 +26,7 @@ _TASKS: set[tuple[task_type, float]] = {
 
 
 async def _schedule(
-    task: task_type,
+    task: TaskType,
     wait: float,
     container: AsyncContainer,
 ) -> None:

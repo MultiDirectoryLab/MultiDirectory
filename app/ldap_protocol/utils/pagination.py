@@ -8,7 +8,7 @@ import sys
 from abc import abstractmethod
 from dataclasses import dataclass
 from math import ceil
-from typing import Generic, Sequence, TypeVar
+from typing import Sequence, TypeVar
 
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -48,7 +48,7 @@ class PaginationMetadata:
     total_pages: int | None = None
 
 
-class BasePaginationSchema(BaseModel, Generic[P]):
+class BasePaginationSchema[P: BaseModel](BaseModel):
     """Paginator Schema."""
 
     metadata: PaginationMetadata
@@ -60,7 +60,7 @@ class BasePaginationSchema(BaseModel, Generic[P]):
         arbitrary_types_allowed = True
 
 
-class BaseSchemaModel(BaseModel, Generic[S]):
+class BaseSchemaModel[S: Base](BaseModel):
     """Model for Schema.
 
     Schema is used for serialization and deserialization.
@@ -73,7 +73,7 @@ class BaseSchemaModel(BaseModel, Generic[S]):
 
 
 @dataclass
-class PaginationResult(Generic[S]):
+class PaginationResult[S: Base]:
     """Paginator.
 
     Paginator contains metadata about pagination and chunk of items.

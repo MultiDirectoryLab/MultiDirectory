@@ -53,24 +53,22 @@ async def test_ldap_base_modify(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "changetype: modify\n"
-                "replace: mail\n"
-                "mail: modme@student.of.life.edu\n"
-                "-\n"
-                "add: title\n"
-                "title: Grand Poobah\n"
-                "title: Grand Poobah1\n"
-                "title: Grand Poobah2\n"
-                "title: Grand Poobah3\n"
-                "-\n"
-                "add: jpegPhoto\n"
-                "jpegPhoto: modme.jpeg\n"
-                "-\n"
-                "delete: posixEmail\n"
-                "-\n"
-            )
+            f"dn: {dn}\n"
+            "changetype: modify\n"
+            "replace: mail\n"
+            "mail: modme@student.of.life.edu\n"
+            "-\n"
+            "add: title\n"
+            "title: Grand Poobah\n"
+            "title: Grand Poobah1\n"
+            "title: Grand Poobah2\n"
+            "title: Grand Poobah3\n"
+            "-\n"
+            "add: jpegPhoto\n"
+            "jpegPhoto: modme.jpeg\n"
+            "-\n"
+            "delete: posixEmail\n"
+            "-\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -139,7 +137,7 @@ async def test_ldap_membersip_user_delete(
     assert directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write((f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n-\n"))
+        file.write(f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n-\n")
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapmodify",
@@ -190,13 +188,11 @@ async def test_ldap_membersip_user_add(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "changetype: modify\n"
-                "add: memberOf\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-                "-\n"
-            )
+            f"dn: {dn}\n"
+            "changetype: modify\n"
+            "add: memberOf\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+            "-\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -247,14 +243,12 @@ async def test_ldap_membersip_user_replace(
     # add new group
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {new_group_dn}"
-                "name: twisted\n"
-                "cn: twisted\n"
-                "objectClass: group\n"
-                "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-            )
+            f"dn: {new_group_dn}"
+            "name: twisted\n"
+            "cn: twisted\n"
+            "objectClass: group\n"
+            "objectClass: top\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -279,13 +273,11 @@ async def test_ldap_membersip_user_replace(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "changetype: modify\n"
-                "replace: memberOf\n"
-                "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
-                "-\n"
-            )
+            f"dn: {dn}\n"
+            "changetype: modify\n"
+            "replace: memberOf\n"
+            "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
+            "-\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -341,13 +333,11 @@ async def test_ldap_membersip_grp_replace(
     # add new group
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                "dn: cn=twisted1,cn=groups,dc=md,dc=test\n"
-                "name: twisted\n"
-                "cn: twisted\n"
-                "objectClass: group\n"
-                "objectClass: top\n"
-            )
+            "dn: cn=twisted1,cn=groups,dc=md,dc=test\n"
+            "name: twisted\n"
+            "cn: twisted\n"
+            "objectClass: group\n"
+            "objectClass: top\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -372,13 +362,11 @@ async def test_ldap_membersip_grp_replace(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "changetype: modify\n"
-                "replace: memberOf\n"
-                "memberOf: cn=twisted1,cn=groups,dc=md,dc=test\n"
-                "-\n"
-            )
+            f"dn: {dn}\n"
+            "changetype: modify\n"
+            "replace: memberOf\n"
+            "memberOf: cn=twisted1,cn=groups,dc=md,dc=test\n"
+            "-\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -418,13 +406,11 @@ async def test_ldap_modify_dn(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "changetype: modrdn\n"
-                "newrdn: cn=user2\n"
-                "deleteoldrdn: 1\n"
-                "newsuperior: ou=users,dc=md,dc=test\n"
-            )
+            f"dn: {dn}\n"
+            "changetype: modrdn\n"
+            "newrdn: cn=user2\n"
+            "deleteoldrdn: 1\n"
+            "newsuperior: ou=users,dc=md,dc=test\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -465,13 +451,11 @@ async def test_ldap_modify_password_change(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "changetype: modify\n"
-                "replace: userPassword\n"
-                f"userPassword: {new_password}\n"
-                "-\n"
-            )
+            f"dn: {dn}\n"
+            "changetype: modify\n"
+            "replace: userPassword\n"
+            f"userPassword: {new_password}\n"
+            "-\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -535,24 +519,22 @@ async def test_ldap_modify_with_ap(
     async def try_modify() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
             file.write(
-                (
-                    f"dn: {dn}\n"
-                    "changetype: modify\n"
-                    "replace: mail\n"
-                    "mail: modme@student.of.life.edu\n"
-                    "-\n"
-                    "add: title\n"
-                    "title: Grand Poobah\n"
-                    "title: Grand Poobah1\n"
-                    "title: Grand Poobah2\n"
-                    "title: Grand Poobah3\n"
-                    "-\n"
-                    "add: jpegPhoto\n"
-                    "jpegPhoto: modme.jpeg\n"
-                    "-\n"
-                    "delete: posixEmail\n"
-                    "-\n"
-                )
+                f"dn: {dn}\n"
+                "changetype: modify\n"
+                "replace: mail\n"
+                "mail: modme@student.of.life.edu\n"
+                "-\n"
+                "add: title\n"
+                "title: Grand Poobah\n"
+                "title: Grand Poobah1\n"
+                "title: Grand Poobah2\n"
+                "title: Grand Poobah3\n"
+                "-\n"
+                "add: jpegPhoto\n"
+                "jpegPhoto: modme.jpeg\n"
+                "-\n"
+                "delete: posixEmail\n"
+                "-\n"
             )
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(

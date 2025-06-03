@@ -21,7 +21,7 @@ from ldap_protocol.utils.queries import (
 from models import AccessPolicy, Directory, Group
 
 T = TypeVar("T", bound=Select)
-__all__ = ["get_policies", "create_access_policy", "mutate_ap"]
+__all__ = ["create_access_policy", "get_policies", "mutate_ap"]
 
 
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
@@ -75,7 +75,7 @@ async def create_access_policy(
     await session.flush()
 
 
-def mutate_ap(
+def mutate_ap[T: Select](
     query: T,
     user: UserSchema,
     action: Literal["add", "read", "modify", "del"] = "read",

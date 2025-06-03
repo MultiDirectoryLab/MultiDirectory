@@ -9,7 +9,7 @@ from __future__ import annotations
 import enum
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -279,13 +279,13 @@ class Directory(Base):
         ),
     )
 
-    search_fields = {
+    search_fields: ClassVar[dict[str, str]] = {
         "name": "name",
         "objectguid": "objectGUID",
         "objectsid": "objectSid",
     }
 
-    ro_fields = {
+    ro_fields: ClassVar[set[str]] = {
         "uid",
         "whenCreated",
         "lastLogon",
@@ -327,7 +327,7 @@ class Directory(Base):
     ) -> None:
         """Create path from a new directory."""
         pre_path: list[str] = parent.path if parent else []
-        self.path = pre_path + [self.get_dn(dn)]
+        self.path = [*pre_path, self.get_dn(dn)]
         self.depth = len(self.path)
         self.rdname = dn
 
@@ -393,7 +393,7 @@ class User(Base):
         DateTime(timezone=True),
     )
 
-    search_fields = {
+    search_fields: ClassVar[dict[str, str]] = {
         "mail": "mail",
         "samaccountname": "sAMAccountName",
         "userprincipalname": "userPrincipalName",
@@ -402,7 +402,7 @@ class User(Base):
         "accountexpires": "accountExpires",
     }
 
-    fields = {
+    fields: ClassVar[dict[str, str]] = {
         "loginshell": "loginShell",
         "uidnumber": "uidNumber",
         "homedirectory": "homeDirectory",
@@ -443,8 +443,8 @@ class User(Base):
         if self.account_exp is None:
             return False
 
-        now = datetime.now(tz=timezone.utc)
-        user_account_exp = self.account_exp.astimezone(timezone.utc)
+        now = datetime.now(tz=UTC)
+        user_account_exp = self.account_exp.astimezone(UTC)
 
         return now > user_account_exp
 

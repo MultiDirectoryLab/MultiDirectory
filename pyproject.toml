@@ -104,6 +104,8 @@ line-ending = "lf"
 skip-magic-trailing-comma = false  # default: false
 
 [tool.ruff.lint]
+extend-select = []
+
 select = [
     "F",  # Pyflakes. Must have
     "E",  # pycodestyle (Error), check tool.ruff.lint.pycodestyle. Must have
@@ -121,7 +123,7 @@ select = [
     "COM",  # flake8-commas
     # "CPY",  # flake8-copyright TODO uncomment, ruff fix and fix error
     "PIE",  # flake8-pie
-    # "PYI",  # flake8-pyi TODO uncomment, ruff fix and fix error
+    "PYI",  # flake8-pyi
     "PT",  # flake8-pytest
     "Q",  # flake8-quotes
     # "RET",  # flake8-return TODO uncomment, ruff fix and fix error
@@ -134,25 +136,19 @@ select = [
     "ERA",  # eradicate
     # "PGH",  # pygrep-hooks TODO does we need it? uncomment, ruff fix and fix error
     # "PL",  # Pylint TODO uncomment, ruff fix and fix error
-    # "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
-    # "RUF",  # Ruff-specific rules TODO uncomment, ruff fix and fix error
-    "RUF100", # Ruff100-specific rule TODO delete that and uncomment "RUF"-rule in line up.
+    "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
+    "RUF",  # Ruff-specific rules
+    "FAST",  # FastAPI checks
 ]
 
 # Gradually remove all values marked 'TODO' and fix errors.
 ignore = [
-    "D102",  # TODO delete that and fix all errors
-    "D104",  # TODO delete that and fix all errors
     "D203",  # this is necessary. Conflict with `D211`
     "D213",  # this is necessary. Conflict with `D212`
     "D301",  # this is necessary.
-    "UP017",  # TODO delete that and fix all errors
-    "UP034",  # TODO delete that and fix all errors
     "UP035",  # this is necessary. We allowed deprecated import
-    "ANN001",  # TODO delete that and fix all errors
     "ANN002",  # this is necessary.
     "ANN003",  # this is necessary.
-    "ANN401",  # TODO delete that and fix all errors
     "ASYNC109",
     "ASYNC230",
     "S311",  # this is necessary.
@@ -161,16 +157,18 @@ ignore = [
     "TC001",  # this is necessary.
     "TC002",  # this is necessary.
     "TC003",  # this is necessary.
-    "SIM101",  # analogue simplify-boolean-expressions IF100
     "B905",  # this is necessary. get-attr-with-constant
+    "RUF029",
 ]
-
-extend-select = []
 
 fixable = ["ALL"]
 unfixable = [
     "T20", # dont auto delete print/pprint lines in code
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+ignore-var-parameters = true
 
 [tool.ruff.lint.flake8-unused-arguments]
 ignore-variadic-names = true

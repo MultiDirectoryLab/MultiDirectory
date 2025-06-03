@@ -11,7 +11,7 @@ import json
 import sqlalchemy as sa
 from alembic import op
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from ldap_protocol.ldap_schema.attribute_type_crud import (
@@ -179,7 +179,7 @@ def upgrade() -> None:
     session.commit()
 
     # NOTE: Load objectClasses into the database
-    async def _create_object_classes(connection):
+    async def _create_object_classes(connection: AsyncConnection):
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -237,7 +237,7 @@ def upgrade() -> None:
 
     op.run_async(_create_object_classes)
 
-    async def _create_attribute_types(connection):
+    async def _create_attribute_types(connection: AsyncConnection):
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -259,7 +259,7 @@ def upgrade() -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection):
+    async def _modify_object_classes(connection: AsyncConnection):
         session = AsyncSession(bind=connection)
         await session.begin()
 

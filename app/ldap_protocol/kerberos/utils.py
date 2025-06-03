@@ -1,7 +1,7 @@
 """Utils for kadmin."""
 
 from functools import wraps
-from typing import Any, Callable
+from typing import Callable
 
 import httpx
 from sqlalchemy import delete, select, update
@@ -24,7 +24,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         bus_type = " stub " if is_stub else " "
 
         @wraps(func)
-        async def wrapped(*args: str, **kwargs: str) -> Any:
+        async def wrapped(*args: str, **kwargs: str) -> object:
             logger = log.opt(depth=1)
             try:
                 principal = args[1]

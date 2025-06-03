@@ -25,12 +25,12 @@ class RawDefinitionParser:
     @staticmethod
     def _get_attribute_type_info(raw_definition: str) -> AttributeTypeInfo:
         tmp = AttributeTypeInfo.from_definition(definitions=[raw_definition])
-        return list(tmp.values())[0]
+        return next(iter(tmp.values()))
 
     @staticmethod
     def get_object_class_info(raw_definition: str) -> ObjectClassInfo:
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
-        return list(tmp.values())[0]
+        return next(iter(tmp.values()))
 
     @staticmethod
     async def _get_attribute_types_by_names(

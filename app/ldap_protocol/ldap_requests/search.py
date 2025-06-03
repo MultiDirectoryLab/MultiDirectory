@@ -98,7 +98,7 @@ class SearchRequest(BaseRequest):
         ignored_types = (cached_property,)
 
     @field_serializer("filter")
-    def serialize_filter(self, val: ASN1Row | None, _info: Any) -> str | None:
+    def serialize_filter(self, val: ASN1Row | None, _info: Any) -> str | None:  # noqa: ANN401
         """Serialize filter field."""
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
@@ -411,7 +411,7 @@ class SearchRequest(BaseRequest):
         end = start + self.size_limit
         query = query.offset(start).limit(end)
 
-        return query, int(ceil(count / float(self.size_limit))), count
+        return query, ceil(count / float(self.size_limit)), count
 
     async def tree_view(  # noqa: C901
         self,
@@ -460,10 +460,8 @@ class SearchRequest(BaseRequest):
                     attrs["authTimestamp"].append(directory.user.last_logon)
 
             if (
-                self.member_of
-                and "group" in obj_classes
-                or "user" in obj_classes
-            ):
+                self.member_of and "group" in obj_classes
+            ) or "user" in obj_classes:
                 for group in directory.groups:
                     attrs["memberOf"].append(group.directory.path_dn)
 

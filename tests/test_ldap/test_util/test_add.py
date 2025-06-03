@@ -36,14 +36,12 @@ async def test_ldap_root_add(
     search_path = get_search_path(dn)
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "name: test\n"
-                "cn: test\n"
-                "objectClass: organization\n"
-                "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-            )
+            f"dn: {dn}\n"
+            "name: test\n"
+            "cn: test\n"
+            "objectClass: organization\n"
+            "objectClass: top\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -164,14 +162,12 @@ async def test_ldap_user_add_group_with_group(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {child_group_dn}\n"
-                "name: twisted\n"
-                "cn: twisted\n"
-                "objectClass: group\n"
-                "objectClass: top\n"
-                f"memberOf: {group_dn}\n"
-            )
+            f"dn: {child_group_dn}\n"
+            "name: twisted\n"
+            "cn: twisted\n"
+            "objectClass: group\n"
+            "objectClass: top\n"
+            f"memberOf: {group_dn}\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -245,13 +241,11 @@ async def test_ldap_add_access_control(
     async def try_add() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
             file.write(
-                (
-                    f"dn: {dn}\n"
-                    "name: test\n"
-                    "cn: test\n"
-                    "objectClass: organization\n"
-                    "objectClass: top\n"
-                )
+                f"dn: {dn}\n"
+                "name: test\n"
+                "cn: test\n"
+                "objectClass: organization\n"
+                "objectClass: top\n"
             )
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(

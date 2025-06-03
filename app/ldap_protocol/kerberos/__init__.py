@@ -23,13 +23,13 @@ async def get_kerberos_class(session: AsyncSession) -> type[AbstractKadmin]:
 
 
 __all__ = [
-    "get_kerberos_class",
-    "KerberosMDAPIClient",
-    "StubKadminMDADPIClient",
-    "AbstractKadmin",
-    "KerberosState",
-    "KRBAPIError",
-    "unlock_principal",
     "KERBEROS_STATE_NAME",
+    "AbstractKadmin",
+    "KRBAPIError",
+    "KerberosMDAPIClient",
+    "KerberosState",
+    "StubKadminMDADPIClient",
+    "get_kerberos_class",
     "set_state",
+    "unlock_principal",
 ]
