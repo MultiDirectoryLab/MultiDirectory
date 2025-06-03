@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
+import aioldap3
 import httpx
 import pytest
 import pytest_asyncio
@@ -39,7 +40,6 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-import aioldap3
 from api import shadow_router
 from config import Settings
 from extra import TEST_DATA, setup_enviroment

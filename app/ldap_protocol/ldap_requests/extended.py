@@ -7,8 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, ClassVar
 
-from asn1 import Decoder
+from asn1 import Decoder, Encoder, Numbers
 from loguru import logger
+from pyasn1.codec.ber import encoder
+from pyasn1.type import namedtype, tag, univ
 from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +33,43 @@ from models import Directory, User
 from security import get_password_hash, verify_password
 
 from .base import BaseRequest
+
+
+class PasswordModifyRequest(univ.Sequence):
+    """ASN.1 definition for password modify request.
+
+    PasswdModifyRequestValue ::= SEQUENCE {
+        userIdentity    [0]  OCTET STRING OPTIONAL
+        oldPasswd       [1]  OCTET STRING OPTIONAL
+        newPasswd       [2]  OCTET STRING OPTIONAL }
+    """
+
+    componentType = namedtype.NamedTypes(
+        namedtype.OptionalNamedType(
+            "userIdentity",
+            univ.OctetString().subtype(
+                implicitTag=tag.Tag(
+                    tag.tagClassContext, tag.tagFormatSimple, 0
+                )
+            ),
+        ),
+        namedtype.OptionalNamedType(
+            "oldPassword",
+            univ.OctetString().subtype(
+                implicitTag=tag.Tag(
+                    tag.tagClassContext, tag.tagFormatSimple, 1
+                )
+            ),
+        ),
+        namedtype.OptionalNamedType(
+            "newPassword",
+            univ.OctetString().subtype(
+                implicitTag=tag.Tag(
+                    tag.tagClassContext, tag.tagFormatSimple, 2
+                )
+            ),
+        ),
+    )
 
 
 class BaseExtendedValue(ABC, BaseModel):
@@ -282,6 +321,27 @@ class ExtendedRequest(BaseRequest):
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 
+    def to_asn1(self, enc: Encoder) -> None:
+        """Encode request to ASN.1."""
+        if isinstance(self.request_value, PasswdModifyRequestValue):
+            request = PasswordModifyRequest()
+            if self.request_value.user_identity:
+                request.setComponentByName(
+                    "userIdentity", self.request_value.user_identity
+                )
+            request.setComponentByName(
+                "oldPassword",
+                self.request_value.old_password.get_secret_value(),
+            )
+            request.setComponentByName(
+                "newPassword",
+                self.request_value.new_password.get_secret_value(),
+            )
+            enc.write(encoder.encode(request))
+            return
+
+        enc.write(self.request_value.model_dump_json().encode())
+
     async def handle(
         self,
         ldap_session: LDAPSession,
@@ -300,13 +360,17 @@ class ExtendedRequest(BaseRequest):
         except PermissionError as err:
             logger.critical(err)
             yield ExtendedResponse(
-                result_code=LDAPCodes.OPERATIONS_ERROR,
+                resultCode=LDAPCodes.OPERATIONS_ERROR,
+                matchedDN="",
+                errorMessage=str(err),
                 response_name=self.request_name,
                 response_value=None,
             )
         else:
             yield ExtendedResponse(
-                result_code=LDAPCodes.SUCCESS,
+                resultCode=LDAPCodes.SUCCESS,
+                matchedDN="",
+                errorMessage="",
                 response_name=self.request_name,
                 response_value=response,
             )
