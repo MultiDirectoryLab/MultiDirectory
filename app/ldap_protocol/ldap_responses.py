@@ -29,7 +29,7 @@ type_map = {
 class LDAPResult(BaseModel):
     """Base LDAP result structure."""
 
-    result_code: LDAPCodes = Field(..., alias="resultCode")
+    resultCode: LDAPCodes = Field(..., alias="resultCode")
     matched_dn: str = Field("", alias="matchedDN")
     error_message: str = Field("", alias="errorMessage")
 

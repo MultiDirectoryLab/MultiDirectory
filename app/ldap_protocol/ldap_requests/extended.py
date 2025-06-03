@@ -44,7 +44,7 @@ class PasswordModifyRequest(univ.Sequence):
         newPasswd       [2]  OCTET STRING OPTIONAL }
     """
 
-    componentType = namedtype.NamedTypes(
+    componentType = namedtype.NamedTypes(  # noqa: N815
         namedtype.OptionalNamedType(
             "userIdentity",
             univ.OctetString().subtype(
