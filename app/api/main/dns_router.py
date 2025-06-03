@@ -17,18 +17,15 @@ from api.main.schema import (
     DNSServiceRecordCreateRequest,
     DNSServiceRecordDeleteRequest,
     DNSServiceRecordUpdateRequest,
-    DNSServiceReloadZoneRequest,
     DNSServiceSetupRequest,
     DNSServiceZoneCreateRequest,
     DNSServiceZoneDeleteRequest,
     DNSServiceZoneUpdateRequest,
 )
-from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSForwardServerStatus,
     DNSManagerSettings,
-    DNSManagerState,
     DNSRecords,
     DNSServerParam,
     DNSZone,

@@ -315,7 +315,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
             named_local = file.read()
 
         for param in params:
-            pattern = rf'zone\s*"{re.escape(zone_name)}"\s*{{\s*{param.name}\s*([^;]+);'
+            pattern = (rf'zone\s*"{re.escape(zone_name)}"\
+                \s*{{\s*{param.name}\s*([^;]+);')
             param_match = re.search(pattern, named_local)
             if param_match.group(1) is not None:
                 named_local.replace(param_match.group(1).strip(), param.value)
@@ -604,7 +605,7 @@ async def update_dns_server_settings(settings: list[DNSServerParam]) -> None:
 
 @server_router.post("/setup")
 async def setup_server(data: DnsServerSetupRequest):
-    """Initial setup of DNS server."""
+    """Init setup of DNS server."""
     dns_manager = BindDNSServerManager()
     await dns_manager.first_setup(data.zone_name, data.dns_ip_address)
 
