@@ -367,8 +367,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
         for record in FIRST_SETUP_RECORDS:
             await self.add_record(
                     DNSRecord(
-                        record_name=record.get("name"),
-                        record_value=record.get("value"),
+                        record_name=record.get("name") + zone_name,
+                        record_value=record.get("value") + zone_name,
                         ttl=604800,
                     ),
                     record.get("type"),
