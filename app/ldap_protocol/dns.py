@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import functools
-import re
 import socket
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -27,7 +26,6 @@ from loguru import logger as loguru_logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from models import CatalogueSetting
 
 DNS_MANAGER_STATE_NAME = "DNSManagerState"
@@ -227,7 +225,7 @@ class AbstractDNSManager(ABC):
                     json={
                         "zone_name": domain,
                         "dns_ip_address": dns_ip_address,
-                    }
+                    },
                 )
 
             tsig_key = None
@@ -342,6 +340,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
     _http_client: httpx.AsyncClient
 
     def __init__(self, settings: DNSManagerSettings) -> None:
+        """Set settings and additionally set http client for DNS API."""
         super().__init__(settings=settings)
         self._http_client = httpx.AsyncClient(
             timeout=30, base_url=f"http://{settings.dns_server_ip}:8000"
@@ -445,8 +444,8 @@ class SelfHostedDNSManager(AbstractDNSManager):
                     "zone_type": zone_type,
                     "nameserver_ip": nameserver_ip,
                     "acl": acl,
-                    "params": params
-                }
+                    "params": params,
+                },
             )
 
     @logger_wraps()
@@ -490,9 +489,9 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 None,
             )
         return DNSForwardServerStatus(
-                DNSForwarderServerStatus.VALIDATED,
-                fqdn,
-            )
+            DNSForwarderServerStatus.VALIDATED,
+            fqdn,
+        )
 
     @logger_wraps()
     async def update_server_options(
