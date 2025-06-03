@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, ClassVar
 
-from asn1 import Decoder, Encoder, Numbers
+from asn1 import Decoder, Encoder
 from loguru import logger
 from pyasn1.codec.ber import encoder
 from pyasn1.type import namedtype, tag, univ
