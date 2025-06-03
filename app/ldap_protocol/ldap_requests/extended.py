@@ -360,17 +360,17 @@ class ExtendedRequest(BaseRequest):
         except PermissionError as err:
             logger.critical(err)
             yield ExtendedResponse(
-                resultCode=LDAPCodes.OPERATIONS_ERROR,
-                matchedDN="",
-                errorMessage=str(err),
+                result_code=LDAPCodes.OPERATIONS_ERROR,
+                matched_dn="",
+                error_message=str(err),
                 response_name=self.request_name,
                 response_value=None,
             )
         else:
             yield ExtendedResponse(
-                resultCode=LDAPCodes.SUCCESS,
-                matchedDN="",
-                errorMessage="",
+                result_code=LDAPCodes.SUCCESS,
+                matched_dn="",
+                error_message="",
                 response_name=self.request_name,
                 response_value=response,
             )
