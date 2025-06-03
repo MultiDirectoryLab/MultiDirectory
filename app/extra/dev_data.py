@@ -354,7 +354,7 @@ TEST_DATA = [
 
 ENTITY_TYPE_DATAS = [
     {
-        "name": "Domen",
+        "name": "Domain",
         "object_class_names": ["top", "domain", "domainDNS"],
     },
     {"name": "Computer", "object_class_names": ["top", "computer"]},
