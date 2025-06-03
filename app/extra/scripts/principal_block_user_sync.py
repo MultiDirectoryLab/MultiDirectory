@@ -91,9 +91,12 @@ async def principal_block_sync(
 def _find_krb_exp_attr(directory: Directory) -> Attribute | None:
     """Find krbprincipalexpiration attribute in directory.
 
-    :param Directory directory: the directory object
-    :return Atrribute | None: the attribute with
-        the name 'krbprincipalexpiration', or None if not found.
+    Args:
+        directory (Directory): the directory object
+
+    Returns:
+        Atrribute | None: the attribute with the name
+        'krbprincipalexpiration', or None if not found.
     """
     for attr in directory.attributes:
         if attr.name == "krbprincipalexpiration":

@@ -15,8 +15,11 @@ from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 def logger_wraps(is_stub: bool = False) -> Callable:
     """Log kadmin calls.
 
-    :param bool is_stub: flag to change logs, defaults to False
-    :return Callable: any method
+    Args:
+        is_stub (bool): flag to change logs, defaults to False
+
+    Returns:
+        Callable: any method
     """
 
     def wrapper(func: Callable) -> Callable:
@@ -91,8 +94,9 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
 async def unlock_principal(name: str, session: AsyncSession) -> None:
     """Unlock principal.
 
-    :param str name: upn
-    :param AsyncSession session: db
+    Args:
+        name (str): upn
+        session (AsyncSession): db
     """
     subquery = (
         select(Directory.id)

@@ -108,7 +108,7 @@ class AbstractKRBManager(ABC):
         """Get principal.
 
         :param str name: principal
-        :return kadmin.Principal: Principal
+        :return: kadmin.Principal: Principal
         """
 
     @abstractmethod
@@ -248,7 +248,7 @@ class KAdminLocalManager(AbstractKRBManager):
         """Get principal.
 
         :param str name: principal
-        :return kadmin.Principal: Principal
+        :return: kadmin.Principal: Principal
         """
         principal = await self._get_raw_principal(name)
         return Principal.model_validate(principal, from_attributes=True)

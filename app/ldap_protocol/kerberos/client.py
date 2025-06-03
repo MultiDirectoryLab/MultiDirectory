@@ -87,8 +87,11 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def ktadd(self, names: list[str]) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
-        :param list[str] names: principals
-        :return httpx.Response: stream
+        Args:
+            names (list[str]): principals
+
+        Returns:
+            httpx.Response: stream
         """
         request = self.client.build_request(
             "POST",
@@ -106,8 +109,11 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def lock_principal(self, name: str) -> None:
         """Lock princ.
 
-        :param str name: upn
-        :raises KRBAPIError: on error
+        Args:
+            name (str): upn
+
+        Raises:
+            KRBAPIError: on error
         """
         response = await self.client.post(
             "principal/lock",
@@ -120,8 +126,11 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def force_princ_pw_change(self, name: str) -> None:
         """Force mark password change for principal.
 
-        :param str name: pw
-        :raises KRBAPIError: err
+        Args:
+            name (str): pw
+
+        Raises:
+            KRBAPIError: err
         """
         response = await self.client.post(
             "principal/force_reset",

@@ -28,10 +28,11 @@ async def apply_user_account_control(
 ) -> dict[str, Any]:
     """Apply userAccountControl value and return response data.
 
-    :param AsyncClient http_client: client
-    :param str user_dn: distinguished name of the user
-    :param str user_account_control_value: new value to set for the
-        `userAccountControl` attribute.
+    Args:
+        http_client (AsyncClient): client
+        user_dn (str): distinguished name of the user
+        user_account_control_value (str): new value to set for the
+            `userAccountControl` attribute.
     """
     response = await http_client.patch(
         "entry/update",

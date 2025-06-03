@@ -24,7 +24,9 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """Check if pwd is valid for user.
 
         :param User | None user: indb user
-        :return bool: status
+
+        Returns:
+            bool: status
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -34,7 +36,8 @@ class SimpleAuthentication(AbstractLDAPAuth):
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.
 
-        :return bool: status
+        Returns:
+            bool: status
         """
         return not self.password
 

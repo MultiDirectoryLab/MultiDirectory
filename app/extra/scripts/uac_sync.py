@@ -22,7 +22,8 @@ async def disable_accounts(
 ) -> None:
     """Update userAccountControl attr.
 
-    :param AsyncSession session: db
+    Args:
+        session (AsyncSession): db
 
     Original query:
         update "Attributes" a

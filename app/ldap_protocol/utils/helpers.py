@@ -148,8 +148,12 @@ def validate_entry(entry: str) -> bool:
 
     cn=first,dc=example,dc=com -> valid
     cn=first,dc=example,dc=com -> valid
-    :param str entry: any str
-    :return bool: result
+
+    Args:
+        entry (str): any str
+
+    Returns:
+        bool: result
     """
     return all(
         re.match(r"^[a-zA-Z\-]+$", part.split("=")[0])
@@ -187,9 +191,12 @@ def _get_domain(name: str) -> str:
 def create_integer_hash(text: str, size: int = 9) -> int:
     """Create integer hash from text.
 
-    :param str text: any string
-    :param int size: fixed size of hash, defaults to 15
-    :return int: hash
+    Args:
+        text (str): any string
+        size (int): fixed size of hash, defaults to 15
+
+    Returns:
+        int: hash
     """
     return int(hashlib.sha256(text.encode("utf-8")).hexdigest(), 16) % 10**size
 
@@ -245,8 +252,11 @@ def string_to_sid(sid_string: str) -> bytes:
         - The identifier authority is packed as a 6-byte sequence.
         - Each sub-authority is packed as a 4-byte sequence.
 
-    :param sid_string: The string representation of the SID
-    :return bytes: The binary representation of the SID
+    Args:
+        sid_string: The string representation of the SID
+
+    Returns:
+        bytes: The binary representation of the SID
     """
     parts = sid_string.split("-")
 
@@ -274,13 +284,15 @@ def create_object_sid(
 ) -> str:
     """Generate the objectSid attribute for an object.
 
-    :param domain: domain directory
-    :param int rid: relative identifier
-    :param bool reserved: A flag indicating whether the RID is reserved.
-                          If `True`, the given RID is used directly. If
-                          `False`, 1000 is added to the given RID to generate
-                          the final RID
-    :return str: the complete objectSid as a string
+    Args:
+        domain: domain directory
+        rid (int): relative identifier
+        reserved (bool): A flag indicating whether the RID is reserved.
+            If `True`, the given RID is used directly. If `False`, 1000
+            is added to the given RID to generate the final RID
+
+    Returns:
+        str: the complete objectSid as a string
     """
     return domain.object_sid + f"-{rid if reserved else 1000 + rid}"
 

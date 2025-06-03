@@ -27,7 +27,9 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """Check if pwd is valid for user.
 
         :param User | None user: indb user
-        :return bool: status
+
+        Returns:
+            bool: status
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -40,7 +42,8 @@ class SaslPLAINAuthentication(SaslAuthentication):
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.
 
-        :return bool: status
+        Returns:
+            bool: status
         """
         return False
 

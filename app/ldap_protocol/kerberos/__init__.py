@@ -14,8 +14,11 @@ from .utils import get_krb_server_state, set_state, unlock_principal
 async def get_kerberos_class(session: AsyncSession) -> type[AbstractKadmin]:
     """Get kerberos server state.
 
-    :param AsyncSession session: db
-    :return type[KerberosMDAPIClient] | type[StubKadminMDADPIClient]: api
+    Args:
+        session (AsyncSession): db
+
+    Returns:
+        type[KerberosMDAPIClient] | type[StubKadminMDADPIClient]: api
     """
     if await get_krb_server_state(session) == KerberosState.READY:
         return KerberosMDAPIClient

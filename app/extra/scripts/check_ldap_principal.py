@@ -25,9 +25,10 @@ async def check_ldap_principal(
 ) -> None:
     """Check ldap principal and keytab existence.
 
-    :param AbstractKadmin kadmin: kadmin
-    :param AsyncSession session: db
-    :param Settings settings: settings
+    Args:
+        kadmin (AbstractKadmin): kadmin
+        session (AsyncSession): db
+        settings (Settings): settings
     """
     logger.info("Checking ldap principal and keytab existence.")
 

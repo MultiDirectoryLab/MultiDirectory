@@ -87,13 +87,19 @@ async def sync_password(
     - **principal**: user upn
     - **new_password**: password to set
     \f
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[AbstractKadmin] kadmin: kadmin api
+
+    Args:
+        session (FromDishka[AsyncSession]): db
+        kadmin (FromDishka[AbstractKadmin]): kadmin api
     :param Annotated[str, Body principal: reset target user
     :param Annotated[str, Body new_password: new password for user
-    :raises HTTPException: 404 if user not found
-    :raises HTTPException: 422 if password not valid
-    :return None: None
+
+    Raises:
+        HTTPException: 404 if user not found
+        HTTPException: 422 if password not valid
+
+    Returns:
+        None: None
     """
     user = await get_user(session, principal)
 

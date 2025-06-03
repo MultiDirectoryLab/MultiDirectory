@@ -72,8 +72,12 @@ class UserAccountControlFlag(IntFlag):
     def is_value_valid(cls, uac_value: str | int) -> bool:
         """Check all flags set in the userAccountControl value.
 
-        :param int uac_value: userAccountControl attribute value
-        :return: True if the value is valid (only known flags), False otherwise
+        Args:
+            uac_value (int): userAccountControl attribute value
+
+        Returns:
+            : True if the value is valid (only known flags), False
+            otherwise
         """
         if isinstance(uac_value, int):
             pass
@@ -94,9 +98,12 @@ async def get_check_uac(
 ) -> Callable[[UserAccountControlFlag], bool]:
     """Get userAccountControl attribute and check binary flags in it.
 
-    :param AsyncSession session: SA async session
-    :param int directory_id: id
-    :return Callable: function to check given flag in current
+    Args:
+        session (AsyncSession): SA async session
+        directory_id (int): id
+
+    Returns:
+        Callable: function to check given flag in current
         userAccountControl attribute
     """
     query = (
@@ -112,8 +119,11 @@ async def get_check_uac(
     def is_flag_true(flag: UserAccountControlFlag) -> bool:
         """Check given flag in current userAccountControl attribute.
 
-        :param userAccountControlFlag flag: flag
-        :return bool: result
+        Args:
+            flag (userAccountControlFlag): flag
+
+        Returns:
+            bool: result
         """
         return bool(int(value) & flag)
 

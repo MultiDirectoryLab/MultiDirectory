@@ -32,9 +32,10 @@ async def _schedule(
 ) -> None:
     """Run task periodically.
 
-    :param Awaitable task: any task
-    :param AsyncContainer container: container
-    :param float wait: time to wait after execution
+    Args:
+        task (Awaitable): any task
+        container (AsyncContainer): container
+        wait (float): time to wait after execution
     """
     logger.info("Registered: {}", task.__name__)
     while True:

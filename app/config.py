@@ -133,7 +133,8 @@ class Settings(BaseModel):
     def MFA_API_URI(self) -> str:  # noqa: N802
         """Multifactor API url.
 
-        :return str: url
+        Returns:
+            str: url
         """
         if self.MFA_API_SOURCE == "dev":
             return "https://api.multifactor.dev"

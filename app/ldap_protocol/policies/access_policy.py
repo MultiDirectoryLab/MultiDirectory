@@ -27,8 +27,11 @@ __all__ = ["create_access_policy", "get_policies", "mutate_ap"]
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
     """Get policies.
 
-    :param AsyncSession session: db
-    :return list[AccessPolicy]: result
+    Args:
+        session (AsyncSession): db
+
+    Returns:
+        list[AccessPolicy]: result
     """
     query = select(AccessPolicy).options(
         selectinload(AccessPolicy.groups).selectinload(Group.directory),
@@ -50,8 +53,9 @@ async def create_access_policy(
 ) -> None:
     """Get policies.
 
-    :param ENTRY_TYPE grant_dn: main dn
-    :param AsyncSession session: session
+    Args:
+        grant_dn (ENTRY_TYPE): main dn
+        session (AsyncSession): session
     """
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
@@ -82,9 +86,12 @@ def mutate_ap[T: Select](
 ) -> T:
     """Modify query with read rule filter, joins acess policies.
 
-    :param T query: select(Directory)
-    :param UserSchema user: user data
-    :return T: select(Directory).join(Directory.access_policies)
+    Args:
+        query (T): select(Directory)
+        user (UserSchema): user data
+
+    Returns:
+        T: select(Directory).join(Directory.access_policies)
     """
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 

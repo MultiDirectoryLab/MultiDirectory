@@ -63,9 +63,12 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     ) -> list[BaseResponse]:
         """Hanlde response with api user.
 
-        :param DBUser user: user from db
-        :param AsyncSession session: db session
-        :return list[BaseResponse]: list of handled responses
+        Args:
+            user (DBUser): user from db
+            session (AsyncSession): db session
+
+        Returns:
+            list[BaseResponse]: list of handled responses
         """
         handler = await resolve_deps(func=self.handle, container=container)
         ldap_session = await container.get(LDAPSession)

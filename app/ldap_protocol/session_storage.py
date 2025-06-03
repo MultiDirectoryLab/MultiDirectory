@@ -32,25 +32,34 @@ class SessionStorage(ABC):
     async def get(self, key: str) -> dict:
         """Retrieve data associated with the given key from storage.
 
-        :param str key: The key to look up in the storage.
-        :return dict: The data associated with the key,
-            or an empty dictionary if the key is not found.
+        Args:
+            key (str): The key to look up in the storage.
+
+        Returns:
+            dict: The data associated with the key, or an empty
+            dictionary if the key is not found.
         """
 
     @abstractmethod
     async def _get_session_keys_by_uid(self, uid: int) -> set[str]:
         """Get session keys by user id.
 
-        :param int uid: user id
-        :return set[str]: session keys
+        Args:
+            uid (int): user id
+
+        Returns:
+            set[str]: session keys
         """
 
     @abstractmethod
     async def _get_session_keys_by_ip(self, ip: str) -> set[str]:
         """Get session keys by ip.
 
-        :param str ip: ip
-        :return set[str]: session keys
+        Args:
+            ip (str): ip
+
+        Returns:
+            set[str]: session keys
         """
 
     @abstractmethod
@@ -61,9 +70,12 @@ class SessionStorage(ABC):
     ) -> dict:
         """Get sessions by user id.
 
-        :param int uid: user id
+        Args:
+            uid (int): user id
         :param ProtocolType | None protocol: protocol
-        :return dict: user sessions contents
+
+        Returns:
+            dict: user sessions contents
         """
 
     @abstractmethod
@@ -74,25 +86,34 @@ class SessionStorage(ABC):
     ) -> dict:
         """Get sessions data by ip.
 
-        :param str ip: ip
+        Args:
+            ip (str): ip
         :param ProtocolType | None protocol: protocol
-        :return dict: user sessions contents
+
+        Returns:
+            dict: user sessions contents
         """
 
     @abstractmethod
     async def clear_user_sessions(self, uid: int) -> None:
         """Clear user sessions.
 
-        :param int uid: user id
-        :return None:
+        Args:
+            uid (int): user id
+
+        Returns:
+            None:
         """
 
     @abstractmethod
     async def delete_user_session(self, session_id: str) -> None:
         """Delete user session.
 
-        :param str session_id: session id
-        :return None:
+        Args:
+            session_id (str): session id
+
+        Returns:
+            None:
         """
 
     @staticmethod
@@ -119,15 +140,19 @@ class SessionStorage(ABC):
     def _generate_key(self) -> str:
         """Generate a new key for storing data in the storage.
 
-        :return str: A new key.
+        Returns:
+            str: A new key.
         """
         return f"http:{token_hex(self.key_length)}"
 
     def _get_lock_key(self, session_id: str) -> str:
         """Get lock key.
 
-        :param str session_id: session id
-        :return str: lock key
+        Args:
+            session_id (str): session id
+
+        Returns:
+            str: lock key
         """
         return f"lock:{session_id}"
 
@@ -141,10 +166,13 @@ class SessionStorage(ABC):
     ) -> str:
         """Create session.
 
-        :param int uid: user id
-        :param Settings settings: app settings
+        Args:
+            uid (int): user id
+            settings (Settings): app settings
         :param dict | None extra_data: data, defaults to None
-        :return str: session id
+
+        Returns:
+            str: session id
         """
 
     async def get_user_id(
@@ -156,11 +184,14 @@ class SessionStorage(ABC):
     ) -> int:
         """Get user from storage.
 
-        :param Settings settings: app settings
-        :param str session_key: session key
-        :param str user_agent: user agent
-        :param str ip: ip address
-        :return int: user id
+        Args:
+            settings (Settings): app settings
+            session_key (str): session key
+            user_agent (str): user agent
+            ip (str): ip address
+
+        Returns:
+            int: user id
         """
         try:
             session_id, signature = session_key.split(".")
@@ -210,8 +241,11 @@ class SessionStorage(ABC):
     async def check_session(self, session_id: str) -> bool:
         """Check session.
 
-        :param str session_id: session id
-        :return bool: True if session exists
+        Args:
+            session_id (str): session id
+
+        Returns:
+            bool: True if session exists
         """
 
     @abstractmethod
@@ -223,26 +257,33 @@ class SessionStorage(ABC):
     ) -> None:
         """Create ldap session.
 
-        :param int uid: user id
-        :param dict data: data, defaults to None
+        Args:
+            uid (int): user id
+            data (dict): data, defaults to None
         """
 
     @abstractmethod
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
 
-        :param str session_id: session id
-        :param int rekey_interval: rekey interval in seconds
-        :return bool: True if rekey is needed
+        Args:
+            session_id (str): session id
+            rekey_interval (int): rekey interval in seconds
+
+        Returns:
+            bool: True if rekey is needed
         """
 
     @abstractmethod
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
 
-        :param str session_id: session id
-        :param Settings settings: app settings
-        :return str: jwt token
+        Args:
+            session_id (str): session id
+            settings (Settings): app settings
+
+        Returns:
+            str: jwt token
         """
 
 
@@ -299,10 +340,11 @@ class RedisSessionStorage(SessionStorage):
     def __init__(self, storage: Redis, key_length: int, key_ttl: int) -> None:
         """Initialize the storage.
 
-        :param Redis storage:
-            The Redis/DragonflyDB instance to use for storage.
-        :param int key_length: The length of the keys to generate.
-        :param int key_ttl: The time-to-live for keys in seconds.
+        Args:
+            storage (Redis): The Redis/DragonflyDB instance to use for
+                storage.
+            key_length (int): The length of the keys to generate.
+            key_ttl (int): The time-to-live for keys in seconds.
         """
         self._storage = storage
         self.key_length = key_length
@@ -311,9 +353,12 @@ class RedisSessionStorage(SessionStorage):
     async def _get_lock(self, name: str, blocking_timeout: int = 5) -> Lock:
         """Get lock.
 
-        :param str name: lock name
-        :param int blocking_timeout: blocking timeout, defaults to 5
-        :return Lock: lock object
+        Args:
+            name (str): lock name
+            blocking_timeout (int): blocking timeout, defaults to 5
+
+        Returns:
+            Lock: lock object
         """
         return self._storage.lock(
             name=self._get_lock_key(name),
@@ -323,9 +368,12 @@ class RedisSessionStorage(SessionStorage):
     async def get(self, key: str) -> dict:
         """Retrieve data associated with the given key from storage.
 
-        :param str key: The key to look up in the storage.
-        :return dict: The data associated with the key,
-            or an empty dictionary if the key is not found.
+        Args:
+            key (str): The key to look up in the storage.
+
+        Returns:
+            dict: The data associated with the key, or an empty
+            dictionary if the key is not found.
         """
         data = await self._storage.get(key)
         if data is None:
@@ -335,14 +383,16 @@ class RedisSessionStorage(SessionStorage):
     async def delete(self, keys: Iterable[str]) -> None:
         """Delete data associated with the given key from storage.
 
-        :param str key: The key to delete from the storage.
+        Args:
+            key (str): The key to delete from the storage.
         """
         await self._storage.delete(*keys)
 
     async def _fetch_keys(self, key: str) -> set[str]:
         """Fetch keys.
 
-        :param str key: key
+        Args:
+            key (str): key
         """
         encoded_keys = await self._storage.smembers(key)  # type: ignore
         return {k.decode() for k in encoded_keys}
@@ -358,9 +408,12 @@ class RedisSessionStorage(SessionStorage):
         specific protocol is provided, only sessions for that protocol are
         returned.
 
-        :param str ip: ip
+        Args:
+            ip (str): ip
         :param ProtocolType | None protocol: protocol
-        :return set[str]: session keys
+
+        Returns:
+            set[str]: session keys
         """
         if protocol:
             return await self._fetch_keys(
@@ -382,9 +435,12 @@ class RedisSessionStorage(SessionStorage):
         specific protocol is provided, only sessions for that protocol are
         returned.
 
-        :param int uid: user id
+        Args:
+            uid (int): user id
         :param ProtocolType | None protocol: protocol
-        :return set[str]: session keys
+
+        Returns:
+            set[str]: session keys
         """
         if protocol:
             return await self._fetch_keys(
@@ -416,9 +472,12 @@ class RedisSessionStorage(SessionStorage):
         4. Remove expired session keys from the sets that track user ID
             or IP sessions.
 
-        :param set[str] keys: session keys
+        Args:
+            keys (set[str]): session keys
         :param str | int id_value: user id or ip
-        :return dict: user sessions contents
+
+        Returns:
+            dict: user sessions contents
         """
         if not keys:
             return {}
@@ -458,9 +517,12 @@ class RedisSessionStorage(SessionStorage):
     ) -> dict:
         """Get sessions by user id.
 
-        :param int uid: user id
+        Args:
+            uid (int): user id
         :param ProtocolType | None protocol: protocol
-        :return dict: user sessions contents
+
+        Returns:
+            dict: user sessions contents
         """
         keys = await self._get_session_keys_by_uid(uid, protocol)
         return await self._get_sessions(keys, uid)
@@ -472,9 +534,12 @@ class RedisSessionStorage(SessionStorage):
     ) -> dict:
         """Get sessions data by ip.
 
-        :param str ip: ip
+        Args:
+            ip (str): ip
         :param ProtocolType | None protocol: protocol
-        :return dict: user sessions contents
+
+        Returns:
+            dict: user sessions contents
         """
         keys = await self._get_session_keys_by_ip(ip, protocol)
         return await self._get_sessions(keys, ip)
@@ -494,7 +559,8 @@ class RedisSessionStorage(SessionStorage):
         5. Identify and remove session references stored under UID-based keys.
         6. Delete all user session keys from storage.
 
-        :param int uid: user id
+        Args:
+            uid (int): user id
         """
         keys = await self._get_session_keys_by_uid(uid)
         if not keys:
@@ -544,7 +610,8 @@ class RedisSessionStorage(SessionStorage):
         9. Delete the session data from storage.
         10. Release the lock.
 
-        :param str session_id: session id
+        Args:
+            session_id (str): session id
         """
         try:
             data = await self.get(session_id)
@@ -591,11 +658,12 @@ class RedisSessionStorage(SessionStorage):
         Adds a session to the storage and updates the session tracking keys
         for both user ID and IP address.
 
-        :param str session_id: session id
-        :param dict data: session data
-        :param int uid: user id
-        :param str ip_session_key: ip session key
-        :param str sessions_key: sessions key
+        Args:
+            session_id (str): session id
+            data (dict): session data
+            uid (int): user id
+            ip_session_key (str): ip session key
+            sessions_key (str): sessions key
         :param int | None ttl: time to live, defaults to None
         """
         zset_key = (
@@ -636,12 +704,15 @@ class RedisSessionStorage(SessionStorage):
         4. If an IP address is provided in `extra_data`, also link the session
            to the IP-based session tracking key (`ip:http:<ip>`).
 
-        :param int uid: user id
-        :param dict data: data dict
-        :param str secret: secret key
-        :param int expires_minutes: exire time in minutes
+        Args:
+            uid (int): user id
+            data (dict): data dict
+            secret (str): secret key
+            expires_minutes (int): exire time in minutes
         :param Literal[refresh, access] grant_type: grant type flag
-        :return str: jwt token
+
+        Returns:
+            str: jwt token
         """
         session_id, signature, data = self._generate_session_data(
             uid=uid,
@@ -689,9 +760,10 @@ class RedisSessionStorage(SessionStorage):
         4. If an IP address is provided in `extra_data`, also link the session
            to the IP-based session tracking key (`ip:ldap:<ip>`).
 
-        :param int uid: user id
-        :param str key: session key
-        :param dict data: any data
+        Args:
+            uid (int): user id
+            key (str): session key
+            data (dict): any data
         """
         data["issued"] = datetime.now(UTC).isoformat()
         ldap_sessions_key = self._get_user_session_key(uid, "ldap")
@@ -711,9 +783,12 @@ class RedisSessionStorage(SessionStorage):
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
 
-        :param str session_id: session id
-        :param int rekey_interval: rekey interval in seconds
-        :return bool: True if rekey is needed
+        Args:
+            session_id (str): session id
+            rekey_interval (int): rekey interval in seconds
+
+        Returns:
+            bool: True if rekey is needed
         """
         lock = await self._get_lock(session_id)
 
@@ -745,9 +820,12 @@ class RedisSessionStorage(SessionStorage):
            - The IP-based session tracking key (`ip:http:<ip>`)
         8. Delete the old session.
 
-        :param str session_id: session id
-        :param Settings settings: app settings
-        :return str: jwt token
+        Args:
+            session_id (str): session id
+            settings (Settings): app settings
+
+        Returns:
+            str: jwt token
         """
         data = await self.get(session_id)
 
@@ -785,9 +863,12 @@ class RedisSessionStorage(SessionStorage):
     async def rekey_session(self, session_id: str, settings: Settings) -> str:
         """Rekey session.
 
-        :param str session_id: session id
-        :param Settings settings: app settings
-        :return str: jwt token
+        Args:
+            session_id (str): session id
+            settings (Settings): app settings
+
+        Returns:
+            str: jwt token
         """
         lock = await self._get_lock(session_id)
 

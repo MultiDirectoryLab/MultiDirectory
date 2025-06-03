@@ -448,7 +448,8 @@ async def unbound_http_client(
 ) -> AsyncIterator[httpx.AsyncClient]:
     """Get async client for fastapi tests.
 
-    :param FastAPI app: asgi app
+    Args:
+        app (FastAPI): asgi app
     :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
     """
     async with httpx.AsyncClient(
@@ -467,10 +468,13 @@ async def http_client(
 ) -> httpx.AsyncClient:
     """Authenticate and return client with cookies.
 
-    :param httpx.AsyncClient unbound_http_client: client w/o cookies
-    :param TestCreds creds: creds to authn
-    :param None setup_session: just a fixture call
-    :return httpx.AsyncClient: bound client with cookies
+    Args:
+        unbound_http_client (httpx.AsyncClient): client w/o cookies
+        creds (TestCreds): creds to authn
+        setup_session (None): just a fixture call
+
+    Returns:
+        httpx.AsyncClient: bound client with cookies
     """
     response = await unbound_http_client.post(
         "auth/",

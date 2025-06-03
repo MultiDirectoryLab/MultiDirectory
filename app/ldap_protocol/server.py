@@ -143,8 +143,11 @@ class PoolClientHandler:
     ) -> tuple[IPv4Address | IPv6Address, bytes]:
         """Get ip from proxy protocol header.
 
-        :param bytes data: data
-        :return tuple: ip, data
+        Args:
+            data (bytes): data
+
+        Returns:
+            tuple: ip, data
         """
         peername = ":".join(map(str, writer.get_extra_info("peername")))
         peer_addr = ip_address(peername.split(":")[0])
@@ -188,8 +191,11 @@ class PoolClientHandler:
     ) -> tuple[IPv4Address | IPv6Address, bytes] | bytes:
         """Read N packets by 1kB.
 
-        :param asyncio.StreamReader reader: reader
-        :return tuple: ip, data
+        Args:
+            reader (asyncio.StreamReader): reader
+
+        Returns:
+            tuple: ip, data
         """
         buffer = BytesIO()
         addr = None
@@ -229,8 +235,11 @@ class PoolClientHandler:
         source:
         https://github.com/cannatag/ldap3/blob/dev/ldap3/strategy/base.py#L455
 
-        :param bytes data: body
-        :return int: actual size
+        Args:
+            data (bytes): body
+
+        Returns:
+            int: actual size
         """
         if len(data) > 2:
             if data[1] <= 127:  # short
@@ -255,12 +264,15 @@ class PoolClientHandler:
     ) -> None:
         """Create request object and send it to queue.
 
-        :param bytes data: initial data
-        :param asyncio.StreamReader reader: reader
-        :param asyncio.StreamWriter writer: writer
-        :param AsyncContainer container: container
-        :raises ConnectionAbortedError: if client sends empty request (b'')
-        :raises RuntimeError: reraises on unexpected exc
+        Args:
+            data (bytes): initial data
+            reader (asyncio.StreamReader): reader
+            writer (asyncio.StreamWriter): writer
+            container (AsyncContainer): container
+
+        Raises:
+            ConnectionAbortedError: if client sends empty request (b'')
+            RuntimeError: reraises on unexpected exc
         """
         ldap_session: LDAPSession = await container.get(LDAPSession)
         while True:
@@ -294,9 +306,12 @@ class PoolClientHandler:
     ) -> bytes:
         """Unwrap request with GSSAPI security layer if needed.
 
-        :param bytes data: request data
-        :param LDAPSession ldap_session: session
-        :return bytes: unwrapped data
+        Args:
+            data (bytes): request data
+            ldap_session (LDAPSession): session
+
+        Returns:
+            bytes: unwrapped data
         """
         if ldap_session.gssapi_security_layer in (
             GSSAPISL.INTEGRITY_PROTECTION,
@@ -387,10 +402,13 @@ class PoolClientHandler:
     ) -> bytes:
         """Wrap response with GSSAPI security layer if needed.
 
-        :param bytes data: response data
-        :param LDAPSession ldap_session: session
-        :param int protocol_op: protocol operation
-        :return bytes: wrapped data
+        Args:
+            data (bytes): response data
+            ldap_session (LDAPSession): session
+            protocol_op (int): protocol operation
+
+        Returns:
+            bytes: wrapped data
         """
         if (
             ldap_session.gssapi_authenticated

@@ -167,7 +167,8 @@ class SearchRequest(BaseRequest):
     ) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
-        :return defaultdict[str, list[str]]: queried attrs
+        Returns:
+            defaultdict[str, list[str]]: queried attrs
         """
         data = defaultdict(list)
         domain_query = (
@@ -222,9 +223,12 @@ class SearchRequest(BaseRequest):
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
-        :param ASN1Row filter_: requested filter_
-        :param AsyncSession session: sa session
-        :return UnaryExpression: condition
+        Args:
+            filter_ (ASN1Row): requested filter_
+            session (AsyncSession): sa session
+
+        Returns:
+            UnaryExpression: condition
         """
         return cast_filter2sql(self.filter)
 
@@ -254,8 +258,9 @@ class SearchRequest(BaseRequest):
     ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
-        :param bool user_logged: is user in session
-        :param AsyncSession session: sa session
+        Args:
+            user_logged (bool): is user in session
+            session (AsyncSession): sa session
         :yield SearchResult: search result
         """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
@@ -396,9 +401,12 @@ class SearchRequest(BaseRequest):
     ) -> tuple[Select, int, int]:
         """Paginate query.
 
-        :param _type_ query: _description_
-        :param _type_ session: _description_
-        :return tuple[select, int, int]: query, pages_total, count
+        Args:
+            query (_type_): _description_
+            session (_type_): _description_
+
+        Returns:
+            tuple[select, int, int]: query, pages_total, count
         """
         if self.page_number is None:
             return query, 0, 0

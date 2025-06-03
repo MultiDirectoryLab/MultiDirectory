@@ -96,9 +96,12 @@ class MainProvider(Provider):
     ) -> AsyncIterator[KadminHTTPClient]:
         """Get kadmin class, inherits from AbstractKadmin.
 
-        :param Settings settings: app settings
-        :param AsyncSessionMaker session_maker: session maker
-        :return AsyncIterator[AbstractKadmin]: kadmin with client
+        Args:
+            settings (Settings): app settings
+            session_maker (AsyncSessionMaker): session maker
+
+        Returns:
+            AsyncIterator[AbstractKadmin]: kadmin with client
         :yield Iterator[AsyncIterator[AbstractKadmin]]: kadmin
         """
         limits = httpx.Limits(
@@ -121,9 +124,12 @@ class MainProvider(Provider):
     ) -> AbstractKadmin:
         """Get kadmin class, inherits from AbstractKadmin.
 
-        :param Settings settings: app settings
-        :param AsyncSessionMaker session_maker: session maker
-        :return AsyncIterator[AbstractKadmin]: kadmin with client
+        Args:
+            settings (Settings): app settings
+            session_maker (AsyncSessionMaker): session maker
+
+        Returns:
+            AsyncIterator[AbstractKadmin]: kadmin with client
         :yield Iterator[AsyncIterator[AbstractKadmin]]: kadmin
         """
         return kadmin_class(client)
@@ -217,7 +223,9 @@ class MFACredsProvider(Provider):
         """Admin creds get.
 
         :param Annotated[AsyncSession, Depends session: session
-        :return MFA_HTTP_Creds: optional creds
+
+        Returns:
+            MFA_HTTP_Creds: optional creds
         """
         return await get_creds(session, "mfa_key", "mfa_secret")
 
@@ -225,8 +233,11 @@ class MFACredsProvider(Provider):
     async def get_auth_ldap(self, session: AsyncSession) -> Creds | None:
         """Admin creds get.
 
-        :param AsyncSession session: db
-        :return MFA_LDAP_Creds: optional creds
+        Args:
+            session (AsyncSession): db
+
+        Returns:
+            MFA_LDAP_Creds: optional creds
         """
         return await get_creds(session, "mfa_key_ldap", "mfa_secret_ldap")
 
@@ -260,9 +271,12 @@ class MFAProvider(Provider):
     ) -> MultifactorAPI | None:
         """Get api from DI.
 
-        :param httpx.AsyncClient client: httpx client
-        :param Creds credentials: creds
-        :return MultifactorAPI: mfa integration
+        Args:
+            client (httpx.AsyncClient): httpx client
+            credentials (Creds): creds
+
+        Returns:
+            MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
             return None
@@ -282,9 +296,12 @@ class MFAProvider(Provider):
     ) -> LDAPMultiFactorAPI | None:
         """Get api from DI.
 
-        :param httpx.AsyncClient client: httpx client
-        :param Creds credentials: creds
-        :return MultifactorAPI: mfa integration
+        Args:
+            client (httpx.AsyncClient): httpx client
+            credentials (Creds): creds
+
+        Returns:
+            MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
             return None

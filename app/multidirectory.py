@@ -55,9 +55,12 @@ async def proc_time_header_middleware(
 ) -> Response:
     """Set X-Process-Time header.
 
-    :param Request request: _description_
-    :param Callable call_next: _description_
-    :return Response: _description_
+    Args:
+        request (Request): _description_
+        call_next (Callable): _description_
+
+    Returns:
+        Response: _description_
     """
     start_time = time.perf_counter()
     response = await call_next(request)

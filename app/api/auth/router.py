@@ -68,20 +68,26 @@ async def login(
 
     \f
     :param Annotated[OAuth2Form, Depends form: login form
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[Settings] settings: app settings
-    :param FromDishka[MultifactorAPI] mfa: mfa api wrapper
-    :param FromDishka[SessionStorage] storage: session storage
-    :param Response response: FastAPI response
+
+    Args:
+        session (FromDishka[AsyncSession]): db
+        settings (FromDishka[Settings]): app settings
+        mfa (FromDishka[MultifactorAPI]): mfa api wrapper
+        storage (FromDishka[SessionStorage]): session storage
+        response (Response): FastAPI response
     :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
-    :raises HTTPException: 401 if incorrect username or password
-    :raises HTTPException: 403 if user not part of domain admins
-    :raises HTTPException: 403 if user account is disabled
-    :raises HTTPException: 403 if user account is expired
-    :raises HTTPException: 403 if ip is not provided
-    :raises HTTPException: 403 if user not part of network policy
-    :raises HTTPException: 426 if mfa required
-    :return None: None
+
+    Raises:
+        HTTPException: 401 if incorrect username or password
+        HTTPException: 403 if user not part of domain admins
+        HTTPException: 403 if user account is disabled
+        HTTPException: 403 if user account is expired
+        HTTPException: 403 if ip is not provided
+        HTTPException: 403 if user not part of network policy
+        HTTPException: 426 if mfa required
+
+    Returns:
+        None: None
     """
     user = await authenticate_user(session, form.username, form.password)
 
@@ -182,14 +188,20 @@ async def password_reset(
     `userPrincipalName`, `saMAccountName` or `DN`
     - **new_password**: password to set
     \f
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[AbstractKadmin] kadmin: kadmin api
+
+    Args:
+        session (FromDishka[AsyncSession]): db
+        kadmin (FromDishka[AbstractKadmin]): kadmin api
     :param Annotated[str, Body identity: reset target user
     :param Annotated[str, Body new_password: new password for user
-    :raises HTTPException: 404 if user not found
-    :raises HTTPException: 422 if password not valid
-    :raises HTTPException: 424 if kerberos password update failed
-    :return None: None
+
+    Raises:
+        HTTPException: 404 if user not found
+        HTTPException: 422 if password not valid
+        HTTPException: 424 if kerberos password update failed
+
+    Returns:
+        None: None
     """
     user = await get_user(session, identity)
 

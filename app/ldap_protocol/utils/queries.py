@@ -39,9 +39,12 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
 async def get_user(session: AsyncSession, name: str) -> User | None:
     """Get user with username.
 
-    :param AsyncSession session: sqlalchemy session
-    :param str name: any name: dn, email or upn
-    :return User | None: user from db
+    Args:
+        session (AsyncSession): sqlalchemy session
+        name (str): any name: dn, email or upn
+
+    Returns:
+        User | None: user from db
     """
     policies = selectinload(User.groups).selectinload(Group.access_policies)
 
@@ -101,10 +104,15 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
 async def get_group(dn: str | ENTRY_TYPE, session: AsyncSession) -> Directory:
     """Get dir with group by dn.
 
-    :param str dn: Distinguished Name
-    :param AsyncSession session: SA session
-    :raises AttributeError: on invalid dn
-    :return Directory: dir with group
+    Args:
+        dn (str): Distinguished Name
+        session (AsyncSession): SA session
+
+    Raises:
+        AttributeError: on invalid dn
+
+    Returns:
+        Directory: dir with group
     """
     for base_directory in await get_base_directories(session):
         if dn_is_base_directory(base_directory, dn):
@@ -131,8 +139,12 @@ async def check_kerberos_group(
     """Check if user in kerberos group.
 
     :param User | None user: user (sa model)
-    :param AsyncSession session: db
-    :return bool: exists result
+
+    Args:
+        session (AsyncSession): db
+
+    Returns:
+        bool: exists result
     """
     if user is None:
         return False
@@ -167,8 +179,11 @@ async def set_last_logon_user(
 def get_search_path(dn: str) -> list[str]:
     """Get search path for dn.
 
-    :param str dn: any DN, dn syntax
-    :return list[str]: reversed list of dn values
+    Args:
+        dn (str): any DN, dn syntax
+
+    Returns:
+        list[str]: reversed list of dn values
     """
     search_path = [path.strip() for path in dn.lower().split(",")]
     search_path.reverse()
@@ -182,9 +197,12 @@ def get_path_filter(
 ) -> ColumnElement:
     """Get filter condition for path equality.
 
-    :param list[str] path: dn
-    :param Column field: path column, defaults to Directory.path
-    :return ColumnElement: filter (where) element
+    Args:
+        path (list[str]): dn
+        field (Column): path column, defaults to Directory.path
+
+    Returns:
+        ColumnElement: filter (where) element
     """
     return func.array_lowercase(column) == path
 
@@ -224,9 +242,10 @@ async def create_group(
 
     cn=name,cn=groups,dc=domain,dc=com
 
-    :param str name: group name
-    :param int sid: objectSid
-    :param AsyncSession session: db
+    Args:
+        name (str): group name
+        sid (int): objectSid
+        session (AsyncSession): db
     """
     base_dn_list = await get_base_directories(session)
 
@@ -280,8 +299,9 @@ async def create_group(
 async def is_computer(directory_id: int, session: AsyncSession) -> bool:
     """Determine whether the entry is a computer.
 
-    :param AsyncSession session: db
-    :param int directory_id: id
+    Args:
+        session (AsyncSession): db
+        directory_id (int): id
     """
     query = select(
         select(Attribute)
@@ -302,9 +322,10 @@ async def add_lock_and_expire_attributes(
 ) -> None:
     """Add `nsAccountLock` and `shadowExpire` attributes to the directory.
 
-    :param AsyncSession session: db
-    :param Directory directory: directory
-    :param ZoneInfo tz: timezone info
+    Args:
+        session (AsyncSession): db
+        directory (Directory): directory
+        tz (ZoneInfo): timezone info
     """
     now_with_tz = datetime.now(tz=tz)
     absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
@@ -330,9 +351,12 @@ async def get_principal_directory(
 ) -> Directory | None:
     """Fetch the principal's directory by principal name.
 
-    :param AsyncSession session: db session
-    :param str principal_name: the principal name to search for
-    :return Directory | None: the principal's directory
+    Args:
+        session (AsyncSession): db session
+        principal_name (str): the principal name to search for
+
+    Returns:
+        Directory | None: the principal's directory
     """
     return await session.scalar(
         select(Directory)

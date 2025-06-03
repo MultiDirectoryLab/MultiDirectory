@@ -58,7 +58,8 @@ async def get_creds(
 ) -> Creds | None:
     """Get API creds.
 
-    :return tuple[str, str]: api key and secret
+    Returns:
+        tuple[str, str]: api key and secret
     """
     query = (
         select(CatalogueSetting)
@@ -123,10 +124,12 @@ class MultifactorAPI:
     ):
         """Set creds and web client.
 
-        :param str key: mfa key
-        :param str secret: mfa secret
-        :param httpx.AsyncClient client: client for making queries (activated)
-        :param Settings settings: app settings
+        Args:
+            key (str): mfa key
+            secret (str): mfa secret
+            client (httpx.AsyncClient): client for making queries
+                (activated)
+            settings (Settings): app settings
         """
         self.client = client
         self.settings = settings
@@ -149,13 +152,18 @@ class MultifactorAPI:
         timeout is 60 seconds.
         "m" key-character is used to mark push request in multifactor API.
 
-        :param str username: un
-        :param str password: pwd
-        :param NetworkPolicy policy: policy
-        :raises MultifactorError: connect timeout
-        :raises MultifactorError: invalid json
-        :raises MultifactorError: Invalid status
-        :return bool: status
+        Args:
+            username (str): un
+            password (str): pwd
+            policy (NetworkPolicy): policy
+
+        Raises:
+            MultifactorError: connect timeout
+            MultifactorError: invalid json
+            MultifactorError: Invalid status
+
+        Returns:
+            bool: status
         """
         passcode = password or "m"
         log_mfa.debug(f"LDAP MFA request: {username}, {password}")
@@ -211,13 +219,18 @@ class MultifactorAPI:
     ) -> str:
         """Create mfa link.
 
-        :param str username: un
-        :param str callback_url: callback uri to send token
-        :param int uid: user id
-        :raises httpx.TimeoutException: on timeout
-        :raises self.MultifactorError: on invalid json, Key or error status
-            code
-        :return str: url to open in new page
+        Args:
+            username (str): un
+            callback_url (str): callback uri to send token
+            uid (int): user id
+
+        Raises:
+            httpx.TimeoutException: on timeout
+            self.MultifactorError: on invalid json, Key or error status
+                code
+
+        Returns:
+            str: url to open in new page
         """
         data = {
             "identity": username,
@@ -264,9 +277,14 @@ class MultifactorAPI:
     async def refresh_token(self, token: str) -> str:
         """Refresh mfa token.
 
-        :param str token: str jwt token
-        :raises self.MultifactorError: on api err
-        :return str: new token
+        Args:
+            token (str): str jwt token
+
+        Raises:
+            self.MultifactorError: on api err
+
+        Returns:
+            str: new token
         """
         try:
             response = await self.client.post(

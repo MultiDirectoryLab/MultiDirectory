@@ -222,9 +222,12 @@ async def get_all_parent_group_directories(
 ) -> AsyncScalarResult | None:
     """Get all parent groups directory.
 
-    :param list[Group] groups: directory groups
-    :param AsyncSession session: session
-    :return set[Directory]: all groups and their parent group directories
+    Args:
+        groups (list[Group]): directory groups
+        session (AsyncSession): session
+
+    Returns:
+        set[Directory]: all groups and their parent group directories
     """
     dn_list = [group.directory.path_dn for group in groups]
 

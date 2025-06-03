@@ -383,9 +383,12 @@ class AddRequest(BaseRequest):
     ) -> "AddRequest":
         """Create AddRequest from dict.
 
-        :param str entry: entry
+        Args:
+            entry (str): entry
         :param dict[str, list[str]] attributes: dict of attrs
-        :return AddRequest: instance
+
+        Returns:
+            AddRequest: instance
         """
         return AddRequest(
             entry=entry,

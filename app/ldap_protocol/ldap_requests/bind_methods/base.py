@@ -59,11 +59,14 @@ class LDAPBindErrors(StrEnum):
 def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
     """Generate BindResponse object with an invalid credentials error.
 
-    :param LDAPBindErrors error_message: Error message to include in the
-                                         response
-    :return BindResponse: A response object with the result code set to
-                          INVALID_CREDENTIALS, an empty matchedDN, and the
-                          provided error message
+    Args:
+        error_message (LDAPBindErrors): Error message to include in the
+            response
+
+    Returns:
+        BindResponse: A response object with the result code set to
+        INVALID_CREDENTIALS, an empty matchedDN, and the provided error
+        message
     """
     return BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,

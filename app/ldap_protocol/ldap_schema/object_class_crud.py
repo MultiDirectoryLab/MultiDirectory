@@ -64,9 +64,12 @@ async def get_object_classes_paginator(
 ) -> PaginationResult:
     """Retrieve paginated object_classes.
 
-    :param PaginationParams params: page_size and page_number.
-    :param AsyncSession session: Database session.
-    :return PaginationResult: Chunk of object_classes and metadata.
+    Args:
+        params (PaginationParams): page_size and page_number.
+        session (AsyncSession): Database session.
+
+    Returns:
+        PaginationResult: Chunk of object_classes and metadata.
     """
     return await PaginationResult[ObjectClass].get(
         params=params,
@@ -95,15 +98,18 @@ async def create_object_class(
 ) -> None:
     """Create a new Object Class.
 
-    :param str oid: OID.
-    :param str name: Name.
+    Args:
+        oid (str): OID.
+        name (str): Name.
+        kind (KindType): Kind.
+        is_system (bool): Object Class is system.
+        attribute_type_names_must (list[str]): Attribute Types must.
+        attribute_type_names_may (list[str]): Attribute Types may.
+        session (AsyncSession): Database session.
     :param str | None superior_name: Parent Object Class.
-    :param KindType kind: Kind.
-    :param bool is_system: Object Class is system.
-    :param list[str] attribute_type_names_must: Attribute Types must.
-    :param list[str] attribute_type_names_may: Attribute Types may.
-    :param AsyncSession session: Database session.
-    :return None.
+
+    Returns:
+        None.
     """
     if kind not in OBJECT_CLASS_KINDS_ALLOWED:
         raise ValueError(f"Object class kind is not valid: {kind}.")
@@ -148,9 +154,12 @@ async def get_object_class_by_name(
 ) -> ObjectClass | None:
     """Get single Object Class by name.
 
-    :param str object_class_name: Object Class name.
-    :param AsyncSession session: Database session.
-    :return ObjectClass | None: Object Class.
+    Args:
+        object_class_name (str): Object Class name.
+        session (AsyncSession): Database session.
+
+    Returns:
+        ObjectClass | None: Object Class.
     """
     return await session.scalar(
         select(ObjectClass)
@@ -164,9 +173,12 @@ async def get_object_classes_by_names(
 ) -> list[ObjectClass]:
     """Get list of Object Classes by names.
 
-    :param list[str] object_class_names: Object Classes names.
-    :param AsyncSession session: Database session.
-    :return list[ObjectClass]: List of Object Classes.
+    Args:
+        object_class_names (list[str]): Object Classes names.
+        session (AsyncSession): Database session.
+
+    Returns:
+        list[ObjectClass]: List of Object Classes.
     """
     query = await session.scalars(
         select(ObjectClass)
@@ -186,10 +198,14 @@ async def modify_object_class(
 ) -> None:
     """Modify Object Class.
 
-    :param ObjectClass object_class: Object Class.
-    :param ObjectClassUpdateSchema new_statement: New statement of object class
-    :param AsyncSession session: Database session.
-    :return None.
+    Args:
+        object_class (ObjectClass): Object Class.
+        new_statement (ObjectClassUpdateSchema): New statement of object
+            class
+        session (AsyncSession): Database session.
+
+    Returns:
+        None.
     """
     object_class.attribute_types_must.clear()
     object_class.attribute_types_must.extend(
@@ -220,9 +236,12 @@ async def delete_object_classes_by_names(
 ) -> None:
     """Delete not system Object Classes by Names.
 
-    :param list[str] object_classes_names: Object classes names.
-    :param AsyncSession session: Database session.
-    :return None.
+    Args:
+        object_classes_names (list[str]): Object classes names.
+        session (AsyncSession): Database session.
+
+    Returns:
+        None.
     """
     await session.execute(
         delete(ObjectClass)

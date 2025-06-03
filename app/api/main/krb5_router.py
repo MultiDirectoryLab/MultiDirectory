@@ -69,7 +69,9 @@ async def setup_krb_catalogue(
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[EmailStr, Body mail: krbadmin email
     :param Annotated[SecretStr, Body krbadmin_password: pw
-    :raises HTTPException: on conflict
+
+    Raises:
+        HTTPException: on conflict
     """
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
@@ -274,7 +276,9 @@ async def ktadd(
     """Create keytab from kadmin server.
 
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :return bytes: file
+
+    Returns:
+        bytes: file
     """
     try:
         response = await kadmin.ktadd(names)
@@ -298,7 +302,9 @@ async def get_krb_status(
 
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :return KerberosState: state
+
+    Returns:
+        KerberosState: state
     """
     db_state = await get_krb_server_state(session)
     try:
@@ -323,7 +329,9 @@ async def add_principal(
     \f
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
+
+    Raises:
+        HTTPException: on failed kamin request.
     """
     try:
         await kadmin.add_principal(f"{primary}/{instance}", None)
@@ -346,7 +354,9 @@ async def rename_principal(
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body principal_new_name: _description_
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
+
+    Raises:
+        HTTPException: on failed kamin request.
     """
     try:
         await kadmin.rename_princ(principal_name, principal_new_name)
@@ -369,7 +379,9 @@ async def reset_principal_pw(
     :param Annotated[str, Body principal_name: upn
     :param Annotated[LIMITED_STR, Body new_password: _description_
     :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
+
+    Raises:
+        HTTPException: on failed kamin request.
     """
     try:
         await kadmin.change_principal_password(principal_name, new_password)
@@ -389,8 +401,12 @@ async def delete_principal(
 
     \f
     :param Annotated[str, Body principal_name: upn
-    :param FromDishka[AbstractKadmin] kadmin: _description_
-    :raises HTTPException: on failed kamin request
+
+    Args:
+        kadmin (FromDishka[AbstractKadmin]): _description_
+
+    Raises:
+        HTTPException: on failed kamin request
     """
     try:
         await kadmin.del_principal(principal_name)

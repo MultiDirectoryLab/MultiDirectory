@@ -79,8 +79,11 @@ class NetmasksMixin:
     ) -> list[str | dict]:
         """Serialize netmasks to list.
 
-        :param IPv4IntefaceListType netmasks: ip masks
-        :return list[str | dict]: ready to json serialized
+        Args:
+            netmasks (IPv4IntefaceListType): ip masks
+
+        Returns:
+            list[str | dict]: ready to json serialized
         """
         values: list[str | dict] = []
 

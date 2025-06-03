@@ -52,9 +52,12 @@ async def get_attribute_types_paginator(
 ) -> PaginationResult:
     """Retrieve paginated attribute_types.
 
-    :param PaginationParams params: page_size and page_number.
-    :param AsyncSession session: Database session.
-    :return PaginationResult: Chunk of attribute_types and metadata.
+    Args:
+        params (PaginationParams): page_size and page_number.
+        session (AsyncSession): Database session.
+
+    Returns:
+        PaginationResult: Chunk of attribute_types and metadata.
     """
     return await PaginationResult[AttributeType].get(
         params=params,
@@ -83,14 +86,17 @@ async def create_attribute_type(
 ) -> None:
     """Create a new Attribute Type.
 
-    :param str oid: OID.
-    :param str name: Name.
-    :param str syntax: Syntax.
-    :param bool single_value: Single value.
-    :param bool no_user_modification: User can't modify it.
-    :param bool is_system: Attribute Type is system.
-    :param AsyncSession session: Database session.
-    :return None.
+    Args:
+        oid (str): OID.
+        name (str): Name.
+        syntax (str): Syntax.
+        single_value (bool): Single value.
+        no_user_modification (bool): User can't modify it.
+        is_system (bool): Attribute Type is system.
+        session (AsyncSession): Database session.
+
+    Returns:
+        None.
     """
     attribute_type = AttributeType(
         oid=oid,
@@ -110,9 +116,12 @@ async def get_attribute_type_by_name(
 ) -> AttributeType | None:
     """Get single Attribute Type by name.
 
-    :param str attribute_type_name: Attribute Type name.
-    :param AsyncSession session: Database session.
-    :return AttributeType | None: Attribute Type.
+    Args:
+        attribute_type_name (str): Attribute Type name.
+        session (AsyncSession): Database session.
+
+    Returns:
+        AttributeType | None: Attribute Type.
     """
     return await session.scalar(
         select(AttributeType)
@@ -126,9 +135,12 @@ async def get_attribute_types_by_names(
 ) -> list[AttributeType]:
     """Get list of Attribute Types by names.
 
-    :param list[str] attribute_type_names: Attribute Type names.
-    :param AsyncSession session: Database session.
-    :return list[AttributeType]: List of Attribute Types.
+    Args:
+        attribute_type_names (list[str]): Attribute Type names.
+        session (AsyncSession): Database session.
+
+    Returns:
+        list[AttributeType]: List of Attribute Types.
     """
     if not attribute_type_names:
         return []
@@ -147,10 +159,14 @@ async def modify_attribute_type(
 ) -> None:
     """Modify Attribute Type.
 
-    :param AttributeType attribute_type: Attribute Type.
-    :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
-    :param AsyncSession session: Database session.
-    :return None.
+    Args:
+        attribute_type (AttributeType): Attribute Type.
+        new_statement (AttributeTypeUpdateSchema): Attribute Type
+            Schema.
+        session (AsyncSession): Database session.
+
+    Returns:
+        None.
     """
     attribute_type.syntax = new_statement.syntax
     attribute_type.single_value = new_statement.single_value
@@ -164,9 +180,12 @@ async def delete_attribute_types_by_names(
 ) -> None:
     """Delete not system Attribute Types by names.
 
-    :param list[str] attribute_type_names: List of Attribute Types OIDs.
-    :param AsyncSession session: Database session.
-    :return None: None.
+    Args:
+        attribute_type_names (list[str]): List of Attribute Types OIDs.
+        session (AsyncSession): Database session.
+
+    Returns:
+        None: None.
     """
     if not attribute_type_names:
         return None

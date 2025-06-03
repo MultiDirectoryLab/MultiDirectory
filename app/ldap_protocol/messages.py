@@ -118,10 +118,15 @@ class LDAPRequestMessage(LDAPMessage):
     def from_err(cls, source: bytes, err: Exception) -> LDAPResponseMessage:
         """Create error response message.
 
-        :param bytes source: source data
-        :param Exception err: any error
-        :raises ValueError: on invalid schema
-        :return LDAPResponseMessage: response with err code
+        Args:
+            source (bytes): source data
+            err (Exception): any error
+
+        Raises:
+            ValueError: on invalid schema
+
+        Returns:
+            LDAPResponseMessage: response with err code
         """
         output = asn1todict(source)
         message_id = 0

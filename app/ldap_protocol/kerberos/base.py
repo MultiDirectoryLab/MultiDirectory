@@ -39,7 +39,8 @@ class AbstractKadmin(ABC):
     def __init__(self, client: httpx.AsyncClient) -> None:
         """Set client.
 
-        :param httpx.AsyncClient client: httpx
+        Args:
+            client (httpx.AsyncClient): httpx
         """
         self.client = client
 
@@ -209,8 +210,11 @@ class AbstractKadmin(ABC):
     async def get_status(self, wait_for_positive: bool = False) -> bool | None:
         """Get status of setup.
 
-        :param bool wait_for_positive: wait for positive status
-        :return bool | None: status or None if max tries achieved
+        Args:
+            wait_for_positive (bool): wait for positive status
+
+        Returns:
+            bool | None: status or None if max tries achieved
         """
         response = await self.client.get("/setup/status")
         status = response.json()
@@ -230,8 +234,9 @@ class AbstractKadmin(ABC):
     async def ldap_principal_setup(self, name: str, path: str) -> None:
         """LDAP principal setup.
 
-        :param str ldap_principal_name: ldap principal name
-        :param str ldap_keytab_path: ldap keytab path
+        Args:
+            ldap_principal_name (str): ldap principal name
+            ldap_keytab_path (str): ldap keytab path
         """
         response = await self.client.get("/principal", params={"name": name})
         if response.status_code == 200:

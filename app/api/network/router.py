@@ -44,10 +44,16 @@ async def add_network_policy(
     """Add policy.
 
     \f
-    :param Policy policy: policy to add
-    :raises HTTPException: 422 invalid group DN
-    :raises HTTPException: 422 Entry already exists
-    :return PolicyResponse: Ready policy
+
+    Args:
+        policy (Policy): policy to add
+
+    Raises:
+        HTTPException: 422 invalid group DN
+        HTTPException: 422 Entry already exists
+
+    Returns:
+        PolicyResponse: Ready policy
     """
     new_policy = NetworkPolicy(
         name=policy.name,
@@ -110,7 +116,9 @@ async def get_list_network_policies(
     """Get network.
 
     \f
-    :return list[PolicyResponse]: all policies
+
+    Returns:
+        list[PolicyResponse]: all policies
     """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
     mfa_groups = selectinload(NetworkPolicy.mfa_groups).selectinload(
@@ -157,12 +165,18 @@ async def delete_network_policy(
     """Delete policy.
 
     \f
-    :param int policy_id: id
-    :param User user: requires login
-    :raises HTTPException: 404
-    :raises HTTPException: 422 On last active policy,
-        at least 1 should be in database.
-    :return bool: status of delete
+
+    Args:
+        policy_id (int): id
+        user (User): requires login
+
+    Raises:
+        HTTPException: 404
+        HTTPException: 422 On last active policy, at least 1 should be
+            in database.
+
+    Returns:
+        bool: status of delete
     """
     policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
 
@@ -199,12 +213,18 @@ async def switch_network_policy(
 
     - **policy_id**: int, policy to switch
     \f
-    :param int policy_id: id
-    :param User user: requires login
-    :raises HTTPException: 404
-    :raises HTTPException: 422 On last active policy,
-        at least 1 should be active
-    :return bool: status of update
+
+    Args:
+        policy_id (int): id
+        user (User): requires login
+
+    Raises:
+        HTTPException: 404
+        HTTPException: 422 On last active policy, at least 1 should be
+            active
+
+    Returns:
+        bool: status of update
     """
     policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
 
@@ -227,11 +247,17 @@ async def update_network_policy(
     """Update network policy.
 
     \f
-    :param PolicyUpdate policy: update request
-    :raises HTTPException: 404 policy not found
-    :raises HTTPException: 422 Invalid group DN
-    :raises HTTPException: 422 Entry already exists
-    :return PolicyResponse: Policy from database
+
+    Args:
+        policy (PolicyUpdate): update request
+
+    Raises:
+        HTTPException: 404 policy not found
+        HTTPException: 422 Invalid group DN
+        HTTPException: 422 Entry already exists
+
+    Returns:
+        PolicyResponse: Policy from database
     """
     selected_policy = await session.get(
         NetworkPolicy,
@@ -311,10 +337,16 @@ async def swap_network_policy(
     - **first_policy_id**: policy to swap
     - **second_policy_id**: policy to swap
     \f
-    :param int first_policy_id: policy to swap
-    :param int second_policy_id: policy to swap
-    :raises HTTPException: 404
-    :return SwapResponse: policy new priorities
+
+    Args:
+        first_policy_id (int): policy to swap
+        second_policy_id (int): policy to swap
+
+    Raises:
+        HTTPException: 404
+
+    Returns:
+        SwapResponse: policy new priorities
     """
     policy1 = await session.get(
         NetworkPolicy,

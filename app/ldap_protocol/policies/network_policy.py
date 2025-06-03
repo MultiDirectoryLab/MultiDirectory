@@ -22,11 +22,14 @@ def build_policy_query(
 ) -> Select:
     """Build a base query for network policies with optional group filtering.
 
-    :param IPv4Address ip: IP address to filter
+    Args:
+        ip (IPv4Address): IP address to filter
     :param Literal["is_http", "is_ldap", "is_kerberos"] protocol_field_name
         protocol: Protocol to filter
     :param list[int] | None user_group_ids: List of user group IDs, optional
-    :return: Select query
+
+    Returns:
+        : Select query
     """
     protocol_field = getattr(NetworkPolicy, protocol_field_name)
     query = (
@@ -62,10 +65,13 @@ async def check_mfa_group(
 ) -> bool:
     """Check if user is in a group with MFA policy.
 
-    :param NetworkPolicy policy: policy object
-    :param User user: user object
-    :param AsyncSession session: db session
-    :return bool: status
+    Args:
+        policy (NetworkPolicy): policy object
+        user (User): user object
+        session (AsyncSession): db session
+
+    Returns:
+        bool: status
     """
     return await session.scalar(
         select(
@@ -84,9 +90,12 @@ async def get_user_network_policy(
 ) -> NetworkPolicy | None:
     """Get the highest priority network policy for user, ip and protocol.
 
-    :param User user: user object
-    :param AsyncSession session: db session
-    :return NetworkPolicy | None: a NetworkPolicy object
+    Args:
+        user (User): user object
+        session (AsyncSession): db session
+
+    Returns:
+        NetworkPolicy | None: a NetworkPolicy object
     """
     user_group_ids = [group.id for group in user.groups]
 
@@ -102,10 +111,13 @@ async def is_user_group_valid(
 ) -> bool:
     """Validate user groups, is it including to policy.
 
-    :param User user: db user
-    :param NetworkPolicy policy: db policy
-    :param AsyncSession session: db
-    :return bool: status
+    Args:
+        user (User): db user
+        policy (NetworkPolicy): db policy
+        session (AsyncSession): db
+
+    Returns:
+        bool: status
     """
     if user is None or policy is None:
         return False

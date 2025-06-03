@@ -111,10 +111,13 @@ class BindRequest(BaseRequest):
     ) -> bool:
         """Check mfa api.
 
-        :param User user: db user
-        :param LDAPSession ldap_session: ldap session
-        :param AsyncSession session: db session
-        :return bool: response
+        Args:
+            user (User): db user
+            ldap_session (LDAPSession): ldap session
+            session (AsyncSession): db session
+
+        Returns:
+            bool: response
         """
         if api is None:
             return False

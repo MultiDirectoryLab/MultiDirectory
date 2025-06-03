@@ -315,8 +315,11 @@ class ExtendedRequest(BaseRequest):
     def from_data(cls, data: list[ASN1Row]) -> "ExtendedRequest":
         """Create extended request from asn.1 decoded string.
 
-        :param ASN1Row data: any data
-        :return ExtendedRequest: universal request
+        Args:
+            data (ASN1Row): any data
+
+        Returns:
+            ExtendedRequest: universal request
         """
         oid = data[0].value
         ext_request = EXTENDED_REQUEST_OID_MAP[oid]
