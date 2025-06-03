@@ -12,13 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.object_class_router import ldap_schema_router
-from ldap_protocol.ldap_schema.entity_type_crud import (
+from ldap_protocol.ldap_schema.entity_type_dao import (
     EntityTypeDAO,
     EntityTypePaginationSchema,
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     get_pagination_params,

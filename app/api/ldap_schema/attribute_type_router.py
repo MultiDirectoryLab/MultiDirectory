@@ -11,7 +11,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
-from ldap_protocol.ldap_schema.attribute_type_crud import (
+from ldap_protocol.ldap_schema.attribute_type_dao import (
     AttributeTypeDAO,
     AttributeTypePaginationSchema,
     AttributeTypeSchema,

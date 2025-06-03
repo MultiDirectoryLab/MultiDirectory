@@ -15,8 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_entity_type_id
-from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
-from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )

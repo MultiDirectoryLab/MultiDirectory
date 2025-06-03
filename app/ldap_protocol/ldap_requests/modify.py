@@ -25,7 +25,7 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
-from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,

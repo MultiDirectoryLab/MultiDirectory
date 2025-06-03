@@ -1,4 +1,4 @@
-"""Attribute Type utils.
+"""Attribute Type DAO.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE

@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from extra.dev_data import ENTITY_TYPE_DATAS
-from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from models import Attribute, Directory, User
 
 # revision identifiers, used by Alembic.

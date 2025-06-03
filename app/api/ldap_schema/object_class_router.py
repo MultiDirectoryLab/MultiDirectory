@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.attribute_type_router import ldap_schema_router
-from ldap_protocol.ldap_schema.object_class_crud import (
+from ldap_protocol.ldap_schema.object_class_dao import (
     ObjectClassDAO,
     ObjectClassPaginationSchema,
     ObjectClassSchema,

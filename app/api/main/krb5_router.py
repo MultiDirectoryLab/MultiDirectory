@@ -32,7 +32,7 @@ from ldap_protocol.kerberos import (
     set_state,
 )
 from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.const import EmailStr
 from ldap_protocol.utils.queries import (

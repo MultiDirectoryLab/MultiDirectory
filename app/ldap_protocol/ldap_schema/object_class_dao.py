@@ -1,4 +1,4 @@
-"""Object Class utils.
+"""Object Class DAO.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -9,7 +9,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     BaseSchemaModel,

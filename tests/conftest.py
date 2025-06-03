@@ -52,9 +52,9 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
-from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
-from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler

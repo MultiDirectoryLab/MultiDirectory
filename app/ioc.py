@@ -27,9 +27,9 @@ from ldap_protocol.dns import (
     resolve_dns_server_ip,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
-from ldap_protocol.ldap_schema.attribute_type_crud import AttributeTypeDAO
-from ldap_protocol.ldap_schema.entity_type_crud import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_crud import ObjectClassDAO
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
