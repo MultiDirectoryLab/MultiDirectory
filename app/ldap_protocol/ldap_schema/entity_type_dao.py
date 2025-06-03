@@ -11,6 +11,8 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.exceptions import InstanceNotFoundError
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
@@ -28,7 +30,7 @@ class EntityTypeSchema(BaseModel):
 
     @classmethod
     def from_db(cls, entity_type: EntityType) -> "EntityTypeSchema":
-        """Create an instance of Entity Type Schema from database."""
+        """Create an instance of Entity Type Schema from SQLA object."""
         return cls(
             name=entity_type.name,
             is_system=entity_type.is_system,
@@ -53,6 +55,7 @@ class EntityTypeDAO:
     """Entity Type DAO."""
 
     _session: AsyncSession
+    EntityTypeNotFoundError = InstanceNotFoundError
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Entity Type DAO with a database session."""
@@ -97,16 +100,24 @@ class EntityTypeDAO:
     async def get_one_by_name(
         self,
         entity_type_name: str,
-    ) -> EntityType | None:
+    ) -> EntityType:
         """Get single Entity Type by name.
 
         :param str entity_type_name: Entity Type name.
-        :return EntityType | None: Instance of Entity Type.
+        :raise EntityTypeNotFoundError: If Entity Type not found.
+        :return EntityType: Instance of Entity Type.
         """
-        return await self._session.scalar(
+        entity_type = await self._session.scalar(
             select(EntityType)
             .where(EntityType.name == entity_type_name)
         )  # fmt: skip
+
+        if not entity_type:
+            raise self.EntityTypeNotFoundError(
+                f"Entity Type with name '{entity_type_name}' not found."
+            )
+
+        return entity_type
 
     async def get_entity_type_by_object_class_names(
         self,
@@ -131,6 +142,7 @@ class EntityTypeDAO:
         self,
         entity_type: EntityType,
         new_statement: EntityTypeUpdateSchema,
+        object_class_dao: ObjectClassDAO,
     ) -> None:
         """Modify Entity Type.
 
@@ -139,6 +151,10 @@ class EntityTypeDAO:
             of Entity Type.
         :return None.
         """
+        await object_class_dao.is_all_object_classes_exists(
+            new_statement.object_class_names
+        )
+
         entity_type.name = new_statement.name
         entity_type.object_class_names = new_statement.object_class_names
 
@@ -173,7 +189,7 @@ class EntityTypeDAO:
         self,
         entity_type_names: list[str],
     ) -> None:
-        """Delete not system and not used Entity Type by Names.
+        """Delete not system and not used Entity Type by their names.
 
         :param list[str] entity_type_names: Entity Type names.
         :return None.
@@ -238,6 +254,6 @@ class EntityTypeDAO:
                 is_system=is_system_entity_type,
             )
             await self._session.flush()
-            await self.get_one_by_name(entity_type_name)
+            entity_type = await self.get_one_by_name(entity_type_name)
 
         directory.entity_type = entity_type

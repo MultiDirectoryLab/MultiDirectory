@@ -32,7 +32,7 @@ class PaginationParams(BaseModel):
         description="Page number.",
     )
     page_size: int = Field(
-        25,
+        default=25,
         ge=1,
         le=100,
         description="Page size.",
@@ -47,7 +47,7 @@ def get_pagination_params(
         description="Page number.",
     ),
     page_size: int = Query(
-        25,
+        default=25,
         ge=1,
         le=100,
         description="Page size.",
@@ -127,7 +127,4 @@ class PaginationResult(Generic[S]):
         result = await session.scalars(query)
         items = result.all()
 
-        return cls(
-            metadata=metadata,
-            items=items,
-        )
+        return cls(metadata=metadata, items=items)

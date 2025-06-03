@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
@@ -36,10 +36,10 @@ async def create_one_attribute_type(
     session: FromDishka[AsyncSession],
     attribute_type_dao: FromDishka[AttributeTypeDAO],
 ) -> None:
-    """Create a new attribute type.
+    """Create a new Attribute Type.
 
     \f
-    :param AttributeTypeSchema request_data: Data for creating attribute type.
+    :param AttributeTypeSchema request_data: Data for creating Attribute Type.
     :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
           manager.
     :param FromDishka[AsyncSession] session: Database session.
@@ -65,25 +65,16 @@ async def get_one_attribute_type(
     attribute_type_name: str,
     attribute_type_dao: FromDishka[AttributeTypeDAO],
 ) -> AttributeTypeSchema:
-    """Retrieve a one attribute types.
+    """Retrieve a one Attribute Type.
 
     \f
     :param str attribute_type_name: name of the Attribute Type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
-        manager.
-    :raise HTTP_404_NOT_FOUND: If Attribute Type not found.
-    :return AttributeTypeSchema: One Attribute Type Schemas.
+    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
+    :return AttributeTypeSchema: Attribute Type Schema.
     """
     attribute_type = await attribute_type_dao.get_one_by_name(
-        attribute_type_name,
+        attribute_type_name
     )
-
-    if not attribute_type:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "Attribute Type not found.",
-        )
-
     return AttributeTypeSchema.from_db(attribute_type)
 
 
@@ -96,13 +87,12 @@ async def get_list_attribute_types_with_pagination(
     attribute_type_dao: FromDishka[AttributeTypeDAO],
     params: Annotated[PaginationParams, Depends(get_pagination_params)],
 ) -> AttributeTypePaginationSchema:
-    """Retrieve a list of all attribute types with paginate.
+    """Retrieve a chunk of Attribute Types with pagination.
 
     \f
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
-        manager.
+    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
     :param PaginationParams params: Pagination parameters.
-    :return AttributeTypePaginationSchema: Paginator.
+    :return AttributeTypePaginationSchema: Paginator Schema.
     """
     pagination_result = await attribute_type_dao.get_paginator(params=params)
 
@@ -128,29 +118,15 @@ async def modify_one_attribute_type(
     """Modify an Attribute Type.
 
     \f
-    :param str attribute_type_name: name of the attribute type for modifying.
+    :param str attribute_type_name: name of the Attribute Type for modifying.
     :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
-        manager.
-    :raise HTTP_404_NOT_FOUND: If attribute type not found.
-    :raise HTTP_400_BAD_REQUEST: If attribute type is system->cannot be changed
+    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
     :return None.
     """
     attribute_type = await attribute_type_dao.get_one_by_name(
         attribute_type_name
     )
-    if not attribute_type:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "Attribute Type not found.",
-        )
-
-    if attribute_type.is_system:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "System attribute type cannot be modified.",
-        )
 
     request_data.syntax = _DEFAULT_ATTRIBUTE_TYPE_SYNTAX
     request_data.no_user_modification = _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD
@@ -170,14 +146,12 @@ async def delete_bulk_attribute_types(
     session: FromDishka[AsyncSession],
     attribute_type_dao: FromDishka[AttributeTypeDAO],
 ) -> None:
-    """Delete attribute types by their names.
+    """Delete Attribute Types by their names.
 
     \f
-    :param LimitedListType attribute_types_names: List of attribute types names
+    :param LimitedListType attribute_types_names: List of Attribute Type names
     :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute type\
-        manager.
-    :raise HTTP_400_BAD_REQUEST: If nothing to delete.
+    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute type dao.
     :return None: None
     """
     await attribute_type_dao.delete_all_by_names(attribute_types_names)

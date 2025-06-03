@@ -4,11 +4,17 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Literal
+
 from pydantic import BaseModel
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ldap_protocol.exceptions import (
+    InstanceCantModifyError,
+    InstanceNotFoundError,
+)
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
@@ -25,6 +31,10 @@ OBJECT_CLASS_KINDS_ALLOWED: tuple[KindType, ...] = (
 )
 
 
+class ObjectClassKindNotValidError(Exception):
+    """Object Class Kind is not valid."""
+
+
 class ObjectClassSchema(BaseSchemaModel):
     """Object Class Schema."""
 
@@ -38,7 +48,7 @@ class ObjectClassSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
-        """Create an instance of Object Class Schema from database."""
+        """Create an instance of Object Class Schema from SQLA object."""
         return cls(
             oid=object_class.oid,
             name=object_class.name,
@@ -68,6 +78,10 @@ class ObjectClassDAO:
 
     _session: AsyncSession
     _attribute_type_dao: AttributeTypeDAO
+
+    ObjectClassNotFoundError = InstanceNotFoundError
+    ObjectClassKindNotValid = ObjectClassKindNotValidError
+    ObjectClassCantModifyError = InstanceCantModifyError
 
     def __init__(
         self,
@@ -113,10 +127,14 @@ class ObjectClassDAO:
         :param bool is_system: Object Class is system.
         :param list[str] attribute_type_names_must: Attribute Types must.
         :param list[str] attribute_type_names_may: Attribute Types may.
+        :raise ObjectClassNotFoundError: If superior Object Class not found.
+        :raise ObjectClassKindNotValid: If Object Class kind is not valid.
         :return None.
         """
         if kind not in OBJECT_CLASS_KINDS_ALLOWED:
-            raise ValueError(f"Object class kind is not valid: {kind}.")
+            raise self.ObjectClassKindNotValid(
+                f"Object class kind is not valid: {kind}."
+            )
 
         superior = (
             await self.get_one_by_name(superior_name)
@@ -124,8 +142,9 @@ class ObjectClassDAO:
             else None
         )
         if superior_name and not superior:
-            raise ValueError(
-                f"Superior Object class {superior_name} not found in schema."
+            raise self.ObjectClassNotFoundError(
+                f"Superior (parent) Object class {superior_name} not found\
+                    in schema."
             )
 
         attribute_types_may_filtered = [
@@ -172,31 +191,46 @@ class ObjectClassDAO:
     async def is_all_object_classes_exists(
         self,
         object_class_names: list[str],
-    ) -> bool:
+    ) -> Literal[True]:
         """Check if all Object Classes exist.
 
         :param list[str] object_class_names: Object Class names.
+        :raise ObjectClassNotFoundError: If Object Class not found.
         :return bool.
         """
         count_ = await self.count_exists_object_class_by_names(
             object_class_names
         )
 
-        return bool(count_ == len(object_class_names))
+        if count_ != len(object_class_names):
+            raise self.ObjectClassNotFoundError(
+                f"Not all Object Classes\
+                    with names {object_class_names} found."
+            )
+
+        return True
 
     async def get_one_by_name(
         self,
         object_class_name: str,
-    ) -> ObjectClass | None:
+    ) -> ObjectClass:
         """Get single Object Class by name.
 
         :param str object_class_name: Object Class name.
-        :return ObjectClass | None: Instance of Object Class or None.
+        :raise ObjectClassNotFoundError: If Object Class not found.
+        :return ObjectClass: Instance of Object Class.
         """
-        return await self._session.scalar(
+        object_class = await self._session.scalar(
             select(ObjectClass)
             .where(ObjectClass.name == object_class_name)
         )  # fmt: skip
+
+        if not object_class:
+            raise self.ObjectClassNotFoundError(
+                f"Object Class with name '{object_class_name}' not found."
+            )
+
+        return object_class
 
     async def get_all_by_names(
         self,
@@ -226,8 +260,15 @@ class ObjectClassDAO:
 
         :param ObjectClass object_class: Object Class.
         :param ObjectClassUpdateSchema new_statement: New statement ObjectClass
+        :raise ObjectClassCantModifyError: If Object Class is system,\
+            it cannot be changed.
         :return None.
         """
+        if object_class.is_system:
+            raise self.ObjectClassCantModifyError(
+                "System Object Class cannot be modified."
+            )
+
         object_class.attribute_types_must.clear()
         object_class.attribute_types_must.extend(
             await self._attribute_type_dao.get_all_by_names(

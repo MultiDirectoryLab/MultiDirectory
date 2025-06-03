@@ -8,6 +8,10 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.exceptions import (
+    InstanceCantModifyError,
+    InstanceNotFoundError,
+)
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     BaseSchemaModel,
@@ -29,7 +33,7 @@ class AttributeTypeSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
-        """Create an instance of Attribute Type Schema from database."""
+        """Create an instance of Attribute Type Schema from SQLA object."""
         return cls(
             oid=attribute_type.oid,
             name=attribute_type.name,
@@ -58,6 +62,8 @@ class AttributeTypeDAO:
     """Attribute Type DAO."""
 
     _session: AsyncSession
+    AttributeTypeNotFoundError = InstanceNotFoundError
+    AttributeTypeCantModifyError = InstanceCantModifyError
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Attribute Type DAO with session."""
@@ -111,16 +117,24 @@ class AttributeTypeDAO:
     async def get_one_by_name(
         self,
         attribute_type_name: str,
-    ) -> AttributeType | None:
+    ) -> AttributeType:
         """Get single Attribute Type by name.
 
         :param str attribute_type_name: Attribute Type name.
-        :return AttributeType | None: Instance of Attribute Type or None.
+        :raise AttributeTypeNotFoundError: If Attribute Type not found.
+        :return AttributeType: Instance of Attribute Type.
         """
-        return await self._session.scalar(
+        attribute_type = await self._session.scalar(
             select(AttributeType)
             .where(AttributeType.name == attribute_type_name)
         )  # fmt: skip
+
+        if not attribute_type:
+            raise self.AttributeTypeNotFoundError(
+                f"Attribute Type with name '{attribute_type_name}' not found."
+            )
+
+        return attribute_type
 
     async def get_all_by_names(
         self,
@@ -149,8 +163,15 @@ class AttributeTypeDAO:
 
         :param AttributeType attribute_type: Attribute Type.
         :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
+        :raise AttributeTypeCantModifyError: If Attribute Type is system,\
+            it cannot be changed.
         :return None.
         """
+        if attribute_type.is_system:
+            raise self.AttributeTypeCantModifyError(
+                "System Attribute Type cannot be modified."
+            )
+
         attribute_type.syntax = new_statement.syntax
         attribute_type.single_value = new_statement.single_value
         attribute_type.no_user_modification = (

@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
@@ -69,16 +69,9 @@ async def get_one_object_class(
     \f
     :param str object_class_name: name of the Object Class.
     :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :raise HTTP_404_NOT_FOUND: If Object Class not found.
     :return ObjectClassSchema: One Object Class Schemas.
     """
     object_class = await object_class_dao.get_one_by_name(object_class_name)
-
-    if not object_class:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "Object Class not found.",
-        )
 
     return ObjectClassSchema.from_db(object_class)
 
@@ -127,22 +120,9 @@ async def modify_one_object_class(
     :param ObjectClassUpdateSchema request_data: Changed data.
     :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
-    :raise HTTP_404_NOT_FOUND: If nothing to delete.
-    :raise HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
     :return None.
     """
     object_class = await object_class_dao.get_one_by_name(object_class_name)
-    if not object_class:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "Object Class not found.",
-        )
-
-    if object_class.is_system:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "System Object Class cannot be modified.",
-        )
 
     await object_class_dao.modify_one(
         object_class=object_class,
@@ -166,7 +146,6 @@ async def delete_bulk_object_classes(
     :param LimitedListType object_classes_names: List of Object Classes names.
     :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
-    :raise HTTP_400_BAD_REQUEST: If nothing to delete.
     :return None: None
     """
     await object_class_dao.delete_all_by_names(object_classes_names)

@@ -57,7 +57,7 @@ async def test_create_one_entity_type_value_400(
             "is_system": False,
         },
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio

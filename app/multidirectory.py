@@ -34,7 +34,13 @@ from api import (
     session_router,
     shadow_router,
 )
-from api.exception_handlers import handle_db_connect_error, handle_dns_error
+from api.exception_handlers import (
+    handle_db_connect_error,
+    handle_dns_error,
+    handle_instance_cant_modify_error,
+    handle_instance_not_found_error,
+    handle_object_class_kind_not_valid,
+)
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
@@ -45,6 +51,13 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dns import DNSConnectionError
+from ldap_protocol.exceptions import (
+    InstanceCantModifyError,
+    InstanceNotFoundError,
+)
+from ldap_protocol.ldap_schema.object_class_dao import (
+    ObjectClassKindNotValidError,
+)
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler
 
@@ -107,6 +120,19 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
     app.add_exception_handler(DNSException, handle_dns_error)
     app.add_exception_handler(DNSConnectionError, handle_dns_error)
+    app.add_exception_handler(
+        InstanceNotFoundError,
+        handle_instance_not_found_error,
+    )
+    app.add_exception_handler(
+        InstanceCantModifyError,
+        handle_instance_cant_modify_error,
+    )
+    app.add_exception_handler(
+        ObjectClassKindNotValidError,
+        handle_object_class_kind_not_valid,
+    )
+
     return app
 
 
@@ -189,10 +215,14 @@ if __name__ == "__main__":
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
     group.add_argument(
-        "--certs_dumper", action="store_true", help="Dump certs"
+        "--certs_dumper",
+        action="store_true",
+        help="Dump certs",
     )
     group.add_argument(
-        "--migrate", action="store_true", help="Make migrations"
+        "--migrate",
+        action="store_true",
+        help="Make migrations",
     )
 
     args = parser.parse_args()
