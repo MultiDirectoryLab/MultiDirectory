@@ -13,6 +13,11 @@ from .helpers import validate_entry
 
 
 def _type_validate_entry(entry: str) -> str:
+    """Description.
+
+    Args:
+    entry: str:
+    """
     if validate_entry(entry):
         return entry
     raise ValueError(f"Invalid entry name {entry}")
@@ -24,6 +29,11 @@ EMAIL_RE = re.compile(
 
 
 def _type_validate_email(email: str) -> str:
+    """Description.
+
+    Args:
+    email: str:
+    """
     if EMAIL_RE.fullmatch(email):
         return email
     raise ValueError(f"Invalid entry name {email}")

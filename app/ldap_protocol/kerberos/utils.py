@@ -16,13 +16,20 @@ def logger_wraps(is_stub: bool = False) -> Callable:
     """Log kadmin calls.
 
     Args:
-        is_stub (bool): flag to change logs, defaults to False
+        is_stub(bool): flag to change logs, defaults to False
+        is_stub: bool:  (Default value = False)
 
     Returns:
         Callable: any method
     """
 
     def wrapper(func: Callable) -> Callable:
+        """Description.
+
+        Args:
+            func: Callable:
+
+        """
         name = func.__name__
         bus_type = " stub " if is_stub else " "
 

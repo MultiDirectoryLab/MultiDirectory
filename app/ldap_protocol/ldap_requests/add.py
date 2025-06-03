@@ -71,15 +71,21 @@ class AddRequest(BaseRequest):
 
     @property
     def attr_names(self) -> dict[str, list[str | bytes]]:
+        """Description."""
         return {attr.l_name: attr.vals for attr in self.attributes}
 
     @property
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
+        """Description."""
         return {attr.type: attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
-        """Deserialize."""
+        """Deserialize.
+
+        Args:
+            data: ASN1Row:
+        """
         entry, attributes = data  # type: ignore
         attributes = [
             PartialAttribute(
@@ -385,7 +391,8 @@ class AddRequest(BaseRequest):
 
         Args:
             entry (str): entry
-        :param dict[str, list[str]] attributes: dict of attrs
+            attributes: dict[str, list[str]]:
+            password: str | None: (Default value = None)
 
         Returns:
             AddRequest: instance

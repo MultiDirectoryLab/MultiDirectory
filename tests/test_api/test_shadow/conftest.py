@@ -15,13 +15,7 @@ from models import CatalogueSetting
 
 
 class ProxyRequestModel(BaseModel):
-    """Model for the proxy request.
-
-    Attributes:
-        principal: Unique user identifier
-        ip: IP address from which the request is made
-
-    """
+    """Model for the proxy request."""
 
     principal: str
     ip: str

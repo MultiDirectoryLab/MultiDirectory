@@ -19,7 +19,8 @@ def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
     """Get IP address from request.
 
     Args:
-        request (Request): The incoming request object.
+        request(Request): The incoming request object.
+        request: Request:
 
     Returns:
         IPv4Address | None: The IP address or None.
@@ -39,7 +40,8 @@ def get_user_agent_from_request(request: Request) -> str:
     """Get user agent from request.
 
     Args:
-        request (Request): The incoming request object.
+        request(Request): The incoming request object.
+        request: Request:
 
     Returns:
         str: The user agent header.

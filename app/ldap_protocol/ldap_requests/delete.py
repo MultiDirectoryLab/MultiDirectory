@@ -44,6 +44,12 @@ class DeleteRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
+        """Description.
+
+        Args:
+            data: ASN1Row:
+
+        """
         return cls(entry=data)
 
     async def handle(

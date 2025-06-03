@@ -72,6 +72,7 @@ class PasswordPolicySchema(BaseModel):
 
     @model_validator(mode="after")
     def _validate_minimum_pwd_age(self) -> "PasswordPolicySchema":
+        """Description."""
         if self.minimum_password_age_days > self.maximum_password_age_days:
             raise ValueError(
                 "Minimum password age days must be "
@@ -146,7 +147,8 @@ class PasswordPolicySchema(BaseModel):
         """Get number of days, pwd exists.
 
         Args:
-            last_pwd_set (Attribute): pwdLastSet
+            last_pwd_set(Attribute): pwdLastSet
+            last_pwd_set: Attribute:
 
         Returns:
             int: days
@@ -199,12 +201,15 @@ class PasswordPolicySchema(BaseModel):
         """Validate min password change age.
 
         Args:
-            last_pwd_set (Attribute): last pwd set
+            last_pwd_set(Attribute): last pwd set
+            last_pwd_set: Attribute:
 
         Returns:
             bool: can change pwd True - not valid, can not change False
+            bool: can change pwd True - not valid, can not change False
             - valid, can change
-
+            bool: can change pwd True - not valid, can not change False
+            - valid, can change
             on minimum_password_age_days can always change.
         """
         if self.minimum_password_age_days == 0:
@@ -218,12 +223,15 @@ class PasswordPolicySchema(BaseModel):
         """Validate max password change age.
 
         Args:
-            last_pwd_set (Attribute): last pwd set
+            last_pwd_set(Attribute): last pwd set
+            last_pwd_set: Attribute:
 
         Returns:
             bool: is pwd expired True - not valid, expired False -
+            bool: is pwd expired True - not valid, expired False -
             valid, not expired
-
+            bool: is pwd expired True - not valid, expired False -
+            valid, not expired
             on maximum_password_age_days always valid.
         """
         if self.maximum_password_age_days == 0:

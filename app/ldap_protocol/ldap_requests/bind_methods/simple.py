@@ -23,10 +23,12 @@ class SimpleAuthentication(AbstractLDAPAuth):
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
 
-        :param User | None user: indb user
+        Args:
+          User: None user: indb user
 
         Returns:
-            bool: status
+          bool: status
+
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -38,6 +40,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
 
         Returns:
             bool: status
+
         """
         return not self.password
 

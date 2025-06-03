@@ -103,6 +103,12 @@ class LDAPSession:
 
     @user.setter
     def user(self, user: User) -> None:
+        """Description.
+
+        Args:
+            user: User:
+
+        """
         raise NotImplementedError(
             "Cannot manually set user, use `set_user()` instead",
         )
@@ -162,6 +168,7 @@ class LDAPSession:
         return f"ldap:{self.id}"
 
     def _bound_ip(self) -> bool:
+        """Description."""
         return hasattr(self, "ip")
 
     async def bind_session(self) -> None:

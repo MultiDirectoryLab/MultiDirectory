@@ -16,6 +16,12 @@ class RawDefinitionParser:
 
     @staticmethod
     def _list_to_string(data: list[str]) -> str | None:
+        """Description.
+
+        Args:
+            data: list[str]:
+
+        """
         if not data:
             return None
         if len(data) == 1:
@@ -24,11 +30,23 @@ class RawDefinitionParser:
 
     @staticmethod
     def _get_attribute_type_info(raw_definition: str) -> AttributeTypeInfo:
+        """Description.
+
+        Args:
+            raw_definition: str:
+
+        """
         tmp = AttributeTypeInfo.from_definition(definitions=[raw_definition])
         return next(iter(tmp.values()))
 
     @staticmethod
     def get_object_class_info(raw_definition: str) -> ObjectClassInfo:
+        """Description.
+
+        Args:
+            raw_definition: str:
+
+        """
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
         return next(iter(tmp.values()))
 
@@ -47,6 +65,12 @@ class RawDefinitionParser:
     def create_attribute_type_by_raw(
         raw_definition: str,
     ) -> AttributeType:
+        """Description.
+
+        Args:
+            raw_definition: str:
+
+        """
         attribute_type_info = RawDefinitionParser._get_attribute_type_info(
             raw_definition=raw_definition
         )

@@ -46,9 +46,24 @@ log.add(
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:
-    """Log DNSManager calls."""
+    """Log DNSManager calls.
+
+    Args:
+        is_stub (bool): If True, marks the logger as a stub. Default is False.
+
+    Returns:
+        Callable: Decorator for logging.
+    """
 
     def wrapper(func: Callable) -> Callable:
+        """Decorator for logging function calls.
+
+        Args:
+            func (Callable): Function to wrap.
+
+        Returns:
+            Callable: Wrapped function.
+        """
         name = func.__name__
         bus_type = " stub " if is_stub else " "
 
@@ -105,7 +120,13 @@ class DNSManagerSettings:
         dns_server_ip: str | None,
         tsig_key: str | None,
     ) -> None:
-        """Set settings."""
+        """Set settings.
+
+        Args:
+            zone_name (str | None): DNS zone name.
+            dns_server_ip (str | None): DNS server IP address.
+            tsig_key (str | None): TSIG key.
+        """
         self.zone_name = zone_name
         self.domain = zone_name + "." if zone_name is not None else None
         self.dns_server_ip = dns_server_ip
@@ -363,7 +384,14 @@ class StubDNSManager(AbstractDNSManager):
 async def get_dns_state(
     session: AsyncSession,
 ) -> "DNSManagerState":
-    """Get or create DNS manager state."""
+    """Get or create DNS manager state.
+
+    Args:
+        session (AsyncSession): Database session.
+
+    Returns:
+        DNSManagerState: Current DNS manager state.
+    """
     state = await session.scalar(
         select(CatalogueSetting)
         .filter(CatalogueSetting.name == DNS_MANAGER_STATE_NAME)
@@ -386,7 +414,12 @@ async def set_dns_manager_state(
     session: AsyncSession,
     state: DNSManagerState | str,
 ) -> None:
-    """Update DNS state."""
+    """Update DNS state.
+
+    Args:
+        session (AsyncSession): Database session.
+        state (DNSManagerState | str): New DNS manager state.
+    """
     await session.execute(
         update(CatalogueSetting)
         .values({"value": state})
@@ -395,7 +428,17 @@ async def set_dns_manager_state(
 
 
 async def resolve_dns_server_ip(host: str) -> str:
-    """Get DNS server IP from Docker network."""
+    """Get DNS server IP from Docker network.
+
+    Args:
+        host (str): Hostname to resolve.
+
+    Returns:
+        str: Resolved IP address.
+
+    Raises:
+        DNSConnectionError: If DNS server IP cannot be resolved.
+    """
     async_resolver = AsyncResolver()
     dns_server_ip_resolve = await async_resolver.resolve(host)
     if dns_server_ip_resolve is None or dns_server_ip_resolve.rrset is None:
@@ -407,7 +450,15 @@ async def get_dns_manager_settings(
     session: AsyncSession,
     resolve_coro: Awaitable[str],
 ) -> "DNSManagerSettings":
-    """Get DNS manager's settings."""
+    """Get DNS manager's settings.
+
+    Args:
+        session (AsyncSession): Database session.
+        resolve_coro (Awaitable[str]): Coroutine to resolve DNS server IP.
+
+    Returns:
+        DNSManagerSettings: DNS manager settings.
+    """
     settings_dict = {}
     for setting in await session.scalars(
         select(CatalogueSetting).filter(
@@ -435,7 +486,14 @@ async def get_dns_manager_settings(
 async def get_dns_manager_class(
     session: AsyncSession,
 ) -> type[AbstractDNSManager]:
-    """Get DNS manager class."""
+    """Get DNS manager class.
+
+    Args:
+        session (AsyncSession): Database session.
+
+    Returns:
+        type[AbstractDNSManager]: DNS manager class type.
+    """
     if await get_dns_state(session) != DNSManagerState.NOT_CONFIGURED:
         return DNSManager
     return StubDNSManager

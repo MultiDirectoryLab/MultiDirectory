@@ -82,10 +82,13 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     def is_valid(self, user: User | None) -> bool:  # noqa: ARG002
         """Check if GSSAPI token is valid.
 
-        :param User | None user: indb user
+        Args:
+          User: None user: indb user
 
         Returns:
             bool: status
+          user: User | None:
+
         """
         return True
 
@@ -94,6 +97,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         Returns:
             bool: status
+
         """
         return False
 
@@ -102,10 +106,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Get auth from data.
 
         Args:
-            data (list[ASN1Row]): data
+            data(list[ASN1Row]): data
+            data: list[ASN1Row]:
 
         Returns:
-            SaslGSSAPIAuthentication
+          : SaslGSSAPIAuthentication
         """
         return cls(
             ticket=data[1].value if len(data) > 1 else b"",
@@ -148,10 +153,12 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Handle the ticket and make gssapi step.
 
         Args:
-            server_ctx (gssapi.SecurityContext): GSSAPI security context
+            server_ctx(gssapi.SecurityContext): GSSAPI security context
+            server_ctx: gssapi.SecurityContext:
 
         Returns:
             GSSAPIAuthStatus: status
+
         """
         try:
             out_token = server_ctx.step(self.ticket)
@@ -164,11 +171,13 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Validate security layer.
 
         Args:
-            client_layer (int): client security layer
-            settings (Settings): settings
+            client_layer(int): client security layer
+            settings(Settings): settings
+            client_layer: GSSAPISL:
 
         Returns:
             bool: validate result
+
         """
         supported = GSSAPISL.SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer
@@ -180,8 +189,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Handle final client message.
 
         Args:
-            server_ctx (gssapi.SecurityContext): GSSAPI security context
-            settings (Settings): settings
+            server_ctx(gssapi.SecurityContext): GSSAPI security context
+            settings(Settings): settings
+            server_ctx: gssapi.SecurityContext:
 
         Returns:
             GSSAPIAuthStatus: status
@@ -212,8 +222,10 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Generate final wrap message.
 
         Args:
-            server_ctx (gssapi.SecurityContext): gssapi context
-            settings (Settings): settings
+            server_ctx(gssapi.SecurityContext): gssapi context
+            settings(Settings): settings
+            server_ctx: gssapi.SecurityContext:
+            settings: Settings:
 
         Returns:
             bytes: message

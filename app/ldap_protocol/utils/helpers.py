@@ -150,7 +150,8 @@ def validate_entry(entry: str) -> bool:
     cn=first,dc=example,dc=com -> valid
 
     Args:
-        entry (str): any str
+        entry(str): any str
+        entry: str:
 
     Returns:
         bool: result
@@ -163,22 +164,40 @@ def validate_entry(entry: str) -> bool:
 
 
 def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
-    """Check if an entry in a base dn."""
+    """Check if an entry in a base dn.
+
+    Args:
+        base_directory: Directory:
+        entry: str:
+    """
     return entry.lower().endswith(base_directory.path_dn.lower())
 
 
 def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
-    """Check if an entry is a base dn."""
+    """Check if an entry is a base dn.
+
+    Args:
+        base_directory: Directory:
+        entry: str:
+    """
     return base_directory.path_dn.lower() == entry.lower()
 
 
 def get_generalized_now(tz: ZoneInfo) -> str:
-    """Get generalized time (formated) with tz."""
+    """Get generalized time (formated) with tz.
+
+    Args:
+        tz: ZoneInfo:
+    """
     return datetime.now(tz).strftime("%Y%m%d%H%M%S.%f%z")
 
 
 def _get_domain(name: str) -> str:
-    """Get domain from name."""
+    """Get domain from name.
+
+    Args:
+        name: str:
+    """
     return ".".join(
         [
             item[3:].lower()
@@ -192,8 +211,10 @@ def create_integer_hash(text: str, size: int = 9) -> int:
     """Create integer hash from text.
 
     Args:
-        text (str): any string
-        size (int): fixed size of hash, defaults to 15
+        text(str): any string
+        size(int): fixed size of hash, defaults to 15
+        text: str:
+        size: int:  (Default value = 9)
 
     Returns:
         int: hash
@@ -202,7 +223,11 @@ def create_integer_hash(text: str, size: int = 9) -> int:
 
 
 def get_windows_timestamp(value: datetime) -> int:
-    """Get the Windows timestamp from the value."""
+    """Get the Windows timestamp from the value.
+
+    Args:
+        value: datetime:
+    """
     return (int(value.timestamp()) + 11644473600) * 10000000
 
 
@@ -214,6 +239,9 @@ def dt_to_ft(dt: datetime) -> int:
     """Convert a datetime to a Windows filetime.
 
     If the object is time zone-naive, it is forced to UTC before conversion.
+
+    Args:
+        dt: datetime:
     """
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) != 0:
         dt = dt.astimezone(ZoneInfo("UTC"))
@@ -228,6 +256,9 @@ def ft_to_dt(filetime: int) -> datetime:
     The new datetime object is timezone-naive but is equivalent to tzinfo=utc.
     1) Get seconds and remainder in terms of Unix epoch
     2) Convert to datetime object, with remainder as microseconds.
+
+    Args:
+        filetime: int:
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
     return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(
@@ -254,6 +285,7 @@ def string_to_sid(sid_string: str) -> bytes:
 
     Args:
         sid_string: The string representation of the SID
+        sid_string: str:
 
     Returns:
         bytes: The binary representation of the SID
@@ -286,10 +318,13 @@ def create_object_sid(
 
     Args:
         domain: domain directory
-        rid (int): relative identifier
-        reserved (bool): A flag indicating whether the RID is reserved.
-            If `True`, the given RID is used directly. If `False`, 1000
-            is added to the given RID to generate the final RID
+        rid(int): relative identifier
+        reserved(bool): A flag indicating whether the RID is reserved.
+    If `True`, the given RID is used directly. If `False`, 1000
+    is added to the given RID to generate the final RID
+        domain: Directory:
+        rid: int:
+        reserved: bool:  (Default value = False)
 
     Returns:
         str: the complete objectSid as a string
@@ -311,6 +346,9 @@ def create_user_name(directory_id: int) -> str:
     """Create username by directory id.
 
     NOTE: keycloak
+
+    Args:
+        directory_id: int:
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
 

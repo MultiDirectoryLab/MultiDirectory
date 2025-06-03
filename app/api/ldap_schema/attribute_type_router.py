@@ -41,12 +41,8 @@ async def create_one_attribute_type(
     \f
 
     Args:
-        request_data (AttributeTypeSchema): Data for creating attribute
-            type.
+        request_data (AttributeTypeSchema): Data for creating attribute type.
         session (FromDishka[AsyncSession]): Database session.
-
-    Returns:
-        None.
     """
     await create_attribute_type(
         oid=request_data.oid,
@@ -73,7 +69,7 @@ async def get_one_attribute_type(
     \f
 
     Args:
-        attribute_type_name (str): name of the Attribute Type.
+        attribute_type_name (str): Name of the Attribute Type.
         session (FromDishka[AsyncSession]): Database session.
 
     Raises:
@@ -111,9 +107,9 @@ async def get_list_attribute_types_with_pagination(
     \f
 
     Args:
-        page_number (int): number of page.
+        page_number (int): Number of page.
         session (FromDishka[AsyncSession]): Database session.
-        page_size (int): number of items per page.
+        page_size (int): Number of items per page.
 
     Returns:
         AttributeTypePaginationSchema: Paginator.
@@ -150,18 +146,13 @@ async def modify_one_attribute_type(
     \f
 
     Args:
-        attribute_type_name (str): name of the attribute type for
-            modifying.
+        attribute_type_name (str): Name of the attribute type for modifying.
         request_data (AttributeTypeUpdateSchema): Changed data.
         session (FromDishka[AsyncSession]): Database session.
 
     Raises:
         HTTP_404_NOT_FOUND: If attribute type not found.
-        HTTP_400_BAD_REQUEST: If attribute type is system->cannot be
-            changed
-
-    Returns:
-        None.
+        HTTP_400_BAD_REQUEST: If attribute type is system->cannot be changed
     """
     attribute_type = await get_attribute_type_by_name(
         attribute_type_name,
@@ -199,17 +190,12 @@ async def delete_bulk_attribute_types(
     """Delete attribute types by their names.
 
     \f
-
     Args:
-        attribute_types_names (list[str]): List of attribute types
-            names.
+        attribute_types_names (list[str]): List of attribute types names.
         session (FromDishka[AsyncSession]): Database session.
 
     Raises:
         HTTP_400_BAD_REQUEST: If nothing to delete.
-
-    Returns:
-        None: None
     """
     if not attribute_types_names:
         raise HTTPException(

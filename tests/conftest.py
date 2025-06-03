@@ -146,7 +146,11 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine."""
+        """Get async engine.
+
+        Args:
+            settings: Settings:
+        """
         return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
@@ -154,7 +158,11 @@ class TestProvider(Provider):
         self,
         engine: AsyncEngine,
     ) -> async_sessionmaker[AsyncSession]:
-        """Create session factory."""
+        """Create session factory.
+
+        Args:
+            engine: AsyncEngine:
+        """
         return async_sessionmaker(
             engine,
             expire_on_commit=False,
@@ -320,10 +328,22 @@ async def _migrations(
     config.attributes["app_settings"] = settings
 
     def upgrade(conn: AsyncConnection) -> None:
+        """Description.
+
+        Args:
+            conn: AsyncConnection:
+
+        """
         config.attributes["connection"] = conn
         command.upgrade(config, "head")
 
     def downgrade(conn: AsyncConnection) -> None:
+        """Description.
+
+        Args:
+            conn: AsyncConnection:
+
+        """
         config.attributes["connection"] = conn
         command.downgrade(config, "base")
 
@@ -413,7 +433,12 @@ def _server(
     event_loop: asyncio.BaseEventLoop,
     handler: PoolClientHandler,
 ) -> Generator:
-    """Run server in background."""
+    """Run server in background.
+
+    Args:
+        event_loop: asyncio.BaseEventLoop:
+        handler: PoolClientHandler:
+    """
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(0.1))
     yield
@@ -423,7 +448,11 @@ def _server(
 
 @pytest.fixture
 def ldap_client(settings: Settings) -> ldap3.Connection:
-    """Get ldap clinet without a creds."""
+    """Get ldap clinet without a creds.
+
+    Args:
+        settings: Settings:
+    """
     return ldap3.Connection(
         ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
     )
@@ -489,7 +518,11 @@ async def http_client(
 
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
-    """Get creds from test data."""
+    """Get creds from test data.
+
+    Args:
+        user: dict:
+    """
     return TestCreds(user["sam_accout_name"], user["password"])
 
 
@@ -501,7 +534,11 @@ def user() -> dict:
 
 @pytest.fixture
 def _force_override_tls(settings: Settings) -> Iterator:
-    """Override tls status for tests."""
+    """Override tls status for tests.
+
+    Args:
+        settings: Settings:
+    """
     current_status = settings.USE_CORE_TLS
     settings.USE_CORE_TLS = True
     yield

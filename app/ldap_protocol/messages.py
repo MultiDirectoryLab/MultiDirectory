@@ -76,7 +76,11 @@ class LDAPRequestMessage(LDAPMessage):
 
     @classmethod
     def from_bytes(cls, source: bytes) -> "LDAPRequestMessage":
-        """Create message from bytes."""
+        """Create message from bytes.
+
+        Args:
+            source: bytes:
+        """
         dec = Decoder()
         dec.start(source)
         output = asn1todict(dec)
@@ -119,14 +123,16 @@ class LDAPRequestMessage(LDAPMessage):
         """Create error response message.
 
         Args:
-            source (bytes): source data
-            err (Exception): any error
-
-        Raises:
-            ValueError: on invalid schema
+            source(bytes): source data
+            err(Exception): any error
+            source: bytes:
+            err: Exception:
 
         Returns:
             LDAPResponseMessage: response with err code
+
+        Raises:
+            ValueError: on invalid schema
         """
         output = asn1todict(source)
         message_id = 0

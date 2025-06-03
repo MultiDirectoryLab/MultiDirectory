@@ -85,23 +85,14 @@ class MultifactorAPI:
 
     Methods:
     - `__init__(key, secret, client, settings)`: Initializes the object with
-      the required credentials and bound HTTP client from di.
+        the required credentials and bound HTTP client from di.
     - `ldap_validate_mfa(username, password)`: Validates MFA for a user. If the
-      password is not provided, sends a push notification and waits for user
-      approval with a timeout of 60 seconds.
+        password is not provided, sends a push notification and waits for user
+        approval with a timeout of 60 seconds.
     - `get_create_mfa(username)`: Retrieves or creates an MFA token for the
-      specified user.
+        specified user.
     - `refresh_token()`: Refreshes the authentication token using the refresh
-      endpoint.
-
-    Attributes:
-    - `MultifactorError`: Exception class for MFA-related errors.
-    - `AUTH_URL_USERS`: Endpoint URL for user authentication requests.
-    - `AUTH_URL_ADMIN`: Endpoint URL for admin authentication requests.
-    - `REFRESH_URL`: Endpoint URL for token refresh.
-    - `client`: Asynchronous HTTP client for making requests.
-    - `settings`: Configuration settings for the MFA service.
-
+        endpoint.
     """
 
     MultifactorError = _MultifactorError
@@ -137,6 +128,7 @@ class MultifactorAPI:
 
     @staticmethod
     def _generate_trace_id_header() -> dict[str, str]:
+        """Description."""
         return {"mf-trace-id": f"md:{uuid.uuid4()}"}
 
     @log_mfa.catch(reraise=True)

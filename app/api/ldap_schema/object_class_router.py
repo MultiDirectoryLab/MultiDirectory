@@ -39,12 +39,8 @@ async def create_one_object_class(
     \f
 
     Args:
-        request_data (ObjectClassSchema): Data for creating Object
-            Class.
+        request_data (ObjectClassSchema): Data for creating Object Class.
         session (FromDishka[AsyncSession]): Database session.
-
-    Returns:
-        None.
     """
     await create_object_class(
         oid=request_data.oid,
@@ -72,7 +68,7 @@ async def get_one_object_class(
     \f
 
     Args:
-        object_class_name (str): name of the Object Class.
+        object_class_name (str): Name of the Object Class.
         session (FromDishka[AsyncSession]): Database session.
 
     Raises:
@@ -110,9 +106,9 @@ async def get_list_object_classes_with_pagination(
     \f
 
     Args:
-        page_number (int): number of page.
+        page_number (int): Number of page.
         session (FromDishka[AsyncSession]): Database session.
-        page_size (int): number of items per page.
+        page_size (int): Number of items per page.
 
     Returns:
         ObjectClassPaginationSchema: Paginator.
@@ -155,11 +151,7 @@ async def modify_one_object_class(
 
     Raises:
         HTTP_404_NOT_FOUND: If nothing to delete.
-        HTTP_400_BAD_REQUEST: If object class is system->cannot be
-            changed
-
-    Returns:
-        None.
+        HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
     """
     object_class = await get_object_class_by_name(object_class_name, session)
     if not object_class:
@@ -199,9 +191,6 @@ async def delete_bulk_object_classes(
 
     Raises:
         HTTP_400_BAD_REQUEST: If nothing to delete.
-
-    Returns:
-        None: None
     """
     if not object_classes_names:
         raise HTTPException(

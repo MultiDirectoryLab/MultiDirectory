@@ -77,8 +77,8 @@ async def get_current_user(
         session_storage (FromDishka[SessionStorage]): session storage
         request (Request): request
         response (Response): response
+        ip (Annotated[IPv4Address | IPv6Address]): ip address
         user_agent (Annotated[str]): user agent
-    :param Annotated[IPv4Address | IPv6Address] ip: ip address
 
     Returns:
         UserSchema: user schema

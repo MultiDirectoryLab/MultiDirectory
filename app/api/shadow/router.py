@@ -97,9 +97,6 @@ async def sync_password(
     Raises:
         HTTPException: 404 if user not found
         HTTPException: 422 if password not valid
-
-    Returns:
-        None: None
     """
     user = await get_user(session, principal)
 

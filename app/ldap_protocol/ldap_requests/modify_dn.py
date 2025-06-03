@@ -65,6 +65,7 @@ class ModifyDNRequest(BaseRequest):
         deleteoldrdn=true
         new_superior='ou=users,dc=multifactor,dc=dev'
 
+    Args:
         >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
@@ -77,7 +78,11 @@ class ModifyDNRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyDNRequest":
-        """Create structure from ASN1Row dataclass list."""
+        """Create structure from ASN1Row dataclass list.
+
+        Args:
+            data: list[ASN1Row]:
+        """
         return cls(
             entry=data[0].value,
             newrdn=data[1].value,

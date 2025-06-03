@@ -51,7 +51,11 @@ async def _schedule(
 
 
 def scheduler(settings: Settings) -> None:
-    """Sript entrypoint."""
+    """Sript entrypoint.
+
+    Args:
+        settings: Settings:
+    """
 
     async def runner(settings: Settings) -> None:
         container = make_async_container(
@@ -64,6 +68,7 @@ def scheduler(settings: Settings) -> None:
                 tg.create_task(_schedule(task, timeout, container))
 
     def _run() -> None:
+        """Run the scheduler."""
         uvloop.run(runner(settings))
 
     try:

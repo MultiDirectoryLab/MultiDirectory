@@ -41,7 +41,11 @@ class BaseExtendedValue(ABC, BaseModel):
     @classmethod
     @abstractmethod
     def from_data(cls, data: ASN1Row) -> "BaseExtendedValue":
-        """Create model from data, decoded from responseValue bytes."""
+        """Create model from data, decoded from responseValue bytes.
+
+        Args:
+            data: ASN1Row:
+        """
 
     @abstractmethod
     async def handle(
@@ -55,6 +59,12 @@ class BaseExtendedValue(ABC, BaseModel):
 
     @staticmethod
     def _decode_value(data: ASN1Row) -> ASN1Row:
+        """Description.
+
+        Args:
+            data: ASN1Row:
+
+        """
         dec = Decoder()
         dec.start(data[1].value)  # type: ignore
         output = asn1todict(dec)
@@ -94,7 +104,11 @@ class WhoAmIRequestValue(BaseExtendedValue):
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "WhoAmIRequestValue":  # noqa: ARG003
-        """Create model from data, WhoAmIRequestValue data is empty."""
+        """Create model from data, WhoAmIRequestValue data is empty.
+
+        Args:
+            data: ASN1Row:
+        """
         return cls()
 
     async def handle(
@@ -142,7 +156,11 @@ class StartTLSRequestValue(BaseExtendedValue):
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "StartTLSRequestValue":  # noqa: ARG003
-        """Create model from data, decoded from responseValue bytes."""
+        """Create model from data, decoded from responseValue bytes.
+
+        Args:
+            data: ASN1Row:
+        """
         return cls()
 
 
@@ -156,7 +174,7 @@ class PasswdModifyResponse(BaseExtendedResponseValue):
     gen_passwd: str = ""
 
     def get_value(self) -> str | None:
-        """Return gen password."""
+        """Description."""
         return self.gen_passwd
 
 
@@ -246,7 +264,11 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "PasswdModifyRequestValue":
-        """Create model from data, decoded from responseValue bytes."""
+        """Create model from data, decoded from responseValue bytes.
+
+        Args:
+            data: ASN1Row:
+        """
         d: list = cls._decode_value(data)  # type: ignore
         if len(d) == 3:
             return cls(
@@ -316,7 +338,8 @@ class ExtendedRequest(BaseRequest):
         """Create extended request from asn.1 decoded string.
 
         Args:
-            data (ASN1Row): any data
+            data(ASN1Row): any data
+            data: list[ASN1Row]:
 
         Returns:
             ExtendedRequest: universal request

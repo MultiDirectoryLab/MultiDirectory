@@ -73,11 +73,11 @@ class UserAccountControlFlag(IntFlag):
         """Check all flags set in the userAccountControl value.
 
         Args:
-            uac_value (int): userAccountControl attribute value
+            uac_value(int): userAccountControl attribute value
+            uac_value: str | int:
 
         Returns:
-            : True if the value is valid (only known flags), False
-            otherwise
+            bool: True if all flags are set correctly, False otherwise
         """
         if isinstance(uac_value, int):
             pass
@@ -120,10 +120,11 @@ async def get_check_uac(
         """Check given flag in current userAccountControl attribute.
 
         Args:
-            flag (userAccountControlFlag): flag
+            flag(userAccountControlFlag): flag
+            flag: UserAccountControlFlag:
 
         Returns:
-            bool: result
+            bool: True if flag is set, False otherwise
         """
         return bool(int(value) & flag)
 

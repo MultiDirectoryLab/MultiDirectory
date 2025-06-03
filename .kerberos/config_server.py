@@ -399,8 +399,9 @@ def write_configs(
 ) -> None:
     """Write two config files, strings are: hex bytes.
 
-    :param Annotated[str, Body krb5_config: krb5 hex bytes format config
-    :param Annotated[str, Body kdc_config: kdc hex bytes format config
+    Args:
+        krb5_config (str): krb5 hex bytes format config.
+        kdc_config (str): kdc hex bytes format config.
     """
     with open("/etc/krb5.conf", "wb") as f:
         f.write(bytes.fromhex(krb5_config))
@@ -411,7 +412,11 @@ def write_configs(
 
 @setup_router.post("/stash", status_code=201)
 async def run_setup_stash(schema: ConfigSchema) -> None:
-    """Set up stash file."""
+    """Set up stash file.
+
+    Args:
+        schema (ConfigSchema): Configuration schema for stash setup.
+    """
     proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util",
         "-D",
@@ -445,8 +450,11 @@ async def run_setup_stash(schema: ConfigSchema) -> None:
 async def run_setup_subtree(schema: ConfigSchema) -> None:
     """Set up subtree in ldap.
 
-    :param ConfigSchema schema: _description_
-    :raises HTTPException: _description_
+    Args:
+        schema (ConfigSchema): Configuration schema for subtree setup.
+
+    Raises:
+        HTTPException: If setup fails.
     """
     create_proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util",
@@ -500,9 +508,10 @@ async def add_princ(
 ) -> None:
     """Add principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        password (str | None): Principal password.
     """
     await kadmin.add_princ(name, password)
 
@@ -512,11 +521,14 @@ async def get_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
 ) -> Principal:
-    """Add principal.
+    """Get principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+
+    Returns:
+        Principal: Principal object.
     """
     return await kadmin.get_princ(name)
 
@@ -526,11 +538,11 @@ async def del_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
 ) -> None:
-    """Add principal.
+    """Delete principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
     """
     await kadmin.del_princ(name)
 
@@ -541,11 +553,12 @@ async def change_princ_password(
     name: Annotated[str, Body()],
     password: Annotated[str, Body()],
 ) -> None:
-    """Change princ pw principal.
+    """Change principal password.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        password (str): Principal password.
     """
     await kadmin.change_password(name, password)
 
@@ -560,11 +573,12 @@ async def create_or_update_princ_password(
     name: Annotated[str, Body()],
     password: Annotated[str, Body()],
 ) -> None:
-    """Change princ pw principal or create with new.
+    """Change principal password or create with new.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        password (str): Principal password.
     """
     await kadmin.create_or_update_princ_pw(name, password)
 
@@ -581,9 +595,10 @@ async def rename_princ(
 ) -> None:
     """Rename principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body new_name: principal new name
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        new_name (str): Principal new name.
     """
     """"""
     await kadmin.rename_princ(name, new_name)
@@ -596,9 +611,12 @@ async def ktadd(
 ) -> FileResponse:
     """Ktadd principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        names (list[str]): List of principal names.
+
+    Returns:
+        FileResponse: Keytab file response.
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
     await kadmin.ktadd(names, filename)
@@ -616,8 +634,9 @@ async def lock_princ(
 ) -> None:
     """Lock principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
     """
     await kadmin.lock_princ(name)
 
@@ -627,10 +646,11 @@ async def force_pw_reset_principal(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body(embed=True)],
 ) -> None:
-    """Mark princ as pw expired.
+    """Mark principal as password expired.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
     """
     await kadmin.force_pw_principal(name)
 

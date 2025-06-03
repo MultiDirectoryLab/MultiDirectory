@@ -67,15 +67,15 @@ async def login(
     - **password**: password
 
     \f
-    :param Annotated[OAuth2Form, Depends form: login form
-
     Args:
-        session (FromDishka[AsyncSession]): db
-        settings (FromDishka[Settings]): app settings
-        mfa (FromDishka[MultifactorAPI]): mfa api wrapper
-        storage (FromDishka[SessionStorage]): session storage
-        response (Response): FastAPI response
-    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
+        form (OAuth2Form): Login form with username and password.
+        session (FromDishka[AsyncSession]): Database session.
+        settings (FromDishka[Settings]): Application settings.
+        mfa (FromDishka[MultifactorAPI]): MFA API wrapper.
+        storage (FromDishka[SessionStorage]): Session storage.
+        response (Response): FastAPI response object.
+        ip (IPv4Address | IPv6Address): Client IP address.
+        user_agent (str): Client user agent string.
 
     Raises:
         HTTPException: 401 if incorrect username or password
@@ -85,9 +85,6 @@ async def login(
         HTTPException: 403 if ip is not provided
         HTTPException: 403 if user not part of network policy
         HTTPException: 426 if mfa required
-
-    Returns:
-        None: None
     """
     user = await authenticate_user(session, form.username, form.password)
 
@@ -190,18 +187,15 @@ async def password_reset(
     \f
 
     Args:
-        session (FromDishka[AsyncSession]): db
-        kadmin (FromDishka[AbstractKadmin]): kadmin api
-    :param Annotated[str, Body identity: reset target user
-    :param Annotated[str, Body new_password: new password for user
+        identity (str): Reset target user identity.
+        new_password (str): New password for user.
+        session (FromDishka[AsyncSession]): Database session.
+        kadmin (FromDishka[AbstractKadmin]): Kadmin API instance.
 
     Raises:
         HTTPException: 404 if user not found
         HTTPException: 422 if password not valid
         HTTPException: 424 if kerberos password update failed
-
-    Returns:
-        None: None
     """
     user = await get_user(session, identity)
 

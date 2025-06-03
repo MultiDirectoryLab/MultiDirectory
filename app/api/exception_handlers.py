@@ -10,7 +10,12 @@ def handle_db_connect_error(
     request: Request,  # noqa: ARG001
     exc: Exception,
 ) -> NoReturn:
-    """Handle duplicate."""
+    """Handle duplicate.
+
+    Args:
+        request: Request:
+        # noqa: ARG001exc: Exception:
+    """
     if "QueuePool limit of size" in str(exc):
         logger.critical("POOL EXCEEDED {}", exc)
 

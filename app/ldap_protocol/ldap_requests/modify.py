@@ -105,6 +105,12 @@ class ModifyRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
+        """Description.
+
+        Args:
+            data: list[ASN1Row]:
+
+        """
         entry, proto_changes = data
 
         changes = []
@@ -230,6 +236,12 @@ class ModifyRequest(BaseRequest):
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
+        """Description.
+
+        Args:
+            err: BaseException:
+
+        """
         match err:
             case ValueError():
                 logger.error(f"Invalid value: {err}")
@@ -251,6 +263,7 @@ class ModifyRequest(BaseRequest):
                 raise err
 
     def _get_dir_query(self) -> Select:
+        """Description."""
         return (
             select(Directory)
             .join(Directory.attributes)
@@ -267,6 +280,14 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         user_dir_id: int,
     ) -> bool:
+        """Description.
+
+        Args:
+            names: set[str]:
+            directory: Directory:
+            user_dir_id: int:
+
+        """
         return (
             ("userpassword" in names or "unicodepwd" in names)
             and len(names) == 1

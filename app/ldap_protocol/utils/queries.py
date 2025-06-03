@@ -180,7 +180,8 @@ def get_search_path(dn: str) -> list[str]:
     """Get search path for dn.
 
     Args:
-        dn (str): any DN, dn syntax
+        dn(str): any DN, dn syntax
+        dn: str:
 
     Returns:
         list[str]: reversed list of dn values
@@ -198,8 +199,11 @@ def get_path_filter(
     """Get filter condition for path equality.
 
     Args:
-        path (list[str]): dn
-        field (Column): path column, defaults to Directory.path
+        path(list[str]): dn
+        field(Column): path column, defaults to Directory.path
+        path: list[str]:
+        *:
+        column: ColumnElement | Column | InstrumentedAttribute:  (Default value = Directory.path)
 
     Returns:
         ColumnElement: filter (where) element
@@ -212,7 +216,13 @@ def get_filter_from_path(
     *,
     column: Column | InstrumentedAttribute = Directory.path,
 ) -> ColumnElement:
-    """Get filter condition for path equality from dn."""
+    """Get filter condition for path equality from dn.
+
+    Args:
+        dn: str:
+        *:
+        column: Column | InstrumentedAttribute:  (Default value = Directory.path)
+    """
     return get_path_filter(get_search_path(dn), column=column)
 
 
@@ -228,7 +238,11 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
 
 
 def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
-    """Get default domain attrs."""
+    """Get default domain attrs.
+
+    Args:
+        domain: Directory:
+    """
     for value in ["domain", "top", "domainDNS"]:
         yield Attribute(name="objectClass", value=value, directory=domain)
 

@@ -69,7 +69,11 @@ class BaseSchemaModel[S: Base](BaseModel):
     @classmethod
     @abstractmethod
     def from_db(cls, sqla_instance: S) -> "BaseSchemaModel[S]":
-        """Create an instance of Schema from instance of SQLA model."""
+        """Create an instance of Schema from instance of SQLA model.
+
+        Args:
+            sqla_instance: S:
+        """
 
 
 @dataclass

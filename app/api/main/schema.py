@@ -50,6 +50,8 @@ class KerberosSetupRequest(BaseModel):
 
 
 class _PolicyFields:
+    """Description."""
+
     name: str
     can_read: bool
     can_add: bool
@@ -59,6 +61,8 @@ class _PolicyFields:
 
 
 class _MaterialFields:
+    """Description."""
+
     id: int
 
 

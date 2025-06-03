@@ -99,7 +99,12 @@ class SearchRequest(BaseRequest):
 
     @field_serializer("filter")
     def serialize_filter(self, val: ASN1Row | None, _info: Any) -> str | None:  # noqa: ANN401
-        """Serialize filter field."""
+        """Serialize filter field.
+
+        Args:
+            val: ASN1Row | None:
+            _info: Any:
+        """
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
@@ -107,6 +112,13 @@ class SearchRequest(BaseRequest):
         cls,
         data: dict[str, list[ASN1Row]],
     ) -> "SearchRequest":
+        """Description.
+
+        Args:
+            data: dict[str:
+            list[ASN1Row]]:
+
+        """
         (
             base_object,
             scope,
@@ -131,6 +143,7 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def requested_attrs(self) -> list[str]:
+        """Description."""
         return [attr.lower() for attr in self.attributes]
 
     async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
@@ -224,8 +237,8 @@ class SearchRequest(BaseRequest):
         """Convert asn1 row filter_ to sqlalchemy obj.
 
         Args:
-            filter_ (ASN1Row): requested filter_
-            session (AsyncSession): sa session
+            filter_(ASN1Row): requested filter_
+            session(AsyncSession): sa session
 
         Returns:
             UnaryExpression: condition
@@ -308,18 +321,22 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def member_of(self) -> bool:
+        """Description."""
         return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def member(self) -> bool:
+        """Description."""
         return "member" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def token_groups(self) -> bool:
+        """Description."""
         return "tokengroups" in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:
+        """Description."""
         return "*" in self.requested_attrs or not self.requested_attrs
 
     def build_query(
@@ -327,7 +344,12 @@ class SearchRequest(BaseRequest):
         base_directories: list[Directory],
         user: UserSchema,
     ) -> Select:
-        """Build tree query."""
+        """Build tree query.
+
+        Args:
+            base_directories: list[Directory]:
+            user: UserSchema:
+        """
         query = (
             select(Directory)
             .join(User, isouter=True)

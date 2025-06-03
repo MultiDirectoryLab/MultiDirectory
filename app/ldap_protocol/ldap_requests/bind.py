@@ -59,7 +59,11 @@ class BindRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "BindRequest":
-        """Get bind from data dict."""
+        """Get bind from data dict.
+
+        Args:
+            data: list[ASN1Row]:
+        """
         auth = data[2].tag_id
 
         otpassword: str | None
@@ -235,7 +239,12 @@ class UnbindRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
-        """Unbind request has no body."""
+        """Unbind request has no body.
+
+        Args:
+            data: dict[str:
+            list[ASN1Row]]:
+        """
         return cls()
 
     async def handle(

@@ -50,7 +50,11 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.APP)
     def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine."""
+        """Get async engine.
+
+        Args:
+            settings: Settings:
+        """
         return create_async_engine(
             str(settings.POSTGRES_URI),
             pool_size=settings.INSTANCE_DB_POOL_SIZE,
@@ -67,7 +71,11 @@ class MainProvider(Provider):
         self,
         engine: AsyncEngine,
     ) -> async_sessionmaker[AsyncSession]:
-        """Create session factory."""
+        """Create session factory.
+
+        Args:
+            engine: AsyncEngine:
+        """
         return async_sessionmaker(engine, expire_on_commit=False)
 
     @provide(scope=Scope.REQUEST)
@@ -100,9 +108,8 @@ class MainProvider(Provider):
             settings (Settings): app settings
             session_maker (AsyncSessionMaker): session maker
 
-        Returns:
+        Yields:
             AsyncIterator[AbstractKadmin]: kadmin with client
-        :yield Iterator[AsyncIterator[AbstractKadmin]]: kadmin
         """
         limits = httpx.Limits(
             max_connections=settings.KRB5_SERVER_MAX_CONN,

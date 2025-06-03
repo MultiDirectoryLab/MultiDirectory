@@ -144,7 +144,9 @@ class PoolClientHandler:
         """Get ip from proxy protocol header.
 
         Args:
-            data (bytes): data
+            data(bytes): data
+            data: bytes:
+            writer: asyncio.StreamWriter:
 
         Returns:
             tuple: ip, data
@@ -236,7 +238,8 @@ class PoolClientHandler:
         https://github.com/cannatag/ldap3/blob/dev/ldap3/strategy/base.py#L455
 
         Args:
-            data (bytes): body
+            data(bytes): body
+            data: bytes:
 
         Returns:
             int: actual size
@@ -341,6 +344,13 @@ class PoolClientHandler:
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
+        """Description.
+
+        Args:
+            addr: str:
+            msg: LDAPRequestMessage:
+
+        """
         log.debug(
             f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}\n",
@@ -348,6 +358,13 @@ class PoolClientHandler:
 
     @staticmethod
     def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
+        """Description.
+
+        Args:
+            addr: str:
+            msg: LDAPResponseMessage:
+
+        """
         log.debug(
             f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}"[:3000],
@@ -355,6 +372,13 @@ class PoolClientHandler:
 
     @staticmethod
     def _log_short(addr: str, msg: LDAPMessage) -> None:
+        """Description.
+
+        Args:
+            addr: str:
+            msg: LDAPMessage:
+
+        """
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(
@@ -467,6 +491,12 @@ class PoolClientHandler:
 
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:
+        """Description.
+
+        Args:
+            server: asyncio.base_events.Server:
+
+        """
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
         log.info(f"Server on {addrs}")
 

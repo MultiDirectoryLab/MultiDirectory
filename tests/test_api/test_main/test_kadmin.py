@@ -22,6 +22,12 @@ def _create_test_user_data(
     name: str,
     pw: str,
 ) -> dict[str, str | list[dict[str, str | list[str]]]]:
+    """Description.
+
+    Args:
+    name: str:
+    pw: str:
+    """
     return {
         "entry": "cn=ktest,dc=md,dc=test",
         "password": pw,

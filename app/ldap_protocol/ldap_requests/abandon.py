@@ -20,7 +20,12 @@ class AbandonRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "AbandonRequest":  # noqa: ARG003
-        """Create structure from ASN1Row dataclass list."""
+        """Create structure from ASN1Row dataclass list.
+
+        Args:
+            data: dict[str:
+            list[ASN1Row]]:
+        """
         return cls(message_id=1)
 
     async def handle(self) -> AsyncGenerator:

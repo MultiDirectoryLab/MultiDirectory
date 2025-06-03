@@ -100,9 +100,6 @@ class SessionStorage(ABC):
 
         Args:
             uid (int): user id
-
-        Returns:
-            None:
         """
 
     @abstractmethod
@@ -111,13 +108,17 @@ class SessionStorage(ABC):
 
         Args:
             session_id (str): session id
-
-        Returns:
-            None:
         """
 
     @staticmethod
     def _sign(session_id: str, settings: Settings) -> str:
+        """Description.
+
+        Args:
+            session_id: str:
+            settings: Settings:
+
+        """
         return hmac.new(
             settings.SECRET_KEY.encode(),
             session_id.encode(),
@@ -125,16 +126,40 @@ class SessionStorage(ABC):
         ).hexdigest()
 
     def get_user_agent_hash(self, user_agent: str) -> str:
-        """Get user agent hash."""
+        """Get user agent hash.
+
+        Args:
+            user_agent: str:
+        """
         return hashlib.blake2b(user_agent.encode(), digest_size=6).hexdigest()
 
     def _get_ip_session_key(self, ip: str, protocol: ProtocolType) -> str:
+        """Description.
+
+        Args:
+            ip: str:
+            protocol: ProtocolType:
+
+        """
         return f"ip:{protocol}:{ip}"
 
     def _get_user_session_key(self, uid: int, protocol: ProtocolType) -> str:
+        """Description.
+
+        Args:
+            uid: int:
+            protocol: ProtocolType:
+
+        """
         return f"keys:{protocol}:{uid}"
 
     def _get_protocol(self, session_id: str) -> ProtocolType:
+        """Description.
+
+        Args:
+            session_id: str:
+
+        """
         return "http" if session_id.startswith("http:") else "ldap"
 
     def _generate_key(self) -> str:
@@ -142,6 +167,7 @@ class SessionStorage(ABC):
 
         Returns:
             str: A new key.
+
         """
         return f"http:{token_hex(self.key_length)}"
 
@@ -149,7 +175,8 @@ class SessionStorage(ABC):
         """Get lock key.
 
         Args:
-            session_id (str): session id
+            session_id(str): session id
+            session_id: str:
 
         Returns:
             str: lock key
@@ -226,7 +253,14 @@ class SessionStorage(ABC):
         settings: Settings,
         extra_data: dict | None,
     ) -> tuple[str, str, dict]:
-        """Set data."""
+        """Set data.
+
+        Args:
+            self: Self:
+            uid: int:
+            settings: Settings:
+            extra_data: dict | None:
+        """
         if extra_data is None:
             extra_data = {}
 

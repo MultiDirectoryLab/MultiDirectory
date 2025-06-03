@@ -60,10 +60,14 @@ def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
     """Generate BindResponse object with an invalid credentials error.
 
     Args:
-        error_message (LDAPBindErrors): Error message to include in the
-            response
+        error_message(LDAPBindErrors): Error message to include in the
+    response
+        error_message: LDAPBindErrors:
 
     Returns:
+        BindResponse: A response object with the result code set to
+        BindResponse: A response object with the result code set to
+        INVALID_CREDENTIALS, an empty matchedDN, and the provided error
         BindResponse: A response object with the result code set to
         INVALID_CREDENTIALS, an empty matchedDN, and the provided error
         message
@@ -88,11 +92,15 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     @abstractmethod
     def is_valid(self, user: User) -> bool:
-        """Validate state."""
+        """Validate state.
+
+        Args:
+            user: User:
+        """
 
     @abstractmethod
     def is_anonymous(self) -> bool:
-        """Return true if anonymous."""
+        """Description."""
 
     @abstractmethod
     async def get_user(self, session: AsyncSession, username: str) -> User:
@@ -108,4 +116,8 @@ class SaslAuthentication(AbstractLDAPAuth):
     @classmethod
     @abstractmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
-        """Get auth from data."""
+        """Get auth from data.
+
+        Args:
+            data: list[ASN1Row]:
+        """

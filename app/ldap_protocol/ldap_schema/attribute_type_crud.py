@@ -29,7 +29,11 @@ class AttributeTypeSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
-        """Create an instance from database."""
+        """Create an instance from database.
+
+        Args:
+            attribute_type: AttributeType:
+        """
         return cls(
             oid=attribute_type.oid,
             name=attribute_type.name,
@@ -94,9 +98,6 @@ async def create_attribute_type(
         no_user_modification (bool): User can't modify it.
         is_system (bool): Attribute Type is system.
         session (AsyncSession): Database session.
-
-    Returns:
-        None.
     """
     attribute_type = AttributeType(
         oid=oid,
@@ -164,9 +165,6 @@ async def modify_attribute_type(
         new_statement (AttributeTypeUpdateSchema): Attribute Type
             Schema.
         session (AsyncSession): Database session.
-
-    Returns:
-        None.
     """
     attribute_type.syntax = new_statement.syntax
     attribute_type.single_value = new_statement.single_value
@@ -183,9 +181,6 @@ async def delete_attribute_types_by_names(
     Args:
         attribute_type_names (list[str]): List of Attribute Types OIDs.
         session (AsyncSession): Database session.
-
-    Returns:
-        None: None.
     """
     if not attribute_type_names:
         return None

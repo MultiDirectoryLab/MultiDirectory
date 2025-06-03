@@ -24,12 +24,19 @@ def build_policy_query(
 
     Args:
         ip (IPv4Address): IP address to filter
-    :param Literal["is_http", "is_ldap", "is_kerberos"] protocol_field_name
-        protocol: Protocol to filter
-    :param list[int] | None user_group_ids: List of user group IDs, optional
+
+    Args:
+        Literal: is_http", "is_ldap", "is_kerberos"] protocol_field_name
+    protocol: Protocol to filter
+        list: int] | None user_group_ids: List of user group IDs, optional
 
     Returns:
-        : Select query
+    : Select query
+        ip: IPv4Address | IPv6Address:
+        protocol_field_name: Literal["is_http":
+        "is_ldap":
+        "is_kerberos"]:
+        user_group_ids: list[int] | None:  (Default value = None)
     """
     protocol_field = getattr(NetworkPolicy, protocol_field_name)
     query = (

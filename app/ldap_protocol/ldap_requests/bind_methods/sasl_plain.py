@@ -26,10 +26,12 @@ class SaslPLAINAuthentication(SaslAuthentication):
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
 
-        :param User | None user: indb user
+        Args:
+          User: None user: indb user
 
         Returns:
             bool: status
+
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -44,12 +46,17 @@ class SaslPLAINAuthentication(SaslAuthentication):
 
         Returns:
             bool: status
+
         """
         return False
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
-        """Get auth from data."""
+        """Get auth from data.
+
+        Args:
+            data: list[ASN1Row]:
+        """
         _, username, password = data[1].value.split("\\x00")
         return cls(
             credentials=data[1].value,

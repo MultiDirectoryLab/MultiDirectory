@@ -74,7 +74,12 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
 
     @classmethod
     def from_tag(cls, tag: Tag, value: T) -> "ASN1Row":
-        """Create row from tag."""
+        """Create row from tag.
+
+        Args:
+            tag: Tag:
+            value: T:
+        """
         return cls(tag.cls, tag.nr, value)
 
     def _handle_extensible_match(self) -> str:
@@ -145,6 +150,9 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         Recursively processes ASN.1 structures to construct a valid LDAP
         filter string based on LDAP operations such as AND, OR, and
         substring matches.
+
+        Args:
+            obj: "ASN1Row | T | None":  (Default value = None)
         """
         if obj is None:
             obj = self
@@ -229,6 +237,7 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
 
         The method recursively serializes ASN.1 rows into the LDAP filter
         format based on tag IDs and class IDs.
+
         """
         return self.serialize()
 
@@ -237,7 +246,12 @@ def value_to_string(
     tag: Tag,
     value: str | bytes | int | bool,
 ) -> bytes | str | int:
-    """Convert value to string."""
+    """Convert value to string.
+
+    Args:
+        tag: Tag:
+        value: str | bytes | int | bool:
+    """
     if tag.nr == Numbers.Integer:
         with suppress(ValueError):
             return int(value)
@@ -255,7 +269,11 @@ def value_to_string(
 
 
 def asn1todict(decoder: Decoder) -> list[ASN1Row]:
-    """Recursively collect ASN.1 data to list of ASNRows."""
+    """Recursively collect ASN.1 data to list of ASNRows.
+
+    Args:
+        decoder: Decoder:
+    """
     out = []
     while not decoder.eof():
         tag = decoder.peek()
@@ -277,7 +295,11 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
 
 
 def _validate_oid(oid: str) -> str:
-    """Validate ldap oid with regex."""
+    """Validate ldap oid with regex.
+
+    Args:
+        oid: str:
+    """
     if not Encoder._re_oid.match(oid):
         raise ValueError("Invalid LDAPOID")
     return oid

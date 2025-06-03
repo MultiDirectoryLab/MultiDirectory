@@ -9,7 +9,7 @@ DC=multifactor
     CN=User 4
   OU="2FA"
     CN=Service Accounts
-      CN=User 5
+        CN=User 5
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE

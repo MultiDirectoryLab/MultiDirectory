@@ -174,7 +174,7 @@ ignore-var-parameters = true
 ignore-variadic-names = true
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["S101"] # Ignore `Flake8-bandit S101` rule for the `tests/` directory.
+"tests/*.py" = ["S101", "D104", "DOC501", "D417", "DOC201", "DOC402"] # Ignore rules for the `tests/` directory.
 "alembic/*.py" = ["I001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
 
 [tool.ruff.lint.mccabe]

@@ -40,7 +40,11 @@ class ObjectClassSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
-        """Create an instance from database."""
+        """Create an instance from database.
+
+        Args:
+            object_class: ObjectClass:
+        """
         return cls(
             oid=object_class.oid,
             name=object_class.name,
@@ -107,9 +111,6 @@ async def create_object_class(
         attribute_type_names_may (list[str]): Attribute Types may.
         session (AsyncSession): Database session.
     :param str | None superior_name: Parent Object Class.
-
-    Returns:
-        None.
     """
     if kind not in OBJECT_CLASS_KINDS_ALLOWED:
         raise ValueError(f"Object class kind is not valid: {kind}.")
@@ -203,9 +204,6 @@ async def modify_object_class(
         new_statement (ObjectClassUpdateSchema): New statement of object
             class
         session (AsyncSession): Database session.
-
-    Returns:
-        None.
     """
     object_class.attribute_types_must.clear()
     object_class.attribute_types_must.extend(
@@ -239,9 +237,6 @@ async def delete_object_classes_by_names(
     Args:
         object_classes_names (list[str]): Object classes names.
         session (AsyncSession): Database session.
-
-    Returns:
-        None.
     """
     await session.execute(
         delete(ObjectClass)

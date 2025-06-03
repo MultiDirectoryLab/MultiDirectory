@@ -24,6 +24,7 @@ from pydantic import (
 
 
 def _get_vendor_version() -> str:
+    """Description."""
     with open("/pyproject.toml", "rb") as f:
         return tomllib.load(f)["tool"]["poetry"]["version"]
 
@@ -118,7 +119,11 @@ class Settings(BaseModel):
 
     @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
-        """Get timezone from a string."""
+        """Get timezone from a string.
+
+        Args:
+            tz: str:
+        """
         try:
             value = ZoneInfo(tz)
         except ZoneInfoNotFoundError as err:
@@ -135,6 +140,7 @@ class Settings(BaseModel):
 
         Returns:
             str: url
+
         """
         if self.MFA_API_SOURCE == "dev":
             return "https://api.multifactor.dev"

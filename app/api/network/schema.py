@@ -54,6 +54,12 @@ class NetmasksMixin:
     @field_validator("groups")
     @classmethod
     def validate_group(cls, groups: list[str]) -> list[str]:
+        """Description.
+
+        Args:
+            groups: list[str]:
+
+        """
         if not groups:
             return groups
         if all(validate_entry(group) for group in groups):
@@ -64,6 +70,11 @@ class NetmasksMixin:
     @field_validator("mfa_groups")
     @classmethod
     def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:
+        """Syka.
+
+        Args:
+            mfa_groups: list[str]:
+        """
         if not mfa_groups:
             return mfa_groups
         if all(validate_entry(group) for group in mfa_groups):
@@ -80,10 +91,12 @@ class NetmasksMixin:
         """Serialize netmasks to list.
 
         Args:
-            netmasks (IPv4IntefaceListType): ip masks
+            netmasks(IPv4IntefaceListType): ip masks
+            netmasks: IPv4IntefaceListType:
 
         Returns:
             list[str | dict]: ready to json serialized
+
         """
         values: list[str | dict] = []
 
