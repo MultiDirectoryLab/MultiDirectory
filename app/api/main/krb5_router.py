@@ -64,14 +64,17 @@ async def setup_krb_catalogue(
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Generate tree for kdc/kadmin.
+    """Generate tree for KDC/Kadmin.
 
-    :param Annotated[AsyncSession, Depends session: db
-    :param Annotated[EmailStr, Body mail: krbadmin email
-    :param Annotated[SecretStr, Body krbadmin_password: pw
+    Args:
+        session (AsyncSession): Database session.
+        mail (EmailStr): Kerberos admin email.
+        krbadmin_password (SecretStr): Kerberos admin password.
+        ldap_session (LDAPSession): LDAP session.
+        kadmin (AbstractKadmin): Kadmin manager.
 
     Raises:
-        HTTPException: on conflict
+        HTTPException: On conflict or failed creation.
     """
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
@@ -156,20 +159,26 @@ async def setup_kdc(
     settings: FromDishka[Settings],
     kadmin: FromDishka[AbstractKadmin],
     request: Request,
-) -> None:
+) -> Response:
     """Set up KDC server.
 
-    Create data structure in catalogue, generate config files, trigger commands
+    Creates data structure in catalogue, generates config files,
+    and triggers commands.
 
-    - **mail**: krbadmin mail
-    - **password**: krbadmin password
+    Args:
+        data (KerberosSetupRequest): Kerberos setup request data.
+        user (UserSchema): Current user.
+        session (AsyncSession): Database session.
+        settings (Settings): Application settings.
+        kadmin (AbstractKadmin): Kadmin manager.
+        request (Request): FastAPI request.
 
-    \f
-    :param Annotated[EmailStr, Body mail: json, defaults to 'admin')]
-    :param Annotated[str, Body password: json, defaults to 'password')]
-    :param Annotated[AsyncSession, Depends session: db
-    :param Annotated[LDAPSession, Depends ldap_session: ldap session
-    """
+    Returns:
+        Response: Background task response.
+
+    Raises:
+        HTTPException: On authentication or KDC setup failure.
+    """  # noqa: DOC501
     base_dn_list = await get_base_directories(session)
     base_dn = base_dn_list[0].path_dn
     domain: str = base_dn_list[0].name
@@ -256,7 +265,7 @@ async def setup_kdc(
                 data.admin_password.get_secret_value(),
             )
 
-        return Response(background=task)  # type: ignore
+        return Response(background=task)
     finally:
         await session.commit()
 
@@ -275,10 +284,15 @@ async def ktadd(
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    Args:
+        kadmin (AbstractKadmin): Kadmin manager.
+        names (list[str]): List of principal names.
 
     Returns:
-        bytes: file
+        StreamingResponse: Keytab file as a streaming response.
+
+    Raises:
+        HTTPException: If principal not found.
     """
     try:
         response = await kadmin.ktadd(names)
@@ -298,13 +312,17 @@ async def get_krb_status(
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
 ) -> KerberosState:
-    """Get server status.
+    """Get Kerberos server status.
 
-    :param Annotated[AsyncSession, Depends session: db
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    Args:
+        session (AsyncSession): Database session.
+        kadmin (AbstractKadmin): Kadmin manager.
 
     Returns:
-        KerberosState: state
+        KerberosState: Current Kerberos server state.
+
+    Raises:
+        HTTPException: If unable to get server status.
     """
     db_state = await get_krb_server_state(session)
     try:
@@ -324,14 +342,15 @@ async def add_principal(
     instance: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Create principal in kerberos with given name.
+    """Create principal in Kerberos with given name.
 
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    Args:
+        primary (str): Principal primary name.
+        instance (str): Principal instance.
+        kadmin (AbstractKadmin): Kadmin manager.
 
     Raises:
-        HTTPException: on failed kamin request.
+        HTTPException: On failed kadmin request.
     """
     try:
         await kadmin.add_principal(f"{primary}/{instance}", None)
@@ -348,15 +367,15 @@ async def rename_principal(
     principal_new_name: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Rename principal in kerberos with given name.
+    """Rename principal in Kerberos.
 
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LIMITED_STR, Body principal_new_name: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    Args:
+        principal_name (str): Current principal name.
+        principal_new_name (str): New principal name.
+        kadmin (AbstractKadmin): Kadmin manager.
 
     Raises:
-        HTTPException: on failed kamin request.
+        HTTPException: On failed kadmin request.
     """
     try:
         await kadmin.rename_princ(principal_name, principal_new_name)
@@ -373,15 +392,15 @@ async def reset_principal_pw(
     new_password: Annotated[LIMITED_STR, Body()],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Reset principal password in kerberos with given name.
+    """Reset principal password in Kerberos.
 
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LIMITED_STR, Body new_password: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
+    Args:
+        principal_name (str): Principal name.
+        new_password (str): New password.
+        kadmin (AbstractKadmin): Kadmin manager.
 
     Raises:
-        HTTPException: on failed kamin request.
+        HTTPException: On failed kadmin request.
     """
     try:
         await kadmin.change_principal_password(principal_name, new_password)
@@ -397,16 +416,14 @@ async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
     kadmin: FromDishka[AbstractKadmin],
 ) -> None:
-    """Delete principal in kerberos with given name.
-
-    \f
-    :param Annotated[str, Body principal_name: upn
+    """Delete principal in Kerberos.
 
     Args:
-        kadmin (FromDishka[AbstractKadmin]): _description_
+        principal_name (str): Principal name.
+        kadmin (AbstractKadmin): Kadmin manager.
 
     Raises:
-        HTTPException: on failed kamin request
+        HTTPException: On failed kadmin request.
     """
     try:
         await kadmin.del_principal(principal_name)

@@ -41,7 +41,12 @@ async def create_record(
     data: DNSServiceRecordCreateRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> None:
-    """Create DNS record with given params."""
+    """Create a DNS record with the given parameters.
+
+    Args:
+        data (DNSServiceRecordCreateRequest): DNS record creation request data.
+        dns_manager (AbstractDNSManager): DNS manager dependency.
+    """
     await dns_manager.create_record(
         data.record_name,
         data.record_value,
@@ -55,7 +60,12 @@ async def delete_single_record(
     data: DNSServiceRecordDeleteRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> None:
-    """Delete DNS record with given params."""
+    """Delete a DNS record with the given parameters.
+
+    Args:
+        data (DNSServiceRecordDeleteRequest): DNS record deletion request data.
+        dns_manager (AbstractDNSManager): DNS manager dependency.
+    """
     await dns_manager.delete_record(
         data.record_name,
         data.record_value,
@@ -68,7 +78,12 @@ async def update_record(
     data: DNSServiceRecordUpdateRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> None:
-    """Update DNS record with given params."""
+    """Update a DNS record with the given parameters.
+
+    Args:
+        data (DNSServiceRecordUpdateRequest): DNS record update request data.
+        dns_manager (AbstractDNSManager): DNS manager dependency.
+    """
     await dns_manager.update_record(
         data.record_name,
         data.record_value,
@@ -81,7 +96,14 @@ async def update_record(
 async def get_all_records(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSRecords]:
-    """Get all DNS records of current zone."""
+    """Get all DNS records of the current zone.
+
+    Args:
+        dns_manager (AbstractDNSManager): DNS manager dependency.
+
+    Returns:
+        list[DNSRecords]: List of DNS records.
+    """
     return await dns_manager.get_all_records()
 
 
@@ -90,7 +112,15 @@ async def get_dns_status(
     session: FromDishka[AsyncSession],
     dns_settings: FromDishka[DNSManagerSettings],
 ) -> dict[str, str | None]:
-    """Get DNS service status."""
+    """Get DNS service status.
+
+    Args:
+        session (AsyncSession): Database session.
+        dns_settings (DNSManagerSettings): DNS manager settings.
+
+    Returns:
+        dict[str, str | None]: DNS status, zone name, and DNS server IP.
+    """
     state = await get_dns_state(session)
     return {
         "dns_status": state,
@@ -108,7 +138,16 @@ async def setup_dns(
 ) -> None:
     """Set up DNS service.
 
-    Create zone file, get TSIG key, reload DNS server if selfhosted.
+    Creates zone file, gets TSIG key, reloads DNS server if self-hosted.
+
+    Args:
+        data (DNSServiceSetupRequest): DNS setup request data.
+        dns_manager (AbstractDNSManager): DNS manager dependency.
+        session (AsyncSession): Database session.
+        settings (Settings): Application settings.
+
+    Raises:
+        HTTPException: If DNS setup fails.
     """
     zone_file = None
     conf_part = None

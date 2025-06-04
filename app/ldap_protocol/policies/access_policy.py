@@ -54,7 +54,13 @@ async def create_access_policy(
     """Get policies.
 
     Args:
+        name (str): access policy name
+        can_read (bool): can read
+        can_add (bool): can add
+        can_modify (bool): can modify
+        can_delete (bool): can delete
         grant_dn (ENTRY_TYPE): main dn
+        groups (list[ENTRY_TYPE]): list of groups
         session (AsyncSession): session
     """
     path = get_search_path(grant_dn)
@@ -94,7 +100,7 @@ def mutate_ap[T: Select](
         action: Literal["add":
         "read":
         "modify":
-        "del"]:  (Default value = "read")
+        "del"]: (Default value = "read")
 
     Returns:
         T: select(Directory).join(Directory.access_policies)

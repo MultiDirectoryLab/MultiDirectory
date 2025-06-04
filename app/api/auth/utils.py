@@ -19,11 +19,13 @@ def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
     """Get IP address from request.
 
     Args:
-        request(Request): The incoming request object.
-        request: Request:
+        request (Request): The incoming request object.
+
+    Raises:
+        HTTPException: If the request client is None.
 
     Returns:
-        IPv4Address | None: The IP address or None.
+        IPv4Address | IPv6Address: The IP address or None.
     """
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
@@ -69,6 +71,9 @@ async def create_and_set_session_key(
         session (AsyncSession): db session
         settings (Settings): app settings
         response (Response): fastapi response object
+        storage (SessionStorage): session storage backend
+        ip (IPv4Address | IPv6Address): IP address of the client
+        user_agent (str): user agent string of the client
     """
     await set_last_logon_user(user, session, settings.TIMEZONE)
 

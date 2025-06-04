@@ -1,3 +1,9 @@
+"""Kerberos API module.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import (

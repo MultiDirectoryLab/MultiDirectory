@@ -23,7 +23,9 @@ async def disable_accounts(
     """Update userAccountControl attr.
 
     Args:
-        session (AsyncSession): db
+        session (AsyncSession): Database session.
+        kadmin (AbstractKadmin): Kadmin interface for locking principals.
+        settings (Settings): Application settings.
 
     Original query:
         update "Attributes" a

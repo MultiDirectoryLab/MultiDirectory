@@ -33,6 +33,9 @@ class AttributeTypeSchema(BaseSchemaModel):
 
         Args:
             attribute_type: AttributeType:
+
+        Returns:
+            AttributeTypeSchema: Instance of AttributeTypeSchema.
         """
         return cls(
             oid=attribute_type.oid,

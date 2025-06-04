@@ -17,7 +17,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
 
     Args:
         is_stub(bool): flag to change logs, defaults to False
-        is_stub: bool:  (Default value = False)
+        is_stub: bool: (Default value = False)
 
     Returns:
         Callable: any method
@@ -29,6 +29,8 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         Args:
             func: Callable:
 
+        Returns:
+            Callable: wrapped function
         """
         name = func.__name__
         bus_type = " stub " if is_stub else " "
@@ -87,7 +89,14 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
 
 
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
-    """Get kerberos server state."""
+    """Get kerberos server state.
+
+    Args:
+        session (AsyncSession): db session
+
+    Returns:
+        KerberosState: The current kerberos server state.
+    """
     state = await session.scalar(
         select(CatalogueSetting)
         .filter(CatalogueSetting.name == KERBEROS_STATE_NAME)

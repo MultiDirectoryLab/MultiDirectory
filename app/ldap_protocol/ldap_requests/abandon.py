@@ -25,6 +25,9 @@ class AbandonRequest(BaseRequest):
         Args:
             data: dict[str:
             list[ASN1Row]]:
+
+        Returns:
+            AbandonRequest: Instance of AbandonRequest.
         """
         return cls(message_id=1)
 

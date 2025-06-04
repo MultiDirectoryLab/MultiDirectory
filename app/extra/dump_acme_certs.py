@@ -19,7 +19,10 @@ def dump_acme_cert(resolver: str = "md-resolver") -> None:
     try read until file contents is generated.
 
     Args:
-        resolver: str:  (Default value = "md-resolver")
+        resolver: str: (Default value = "md-resolver")
+
+    Raises:
+        SystemExit: If there is an error loading the TLS certificate.
     """
     if os.path.exists("/certs/cert.pem") and os.path.exists(
         "/certs/privkey.pem"

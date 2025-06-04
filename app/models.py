@@ -244,7 +244,8 @@ class Directory(Base):
         """Description.
 
         Returns:
-            defaultdict[str, list[str]]: Dictionary of attribute names to their values.
+            defaultdict[str, list[str]]: Dictionary of attribute names\
+                to their values.
         """
         attributes = defaultdict(list)
         for attribute in self.attributes:

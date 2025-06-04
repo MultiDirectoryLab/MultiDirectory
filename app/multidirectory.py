@@ -153,8 +153,11 @@ def create_prod_app(
 
     Args:
         factory: Callable[[Settings]:
-        FastAPI]:  (Default value = _create_basic_app)
-        settings: Settings | None:  (Default value = None)
+        FastAPI]: (Default value = _create_basic_app)
+        settings: Settings | None: (Default value = None)
+
+    Returns:
+        FastAPI: application.
     """
     settings = settings or Settings.from_os()
     app = factory(settings)

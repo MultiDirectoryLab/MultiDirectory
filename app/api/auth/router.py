@@ -63,7 +63,7 @@ async def login(
     """Create session to cookies and storage.
 
     - **username**: username formats:
-    `DN`, `userPrincipalName`, `saMAccountName`
+        `DN`, `userPrincipalName`, `saMAccountName`
     - **password**: password
 
     \f
@@ -153,7 +153,14 @@ async def login(
 async def users_me(
     user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> UserSchema:
-    """Get current logged in user data."""
+    """Get current logged in user data.
+
+    Args:
+        user (UserSchema): Current user schema from dependency.
+
+    Returns:
+        UserSchema: Current user data.
+    """
     return user
 
 
@@ -185,7 +192,6 @@ async def password_reset(
     `userPrincipalName`, `saMAccountName` or `DN`
     - **new_password**: password to set
     \f
-
     Args:
         identity (str): Reset target user identity.
         new_password (str): New password for user.
@@ -233,6 +239,12 @@ async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     """Check if initial setup needed.
 
     True if setup already complete, False if setup is needed.
+
+    Args:
+        session (FromDishka[AsyncSession]): Database session.
+
+    Returns:
+        bool: True if setup is complete, False if setup is needed.
     """
     query = select(exists(Directory).where(Directory.parent_id.is_(None)))
     retval = await session.scalars(query)
@@ -248,7 +260,17 @@ async def first_setup(
     request: SetupRequest,
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Perform initial setup."""
+    """Perform initial setup.
+
+    Args:
+        request (SetupRequest): Setup request containing domain and user data.
+        session (FromDishka[AsyncSession]): Database session.
+
+    Raises:
+        HTTPException: 422 if password policy validation fails
+        HTTPException: 423 if setup already performed
+        HTTPException: 424 if integrity error occurs during setup.
+    """
     setup_already_performed = await session.scalar(
         select(Directory)
         .filter(Directory.parent_id.is_(None))

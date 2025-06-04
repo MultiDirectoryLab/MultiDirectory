@@ -10,11 +10,14 @@ def handle_db_connect_error(
     request: Request,  # noqa: ARG001
     exc: Exception,
 ) -> NoReturn:
-    """Handle duplicate.
+    """Handle database connection errors.
 
     Args:
-        request: Request:
-        # noqa: ARG001exc: Exception:
+        request (Request): FastAPI request object.
+        exc (Exception): Exception instance.
+
+    Raises:
+        HTTPException: If connection pool is exceeded or backend error occurs.
     """
     if "QueuePool limit of size" in str(exc):
         logger.critical("POOL EXCEEDED {}", exc)
@@ -33,6 +36,14 @@ async def handle_dns_error(
     request: Request,  # noqa: ARG001
     exc: Exception,
 ) -> NoReturn:
-    """Handle EmptyLabel exception."""
+    """Handle DNS-related errors.
+
+    Args:
+        request (Request): FastAPI request object.
+        exc (Exception): Exception instance.
+
+    Raises:
+        HTTPException: Always raised for DNS errors.
+    """
     logger.critical("DNS manager error: {}", exc)
     raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)

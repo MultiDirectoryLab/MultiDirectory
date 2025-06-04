@@ -47,8 +47,10 @@ class DeleteRequest(BaseRequest):
         """Description.
 
         Args:
-            data: ASN1Row:
+            data (ASN1Row): ASN1Row containing the entry to delete.
 
+        Returns:
+            DeleteRequest: Instance of DeleteRequest with the entry set.
         """
         return cls(entry=data)
 
@@ -59,7 +61,17 @@ class DeleteRequest(BaseRequest):
         kadmin: AbstractKadmin,
         session_storage: SessionStorage,
     ) -> AsyncGenerator[DeleteResponse, None]:
-        """Delete request handler."""
+        """Delete request handler.
+
+        Args:
+            session (AsyncSession): The database session.
+            ldap_session (LDAPSession): The LDAP session.
+            kadmin (AbstractKadmin): The Kerberos administration interface.
+            session_storage (SessionStorage): Session storage for user sessions
+
+        Yields:
+            DeleteResponse: The response to the delete request.
+        """
         if not ldap_session.user:
             yield DeleteResponse(**INVALID_ACCESS_RESPONSE)
             return

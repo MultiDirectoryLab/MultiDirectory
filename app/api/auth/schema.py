@@ -72,6 +72,11 @@ class SetupRequest(BaseModel):
         Args:
             v: str:
 
+        Raises:
+            ValueError: If the domain is invalid.
+
+        Returns:
+            str: Validated domain string.
         """
         if re.match(_domain_re, v) is None:
             raise ValueError("Invalid domain value")

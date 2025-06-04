@@ -61,11 +61,10 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         self,
         container: AsyncContainer,
     ) -> list[BaseResponse]:
-        """Hanlde response with api user.
+        """Handle response with api user.
 
         Args:
-            user (DBUser): user from db
-            session (AsyncSession): db session
+            container (AsyncContainer): Dependency injection container.
 
         Returns:
             list[BaseResponse]: list of handled responses
@@ -97,5 +96,12 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         return responses
 
     async def handle_api(self, container: AsyncContainer) -> LDAPResult:
-        """Get single response."""
+        """Get single response.
+
+        Args:
+            container (AsyncContainer): Dependency injection container.
+
+        Returns:
+            LDAPResult: The first response from the handled API responses.
+        """
         return (await self._handle_api(container))[0]  # type: ignore

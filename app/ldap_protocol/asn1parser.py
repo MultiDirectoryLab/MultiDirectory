@@ -152,7 +152,7 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         substring matches.
 
         Args:
-            obj: "ASN1Row | T | None":  (Default value = None)
+            obj: "ASN1Row | T | None": (Default value = None)
         """
         if obj is None:
             obj = self

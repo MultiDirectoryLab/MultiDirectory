@@ -44,7 +44,6 @@ async def add_network_policy(
     """Add policy.
 
     \f
-
     Args:
         policy (Policy): policy to add
 
@@ -116,9 +115,12 @@ async def get_list_network_policies(
     """Get network.
 
     \f
+    Raises:
+        HTTPException: 404 if no policies found
+        HTTPException: 422 if no policies found in database.
 
     Returns:
-        list[PolicyResponse]: all policies
+        list[PolicyResponse]: List of policies with their details.
     """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
     mfa_groups = selectinload(NetworkPolicy.mfa_groups).selectinload(
@@ -165,7 +167,6 @@ async def delete_network_policy(
     """Delete policy.
 
     \f
-
     Args:
         policy_id (int): id
         user (User): requires login
@@ -213,7 +214,6 @@ async def switch_network_policy(
 
     - **policy_id**: int, policy to switch
     \f
-
     Args:
         policy_id (int): id
         user (User): requires login
@@ -247,7 +247,6 @@ async def update_network_policy(
     """Update network policy.
 
     \f
-
     Args:
         policy (PolicyUpdate): update request
 
@@ -337,7 +336,6 @@ async def swap_network_policy(
     - **first_policy_id**: policy to swap
     - **second_policy_id**: policy to swap
     \f
-
     Args:
         first_policy_id (int): policy to swap
         second_policy_id (int): policy to swap

@@ -214,7 +214,7 @@ def create_integer_hash(text: str, size: int = 9) -> int:
         text(str): any string
         size(int): fixed size of hash, defaults to 15
         text: str:
-        size: int:  (Default value = 9)
+        size: int: (Default value = 9)
 
     Returns:
         int: hash
@@ -324,7 +324,7 @@ def create_object_sid(
     is added to the given RID to generate the final RID
         domain: Directory:
         rid: int:
-        reserved: bool:  (Default value = False)
+        reserved: bool: (Default value = False)
 
     Returns:
         str: the complete objectSid as a string

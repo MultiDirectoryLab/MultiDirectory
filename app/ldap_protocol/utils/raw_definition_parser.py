@@ -19,8 +19,13 @@ class RawDefinitionParser:
         """Description.
 
         Args:
-            data: list[str]:
+            data (list[str]): list of strings
 
+        Raises:
+            ValueError: if list has more than one element
+
+        Returns:
+            str | None: single string if list has one element
         """
         if not data:
             return None
@@ -33,8 +38,10 @@ class RawDefinitionParser:
         """Description.
 
         Args:
-            raw_definition: str:
+            raw_definition (str): raw definition of attribute type
 
+        Returns:
+            AttributeTypeInfo: parsed attribute type info
         """
         tmp = AttributeTypeInfo.from_definition(definitions=[raw_definition])
         return next(iter(tmp.values()))
@@ -44,8 +51,10 @@ class RawDefinitionParser:
         """Description.
 
         Args:
-            raw_definition: str:
+            raw_definition (str): raw definition of object class
 
+        Returns:
+            ObjectClassInfo: parsed object class info
         """
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
         return next(iter(tmp.values()))
@@ -68,8 +77,10 @@ class RawDefinitionParser:
         """Description.
 
         Args:
-            raw_definition: str:
+            raw_definition (str): raw definition of attribute type
 
+        Returns:
+            AttributeType: created attribute type instance
         """
         attribute_type_info = RawDefinitionParser._get_attribute_type_info(
             raw_definition=raw_definition
@@ -102,7 +113,15 @@ class RawDefinitionParser:
         session: AsyncSession,
         object_class_info: ObjectClassInfo,
     ) -> ObjectClass:
-        """Create Object Class by ObjectClassInfo."""
+        """Create Object Class by ObjectClassInfo.
+
+        Args:
+            session (AsyncSession): db session
+            object_class_info (ObjectClassInfo): object class info
+
+        Returns:
+            ObjectClass: object class instance
+        """
         superior_name = RawDefinitionParser._list_to_string(
             object_class_info.superior
         )

@@ -1,4 +1,4 @@
-"""Attribute Type management routers.
+"""Object Class management routers.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -34,13 +34,11 @@ async def create_one_object_class(
     request_data: ObjectClassSchema,
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Create a new Object Class.
-
-    \f
+    """Create a new object class.
 
     Args:
-        request_data (ObjectClassSchema): Data for creating Object Class.
-        session (FromDishka[AsyncSession]): Database session.
+        request_data (ObjectClassSchema): Data for creating object class.
+        session (AsyncSession): Database session.
     """
     await create_object_class(
         oid=request_data.oid,
@@ -63,19 +61,17 @@ async def get_one_object_class(
     object_class_name: str,
     session: FromDishka[AsyncSession],
 ) -> ObjectClassSchema:
-    """Retrieve a one object class.
-
-    \f
+    """Retrieve a single object class by name.
 
     Args:
-        object_class_name (str): Name of the Object Class.
-        session (FromDishka[AsyncSession]): Database session.
-
-    Raises:
-        HTTP_404_NOT_FOUND: If Object Class not found.
+        object_class_name (str): Name of the object class.
+        session (AsyncSession): Database session.
 
     Returns:
-        ObjectClassSchema: One Object Class Schemas.
+        ObjectClassSchema: Object class schema.
+
+    Raises:
+        HTTPException: If object class not found.
     """
     object_class = await get_object_class_by_name(
         object_class_name,
@@ -101,17 +97,15 @@ async def get_list_object_classes_with_pagination(
     session: FromDishka[AsyncSession],
     page_size: int = 25,
 ) -> ObjectClassPaginationSchema:
-    """Retrieve a list of all object classes with paginate.
-
-    \f
+    """Retrieve a paginated list of object classes.
 
     Args:
-        page_number (int): Number of page.
-        session (FromDishka[AsyncSession]): Database session.
-        page_size (int): Number of items per page.
+        page_number (int): Page number.
+        session (AsyncSession): Database session.
+        page_size (int, optional): Number of items per page. Defaults to 25.
 
     Returns:
-        ObjectClassPaginationSchema: Paginator.
+        ObjectClassPaginationSchema: Paginated object classes.
     """
     params = PaginationParams(
         page_number=page_number,
@@ -140,18 +134,15 @@ async def modify_one_object_class(
     request_data: ObjectClassUpdateSchema,
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Modify an Object Class.
-
-    \f
+    """Modify an object class.
 
     Args:
-        object_class_name (str): Name of the Object Class for modifying.
-        request_data (ObjectClassUpdateSchema): Changed data.
-        session (FromDishka[AsyncSession]): Database session.
+        object_class_name (str): Name of the object class to modify.
+        request_data (ObjectClassUpdateSchema): Data to update.
+        session (AsyncSession): Database session.
 
     Raises:
-        HTTP_404_NOT_FOUND: If nothing to delete.
-        HTTP_400_BAD_REQUEST: If object class is system->cannot be changed
+        HTTPException: If object class not found or is a system object class.
     """
     object_class = await get_object_class_by_name(object_class_name, session)
     if not object_class:
@@ -181,16 +172,14 @@ async def delete_bulk_object_classes(
     object_classes_names: Annotated[list[str], Body(embed=True)],
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Delete Object Classes by their names.
-
-    \f
+    """Delete object classes by their names.
 
     Args:
-        object_classes_names (list[str]): List of Object Classes names.
-        session (FromDishka[AsyncSession]): Database session.
+        object_classes_names (list[str]): List of object class names.
+        session (AsyncSession): Database session.
 
     Raises:
-        HTTP_400_BAD_REQUEST: If nothing to delete.
+        HTTPException: If no object class names are provided.
     """
     if not object_classes_names:
         raise HTTPException(

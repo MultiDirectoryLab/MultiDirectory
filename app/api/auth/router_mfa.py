@@ -64,7 +64,6 @@ async def setup_mfa(
     """Set mfa credentials, rewrites if exists.
 
     \f
-
     Args:
         mfa (MFACreateRequest): MuliFactor credentials
         session (FromDishka[AsyncSession]): db
@@ -121,6 +120,9 @@ async def get_mfa(
     """Get MFA creds.
 
     \f
+    Args:
+        mfa_creds (FromDishka[MFA_HTTP_Creds]): creds for http app.
+        mfa_creds_ldap (FromDishka[MFA_LDAP_Creds]): creds for ldap app.
 
     Returns:
         MFAGetResponse: response.
@@ -155,15 +157,14 @@ async def callback_mfa(
 
     Callback endpoint for MFA.
     \f
-
     Args:
-        session (FromDishka[AsyncSession]): db
-        storage (FromDishka[SessionStorage]): session storage
-        settings (FromDishka[Settings]): app settings
-        mfa_creds (FromDishka[MFA_HTTP_Creds]): creds for multifactor
-            (http app)
-    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
-    :param Annotated[str, Form access_token: token from multifactor callback
+        access_token (str): Token from multifactor callback.
+        session (FromDishka[AsyncSession]): db session.
+        storage (FromDishka[SessionStorage]): session storage.
+        settings (FromDishka[Settings]): app settings.
+        mfa_creds (FromDishka[MFA_HTTP_Creds]): creds for http app.
+        ip (IPv4Address | IPv6Address): Client IP address.
+        user_agent (str): Client user agent string.
 
     Raises:
         HTTPException: if mfa not set up
@@ -218,16 +219,17 @@ async def two_factor_protocol(
     """Initiate two factor protocol with app.
 
     \f
-    :param Annotated[OAuth2Form, Depends form: password form
-
     Args:
-        request (Request): FastAPI request
-        session (FromDishka[AsyncSession]): db
-        api (FromDishka[MultifactorAPI]): wrapper for MFA DAO
-        settings (FromDishka[Settings]): app settings
-        storage (FromDishka[SessionStorage]): redis storage
-        response (Response): FastAPI response
-    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
+        form (Annotated[OAuth2Form, Depends]): Password form containing\
+            username and password.
+        request (Request): FastAPI request.
+        session (FromDishka[AsyncSession]): Database session.
+        api (FromDishka[MultifactorAPI]): Wrapper for MFA DAO.
+        settings (FromDishka[Settings]): App settings.
+        storage (FromDishka[SessionStorage]): Redis storage.
+        response (Response): FastAPI response.
+        ip (Annotated[IPv4Address | IPv6Address, Depends]): Client IP address.
+        user_agent (Annotated[str, Depends]): Client user agent string.
 
     Raises:
         HTTPException: Missing API credentials
@@ -236,8 +238,7 @@ async def two_factor_protocol(
         HTTPException: Multifactor error
 
     Returns:
-        MFAChallengeResponse: {'status': 'pending', 'message':
-        https://example.com}.
+        MFAChallengeResponse: Response containing status and message.
     """
     if not api:
         raise HTTPException(

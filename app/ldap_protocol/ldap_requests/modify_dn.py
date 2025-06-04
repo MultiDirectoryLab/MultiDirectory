@@ -81,7 +81,11 @@ class ModifyDNRequest(BaseRequest):
         """Create structure from ASN1Row dataclass list.
 
         Args:
-            data: list[ASN1Row]:
+            data (list[ASN1Row]): List of ASN1Row objects containing\
+                the request data.
+
+        Returns:
+            ModifyDNRequest: Instance of ModifyDNRequest with parsed data.
         """
         return cls(
             entry=data[0].value,
@@ -95,7 +99,15 @@ class ModifyDNRequest(BaseRequest):
         ldap_session: LDAPSession,
         session: AsyncSession,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
-        """Handle message with current user."""
+        """Handle message with current user.
+
+        Args:
+            ldap_session (LDAPSession): Current LDAP session.
+            session (AsyncSession): Database session.
+
+        Yields:
+            ModifyDNResponse: Response to the Modify DN request.
+        """
         if not ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return

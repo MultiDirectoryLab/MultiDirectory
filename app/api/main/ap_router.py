@@ -27,10 +27,11 @@ async def get_access_policies(
     """Get APs.
 
     \f
-
     Args:
-        policy (AccessPolicySchema): ap
         session (FromDishka[AsyncSession]): db.
+
+    Returns:
+        list[MaterialAccessPolicySchema]: list of access policies.
     """
     return [
         MaterialAccessPolicySchema(

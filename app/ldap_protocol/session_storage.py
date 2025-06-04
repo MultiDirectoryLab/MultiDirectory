@@ -72,7 +72,9 @@ class SessionStorage(ABC):
 
         Args:
             uid (int): user id
-        :param ProtocolType | None protocol: protocol
+            protocol (ProtocolType | None): The protocol type to filter\
+                sessions by (e.g., "http" or "ldap"). If None,\
+                sessions for all protocols are returned.
 
         Returns:
             dict: user sessions contents
@@ -88,7 +90,9 @@ class SessionStorage(ABC):
 
         Args:
             ip (str): ip
-        :param ProtocolType | None protocol: protocol
+            protocol (ProtocolType | None): The protocol type to filter\
+                sessions by (e.g., "http" or "ldap"). If None,\
+                sessions for all protocols are returned.
 
         Returns:
             dict: user sessions contents
@@ -118,6 +122,9 @@ class SessionStorage(ABC):
             session_id: str:
             settings: Settings:
 
+        Returns:
+            str: The HMAC signature for the session_id using provided settings.
+
         """
         return hmac.new(
             settings.SECRET_KEY.encode(),
@@ -130,6 +137,9 @@ class SessionStorage(ABC):
 
         Args:
             user_agent: str:
+
+        Returns:
+            str: The hash of the user agent.
         """
         return hashlib.blake2b(user_agent.encode(), digest_size=6).hexdigest()
 
@@ -140,6 +150,8 @@ class SessionStorage(ABC):
             ip: str:
             protocol: ProtocolType:
 
+        Returns:
+            str: The session key for the given IP and protocol.
         """
         return f"ip:{protocol}:{ip}"
 
@@ -150,6 +162,8 @@ class SessionStorage(ABC):
             uid: int:
             protocol: ProtocolType:
 
+        Returns:
+            str: The session key for the given user and protocol.
         """
         return f"keys:{protocol}:{uid}"
 
@@ -159,6 +173,8 @@ class SessionStorage(ABC):
         Args:
             session_id: str:
 
+        Returns:
+            ProtocolType: Protocol type ("http" or "ldap") for given session_id
         """
         return "http" if session_id.startswith("http:") else "ldap"
 
@@ -196,7 +212,8 @@ class SessionStorage(ABC):
         Args:
             uid (int): user id
             settings (Settings): app settings
-        :param dict | None extra_data: data, defaults to None
+            extra_data (dict | None): Additional data to include\
+                in the session, defaults to None.
 
         Returns:
             str: session id
@@ -218,7 +235,10 @@ class SessionStorage(ABC):
             ip (str): ip address
 
         Returns:
-            int: user id
+            int: user id.
+
+        Raises:
+            KeyError: key error.
         """
         try:
             session_id, signature = session_key.split(".")
@@ -260,6 +280,10 @@ class SessionStorage(ABC):
             uid: int:
             settings: Settings:
             extra_data: dict | None:
+
+        Returns:
+            tuple[str, str, dict]: A tuple containing the session_id,\
+                signature, and session data dictionary.
         """
         if extra_data is None:
             extra_data = {}
@@ -408,6 +432,9 @@ class RedisSessionStorage(SessionStorage):
         Returns:
             dict: The data associated with the key, or an empty
             dictionary if the key is not found.
+
+        Raises:
+            KeyError: If the key is not found in the storage.
         """
         data = await self._storage.get(key)
         if data is None:
@@ -418,7 +445,7 @@ class RedisSessionStorage(SessionStorage):
         """Delete data associated with the given key from storage.
 
         Args:
-            key (str): The key to delete from the storage.
+            keys (Iterable[str]): The keys to delete from the storage.
         """
         await self._storage.delete(*keys)
 
@@ -427,6 +454,9 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             key (str): key
+
+        Returns:
+            set[str]: A set of decoded keys from the storage.
         """
         encoded_keys = await self._storage.smembers(key)  # type: ignore
         return {k.decode() for k in encoded_keys}
@@ -444,7 +474,7 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             ip (str): ip
-        :param ProtocolType | None protocol: protocol
+            protocol (ProtocolType | None): protocol
 
         Returns:
             set[str]: session keys
@@ -471,7 +501,7 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             uid (int): user id
-        :param ProtocolType | None protocol: protocol
+            protocol (ProtocolType | None): protocol
 
         Returns:
             set[str]: session keys
@@ -508,7 +538,7 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             keys (set[str]): session keys
-        :param str | int id_value: user id or ip
+            id_value (str | int): user id or ip
 
         Returns:
             dict: user sessions contents
@@ -553,7 +583,7 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             uid (int): user id
-        :param ProtocolType | None protocol: protocol
+            protocol (ProtocolType | None): protocol
 
         Returns:
             dict: user sessions contents
@@ -570,7 +600,7 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             ip (str): ip
-        :param ProtocolType | None protocol: protocol
+            protocol (ProtocolType | None): protocol
 
         Returns:
             dict: user sessions contents
@@ -646,6 +676,9 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             session_id (str): session id
+
+        Raises:
+            KeyError: key error.
         """
         try:
             data = await self.get(session_id)
@@ -698,7 +731,7 @@ class RedisSessionStorage(SessionStorage):
             uid (int): user id
             ip_session_key (str): ip session key
             sessions_key (str): sessions key
-        :param int | None ttl: time to live, defaults to None
+            ttl (int | None): time to live, defaults to None
         """
         zset_key = (
             self.ZSET_HTTP_SESSIONS
@@ -740,10 +773,9 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             uid (int): user id
-            data (dict): data dict
-            secret (str): secret key
-            expires_minutes (int): exire time in minutes
-        :param Literal[refresh, access] grant_type: grant type flag
+            settings (Settings): settings
+            *,
+            extra_data (dict): extra data
 
         Returns:
             str: jwt token
@@ -771,7 +803,14 @@ class RedisSessionStorage(SessionStorage):
         return f"{session_id}.{signature}"
 
     async def check_session(self, session_id: str) -> bool:
-        """Check session."""
+        """Check session.
+
+        Args:
+            session_id (str): session id
+
+        Returns:
+            bool: True if exists.
+        """
         return await self._storage.exists(session_id)
 
     async def create_ldap_session(
@@ -796,7 +835,8 @@ class RedisSessionStorage(SessionStorage):
 
         Args:
             uid (int): user id
-            key (str): session key
+            key (str): The session key to use for storing the LDAP session.
+                This is the unique identifier for the LDAP session in storage.
             data (dict): any data
         """
         data["issued"] = datetime.now(UTC).isoformat()
@@ -860,6 +900,9 @@ class RedisSessionStorage(SessionStorage):
 
         Returns:
             str: jwt token
+
+        Raises:
+            KeyError: key error.
         """
         data = await self.get(session_id)
 

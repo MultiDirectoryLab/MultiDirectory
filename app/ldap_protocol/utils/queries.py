@@ -138,9 +138,8 @@ async def check_kerberos_group(
 ) -> bool:
     """Check if user in kerberos group.
 
-    :param User | None user: user (sa model)
-
     Args:
+        user (User | None): user (sa model)
         session (AsyncSession): db
 
     Returns:
@@ -203,7 +202,8 @@ def get_path_filter(
         field(Column): path column, defaults to Directory.path
         path: list[str]:
         *:
-        column: ColumnElement | Column | InstrumentedAttribute:  (Default value = Directory.path)
+        column: ColumnElement | Column | InstrumentedAttribute:\
+            (Default value = Directory.path)
 
     Returns:
         ColumnElement: filter (where) element
@@ -221,7 +221,8 @@ def get_filter_from_path(
     Args:
         dn: str:
         *:
-        column: Column | InstrumentedAttribute:  (Default value = Directory.path)
+        column: Column | InstrumentedAttribute: (Default value =\
+            Directory.path)
     """
     return get_path_filter(get_search_path(dn), column=column)
 

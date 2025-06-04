@@ -23,20 +23,13 @@ def build_policy_query(
     """Build a base query for network policies with optional group filtering.
 
     Args:
-        ip (IPv4Address): IP address to filter
-
-    Args:
-        Literal: is_http", "is_ldap", "is_kerberos"] protocol_field_name
-    protocol: Protocol to filter
-        list: int] | None user_group_ids: List of user group IDs, optional
+        ip (IPv4Address | IPv6Address): IP address to filter
+        protocol_field_name (Literal["is_http", "is_ldap", "is_kerberos"]):\
+            Protocol to filter
+        user_group_ids (list[int] | None): List of user group IDs, optional
 
     Returns:
-    : Select query
-        ip: IPv4Address | IPv6Address:
-        protocol_field_name: Literal["is_http":
-        "is_ldap":
-        "is_kerberos"]:
-        user_group_ids: list[int] | None:  (Default value = None)
+        Select: SQLAlchemy query
     """
     protocol_field = getattr(NetworkPolicy, protocol_field_name)
     query = (
@@ -98,6 +91,7 @@ async def get_user_network_policy(
     """Get the highest priority network policy for user, ip and protocol.
 
     Args:
+        ip (IPv4Address | IPv6Address): IP address to filter
         user (User): user object
         session (AsyncSession): db session
 
