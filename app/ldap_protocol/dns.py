@@ -205,15 +205,13 @@ class AbstractDNSManager(ABC):
                     .where(CatalogueSetting.name == name),
                 )
         else:
-            session.add_all(
-                [
-                    CatalogueSetting(name=name, value=value)
-                    for name, value in new_settings.items()
-                ]
-            )
+            session.add_all([
+                CatalogueSetting(name=name, value=value)
+                for name, value in new_settings.items()
+            ])
 
     @abstractmethod
-    async def create_record(
+    async def create_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -222,7 +220,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def update_record(
+    async def update_record(  # noqa: D102
         self,
         hostname: str,
         ip: str | None,
@@ -231,7 +229,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def delete_record(
+    async def delete_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -239,14 +237,21 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def get_all_records(self) -> list[DNSRecords]: ...
+    async def get_all_records(self) -> list[DNSRecords]: ...  # noqa: D102
 
 
 class DNSManager(AbstractDNSManager):
     """DNS server manager."""
 
     async def _send(self, action: Message) -> None:
-        """Send request to DNS server."""
+        """Send request to DNS server.
+
+        Args:
+            action (Message): DNS message
+
+        Raises:
+            DNSConnectionError:
+        """
         if self._dns_settings.tsig_key is not None:
             action.use_tsig(
                 keyring=TsigKey("zone.", self._dns_settings.tsig_key),
@@ -274,7 +279,14 @@ class DNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
-        """Get all DNS records."""
+        """Get all DNS records.
+
+        Returns:
+            list[DNSRecords]
+
+        Raises:
+            DNSConnectionError: cant connect
+        """
         if (
             self._dns_settings.dns_server_ip is None
             or self._dns_settings.zone_name is None
@@ -350,7 +362,7 @@ class StubDNSManager(AbstractDNSManager):
     """Stub client."""
 
     @logger_wraps(is_stub=True)
-    async def create_record(
+    async def create_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -359,7 +371,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def update_record(
+    async def update_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -368,7 +380,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def delete_record(
+    async def delete_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -377,7 +389,11 @@ class StubDNSManager(AbstractDNSManager):
 
     @logger_wraps(is_stub=True)
     async def get_all_records(self) -> list[DNSRecords]:
-        """Stub DNS manager get all records."""
+        """Stub DNS manager get all records.
+
+        Returns:
+            list[DNSRecords]
+        """
         return []
 
 

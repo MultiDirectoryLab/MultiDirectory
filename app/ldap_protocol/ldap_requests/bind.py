@@ -62,7 +62,13 @@ class BindRequest(BaseRequest):
         """Get bind from data dict.
 
         Args:
-            data: list[ASN1Row]:
+            data (list[ASN1Row]): data
+
+        Returns:
+            BindRequest
+
+        Raises:
+            ValueError: Auth version not supported
         """
         auth = data[2].tag_id
 
@@ -103,7 +109,16 @@ class BindRequest(BaseRequest):
         ldap_session: LDAPSession,
         session: AsyncSession,
     ) -> bool:
-        """Test compability."""
+        """Test compability.
+
+        Args:
+            user (User): db user
+            ldap_session (LDAPSession): ldap session
+            session (AsyncSession): async session
+
+        Returns:
+            bool
+        """
         return await is_user_group_valid(user, ldap_session.policy, session)
 
     @staticmethod
@@ -116,9 +131,10 @@ class BindRequest(BaseRequest):
         """Check mfa api.
 
         Args:
-            user (User): db user
-            ldap_session (LDAPSession): ldap session
-            session (AsyncSession): db session
+            api (MultifactorAPI | None): MultiFactor API
+            identity (str): username
+            otp (str | None): password
+            policy (NetworkPolicy): network policy
 
         Returns:
             bool: response
@@ -143,7 +159,18 @@ class BindRequest(BaseRequest):
         settings: Settings,
         mfa: LDAPMultiFactorAPI,
     ) -> AsyncGenerator[BindResponse, None]:
-        """Handle bind request, check user and password."""
+        """Handle bind request, check user and password.
+
+        Args:
+            session (AsyncSession): async session
+            ldap_session (LDAPSession): ldap session
+            kadmin (AbstractKadmin): kadmin user
+            settings (Settings): settings
+            mfa (LDAPMultiFactorAPI): api
+
+        Yields:
+            AsyncGenerator[BindResponse, None]
+        """
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
@@ -242,8 +269,10 @@ class UnbindRequest(BaseRequest):
         """Unbind request has no body.
 
         Args:
-            data: dict[str:
-            list[ASN1Row]]:
+            data (dict[str, list[ASN1Row]]): data
+
+        Returns:
+            UnbindRequest
         """
         return cls()
 
@@ -251,7 +280,14 @@ class UnbindRequest(BaseRequest):
         self,
         ldap_session: LDAPSession,
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Handle unbind request, no need to send response."""
+        """Handle unbind request, no need to send response.
+
+        Args:
+            ldap_session (LDAPSession): ldap session
+
+        Yields:
+            AsyncGenerator[BaseResponse, None]
+        """
         await ldap_session.delete_user()
         return  # declare empty async generator and exit
         yield  # type: ignore

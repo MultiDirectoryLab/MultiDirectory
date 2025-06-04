@@ -100,10 +100,9 @@ async def sync_password(
     - **new_password**: password to set
     \f
     Args:
+        principal Annotated[str, Body]: reset target user
+        new_password Annotated[str, Body]: new password for user
         session (FromDishka[AsyncSession]): db
-        kadmin (FromDishka[AbstractKadmin]): kadmin api
-    :param Annotated[str, Body principal: reset target user
-    :param Annotated[str, Body new_password: new password for user
 
     Raises:
         HTTPException: 404 if user not found

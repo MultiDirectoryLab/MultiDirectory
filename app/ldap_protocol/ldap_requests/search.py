@@ -258,6 +258,10 @@ class SearchRequest(BaseRequest):
 
         Provides following responses:
         Entry -> Reference (optional) -> Done
+
+        Yields:
+            AsyncGenerator[SearchResultDone | SearchResultReference |\
+                SearchResultEntry, None]
         """
         async with ldap_session.lock() as user:
             async for response in self.get_result(user, session, settings):
@@ -272,9 +276,12 @@ class SearchRequest(BaseRequest):
         """Create response.
 
         Args:
-            user_logged (bool): is user in session
-            session (AsyncSession): sa session
-        :yield SearchResult: search result
+            user (UserSchema | None): schema of user
+            session (AsyncSession): async session.
+            settings (Settings): settings.
+
+        Yields:
+            AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == "cn=schema"

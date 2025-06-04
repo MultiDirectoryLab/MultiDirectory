@@ -43,7 +43,10 @@ class ObjectClassSchema(BaseSchemaModel):
         """Create an instance from database.
 
         Args:
-            object_class: ObjectClass:
+            object_class (ObjectClass): source
+
+        Returns:
+            ObjectClassSchema: instance of ObjectClassSchema.
         """
         return cls(
             oid=object_class.oid,
@@ -105,12 +108,15 @@ async def create_object_class(
     Args:
         oid (str): OID.
         name (str): Name.
+        superior_name (str | None): Parent Object Class.
         kind (KindType): Kind.
         is_system (bool): Object Class is system.
         attribute_type_names_must (list[str]): Attribute Types must.
         attribute_type_names_may (list[str]): Attribute Types may.
         session (AsyncSession): Database session.
-    :param str | None superior_name: Parent Object Class.
+
+    Raises:
+        ValueError: kind is not valid
     """
     if kind not in OBJECT_CLASS_KINDS_ALLOWED:
         raise ValueError(f"Object class kind is not valid: {kind}.")

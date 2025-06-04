@@ -105,14 +105,14 @@ async def get_group(dn: str | ENTRY_TYPE, session: AsyncSession) -> Directory:
     """Get dir with group by dn.
 
     Args:
-        dn (str): Distinguished Name
+        dn (str| ENTRY_TYPE): Distinguished Name
         session (AsyncSession): SA session
-
-    Raises:
-        AttributeError: on invalid dn
 
     Returns:
         Directory: dir with group
+
+    Raises:
+        ValueError: Cannot set memberOf with base dn or group not found
     """
     for base_directory in await get_base_directories(session):
         if dn_is_base_directory(base_directory, dn):
@@ -242,7 +242,10 @@ def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
     """Get default domain attrs.
 
     Args:
-        domain: Directory:
+        domain (Directory): instance of Directory
+
+    Yields:
+        Iterator[Attribute]
     """
     for value in ["domain", "top", "domainDNS"]:
         yield Attribute(name="objectClass", value=value, directory=domain)
@@ -344,20 +347,18 @@ async def add_lock_and_expire_attributes(
     """
     now_with_tz = datetime.now(tz=tz)
     absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
-    session.add_all(
-        [
-            Attribute(
-                name="nsAccountLock",
-                value="true",
-                directory=directory,
-            ),
-            Attribute(
-                name="shadowExpire",
-                value=str(absolute_date),
-                directory=directory,
-            ),
-        ]
-    )
+    session.add_all([
+        Attribute(
+            name="nsAccountLock",
+            value="true",
+            directory=directory,
+        ),
+        Attribute(
+            name="shadowExpire",
+            value=str(absolute_date),
+            directory=directory,
+        ),
+    ])
 
 
 async def get_principal_directory(

@@ -311,7 +311,11 @@ class ExtendedRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> AsyncGenerator[ExtendedResponse, None]:
-        """Call proxy handler."""
+        """Call proxy handler.
+
+        Yields:
+            AsyncGenerator[ExtendedResponse, None]:
+        """
         try:
             response = await self.request_value.handle(
                 ldap_session,

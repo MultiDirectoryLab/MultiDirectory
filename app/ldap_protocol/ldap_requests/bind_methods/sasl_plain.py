@@ -27,11 +27,10 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """Check if pwd is valid for user.
 
         Args:
-          User: None user: indb user
+          user (User): in db user
 
         Returns:
             bool: status
-
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -55,7 +54,10 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """Get auth from data.
 
         Args:
-            data: list[ASN1Row]:
+            data (list[ASN1Row]): data
+
+        Returns:
+            SaslPLAINAuthentication
         """
         _, username, password = data[1].value.split("\\x00")
         return cls(
@@ -65,5 +67,13 @@ class SaslPLAINAuthentication(SaslAuthentication):
         )
 
     async def get_user(self, session: AsyncSession, _: str) -> User:
-        """Get user."""
+        """Get user.
+
+        Args:
+            session (AsyncSession): async db session
+            _ (str): unused arg
+
+        Returns:
+            User: user
+        """
         return await get_user(session, self.username)  # type: ignore

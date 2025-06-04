@@ -158,7 +158,11 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> AsyncGenerator[ModifyResponse, None]:
-        """Change request handler."""
+        """Change request handler.
+
+        Yields:
+            AsyncGenerator[ModifyResponse, None]
+        """
         if not ldap_session.user:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
@@ -283,10 +287,12 @@ class ModifyRequest(BaseRequest):
         """Description.
 
         Args:
-            names: set[str]:
-            directory: Directory:
-            user_dir_id: int:
+            names (set[str]): attr names
+            directory (Directory): directory
+            user_dir_id (int): user id
 
+        Returns:
+            bool:
         """
         return (
             ("userpassword" in names or "unicodepwd" in names)

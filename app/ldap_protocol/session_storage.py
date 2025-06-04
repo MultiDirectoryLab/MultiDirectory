@@ -317,6 +317,7 @@ class SessionStorage(ABC):
 
         Args:
             uid (int): user id
+            key (str): key
             data (dict): data, defaults to None
         """
 

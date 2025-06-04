@@ -83,12 +83,10 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Check if GSSAPI token is valid.
 
         Args:
-          User: None user: indb user
+          user (User | None): indb user
 
         Returns:
             bool: status
-          user: User | None:
-
         """
         return True
 
@@ -254,6 +252,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             session (AsyncSession): db session
             ldap_session (LDAPSession): ldap session
             settings (Settings): settings
+
+        Returns:
+            BindResponse | None
         """
         self._ldap_session = ldap_session
 
@@ -298,8 +299,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Get user.
 
         Args:
-            ctx (gssapi.SecurityContext): gssapi context
             session (AsyncSession): db session
+            username (str): user name
+
+        Returns:
+            User | None
         """
         ctx = self._ldap_session.gssapi_security_context
         if not ctx:

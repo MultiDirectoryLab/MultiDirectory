@@ -128,7 +128,11 @@ class MultifactorAPI:
 
     @staticmethod
     def _generate_trace_id_header() -> dict[str, str]:
-        """Description."""
+        """Generate trace id header.
+
+        Returns:
+            dict[str, str]
+        """
         return {"mf-trace-id": f"md:{uuid.uuid4()}"}
 
     @log_mfa.catch(reraise=True)
@@ -149,14 +153,14 @@ class MultifactorAPI:
             password (str): pwd
             policy (NetworkPolicy): policy
 
-        Raises:
-            MultifactorError: connect timeout
-            MultifactorError: invalid json
-            MultifactorError: Invalid status
-
         Returns:
             bool: status
-        """
+
+        Raises:
+            ConnectTimeout: API Timeout
+            MFAMissconfiguredError: API Key or Secret is invalid
+            MultifactorError: status error
+        """  # noqa: DOC502
         passcode = password or "m"
         log_mfa.debug(f"LDAP MFA request: {username}, {password}")
         try:
@@ -216,14 +220,14 @@ class MultifactorAPI:
             callback_url (str): callback uri to send token
             uid (int): user id
 
-        Raises:
-            httpx.TimeoutException: on timeout
-            self.MultifactorError: on invalid json, Key or error status
-                code
-
         Returns:
             str: url to open in new page
-        """
+
+        Raises:
+            MFAConnectError: API Timeout
+            MFAMissconfiguredError: API Key or Secret is invalid
+            MultifactorError: Incorrect resource
+        """  # noqa: DOC502
         data = {
             "identity": username,
             "claims": {
@@ -272,12 +276,12 @@ class MultifactorAPI:
         Args:
             token (str): str jwt token
 
-        Raises:
-            self.MultifactorError: on api err
-
         Returns:
             str: new token
-        """
+
+        Raises:
+            MultifactorError: on api err
+        """  # noqa: DOC502
         try:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.REFRESH_URL,

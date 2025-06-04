@@ -53,7 +53,10 @@ class MainProvider(Provider):
         """Get async engine.
 
         Args:
-            settings: Settings:
+            settings (Settings): settings.
+
+        Returns:
+            AsyncEngine:
         """
         return create_async_engine(
             str(settings.POSTGRES_URI),
@@ -74,7 +77,10 @@ class MainProvider(Provider):
         """Create session factory.
 
         Args:
-            engine: AsyncEngine:
+            engine (AsyncEngine): Async Engine.
+
+        Returns:
+            async_sessionmaker[AsyncSession]:
         """
         return async_sessionmaker(engine, expire_on_commit=False)
 
@@ -83,7 +89,11 @@ class MainProvider(Provider):
         self,
         async_session: async_sessionmaker[AsyncSession],
     ) -> AsyncIterator[AsyncSession]:
-        """Create session for request."""
+        """Create session for request.
+
+        Yields:
+            AsyncIterator[AsyncSession]
+        """
         async with async_session() as session:
             yield session
             await session.commit()
@@ -132,12 +142,11 @@ class MainProvider(Provider):
         """Get kadmin class, inherits from AbstractKadmin.
 
         Args:
-            settings (Settings): app settings
-            session_maker (AsyncSessionMaker): session maker
+            client (KadminHTTPClient): app settings
+            kadmin_class (type[AbstractKadmin]): session maker
 
         Returns:
-            AsyncIterator[AbstractKadmin]: kadmin with client
-        :yield Iterator[AsyncIterator[AbstractKadmin]]: kadmin
+            AbstractKadmin: kadmin with client
         """
         return kadmin_class(client)
 
@@ -167,7 +176,11 @@ class MainProvider(Provider):
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
     ) -> AsyncIterator[AbstractDNSManager]:
-        """Get DNSManager class."""
+        """Get DNSManager class.
+
+        Yields:
+            AsyncIterator[AbstractDNSManager]
+        """
         yield dns_manager_class(settings=settings)
 
     @provide(scope=Scope.APP)
@@ -175,7 +188,14 @@ class MainProvider(Provider):
         self,
         settings: Settings,
     ) -> AsyncIterator[SessionStorageClient]:
-        """Get redis connection."""
+        """Get redis connection.
+
+        Yields:
+            AsyncIterator[SessionStorageClient]
+
+        Raises:
+            SystemError: Redis is not available
+        """
         client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
 
         if not await client.ping():
@@ -229,7 +249,8 @@ class MFACredsProvider(Provider):
     async def get_auth(self, session: AsyncSession) -> Creds | None:
         """Admin creds get.
 
-        :param Annotated[AsyncSession, Depends session: session
+        Args:
+            session (AsyncSession): async session
 
         Returns:
             MFA_HTTP_Creds: optional creds
@@ -259,7 +280,11 @@ class MFAProvider(Provider):
         self,
         settings: Settings,
     ) -> AsyncIterator[MFAHTTPClient]:
-        """Get async client for DI."""
+        """Get async client for DI.
+
+        Yields:
+            AsyncIterator[MFAHTTPClient]
+        """
         async with httpx.AsyncClient(
             timeout=settings.MFA_CONNECT_TIMEOUT_SECONDS,
             limits=httpx.Limits(
@@ -279,8 +304,9 @@ class MFAProvider(Provider):
         """Get api from DI.
 
         Args:
-            client (httpx.AsyncClient): httpx client
-            credentials (Creds): creds
+            credentials (MFA_HTTP_Creds): http creds
+            client (MFAHTTPClient): https client
+            settings (Settings): settings
 
         Returns:
             MultifactorAPI: mfa integration
@@ -304,8 +330,9 @@ class MFAProvider(Provider):
         """Get api from DI.
 
         Args:
-            client (httpx.AsyncClient): httpx client
-            credentials (Creds): creds
+            credentials (MFA_LDAP_Creds): ldap creds
+            client (MFAHTTPClient): https client
+            settings (Settings): settings
 
         Returns:
             MultifactorAPI: mfa integration

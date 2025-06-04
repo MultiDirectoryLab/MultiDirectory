@@ -136,7 +136,11 @@ class LDAPSession:
 
     @asynccontextmanager
     async def lock(self) -> AsyncIterator[UserSchema | None]:
-        """Lock session, user cannot be deleted or get while lock is set."""
+        """Lock session, user cannot be deleted or get while lock is set.
+
+        Yields:
+            AsyncIterator[UserSchema | None]
+        """
         async with self._lock:
             yield self._user
 

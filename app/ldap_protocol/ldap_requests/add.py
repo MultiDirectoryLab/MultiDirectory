@@ -84,7 +84,10 @@ class AddRequest(BaseRequest):
         """Deserialize.
 
         Args:
-            data: ASN1Row:
+            data (ASN1Row): data
+
+        Returns:
+            AddRequest
         """
         entry, attributes = data  # type: ignore
         attributes = [
@@ -102,7 +105,14 @@ class AddRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
     ) -> AsyncGenerator[AddResponse, None]:
-        """Add request handler."""
+        """Add request handler.
+
+        Yields:
+            AsyncGenerator[AddResponse, None]
+
+        Raises:
+            TypeError:
+        """
         if not ldap_session.user:
             yield AddResponse(**INVALID_ACCESS_RESPONSE)
             return
@@ -391,8 +401,8 @@ class AddRequest(BaseRequest):
 
         Args:
             entry (str): entry
-            attributes: dict[str, list[str]]:
-            password: str | None: (Default value = None)
+            attributes (dict[str, list[str]]): attributes
+            password (str | None): (Default value = None)
 
         Returns:
             AddRequest: instance

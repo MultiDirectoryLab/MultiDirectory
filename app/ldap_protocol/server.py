@@ -195,9 +195,11 @@ class PoolClientHandler:
 
         Args:
             reader (asyncio.StreamReader): reader
+            writer (asyncio.StreamWriter): writer
+            return_addr (bool): address (Default value = "read")
 
         Returns:
-            tuple: ip, data
+            tuple[IPv4Address | IPv6Address, bytes] | bytes:
         """
         buffer = BytesIO()
         addr = None

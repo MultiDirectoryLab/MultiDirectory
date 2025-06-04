@@ -130,9 +130,6 @@ class LDAPRequestMessage(LDAPMessage):
 
         Returns:
             LDAPResponseMessage: response with err code
-
-        Raises:
-            ValueError: on invalid schema
         """
         output = asn1todict(source)
         message_id = 0
@@ -164,7 +161,8 @@ class LDAPRequestMessage(LDAPMessage):
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 
-        :yield LDAPResponseMessage: create response for context.
+        Yields:
+            LDAPResponseMessage: create response for context.
         """
         async for response in handler():
             yield LDAPResponseMessage(

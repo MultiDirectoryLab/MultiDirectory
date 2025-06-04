@@ -46,7 +46,7 @@ jobs:
       - name: Run linters
         env:
           NEW_TAG: linter
-        run: docker run $NEW_TAG ruff format --check
+        run: docker run $NEW_TAG ruff format --check --preview
 
   mypy:
     runs-on: ubuntu-latest
