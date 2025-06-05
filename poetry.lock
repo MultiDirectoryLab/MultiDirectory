@@ -1499,6 +1499,21 @@ files = [
 ]
 
 [[package]]
+name = "python-ulid"
+version = "3.0.0"
+description = "Universally unique lexicographically sortable identifier"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "python_ulid-3.0.0-py3-none-any.whl", hash = "sha256:e4c4942ff50dbd79167ad01ac725ec58f924b4018025ce22c858bfcff99a5e31"},
+    {file = "python_ulid-3.0.0.tar.gz", hash = "sha256:e50296a47dc8209d28629a22fc81ca26c00982c78934bd7766377ba37ea49a9f"},
+]
+
+[package.extras]
+pydantic = ["pydantic (>=2.0)"]
+
+[[package]]
 name = "pytz"
 version = "2025.2"
 description = "World timezone definitions, modern and historical"
@@ -2060,4 +2075,12 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.12.6"
+<<<<<<< HEAD
 content-hash = "54b38b63425dbef53d67e0ce374d79f71b1af1673957d928a21f605974b678ac"
+=======
+<<<<<<< HEAD
+content-hash = "5a35f9cf9805cbeb1e801227881536de90af7c326e933da6c01fc07812d456e5"
+=======
+content-hash = "c2bec65e397fdd590aa95e553529704e77a5764564dbd4581ce6e28606e7c48b"
+>>>>>>> 6e66d07e (add: include python-ulid package version 3.0.0 in dependencies)
+>>>>>>> 8bc3bd0f (add: include python-ulid package version 3.0.0 in dependencies)
