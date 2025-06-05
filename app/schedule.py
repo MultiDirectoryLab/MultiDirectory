@@ -25,7 +25,7 @@ MAINTENCE_TASKS: set[tuple[task_type, float]] = {
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
     (update_krb5_config, -1.0),
-    (check_events_to_process, 300),
+    (check_events_to_process, 300.0),
 }
 EVENTS_TASKS: set[tuple[task_type, float]] = {(send_events, 60)}
 
@@ -54,4 +54,4 @@ async def _schedule(
         await asyncio.sleep(wait)
 
 
-__all__ = ["_schedule", "MAINTENCE_TASKS"]
+__all__ = ["_schedule", "MAINTENCE_TASKS", "EVENTS_TASKS"]
