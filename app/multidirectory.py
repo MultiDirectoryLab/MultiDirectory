@@ -157,6 +157,7 @@ def create_prod_app(
         MFAProvider(),
         HTTPProvider(),
         MFACredsProvider(),
+        EventHandlerProvider(),
         context={Settings: settings},
     )
 
@@ -219,6 +220,7 @@ async def events_scheduler_factory(settings: Settings) -> None:
     """Script entrypoint for maintence scheduler."""
     container = make_async_container(
         MainProvider(),
+        EventHandlerProvider(),
         context={Settings: settings},
     )
 
@@ -253,6 +255,7 @@ if __name__ == "__main__":
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
+    group.add_argument("--event_sender", action="store_true", help="Run tasks")
     group.add_argument(
         "--certs_dumper",
         action="store_true",
@@ -290,6 +293,8 @@ if __name__ == "__main__":
         )
     elif args.scheduler:
         maintence_scheduler(settings=settings)
+    elif args.event_sender:
+        events_scheduler(settings=settings)
     elif args.certs_dumper:
         dump_acme_cert()
     elif args.migrate:
