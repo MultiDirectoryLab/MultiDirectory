@@ -498,6 +498,45 @@ class BindDNSServerManager(AbstractDNSServerManager):
         self.delete_record(old_record, record_type, zone_name)
         self.add_record(new_record, record_type, zone_name)
 
+    @staticmethod
+    def _add_new_server_param(
+        named_options: str, param: DNSServerParam
+    ) -> str:
+        return re.sub(
+            r"(\s*)(};)",
+            rf"\1    {param.name} \
+                {'yes' if param.value is True else 'no'};\n\1\2",
+            named_options,
+            flags=re.DOTALL,
+        )
+
+    def update_dns_settings(
+        self, settings: list[DNSServerParam]
+    ) -> None:
+        """Update given DNS server params or create if not present."""
+        named_options = None
+
+        with open(NAMED_OPTIONS) as file:
+            named_options = file.read()
+
+        for param in settings:
+            pattern = rf'\b{param.name}\s+\"[^\"]+\""'
+            matched_param = re.search(pattern, named_options)
+            if matched_param is None:
+                named_options = self._add_new_server_param(
+                    named_options, param
+                )
+            else:
+                re.sub(
+                    pattern,
+                    f"{param.name} {'yes' if param.value is True else 'no'}",
+                    named_options,
+                )
+
+        with open(NAMED_OPTIONS, "w") as file:
+            file.write(named_options)
+
+    @staticmethod
     def get_server_settings() -> list[DNSServerParam]:
         """Get list of modifiable DNS server settings."""
         named_options = None
@@ -648,12 +687,12 @@ async def reload_zone(
 
 
 @server_router.patch("/settings")
-async def update_dns_server_settings(
+def update_dns_server_settings(
     settings: list[DNSServerParam],
     dns_manager: Depends[get_dns_manager],
 ) -> None:
     """Update settings of DNS server."""
-    await dns_manager.update_dns_settings(settings)
+    dns_manager.update_dns_settings(settings)
 
 
 @server_router.get("/settings")
