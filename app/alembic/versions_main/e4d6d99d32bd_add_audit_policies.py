@@ -94,9 +94,13 @@ def upgrade() -> None:
     )
     op.create_table(
         "AuditDestinations",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(length=255), nullable=False),
-        sa.Column("type", sa.String(length=50), nullable=False),
+        sa.Column("id", sa.Integer(), nullable=False, primary_key=True),
+        sa.Column("name", sa.String(length=255), nullable=False, unique=True),
+        sa.Column(
+            "type",
+            sa.Enum("SYSLOG", name="auditdestinationtype"),
+            nullable=False,
+        ),
         sa.Column(
             "is_enabled",
             sa.Boolean(),
@@ -107,10 +111,20 @@ def upgrade() -> None:
         sa.Column("port", sa.Integer(), nullable=False),
         sa.Column("username", sa.String(length=255), nullable=True),
         sa.Column("password", sa.String(length=255), nullable=True),
-        sa.Column("protocol", sa.String(length=10), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name"),
-        sa.UniqueConstraint("type"),
+        sa.Column(
+            "protocol",
+            sa.Enum("UDP", "TCP", "TLS", name="auditdestinationprotocoltype"),
+            nullable=False,
+        ),
+        sa.Column(
+            "tls_verify_cert",
+            sa.Boolean(),
+            server_default=sa.text("true"),
+            nullable=False,
+        ),
+        sa.Column("ca_cert_data", sa.Text(), nullable=True),
+        sa.Column("client_cert_data", sa.Text(), nullable=True),
+        sa.Column("client_key_data", sa.Text(), nullable=True),
     )
     op.run_async(_create_audit_policies)
 
