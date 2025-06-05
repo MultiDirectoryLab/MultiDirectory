@@ -119,8 +119,6 @@ def upgrade() -> None:
         sa.Column(
             "tls_verify_cert",
             sa.Boolean(),
-            server_default=sa.text("true"),
-            nullable=False,
         ),
         sa.Column("ca_cert_data", sa.Text(), nullable=True),
         sa.Column("client_cert_data", sa.Text(), nullable=True),

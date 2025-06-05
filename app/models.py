@@ -1061,7 +1061,7 @@ class AuditDestination(Base):
         Enum(AuditDestinationProtocolType),
         nullable=False,
     )
-    tls_verify_cert: Mapped[bool] = mapped_column(default=True)
+    tls_verify_cert: Mapped[bool | None] = mapped_column(nullable=True)
     ca_cert_data: Mapped[str | None] = mapped_column(Text)
     client_cert_data: Mapped[str | None] = mapped_column(Text)
     client_key_data: Mapped[str | None] = mapped_column(Text)
