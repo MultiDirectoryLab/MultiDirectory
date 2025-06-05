@@ -25,6 +25,7 @@ from api.main.schema import (
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSForwardServerStatus,
+    DNSForwardZone,
     DNSManagerSettings,
     DNSRecords,
     DNSServerParam,
@@ -136,8 +137,16 @@ async def setup_dns(
 async def get_dns_zone(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSZone]:
-    """Get all DNS records of given zone or all zones if none given."""
+    """Get all DNS records of all zones."""
     return await dns_manager.get_all_zones_records()
+
+
+@dns_router.get("/zone/forward")
+async def get_forward_dns_zones(
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> list[DNSForwardZone]:
+    """"Get list of DNS forward zones with forwarders."""
+    return await dns_manager.get_forward_zones()
 
 
 @dns_router.post("/zone")
@@ -212,6 +221,7 @@ async def get_dns_server_settings(
 ) -> list[DNSServerParam]:
     """Get list of modifiable DNS server params."""
     return await dns_manager.get_dns_server_settings()
+
 
 @dns_router.get("/server/restart")
 async def restart_server(

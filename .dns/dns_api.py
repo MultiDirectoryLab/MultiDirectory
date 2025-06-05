@@ -91,6 +91,15 @@ class DNSZone:
     records: list[DNSRecords]
 
 
+@dataclass
+class DNSForwardZone:
+    """DNS forward zone."""
+
+    zone_name: str
+    zone_type: DNSZoneType
+    forwarders: list[str]
+
+
 class DNSZoneParamName(StrEnum):
     """Possible DNS zone option names."""
 
@@ -400,6 +409,37 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
         return result
 
+    async def get_forward_zones(self) -> list[DNSForwardZone]:
+        """Get all forward DNS zones."""
+        named_local = None
+        with open(NAMED_LOCAL) as file:
+            named_local = file.read()
+
+        pattern = r"""
+            zone\s+"([^"]+)"\s*{[^}]*?
+            type\s+forward\b[^}]*?
+            forwarders\s*{([^}]+)}
+        """
+
+        matches = re.findall(pattern, named_local, re.DOTALL | re.VERBOSE)
+
+        result = []
+        for zone_name, forwarders in matches:
+            clean_forwarders = [
+                forwarder.strip()
+                for forwarder in forwarders.split(";")
+                if forwarder.strip()
+            ]
+            result.append(
+                DNSForwardZone(
+                    zone_name,
+                    DNSZoneType.FORWARD,
+                    clean_forwarders,
+                )
+            )
+
+        return result
+
     async def add_record(
         self,
         record: DNSRecord,
@@ -457,7 +497,6 @@ class BindDNSServerManager(AbstractDNSServerManager):
         """
         self.delete_record(old_record, record_type, zone_name)
         self.add_record(new_record, record_type, zone_name)
-
 
     def get_server_settings() -> list[DNSServerParam]:
         """Get list of modifiable DNS server settings."""
@@ -527,6 +566,14 @@ async def get_all_records_by_zone(
 ) -> list[DNSZone]:
     """Get all DNS records grouped by zone."""
     return dns_manager.get_all_records()
+
+
+@zone_router.get("/forward")
+async def get_forward_zones(
+    dns_manager: Depends[get_dns_manager],
+) -> list[DNSForwardZone]:
+    """Get all forward DNS zones."""
+    return await dns_manager.get_forward_zones()
 
 
 @record_router.post("")
