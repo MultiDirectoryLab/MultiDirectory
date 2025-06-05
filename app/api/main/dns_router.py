@@ -22,6 +22,7 @@ from api.main.schema import (
     DNSServiceZoneDeleteRequest,
     DNSServiceZoneUpdateRequest,
 )
+from config import Settings
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSForwardServerStatus,
@@ -110,12 +111,13 @@ async def setup_dns(
     data: DNSServiceSetupRequest,
     dns_manager: FromDishka[AbstractDNSManager],
     session: FromDishka[AsyncSession],
+    settings: FromDishka[Settings],
 ) -> None:
     """Set up DNS service.
 
     Create zone file, get TSIG key, reload DNS server if selfhosted.
     """
-    dns_ip_address = data.dns_ip_address
+    dns_ip_address = data.dns_ip_address if data.dns_ip_address is not None else settings.DNS_BIND_HOST
     tsig_key = data.tsig_key
 
     try:
@@ -145,7 +147,7 @@ async def get_dns_zone(
 async def get_forward_dns_zones(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSForwardZone]:
-    """"Get list of DNS forward zones with forwarders."""
+    """Get list of DNS forward zones with forwarders."""
     return await dns_manager.get_forward_zones()
 
 

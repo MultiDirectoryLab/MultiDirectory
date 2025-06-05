@@ -127,7 +127,6 @@ class DNSZoneCreateRequest(BaseModel):
 
     zone_name: str
     zone_type: DNSZoneType
-    nameserver_ip: str
     params: list[DNSZoneParam]
 
 
@@ -173,11 +172,10 @@ class DNSRecordDeleteRequest(BaseModel):
     record_type: DNSRecordType
 
 
-class DnsServerSetupRequest(BaseModel):
+class DNSServerSetupRequest(BaseModel):
     """DNS server setup request schem."""
 
     zone_name: str
-    dns_ip_address: str
 
 
 @dataclass
@@ -192,7 +190,12 @@ class AbstractDNSServerManager(ABC):
     """DNS server manager."""
 
     @abstractmethod
-    async def add_zone(self, name: str, zone_settings: str) -> None:
+    async def add_zone(
+        self,
+        zone_name: str,
+        zone_type: str,
+        params: list[DNSZoneParam],
+    ) -> None:
         """Add new zone.
 
         :param str name: zone name
@@ -250,15 +253,15 @@ class BindDNSServerManager(AbstractDNSServerManager):
         self,
         zone_name: str,
         zone_type: str,
-        nameserver_ip: str,
         params: list[DNSZoneParam],
     ) -> None:
         params_dict = {param.name: param.value for param in params}
         """Add new zone."""
         zf_template = TEMPLATES.get_template("zone.template")
+        #TODO: сделать получение ip железки
         zone_file = zf_template.render_async(
             domain=zone_name,
-            nameserver_ip=nameserver_ip,
+            nameserver_ip="127.0.0.2",
             ttl=params_dict.get("ttl", 604800),
         )
         with open(
@@ -337,12 +340,11 @@ class BindDNSServerManager(AbstractDNSServerManager):
             stderr=asyncio.subprocess.PIPE,
         )
 
-    async def first_setup(self, zone_name: str, dns_server_ip: str) -> str:
+    async def first_setup(self, zone_name: str) -> str:
         """Perform first setup of Bind9 server."""
         await self.add_zone(
             zone_name,
             "master",
-            dns_server_ip,
             params=[],
         )
         for record in FIRST_SETUP_RECORDS:
@@ -574,7 +576,6 @@ async def create_zone(
     await dns_manager.add_zone(
         data.zone_name,
         data.zone_type,
-        data.nameserver_ip,
         data.params,
     )
 
@@ -705,11 +706,11 @@ async def get_server_settings(
 
 @server_router.post("/setup")
 async def setup_server(
-    data: DnsServerSetupRequest,
+    data: DNSServerSetupRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Init setup of DNS server."""
-    await dns_manager.first_setup(data.zone_name, data.dns_ip_address)
+    await dns_manager.first_setup(data.zone_name)
 
 
 def create_app() -> FastAPI:

@@ -232,10 +232,7 @@ class AbstractDNSManager(ABC):
             ) as client:
                 await client.post(
                     "/setup",
-                    json={
-                        "zone_name": domain,
-                        "dns_ip_address": dns_ip_address,
-                    },
+                    json={"zone_name": domain},
                 )
 
             tsig_key = None
