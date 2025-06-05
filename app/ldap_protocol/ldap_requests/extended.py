@@ -220,12 +220,11 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
         if validator.validate_min_age(p_last_set):
             errors.append("Minimum age violation")
-        # assert errors == []
+
         if not errors and (
             user.password is None
             or verify_password(old_password, user.password)
         ):
-            logger.info("11111111111111111111111111111111111111")
             try:
                 await kadmin.create_or_update_principal_pw(
                     user.get_upn_prefix(),
