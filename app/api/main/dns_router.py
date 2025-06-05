@@ -206,6 +206,13 @@ async def update_server_options(
     await dns_manager.update_server_options(data)
 
 
+@dns_router.get("/server/settings")
+async def get_dns_server_settings(
+    dns_manager: FromDishka[AbstractDNSManager],
+) -> list[DNSServerParam]:
+    """Get list of modifiable DNS server params."""
+    return await dns_manager.get_dns_server_settings()
+
 @dns_router.get("/server/restart")
 async def restart_server(
     dns_manager: FromDishka[AbstractDNSManager],
