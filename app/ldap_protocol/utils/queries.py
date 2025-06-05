@@ -179,8 +179,7 @@ def get_search_path(dn: str) -> list[str]:
     """Get search path for dn.
 
     Args:
-        dn(str): any DN, dn syntax
-        dn: str:
+        dn (str): any DN, dn syntax
 
     Returns:
         list[str]: reversed list of dn values
@@ -219,9 +218,9 @@ def get_filter_from_path(
     """Get filter condition for path equality from dn.
 
     Args:
-        dn: str:
+        dn (str): any DN, dn syntax
         *:
-        column: Column | InstrumentedAttribute: (Default value =\
+        column (Column | InstrumentedAttribute): (Default value =\
             Directory.path)
     """
     return get_path_filter(get_search_path(dn), column=column)

@@ -13,10 +13,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Validate password.
 
     Args:
-        plain_password(str): raw password
-        hashed_password(str): pwd hash from db
-        plain_password: str:
-        hashed_password: str:
+        plain_password (str): raw password
+        hashed_password (str): pwd hash from db
 
     Returns:
         bool: is password valid
@@ -28,8 +26,7 @@ def get_password_hash(password: str) -> str:
     """Hash password.
 
     Args:
-        password(str): raw pwd
-        password: str:
+        password (str): raw pwd
 
     Returns:
         str: hash

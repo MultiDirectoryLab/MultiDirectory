@@ -169,9 +169,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Validate security layer.
 
         Args:
-            client_layer(int): client security layer
-            settings(Settings): settings
-            client_layer: GSSAPISL:
+            client_layer (int): client security layer
 
         Returns:
             bool: validate result
@@ -220,10 +218,8 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Generate final wrap message.
 
         Args:
-            server_ctx(gssapi.SecurityContext): gssapi context
-            settings(Settings): settings
-            server_ctx: gssapi.SecurityContext:
-            settings: Settings:
+            server_ctx (gssapi.SecurityContext): gssapi context
+            settings (Settings): settings
 
         Returns:
             bytes: message

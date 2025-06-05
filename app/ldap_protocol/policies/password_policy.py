@@ -157,11 +157,10 @@ class PasswordPolicySchema(BaseModel):
         """Get number of days, pwd exists.
 
         Args:
-            last_pwd_set(Attribute): pwdLastSet
-            last_pwd_set: Attribute:
+            last_pwd_set (Attribute): pwdLastSet
 
         Returns:
-            int: days
+            int: count of days
         """
         tz = ZoneInfo("UTC")
         now = datetime.now(tz=tz)
@@ -211,16 +210,11 @@ class PasswordPolicySchema(BaseModel):
         """Validate min password change age.
 
         Args:
-            last_pwd_set(Attribute): last pwd set
-            last_pwd_set: Attribute:
+            last_pwd_set (Attribute): last pwd set
 
         Returns:
             bool: can change pwd True - not valid, can not change False
-            bool: can change pwd True - not valid, can not change False
-            - valid, can change
-            bool: can change pwd True - not valid, can not change False
-            - valid, can change
-            on minimum_password_age_days can always change.
+            - valid, can change on minimum_password_age_days can always change.
         """
         if self.minimum_password_age_days == 0:
             return False
@@ -233,16 +227,11 @@ class PasswordPolicySchema(BaseModel):
         """Validate max password change age.
 
         Args:
-            last_pwd_set(Attribute): last pwd set
-            last_pwd_set: Attribute:
+            last_pwd_set (Attribute): last pwd set
 
         Returns:
             bool: is pwd expired True - not valid, expired False -
-            bool: is pwd expired True - not valid, expired False -
-            valid, not expired
-            bool: is pwd expired True - not valid, expired False -
-            valid, not expired
-            on maximum_password_age_days always valid.
+            valid, not expired on maximum_password_age_days always valid.
         """
         if self.maximum_password_age_days == 0:
             return False

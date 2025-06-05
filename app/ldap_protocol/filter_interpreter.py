@@ -52,10 +52,13 @@ def _from_filter(
     """Description.
 
     Args:
-    model: type:
-    item: ASN1Row:
-    attr: str:
-    right: ASN1Row:
+        model (type): Any Model
+        item (ASN1Row): Row with metadata
+        attr (str): Attribute name
+        right (ASN1Row): Row with metadata
+
+    Returns:
+        UnaryExpression
     """
     is_substring = item.tag_id == TagNumbers.SUBSTRING
     col = getattr(model, attr)
@@ -76,7 +79,7 @@ def _filter_memberof(dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute.
 
     Args:
-        dn: str:
+        dn (str): any DN, dn syntax
     """
     group_id_subquery = (
         select(Group.id)
@@ -98,7 +101,7 @@ def _filter_member(dn: str) -> UnaryExpression:
     """Retrieve query conditions with the member attribute.
 
     Args:
-        dn: str:
+        dn (str): any DN, dn syntax
     """
     user_id_subquery = (
         select(User.id)
@@ -120,7 +123,7 @@ def _recursive_filter_memberof(dn: str) -> UnaryExpression:
     """Retrieve query conditions with the memberOF attribute(recursive).
 
     Args:
-        dn: str:
+        dn (str): any DN, dn syntax
     """
     cte = find_members_recursive_cte(dn)
 
@@ -252,13 +255,6 @@ def _from_str_filter(
     is_substring: bool,
     item: Filter,
 ) -> UnaryExpression:
-    """Description.
-
-    Args:
-    model: type:
-    is_substring: bool:
-    item: Filter:
-    """
     col = getattr(model, item.attr)
 
     if is_substring:
@@ -269,21 +265,12 @@ def _from_str_filter(
 
 
 def _api_filter(item: Filter) -> UnaryExpression:
-    """Retrieve query conditions based on the specified LDAP attribute.
-
-    Args:
-        item: Filter:
-    """
+    """Retrieve query conditions based on the specified LDAP attribute."""
     filter_func = _get_filter_function(item.attr)
     return filter_func(item.val)
 
 
 def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
-    """Description.
-
-    Args:
-    item: Filter:
-    """
     if item.val == "*":
         if item.attr in User.search_fields:
             return not_(eq(getattr(User, item.attr), None))
@@ -316,7 +303,10 @@ def cast_str_filter2sql(expr: Filter) -> UnaryExpression | ColumnElement:
     """Cast ldap filter to sa query.
 
     Args:
-        expr: Filter:
+        expr (Filter): LDAP Base filter
+
+    Returns:
+        UnaryExpression | ColumnElement:
     """
     if expr.type == "group":
         conditions = []

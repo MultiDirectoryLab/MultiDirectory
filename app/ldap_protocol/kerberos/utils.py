@@ -26,7 +26,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         """Description.
 
         Args:
-            func: Callable:
+            func (Callable): any function
 
         Returns:
             Callable: wrapped function

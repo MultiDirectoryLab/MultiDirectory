@@ -54,7 +54,7 @@ def scheduler(settings: Settings) -> None:
     """Sript entrypoint.
 
     Args:
-        settings: Settings:
+        settings (Settings): Settings with database dsn.
     """
 
     async def runner(settings: Settings) -> None:

@@ -34,7 +34,7 @@ def _get_vendor_version() -> str:
 
 
 class Settings(BaseModel):
-    """Settigns with database dsn."""
+    """Settings with database dsn."""
 
     DOMAIN: str
 

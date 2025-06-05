@@ -246,8 +246,7 @@ class PoolClientHandler:
         https://github.com/cannatag/ldap3/blob/dev/ldap3/strategy/base.py#L455
 
         Args:
-            data(bytes): body
-            data: bytes:
+            data (bytes): body
 
         Returns:
             int: actual size
@@ -356,11 +355,11 @@ class PoolClientHandler:
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
-        """Description.
+        """Request full log.
 
         Args:
-            addr: str:
-            msg: LDAPRequestMessage:
+            addr (str): address
+            msg (LDAPRequestMessage): message
 
         """
         log.debug(
@@ -370,12 +369,11 @@ class PoolClientHandler:
 
     @staticmethod
     def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
-        """Description.
+        """Response full log.
 
         Args:
-            addr: str:
-            msg: LDAPResponseMessage:
-
+            addr (str): address
+            msg (LDAPResponseMessage): message
         """
         log.debug(
             f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
@@ -384,11 +382,11 @@ class PoolClientHandler:
 
     @staticmethod
     def _log_short(addr: str, msg: LDAPMessage) -> None:
-        """Description.
+        """Short log.
 
         Args:
-            addr: str:
-            msg: LDAPMessage:
+            addr (str): address
+            msg (LDAPMessage): message
 
         """
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")

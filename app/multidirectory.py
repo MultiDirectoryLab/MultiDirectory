@@ -84,7 +84,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     """Create basic FastAPI app with dependencies overrides.
 
     Args:
-        settings: Settings:
+        settings (Settings): Settings with database dsn.
 
     Returns:
         FastAPI: Configured FastAPI application.
@@ -129,7 +129,7 @@ def _create_shadow_app(settings: Settings) -> FastAPI:
     """Create shadow FastAPI app for shadow.
 
     Args:
-        settings: Settings:
+        settings (Settings): Settings with database dsn.
 
     Returns:
         FastAPI: Configured FastAPI application for shadow API.
@@ -179,7 +179,7 @@ def ldap(settings: Settings) -> None:
     """Run server.
 
     Args:
-        settings: Settings:
+        settings (Settings): Settings with database dsn.
     """
 
     async def _servers(settings: Settings) -> None:

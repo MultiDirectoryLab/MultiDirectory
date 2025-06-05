@@ -54,7 +54,7 @@ class BaseEncoder(BaseModel):
         """Serialize flat structure to bytes, write to encoder buffer.
 
         Args:
-            enc: Encoder:
+            enc (Encoder): encoder
         """
         for value in self._get_asn1_fields().values():
             enc.write(value, type_map[type(value)])
@@ -84,7 +84,7 @@ class BindResponse(LDAPResult, BaseResponse):
         """Serialize flat structure to bytes, write to encoder buffer.
 
         Args:
-            enc: Encoder:
+            enc (Encoder): encoder
         """
         enc.write(self.result_code, type_map[type(self.result_code)])
         enc.write(self.matched_dn, type_map[type(self.matched_dn)])
@@ -163,7 +163,7 @@ class SearchResultEntry(BaseResponse):
         """Serialize search response structure to asn1 buffer.
 
         Args:
-            enc: Encoder:
+            enc (Encoder): encoder
         """
         enc.write(self.object_name, Numbers.OctetString)
         enc.enter(Numbers.Sequence)
@@ -265,7 +265,7 @@ class ExtendedResponse(LDAPResult, BaseResponse):
         """Serialize flat structure to bytes, write to encoder buffer.
 
         Args:
-            enc: Encoder:
+            enc (Encoder): encoder
         """
         enc.write(self.result_code, type_map[type(self.result_code)])
         enc.write(self.matched_dn, type_map[type(self.matched_dn)])

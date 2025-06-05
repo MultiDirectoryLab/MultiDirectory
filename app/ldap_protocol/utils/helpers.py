@@ -150,11 +150,10 @@ def validate_entry(entry: str) -> bool:
     cn=first,dc=example,dc=com -> valid
 
     Args:
-        entry(str): any str
-        entry: str:
+        entry (str): entry path
 
     Returns:
-        bool: result
+        bool: entry path is correct
     """
     return all(
         re.match(r"^[a-zA-Z\-]+$", part.split("=")[0])
@@ -167,8 +166,8 @@ def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
     """Check if an entry in a base dn.
 
     Args:
-        base_directory: Directory:
-        entry: str:
+        base_directory (Directory): instance of Directory
+        entry (str): entry path
     """
     return entry.lower().endswith(base_directory.path_dn.lower())
 
@@ -177,8 +176,8 @@ def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
     """Check if an entry is a base dn.
 
     Args:
-        base_directory: Directory:
-        entry: str:
+        base_directory (Directory): base Directory instance
+        entry (str): entry path
     """
     return base_directory.path_dn.lower() == entry.lower()
 
@@ -187,7 +186,7 @@ def get_generalized_now(tz: ZoneInfo) -> str:
     """Get generalized time (formated) with tz.
 
     Args:
-        tz: ZoneInfo:
+        tz (ZoneInfo): timezone
     """
     return datetime.now(tz).strftime("%Y%m%d%H%M%S.%f%z")
 
@@ -196,7 +195,7 @@ def _get_domain(name: str) -> str:
     """Get domain from name.
 
     Args:
-        name: str:
+        name (str): directory path
     """
     return ".".join(
         [
@@ -211,10 +210,8 @@ def create_integer_hash(text: str, size: int = 9) -> int:
     """Create integer hash from text.
 
     Args:
-        text(str): any string
-        size(int): fixed size of hash, defaults to 15
-        text: str:
-        size: int: (Default value = 9)
+        text (str): any string
+        size (int): fixed size of hash, defaults to 15
 
     Returns:
         int: hash
@@ -226,7 +223,7 @@ def get_windows_timestamp(value: datetime) -> int:
     """Get the Windows timestamp from the value.
 
     Args:
-        value: datetime:
+        value (datetime): date and time
     """
     return (int(value.timestamp()) + 11644473600) * 10000000
 
@@ -241,7 +238,7 @@ def dt_to_ft(dt: datetime) -> int:
     If the object is time zone-naive, it is forced to UTC before conversion.
 
     Args:
-        dt: datetime:
+        dt (datetime): date and time
     """
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) != 0:
         dt = dt.astimezone(ZoneInfo("UTC"))
@@ -258,7 +255,7 @@ def ft_to_dt(filetime: int) -> datetime:
     2) Convert to datetime object, with remainder as microseconds.
 
     Args:
-        filetime: int:
+        filetime (int): Windows file time number
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
     return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(
@@ -284,8 +281,7 @@ def string_to_sid(sid_string: str) -> bytes:
         - Each sub-authority is packed as a 4-byte sequence.
 
     Args:
-        sid_string: The string representation of the SID
-        sid_string: str:
+        sid_string (str): The string representation of the SID
 
     Returns:
         bytes: The binary representation of the SID
@@ -317,14 +313,11 @@ def create_object_sid(
     """Generate the objectSid attribute for an object.
 
     Args:
-        domain: domain directory
-        rid(int): relative identifier
-        reserved(bool): A flag indicating whether the RID is reserved.
-    If `True`, the given RID is used directly. If `False`, 1000
-    is added to the given RID to generate the final RID
-        domain: Directory:
-        rid: int:
-        reserved: bool: (Default value = False)
+        domain (Directory): domain directory
+        rid (int): relative identifier
+        reserved (bool): A flag indicating whether the RID is reserved.
+            If `True`, the given RID is used directly. If `False`, 1000
+            is added to the given RID to generate the final RID
 
     Returns:
         str: the complete objectSid as a string
@@ -348,7 +341,7 @@ def create_user_name(directory_id: int) -> str:
     NOTE: keycloak
 
     Args:
-        directory_id: int:
+        directory_id (int): Directory's id
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
 

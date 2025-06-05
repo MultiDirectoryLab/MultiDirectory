@@ -32,10 +32,10 @@ class AttributeTypeSchema(BaseSchemaModel):
         """Create an instance from database.
 
         Args:
-            attribute_type: AttributeType:
+            attribute_type (AttributeType): instance of AttributeType
 
         Returns:
-            AttributeTypeSchema: Instance of AttributeTypeSchema.
+            AttributeTypeSchema: serialized AttributeType.
         """
         return cls(
             oid=attribute_type.oid,

@@ -149,7 +149,7 @@ class TestProvider(Provider):
         """Get async engine.
 
         Args:
-            settings: Settings:
+            settings (Settings): Settings with database dsn.
         """
         return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
 
@@ -161,7 +161,7 @@ class TestProvider(Provider):
         """Create session factory.
 
         Args:
-            engine: AsyncEngine:
+            engine (AsyncEngine): async engine
         """
         return async_sessionmaker(
             engine,
@@ -331,7 +331,7 @@ async def _migrations(
         """Description.
 
         Args:
-            conn: AsyncConnection:
+            conn (AsyncConnection): connection
 
         """
         config.attributes["connection"] = conn
@@ -341,7 +341,7 @@ async def _migrations(
         """Description.
 
         Args:
-            conn: AsyncConnection:
+            conn (AsyncConnection): connection
 
         """
         config.attributes["connection"] = conn
@@ -436,8 +436,8 @@ def _server(
     """Run server in background.
 
     Args:
-        event_loop: asyncio.BaseEventLoop:
-        handler: PoolClientHandler:
+        event_loop (asyncio.BaseEventLoop): events loop
+        handler (PoolClientHandler): handler
     """
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(0.1))
@@ -451,7 +451,7 @@ def ldap_client(settings: Settings) -> ldap3.Connection:
     """Get ldap clinet without a creds.
 
     Args:
-        settings: Settings:
+        settings (Settings): Settings with database dsn.
     """
     return ldap3.Connection(
         ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
@@ -521,7 +521,7 @@ def creds(user: dict) -> TestCreds:
     """Get creds from test data.
 
     Args:
-        user: dict:
+        user (dict): user data
     """
     return TestCreds(user["sam_accout_name"], user["password"])
 
@@ -537,7 +537,7 @@ def _force_override_tls(settings: Settings) -> Iterator:
     """Override tls status for tests.
 
     Args:
-        settings: Settings:
+        settings (Settings): Settings with database dsn.
     """
     current_status = settings.USE_CORE_TLS
     settings.USE_CORE_TLS = True

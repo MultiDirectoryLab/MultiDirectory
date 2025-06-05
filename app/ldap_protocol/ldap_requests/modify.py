@@ -243,8 +243,7 @@ class ModifyRequest(BaseRequest):
         """Description.
 
         Args:
-            err: BaseException:
-
+            err (BaseException): error
         """
         match err:
             case ValueError():

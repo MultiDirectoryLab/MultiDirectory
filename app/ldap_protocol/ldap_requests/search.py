@@ -102,8 +102,8 @@ class SearchRequest(BaseRequest):
         """Serialize filter field.
 
         Args:
-            val: ASN1Row | None:
-            _info: Any:
+            val (ASN1Row | None): instance of ASN1Row
+            _info (Any): not used
         """
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
@@ -354,8 +354,8 @@ class SearchRequest(BaseRequest):
         """Build tree query.
 
         Args:
-            base_directories: list[Directory]:
-            user: UserSchema:
+            base_directories (list[Directory]): instances of Directory
+            user (UserSchema): serialized user
         """
         query = (
             select(Directory)

@@ -106,7 +106,7 @@ class LDAPSession:
         """Description.
 
         Args:
-            user: User:
+            user (User): instance of User
 
         """
         raise NotImplementedError(

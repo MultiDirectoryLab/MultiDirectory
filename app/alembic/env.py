@@ -25,7 +25,7 @@ def do_run_migrations(connection: AsyncConnection):
     """Run sync migrations.
 
     Args:
-        connection: AsyncConnection:
+        connection (AsyncConnection): async connection
     """
     context.configure(
         connection=connection,

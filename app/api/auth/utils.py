@@ -42,8 +42,7 @@ def get_user_agent_from_request(request: Request) -> str:
     """Get user agent from request.
 
     Args:
-        request(Request): The incoming request object.
-        request: Request:
+        request (Request): The incoming request object.
 
     Returns:
         str: The user agent header.

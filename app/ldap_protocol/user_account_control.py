@@ -120,8 +120,7 @@ async def get_check_uac(
         """Check given flag in current userAccountControl attribute.
 
         Args:
-            flag(userAccountControlFlag): flag
-            flag: UserAccountControlFlag:
+            flag (userAccountControlFlag): flag
 
         Returns:
             bool: True if flag is set, False otherwise

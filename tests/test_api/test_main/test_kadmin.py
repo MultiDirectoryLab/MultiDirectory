@@ -25,8 +25,8 @@ def _create_test_user_data(
     """Description.
 
     Args:
-    name: str:
-    pw: str:
+        name (str): user name
+        pw (str): user password
     """
     return {
         "entry": "cn=ktest,dc=md,dc=test",

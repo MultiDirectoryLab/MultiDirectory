@@ -72,7 +72,7 @@ class BaseSchemaModel[S: Base](BaseModel):
         """Create an instance of Schema from instance of SQLA model.
 
         Args:
-            sqla_instance: S:
+            sqla_instance (S): instance of SQLAlchemy Model
         """
 
 

@@ -133,10 +133,8 @@ class LDAPRequestMessage(LDAPMessage):
         """Create error response message.
 
         Args:
-            source(bytes): source data
-            err(Exception): any error
-            source: bytes:
-            err: Exception:
+            source (bytes): source data
+            err (Exception): any error
 
         Returns:
             LDAPResponseMessage: response with err code

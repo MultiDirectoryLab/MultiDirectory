@@ -93,14 +93,10 @@ def mutate_ap[T: Select](
     """Modify query with read rule filter, joins acess policies.
 
     Args:
-        query(T): select(Directory)
-        user(UserSchema): user data
-        query: T:
-        user: UserSchema:
-        action: Literal["add":
-        "read":
-        "modify":
-        "del"]: (Default value = "read")
+        query (T): select(Directory)
+        user (UserSchema): serialized user
+        action (Literal["add", "read", "modify", "del"]):
+            (Default value = "read")
 
     Returns:
         T: select(Directory).join(Directory.access_policies)

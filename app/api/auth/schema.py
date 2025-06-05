@@ -66,17 +66,17 @@ class SetupRequest(BaseModel):
     password: str
 
     @field_validator("domain")
-    def validate_domain(cls, v: str) -> str:  # noqa
+    def validate_domain(cls, v: str) -> str:  # noqa FIXME why noqa?
         """Description.
 
         Args:
-            v: str:
-
-        Raises:
-            ValueError: If the domain is invalid.
+            v (str): value
 
         Returns:
             str: Validated domain string.
+
+        Raises:
+            ValueError: If the domain is invalid.
         """
         if re.match(_domain_re, v) is None:
             raise ValueError("Invalid domain value")

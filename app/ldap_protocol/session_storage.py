@@ -119,8 +119,8 @@ class SessionStorage(ABC):
         """Description.
 
         Args:
-            session_id: str:
-            settings: Settings:
+            session_id (str): Session id
+            settings (Settings): Settings with database dsn.
 
         Returns:
             str: The HMAC signature for the session_id using provided settings.
@@ -136,7 +136,7 @@ class SessionStorage(ABC):
         """Get user agent hash.
 
         Args:
-            user_agent: str:
+            user_agent (str): user agent
 
         Returns:
             str: The hash of the user agent.
@@ -147,8 +147,8 @@ class SessionStorage(ABC):
         """Description.
 
         Args:
-            ip: str:
-            protocol: ProtocolType:
+            ip (str): IP
+            protocol (ProtocolType): Type of Protocol
 
         Returns:
             str: The session key for the given IP and protocol.
@@ -159,8 +159,8 @@ class SessionStorage(ABC):
         """Description.
 
         Args:
-            uid: int:
-            protocol: ProtocolType:
+            uid (int): uid
+            protocol (ProtocolType): Type of Protocol
 
         Returns:
             str: The session key for the given user and protocol.
@@ -171,10 +171,10 @@ class SessionStorage(ABC):
         """Description.
 
         Args:
-            session_id: str:
+            session_id (str): Session id
 
         Returns:
-            ProtocolType: Protocol type ("http" or "ldap") for given session_id
+            ProtocolType: Protocol type for given session_id
         """
         return "http" if session_id.startswith("http:") else "ldap"
 
@@ -191,8 +191,7 @@ class SessionStorage(ABC):
         """Get lock key.
 
         Args:
-            session_id(str): session id
-            session_id: str:
+            session_id (str): session id
 
         Returns:
             str: lock key
@@ -276,10 +275,9 @@ class SessionStorage(ABC):
         """Set data.
 
         Args:
-            self: Self:
-            uid: int:
-            settings: Settings:
-            extra_data: dict | None:
+            uid (int): uid
+            settings (Settings): Settings with database dsn.
+            extra_data (dict | None): additional data
 
         Returns:
             tuple[str, str, dict]: A tuple containing the session_id,\
