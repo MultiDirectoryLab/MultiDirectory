@@ -10,8 +10,12 @@ class KerberosMDAPIClient(AbstractKadmin):
     """KRB server integration."""
 
     @logger_wraps(is_stub=True)
-    async def setup(*_, **__) -> None:  # type: ignore
-        """Stub method, setup is not needed."""
+    async def setup(*args, **kwargs) -> None:  # type: ignore
+        """Stub method, setup is not needed.
+
+        Args:
+            **kwargs: keyword arguments
+        """
 
     @logger_wraps()
     async def add_principal(

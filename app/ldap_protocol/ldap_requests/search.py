@@ -98,7 +98,7 @@ class SearchRequest(BaseRequest):
         ignored_types = (cached_property,)
 
     @field_serializer("filter")
-    def serialize_filter(self, val: ASN1Row | None, _info: Any) -> str | None:  # noqa: ANN401
+    def serialize_filter(self, val: ASN1Row | None, _info: Any) -> str | None:
         """Serialize filter field.
 
         Args:

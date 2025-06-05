@@ -102,6 +102,7 @@ class AbstractKRBManager(ABC):
         Args:
             name (str): principal name
             password (str | None): password, if empty - uses randkey.
+            **dbargs: database arguments
         """
 
     @abstractmethod
@@ -169,6 +170,7 @@ class AbstractKRBManager(ABC):
 
         Args:
             name (str): principal name
+            **dbargs: database arguments
         """
 
     @abstractmethod
@@ -177,6 +179,7 @@ class AbstractKRBManager(ABC):
 
         Args:
             name (str): principal name
+            **dbargs: database arguments
         """
 
 
@@ -186,7 +189,11 @@ class KAdminLocalManager(AbstractKRBManager):
     client: KAdminProtocol
 
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
-        """Create threadpool and get loop."""
+        """Create threadpool and get loop.
+
+        Args:
+            loop (asyncio.AbstractEventLoop | None): event loop
+        """
         self.loop = loop or asyncio.get_running_loop()
 
     async def connect(self) -> Self:
@@ -214,7 +221,13 @@ class KAdminLocalManager(AbstractKRBManager):
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
-        """Destroy threadpool."""
+        """Destroy threadpool.
+
+        Args:
+            exc_type (type[BaseException] | None): exception type
+            exc (BaseException | None): exception
+            tb (TracebackType | None): traceback
+        """
         await self.disconnect()
 
     async def _init_client(self) -> KAdminProtocol:
@@ -236,6 +249,7 @@ class KAdminLocalManager(AbstractKRBManager):
         Args:
             name (str): principal name
             password (str): password, if empty - uses randkey.
+            **dbargs: database arguments
         """
         await self.loop.run_in_executor(
             self.pool,
@@ -350,6 +364,7 @@ class KAdminLocalManager(AbstractKRBManager):
 
         Args:
             name (str): principal names
+            **dbargs: database arguments
         """
         princ = await self._get_raw_principal(name)
         princ.expire = "Now"
@@ -360,6 +375,7 @@ class KAdminLocalManager(AbstractKRBManager):
 
         Args:
             name (str): principal names
+            **dbargs: database arguments
         """
         princ = await self._get_raw_principal(name)
         princ.pwexpire = "Now"
@@ -368,7 +384,14 @@ class KAdminLocalManager(AbstractKRBManager):
 
 @asynccontextmanager
 async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Create kadmin instance."""
+    """Create kadmin instance.
+
+    Args:
+        app (FastAPI): FastAPI app
+
+    Yields:
+        AsyncIterator[None]: Async iterator
+    """
     loop = asyncio.get_running_loop()
 
     async def try_set_kadmin(app: FastAPI) -> None:
@@ -392,12 +415,20 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def get_kadmin() -> KAdminLocalManager:
-    """Stub."""
+    """Stub.
+
+    Raises:
+        NotImplementedError: NotImplementedError
+    """
     raise NotImplementedError
 
 
 def handle_db_error(request: Request, exc: BaseException):  # noqa: ARG001
     """Handle duplicate.
+
+    Args:
+        request (Request): request
+        exc (BaseException): exception
 
     Raises:
         HTTPException: Database Error
@@ -411,6 +442,10 @@ def handle_db_error(request: Request, exc: BaseException):  # noqa: ARG001
 def handle_duplicate(request: Request, exc: BaseException):  # noqa: ARG001
     """Handle duplicate.
 
+    Args:
+        request (Request): request
+        exc (BaseException): exception
+
     Raises:
         HTTPException: Principal already exists
     """
@@ -422,6 +457,10 @@ def handle_duplicate(request: Request, exc: BaseException):  # noqa: ARG001
 
 def handle_not_found(request: Request, exc: BaseException):  # noqa: ARG001
     """Handle duplicate.
+
+    Args:
+        request (Request): request
+        exc (BaseException): exception
 
     Raises:
         HTTPException: Principal does not exist

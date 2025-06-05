@@ -1,7 +1,6 @@
+# https://akaihola.github.io/darglint2/master/index.html
 [darglint2]
 docstring_style=google
 
 # https://akaihola.github.io/darglint2/master/readme.html#strictness-configuration
 strictness=full
-
-# ignore=DAR401,

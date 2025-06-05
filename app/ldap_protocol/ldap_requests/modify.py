@@ -265,6 +265,9 @@ class ModifyRequest(BaseRequest):
 
         Returns:
             tuple[LDAPCodes, str]: result code and message
+
+        Raises:
+            Exception: any exception
         """
         match err:
             case ValueError():
@@ -284,7 +287,7 @@ class ModifyRequest(BaseRequest):
                 return LDAPCodes.STRONGER_AUTH_REQUIRED, ""
 
             case _:
-                raise err
+                raise Exception
 
     def _get_dir_query(self) -> Select:
         """Get directory query.

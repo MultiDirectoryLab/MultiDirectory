@@ -33,7 +33,7 @@ class AbandonRequest(BaseRequest):
     async def handle(self) -> AsyncGenerator:
         """Handle message with current user.
 
-        Returns:
+        Yields:
             AsyncGenerator: Async generator.
         """
         await asyncio.sleep(0)

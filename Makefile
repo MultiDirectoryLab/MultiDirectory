@@ -7,6 +7,7 @@ before_pr:
 	ruff check . --preview --fix --unsafe-fixes
 	ruff format . --preview
 	mypy .
+	darglint2 -v 2 .kerberos/ app
 
 build:  ## build app and manually generate self-signed cert
 	make down

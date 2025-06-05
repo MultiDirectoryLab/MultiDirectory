@@ -9,7 +9,14 @@ import uuid
 import weakref
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Generator,
+    Iterator,
+    Literal,
+)
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -288,8 +295,16 @@ class MutePolicyBindRequest(BindRequest):
     __test__ = False
 
     @staticmethod
-    async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
-        """Stub."""
+    async def is_user_group_valid(*args: Any, **kwargs: Any) -> Literal[True]:
+        """Stub.
+
+        Args:
+            *args: arguments
+            **kwargs: keyword arguments
+
+        Returns:
+            Literal[True]: True
+        """
         return True
 
 
