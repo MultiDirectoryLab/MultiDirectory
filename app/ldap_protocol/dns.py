@@ -192,6 +192,15 @@ class DNSZone:
     records: list[DNSRecords]
 
 
+@dataclass
+class DNSForwardZone:
+    """DNS forward zone."""
+
+    zone_name: str
+    zone_type: DNSZoneType
+    forwarders: list[str]
+
+
 class DNSManagerState(StrEnum):
     """DNSManager state enum."""
 
@@ -285,6 +294,9 @@ class AbstractDNSManager(ABC):
 
     @abstractmethod
     async def get_all_zones_records(self) -> list[DNSZone]: ...
+
+    @abstractmethod
+    async def get_forward_zones(self) -> list[DNSForwardZone]: ...
 
     @abstractmethod
     async def create_zone(
@@ -423,6 +435,14 @@ class SelfHostedDNSManager(AbstractDNSManager):
         response = None
         async with self._http_client:
             response = await self._http_client.get("/zone")
+
+        return response.json()
+
+    @logger_wraps()
+    async def get_forward_zones(self) -> list[DNSForwardZone]:
+        response = None
+        async with self._http_client:
+            response = await self._http_client.get("/zone/forward")
 
         return response.json()
 
