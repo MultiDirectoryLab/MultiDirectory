@@ -97,8 +97,8 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False, primary_key=True),
         sa.Column("name", sa.String(length=255), nullable=False, unique=True),
         sa.Column(
-            "type",
-            sa.Enum("SYSLOG", name="auditdestinationtype"),
+            "service_type",
+            sa.Enum("SYSLOG", name="auditdestinationservicetype"),
             nullable=False,
         ),
         sa.Column(
