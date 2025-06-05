@@ -36,6 +36,8 @@ services:
       - ldap_keytab:/LDAP_keytab/
     env_file:
       local.env
+    environment:
+      - SERVICE_NAME=ldap_server
     command: python -OO multidirectory.py --ldap
     tty: true
     depends_on:
@@ -85,6 +87,8 @@ services:
     env_file:
       local.env
     command: python multidirectory.py --http
+    environment:
+      - SERVICE_NAME=multidirectory_api
     tty: true
     labels:
       - "traefik.enable=true"
@@ -305,6 +309,8 @@ services:
       - ./certs:/certs
     env_file:
       local.env
+    environment:
+      - SERVICE_NAME=shadow_api
     command: python multidirectory.py --shadow
     ports:
       - 8001:8000
@@ -421,10 +427,9 @@ services:
     volumes:
       - ./syslog:/var/log
       - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
-    environment:
-      - TZ=Europe/Moscow
     privileged: true
     restart: always
+
 
 volumes:
   postgres:
