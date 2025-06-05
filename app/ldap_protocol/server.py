@@ -12,14 +12,13 @@ from contextlib import suppress
 from io import BytesIO
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from traceback import format_exc
-from typing import Any, Literal, cast, overload
+from typing import Literal, cast, overload
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
 from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
-from redis_client import RedisClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -27,6 +26,10 @@ from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
+from ldap_protocol.policies.audit_policy import (
+    AuditEventBuilder,
+    RedisAuditDAO,
+)
 
 log = logger.bind(name="ldap")
 
@@ -350,17 +353,13 @@ class PoolClientHandler:
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
-        redis_client: RedisClient = await container.get(RedisClient)
+        redis_client: RedisAuditDAO = await container.get(RedisAuditDAO)
         addr = str(ldap_session.ip)
 
         while True:
             try:
                 message: LDAPRequestMessage = await ldap_session.queue.get()
                 self.req_log(addr, message)
-
-                to_process_event = await redis_client.is_enable_proc_events(
-                    message
-                )
 
                 async with container(scope=Scope.REQUEST) as request_container:
                     # NOTE: Automatically provides requested arguments
@@ -370,13 +369,7 @@ class PoolClientHandler:
                     )
                     handler = message.context.handle(**kwargs)
 
-                    if to_process_event:
-                        responses: list = []
-                        event_data: dict[str, Any] = {
-                            "request": message.model_dump(),
-                            "responses": responses,
-                            "protocol": "TCP_LDAP",
-                        }
+                    responses = []
 
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
@@ -390,22 +383,28 @@ class PoolClientHandler:
                         writer.write(data)
                         await writer.drain()
 
-                        if to_process_event:
-                            responses.append(response.model_dump())
+                        responses.append(response.context)
 
                 ldap_session.queue.task_done()
 
-                if to_process_event:
-                    event_data["help_data"] = message.context.get_event_data()
-                    event_data["username"] = (
-                        ldap_session.user.dn if ldap_session.user else ""
+                if await redis_client.is_event_processing_enabled(
+                    message.context.PROTOCOL_OP
+                ):
+                    username = getattr(
+                        ldap_session.user, "user_principal_name", "ANONYMOUS"
                     )
-                    event_data["source_ip"] = str(ldap_session.ip)
-                    event_data["dest_port"] = self.settings.PORT
-
+                    event = AuditEventBuilder.from_ldap_request(
+                        message.context,
+                        responses=responses,
+                        username=username,
+                        ip=ldap_session.ip,
+                        protocol="TCP_LDAP",
+                        settings=self.settings,
+                        help_data=message.context.get_event_data(),
+                    )
                     asyncio.create_task(
-                        redis_client.send_to_processing(
-                            message=event_data,
+                        redis_client.add_audit_event(
+                            event=event,
                             stream_name=self.settings.EVENT_STREAM_NAME,
                         ),
                     )
