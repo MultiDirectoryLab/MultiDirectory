@@ -161,6 +161,7 @@ class DNSServerParam:
 class DNSForwardServerStatus:
     """Forward DNS server status."""
 
+    ip: str
     status: DNSForwarderServerStatus
     FQDN: str | None
 
@@ -481,10 +482,12 @@ class SelfHostedDNSManager(AbstractDNSManager):
             fqdn = socket.getfqdn(hostname)
         except socket.herror:
             return DNSForwardServerStatus(
+                dns_server_ip,
                 DNSForwarderServerStatus.NOT_FOUND,
                 None,
             )
         return DNSForwardServerStatus(
+            dns_server_ip,
             DNSForwarderServerStatus.VALIDATED,
             fqdn,
         )
