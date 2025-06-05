@@ -181,9 +181,12 @@ async def delete_zone(
 async def check_dns_forward_zone(
     data: DNSServiceForwardZoneCheckRequest,
     dns_manager: FromDishka[AbstractDNSManager],
-) -> DNSForwardServerStatus:
+) -> list[DNSForwardServerStatus]:
     """Check given DNS forward zone for availability."""
-    return await dns_manager.check_forward_dns_server(data.dns_server_ip)
+    return [
+        await dns_manager.check_forward_dns_server(dns_server_ip)
+        for dns_server_ip in data.dns_server_ips
+    ]
 
 
 @dns_router.get("/zone/reload/{zone_name}")

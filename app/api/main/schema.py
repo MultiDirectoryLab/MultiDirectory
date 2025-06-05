@@ -126,7 +126,7 @@ class DNSServiceZoneUpdateRequest(BaseModel):
 class DNSServiceZoneDeleteRequest(BaseModel):
     """DNS zone delete request scheme."""
 
-    zone_name: str
+    zone_names: list[str]
 
 
 class DNSServiceReloadZoneRequest(BaseModel):
@@ -138,7 +138,7 @@ class DNSServiceReloadZoneRequest(BaseModel):
 class DNSServiceForwardZoneCheckRequest(BaseModel):
     """Forwarder DNS server check request scheme."""
 
-    dns_server_ip: str
+    dns_server_ips: list[str]
 
 
 class DNSServiceOptionsUpdateRequest(BaseModel):
