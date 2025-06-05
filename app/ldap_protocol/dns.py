@@ -291,7 +291,6 @@ class AbstractDNSManager(ABC):
         self,
         zone_name: str,
         zone_type: DNSZoneType,
-        acl: list[str] | None,
         params: list[DNSZoneParam],
     ) -> None: ...
 
@@ -430,7 +429,6 @@ class SelfHostedDNSManager(AbstractDNSManager):
         zone_name: str,
         zone_type: DNSZoneType,
         nameserver_ip: str,
-        acl: list[str] | None,
         params: list[DNSZoneParam],
     ) -> None:
         async with self._http_client:
@@ -440,7 +438,6 @@ class SelfHostedDNSManager(AbstractDNSManager):
                     "zone_name": zone_name,
                     "zone_type": zone_type,
                     "nameserver_ip": nameserver_ip,
-                    "acl": acl,
                     "params": params,
                 },
             )
@@ -634,7 +631,6 @@ class DNSManager(AbstractDNSManager):
         self,
         zone_name: str,
         zone_type: DNSZoneType,
-        acl: list[str] | None,
         params: list[DNSZoneParam],
     ) -> None:
         raise NotImplementedError
@@ -723,7 +719,6 @@ class StubDNSManager(AbstractDNSManager):
         self,
         zone_name: str,
         zone_type: DNSZoneType,
-        acl: list[str] | None,
         params: list[DNSZoneParam],
     ) -> None: ...
 
