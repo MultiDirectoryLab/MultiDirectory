@@ -97,6 +97,9 @@ fi
 sleep 1
 
 #RUN migration
-docker run --rm -it --network md --env-file .env ghcr.io/multidirectorylab/multidirectory:latest sh -c 'alembic upgrade head' 
+docker run --rm -it --network md --env-file .env ghcr.io/multidirectorylab/multidirectory:latest sh -c "
+    alembic --name main -x db=main upgrade head;
+    alembic --name audit -x db=audit upgrade head
+"
 
 echo "done ... visit https://$domain "
