@@ -111,7 +111,6 @@ class DNSServiceZoneCreateRequest(BaseModel):
 
     zone_name: str
     zone_type: DNSZoneType
-    acl: list[str]
     params: list[DNSZoneParam]
 
 
