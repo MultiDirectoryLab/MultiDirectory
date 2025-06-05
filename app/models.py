@@ -1041,4 +1041,3 @@ class AuditDestination(Base):
     username: Mapped[str | None] = mapped_column(String(255))
     password: Mapped[str | None] = mapped_column(String(255))
     protocol: Mapped[str] = mapped_column(String(10))
-    auth_token: Mapped[str | None] = mapped_column(String(512))
