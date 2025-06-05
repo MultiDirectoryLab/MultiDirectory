@@ -133,3 +133,5 @@ class OperationEvent(IntEnum):
     COMPARE = ProtocolRequests.COMPARE.value
     ABANDON = ProtocolRequests.ABANDON.value
     EXTENDED = ProtocolRequests.EXTENDED.value
+    CHANGE_PASSWORD = 40
+    AFTER_2FA = 41
