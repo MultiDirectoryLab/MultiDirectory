@@ -21,11 +21,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from api.auth.utils import (
-    create_and_set_session_key,
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
+from api.auth.utils import create_and_set_session_key
 from config import Settings
 from ldap_protocol.multifactor import (
     Creds,
@@ -33,8 +29,13 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
+from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.utils.helpers import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from models import CatalogueSetting, User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
@@ -44,6 +45,7 @@ from .schema import (
     MFAGetResponse,
     OAuth2Form,
 )
+from .utils import track_audit_event
 
 mfa_router = APIRouter(
     prefix="/multifactor",
@@ -133,7 +135,9 @@ async def get_mfa(
 
 
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
+@track_audit_event(event_type=OperationEvent.AFTER_2FA)
 async def callback_mfa(
+    request: Request,  # noqa: ARG001
     access_token: Annotated[
         str,
         Form(alias="accessToken", validation_alias="accessToken"),
@@ -171,12 +175,12 @@ async def callback_mfa(
         )
     except (JWTError, AttributeError, JWKError) as err:
         logger.error(f"Invalid MFA token: {err}")
-        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
+        return "", RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)  # type: ignore
 
     user_id: int = int(payload.get("uid"))
     user = await session.get(DBUser, user_id)
     if user_id is None or not user:
-        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
+        return "", RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)  # type: ignore
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
     await create_and_set_session_key(
@@ -188,7 +192,7 @@ async def callback_mfa(
         ip,
         user_agent,
     )
-    return response
+    return user.user_principal_name, response  # type: ignore
 
 
 @mfa_router.post("/connect", response_model=MFAChallengeResponse)

@@ -9,7 +9,15 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +27,7 @@ from extra.setup_dev import setup_enviroment
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.audit_policy import add_audit_pocilies
 from ldap_protocol.policies.network_policy import (
@@ -34,24 +43,26 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
 )
-from ldap_protocol.utils.helpers import ft_now
+from ldap_protocol.utils.helpers import (
+    ft_now,
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.utils.queries import get_base_directories
 from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
 from .oauth2 import authenticate_user, get_current_user, get_user
 from .schema import OAuth2Form, SetupRequest
-from .utils import (
-    create_and_set_session_key,
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
+from .utils import create_and_set_session_key, track_audit_event
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
 
 @auth_router.post("/")
+@track_audit_event(OperationEvent.BIND)
 async def login(
+    request: Request,  # noqa: ARG001
     form: Annotated[OAuth2Form, Depends()],
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
@@ -145,6 +156,7 @@ async def login(
         ip,
         user_agent,
     )
+    return user.sam_accout_name, response  #  type: ignore
 
 
 @auth_router.get("/me")
@@ -171,11 +183,15 @@ async def logout(
     status_code=200,
     dependencies=[Depends(get_current_user)],
 )
+@track_audit_event(OperationEvent.CHANGE_PASSWORD)
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
     session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # noqa: ARG001
+    request: Request,  # noqa: ARG001
+    settings: FromDishka[Settings],  # noqa: ARG001
 ) -> None:
     """Reset user's (entry) password.
 
