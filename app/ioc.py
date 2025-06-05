@@ -9,7 +9,6 @@ from typing import AsyncIterator, NewType
 import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
-from redis_client import RedisClient
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -39,6 +38,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.policies.audit_policy import RedisAuditDAO
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
@@ -200,14 +200,14 @@ class MainProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_events_redis_client(
         self, settings: Settings
-    ) -> AsyncIterator[RedisClient]:
+    ) -> AsyncIterator[RedisAuditDAO]:
         """Get events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        yield RedisClient(client)
+        yield RedisAuditDAO(client)
         await client.aclose()
 
 
