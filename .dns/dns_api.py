@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import ClassVar
+from typing import Annotated, ClassVar
 
 import dns
 import dns.zone
@@ -510,9 +510,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
             flags=re.DOTALL,
         )
 
-    def update_dns_settings(
-        self, settings: list[DNSServerParam]
-    ) -> None:
+    def update_dns_settings(self, settings: list[DNSServerParam]) -> None:
         """Update given DNS server params or create if not present."""
         named_options = None
 
@@ -570,7 +568,7 @@ server_router = APIRouter(prefix="/server", tags=["server"])
 @zone_router.post("")
 async def create_zone(
     data: DNSZoneCreateRequest,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS zone."""
     await dns_manager.add_zone(
@@ -584,7 +582,7 @@ async def create_zone(
 @zone_router.patch("")
 async def update_zone(
     data: DNSZoneUpdateRequest,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update DNS zone settings."""
     await dns_manager.update_zone(data.zone_name, data.params)
@@ -593,7 +591,7 @@ async def update_zone(
 @zone_router.delete("")
 async def delete_zone(
     data: DNSZoneDeleteRequest,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete DNS zone."""
     await dns_manager.delete_zone(data.zone_name)
@@ -601,7 +599,7 @@ async def delete_zone(
 
 @zone_router.get("")
 async def get_all_records_by_zone(
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> list[DNSZone]:
     """Get all DNS records grouped by zone."""
     return dns_manager.get_all_records()
@@ -609,7 +607,7 @@ async def get_all_records_by_zone(
 
 @zone_router.get("/forward")
 async def get_forward_zones(
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> list[DNSForwardZone]:
     """Get all forward DNS zones."""
     return await dns_manager.get_forward_zones()
@@ -618,7 +616,7 @@ async def get_forward_zones(
 @record_router.post("")
 async def create_record(
     data: DNSRecordCreateRequest,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS record in given zone."""
     await dns_manager.add_record(
@@ -635,7 +633,7 @@ async def create_record(
 @record_router.patch("")
 async def update_record(
     data: DNSRecordUpdateRequest,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update existing DNS record."""
     await dns_manager.update_record(
@@ -657,7 +655,7 @@ async def update_record(
 @record_router.delete("")
 async def delete_record(
     data: DNSRecordDeleteRequest,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete existing DNS record."""
     await dns_manager.delete_record(
@@ -672,7 +670,9 @@ async def delete_record(
 
 
 @server_router.get("/restart")
-async def restart_dns_server(dns_manager: Depends[get_dns_manager]) -> None:
+async def restart_dns_server(
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
+) -> None:
     """Restart DNS server via reconfig."""
     await dns_manager.restart()
 
@@ -680,7 +680,7 @@ async def restart_dns_server(dns_manager: Depends[get_dns_manager]) -> None:
 @zone_router.get("/reload/{zone_name}")
 async def reload_zone(
     zone_name: str,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Force reload DNS zone from zone file."""
     await dns_manager.reload(zone_name)
@@ -689,7 +689,7 @@ async def reload_zone(
 @server_router.patch("/settings")
 def update_dns_server_settings(
     settings: list[DNSServerParam],
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update settings of DNS server."""
     dns_manager.update_dns_settings(settings)
@@ -697,7 +697,7 @@ def update_dns_server_settings(
 
 @server_router.get("/settings")
 async def get_server_settings(
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> list[DNSServerParam]:
     """Get list of modifiable server settings."""
     return await dns_manager.get_server_settings()
@@ -706,7 +706,7 @@ async def get_server_settings(
 @server_router.post("/setup")
 async def setup_server(
     data: DnsServerSetupRequest,
-    dns_manager: Depends[get_dns_manager],
+    dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Init setup of DNS server."""
     await dns_manager.first_setup(data.zone_name, data.dns_ip_address)
