@@ -1,9 +1,12 @@
-"""MultiDirectory LDAP models.
+"""MultiDirectory LDAP models for audit.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from datetime import datetime
+
+from sqlalchemy import DateTime, String
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -18,5 +21,16 @@ class AuditLog(Base):
 
     __tablename__ = "audit_log"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True)
     content: Mapped[dict] = mapped_column(postgresql.JSON, nullable=False)
+    server_delivery_status: Mapped[dict] = mapped_column(
+        postgresql.JSON, nullable=False
+    )
+    first_failed_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True
+    )
+
+    @property
+    def syslog_message(self) -> str:
+        """Get syslog message."""
+        return f"User {self.content['username']} {self.content['event_type']}"
