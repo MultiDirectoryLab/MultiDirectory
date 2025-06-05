@@ -43,14 +43,14 @@ operations: dict[str, Callable] = {
 
 
 class EventHandler:
-    """Event handler."""
+    """Handle incoming audit events and process them according to policies."""
 
     def __init__(
         self,
         settings: Settings,
         container: AsyncContainer,
     ) -> None:
-        """Initialize the event handler."""
+        """Initialize event handler with settings and DI container."""
         self.container = container
         self.group_name = settings.EVENT_HANLDER_GROUP
         self.event_stream = settings.EVENT_STREAM_NAME
@@ -59,7 +59,7 @@ class EventHandler:
         self.consumer_name = os.getenv("HOSTNAME", socket.gethostname())
 
     def is_success_request(self, responses: list[dict[str, Any]]) -> bool:
-        """Check if the request was successful."""
+        """Determine if request was successful based on responses."""
         if not responses:
             return True
 
@@ -68,7 +68,7 @@ class EventHandler:
     def _check_modify_event(
         self, trigger: AuditPolicyTrigger, event: AuditEvent
     ) -> bool:
-        """Check if event is suitable for modify trigger."""
+        """Check if modify event matches trigger conditions."""
         if (
             trigger.object_class
             not in event.help_data["after_attrs"]["objectclass"]
@@ -113,6 +113,7 @@ class EventHandler:
         return bool(op(first_value, second_value)) == result
 
     def _check_bind_event(self, event: AuditEvent) -> bool:
+        """Verify if bind event is not SASL bind in progress."""
         return (
             event.responses[-1]["result_code"]
             != LDAPCodes.SASL_BIND_IN_PROGRESS
@@ -121,6 +122,7 @@ class EventHandler:
     def _check_object_class(
         self, trigger: AuditPolicyTrigger, event: AuditEvent
     ) -> bool:
+        """Check if event object class matches trigger object class."""
         return (
             trigger.object_class
             in event.help_data["before_attrs"]["objectclass"]
@@ -129,7 +131,7 @@ class EventHandler:
     def is_match_trigger(
         self, trigger: AuditPolicyTrigger, event: AuditEvent
     ) -> bool:
-        """Check if event is suitable for policy."""
+        """Determine if event matches trigger conditions."""
         if event.request_code == OperationEvent.CHANGE_PASSWORD:
             return True
 
@@ -168,7 +170,7 @@ class EventHandler:
         event_data: AuditEvent,
         session: AsyncSession,
     ) -> list[AuditPolicyTrigger]:
-        """Check if the event is valid."""
+        """Find all policy triggers matching event data."""
         is_ldap = event_data.protocol == "TCP_LDAP"
         is_http = "API" in event_data.protocol
 
@@ -214,7 +216,7 @@ class EventHandler:
     def _get_common_fields(
         self, event_data: AuditEvent, trigger: AuditPolicyTrigger
     ) -> dict:
-        """Extract fields common for all event types."""
+        """Extract common fields from event data and trigger."""
         return {
             "username": event_data.username,
             "source_ip": str(event_data.source_ip),
@@ -231,14 +233,14 @@ class EventHandler:
     def _enrich_ldap_details(
         self, event_data: AuditEvent, details: dict
     ) -> None:
-        """Add LDAP-specific fields to details."""
+        """Add LDAP-specific details to event details."""
         if event_data.request_code == OperationEvent.MODIFY:
             details["target"] = event_data.request["object"]
         elif event_data.request_code != OperationEvent.BIND:
             details["target"] = event_data.request["entry"]
 
     def _prepare_details(self, event_data: AuditEvent) -> dict:
-        """Prepare base details structure."""
+        """Prepare base details structure from event data."""
         details = event_data.help_data.get("details", {})
 
         if "LDAP" in event_data.protocol:
@@ -247,7 +249,7 @@ class EventHandler:
         return details
 
     def _extract_error_info(self, event_data: AuditEvent) -> dict[str, str]:
-        """Extract error information from event data."""
+        """Extract error information from failed event."""
         if "error_code" in event_data.help_data.get("details", {}):
             details = event_data.help_data["details"]
             return {
@@ -265,7 +267,7 @@ class EventHandler:
     def normalize(
         self, event_data: AuditEvent, trigger: AuditPolicyTrigger
     ) -> dict[str, Any]:
-        """Main normalization method."""
+        """Normalize event data according to trigger policy."""
         normalized = {
             **self._get_common_fields(event_data, trigger),
             "details": self._prepare_details(event_data),
@@ -281,7 +283,7 @@ class EventHandler:
         events: list[dict[str, Any]],
         session: EventAsyncSession,
     ) -> None:
-        """Save events to the database."""
+        """Persist normalized events to database."""
         session.add_all(
             [
                 AuditLog(
@@ -301,7 +303,7 @@ class EventHandler:
         event_session: EventAsyncSession,
         redis_client: RedisAuditDAO,
     ) -> None:
-        """Handle an event."""
+        """Process single event through entire pipeline."""
         logger.debug(f"Event data: {event_data}")
         try:
             events = await self.get_event_by_data(event_data, session)
@@ -324,7 +326,7 @@ class EventHandler:
             )
 
     async def read_stream(self) -> None:
-        """Read messages from the stream."""
+        """Continuously read and process events from Redis stream."""
         redis_client: RedisAuditDAO = await self.container.get(RedisAuditDAO)
         await redis_client.create_consumer_group(
             self.event_stream,
@@ -360,7 +362,7 @@ class EventHandler:
                 logger.exception(f"Error reading stream: {exc}")
 
     async def start(self) -> None:
-        """Run the event handler."""
+        """Start event handler main processing loop."""
         try:
             await self.read_stream()
         finally:
