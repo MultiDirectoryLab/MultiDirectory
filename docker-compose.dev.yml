@@ -65,7 +65,9 @@ services:
     ports:
       - 9080:80
     working_dir: /app
-    command:  ng serve --host 0.0.0.0 --port 80 --poll 2000
+    env_file:
+      local.env
+    command:  ng serve --host 0.0.0.0 --port 80 --poll 2000 --disable-host-check
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.interface.rule=Host(`${DOMAIN}`)"
@@ -78,21 +80,38 @@ services:
     image: multidirectory
     container_name: multidirectory_certs_check
     restart: "no"
+    env_file:
+      local.env
     volumes:
       - ./certs:/certs
       - ./app:/app
     command: ./extra/generate_cert.sh
 
+  postgres:
+    container_name: MD-postgres
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: password123
+      PGDATA: /data/postgres
+    volumes:
+       - d_postgres:/data/postgres
+    expose:
+      - 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
+
   migrations:
     image: multidirectory
     container_name: multidirectory_migrations
     restart: "no"
-    environment:
-      DEBUG: 1
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-      DOMAIN: ${DOMAIN}
+    env_file:
+      local.env
     command: alembic upgrade head
     depends_on:
       postgres:
@@ -108,18 +127,13 @@ services:
     image: multidirectory
     restart: unless-stopped
     hostname: multidirectory
+    env_file:
+      local.env
     volumes:
       - ./certs:/certs
       - ./logs:/app/logs
     command: python multidirectory.py --ldap
     tty: true
-    environment:
-      DEBUG: 1
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-      MFA_API_SOURCE: dev
-      DOMAIN: ${DOMAIN}
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -154,19 +168,39 @@ services:
       retries: 10
       start_period: 3s
 
+  maintence:
+    image: multidirectory
+    container_name: md_maintence
+    restart: unless-stopped
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
+      - d_ldap_keytab:/LDAP_keytab/
+    env_file:
+      local.env
+    command: python multidirectory.py --scheduler
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+        reservations:
+          cpus: '0.1'
+          memory: 6M
+
   api_server:
     image: multidirectory
     container_name: multidirectory_api
     restart: unless-stopped
     environment:
       USE_CORE_TLS: 1
-      DEBUG: 1
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-      MFA_API_SOURCE: dev
-      DOMAIN: ${DOMAIN}
     hostname: api_server
+    env_file:
+      local.env
     volumes:
       - ./app:/app
       - ./certs:/certs
@@ -184,7 +218,6 @@ services:
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
-      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"
 
     command:  python multidirectory.py --http
     depends_on:
@@ -208,25 +241,6 @@ services:
     env_file:
       local.env
     command: python multidirectory.py --shadow
-
-  postgres:
-    container_name: MD-postgres
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      PGDATA: /data/postgres
-    volumes:
-       - d_postgres:/data/postgres
-    expose:
-      - 5432
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d postgres -U user"]
-      interval: 1s
-      timeout: 15s
-      retries: 10
-      start_period: 3s
 
   kdc:
     build:
