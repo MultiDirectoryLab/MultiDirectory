@@ -5,23 +5,25 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import json
 import operator
 import os
 import socket
 from typing import Any, Callable
 
+from audit_models import AuditLog
 from dishka import AsyncContainer, Scope
 from loguru import logger
-from redis_client import RedisClient
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
+from ulid import ULID
 
 from config import Settings
+from ioc import EventAsyncSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
+from ldap_protocol.policies.audit_policy import AuditEvent, RedisAuditDAO
 from models import AuditPolicy, AuditPolicyTrigger
 
 operations: dict[str, Callable] = {
@@ -43,12 +45,17 @@ operations: dict[str, Callable] = {
 class EventHandler:
     """Event handler."""
 
-    def __init__(self, settings: Settings, container: AsyncContainer) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        container: AsyncContainer,
+    ) -> None:
         """Initialize the event handler."""
         self.container = container
         self.group_name = settings.EVENT_HANLDER_GROUP
         self.event_stream = settings.EVENT_STREAM_NAME
         self.settings = settings
+        # TODO: replace with arg from env
         self.consumer_name = os.getenv("HOSTNAME", socket.gethostname())
 
     def is_success_request(self, responses: list[dict[str, Any]]) -> bool:
@@ -56,24 +63,24 @@ class EventHandler:
         if not responses:
             return True
 
-        return responses[-1]["context"]["result_code"] == LDAPCodes.SUCCESS
+        return responses[-1]["result_code"] == LDAPCodes.SUCCESS
 
     def _check_modify_event(
-        self, trigger: AuditPolicyTrigger, event: dict
+        self, trigger: AuditPolicyTrigger, event: AuditEvent
     ) -> bool:
         """Check if event is suitable for modify trigger."""
         if (
             trigger.object_class
-            not in event["help_data"]["after_attrs"]["objectclass"]
+            not in event.help_data["after_attrs"]["objectclass"]
         ):
             return False
 
         if trigger.additional_info is None:
             return True  # type: ignore
 
-        for change in event["request"]["context"]["changes"]:
+        for change in event.request["changes"]:
             if (
-                change["modification"]["type"]
+                change["modification"]["type"].lower()
                 in trigger.additional_info["change_attributes"]
             ):
                 break
@@ -85,17 +92,17 @@ class EventHandler:
 
         change_attribute = trigger.additional_info["change_attributes"][0]
 
-        if change_attribute not in event["help_data"]["after_attrs"]:
+        if change_attribute not in event.help_data["after_attrs"]:
             raise ValueError
 
         if change_attribute in {"useraccountcontrol", "pwdlastset"}:
             first_value = int(
-                event["help_data"]["after_attrs"][change_attribute][0]
+                event.help_data["after_attrs"][change_attribute][0]
             )
             second_value = trigger.additional_info["value"]
         elif change_attribute in {"member", "memberof"}:
-            first_value = event["help_data"]["before_attrs"][change_attribute]
-            second_value = event["help_data"]["after_attrs"][change_attribute]
+            first_value = event.help_data["before_attrs"][change_attribute]
+            second_value = event.help_data["after_attrs"][change_attribute]
         else:
             raise ValueError
 
@@ -105,18 +112,50 @@ class EventHandler:
 
         return bool(op(first_value, second_value)) == result
 
+    def _check_bind_event(self, event: AuditEvent) -> bool:
+        return (
+            event.responses[-1]["result_code"]
+            != LDAPCodes.SASL_BIND_IN_PROGRESS
+        )
+
+    def _check_object_class(
+        self, trigger: AuditPolicyTrigger, event: AuditEvent
+    ) -> bool:
+        return (
+            trigger.object_class
+            in event.help_data["before_attrs"]["objectclass"]
+        )
+
     def is_match_trigger(
-        self, trigger: AuditPolicyTrigger, event: dict
+        self, trigger: AuditPolicyTrigger, event: AuditEvent
     ) -> bool:
         """Check if event is suitable for policy."""
-        if event["protocol"].endswith("LDAP"):
-            if event["request"]["protocol_op"] == OperationEvent.MODIFY:
+        if event.request_code == OperationEvent.CHANGE_PASSWORD:
+            return True
+
+        if event.protocol == "API" and event.request_code in [
+            OperationEvent.BIND,
+            OperationEvent.AFTER_2FA,
+        ]:
+            return True
+
+        if event.protocol.endswith("LDAP"):
+            if event.request_code == OperationEvent.BIND:
+                return self._check_bind_event(event)
+
+            elif event.request_code == OperationEvent.MODIFY:
                 return self._check_modify_event(trigger, event)
 
-            elif event["request"]["protocol_op"] == OperationEvent.EXTENDED:
+            elif event.request_code in [
+                OperationEvent.ADD,
+                OperationEvent.DELETE,
+            ]:
+                return self._check_object_class(trigger, event)
+
+            elif event.request_code == OperationEvent.EXTENDED:
                 return (
                     trigger.additional_info["oid"]
-                    == event["request"]["context"]["request_name"]
+                    == event.request["request_name"]
                 )
 
             return trigger.additional_info is None
@@ -126,19 +165,25 @@ class EventHandler:
 
     async def get_event_by_data(
         self,
-        event_data: dict[str, Any],
+        event_data: AuditEvent,
         session: AsyncSession,
-    ) -> AuditPolicy | None:
+    ) -> list[AuditPolicyTrigger]:
         """Check if the event is valid."""
-        is_ldap = event_data["protocol"] == "TCP_LDAP"
-        is_http = event_data["protocol"] == "HTTP_LDAP"
-        is_success = self.is_success_request(event_data["responses"])
-        operation_code = event_data["request"]["protocol_op"]
+        is_ldap = event_data.protocol == "TCP_LDAP"
+        is_http = "API" in event_data.protocol
+
+        if event_data.is_success_request is None:
+            is_success = self.is_success_request(event_data.responses)
+        else:
+            is_success = event_data.is_success_request
+
+        operation_code = event_data.request_code
+        matched_triggers: list[AuditPolicyTrigger] = []
 
         triggers = (
             await session.scalars(
                 select(AuditPolicyTrigger)
-                .join(AuditPolicyTrigger.audit_policies)
+                .join(AuditPolicyTrigger.audit_policy)
                 .where(
                     AuditPolicy.is_enabled.is_(True),
                     AuditPolicyTrigger.operation_code == operation_code,
@@ -148,83 +193,146 @@ class EventHandler:
                         AuditPolicyTrigger.is_http.is_(is_http),
                     ),
                 )
-                .options(defaultload(AuditPolicyTrigger.audit_policies))
+                .options(defaultload(AuditPolicyTrigger.audit_policy))
             )
         ).all()
 
         if not triggers:
-            return None
+            return matched_triggers
 
         logger.debug(
             f"Suitable triggers: {[trigger.id for trigger in triggers]}"
         )
 
-        matched_policies = []
         for trigger in triggers:
             if self.is_match_trigger(trigger, event_data):
-                for policy in trigger.audit_policies:
-                    if policy.is_enabled:
-                        matched_policies.append(policy)
+                logger.debug(f"Matched policy: {trigger.audit_policy.name}")
+                matched_triggers.append(trigger)
 
-        logger.debug(
-            f"Policies: {[policy.name for policy in matched_policies]}"
-        )
+        return matched_triggers
 
-        return None
+    def _get_common_fields(
+        self, event_data: AuditEvent, trigger: AuditPolicyTrigger
+    ) -> dict:
+        """Extract fields common for all event types."""
+        return {
+            "username": event_data.username,
+            "source_ip": str(event_data.source_ip),
+            "dest_port": event_data.dest_port,
+            "timestamp": event_data.timestamp,
+            "hostname": event_data.hostname,
+            "protocol": "API" if "API" in event_data.protocol else "LDAP",
+            "event_type": trigger.audit_policy.name,
+            "severity": trigger.audit_policy.severity,
+            "policy_id": trigger.audit_policy.id,
+            "operation_success": trigger.operation_success,
+        }
 
-    async def normalize_event_data(
-        self,
-        event_data: dict[str, Any],
-        policy: AuditPolicy,
-        session: AsyncSession,
-    ) -> dict[str, Any]:
-        """Normalize event data."""
+    def _enrich_ldap_details(
+        self, event_data: AuditEvent, details: dict
+    ) -> None:
+        """Add LDAP-specific fields to details."""
+        if event_data.request_code == OperationEvent.MODIFY:
+            details["target"] = event_data.request["object"]
+        elif event_data.request_code != OperationEvent.BIND:
+            details["target"] = event_data.request["entry"]
+
+    def _prepare_details(self, event_data: AuditEvent) -> dict:
+        """Prepare base details structure."""
+        details = event_data.help_data.get("details", {})
+
+        if "LDAP" in event_data.protocol:
+            self._enrich_ldap_details(event_data, details)
+
+        return details
+
+    def _extract_error_info(self, event_data: AuditEvent) -> dict[str, str]:
+        """Extract error information from event data."""
+        if "error_code" in event_data.help_data.get("details", {}):
+            details = event_data.help_data["details"]
+            return {
+                "error_code": details["error_code"],
+                "error_message": details["error_message"],
+            }
+        elif event_data.protocol.endswith("LDAP"):
+            last_response = event_data.responses[-1]
+            return {
+                "error_code": last_response["result_code"],
+                "error_message": last_response["message"],
+            }
         return {}
+
+    def normalize(
+        self, event_data: AuditEvent, trigger: AuditPolicyTrigger
+    ) -> dict[str, Any]:
+        """Main normalization method."""
+        normalized = {
+            **self._get_common_fields(event_data, trigger),
+            "details": self._prepare_details(event_data),
+        }
+
+        if not trigger.operation_success:
+            normalized["details"].update(self._extract_error_info(event_data))
+
+        return normalized
+
+    async def save_events(
+        self,
+        events: list[dict[str, Any]],
+        session: EventAsyncSession,
+    ) -> None:
+        """Save events to the database."""
+        session.add_all(
+            [
+                AuditLog(
+                    id=str(ULID.from_timestamp(event["timestamp"])),
+                    content=event,
+                )
+                for event in events
+            ]
+        )
+        await session.commit()
 
     async def handle_event(
         self,
-        event_data: dict[str, Any],
+        event_data: AuditEvent,
         event_id: str,
         session: AsyncSession,
-        redis_client: RedisClient,
+        event_session: EventAsyncSession,
+        redis_client: RedisAuditDAO,
     ) -> None:
         """Handle an event."""
         logger.debug(f"Event data: {event_data}")
-        policy = await self.get_event_by_data(event_data, session)
+        try:
+            events = await self.get_event_by_data(event_data, session)
 
-        if policy is None:
-            await redis_client.ack_message(
-                self.event_stream,
-                self.group_name,
-                event_id,
+            if not events:
+                return
+
+            normalize_events = [
+                self.normalize(event_data, policy) for policy in events
+            ]
+
+            logger.debug(
+                f"Normalized events: {[event for event in normalize_events]}"
             )
-            await redis_client.remove(self.event_stream, event_id)
-            return
 
-        normalize_event_data = await self.normalize_event_data(
-            event_data=event_data,
-            policy=policy,
-            session=session,
-        )
-        logger.debug(f"Normalized event data: {normalize_event_data}")
-
-        await redis_client.ack_message(
-            self.event_stream,
-            self.group_name,
-            event_id,
-        )
-        await redis_client.remove(self.event_stream, event_id)
+            await self.save_events(normalize_events, event_session)
+        finally:
+            await redis_client.acknowledge_and_delete_event(
+                self.event_stream, self.group_name, event_id
+            )
 
     async def read_stream(self) -> None:
         """Read messages from the stream."""
-        redis_client: RedisClient = await self.container.get(RedisClient)
+        redis_client: RedisAuditDAO = await self.container.get(RedisAuditDAO)
         await redis_client.create_consumer_group(
             self.event_stream,
             self.group_name,
         )
         while True:
             try:
-                events = await redis_client.read(
+                events = await redis_client.read_events(
                     stream_name=self.event_stream,
                     group_name=self.group_name,
                     consumer_name=self.consumer_name,
@@ -234,30 +342,14 @@ class EventHandler:
                 async with self.container(scope=Scope.REQUEST) as container:
                     for _, event_list in events:
                         for event_id, event_data in event_list:
-                            decode_event_data = {}
-
-                            for key, value in event_data.items():
-                                temp_key = key.decode()
-                                temp_value = value.decode()
-
-                                if temp_key in {
-                                    "responses",
-                                    "request",
-                                    "help_data",
-                                }:
-                                    temp_value = json.loads(temp_value)
-                                elif temp_key == "datetime":
-                                    temp_value = float(temp_value)  # type: ignore
-
-                                decode_event_data[temp_key] = temp_value
-
+                            audit_event = AuditEvent.from_redis(event_data)
                             kwargs = await resolve_deps(
                                 func=self.handle_event,
                                 container=container,
                             )
                             await asyncio.gather(
                                 self.handle_event(
-                                    decode_event_data,
+                                    audit_event,
                                     event_id,
                                     **kwargs,
                                 ),
