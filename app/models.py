@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -20,6 +20,7 @@ from sqlalchemy import (
     ForeignKey,
     LargeBinary,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -1027,6 +1028,20 @@ class AuditPolicyTrigger(Base):
     )
 
 
+class AuditDestinationProtocolType(StrEnum):
+    """Audit destination protocol type."""
+
+    UDP = "udp"
+    TCP = "tcp"
+    TLS = "tls"
+
+
+class AuditDestinationType(StrEnum):
+    """Audit destination type."""
+
+    SYSLOG = "syslog"
+
+
 class AuditDestination(Base):
     """Audit destinations."""
 
@@ -1034,10 +1049,19 @@ class AuditDestination(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    type: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    type: Mapped[AuditDestinationType] = mapped_column(
+        Enum(AuditDestinationType), nullable=False
+    )
     is_enabled: Mapped[tbool]
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(nullable=False)
     username: Mapped[str | None] = mapped_column(String(255))
     password: Mapped[str | None] = mapped_column(String(255))
-    protocol: Mapped[str] = mapped_column(String(10))
+    protocol: Mapped[AuditDestinationProtocolType] = mapped_column(
+        Enum(AuditDestinationProtocolType),
+        nullable=False,
+    )
+    tls_verify_cert: Mapped[bool] = mapped_column(default=True)
+    ca_cert_data: Mapped[str | None] = mapped_column(Text)
+    client_cert_data: Mapped[str | None] = mapped_column(Text)
+    client_key_data: Mapped[str | None] = mapped_column(Text)
