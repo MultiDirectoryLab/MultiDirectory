@@ -108,7 +108,6 @@ def upgrade() -> None:
         sa.Column("username", sa.String(length=255), nullable=True),
         sa.Column("password", sa.String(length=255), nullable=True),
         sa.Column("protocol", sa.String(length=10), nullable=False),
-        sa.Column("auth_token", sa.String(length=512), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
         sa.UniqueConstraint("type"),
