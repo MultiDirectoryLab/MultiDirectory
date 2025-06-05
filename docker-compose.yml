@@ -400,6 +400,31 @@ services:
     command: python multidirectory.py --event_handler
     environment:
       - HOSTNAME=event_handler
+  
+  event_sender:
+    image: multidirectory
+    container_name: event_sender
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: python multidirectory.py --event_sender
+
+  syslog:
+    image: balabit/syslog-ng:latest
+    container_name: syslog-server      
+    volumes:
+      - ./syslog:/var/log
+      - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
+    environment:
+      - TZ=Europe/Moscow
+    privileged: true
+    restart: always
 
 volumes:
   postgres:
