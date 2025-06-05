@@ -230,6 +230,13 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
 
     >>> await get_dn_by_id(0, session)
     >>> "cn=groups,dc=example,dc=com"
+
+    Args:
+        id_ (int): id
+        session (AsyncSession): Database session
+
+    Returns:
+        str: domain name
     """
     query = select(Directory).filter(Directory.id == id_)
     retval = (await session.scalars(query)).one()

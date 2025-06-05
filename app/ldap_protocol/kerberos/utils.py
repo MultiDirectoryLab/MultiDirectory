@@ -69,6 +69,10 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     This function updates the server state in the database by either adding
     a new entry, updating an existing entry, or deleting and re-adding the
     entry if there are multiple entries found.
+
+    Args:
+        session (AsyncSession): Database session
+        state (KerberosState): Kerberos server state
     """
     results = await session.execute(
         select(CatalogueSetting)

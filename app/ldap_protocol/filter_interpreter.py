@@ -32,7 +32,10 @@ def _get_substring(right: ASN1Row) -> str:  # RFC 4511
     """Description.
 
     Args:
-    right: ASN1Row:
+        right (ASN1Row): Row with metadata
+
+    Returns:
+        str: substring
     """
     expr = right.value[0]
     value = expr.value
@@ -198,7 +201,10 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
     """Description.
 
     Args:
-    item: ASN1Row:
+        item (ASN1Row): Row with metadata
+
+    Returns:
+        UnaryExpression | ColumnElement
     """
     # present, for e.g. `attibuteName=*`, `(attibuteName)`
     if item.tag_id == 7:

@@ -113,7 +113,7 @@ select = [
     "I",  # isort, check tool.ruff.lint.isort. Must have
     "N",  # pep8-naming
     "A",  # flake8 builtin-attribute-shadowing
-    # DOC and D. used darglint2
+    # DOC and D not enough. Use darglint2.
     "D",  # pydocstyle, check tool.ruff.lint.pydocstyle
     "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
     "UP",  # pyupgrade, check tool.ruff.lint.pyupgrade. Must have

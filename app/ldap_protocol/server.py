@@ -483,6 +483,10 @@ class PoolClientHandler:
         Spawns (default 5) workers,
         then every task awaits for queue object,
         cycle locks until pool completes at least 1 task.
+
+        Args:
+            writer (asyncio.StreamWriter): writer
+            container (AsyncContainer): container
         """
         tasks = [
             self._handle_single_response(writer, container)
