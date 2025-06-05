@@ -137,8 +137,11 @@ import struct
 from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
+from ipaddress import IPv4Address, IPv6Address, ip_address
 from operator import attrgetter
 from zoneinfo import ZoneInfo
+
+from fastapi import HTTPException, Request, status
 
 from models import Directory
 
@@ -301,6 +304,33 @@ def create_user_name(directory_id: int) -> str:
     NOTE: keycloak
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
+
+
+def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
+    """Get IP address from request.
+
+    :param Request request: The incoming request object.
+    :return IPv4Address | None: The IP address or None.
+    """
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0]
+    else:
+        if request.client is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
+        client_ip = request.client.host
+
+    return ip_address(client_ip)
+
+
+def get_user_agent_from_request(request: Request) -> str:
+    """Get user agent from request.
+
+    :param Request request: The incoming request object.
+    :return str: The user agent header.
+    """
+    user_agent_header = request.headers.get("User-Agent")
+    return user_agent_header if user_agent_header else ""
 
 
 get_class_name = attrgetter("__class__.__name__")

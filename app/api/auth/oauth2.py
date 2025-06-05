@@ -14,10 +14,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.utils.helpers import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.utils.queries import get_user
 from models import Group, User
 from security import verify_password
