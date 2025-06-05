@@ -11,7 +11,7 @@ import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import ClassVar
 
 import dns
@@ -44,14 +44,14 @@ FIRST_SETUP_RECORDS = [
 ]
 
 
-class DNSZoneType(str, Enum):
+class DNSZoneType(StrEnum):
     """DNS zone types."""
 
     MASTER = "master"
     FORWARD = "forward"
 
 
-class DNSRecordType(str, Enum):
+class DNSRecordType(StrEnum):
     """DNS record types."""
 
     A = "A"
@@ -91,7 +91,7 @@ class DNSZone:
     records: list[DNSRecords]
 
 
-class DNSZoneParamName(str, Enum):
+class DNSZoneParamName(StrEnum):
     """Possible DNS zone option names."""
 
     acl = "acl"
@@ -99,7 +99,7 @@ class DNSZoneParamName(str, Enum):
     ttl = "ttl"
 
 
-class DNSServerParamName(str, Enum):
+class DNSServerParamName(StrEnum):
     """Possible DNS server option names."""
 
     dnssec = "dnssec-validation"
@@ -459,6 +459,26 @@ class BindDNSServerManager(AbstractDNSServerManager):
         self.add_record(new_record, record_type, zone_name)
 
 
+    def get_server_settings() -> list[DNSServerParam]:
+        """Get list of modifiable DNS server settings."""
+        named_options = None
+        with open(NAMED_OPTIONS) as file:
+            named_options = file.read()
+
+        result = []
+        for param_name in DNSServerParamName:
+            pattern = rf"\b{re.escape(param_name)}\s+([^;\n{{]+|{{[^}}]+}})"
+            matched_param_value = re.search(pattern, named_options)
+            result.append(
+                DNSServerParam(
+                    name=param_name,
+                    value=matched_param_value.group(1).strip(),
+                ),
+            )
+
+        return result
+
+
 async def get_dns_manager() -> type[AbstractDNSServerManager]:
     """Get DNS server manager client."""
     return BindDNSServerManager()
@@ -587,6 +607,14 @@ async def update_dns_server_settings(
 ) -> None:
     """Update settings of DNS server."""
     await dns_manager.update_dns_settings(settings)
+
+
+@server_router.get("/settings")
+async def get_server_settings(
+    dns_manager: Depends[get_dns_manager],
+) -> list[DNSServerParam]:
+    """Get list of modifiable server settings."""
+    return await dns_manager.get_server_settings()
 
 
 @server_router.post("/setup")
