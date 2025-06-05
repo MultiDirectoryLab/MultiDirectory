@@ -173,7 +173,8 @@ async def delete_zone(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> None:
     """Delete DNS zone."""
-    await dns_manager.delete_zone(data.zone_name)
+    for zone_name in data.zone_names:
+        await dns_manager.delete_zone(zone_name)
 
 
 @dns_router.post("/forward_check")
