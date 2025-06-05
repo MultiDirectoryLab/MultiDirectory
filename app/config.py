@@ -52,6 +52,7 @@ class Settings(BaseModel):
     EVENT_POSTGRES_HOST: str = "event_postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+    SERVICE_NAME: str | None = None
 
     KV_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/0")
     SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/1")

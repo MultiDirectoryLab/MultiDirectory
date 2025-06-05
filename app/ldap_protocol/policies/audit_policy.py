@@ -48,6 +48,7 @@ class AuditEvent(BaseModel):
     )
     hostname: str = Field(default_factory=socket.gethostname)
     http_success_status: bool | None = None
+    service_name: str | None = None
 
     def is_event_successful(self) -> bool:
         """Determine if the event was successful.
@@ -57,6 +58,10 @@ class AuditEvent(BaseModel):
         """
         if self.http_success_status is not None:
             return self.http_success_status
+
+        if not self.responses:
+            return True
+
         return self.responses[-1]["result_code"] == LDAPCodes.SUCCESS
 
     @classmethod
@@ -148,6 +153,7 @@ class AuditEventBuilder:
             username=username,
             source_ip=ip,
             dest_port=settings.PORT,
+            service_name=settings.SERVICE_NAME,
         )
 
     @classmethod
@@ -192,6 +198,7 @@ class AuditEventBuilder:
             source_ip=ip,
             dest_port=settings.HTTP_PORT,
             http_success_status=is_success_request,
+            service_name=settings.SERVICE_NAME,
         )
 
 
