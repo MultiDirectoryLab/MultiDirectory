@@ -13,7 +13,7 @@ from .helpers import validate_entry
 
 
 def _type_validate_entry(entry: str) -> str:
-    """Description.
+    """Validate entry name.
 
     Args:
         entry (str): entry name
@@ -35,7 +35,7 @@ EMAIL_RE = re.compile(
 
 
 def _type_validate_email(email: str) -> str:
-    """Description.
+    """Validate email.
 
     Args:
         email (str): email address

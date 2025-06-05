@@ -328,21 +328,19 @@ async def _migrations(
     config.attributes["app_settings"] = settings
 
     def upgrade(conn: AsyncConnection) -> None:
-        """Description.
+        """Run up migrations.
 
         Args:
             conn (AsyncConnection): connection
-
         """
         config.attributes["connection"] = conn
         command.upgrade(config, "head")
 
     def downgrade(conn: AsyncConnection) -> None:
-        """Description.
+        """Run down migrations.
 
         Args:
             conn (AsyncConnection): connection
-
         """
         config.attributes["connection"] = conn
         command.downgrade(config, "base")

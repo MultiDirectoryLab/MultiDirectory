@@ -57,7 +57,12 @@ class PoolClientHandler:
     ssl_context: ssl.SSLContext | None = None
 
     def __init__(self, settings: Settings, container: AsyncContainer):
-        """Set workers number for single client concurrent handling."""
+        """Set workers number for single client concurrent handling.
+
+        Args:
+            settings (Settings): settings
+            container (AsyncContainer): container
+        """
         self.container = container
         self.settings = settings
 
@@ -77,7 +82,12 @@ class PoolClientHandler:
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
     ) -> None:
-        """Create session, queue and start message handlers concurrently."""
+        """Create session, queue and start message handlers concurrently.
+
+        Args:
+            reader (asyncio.StreamReader): reader
+            writer (asyncio.StreamWriter): writer
+        """
         async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
             addr, first_chunk = await self.recieve(
@@ -360,7 +370,6 @@ class PoolClientHandler:
         Args:
             addr (str): address
             msg (LDAPRequestMessage): message
-
         """
         log.debug(
             f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
@@ -387,7 +396,6 @@ class PoolClientHandler:
         Args:
             addr (str): address
             msg (LDAPMessage): message
-
         """
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
@@ -496,7 +504,11 @@ class PoolClientHandler:
         await asyncio.gather(*tasks)
 
     async def _get_server(self) -> asyncio.base_events.Server:
-        """Get async server."""
+        """Get async server.
+
+        Returns:
+            asyncio.base_events.Server: async server
+        """
         return await asyncio.start_server(
             self,
             str(self.settings.HOST),
@@ -507,17 +519,20 @@ class PoolClientHandler:
 
     @staticmethod
     async def _run_server(server: asyncio.base_events.Server) -> None:
-        """Run server."""
+        """Run server.
+
+        Args:
+            server (asyncio.base_events.Server): async server
+        """
         async with server:
             await server.serve_forever()
 
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:
-        """Description.
+        """Log server addresses.
 
         Args:
-            server: asyncio.base_events.Server:
-
+            server (asyncio.base_events.Server): async server
         """
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
         log.info(f"Server on {addrs}")

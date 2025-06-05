@@ -45,7 +45,6 @@ class SaslPLAINAuthentication(SaslAuthentication):
 
         Returns:
             bool: status
-
         """
         return False
 

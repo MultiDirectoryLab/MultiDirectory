@@ -116,7 +116,7 @@ class SessionStorage(ABC):
 
     @staticmethod
     def _sign(session_id: str, settings: Settings) -> str:
-        """Description.
+        """Sign session id.
 
         Args:
             session_id (str): Session id
@@ -124,7 +124,6 @@ class SessionStorage(ABC):
 
         Returns:
             str: The HMAC signature for the session_id using provided settings.
-
         """
         return hmac.new(
             settings.SECRET_KEY.encode(),
@@ -144,7 +143,7 @@ class SessionStorage(ABC):
         return hashlib.blake2b(user_agent.encode(), digest_size=6).hexdigest()
 
     def _get_ip_session_key(self, ip: str, protocol: ProtocolType) -> str:
-        """Description.
+        """Get ip session key.
 
         Args:
             ip (str): IP
@@ -156,7 +155,7 @@ class SessionStorage(ABC):
         return f"ip:{protocol}:{ip}"
 
     def _get_user_session_key(self, uid: int, protocol: ProtocolType) -> str:
-        """Description.
+        """Get user session key.
 
         Args:
             uid (int): uid
@@ -168,7 +167,7 @@ class SessionStorage(ABC):
         return f"keys:{protocol}:{uid}"
 
     def _get_protocol(self, session_id: str) -> ProtocolType:
-        """Description.
+        """Get protocol.
 
         Args:
             session_id (str): Session id
@@ -183,7 +182,6 @@ class SessionStorage(ABC):
 
         Returns:
             str: A new key.
-
         """
         return f"http:{token_hex(self.key_length)}"
 

@@ -67,7 +67,11 @@ class Changes(BaseModel):
     modification: PartialAttribute
 
     def get_name(self) -> str:
-        """Get mod name."""
+        """Get mod name.
+
+        Returns:
+            str: mod name
+        """
         return self.modification.type.lower()
 
 
@@ -105,13 +109,13 @@ class ModifyRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
-        """Description.
+        """Get modify request from data.
 
         Args:
-            data: list[ASN1Row]:
+            data (list[ASN1Row]): data
 
         Returns:
-            ModifyRequest
+            ModifyRequest: modify request
         """
         entry, proto_changes = data
 
@@ -136,7 +140,12 @@ class ModifyRequest(BaseRequest):
         change: Changes,
         session: AsyncSession,
     ) -> None:
-        """Update password expiration if policy allows."""
+        """Update password expiration if policy allows.
+
+        Args:
+            change (Changes): Change
+            session (AsyncSession): Database session
+        """
         if not (
             change.modification.type == "krbpasswordexpiration"
             and change.modification.vals[0] == "19700101000000Z"
@@ -249,14 +258,14 @@ class ModifyRequest(BaseRequest):
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
-        """Description.
+        """Match bad response.
 
         Args:
             err (BaseException): error
 
         Returns:
-            tuple[LDAPCodes, str]
-        """  # noqa: DAR401
+            tuple[LDAPCodes, str]: result code and message
+        """
         match err:
             case ValueError():
                 logger.error(f"Invalid value: {err}")
@@ -278,7 +287,11 @@ class ModifyRequest(BaseRequest):
                 raise err
 
     def _get_dir_query(self) -> Select:
-        """Description."""
+        """Get directory query.
+
+        Returns:
+            Select: directory query
+        """
         return (
             select(Directory)
             .join(Directory.attributes)
@@ -295,7 +308,7 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         user_dir_id: int,
     ) -> bool:
-        """Description.
+        """Check if password change is requested.
 
         Args:
             names (set[str]): attr names
@@ -303,7 +316,7 @@ class ModifyRequest(BaseRequest):
             user_dir_id (int): user id
 
         Returns:
-            bool:
+            bool: True if password change is requested, False otherwise
         """
         return (
             ("userpassword" in names or "unicodepwd" in names)

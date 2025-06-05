@@ -28,7 +28,14 @@ from .helpers import (
 
 @cache
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
-    """Get base domain directories."""
+    """Get base domain directories.
+
+    Args:
+        session (AsyncSession): sqlalchemy session
+
+    Returns:
+        list[Directory]: base domain directories
+    """
     result = await session.execute(
         select(Directory)
         .filter(Directory.parent_id.is_(None))
@@ -68,7 +75,15 @@ async def get_directories(
     dn_list: list[ENTRY_TYPE],
     session: AsyncSession,
 ) -> list[Directory]:
-    """Get directories by dn list."""
+    """Get directories by dn list.
+
+    Args:
+        dn_list (list[ENTRY_TYPE]): dn list
+        session (AsyncSession): sqlalchemy session
+
+    Returns:
+        list[Directory]: directories
+    """
     paths = []
 
     for dn in dn_list:
@@ -93,7 +108,15 @@ async def get_directories(
 
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
-    """Get dirs with groups by dn list."""
+    """Get dirs with groups by dn list.
+
+    Args:
+        dn_list (list[str]): dn list
+        session (AsyncSession): sqlalchemy session
+
+    Returns:
+        list[Group]: groups
+    """
     return [
         directory.group
         for directory in await get_directories(dn_list, session)
@@ -166,7 +189,13 @@ async def set_last_logon_user(
     session: AsyncSession,
     tz: ZoneInfo,
 ) -> None:
-    """Update lastLogon attr."""
+    """Update lastLogon attr.
+
+    Args:
+        user (User): user
+        session (AsyncSession): sqlalchemy session
+        tz (ZoneInfo): timezone info
+    """
     await session.execute(
         update(User)
         .values({"last_logon": datetime.now(tz=tz)})

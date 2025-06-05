@@ -285,7 +285,11 @@ def ft_to_dt(filetime: int) -> datetime:
 
 
 def ft_now() -> str:
-    """Get now filetime timestamp."""
+    """Get now filetime timestamp.
+
+    Returns:
+        str: now filetime timestamp
+    """
     return str(dt_to_ft(datetime.now(tz=ZoneInfo("UTC"))))
 
 
@@ -347,7 +351,11 @@ def create_object_sid(
 
 
 def generate_domain_sid() -> str:
-    """Generate domain objectSid attr."""
+    """Generate domain objectSid attr.
+
+    Returns:
+        str: domain objectSid attr
+    """
     sub_authorities = [
         random.randint(1000000000, (1 << 32) - 1),
         random.randint(1000000000, (1 << 32) - 1),

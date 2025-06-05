@@ -48,7 +48,11 @@ class LDAPBindErrors(StrEnum):
     ACCOUNT_LOCKED_OUT = "775"
 
     def __str__(self) -> str:
-        """Return the error message as a string."""
+        """Return the error message as a string.
+
+        Returns:
+            str: Error message
+        """
         return (
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "
@@ -96,11 +100,20 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     @abstractmethod
     def is_anonymous(self) -> bool:
-        """Description."""
+        """Check if anonymous.
+
+        Returns:
+            bool: True if anonymous, False otherwise
+        """
 
     @abstractmethod
     async def get_user(self, session: AsyncSession, username: str) -> User:
-        """Get user."""
+        """Get user.
+
+        Args:
+            session (AsyncSession): sqlalchemy session
+            username (str): username
+        """
 
 
 class SaslAuthentication(AbstractLDAPAuth):
@@ -115,5 +128,8 @@ class SaslAuthentication(AbstractLDAPAuth):
         """Get auth from data.
 
         Args:
-            data: list[ASN1Row]:
+            data (list[ASN1Row]): data
+
+        Returns:
+            SaslAuthentication: sasl authentication
         """

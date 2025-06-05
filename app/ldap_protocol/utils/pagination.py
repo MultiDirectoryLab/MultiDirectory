@@ -73,6 +73,9 @@ class BaseSchemaModel[S: Base](BaseModel):
 
         Args:
             sqla_instance (S): instance of SQLAlchemy Model
+
+        Returns:
+            BaseSchemaModel[S]: instance of Schema
         """
 
 

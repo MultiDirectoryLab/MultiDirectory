@@ -241,7 +241,7 @@ class Directory(Base):
 
     @property
     def attributes_dict(self) -> defaultdict[str, list[str]]:
-        """Description.
+        """Get attributes dictionary.
 
         Returns:
             defaultdict[str, list[str]]: Dictionary of attribute names\

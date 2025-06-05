@@ -29,7 +29,7 @@ MEMBERS_ATTRS = {
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
-    """Description.
+    """Get substring.
 
     Args:
         right (ASN1Row): Row with metadata
@@ -52,7 +52,7 @@ def _from_filter(
     attr: str,
     right: ASN1Row,
 ) -> UnaryExpression:
-    """Description.
+    """Get filter from item.
 
     Args:
         model (type): Any Model
@@ -198,7 +198,7 @@ def _ldap_filter_by_attribute(
 
 
 def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
-    """Description.
+    """Cast item to sqlalchemy condition.
 
     Args:
         item (ASN1Row): Row with metadata
@@ -286,7 +286,14 @@ def _from_str_filter(
 
 
 def _api_filter(item: Filter) -> UnaryExpression:
-    """Retrieve query conditions based on the specified LDAP attribute."""
+    """Retrieve query conditions based on the specified LDAP attribute.
+
+    Args:
+        item (Filter): LDAP filter
+
+    Returns:
+        UnaryExpression
+    """
     filter_func = _get_filter_function(item.attr)
     return filter_func(item.val)
 

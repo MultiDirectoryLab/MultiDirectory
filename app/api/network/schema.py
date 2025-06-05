@@ -40,7 +40,11 @@ class NetmasksMixin:
     @computed_field  # type: ignore
     @property
     def complete_netmasks(self) -> list[IPv4Address | IPv4Network]:
-        """Validate range or return networks range."""
+        """Validate range or return networks range.
+
+        Returns:
+            list[IPv4Address | IPv4Network]: complete netmasks
+        """
         values = []
         for item in self.netmasks:
             if isinstance(item, IPRange):
@@ -54,13 +58,13 @@ class NetmasksMixin:
     @field_validator("groups")
     @classmethod
     def validate_group(cls, groups: list[str]) -> list[str]:
-        """Description.
+        """Validate groups.
 
         Args:
             groups (list[str]): groups names
 
         Returns:
-            list[str]:
+            list[str]: groups
 
         Raises:
             ValueError: Invalid DN
@@ -75,13 +79,13 @@ class NetmasksMixin:
     @field_validator("mfa_groups")
     @classmethod
     def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:
-        """Syka.
+        """Validate mfa groups.
 
         Args:
             mfa_groups (list[str]): mfa groups names
 
         Returns:
-            list[str]:
+            list[str]: mfa groups
 
         Raises:
             ValueError: Invalid DN
@@ -107,7 +111,6 @@ class NetmasksMixin:
 
         Returns:
             list[str | dict]: ready to json serialized
-
         """
         values: list[str | dict] = []
 

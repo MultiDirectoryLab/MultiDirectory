@@ -99,7 +99,12 @@ async def remove_mfa(
     session: FromDishka[AsyncSession],
     scope: Literal["ldap", "http"],
 ) -> None:
-    """Remove mfa credentials."""
+    """Remove mfa credentials.
+
+    Args:
+        session (FromDishka[AsyncSession]): Database session.
+        scope (Literal["ldap", "http"]): Scope of the credentials.
+    """
     if scope == "http":
         keys = ["mfa_key", "mfa_secret"]
     else:

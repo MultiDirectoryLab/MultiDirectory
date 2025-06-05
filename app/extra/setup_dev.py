@@ -53,7 +53,14 @@ async def _create_dir(
     domain: Directory,
     parent: Directory | None = None,
 ) -> None:
-    """Create data recursively."""
+    """Create data recursively.
+
+    Args:
+        data (dict): data
+        session (AsyncSession): Database session
+        domain (Directory): domain
+        parent (Directory | None): parent
+    """
     dir_ = Directory(
         object_class=data["object_class"],
         name=data["name"],

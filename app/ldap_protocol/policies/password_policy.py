@@ -72,7 +72,7 @@ class PasswordPolicySchema(BaseModel):
 
     @model_validator(mode="after")
     def _validate_minimum_pwd_age(self) -> "PasswordPolicySchema":
-        """Description.
+        """Validate minimum password age.
 
         Returns:
             self

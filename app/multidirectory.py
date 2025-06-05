@@ -203,7 +203,7 @@ def ldap(settings: Settings) -> None:
         await asyncio.gather(*servers)
 
     def _run() -> None:
-        """Description."""
+        """Run ldap server."""
         uvloop.run(_servers(settings), debug=settings.DEBUG)
 
     try:

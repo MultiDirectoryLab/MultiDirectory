@@ -39,7 +39,11 @@ def do_run_migrations(connection: AsyncConnection):
 
 
 async def run_async_migrations(settings: Settings):
-    """Run async migrations."""
+    """Run async migrations.
+
+    Args:
+        settings (Settings): Settings
+    """
     engine = create_async_engine(str(settings.POSTGRES_URI))
 
     async with engine.connect() as connection:

@@ -42,7 +42,12 @@ class OAuth2Form(OAuth2PasswordRequestForm):
         username: str = Form(),
         password: str = Form(),
     ):
-        """Initialize form."""
+        """Initialize form.
+
+        Args:
+            username (str): username
+            password (str): password
+        """
         self.username = username
         self.password = password
 
@@ -67,7 +72,7 @@ class SetupRequest(BaseModel):
 
     @field_validator("domain")
     def validate_domain(cls, v: str) -> str:  # noqa FIXME why noqa?
-        """Description.
+        """Validate domain.
 
         Args:
             v (str): value
@@ -93,7 +98,11 @@ class MFACreateRequest(BaseModel):
     @computed_field  # type: ignore
     @property
     def key_name(self) -> str:
-        """Description."""
+        """Get key name.
+
+        Returns:
+            str: key name
+        """
         if self.is_ldap_scope:
             return "mfa_key_ldap"
 
@@ -102,7 +111,11 @@ class MFACreateRequest(BaseModel):
     @computed_field  # type: ignore
     @property
     def secret_name(self) -> str:
-        """Description."""
+        """Get secret name.
+
+        Returns:
+            str: secret name
+        """
         if self.is_ldap_scope:
             return "mfa_secret_ldap"
 

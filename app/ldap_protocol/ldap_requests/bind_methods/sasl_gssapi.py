@@ -95,7 +95,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         Returns:
             bool: status
-
         """
         return False
 
@@ -156,7 +155,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         Returns:
             GSSAPIAuthStatus: status
-
         """
         try:
             out_token = server_ctx.step(self.ticket)
@@ -173,7 +171,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
 
         Returns:
             bool: validate result
-
         """
         supported = GSSAPISL.SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer

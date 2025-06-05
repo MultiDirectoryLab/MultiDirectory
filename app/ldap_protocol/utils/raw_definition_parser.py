@@ -16,7 +16,7 @@ class RawDefinitionParser:
 
     @staticmethod
     def _list_to_string(data: list[str]) -> str | None:
-        """Description.
+        """Convert list to string.
 
         Args:
             data (list[str]): list of strings
@@ -35,7 +35,7 @@ class RawDefinitionParser:
 
     @staticmethod
     def _get_attribute_type_info(raw_definition: str) -> AttributeTypeInfo:
-        """Description.
+        """Get attribute type info.
 
         Args:
             raw_definition (str): raw definition of attribute type
@@ -48,7 +48,7 @@ class RawDefinitionParser:
 
     @staticmethod
     def get_object_class_info(raw_definition: str) -> ObjectClassInfo:
-        """Description.
+        """Get object class info.
 
         Args:
             raw_definition (str): raw definition of object class
@@ -74,7 +74,7 @@ class RawDefinitionParser:
     def create_attribute_type_by_raw(
         raw_definition: str,
     ) -> AttributeType:
-        """Description.
+        """Create attribute type by raw definition.
 
         Args:
             raw_definition (str): raw definition of attribute type

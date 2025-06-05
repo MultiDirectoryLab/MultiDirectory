@@ -55,18 +55,27 @@ class BaseExtendedValue(ABC, BaseModel):
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> BaseExtendedResponseValue:
-        """Generate specific extended resoponse."""
+        """Generate specific extended resoponse.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            session (AsyncSession): Database session
+            kadmin (AbstractKadmin): Kerberos client
+            settings (Settings): Settings
+
+        Returns:
+            BaseExtendedResponseValue
+        """
 
     @staticmethod
     def _decode_value(data: ASN1Row) -> ASN1Row:
-        """Description.
+        """Decode value.
 
         Args:
             data: ASN1Row
 
         Returns:
             ASN1Row
-
         """
         dec = Decoder()
         dec.start(data[1].value)  # type: ignore
@@ -128,7 +137,17 @@ class WhoAmIRequestValue(BaseExtendedValue):
         kadmin: AbstractKadmin,  # noqa: ARG002
         settings: Settings,  # noqa: ARG002
     ) -> "WhoAmIResponse":
-        """Return user from session."""
+        """Return user from session.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            _ (AsyncSession): Database session
+            kadmin (AbstractKadmin): Kerberos client
+            settings (Settings): Settings
+
+        Returns:
+            WhoAmIResponse
+        """
         un = (
             f"u:{ldap_session.user.user_principal_name}"
             if ldap_session.user
@@ -204,7 +223,7 @@ class PasswdModifyResponse(BaseExtendedResponseValue):
     gen_passwd: str = ""
 
     def get_value(self) -> str | None:
-        """Description.
+        """Get response value.
 
         Returns:
             str | None

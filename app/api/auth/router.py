@@ -170,7 +170,13 @@ async def logout(
     storage: FromDishka[SessionStorage],
     user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> None:
-    """Delete token cookies."""
+    """Delete token cookies.
+
+    Args:
+        response (Response): FastAPI response object.
+        storage (FromDishka[SessionStorage]): Session storage.
+        user (UserSchema): Current user schema from dependency.
+    """
     response.delete_cookie("id", httponly=True)
     await storage.delete_user_session(user.session_id)
 

@@ -17,7 +17,13 @@ async def update_krb5_config(
     session: AsyncSession,
     settings: Settings,
 ) -> None:
-    """Update kerberos config."""
+    """Update kerberos config.
+
+    Args:
+        kadmin (AbstractKadmin): Kerberos client.
+        session (AsyncSession): Database session.
+        settings (Settings): Settings.
+    """
     if not (await kadmin.get_status(wait_for_positive=True)):
         logger.error("kadmin_api is not running")
         return

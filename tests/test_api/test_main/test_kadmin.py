@@ -22,7 +22,7 @@ def _create_test_user_data(
     name: str,
     pw: str,
 ) -> dict[str, str | list[dict[str, str | list[str]]]]:
-    """Description.
+    """Create test user data.
 
     Args:
         name (str): user name

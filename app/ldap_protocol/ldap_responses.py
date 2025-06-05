@@ -45,7 +45,11 @@ class BaseEncoder(BaseModel):
     """Class with encoder methods."""
 
     def _get_asn1_fields(self) -> dict:
-        """Description."""
+        """Get ASN1 fields.
+
+        Returns:
+            dict: ASN1 fields
+        """
         fields = self.model_dump()
         fields.pop("PROTOCOL_OP", None)
         return fields
@@ -66,7 +70,11 @@ class BaseResponse(ABC, BaseEncoder):
     @property
     @abstractmethod
     def PROTOCOL_OP(self) -> int:  # noqa: N802
-        """Protocol OP response code."""
+        """Protocol OP response code.
+
+        Returns:
+            int: Protocol OP response code
+        """
 
 
 class BindResponse(LDAPResult, BaseResponse):
@@ -106,13 +114,17 @@ class PartialAttribute(BaseModel):
 
     @property
     def l_name(self) -> str:
-        """Get lower case name."""
+        """Get lower case name.
+
+        Returns:
+            str: lower case name
+        """
         return self.type.lower()
 
     @field_validator("type", mode="before")
     @classmethod
     def validate_type(cls, v: str | bytes | int) -> str:
-        """Description.
+        """Validate type.
 
         Args:
             v (str | bytes | int): value
@@ -125,7 +137,7 @@ class PartialAttribute(BaseModel):
     @field_validator("vals", mode="before")
     @classmethod
     def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:
-        """Description.
+        """Validate vals.
 
         Args:
             vals (list[str | int | bytes]): values
@@ -194,7 +206,11 @@ class SearchResultDone(LDAPResult, BaseResponse):
     total_objects: int = 0
 
     def _get_asn1_fields(self) -> dict:
-        """Description."""
+        """Get ASN1 fields.
+
+        Returns:
+            dict: ASN1 fields
+        """
         fields = super()._get_asn1_fields()
         fields.pop("total_pages")
         fields.pop("total_objects")
@@ -249,7 +265,11 @@ class BaseExtendedResponseValue(ABC, BaseEncoder):
 
     @abstractmethod
     def get_value(self) -> str | None:
-        """Get response value."""
+        """Get response value.
+
+        Returns:
+            str | None: response value
+        """
 
 
 class ExtendedResponse(LDAPResult, BaseResponse):

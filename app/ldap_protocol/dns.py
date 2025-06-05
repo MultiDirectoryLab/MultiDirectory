@@ -162,7 +162,11 @@ class AbstractDNSManager(ABC):
     """Abstract DNS manager class."""
 
     def __init__(self, settings: DNSManagerSettings) -> None:
-        """Set up DNS manager."""
+        """Set up DNS manager.
+
+        Args:
+            settings (DNSManagerSettings): DNS manager settings
+        """
         self._dns_settings = settings
 
     @logger_wraps()
@@ -176,7 +180,17 @@ class AbstractDNSManager(ABC):
         tsig_key: str | None,
         named_conf_local_part: str | None,
     ) -> None:
-        """Set up DNS server and DNS manager."""
+        """Set up DNS server and DNS manager.
+
+        Args:
+            session (AsyncSession): Database session
+            settings (Settings): Settings
+            domain (str): Domain name
+            dns_ip_address (str | None): DNS server IP address
+            zone_file (str | None): Zone file
+            tsig_key (str | None): TSIG key
+            named_conf_local_part (str | None): Named conf local part
+        """
         if zone_file is not None and named_conf_local_part is not None:
             with open(settings.DNS_ZONE_FILE, "w") as f:
                 f.write(zone_file)
@@ -271,7 +285,14 @@ class DNSManager(AbstractDNSManager):
         record_type: str,
         ttl: int | None,
     ) -> None:
-        """Create DNS record."""
+        """Create DNS record.
+
+        Args:
+            hostname (str): Hostname
+            ip (str): IP address
+            record_type (str): Record type
+            ttl (int | None): TTL
+        """
         action = Update(self._dns_settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
 
@@ -338,7 +359,14 @@ class DNSManager(AbstractDNSManager):
         record_type: str,
         ttl: int | None,
     ) -> None:
-        """Update DNS record."""
+        """Update DNS record.
+
+        Args:
+            hostname (str): Hostname
+            ip (str | None): IP address
+            record_type (str): Record type
+            ttl (int | None): TTL
+        """
         action = Update(self._dns_settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
@@ -351,7 +379,13 @@ class DNSManager(AbstractDNSManager):
         ip: str,
         record_type: str,
     ) -> None:
-        """Delete DNS record."""
+        """Delete DNS record.
+
+        Args:
+            hostname (str): Hostname
+            ip (str): IP address
+            record_type (str): Record type
+        """
         action = Update(self._dns_settings.zone_name)
         action.delete(hostname, record_type, ip)
 

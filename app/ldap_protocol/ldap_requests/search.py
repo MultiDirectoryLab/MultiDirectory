@@ -112,7 +112,7 @@ class SearchRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "SearchRequest":
-        """Description.
+        """Get search request from data.
 
         Args:
             data (dict[str, list[ASN1Row]]): data
@@ -144,7 +144,11 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def requested_attrs(self) -> list[str]:
-        """Description."""
+        """Get requested attributes.
+
+        Returns:
+            list[str]: requested attributes
+        """
         return [attr.lower() for attr in self.attributes]
 
     async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
@@ -334,22 +338,38 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def member_of(self) -> bool:
-        """Description."""
+        """Check if member of is requested.
+
+        Returns:
+            bool: True if member of is requested, False otherwise
+        """
         return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def member(self) -> bool:
-        """Description."""
+        """Check if member is requested.
+
+        Returns:
+            bool: True if member is requested, False otherwise
+        """
         return "member" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def token_groups(self) -> bool:
-        """Description."""
+        """Check if token groups is requested.
+
+        Returns:
+            bool: True if token groups is requested, False otherwise
+        """
         return "tokengroups" in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:
-        """Description."""
+        """Check if all attributes are requested.
+
+        Returns:
+            bool: True if all attributes are requested, False otherwise
+        """
         return "*" in self.requested_attrs or not self.requested_attrs
 
     def build_query(
@@ -464,7 +484,15 @@ class SearchRequest(BaseRequest):
         query: Select,
         session: AsyncSession,
     ) -> AsyncGenerator[SearchResultEntry, None]:
-        """Yield all resulted directories."""
+        """Yield all resulted directories.
+
+        Args:
+            query (Select): SQLAlchemy select query
+            session (AsyncSession): async session
+
+        Yields:
+            AsyncGenerator[SearchResultEntry, None]: yielded directories
+        """
         directories = await session.stream_scalars(query)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 

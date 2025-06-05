@@ -36,7 +36,11 @@ class LDAPMessage(ABC, BaseModel):
 
     @property
     def name(self) -> str:
-        """Message name."""
+        """Message name.
+
+        Returns:
+            str: message name
+        """
         return get_class_name(self.context)
 
 

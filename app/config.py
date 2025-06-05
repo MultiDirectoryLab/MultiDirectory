@@ -24,10 +24,10 @@ from pydantic import (
 
 
 def _get_vendor_version() -> str:
-    """Description.
+    """Get vendor version.
 
     Returns:
-        str:
+        str: vendor version
     """
     with open("/pyproject.toml", "rb") as f:
         return tomllib.load(f)["tool"]["poetry"]["version"]
@@ -74,7 +74,11 @@ class Settings(BaseModel):
     @computed_field  # type: ignore
     @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
-        """Build postgres DSN."""
+        """Build postgres DSN.
+
+        Returns:
+            PostgresDsn: postgres DSN
+        """
         return PostgresDsn(
             f"{self.POSTGRES_SCHEMA}://"
             f"{self.POSTGRES_USER}:"
@@ -150,7 +154,6 @@ class Settings(BaseModel):
 
         Returns:
             str: url
-
         """
         if self.MFA_API_SOURCE == "dev":
             return "https://api.multifactor.dev"

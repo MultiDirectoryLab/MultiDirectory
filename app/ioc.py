@@ -106,7 +106,14 @@ class MainProvider(Provider):
         self,
         session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractKadmin]:
-        """Get kerberos type."""
+        """Get kerberos type.
+
+        Args:
+            session_maker (async_sessionmaker[AsyncSession]): session maker
+
+        Returns:
+            type[AbstractKadmin]: kerberos class
+        """
         async with session_maker() as session:
             return await get_kerberos_class(session)
 
@@ -157,7 +164,14 @@ class MainProvider(Provider):
         self,
         session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractDNSManager]:
-        """Get DNS manager type."""
+        """Get DNS manager type.
+
+        Args:
+            session_maker (async_sessionmaker[AsyncSession]): session maker
+
+        Returns:
+            type[AbstractDNSManager]: DNS manager class
+        """
         async with session_maker() as session:
             return await get_dns_manager_class(session)
 
@@ -167,7 +181,15 @@ class MainProvider(Provider):
         session_maker: async_sessionmaker[AsyncSession],
         settings: Settings,
     ) -> DNSManagerSettings:
-        """Get DNS manager's settings."""
+        """Get DNS manager's settings.
+
+        Args:
+            session_maker (async_sessionmaker[AsyncSession]): session maker
+            settings (Settings): app settings
+
+        Returns:
+            DNSManagerSettings: DNS manager settings
+        """
         resolve_coro = resolve_dns_server_ip(settings.DNS_BIND_HOST)
         async with session_maker() as session:
             return await get_dns_manager_settings(session, resolve_coro)
@@ -219,7 +241,15 @@ class MainProvider(Provider):
         client: SessionStorageClient,
         settings: Settings,
     ) -> SessionStorage:
-        """Get session storage."""
+        """Get session storage.
+
+        Args:
+            client (SessionStorageClient): session storage client
+            settings (Settings): app settings
+
+        Returns:
+            SessionStorage: session storage
+        """
         return RedisSessionStorage(
             client,
             settings.SESSION_KEY_LENGTH,
@@ -234,7 +264,11 @@ class HTTPProvider(Provider):
 
     @provide(provides=LDAPSession)
     async def get_session(self) -> LDAPSession:
-        """Create ldap session."""
+        """Create ldap session.
+
+        Returns:
+            LDAPSession: ldap session
+        """
         return LDAPSession()
 
 
@@ -245,7 +279,14 @@ class LDAPServerProvider(Provider):
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_session(self, storage: SessionStorage) -> LDAPSession:
-        """Create ldap session."""
+        """Create ldap session.
+
+        Args:
+            storage (SessionStorage): session storage
+
+        Returns:
+            LDAPSession: ldap session
+        """
         return LDAPSession(storage=storage)
 
 

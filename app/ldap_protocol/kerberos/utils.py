@@ -23,7 +23,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
     """
 
     def wrapper(func: Callable) -> Callable:
-        """Description.
+        """Wrap kadmin calls.
 
         Args:
             func (Callable): any function

@@ -71,12 +71,20 @@ class AddRequest(BaseRequest):
 
     @property
     def attr_names(self) -> dict[str, list[str | bytes]]:
-        """Description."""
+        """Get attribute names.
+
+        Returns:
+            dict[str, list[str | bytes]]: attribute names
+        """
         return {attr.l_name: attr.vals for attr in self.attributes}
 
     @property
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
-        """Description."""
+        """Get attributes dictionary.
+
+        Returns:
+            dict[str, list[str | bytes]]: attributes dictionary
+        """
         return {attr.type: attr.vals for attr in self.attributes}
 
     @classmethod

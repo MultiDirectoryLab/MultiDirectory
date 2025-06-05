@@ -170,7 +170,20 @@ class AbstractKadmin(ABC):
         kdc_config: str,
         ldap_keytab_path: str,
     ) -> None:
-        """Request Setup."""
+        """Request Setup.
+
+        Args:
+            domain (str): domain
+            admin_dn (str): admin_dn
+            services_dn (str): services_dn
+            krbadmin_dn (str): krbadmin_dn
+            krbadmin_password (str): krbadmin_password
+            admin_password (str): admin_password
+            stash_password (str): stash_password
+            krb5_config (str): krb5_config
+            kdc_config (str): kdc_config
+            ldap_keytab_path (str): ldap keytab path
+        """
         await self.setup_configs(krb5_config, kdc_config)
         await self.setup_stash(
             domain,
