@@ -169,6 +169,10 @@ class LDAPRequestMessage(LDAPMessage):
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 
+        Args:
+            handler (Callable[..., AsyncGenerator[BaseResponse, None]]):\
+                handler
+
         Yields:
             LDAPResponseMessage: create response for context.
         """

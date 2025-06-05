@@ -82,7 +82,10 @@ async def get_current_user(
 
     Returns:
         UserSchema: user schema
-    """
+
+    Raises:
+        _CREDENTIALS_EXCEPTION: creds not valid
+    """  # noqa: DOC502
     session_key = request.cookies.get("id", "")
     try:
         user_id = await session_storage.get_user_id(

@@ -110,6 +110,8 @@ class ModifyRequest(BaseRequest):
         Args:
             data: list[ASN1Row]:
 
+        Returns:
+            ModifyRequest
         """
         entry, proto_changes = data
 
@@ -159,6 +161,13 @@ class ModifyRequest(BaseRequest):
         settings: Settings,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            session (AsyncSession): Database session
+            session_storage (SessionStorage): Session storage
+            kadmin (AbstractKadmin): Kadmin
+            settings (Settings): Settings
 
         Yields:
             AsyncGenerator[ModifyResponse, None]
@@ -244,7 +253,10 @@ class ModifyRequest(BaseRequest):
 
         Args:
             err (BaseException): error
-        """
+
+        Returns:
+            tuple[LDAPCodes, str]
+        """  # noqa: DAR401
         match err:
             case ValueError():
                 logger.error(f"Invalid value: {err}")

@@ -115,8 +115,10 @@ class PartialAttribute(BaseModel):
         """Description.
 
         Args:
-            v: str | bytes | int:
+            v (str | bytes | int): value
 
+        Returns:
+            str: value
         """
         return str(v)
 
@@ -126,8 +128,10 @@ class PartialAttribute(BaseModel):
         """Description.
 
         Args:
-            vals: list[str | int | bytes]:
+            vals (list[str | int | bytes]): values
 
+        Returns:
+            list[str | bytes]: values
         """
         return [v if isinstance(v, bytes) else str(v) for v in vals]
 

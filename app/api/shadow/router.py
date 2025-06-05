@@ -100,13 +100,13 @@ async def sync_password(
     - **new_password**: password to set
     \f
     Args:
-        principal Annotated[str, Body]: reset target user
-        new_password Annotated[str, Body]: new password for user
+        principal (Annotated[str, Body]): user principal name
+        new_password (Annotated[str, Body]): new password for user
         session (FromDishka[AsyncSession]): db
 
     Raises:
-        HTTPException: 404 if user not found
         HTTPException: 422 if password not valid
+        HTTPException: 404 if user not found
     """
     user = await get_user(session, principal)
 

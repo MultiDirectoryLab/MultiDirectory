@@ -80,6 +80,9 @@ def _filter_memberof(dn: str) -> UnaryExpression:
 
     Args:
         dn (str): any DN, dn syntax
+
+    Returns:
+        UnaryExpression
     """
     group_id_subquery = (
         select(Group.id)
@@ -102,6 +105,9 @@ def _filter_member(dn: str) -> UnaryExpression:
 
     Args:
         dn (str): any DN, dn syntax
+
+    Returns:
+        UnaryExpression
     """
     user_id_subquery = (
         select(User.id)
@@ -124,6 +130,9 @@ def _recursive_filter_memberof(dn: str) -> UnaryExpression:
 
     Args:
         dn (str): any DN, dn syntax
+
+    Returns:
+        UnaryExpression
     """
     cte = find_members_recursive_cte(dn)
 
@@ -171,6 +180,9 @@ def _ldap_filter_by_attribute(
         oid: ASN1Row | None:
         attr: ASN1Row:
         search_value: ASN1Row:
+
+    Returns:
+        UnaryExpression
     """
     if oid is None:
         attribute = attr.value.lower()
@@ -235,6 +247,9 @@ def cast_filter2sql(expr: ASN1Row) -> UnaryExpression | ColumnElement:
 
     Args:
         expr: ASN1Row:
+
+    Returns:
+        UnaryExpression | ColumnElement
     """
     if expr.tag_id in range(3):
         conditions = []

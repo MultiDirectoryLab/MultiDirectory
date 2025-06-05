@@ -768,12 +768,11 @@ class RedisSessionStorage(SessionStorage):
         3. Link the session to the user's session tracking key
             (`keys:http:<uid>`).
         4. If an IP address is provided in `extra_data`, also link the session
-           to the IP-based session tracking key (`ip:http:<ip>`).
+            to the IP-based session tracking key (`ip:http:<ip>`).
 
         Args:
             uid (int): user id
             settings (Settings): settings
-            *,
             extra_data (dict): extra data
 
         Returns:

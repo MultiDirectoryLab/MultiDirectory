@@ -197,11 +197,8 @@ def get_path_filter(
     """Get filter condition for path equality.
 
     Args:
-        path(list[str]): dn
-        field(Column): path column, defaults to Directory.path
-        path: list[str]:
-        *:
-        column: ColumnElement | Column | InstrumentedAttribute:\
+        path (list[str]): domain name
+        column (ColumnElement | Column | InstrumentedAttribute):\
             (Default value = Directory.path)
 
     Returns:
@@ -219,9 +216,11 @@ def get_filter_from_path(
 
     Args:
         dn (str): any DN, dn syntax
-        *:
         column (Column | InstrumentedAttribute): (Default value =\
             Directory.path)
+
+    Returns:
+        ColumnElement: filter (where) element
     """
     return get_path_filter(get_search_path(dn), column=column)
 
@@ -263,6 +262,9 @@ async def create_group(
         name (str): group name
         sid (int): objectSid
         session (AsyncSession): db
+
+    Returns:
+        tuple[Directory, Group]
     """
     base_dn_list = await get_base_directories(session)
 
@@ -319,6 +321,9 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
     Args:
         session (AsyncSession): db
         directory_id (int): id
+
+    Returns:
+        bool: True if the entry is a computer, False otherwise
     """
     query = select(
         select(Attribute)

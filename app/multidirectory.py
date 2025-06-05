@@ -75,6 +75,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     Args:
         app (FastAPI): FastAPI application.
+
+    Yields:
+        AsyncIterator: async iterator
     """
     yield
     await app.state.dishka_container.close()
@@ -153,7 +156,7 @@ def create_prod_app(
 
     Args:
         factory (Callable[[Settings], FastAPI]): _create_basic_app
-        settings: Settings | None: (Default value = None)
+        settings (Settings | None): (Default value = None)
 
     Returns:
         FastAPI: application.

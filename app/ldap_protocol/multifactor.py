@@ -58,6 +58,11 @@ async def get_creds(
 ) -> Creds | None:
     """Get API creds.
 
+    Args:
+        session (AsyncSession): session
+        key_name (str): key name
+        secret_name (str): secret name
+
     Returns:
         tuple[str, str]: api key and secret
     """
@@ -151,13 +156,12 @@ class MultifactorAPI:
         Args:
             username (str): un
             password (str): pwd
-            policy (NetworkPolicy): policy
 
         Returns:
             bool: status
 
         Raises:
-            ConnectTimeout: API Timeout
+            MFAConnectError: API Timeout
             MFAMissconfiguredError: API Key or Secret is invalid
             MultifactorError: status error
         """  # noqa: DOC502

@@ -108,6 +108,8 @@ class LDAPSession:
         Args:
             user (User): instance of User
 
+        Raises:
+            NotImplementedError: Cannot manually set user
         """
         raise NotImplementedError(
             "Cannot manually set user, use `set_user()` instead",
@@ -159,8 +161,12 @@ class LDAPSession:
     ) -> None:
         """Validate network policies.
 
+        Args:
+            ip (IPv4Address | IPv6Address): IP
+            session (AsyncSession): async session
+
         Raises:
-            PermissionError:
+            PermissionError: NetworkPolicy is None
         """
         policy = await self._get_policy(ip, session)  # type: ignore
         if policy is not None:

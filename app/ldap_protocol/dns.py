@@ -250,7 +250,7 @@ class DNSManager(AbstractDNSManager):
             action (Message): DNS message
 
         Raises:
-            DNSConnectionError:
+            DNSConnectionError:  DNS server IP is None
         """
         if self._dns_settings.tsig_key is not None:
             action.use_tsig(

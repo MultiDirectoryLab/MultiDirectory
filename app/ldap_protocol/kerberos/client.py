@@ -28,7 +28,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             timeout (int): timeout
 
         Raises:
-            KRBAPIError:
+            KRBAPIError: API error
         """
         response = await self.client.post(
             "principal",
@@ -50,7 +50,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             dict
 
         Raises:
-            KRBAPIError:
+            KRBAPIError: API error
         """
         response = await self.client.get("principal", params={"name": name})
         if response.status_code != 200:
@@ -66,7 +66,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             name (str): principal name
 
         Raises:
-            KRBAPIError:
+            KRBAPIError: API error
         """
         response = await self.client.delete("principal", params={"name": name})
         if response.status_code != 200:
@@ -85,7 +85,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             password: password
 
         Raises:
-            KRBAPIError:
+            KRBAPIError: API error
         """
         response = await self.client.patch(
             "principal",
@@ -107,7 +107,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             password: password.
 
         Raises:
-            KRBAPIError:
+            KRBAPIError: API error
         """
         response = await self.client.post(
             "/principal/create_or_update",
@@ -125,7 +125,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             new_name: (str): new principal name
 
         Raises:
-            KRBAPIError:
+            KRBAPIError: API error
         """
         response = await self.client.put(
             "principal",
@@ -160,13 +160,13 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def lock_principal(self, name: str) -> None:
-        """Lock princ.
+        """Lock principal.
 
         Args:
-            name (str): upn
+            name (str): user principal name
 
         Raises:
-            KRBAPIError: on error
+            KRBAPIError: API error
         """
         response = await self.client.post(
             "principal/lock",
@@ -180,10 +180,10 @@ class KerberosMDAPIClient(AbstractKadmin):
         """Force mark password change for principal.
 
         Args:
-            name (str): pw
+            name (str): user principal name
 
         Raises:
-            KRBAPIError: err
+            KRBAPIError: API error
         """
         response = await self.client.post(
             "principal/force_reset",

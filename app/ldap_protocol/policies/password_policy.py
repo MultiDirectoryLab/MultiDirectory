@@ -91,10 +91,10 @@ class PasswordPolicySchema(BaseModel):
         """Create policies settings.
 
         Args:
-            session: db session
+            session (AsyncSession): db session
 
         Returns:
-            PasswordPolicySchema: password policy.
+            Self: Serialized password policy.
 
         Raises:
             PermissionError: Policy already exists.
@@ -250,7 +250,6 @@ class PasswordPolicySchema(BaseModel):
         Args:
             password (str): new raw password
             user (User): db user
-            session (AsyncSession): db
 
         Returns:
             bool: status

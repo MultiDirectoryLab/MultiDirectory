@@ -92,7 +92,7 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
             str: match
 
         Raises:
-            TypeError:
+            TypeError: If value isnt a list
         """
         oid = attribute = value = None
         dn_attributes = False
@@ -139,10 +139,10 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         """Process and format substring operations for LDAP.
 
         Returns:
-            str:
+            str: substring
 
         Raises:
-            ValueError:
+            ValueError: Invalid tag_id
         """
         value = (
             self.value.decode(errors="replace")
@@ -169,14 +169,14 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         substring matches.
 
         Args:
-            obj ("ASN1Row | T | None"): (Default value = None)
+            obj (ASN1Row | T | None): (Default value = None)
 
         Returns:
-            str:
+            str: result string
 
         Raises:
-            ValueError:
-            TypeError:
+            ValueError: Invalid tag_id
+            TypeError: cant serialize
         """
         if obj is None:
             obj = self

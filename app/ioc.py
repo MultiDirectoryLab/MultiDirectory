@@ -91,6 +91,9 @@ class MainProvider(Provider):
     ) -> AsyncIterator[AsyncSession]:
         """Create session for request.
 
+        Args:
+            async_session (async_sessionmaker[AsyncSession]): async db session
+
         Yields:
             AsyncIterator[AsyncSession]
         """
@@ -116,7 +119,6 @@ class MainProvider(Provider):
 
         Args:
             settings (Settings): app settings
-            session_maker (AsyncSessionMaker): session maker
 
         Yields:
             AsyncIterator[AbstractKadmin]: kadmin with client
@@ -178,6 +180,10 @@ class MainProvider(Provider):
     ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class.
 
+        Args:
+            settings (DNSManagerSettings): DNS Manager settings
+            dns_manager_class (type[AbstractDNSManager]): manager class
+
         Yields:
             AsyncIterator[AbstractDNSManager]
         """
@@ -189,6 +195,9 @@ class MainProvider(Provider):
         settings: Settings,
     ) -> AsyncIterator[SessionStorageClient]:
         """Get redis connection.
+
+        Args:
+            settings: Settings with database dsn.
 
         Yields:
             AsyncIterator[SessionStorageClient]
@@ -282,8 +291,11 @@ class MFAProvider(Provider):
     ) -> AsyncIterator[MFAHTTPClient]:
         """Get async client for DI.
 
+        Args:
+            settings: Settings with database dsn.
+
         Yields:
-            AsyncIterator[MFAHTTPClient]
+            AsyncIterator[MFAHTTPClient].
         """
         async with httpx.AsyncClient(
             timeout=settings.MFA_CONNECT_TIMEOUT_SECONDS,

@@ -150,7 +150,16 @@ async def setup_enviroment(
     data: list,
     dn: str = "multifactor.dev",
 ) -> None:
-    """Create directories and users for enviroment."""
+    """Create directories and users for enviroment.
+
+    Args:
+        session (AsyncSession): Database async session
+        data (list): data
+        dn (str): domain name (Default value = 'multifactor.dev')
+
+    Raises:
+        Exception: Failed to setup environment
+    """
     cat_result = await session.execute(select(Directory))
     if cat_result.scalar_one_or_none():
         logger.warning("dev data already set up")
@@ -207,4 +216,4 @@ async def setup_enviroment(
         import traceback
 
         logger.error(traceback.format_exc())
-        raise
+        raise Exception("Failed to setup environment")

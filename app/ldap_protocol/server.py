@@ -127,7 +127,7 @@ class PoolClientHandler:
         """Load SSL context for LDAPS.
 
         Raises:
-            SystemExit:
+            SystemExit: Certs not found
         """
         if self.settings.USE_CORE_TLS and self.settings.LDAP_LOAD_SSL_CERT:
             if not self.settings.check_certs_exist():
@@ -397,6 +397,10 @@ class PoolClientHandler:
         container: AsyncContainer,
     ) -> None:
         """Get message from queue and handle it.
+
+        Args:
+            writer (asyncio.StreamWriter): writer
+            container (AsyncContainer): container
 
         Raises:
             RuntimeError: any error

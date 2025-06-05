@@ -33,9 +33,9 @@ async def _schedule(
     """Run task periodically.
 
     Args:
-        task (Awaitable): any task
-        container (AsyncContainer): container
+        task (TaskType): callable coroutine
         wait (float): time to wait after execution
+        container (AsyncContainer): container
     """
     logger.info("Registered: {}", task.__name__)
     while True:

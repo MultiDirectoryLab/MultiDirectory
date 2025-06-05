@@ -252,7 +252,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             PasswdModifyResponse
 
         Raises:
-            PermissionError:
+            PermissionError: user not authorized
         """
         if not settings.USE_CORE_TLS:
             raise PermissionError("TLS required")
@@ -362,6 +362,12 @@ class ExtendedRequest(BaseRequest):
         settings: Settings,
     ) -> AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            session (AsyncSession): Async db session
+            kadmin (AbstractKadmin): Stub client for non set up dirs.
+            settings (Settings): Settings with database dsn
 
         Yields:
             AsyncGenerator[ExtendedResponse, None]:

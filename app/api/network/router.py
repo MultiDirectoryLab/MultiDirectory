@@ -46,6 +46,7 @@ async def add_network_policy(
     \f
     Args:
         policy (Policy): policy to add
+        session (AsyncSession): Database session
 
     Raises:
         HTTPException: 422 invalid group DN
@@ -115,9 +116,8 @@ async def get_list_network_policies(
     """Get network.
 
     \f
-    Raises:
-        HTTPException: 404 if no policies found
-        HTTPException: 422 if no policies found in database.
+    Args:
+        session (AsyncSession): Database session
 
     Returns:
         list[PolicyResponse]: List of policies with their details.
@@ -169,7 +169,8 @@ async def delete_network_policy(
     \f
     Args:
         policy_id (int): id
-        user (User): requires login
+        request (Request): http request
+        session (AsyncSession): Database session
 
     Raises:
         HTTPException: 404
@@ -216,7 +217,7 @@ async def switch_network_policy(
     \f
     Args:
         policy_id (int): id
-        user (User): requires login
+        session (FromDishka[AsyncSession]): async db session
 
     Raises:
         HTTPException: 404
@@ -248,15 +249,16 @@ async def update_network_policy(
 
     \f
     Args:
-        policy (PolicyUpdate): update request
+        request (PolicyUpdate): update request
+        session (FromDishka[AsyncSession]): async db session
+
+    Returns:
+        PolicyResponse: Policy from database
 
     Raises:
         HTTPException: 404 policy not found
         HTTPException: 422 Invalid group DN
         HTTPException: 422 Entry already exists
-
-    Returns:
-        PolicyResponse: Policy from database
     """
     selected_policy = await session.get(
         NetworkPolicy,
@@ -337,8 +339,8 @@ async def swap_network_policy(
     - **second_policy_id**: policy to swap
     \f
     Args:
-        first_policy_id (int): policy to swap
-        second_policy_id (int): policy to swap
+        swap (SwapRequest): http request
+        session (FromDishka[AsyncSession]): async db session
 
     Raises:
         HTTPException: 404

@@ -104,20 +104,21 @@ class SearchRequest(BaseRequest):
         Args:
             val (ASN1Row | None): instance of ASN1Row
             _info (Any): not used
+
+        Returns:
+            str | None
         """
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
-    def from_data(
-        cls,
-        data: dict[str, list[ASN1Row]],
-    ) -> "SearchRequest":
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "SearchRequest":
         """Description.
 
         Args:
-            data: dict[str:
-            list[ASN1Row]]:
+            data (dict[str, list[ASN1Row]]): data
 
+        Returns:
+            SearchRequest: LDAP search request
         """
         (
             base_object,
@@ -180,6 +181,10 @@ class SearchRequest(BaseRequest):
     ) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
+        Args:
+            session (AsyncSession): Database session
+            settings (Settings): Settings
+
         Returns:
             defaultdict[str, list[str]]: queried attrs
         """
@@ -236,12 +241,8 @@ class SearchRequest(BaseRequest):
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
-        Args:
-            filter_(ASN1Row): requested filter_
-            session(AsyncSession): sa session
-
         Returns:
-            UnaryExpression: condition
+            UnaryExpression | ColumnElement
         """
         return cast_filter2sql(self.filter)
 
@@ -258,6 +259,11 @@ class SearchRequest(BaseRequest):
 
         Provides following responses:
         Entry -> Reference (optional) -> Done
+
+        Args:
+            session (AsyncSession): Database session
+            ldap_session (LDAPSession): LDAP session
+            settings (Settings): Settings
 
         Yields:
             AsyncGenerator[SearchResultDone | SearchResultReference |\
@@ -356,6 +362,9 @@ class SearchRequest(BaseRequest):
         Args:
             base_directories (list[Directory]): instances of Directory
             user (UserSchema): serialized user
+
+        Returns:
+            Select
         """
         query = (
             select(Directory)
@@ -431,11 +440,11 @@ class SearchRequest(BaseRequest):
         """Paginate query.
 
         Args:
-            query (_type_): _description_
-            session (_type_): _description_
+            query (Select): SQLAlchemy select query
+            session (AsyncSession): async session
 
         Returns:
-            tuple[select, int, int]: query, pages_total, count
+            tuple[Select, int, int]: select query, pages_total, count
         """
         if self.page_number is None:
             return query, 0, 0

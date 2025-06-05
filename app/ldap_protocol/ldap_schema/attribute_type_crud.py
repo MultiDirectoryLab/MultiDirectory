@@ -184,6 +184,9 @@ async def delete_attribute_types_by_names(
     Args:
         attribute_type_names (list[str]): List of Attribute Types OIDs.
         session (AsyncSession): Database session.
+
+    Returns:
+        None
     """
     if not attribute_type_names:
         return None

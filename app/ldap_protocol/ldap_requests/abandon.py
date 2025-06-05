@@ -23,8 +23,7 @@ class AbandonRequest(BaseRequest):
         """Create structure from ASN1Row dataclass list.
 
         Args:
-            data: dict[str:
-            list[ASN1Row]]:
+            data (dict[str, list[ASN1Row]]): data
 
         Returns:
             AbandonRequest: Instance of AbandonRequest.

@@ -168,6 +168,9 @@ def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
     Args:
         base_directory (Directory): instance of Directory
         entry (str): entry path
+
+    Returns:
+        bool: True if the entry is in the base directory, False otherwise
     """
     return entry.lower().endswith(base_directory.path_dn.lower())
 
@@ -178,6 +181,9 @@ def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
     Args:
         base_directory (Directory): base Directory instance
         entry (str): entry path
+
+    Returns:
+        bool: True if the entry is a base dn, False otherwise
     """
     return base_directory.path_dn.lower() == entry.lower()
 
@@ -187,6 +193,9 @@ def get_generalized_now(tz: ZoneInfo) -> str:
 
     Args:
         tz (ZoneInfo): timezone
+
+    Returns:
+        str: generalized time
     """
     return datetime.now(tz).strftime("%Y%m%d%H%M%S.%f%z")
 
@@ -196,6 +205,9 @@ def _get_domain(name: str) -> str:
 
     Args:
         name (str): directory path
+
+    Returns:
+        str: domain
     """
     return ".".join(
         [
@@ -211,7 +223,7 @@ def create_integer_hash(text: str, size: int = 9) -> int:
 
     Args:
         text (str): any string
-        size (int): fixed size of hash, defaults to 15
+        size (int): fixed size of hash, defaults to 9
 
     Returns:
         int: hash
@@ -224,6 +236,9 @@ def get_windows_timestamp(value: datetime) -> int:
 
     Args:
         value (datetime): date and time
+
+    Returns:
+        int: Windows timestamp
     """
     return (int(value.timestamp()) + 11644473600) * 10000000
 
@@ -239,6 +254,9 @@ def dt_to_ft(dt: datetime) -> int:
 
     Args:
         dt (datetime): date and time
+
+    Returns:
+        int: Windows filetime
     """
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) != 0:
         dt = dt.astimezone(ZoneInfo("UTC"))
@@ -256,6 +274,9 @@ def ft_to_dt(filetime: int) -> datetime:
 
     Args:
         filetime (int): Windows file time number
+
+    Returns:
+        datetime: Python datetime
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
     return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(
@@ -342,6 +363,9 @@ def create_user_name(directory_id: int) -> str:
 
     Args:
         directory_id (int): Directory's id
+
+    Returns:
+        str: username
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
 

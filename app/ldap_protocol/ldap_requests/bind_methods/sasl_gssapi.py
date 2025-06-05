@@ -83,7 +83,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Check if GSSAPI token is valid.
 
         Args:
-          user (User | None): indb user
+            user (User | None): indb user
 
         Returns:
             bool: status
@@ -108,7 +108,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             data: list[ASN1Row]:
 
         Returns:
-          : SaslGSSAPIAuthentication
+            SaslGSSAPIAuthentication
         """
         return cls(
             ticket=data[1].value if len(data) > 1 else b"",
@@ -169,7 +169,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Validate security layer.
 
         Args:
-            client_layer (int): client security layer
+            client_layer (GSSAPISL): client security layer
 
         Returns:
             bool: validate result
@@ -185,9 +185,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """Handle final client message.
 
         Args:
-            server_ctx(gssapi.SecurityContext): GSSAPI security context
-            settings(Settings): settings
-            server_ctx: gssapi.SecurityContext:
+            server_ctx (gssapi.SecurityContext): GSSAPI security context
 
         Returns:
             GSSAPIAuthStatus: status

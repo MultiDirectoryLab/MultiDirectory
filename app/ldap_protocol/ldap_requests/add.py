@@ -107,11 +107,16 @@ class AddRequest(BaseRequest):
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler.
 
+        Args:
+            session (AsyncSession): Async DB session
+            ldap_session (LDAPSession): LDAP session
+            kadmin (AbstractKadmin): Abstract Kerberos Admin
+
         Yields:
             AsyncGenerator[AddResponse, None]
 
         Raises:
-            TypeError:
+            TypeError: not valid attribute type
         """
         if not ldap_session.user:
             yield AddResponse(**INVALID_ACCESS_RESPONSE)

@@ -27,7 +27,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """Check if pwd is valid for user.
 
         Args:
-          user (User): in db user
+            user (User | None): in db user
 
         Returns:
             bool: status

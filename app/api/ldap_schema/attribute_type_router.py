@@ -102,8 +102,8 @@ async def get_list_attribute_types_with_pagination(
 
     Args:
         page_number (int): Page number.
-        session (AsyncSession): Database session.
-        page_size (int, optional): Number of items per page. Defaults to 50.
+        session (FromDishka[AsyncSession]): Database session.
+        page_size (int): Number of items per page (Default value = 50)
 
     Returns:
         AttributeTypePaginationSchema: Paginated attribute types.
