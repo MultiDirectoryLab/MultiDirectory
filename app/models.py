@@ -1036,7 +1036,7 @@ class AuditDestinationProtocolType(StrEnum):
     TLS = "tls"
 
 
-class AuditDestinationType(StrEnum):
+class AuditDestinationServiceType(StrEnum):
     """Audit destination type."""
 
     SYSLOG = "syslog"
@@ -1049,8 +1049,8 @@ class AuditDestination(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    type: Mapped[AuditDestinationType] = mapped_column(
-        Enum(AuditDestinationType), nullable=False
+    service_type: Mapped[AuditDestinationServiceType] = mapped_column(
+        Enum(AuditDestinationServiceType), nullable=False
     )
     is_enabled: Mapped[tbool]
     host: Mapped[str] = mapped_column(String(255), nullable=False)

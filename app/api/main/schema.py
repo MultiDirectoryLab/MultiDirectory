@@ -15,6 +15,7 @@ from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
+from models import AuditDestinationProtocolType, AuditDestinationServiceType
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -120,14 +121,20 @@ class AuditDestinationSchemaRequest(BaseModel):
     """Audit destination request schema."""
 
     name: str
-    type: str
-    is_enable: bool
+    service_type: AuditDestinationServiceType
+    is_enabled: bool
     host: str
     port: int
     username: str | None
     password: str | None
-    protocol: str
-    auth_token: str | None
+    protocol: AuditDestinationProtocolType
+    tls_verify_cert: bool
+    ca_cert_data: str | None
+    client_cert_data: str | None
+    client_key_data: str | None
+
+    class Config:  # noqa: D106
+        use_enum_values = True
 
 
 class AuditDestinationSchema(_MaterialFields, AuditDestinationSchemaRequest):

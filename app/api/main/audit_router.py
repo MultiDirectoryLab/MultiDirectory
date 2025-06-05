@@ -91,18 +91,7 @@ async def get_audit_destinations(
     :return list[AuditDestinationSchema]: List of destinations.
     """
     return [
-        AuditDestinationSchema(
-            id=model.id,
-            name=model.name,
-            type=model.type,
-            is_enable=model.is_enable,
-            host=model.host,
-            port=model.port,
-            username=model.username,
-            password=model.password,
-            protocol=model.protocol,
-            auth_token=model.auth_token,
-        )
+        AuditDestinationSchema.model_validate(model)
         for model in await session.scalars(select(AuditDestination))
     ]
 
@@ -117,14 +106,17 @@ async def add_audit_destination(
     try:
         new_destination = AuditDestination(
             name=model.name,
-            type=model.type,
-            is_enable=model.is_enable,
+            service_type=model.service_type,
+            is_enabled=model.is_enabled,
             host=model.host,
             port=model.port,
             username=model.username,
             password=model.password,
             protocol=model.protocol,
-            auth_token=model.auth_token,
+            tls_verify_cert=model.tls_verify_cert,
+            ca_cert_data=model.ca_cert_data,
+            client_cert_data=model.client_cert_data,
+            client_key_data=model.client_key_data,
         )
         session.add(new_destination)
         await session.commit()
@@ -134,18 +126,7 @@ async def add_audit_destination(
             "Entry already exists",
         )
 
-    return AuditDestinationSchema(
-        id=new_destination.id,
-        name=new_destination.name,
-        type=new_destination.type,
-        is_enable=new_destination.is_enable,
-        host=new_destination.host,
-        port=new_destination.port,
-        username=new_destination.username,
-        password=new_destination.password,
-        protocol=new_destination.protocol,
-        auth_token=new_destination.auth_token,
-    )
+    return AuditDestinationSchema.model_validate(new_destination)
 
 
 @audit_router.put("/destination")
@@ -166,14 +147,17 @@ async def update_audit_destination(
 
     try:
         selected_destination.name = model.name
-        selected_destination.type = model.type
-        selected_destination.is_enable = model.is_enable
+        selected_destination.service_type = model.service_type
+        selected_destination.is_enabled = model.is_enabled
         selected_destination.host = model.host
         selected_destination.port = model.port
         selected_destination.username = model.username
         selected_destination.password = model.password
         selected_destination.protocol = model.protocol
-        selected_destination.auth_token = model.auth_token
+        selected_destination.tls_verify_cert = model.tls_verify_cert
+        selected_destination.ca_cert_data = model.ca_cert_data
+        selected_destination.client_cert_data = model.client_cert_data
+        selected_destination.client_key_data = model.client_key_data
 
         await session.commit()
     except IntegrityError:
