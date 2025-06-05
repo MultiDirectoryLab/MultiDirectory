@@ -283,9 +283,7 @@ class AbstractDNSManager(ABC):
     async def get_all_records(self) -> list[DNSRecords]: ...
 
     @abstractmethod
-    async def get_zone_by_name(
-        self, zone_name: str | None
-    ) -> list[DNSZone]: ...
+    async def get_all_zones_records(self) -> list[DNSZone]: ...
 
     @abstractmethod
     async def create_zone(
@@ -418,12 +416,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
         return response.json()[0].get("records")
 
     @logger_wraps()
-    async def get_zone_by_name(self, zone_name: str | None) -> list[DNSZone]:
+    async def get_all_zones_records(self) -> list[DNSZone]:
         response = None
         async with self._http_client:
-            response = await self._http_client.get(
-                f"/zone/{zone_name if zone_name is not None else ''}"
-            )
+            response = await self._http_client.get("/zone")
 
         return response.json()
 
@@ -627,7 +623,7 @@ class DNSManager(AbstractDNSManager):
         await self._send(action)
 
     @logger_wraps()
-    async def get_zone_by_name(self, zone_name: str | None) -> list[DNSZone]:
+    async def get_all_zones_records(self) -> list[DNSZone]:
         raise NotImplementedError
 
     @logger_wraps()
@@ -717,7 +713,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def get_zone_by_name(self, zone_name: str | None) -> None: ...
+    async def get_all_zones_records(self) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def create_zone(
