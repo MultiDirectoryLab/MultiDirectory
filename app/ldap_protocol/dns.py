@@ -446,6 +446,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
 
         return response.json()
 
+    #TODO:  что-то сделать с nameserver_ip
     @logger_wraps()
     async def create_zone(
         self,
@@ -653,6 +654,10 @@ class DNSManager(AbstractDNSManager):
         await self._send(action)
 
     @logger_wraps()
+    async def get_forward_zones(self) -> list[DNSForwardZone]:
+        raise NotImplementedError
+
+    @logger_wraps()
     async def get_all_zones_records(self) -> list[DNSZone]:
         raise NotImplementedError
 
@@ -747,6 +752,10 @@ class StubDNSManager(AbstractDNSManager):
 
     @logger_wraps(is_stub=True)
     async def get_all_zones_records(self) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def get_forward_zones(self) -> list[DNSForwardZone]:
+        return []
 
     @logger_wraps(is_stub=True)
     async def create_zone(
