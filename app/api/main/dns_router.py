@@ -132,13 +132,12 @@ async def setup_dns(
     await session.commit()
 
 
-@dns_router.get("/zone/{zone_name}")
+@dns_router.get("/zone")
 async def get_dns_zone(
-    zone_name: str,
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSZone]:
     """Get all DNS records of given zone or all zones if none given."""
-    return await dns_manager.get_zone_by_name(zone_name)
+    return await dns_manager.get_all_zones_records()
 
 
 @dns_router.post("/zone")
