@@ -17,6 +17,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import LDAPOID
+from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
@@ -46,7 +47,17 @@ class AuditEvent(BaseModel):
         default_factory=lambda: datetime.now().timestamp()
     )
     hostname: str = Field(default_factory=socket.gethostname)
-    is_success_request: bool | None = None
+    http_success_status: bool | None = None
+
+    def is_event_successful(self) -> bool:
+        """Determine if the event was successful.
+
+        For HTTP events, uses the http_success_status field.
+        For other protocols, checks the last response's result code.
+        """
+        if self.http_success_status is not None:
+            return self.http_success_status
+        return self.responses[-1]["result_code"] == LDAPCodes.SUCCESS
 
     @classmethod
     def from_redis(cls, redis_data: dict[bytes, bytes]) -> "AuditEvent":
@@ -71,11 +82,11 @@ class AuditEvent(BaseModel):
             parsed_data["timestamp"] = float(parsed_data["timestamp"])
         if "dest_port" in parsed_data:
             parsed_data["dest_port"] = int(parsed_data["dest_port"])
-        if "is_success_request" in parsed_data:
-            parsed_data["is_success_request"] = (
+        if "http_success_status" in parsed_data:
+            parsed_data["http_success_status"] = (
                 None
-                if parsed_data["is_success_request"] == "None"
-                else parsed_data["is_success_request"].lower() == "true"
+                if parsed_data["http_success_status"] == "None"
+                else parsed_data["http_success_status"].lower() == "true"
             )
 
         return cls(**parsed_data)
@@ -180,7 +191,7 @@ class AuditEventBuilder:
             username=username,
             source_ip=ip,
             dest_port=settings.HTTP_PORT,
-            is_success_request=is_success_request,
+            http_success_status=is_success_request,
         )
 
 
