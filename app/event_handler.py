@@ -58,13 +58,6 @@ class EventHandler:
         # TODO: replace with arg from env
         self.consumer_name = os.getenv("HOSTNAME", socket.gethostname())
 
-    def is_success_request(self, responses: list[dict[str, Any]]) -> bool:
-        """Determine if request was successful based on responses."""
-        if not responses:
-            return True
-
-        return responses[-1]["result_code"] == LDAPCodes.SUCCESS
-
     def _check_modify_event(
         self, trigger: AuditPolicyTrigger, event: AuditEvent
     ) -> bool:
@@ -174,11 +167,6 @@ class EventHandler:
         is_ldap = event_data.protocol == "TCP_LDAP"
         is_http = "API" in event_data.protocol
 
-        if event_data.is_success_request is None:
-            is_success = self.is_success_request(event_data.responses)
-        else:
-            is_success = event_data.is_success_request
-
         operation_code = event_data.request_code
         matched_triggers: list[AuditPolicyTrigger] = []
 
@@ -189,7 +177,9 @@ class EventHandler:
                 .where(
                     AuditPolicy.is_enabled.is_(True),
                     AuditPolicyTrigger.operation_code == operation_code,
-                    AuditPolicyTrigger.operation_success.is_(is_success),
+                    AuditPolicyTrigger.operation_success.is_(
+                        event_data.is_event_successful()
+                    ),
                     or_(
                         AuditPolicyTrigger.is_ldap.is_(is_ldap),
                         AuditPolicyTrigger.is_http.is_(is_http),
