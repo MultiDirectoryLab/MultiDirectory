@@ -72,7 +72,14 @@ class PasswordPolicySchema(BaseModel):
 
     @model_validator(mode="after")
     def _validate_minimum_pwd_age(self) -> "PasswordPolicySchema":
-        """Description."""
+        """Description.
+
+        Returns:
+            self
+
+        Raises:
+            ValueError: not valid
+        """
         if self.minimum_password_age_days > self.maximum_password_age_days:
             raise ValueError(
                 "Minimum password age days must be "
@@ -84,10 +91,13 @@ class PasswordPolicySchema(BaseModel):
         """Create policies settings.
 
         Args:
-            session (AsyncSession): db session
+            session: db session
 
         Returns:
             PasswordPolicySchema: password policy.
+
+        Raises:
+            PermissionError: Policy already exists.
         """
         existing_policy = await session.scalar(select(exists(PasswordPolicy)))
         if existing_policy:

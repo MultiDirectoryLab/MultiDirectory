@@ -57,8 +57,13 @@ class NetmasksMixin:
         """Description.
 
         Args:
-            groups: list[str]:
+            groups (list[str]): groups names
 
+        Returns:
+            list[str]:
+
+        Raises:
+            ValueError: Invalid DN
         """
         if not groups:
             return groups
@@ -73,7 +78,13 @@ class NetmasksMixin:
         """Syka.
 
         Args:
-            mfa_groups: list[str]:
+            mfa_groups (list[str]): mfa groups names
+
+        Returns:
+            list[str]:
+
+        Raises:
+            ValueError: Invalid DN
         """
         if not mfa_groups:
             return mfa_groups
@@ -175,7 +186,14 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> Self:
-        """Validate if all fields are empty."""
+        """Validate if all fields are empty.
+
+        Returns:
+            PolicyUpdate:
+
+        Raises:
+            ValueError: Name, netmasks and group cannot be empty
+        """
         if not self.name and not self.netmasks and not self.groups:
             raise ValueError("Name, netmasks and group cannot be empty")
 

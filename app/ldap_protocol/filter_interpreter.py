@@ -131,7 +131,13 @@ def _get_filter_function(column: str) -> Callable[..., UnaryExpression]:
     """Retrieve the appropriate filter function based on the attribute.
 
     Args:
-        column: str:
+        column (str): column name
+
+    Returns:
+        Callable[..., UnaryExpression]:
+
+    Raises:
+        ValueError: Incorrect attribute specified
     """
     if len(column.split(":")) == 1:
         attribute = column

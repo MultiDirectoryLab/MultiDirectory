@@ -4,7 +4,7 @@ help: ## show help message
 
 before_pr:
 	ruff format . --preview
-	ruff check . --fix --unsafe-fixes --select=DOC501 --preview
+	ruff check . --preview --fix --unsafe-fixes
 	ruff format . --preview
 	mypy .
 

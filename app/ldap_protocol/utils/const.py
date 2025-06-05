@@ -16,7 +16,13 @@ def _type_validate_entry(entry: str) -> str:
     """Description.
 
     Args:
-    entry: str:
+        entry (str): entry name
+
+    Returns:
+        str: entry name
+
+    Raises:
+        ValueError: Invalid entry name
     """
     if validate_entry(entry):
         return entry
@@ -32,11 +38,17 @@ def _type_validate_email(email: str) -> str:
     """Description.
 
     Args:
-    email: str:
+        email (str): email address
+
+    Returns:
+        str: email address
+
+    Raises:
+        ValueError: Invalid email
     """
     if EMAIL_RE.fullmatch(email):
         return email
-    raise ValueError(f"Invalid entry name {email}")
+    raise ValueError(f"Invalid email {email}")
 
 
 ENTRY_TYPE = Annotated[str, AfterValidator(_type_validate_entry)]

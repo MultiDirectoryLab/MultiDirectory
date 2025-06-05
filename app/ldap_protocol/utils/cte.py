@@ -77,7 +77,10 @@ def find_members_recursive_cte(dn: str) -> CTE:
     result will be as follows: user1, user2, group2, user3, group3, user4.
 
     Args:
-        dn: str:
+        dn (str): domain name
+
+    Returns:
+        CTE: Common Table Expression
     """
     directory_hierarchy = (
         select(Directory.id.label("directory_id"), Group.id.label("group_id"))
@@ -104,7 +107,7 @@ def find_members_recursive_cte(dn: str) -> CTE:
     return directory_hierarchy.union_all(recursive_part)
 
 
-def find_root_group_recursive_cte(dn_list: list) -> CTE:
+def find_root_group_recursive_cte(dn_list: list[str]) -> CTE:
     """Create CTE to filter directory root group.
 
     The query translates to the following SQL:
@@ -138,7 +141,10 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     user4.
 
     Args:
-        dn_list: list:
+        dn_list (list[str]): domain names
+
+    Returns:
+        CTE: Common Table Expression
     """
     directory_hierarchy = (
         select(
@@ -180,6 +186,16 @@ async def get_members_root_group(
     In the case of a recursive search through the specified user4, the search
     result will be as follows: group1, user1, user2, group2, user3, group3,
     user4.
+
+    Args:
+        dn (str): domain name
+        session (AsyncSession): async session
+
+    Returns:
+        list[Directory]: list of directories
+
+    Raises:
+        RuntimeError: not found directory
     """
     cte = find_root_group_recursive_cte([dn])
     result = await session.scalars(select(cte.c.directory_id))
@@ -209,7 +225,7 @@ async def get_members_root_group(
         select(Directory)
         .where(
             or_(
-                *[Directory.id == dir_id for dir_id in dir_ids],
+                *[Directory.id == dir_id for dir_id in dir_ids]
             )
         )
     )  # fmt: skip
@@ -230,7 +246,7 @@ async def get_all_parent_group_directories(
         session (AsyncSession): session
 
     Returns:
-        set[Directory]: all groups and their parent group directories
+        AsyncScalarResult | None: all groups and their parent group directories
     """
     dn_list = [group.directory.path_dn for group in groups]
 

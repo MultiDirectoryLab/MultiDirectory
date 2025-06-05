@@ -157,7 +157,11 @@ class LDAPSession:
         ip: IPv4Address | IPv6Address,
         session: AsyncSession,
     ) -> None:
-        """Validate network policies."""
+        """Validate network policies.
+
+        Raises:
+            PermissionError:
+        """
         policy = await self._get_policy(ip, session)  # type: ignore
         if policy is not None:
             self.policy = policy
@@ -197,6 +201,10 @@ class LDAPSession:
         """Ensure session exists in storage.
 
         Does nothing if anonymous, wait 30s and if user bound, check it.
+
+        Raises:
+            AttributeError: Storage is not set
+            ConnectionAbortedError: Session missing in storage
         """
         if self.storage is None:
             raise AttributeError("Storage is not set")

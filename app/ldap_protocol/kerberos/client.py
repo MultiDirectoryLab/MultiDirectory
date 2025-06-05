@@ -20,7 +20,16 @@ class KerberosMDAPIClient(AbstractKadmin):
         password: str | None,
         timeout: int = 1,
     ) -> None:
-        """Add request."""
+        """Add principal.
+
+        Args:
+            name (str): principal name
+            password (str | None): password
+            timeout (int): timeout
+
+        Raises:
+            KRBAPIError:
+        """
         response = await self.client.post(
             "principal",
             json={"name": name, "password": password},
@@ -32,7 +41,17 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def get_principal(self, name: str) -> dict:
-        """Get request."""
+        """Get principal.
+
+        Args:
+            name (str): principal name
+
+        Returns:
+            dict
+
+        Raises:
+            KRBAPIError:
+        """
         response = await self.client.get("principal", params={"name": name})
         if response.status_code != 200:
             raise KRBAPIError(response.text)
@@ -41,7 +60,14 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def del_principal(self, name: str) -> None:
-        """Delete principal."""
+        """Delete principal.
+
+        Args:
+            name (str): principal name
+
+        Raises:
+            KRBAPIError:
+        """
         response = await self.client.delete("principal", params={"name": name})
         if response.status_code != 200:
             raise KRBAPIError(response.text)
@@ -52,7 +78,15 @@ class KerberosMDAPIClient(AbstractKadmin):
         name: str,
         password: str,
     ) -> None:
-        """Change password request."""
+        """Change principal password.
+
+        Args:
+            name (str): principal name
+            password: password
+
+        Raises:
+            KRBAPIError:
+        """
         response = await self.client.patch(
             "principal",
             json={"name": name, "password": password},
@@ -66,7 +100,15 @@ class KerberosMDAPIClient(AbstractKadmin):
         name: str,
         password: str,
     ) -> None:
-        """Change password request."""
+        """Create or update principal password.
+
+        Args:
+            name (str): principal name
+            password: password.
+
+        Raises:
+            KRBAPIError:
+        """
         response = await self.client.post(
             "/principal/create_or_update",
             json={"name": name, "password": password},
@@ -76,7 +118,15 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def rename_princ(self, name: str, new_name: str) -> None:
-        """Rename request."""
+        """Rename principal.
+
+        Args:
+            name (str): current principal name
+            new_name: (str): new principal name
+
+        Raises:
+            KRBAPIError:
+        """
         response = await self.client.put(
             "principal",
             json={"name": name, "new_name": new_name},
@@ -88,10 +138,13 @@ class KerberosMDAPIClient(AbstractKadmin):
         """Ktadd build request for stream and return response.
 
         Args:
-            names (list[str]): principals
+            names (list[str]): principal names
 
         Returns:
             httpx.Response: stream
+
+        Raises:
+            KRBAPIError: principal not found
         """
         request = self.client.build_request(
             "POST",

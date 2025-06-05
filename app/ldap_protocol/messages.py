@@ -46,7 +46,11 @@ class LDAPResponseMessage(LDAPMessage):
     context: SerializeAsAny[BaseResponse]
 
     def encode(self) -> bytes:
-        """Encode message to asn1."""
+        """Encode message to asn1.
+
+        Returns:
+            bytes
+        """
         enc = Encoder()
         enc.start()
         enc.enter(Numbers.Sequence)
@@ -79,7 +83,13 @@ class LDAPRequestMessage(LDAPMessage):
         """Create message from bytes.
 
         Args:
-            source: bytes:
+            source: bytes
+
+        Returns:
+            LDAPRequestMessage
+
+        Raises:
+            ValueError: incorrect schema
         """
         dec = Decoder()
         dec.start(source)

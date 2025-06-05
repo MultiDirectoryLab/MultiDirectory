@@ -152,8 +152,7 @@ def create_prod_app(
     """Create production app with container.
 
     Args:
-        factory: Callable[[Settings]:
-        FastAPI]: (Default value = _create_basic_app)
+        factory (Callable[[Settings], FastAPI]): _create_basic_app
         settings: Settings | None: (Default value = None)
 
     Returns:

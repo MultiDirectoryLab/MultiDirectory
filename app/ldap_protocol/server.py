@@ -124,7 +124,11 @@ class PoolClientHandler:
                     await writer.wait_closed()
 
     def _load_ssl_context(self) -> None:
-        """Load SSL context for LDAPS."""
+        """Load SSL context for LDAPS.
+
+        Raises:
+            SystemExit:
+        """
         if self.settings.USE_CORE_TLS and self.settings.LDAP_LOAD_SSL_CERT:
             if not self.settings.check_certs_exist():
                 log.critical("Certs not found, exiting...")
@@ -144,12 +148,14 @@ class PoolClientHandler:
         """Get ip from proxy protocol header.
 
         Args:
-            data(bytes): data
-            data: bytes:
-            writer: asyncio.StreamWriter:
+            data (bytes): data
+            writer (asyncio.StreamWriter): writer
 
         Returns:
             tuple: ip, data
+
+        Raises:
+            ValueError: Invalid source address
         """
         peername = ":".join(map(str, writer.get_extra_info("peername")))
         peer_addr = ip_address(peername.split(":")[0])
@@ -317,6 +323,10 @@ class PoolClientHandler:
 
         Returns:
             bytes: unwrapped data
+
+        Raises:
+            ConnectionAbortedError: SASL buffer length mismatch or\
+                GSSAPI security context not found
         """
         if ldap_session.gssapi_security_layer in (
             GSSAPISL.INTEGRITY_PROTECTION,
@@ -388,7 +398,11 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
         container: AsyncContainer,
     ) -> None:
-        """Get message from queue and handle it."""
+        """Get message from queue and handle it.
+
+        Raises:
+            RuntimeError: any error
+        """
         ldap_session: LDAPSession = await container.get(LDAPSession)
         addr = str(ldap_session.ip)
 

@@ -62,7 +62,10 @@ class BaseExtendedValue(ABC, BaseModel):
         """Description.
 
         Args:
-            data: ASN1Row:
+            data: ASN1Row
+
+        Returns:
+            ASN1Row
 
         """
         dec = Decoder()
@@ -89,7 +92,11 @@ class WhoAmIResponse(BaseExtendedResponseValue):
     authz_id: str
 
     def get_value(self) -> str | None:
-        """Get authz id."""
+        """Get authz id.
+
+        Returns:
+            str | None
+        """
         return self.authz_id
 
 
@@ -107,7 +114,10 @@ class WhoAmIRequestValue(BaseExtendedValue):
         """Create model from data, WhoAmIRequestValue data is empty.
 
         Args:
-            data: ASN1Row:
+            data: ASN1Row
+
+        Returns:
+            WhoAmIRequestValue
         """
         return cls()
 
@@ -132,7 +142,11 @@ class StartTLSResponse(BaseExtendedResponseValue):
     """Start tls response."""
 
     def get_value(self) -> str | None:
-        """Get response value."""
+        """Get response value.
+
+        Returns:
+            str | None
+        """
         return ""
 
 
@@ -148,7 +162,20 @@ class StartTLSRequestValue(BaseExtendedValue):
         kadmin: AbstractKadmin,  # noqa: ARG002
         settings: Settings,
     ) -> StartTLSResponse:
-        """Update password of current or selected user."""
+        """Update password of current or selected user.
+
+        Args:
+            ldap_session: LDAPSession
+            session: AsyncSession
+            kadmin: AbstractKadmin
+            settings: Settings
+
+        Returns:
+            StartTLSResponse
+
+        Raises:
+            PermissionError: No TLS
+        """
         if settings.USE_CORE_TLS:
             return StartTLSResponse()
 
@@ -159,7 +186,10 @@ class StartTLSRequestValue(BaseExtendedValue):
         """Create model from data, decoded from responseValue bytes.
 
         Args:
-            data: ASN1Row:
+            data: ASN1Row
+
+        Returns:
+            StartTLSRequestValue
         """
         return cls()
 
@@ -174,7 +204,11 @@ class PasswdModifyResponse(BaseExtendedResponseValue):
     gen_passwd: str = ""
 
     def get_value(self) -> str | None:
-        """Description."""
+        """Description.
+
+        Returns:
+            str | None
+        """
         return self.gen_passwd
 
 
@@ -206,7 +240,20 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> PasswdModifyResponse:
-        """Update password of current or selected user."""
+        """Update password of current or selected user.
+
+        Args:
+            ldap_session: LDAPSession
+            session: AsyncSession
+            kadmin: AbstractKadmin
+            settings: Settings
+
+        Returns:
+            PasswdModifyResponse
+
+        Raises:
+            PermissionError:
+        """
         if not settings.USE_CORE_TLS:
             raise PermissionError("TLS required")
 
@@ -267,7 +314,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         """Create model from data, decoded from responseValue bytes.
 
         Args:
-            data: ASN1Row:
+            data: ASN1Row
+
+        Returns:
+            PasswdModifyRequestValue
         """
         d: list = cls._decode_value(data)  # type: ignore
         if len(d) == 3:

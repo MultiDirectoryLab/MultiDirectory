@@ -24,7 +24,11 @@ from pydantic import (
 
 
 def _get_vendor_version() -> str:
-    """Description."""
+    """Description.
+
+    Returns:
+        str:
+    """
     with open("/pyproject.toml", "rb") as f:
         return tomllib.load(f)["tool"]["poetry"]["version"]
 
@@ -122,7 +126,13 @@ class Settings(BaseModel):
         """Get timezone from a string.
 
         Args:
-            tz: str:
+            tz (str): timezone
+
+        Returns:
+            ZoneInfo:
+
+        Raises:
+            ValueError: timezone info not found
         """
         try:
             value = ZoneInfo(tz)
@@ -147,7 +157,11 @@ class Settings(BaseModel):
         return "https://api.multifactor.ru"
 
     def get_copy_4_tls(self) -> "Settings":
-        """Create a copy for TLS bind."""
+        """Create a copy for TLS bind.
+
+        Returns:
+            Settings:
+        """
         from copy import copy
 
         tls_settings = copy(self)
@@ -156,10 +170,18 @@ class Settings(BaseModel):
         return tls_settings
 
     def check_certs_exist(self) -> bool:
-        """Check if certs exist."""
+        """Check if certs exist.
+
+        Returns:
+            bool
+        """
         return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)
 
     @classmethod
     def from_os(cls) -> "Settings":
-        """Get cls from environ."""
+        """Get cls from environ.
+
+        Returns:
+            Settings:
+        """
         return Settings(**os.environ)

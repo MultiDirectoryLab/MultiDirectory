@@ -77,13 +77,23 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         """Create row from tag.
 
         Args:
-            tag: Tag:
-            value: T:
+            tag (Tag): instance of Tag
+            value (T): any value
+
+        Returns:
+            ASN1Row
         """
         return cls(tag.cls, tag.nr, value)
 
     def _handle_extensible_match(self) -> str:
-        """Handle extensible match filters."""
+        """Handle extensible match filters.
+
+        Returns:
+            str: match
+
+        Raises:
+            TypeError:
+        """
         oid = attribute = value = None
         dn_attributes = False
 
@@ -126,7 +136,14 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         return f"({match})"
 
     def _handle_substring(self) -> str:
-        """Process and format substring operations for LDAP."""
+        """Process and format substring operations for LDAP.
+
+        Returns:
+            str:
+
+        Raises:
+            ValueError:
+        """
         value = (
             self.value.decode(errors="replace")
             if isinstance(self.value, bytes)
@@ -152,7 +169,14 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         substring matches.
 
         Args:
-            obj: "ASN1Row | T | None": (Default value = None)
+            obj ("ASN1Row | T | None"): (Default value = None)
+
+        Returns:
+            str:
+
+        Raises:
+            ValueError:
+            TypeError:
         """
         if obj is None:
             obj = self
@@ -238,6 +262,8 @@ class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
         The method recursively serializes ASN.1 rows into the LDAP filter
         format based on tag IDs and class IDs.
 
+        Returns:
+            str:
         """
         return self.serialize()
 
@@ -249,8 +275,11 @@ def value_to_string(
     """Convert value to string.
 
     Args:
-        tag: Tag:
-        value: str | bytes | int | bool:
+        tag (Tag): instance of Tag
+        value (str | bytes | int | bool): value
+
+    Returns:
+        bytes | str | int:
     """
     if tag.nr == Numbers.Integer:
         with suppress(ValueError):
@@ -272,7 +301,10 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
     """Recursively collect ASN.1 data to list of ASNRows.
 
     Args:
-        decoder: Decoder:
+        decoder (Decoder): instance of Decoder
+
+    Returns:
+        list[ASN1Row]:
     """
     out = []
     while not decoder.eof():
@@ -298,7 +330,13 @@ def _validate_oid(oid: str) -> str:
     """Validate ldap oid with regex.
 
     Args:
-        oid: str:
+        oid (str): oid
+
+    Returns:
+        str:
+
+    Raises:
+        ValueError: Invalid LDAPOID
     """
     if not Encoder._re_oid.match(oid):
         raise ValueError("Invalid LDAPOID")
