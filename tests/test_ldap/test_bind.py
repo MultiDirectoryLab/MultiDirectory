@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, Mock
 
 import gssapi
 import pytest
+from aioldap3 import LDAPConnection
 from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aioldap3 import LDAPConnection
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession

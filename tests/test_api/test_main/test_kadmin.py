@@ -1,25 +1,47 @@
 """Test kadmin."""
 
 import asyncio
+from abc import ABC, abstractmethod
+from functools import partial
 from hashlib import blake2b
+from typing import AsyncGenerator, ClassVar
 from unittest.mock import Mock
 
 import pytest
 from aioldap3 import LDAPConnection
+from asn1 import Decoder, Encoder
 from fastapi import status
 from httpx import AsyncClient
-from pydantic import SecretStr
+from ldap3 import Connection
+from loguru import logger
+from pyasn1.codec.ber import encoder
+from pyasn1.type import namedtype, tag, univ
+from pydantic import BaseModel, SecretStr, SerializeAsAny
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KerberosState, KRBAPIError
+from ldap_protocol.kerberos.base import AbstractKadmin
+from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from ldap_protocol.ldap_requests.extended import (
     ExtendedRequest,
     PasswdModifyRequestValue,
 )
+from ldap_protocol.ldap_responses import (
+    BaseExtendedResponseValue,
+    ExtendedResponse,
+)
+from ldap_protocol.policies.password_policy import (
+    PasswordPolicySchema,
+    post_save_password_actions,
+)
 from ldap_protocol.utils.queries import get_user
+from models import Directory, User
+from security import get_password_hash, verify_password
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
@@ -365,44 +387,17 @@ async def test_bind_create_user(
 async def test_extended_pw_change_call(
     ldap_client: LDAPConnection,
     creds: TestCreds,
-    ldap_session: LDAPSession,
     kadmin: AbstractKadmin,
-    session: AsyncSession,
-    settings: Settings,
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await ldap_client.bind(user_dn, password)
+    await ldap_client.modify_password(new_test_password)
 
-    request_value = PasswdModifyRequestValue(
-        user_identity=user_dn,
-        old_password=SecretStr(password),
-        new_password=SecretStr(new_test_password),
-    )
-
-    ex_request = ExtendedRequest(
-        request_name="1.3.6.1.4.1.4203.1.11.1", request_value=request_value
-    )
-
-    async for response in ex_request.handle(
-        ldap_session=ldap_session,
-        session=session,
-        kadmin=kadmin,
-        settings=settings,
-    ):
-        assert response.result_code == LDAPCodes.SUCCESS
-
-    user = await get_user(session, user_dn)
-    assert user
-    await kadmin.create_or_update_principal_pw(
-        name=user.get_upn_prefix(),
-        password=new_test_password,
-    )
-
-    assert kadmin.create_or_update_principal_pw.call_args is not None
-    kadmin_args = kadmin.create_or_update_principal_pw.call_args.kwargs  # type: ignore
+    kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
+    assert kadmin_args
     assert kadmin_args == {"name": "user0", "password": new_test_password}
 
 
