@@ -218,6 +218,7 @@ class EventHandler:
             "severity": trigger.audit_policy.severity,
             "policy_id": trigger.audit_policy.id,
             "operation_success": trigger.operation_success,
+            "service_name": event_data.service_name,
         }
 
     def _enrich_ldap_details(
