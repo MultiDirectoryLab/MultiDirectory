@@ -1,4 +1,8 @@
-"""API for managing Bind9 DNS server."""
+"""API for managing Bind9 DNS server.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 import asyncio
 import logging
@@ -13,7 +17,7 @@ from typing import ClassVar
 import dns
 import dns.zone
 import jinja2
-from fastapi import APIRouter, FastAPI, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
@@ -29,46 +33,14 @@ NAMED_LOCAL = "/etc/bind/named.conf.local"
 NAMED_OPTIONS = "/etc/bind/named.conf.options"
 
 FIRST_SETUP_RECORDS = [
-    {
-        "name": "_ldap._tcp.",
-        "value": "0 0 389 ",
-        "type": "SRV"
-    },
-    {
-        "name": "_ldaps._tcp.",
-        "value": "0 0 636 ",
-        "type": "SRV"
-    },
-    {
-        "name": "_kerberos._tcp.",
-        "value": "0 0 88 ",
-        "type": "SRV"
-    },
-    {
-        "name": "_kerberos._udp.",
-        "value": "0 0 88 ",
-        "type": "SRV"
-    },
-    {
-        "name": "_kdc._tcp.",
-        "value": "0 0 88 ",
-        "type": "SRV"
-    },
-    {
-        "name": "_kdc._udp.",
-        "value": "0 0 88 ",
-        "type": "SRV"
-    },
-    {
-        "name": "_kpasswd._tcp.",
-        "value": "0 0 464 ",
-        "type": "SRV"
-    },
-    {
-        "name": "_kpasswd._udp.",
-        "value": "0 0 464 ",
-        "type": "SRV"
-    },
+    {"name": "_ldap._tcp.", "value": "0 0 389 ", "type": "SRV"},
+    {"name": "_ldaps._tcp.", "value": "0 0 636 ", "type": "SRV"},
+    {"name": "_kerberos._tcp.", "value": "0 0 88 ", "type": "SRV"},
+    {"name": "_kerberos._udp.", "value": "0 0 88 ", "type": "SRV"},
+    {"name": "_kdc._tcp.", "value": "0 0 88 ", "type": "SRV"},
+    {"name": "_kdc._udp.", "value": "0 0 88 ", "type": "SRV"},
+    {"name": "_kpasswd._tcp.", "value": "0 0 464 ", "type": "SRV"},
+    {"name": "_kpasswd._udp.", "value": "0 0 464 ", "type": "SRV"},
 ]
 
 
@@ -315,8 +287,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
             named_local = file.read()
 
         for param in params:
-            pattern = (rf'zone\s*"{re.escape(zone_name)}"\
-                \s*{{\s*{param.name}\s*([^;]+);')
+            pattern = rf'zone\s*"{re.escape(zone_name)}"\
+                \s*{{\s*{param.name}\s*([^;]+);'
             param_match = re.search(pattern, named_local)
             if param_match.group(1) is not None:
                 named_local.replace(param_match.group(1).strip(), param.value)
@@ -366,13 +338,13 @@ class BindDNSServerManager(AbstractDNSServerManager):
         )
         for record in FIRST_SETUP_RECORDS:
             await self.add_record(
-                    DNSRecord(
-                        record_name=record.get("name") + zone_name,
-                        record_value=record.get("value") + zone_name,
-                        ttl=604800,
-                    ),
-                    record.get("type"),
-                    zone_name,
+                DNSRecord(
+                    record_name=record.get("name") + zone_name,
+                    record_value=record.get("value") + zone_name,
+                    ttl=604800,
+                ),
+                record.get("type"),
+                zone_name,
             )
 
     @staticmethod
@@ -491,6 +463,7 @@ async def get_dns_manager() -> type[AbstractDNSServerManager]:
     """Get DNS server manager client."""
     return BindDNSServerManager()
 
+
 zone_router = APIRouter(prefix="/zone", tags=["zone"])
 record_router = APIRouter(prefix="/record", tags=["record"])
 server_router = APIRouter(prefix="/server", tags=["server"])
@@ -528,20 +501,11 @@ async def delete_zone(
     await dns_manager.delete_zone(data.zone_name)
 
 
-@zone_router.get("/{zone_name}")
+@zone_router.get("")
 async def get_all_records_by_zone(
-    zone_name: str,
     dns_manager: Depends[get_dns_manager],
 ) -> list[DNSZone]:
     """Get all DNS records grouped by zone."""
-    if zone_name:
-        return [
-            DNSZone(
-                zone_name,
-                dns_manager.get_zone_type_by_zone_name(zone_name),
-                dns_manager.get_all_records_from_zone(zone_name),
-            ),
-        ]
     return dns_manager.get_all_records()
 
 
@@ -623,6 +587,7 @@ async def update_dns_server_settings(
 ) -> None:
     """Update settings of DNS server."""
     await dns_manager.update_dns_settings(settings)
+
 
 @server_router.post("/setup")
 async def setup_server(
