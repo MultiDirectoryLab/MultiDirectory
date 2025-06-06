@@ -119,7 +119,7 @@ class DNSZoneParam:
     """DNS zone parameter."""
 
     name: DNSZoneParamName
-    value: str | list[str]
+    value: str | list[str] | None
 
 
 class DNSZoneCreateRequest(BaseModel):
@@ -149,7 +149,7 @@ class DNSRecordCreateRequest(BaseModel):
     zone_name: str
     record_name: str
     record_value: str
-    record_type: DNSRecordType
+    record_type: str
     ttl: int
 
 
@@ -258,8 +258,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
         params_dict = {param.name: param.value for param in params}
         """Add new zone."""
         zf_template = TEMPLATES.get_template("zone.template")
-        #TODO: сделать получение ip железки
-        zone_file = zf_template.render_async(
+        # TODO: сделать получение ip железки
+        zone_file = await zf_template.render_async(
             domain=zone_name,
             nameserver_ip="127.0.0.2",
             ttl=params_dict.get("ttl", 604800),
@@ -274,21 +274,69 @@ class BindDNSServerManager(AbstractDNSServerManager):
         if params_dict.get("acl") is not None:
             acl_name = "allowed_ips"
             acl_template = TEMPLATES.get_template("acl.template")
-            named_acl = acl_template.render_async(acl=params_dict.get("acl"))
-            with open(NAMED_LOCAL, "w+") as file:
+            named_acl = await acl_template.render_async(
+                acl=params_dict.get("acl")
+            )
+            with open(NAMED_LOCAL, "a") as file:
                 file.write(named_acl)
 
         zo_template = TEMPLATES.get_template("zone_options.template")
-        zone_options = zo_template.render_async(
+        zone_options = await zo_template.render_async(
             zone_name=zone_name,
             zone_type=zone_type,
             forwarders=params_dict.get("forwarders"),
             acl_name=acl_name,
         )
-        with open(NAMED_LOCAL, "w+") as file:
+        with open(NAMED_LOCAL, "a") as file:
             file.write(zone_options)
 
         await self.reload(zone_name)
+
+    @staticmethod
+    def _add_param_to_zone(
+        named_local: str, zone_name: str, param_name: str, param_value: str
+    ) -> str:
+        pattern = rf'(zone\s+"{re.escape(zone_name)}"\s*{{[^}}]*?)(\s*}};)'
+        replacement = rf"\b\1    {param_name} {param_value};\n\2"
+        return re.sub(pattern, replacement, named_local, flags=re.DOTALL)
+
+    @staticmethod
+    def _delete_zone_param(
+        named_local: str,
+        zone_name: str,
+        param_name: str,
+    ) -> str:
+        pattern = rf"""
+            (zone\s+"{re.escape(zone_name)}"\s*{{)
+            ([^}}]*?)
+            \s*{re.escape(param_name)}\s+
+            (?:[^{{;\n}}]+|{{[^}}]+}})
+            ;[ \t]*(?:\n[ \t]*)?
+            ([^}}]*}})
+        """
+
+        return re.sub(
+            pattern, r"\1\2\3", named_local, flags=re.DOTALL | re.VERBOSE
+        )
+
+    @staticmethod
+    def _update_zone_param(
+        named_local: str,
+        zone_name: str,
+        param_name: str,
+        param_value: str,
+    ) -> str:
+        pattern = rf"""
+        (zone\s+"{re.escape(zone_name)}"\s*{{)
+        ([^}}]*?\b{re.escape(param_name)}\s*)
+        (?:[^{{;\n}}]+|{{[^}}]+}})
+        (;[ \t]*(?:\n[ \t]*)?)
+        ([^}}]*}})
+        """
+        replacement = rf"\1\2{param_value}\3\4"
+        return re.sub(
+            pattern, replacement, named_local, flags=re.DOTALL | re.VERBOSE
+        )
 
     async def update_zone(
         self, zone_name: str, params: list[DNSZoneParam]
@@ -299,25 +347,49 @@ class BindDNSServerManager(AbstractDNSServerManager):
             named_local = file.read()
 
         for param in params:
+            param_name = param.name if param.name != "acl" else "allow-query"
             pattern = rf'zone\s*"{re.escape(zone_name)}"\
-                \s*{{\s*{param.name}\s*([^;]+);'
+                \s*{{\s*{param_name}\s*([^;]+);'
             param_match = re.search(pattern, named_local)
-            if param_match.group(1) is not None:
-                named_local.replace(param_match.group(1).strip(), param.value)
+
+            if param.value is None:
+                named_local = self._delete_zone_param(
+                    named_local, zone_name, param_name
+                )
+                continue
+
+            if isinstance(param.value, list):
+                param_value = "{" + f"{';'.join(param.value)};" + "}"
+            else:
+                param_value = param.value
+
+            if param_match is not None:
+                named_local = self._update_zone_param(
+                    named_local, zone_name, param_name, param_value
+                )
+            else:
+                named_local = self._add_param_to_zone(
+                    named_local, zone_name, param_name, param_value
+                )
 
         with open(NAMED_LOCAL, "w") as file:
             file.write(named_local)
 
     async def delete_zone(self, zone_name: str) -> None:
         """Delete existing zone."""
-        await asyncio.create_subprocess_exec(
-            "rndc",
-            "delzone",
-            zone_name,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        named_local = None
+        with open(NAMED_LOCAL) as file:
+            named_local = file.read()
+
+        pattern = rf'zone\s+"{re.escape(zone_name)}"\s*{{[^}}]*}};\s*\n'
+        named_local = re.sub(pattern, "", named_local, flags=re.DOTALL)
+
+        with open(NAMED_LOCAL, "w") as file:
+            file.write(named_local)
+
+        os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
+
+        await self.restart()
 
     async def reload(self, zone_name: str | None = None) -> None:
         """Reload zone with given name or all zones if none provided."""
@@ -395,8 +467,10 @@ class BindDNSServerManager(AbstractDNSServerManager):
         zone_files = os.listdir(ZONE_FILES_DIR)
 
         result: list[DNSZone] = []
-        for zone_file in zone_files:
-            zone_name = ".".join(zone_file.split(".")[:-1])
+        for file in zone_files:
+            if file.split(".")[-1] != "zone":
+                continue
+            zone_name = ".".join(file.split(".")[:-1])
             zone_type = self.get_zone_type_by_zone_name(zone_name)
             zone_records = self.get_all_records_from_zone(
                 zone_name,
@@ -464,7 +538,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
         await self._write_zone_data_to_file(zone_name, zone)
 
-    def delete_record(
+    async def delete_record(
         self,
         record: DNSRecord,
         record_type: DNSRecordType,
@@ -480,11 +554,11 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
         if name in zone.nodes:
             node = zone.nodes[name]
-            rdataset = node.get_rdataset(rdatatype)
+            rdataset = node.get_rdataset(dns.rdataclass.IN, rdatatype)
             if rdataset and rdata in rdataset:
                 rdataset.remove(rdata)
 
-        self._write_zone_data_to_file(zone_name, zone)
+        await self._write_zone_data_to_file(zone_name, zone)
 
     def update_record(
         self,
