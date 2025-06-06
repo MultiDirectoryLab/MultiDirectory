@@ -270,23 +270,29 @@ class BindDNSServerManager(AbstractDNSServerManager):
         ) as file:
             file.write(zone_file)
 
-        acl_name = None
-        if params_dict.get("acl") is not None:
-            acl_name = "allowed_ips"
-            acl_template = TEMPLATES.get_template("acl.template")
-            named_acl = await acl_template.render_async(
-                acl=params_dict.get("acl")
-            )
-            with open(NAMED_LOCAL, "a") as file:
-                file.write(named_acl)
-
         zo_template = TEMPLATES.get_template("zone_options.template")
         zone_options = await zo_template.render_async(
             zone_name=zone_name,
             zone_type=zone_type,
             forwarders=params_dict.get("forwarders"),
-            acl_name=acl_name,
         )
+
+        for param in params:
+            param_name = param.name if param.name != "acl" else "allow-query"
+            if (
+                param_name == "allow-query"
+                and zone_type == DNSZoneType.FORWARD
+            ):
+                continue
+            if isinstance(param.value, list):
+                param_value = "{ " + f"{'; '.join(param.value)};" + " }"
+            else:
+                param_value = param.value
+
+            zone_options = self._add_zone_param(
+                zone_options, zone_name, param_name, param_value
+            )
+
         with open(NAMED_LOCAL, "a") as file:
             file.write(zone_options)
 

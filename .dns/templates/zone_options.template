@@ -3,9 +3,6 @@ zone "{{ zone_name }}" {
     {% if zone_type == "master" %}
     file "/opt/{{ zone_name }}.zone";
     notify no;
-    {% if acl_name is not none %}
-    allow-query { {{ acl_name }}; };
-    {% endif %}
     {% endif %}
     {% if zone_type == "forward" %}
     forwarders { {{ ";".join(forward_ips) }}; };
