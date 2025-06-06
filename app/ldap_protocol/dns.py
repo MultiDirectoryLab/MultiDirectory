@@ -315,7 +315,7 @@ class AbstractDNSManager(ABC):
     @abstractmethod
     async def delete_zone(
         self,
-        zone_name: str,
+        zone_names: list[str],
     ) -> None: ...
 
     @abstractmethod
@@ -479,14 +479,15 @@ class SelfHostedDNSManager(AbstractDNSManager):
     @logger_wraps()
     async def delete_zone(
         self,
-        zone_name: str,
+        zone_names: list[str],
     ) -> None:
         async with self._http_client:
-            await self._http_client.request(
-                "delete",
-                "/zone",
-                json={"zone_name": zone_name},
-            )
+            for zone_name in zone_names:
+                await self._http_client.request(
+                    "delete",
+                    "/zone",
+                    json={"zone_name": zone_name},
+                )
 
     @logger_wraps()
     async def check_forward_dns_server(
@@ -516,7 +517,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         async with self._http_client:
             await self._http_client.patch(
                 "/server/settings",
-                json=params,
+                json=[asdict(param) for param in params],
             )
 
     @logger_wraps()
@@ -676,7 +677,7 @@ class DNSManager(AbstractDNSManager):
     @logger_wraps()
     async def delete_zone(
         self,
-        zone_name: str,
+        zone_names: list[str],
     ) -> None:
         raise NotImplementedError
 
@@ -769,7 +770,7 @@ class StubDNSManager(AbstractDNSManager):
     @logger_wraps(is_stub=True)
     async def delete_zone(
         self,
-        zone_name: str,
+        zone_names: list[str],
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
