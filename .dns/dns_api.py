@@ -293,11 +293,11 @@ class BindDNSServerManager(AbstractDNSServerManager):
         await self.reload(zone_name)
 
     @staticmethod
-    def _add_param_to_zone(
+    def _add_zone_param(
         named_local: str, zone_name: str, param_name: str, param_value: str
     ) -> str:
         pattern = rf'(zone\s+"{re.escape(zone_name)}"\s*{{[^}}]*?)(\s*}};)'
-        replacement = rf"\b\1    {param_name} {param_value};\n\2"
+        replacement = rf"\1\n    {param_name} {param_value};\2"
         return re.sub(pattern, replacement, named_local, flags=re.DOTALL)
 
     @staticmethod
@@ -307,40 +307,36 @@ class BindDNSServerManager(AbstractDNSServerManager):
         param_name: str,
     ) -> str:
         pattern = rf"""
-            (zone\s+"{re.escape(zone_name)}"\s*{{)
-            ([^}}]*?)
-            \s*{re.escape(param_name)}\s+
-            (?:[^{{;\n}}]+|{{[^}}]+}})
-            ;[ \t]*(?:\n[ \t]*)?
-            ([^}}]*}})
+        (zone\s+"{re.escape(zone_name)}"\s*{{)
+        (.*?)
+        ^\s*{re.escape(param_name)}\s+
+        (?:[^{{;\n}}]+|{{[^}}]+}})
+        \s*;\s*\n
+        (.*?}})
         """
 
         return re.sub(
-            pattern, r"\1\2\3", named_local, flags=re.DOTALL | re.VERBOSE
+            pattern,
+            r"\1\2\3",
+            named_local,
+            flags=re.DOTALL | re.VERBOSE | re.MULTILINE,
         )
 
-    @staticmethod
     def _update_zone_param(
+        self,
         named_local: str,
         zone_name: str,
         param_name: str,
         param_value: str,
     ) -> str:
-        pattern = rf"""
-        (zone\s+"{re.escape(zone_name)}"\s*{{)
-        ([^}}]*?\b{re.escape(param_name)}\s*)
-        (?:[^{{;\n}}]+|{{[^}}]+}})
-        (;[ \t]*(?:\n[ \t]*)?)
-        ([^}}]*}})
-        """
-        replacement = rf"\1\2{param_value}\3\4"
-        return re.sub(
-            pattern, replacement, named_local, flags=re.DOTALL | re.VERBOSE
+        new_named_local = self._delete_zone_param(
+            named_local, zone_name, param_name
+        )
+        return self._add_zone_param(
+            new_named_local, zone_name, param_name, param_value
         )
 
-    async def update_zone(
-        self, zone_name: str, params: list[DNSZoneParam]
-    ) -> None:
+    def update_zone(self, zone_name: str, params: list[DNSZoneParam]) -> None:
         """Update zone settings."""
         named_local = None
         with open(NAMED_LOCAL) as file:
@@ -348,9 +344,20 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
         for param in params:
             param_name = param.name if param.name != "acl" else "allow-query"
-            pattern = rf'zone\s*"{re.escape(zone_name)}"\
-                \s*{{\s*{param_name}\s*([^;]+);'
-            param_match = re.search(pattern, named_local)
+            pattern = rf"""
+            ^zone\s+"{re.escape(zone_name)}"\s*{{
+            [^}}]*?
+            \s{re.escape(param_name)}\b
+            \s+(?:[^{{;\n}}]+|{{[^}}]+}})
+            \s*;
+            """
+            has_param = bool(
+                re.search(
+                    pattern,
+                    named_local,
+                    flags=re.MULTILINE | re.VERBOSE | re.DOTALL,
+                )
+            )
 
             if param.value is None:
                 named_local = self._delete_zone_param(
@@ -359,16 +366,16 @@ class BindDNSServerManager(AbstractDNSServerManager):
                 continue
 
             if isinstance(param.value, list):
-                param_value = "{" + f"{';'.join(param.value)};" + "}"
+                param_value = "{ " + f"{'; '.join(param.value)};" + " }"
             else:
                 param_value = param.value
 
-            if param_match is not None:
+            if has_param:
                 named_local = self._update_zone_param(
                     named_local, zone_name, param_name, param_value
                 )
             else:
-                named_local = self._add_param_to_zone(
+                named_local = self._add_zone_param(
                     named_local, zone_name, param_name, param_value
                 )
 
@@ -655,12 +662,12 @@ async def create_zone(
 
 
 @zone_router.patch("")
-async def update_zone(
+def update_zone(
     data: DNSZoneUpdateRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update DNS zone settings."""
-    await dns_manager.update_zone(data.zone_name, data.params)
+    dns_manager.update_zone(data.zone_name, data.params)
 
 
 @zone_router.delete("")
