@@ -1,14 +1,15 @@
 zone "{{ zone_name }}" {
     type {{ zone_type }};
     {% if zone_type == "master" %}
-        file "/opt/{{ zone_name }}.zone";
-        notify no;
-        {% if acl_name is not None %}
-            allow-query { {{ acl_name }}; };
-        {% endif %}
+    file "/opt/{{ zone_name }}.zone";
+    notify no;
+    {% if acl_name is not none %}
+    allow-query { {{ acl_name }}; };
+    {% endif %}
     {% endif %}
     {% if zone_type == "forward" %}
-        forwarders { {{ ";".join(forward_ips) }}; };
-        forward only;
+    forwarders { {{ ";".join(forward_ips) }}; };
+    forward only;
     {% endif %}
 };
+

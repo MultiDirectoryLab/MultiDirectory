@@ -8,7 +8,7 @@ import functools
 import socket
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum, StrEnum
 from typing import Any, Awaitable, Callable
 
@@ -146,7 +146,7 @@ class DNSZoneParam:
     """DNS zone parameter."""
 
     name: DNSZoneParamName
-    value: str | list[str]
+    value: str | list[str] | None
 
 
 @dataclass
@@ -231,7 +231,7 @@ class AbstractDNSManager(ABC):
                 timeout=30, base_url=f"http://{dns_ip_address}:8000"
             ) as client:
                 await client.post(
-                    "/setup",
+                    "/server/setup",
                     json={"zone_name": domain},
                 )
 
@@ -240,8 +240,10 @@ class AbstractDNSManager(ABC):
         new_settings = {
             DNS_MANAGER_IP_ADDRESS_NAME: dns_ip_address,
             DNS_MANAGER_ZONE_NAME: domain,
-            DNS_MANAGER_TSIG_KEY_NAME: tsig_key,
         }
+        if tsig_key is not None:
+            new_settings[DNS_MANAGER_TSIG_KEY_NAME] = tsig_key
+
         if self._dns_settings.domain is not None:
             for name, value in new_settings.items():
                 await session.execute(
@@ -307,7 +309,6 @@ class AbstractDNSManager(ABC):
     async def update_zone(
         self,
         zone_name: str,
-        acl: list[str] | None,
         params: list[DNSZoneParam] | None,
     ) -> None: ...
 
@@ -443,13 +444,11 @@ class SelfHostedDNSManager(AbstractDNSManager):
 
         return response.json()
 
-    #TODO:  что-то сделать с nameserver_ip
     @logger_wraps()
     async def create_zone(
         self,
         zone_name: str,
         zone_type: DNSZoneType,
-        nameserver_ip: str,
         params: list[DNSZoneParam],
     ) -> None:
         async with self._http_client:
@@ -458,8 +457,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 json={
                     "zone_name": zone_name,
                     "zone_type": zone_type,
-                    "nameserver_ip": nameserver_ip,
-                    "params": params,
+                    "params": [asdict(param) for param in params],
                 },
             )
 
@@ -467,14 +465,14 @@ class SelfHostedDNSManager(AbstractDNSManager):
     async def update_zone(
         self,
         zone_name: str,
-        params: list[DNSZoneParam] | None,
+        params: list[DNSZoneParam],
     ) -> None:
         async with self._http_client:
             await self._http_client.patch(
                 "/zone",
                 json={
                     "zone_name": zone_name,
-                    "params": params,
+                    "params": [asdict(param) for param in params],
                 },
             )
 
@@ -671,7 +669,6 @@ class DNSManager(AbstractDNSManager):
     async def update_zone(
         self,
         zone_name: str,
-        acl: list[str] | None,
         params: list[DNSZoneParam] | None,
     ) -> None:
         raise NotImplementedError
@@ -766,7 +763,6 @@ class StubDNSManager(AbstractDNSManager):
     async def update_zone(
         self,
         zone_name: str,
-        acl: list[str] | None,
         params: list[DNSZoneParam] | None,
     ) -> None: ...
 
