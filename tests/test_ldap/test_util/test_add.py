@@ -18,6 +18,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group, User
@@ -102,6 +103,7 @@ async def test_ldap_user_add_with_group(
             "cn: test\n"
             "userPrincipalName: test\n"
             "sAMAccountName: test\n"
+            "objectClass: inetOrgPerson\n"
             "objectClass: organizationalPerson\n"
             "objectClass: user\n"
             "objectClass: person\n"
@@ -217,10 +219,12 @@ async def test_ldap_user_add_group_with_group(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("entity_type_dao")
 async def test_add_bvalue_attr(
     session: AsyncSession,
     ldap_bound_session: LDAPSession,
     kadmin: AbstractKadmin,
+    entity_type_dao: EntityTypeDAO,
 ) -> None:
     """Test AddRequest with bytes data."""
     request = AddRequest(
@@ -228,7 +232,9 @@ async def test_add_bvalue_attr(
         attributes=[{"type": "objectClass", "vals": [b"test"]}],
         password=None,
     )
-    result = await anext(request.handle(session, ldap_bound_session, kadmin))
+    result = await anext(
+        request.handle(session, ldap_bound_session, kadmin, entity_type_dao)
+    )
     assert result.result_code == LDAPCodes.SUCCESS
 
 

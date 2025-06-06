@@ -27,6 +27,9 @@ from ldap_protocol.dns import (
     resolve_dns_server_ip,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -195,9 +198,37 @@ class HTTPProvider(Provider):
         """Create ldap session."""
         return LDAPSession()
 
+    @provide(provides=AttributeTypeDAO)
+    def get_attribute_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeDAO:
+        """Get Attribute Type DAO."""
+        return AttributeTypeDAO(session)
+
+    @provide(provides=ObjectClassDAO)
+    def get_object_class_dao(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassDAO:
+        """Get Object Class DAO."""
+        attribute_type_dao = AttributeTypeDAO(session)
+        return ObjectClassDAO(
+            attribute_type_dao=attribute_type_dao,
+            session=session,
+        )
+
+    @provide(provides=EntityTypeDAO)
+    def get_entity_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> EntityTypeDAO:
+        """Get Entity Type DAO."""
+        return EntityTypeDAO(session)
+
 
 class LDAPServerProvider(Provider):
-    """Prvider with session scope."""
+    """Provider with session scope."""
 
     scope = Scope.SESSION
 

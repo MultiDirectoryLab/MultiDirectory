@@ -11,6 +11,7 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extra.alembic_utils import temporary_stub_entity_type_id
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.queries import (
     create_group,
@@ -26,6 +27,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_entity_type_id
 def upgrade() -> None:
     """Upgrade."""
 
@@ -78,6 +80,7 @@ def upgrade() -> None:
     op.run_async(_create_readonly_grp_and_plcy)
 
 
+@temporary_stub_entity_type_id
 def downgrade() -> None:
     """Downgrade."""
 

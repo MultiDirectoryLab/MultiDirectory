@@ -29,5 +29,5 @@ def _type_validate_email(email: str) -> str:
     raise ValueError(f"Invalid entry name {email}")
 
 
-ENTRY_TYPE = Annotated[str, AfterValidator(_type_validate_entry)]
+GRANT_DN_STRING = Annotated[str, AfterValidator(_type_validate_entry)]
 EmailStr = Annotated[str, AfterValidator(_type_validate_email)]

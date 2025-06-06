@@ -1,4 +1,4 @@
-"""Datasets for testing the ObjectClassRouter."""
+"""Datasets for testing the object class router."""
 
 from fastapi import status
 
@@ -197,7 +197,7 @@ test_delete_bulk_object_classes_dataset = [
     {
         "object_class_datas": [],
         "object_classes_deleted": [],
-        "status_code": status.HTTP_400_BAD_REQUEST,
+        "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
     },
     {
         "object_class_datas": [
@@ -242,5 +242,25 @@ test_delete_bulk_object_classes_dataset = [
             "testObjectClass4",
         ],
         "status_code": status.HTTP_200_OK,
+    },
+]
+
+test_delete_bulk_used_object_classes_dataset = [
+    {
+        "object_class_data": {
+            "oid": "1.2.3.4",
+            "name": "testObjectClass1",
+            "superior_name": "top",
+            "kind": "STRUCTURAL",
+            "is_system": False,
+            "attribute_type_names_must": [],
+            "attribute_type_names_may": [],
+        },
+        "entity_type_data": {
+            "name": "testEntityType1",
+            "is_system": False,
+            "object_class_names": ["testObjectClass1"],
+        },
+        "object_class_deleted": "testObjectClass1",
     },
 ]

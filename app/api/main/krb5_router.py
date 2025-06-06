@@ -32,6 +32,7 @@ from ldap_protocol.kerberos import (
     set_state,
 )
 from ldap_protocol.ldap_requests import AddRequest
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.const import EmailStr
 from ldap_protocol.utils.queries import (
@@ -63,6 +64,7 @@ async def setup_krb_catalogue(
     krbadmin_password: Annotated[SecretStr, Body()],
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     kadmin: FromDishka[AbstractKadmin],
+    entity_type_dao: FromDishka[EntityTypeDAO],
 ) -> None:
     """Generate tree for kdc/kadmin.
 
@@ -124,9 +126,15 @@ async def setup_krb_catalogue(
 
     async with session.begin_nested():
         results = (
-            await anext(services.handle(session, ldap_session, kadmin)),
-            await anext(group.handle(session, ldap_session, kadmin)),
-            await anext(rkb_user.handle(session, ldap_session, kadmin)),
+            await anext(
+                services.handle(session, ldap_session, kadmin, entity_type_dao)
+            ),
+            await anext(
+                group.handle(session, ldap_session, kadmin, entity_type_dao)
+            ),
+            await anext(
+                rkb_user.handle(session, ldap_session, kadmin, entity_type_dao)
+            ),
         )
         await session.flush()
         if not all(result.result_code == 0 for result in results):

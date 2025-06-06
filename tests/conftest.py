@@ -52,6 +52,9 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
@@ -143,6 +146,34 @@ class TestProvider(Provider):
         resolver = resolve()
         yield await get_dns_manager_settings(session, resolver)
         weakref.finalize(resolver, resolver.close)
+
+    @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
+    def get_attribute_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeDAO:
+        """Get Attribute Type DAO."""
+        return AttributeTypeDAO(session)
+
+    @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
+    def get_object_class_dao(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassDAO:
+        """Get Object Class DAO."""
+        attribute_type_dao = AttributeTypeDAO(session)
+        return ObjectClassDAO(
+            attribute_type_dao=attribute_type_dao,
+            session=session,
+        )
+
+    @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
+    def get_entity_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> EntityTypeDAO:
+        """Get Entity Type DAO."""
+        return EntityTypeDAO(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -406,6 +437,16 @@ async def handler(
     """Create test handler."""
     async with container(scope=Scope.APP) as app_scope:
         yield PoolClientHandler(settings, app_scope)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def entity_type_dao(
+    container: AsyncContainer,
+) -> AsyncIterator[EntityTypeDAO]:
+    """Get session and aquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield EntityTypeDAO(session)
 
 
 @pytest.fixture(scope="session", autouse=True)

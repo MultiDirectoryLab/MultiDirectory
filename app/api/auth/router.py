@@ -324,6 +324,7 @@ async def first_setup(
                             "organizationalPerson",
                             "posixAccount",
                             "shadowAccount",
+                            "inetOrgPerson",
                         ],
                         "pwdLastSet": [ft_now()],
                         "loginShell": ["/bin/bash"],

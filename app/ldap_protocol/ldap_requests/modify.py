@@ -25,6 +25,7 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -151,6 +152,7 @@ class ModifyRequest(BaseRequest):
         session_storage: SessionStorage,
         kadmin: AbstractKadmin,
         settings: Settings,
+        entity_type_dao: EntityTypeDAO,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
@@ -226,6 +228,18 @@ class ModifyRequest(BaseRequest):
                 result_code, message = self._match_bad_response(err)
                 yield ModifyResponse(result_code=result_code, message=message)
                 return
+
+        if "objectclass" in names:
+            await session.refresh(
+                instance=directory,
+                attribute_names=["attributes"],
+                with_for_update=None,
+            )
+            await entity_type_dao.attach_entity_type_to_directory(
+                directory=directory,
+                is_system_entity_type=False,
+            )
+            await session.commit()
 
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 

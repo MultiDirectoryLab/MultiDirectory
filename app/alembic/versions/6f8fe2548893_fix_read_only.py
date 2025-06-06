@@ -10,6 +10,7 @@ from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from extra.alembic_utils import temporary_stub_entity_type_id
 from ldap_protocol.utils.helpers import create_integer_hash
 from models import Attribute, Directory
 
@@ -20,6 +21,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_entity_type_id
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()
@@ -30,58 +32,59 @@ def upgrade() -> None:
         .where(Directory.name == "readonly domain controllers")
     )  # fmt: skip
 
-    if not ro_dir:
-        return
-
-    session.execute(
-        delete(Attribute)
-        .where(Attribute.name == "objectSid", Attribute.directory == ro_dir)
-    )  # fmt: skip
-    session.execute(
-        update(Attribute)
-        .where(
-            Attribute.name == "sAMAccountName",
-            Attribute.directory == ro_dir,
-            Attribute.value == "domain users",
+    if ro_dir:
+        session.execute(
+            delete(Attribute)
+            .where(
+                Attribute.name == "objectSid",
+                Attribute.directory == ro_dir,
+            )
+        )  # fmt: skip
+        session.execute(
+            update(Attribute)
+            .where(
+                Attribute.name == "sAMAccountName",
+                Attribute.directory == ro_dir,
+                Attribute.value == "domain users",
+            )
+            .values({"value": ro_dir.name}),
         )
-        .values({"value": ro_dir.name}),
-    )
 
-    attr_object_class = session.scalar(
-        select(Attribute)
-        .where(
-            Attribute.name == "objectClass",
-            Attribute.directory == ro_dir,
-            Attribute.value == "group",
-        ),
-    )  # fmt: skip
-    if not attr_object_class:
-        session.add(
-            Attribute(
-                name="objectClass",
-                value="group",
-                directory=ro_dir,
+        attr_object_class = session.scalar(
+            select(Attribute)
+            .where(
+                Attribute.name == "objectClass",
+                Attribute.directory == ro_dir,
+                Attribute.value == "group",
             ),
-        )
-        session.add(
-            Attribute(
-                name=ro_dir.rdname,
-                value=ro_dir.name,
-                directory=ro_dir,
-            ),
-        )
-        session.add(
-            Attribute(
-                name="gidNumber",
-                value=str(create_integer_hash(ro_dir.name)),
-                directory=ro_dir,
-            ),
-        )
+        )  # fmt: skip
+        if not attr_object_class:
+            session.add(
+                Attribute(
+                    name="objectClass",
+                    value="group",
+                    directory=ro_dir,
+                ),
+            )
+            session.add(
+                Attribute(
+                    name=ro_dir.rdname,
+                    value=ro_dir.name,
+                    directory=ro_dir,
+                ),
+            )
+            session.add(
+                Attribute(
+                    name="gidNumber",
+                    value=str(create_integer_hash(ro_dir.name)),
+                    directory=ro_dir,
+                ),
+            )
 
-    domain_sid = "-".join(ro_dir.object_sid.split("-")[:-1])
-    ro_dir.object_sid = domain_sid + "-521"
+        domain_sid = "-".join(ro_dir.object_sid.split("-")[:-1])
+        ro_dir.object_sid = domain_sid + "-521"
 
-    session.commit()
+        session.commit()
 
 
 def downgrade() -> None:

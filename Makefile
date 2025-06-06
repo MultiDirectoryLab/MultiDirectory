@@ -5,7 +5,7 @@ help: ## show help message
 before_pr:
 	ruff format .
 	ruff check . --fix --unsafe-fixes
-	mypy app
+	mypy .
 
 build:  ## build app and manually generate self-signed cert
 	make down
