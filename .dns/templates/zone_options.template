@@ -5,7 +5,6 @@ zone "{{ zone_name }}" {
     notify no;
     {% endif %}
     {% if zone_type == "forward" %}
-    forwarders { {{ ";".join(forward_ips) }}; };
     forward only;
     {% endif %}
 };
