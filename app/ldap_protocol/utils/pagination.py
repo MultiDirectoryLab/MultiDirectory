@@ -8,10 +8,10 @@ import sys
 from abc import abstractmethod
 from dataclasses import dataclass
 from math import ceil
-from typing import Generic, Sequence, TypeVar
+from typing import Sequence, TypeVar
 
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import Select
@@ -21,37 +21,28 @@ from models import Base
 P = TypeVar("P", contravariant=True, bound=BaseModel)
 S = TypeVar("S", contravariant=True, bound=Base)
 
+_PAGE_NUMBER_FIELD = Query(
+    ...,
+    ge=1,
+    le=sys.maxsize,
+)
+_PAGE_SIZE_FIELD = Query(
+    default=25,
+    ge=1,
+    le=100,
+)
+
 
 class PaginationParams(BaseModel):
     """Pagination parameters."""
 
-    page_number: int = Field(
-        ...,
-        ge=1,
-        le=sys.maxsize,
-        description="Page number.",
-    )
-    page_size: int = Field(
-        default=25,
-        ge=1,
-        le=100,
-        description="Page size.",
-    )
+    page_number: int = _PAGE_NUMBER_FIELD
+    page_size: int = _PAGE_SIZE_FIELD
 
 
 def get_pagination_params(
-    page_number: int = Query(
-        ...,
-        ge=1,
-        le=sys.maxsize,
-        description="Page number.",
-    ),
-    page_size: int = Query(
-        default=25,
-        ge=1,
-        le=100,
-        description="Page size.",
-    ),
+    page_number: int = _PAGE_NUMBER_FIELD,
+    page_size: int = _PAGE_SIZE_FIELD,
 ) -> PaginationParams:
     """Get pagination parameters."""
     return PaginationParams(page_number=page_number, page_size=page_size)
@@ -67,7 +58,7 @@ class PaginationMetadata:
     total_pages: int | None = None
 
 
-class BasePaginationSchema(BaseModel, Generic[P]):
+class BasePaginationSchema[P: BaseModel](BaseModel):
     """Paginator Schema."""
 
     metadata: PaginationMetadata
@@ -79,7 +70,7 @@ class BasePaginationSchema(BaseModel, Generic[P]):
         arbitrary_types_allowed = True
 
 
-class BaseSchemaModel(BaseModel, Generic[S]):
+class BaseSchemaModel[S: Base](BaseModel):
     """Model for Schema.
 
     Schema is used for serialization and deserialization.
@@ -92,7 +83,7 @@ class BaseSchemaModel(BaseModel, Generic[S]):
 
 
 @dataclass
-class PaginationResult(Generic[S]):
+class PaginationResult[S: Base]:
     """Paginator.
 
     Paginator contains metadata about pagination and chunk of items.
