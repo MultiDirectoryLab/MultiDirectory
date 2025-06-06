@@ -54,6 +54,7 @@ async def create_record(
         data.record_value,
         data.record_type,
         data.ttl,
+        zone_name=data.zone_name,
     )
 
 
@@ -67,6 +68,7 @@ async def delete_single_record(
         data.record_name,
         data.record_value,
         data.record_type,
+        zone_name=data.zone_name,
     )
 
 
@@ -81,6 +83,7 @@ async def update_record(
         data.record_value,
         data.record_type,
         data.ttl,
+        zone_name=data.zone_name,
     )
 
 
@@ -117,7 +120,12 @@ async def setup_dns(
 
     Create zone file, get TSIG key, reload DNS server if selfhosted.
     """
-    dns_ip_address = data.dns_ip_address if data.dns_ip_address is not None else settings.DNS_BIND_HOST
+    dns_ip_address = (
+        data.dns_ip_address
+        if data.dns_ip_address is not None and len(data.dns_ip_address)
+        else settings.DNS_BIND_HOST
+    )
+
     tsig_key = data.tsig_key
 
     try:
@@ -172,7 +180,6 @@ async def update_zone(
     """Update DNS zone with given params."""
     await dns_manager.update_zone(
         data.zone_name,
-        data.acl,
         data.params,
     )
 

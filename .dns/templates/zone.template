@@ -11,4 +11,4 @@ $TTL {{ ttl }}
                     NS  ns2.{{ domain }}.
 ns1.{{ domain }}.   IN  A   {{ nameserver_ip }}
 ns2.{{ domain }}.   IN  A   127.0.0.1
-{{ domain }}.       IN  A   {{ server_ip }}
+{{ domain }}.       IN  A   {{ nameserver_ip }}

@@ -86,6 +86,7 @@ class DNSServiceRecordBaseRequest(BaseModel):
     record_type: str
     zone_name: str | None = Field(None)
 
+
 class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
     """DNS create request schema."""
 
@@ -118,8 +119,7 @@ class DNSServiceZoneUpdateRequest(BaseModel):
     """DNS zone update request scheme."""
 
     zone_name: str
-    acl: list[str]
-    params: list[DNSZoneParam] | None = Field(None)
+    params: list[DNSZoneParam]
 
 
 class DNSServiceZoneDeleteRequest(BaseModel):
