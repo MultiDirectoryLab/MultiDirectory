@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Depends, status
+from fastapi import Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
@@ -18,10 +18,7 @@ from ldap_protocol.ldap_schema.object_class_dao import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from ldap_protocol.utils.pagination import (
-    PaginationParams,
-    get_pagination_params,
-)
+from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
@@ -83,7 +80,7 @@ async def get_one_object_class(
 )
 async def get_list_object_classes_with_pagination(
     object_class_dao: FromDishka[ObjectClassDAO],
-    params: Annotated[PaginationParams, Depends(get_pagination_params)],
+    params: Annotated[PaginationParams, Query()],
 ) -> ObjectClassPaginationSchema:
     """Retrieve a list of all object classes with paginate.
 

@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Sequence, TypeVar
 
-from fastapi import Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import Select
@@ -21,31 +20,20 @@ from models import Base
 P = TypeVar("P", contravariant=True, bound=BaseModel)
 S = TypeVar("S", contravariant=True, bound=Base)
 
-_PAGE_NUMBER_FIELD = Query(
-    ...,
-    ge=1,
-    le=sys.maxsize,
-)
-_PAGE_SIZE_FIELD = Query(
-    default=25,
-    ge=1,
-    le=100,
-)
-
 
 class PaginationParams(BaseModel):
     """Pagination parameters."""
 
-    page_number: int = _PAGE_NUMBER_FIELD
-    page_size: int = _PAGE_SIZE_FIELD
-
-
-def get_pagination_params(
-    page_number: int = _PAGE_NUMBER_FIELD,
-    page_size: int = _PAGE_SIZE_FIELD,
-) -> PaginationParams:
-    """Get pagination parameters."""
-    return PaginationParams(page_number=page_number, page_size=page_size)
+    page_number: int = Field(
+        ...,
+        ge=1,
+        le=sys.maxsize,
+    )
+    page_size: int = Field(
+        default=25,
+        ge=1,
+        le=100,
+    )
 
 
 @dataclass

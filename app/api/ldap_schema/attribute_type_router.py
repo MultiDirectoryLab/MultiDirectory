@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Depends, status
+from fastapi import Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
@@ -17,10 +17,7 @@ from ldap_protocol.ldap_schema.attribute_type_dao import (
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from ldap_protocol.utils.pagination import (
-    PaginationParams,
-    get_pagination_params,
-)
+from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_ATTRIBUTE_TYPE_SYNTAX = "1.3.6.1.4.1.1466.115.121.1.15"
 _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD = False
@@ -85,7 +82,7 @@ async def get_one_attribute_type(
 )
 async def get_list_attribute_types_with_pagination(
     attribute_type_dao: FromDishka[AttributeTypeDAO],
-    params: Annotated[PaginationParams, Depends(get_pagination_params)],
+    params: Annotated[PaginationParams, Query()],
 ) -> AttributeTypePaginationSchema:
     """Retrieve a chunk of Attribute Types with pagination.
 

@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Depends, status
+from fastapi import Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
@@ -19,10 +19,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import (
     EntityTypeUpdateSchema,
 )
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.utils.pagination import (
-    PaginationParams,
-    get_pagination_params,
-)
+from ldap_protocol.utils.pagination import PaginationParams
 
 _DEFAULT_ENTITY_TYPE_IS_SYSTEM = False
 
@@ -85,7 +82,7 @@ async def get_one_entity_type(
 )
 async def get_list_entity_types_with_pagination(
     entity_type_dao: FromDishka[EntityTypeDAO],
-    params: Annotated[PaginationParams, Depends(get_pagination_params)],
+    params: Annotated[PaginationParams, Query()],
 ) -> EntityTypePaginationSchema:
     """Retrieve a chunk of Entity Types with pagination.
 
