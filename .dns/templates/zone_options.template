@@ -1,11 +1,11 @@
 zone "{{ zone_name }}" {
     type {{ zone_type }};
-    {% if zone_type == "master" %}
+    {%- if zone_type == "master" %}
     file "/opt/{{ zone_name }}.zone";
     notify no;
-    {% endif %}
-    {% if zone_type == "forward" %}
+    {%- endif %}
+    {%- if zone_type == "forward" %}
     forward only;
-    {% endif %}
+    {%- endif %}
 };
 
