@@ -104,7 +104,7 @@ class DNSZoneParamName(StrEnum):
     """Possible DNS zone option names."""
 
     acl = "acl"
-    allow_query = "allow-query"
+    forwarders = "forwarders"
     ttl = "ttl"
 
 
@@ -788,7 +788,7 @@ async def get_server_settings(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> list[DNSServerParam]:
     """Get list of modifiable server settings."""
-    return await dns_manager.get_server_settings()
+    return dns_manager.get_server_settings()
 
 
 @server_router.post("/setup")
