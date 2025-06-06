@@ -394,13 +394,28 @@ class BindDNSServerManager(AbstractDNSServerManager):
         with open(NAMED_LOCAL) as file:
             named_local = file.read()
 
-        pattern = rf'zone\s+"{re.escape(zone_name)}"\s*{{[^}}]*}};\s*\n'
-        named_local = re.sub(pattern, "", named_local, flags=re.DOTALL)
+        zone_type = self.get_zone_type_by_zone_name(zone_name)
 
+        pattern = rf"""
+            ^\s*zone\s+"{re.escape(zone_name)}"\s*{{
+            (?:
+                [^{{}}]
+                |
+                {{(?:[^{{}}]|{{[^}}]*}})*}}
+            )*?
+            \s*}};\s*
+        """
+        named_local = re.sub(
+            pattern,
+            "",
+            named_local,
+            flags=re.MULTILINE | re.VERBOSE | re.DOTALL,
+        )
         with open(NAMED_LOCAL, "w") as file:
             file.write(named_local)
 
-        os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
+        if zone_type != DNSZoneType.FORWARD:
+            os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
 
         await self.restart()
 
