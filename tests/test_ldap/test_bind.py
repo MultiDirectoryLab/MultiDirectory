@@ -95,8 +95,8 @@ async def test_gssapi_bind_in_progress(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(bind.handle, container)
+        result = await anext(bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
             serverSaslCreds=b"response_ticket",
@@ -118,9 +118,9 @@ async def test_gssapi_bind_missing_credentials(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(bind.handle, container)
+        kwargs = await resolve_deps(bind.handle, container)
         with pytest.raises(gssapi.exceptions.MissingCredentialsError):
-            await anext(handler())  # type: ignore
+            await anext(bind.handle(**kwargs))
 
 
 @pytest.mark.asyncio
@@ -181,8 +181,8 @@ async def test_gssapi_bind_ok(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(first_bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(first_bind.handle, container)
+        result = await anext(first_bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
             serverSaslCreds=b"server_ticket",
@@ -190,15 +190,15 @@ async def test_gssapi_bind_ok(
 
         mock_security_context.complete = True
 
-        handler = await resolve_deps(second_bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(second_bind.handle, container)
+        result = await anext(second_bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
             serverSaslCreds=b"\x01\x00\x04\x00",
         )
 
-        handler = await resolve_deps(third_bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(third_bind.handle, container)
+        result = await anext(third_bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SUCCESS,
         )
