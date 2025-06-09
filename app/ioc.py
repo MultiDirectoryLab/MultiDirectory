@@ -160,6 +160,14 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings)
 
+    @provide(scope=Scope.REQUEST)
+    async def get_entity_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> EntityTypeDAO:
+        """Get Entity Type DAO."""
+        return EntityTypeDAO(session)
+
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
