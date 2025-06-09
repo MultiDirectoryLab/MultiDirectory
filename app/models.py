@@ -170,6 +170,35 @@ class GroupAccessPolicyMembership(Base):
     )
 
 
+class EntityType(Base):
+    """Entity Type."""
+
+    __tablename__ = "EntityTypes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    object_class_names: Mapped[list[str]] = mapped_column(
+        postgresql.ARRAY(String),
+        index=True,
+    )
+    is_system: Mapped[bool] = mapped_column(nullable=False)
+
+    @property
+    def object_class_names_set(self) -> set[str]:
+        """Get object class names."""
+        return set(self.object_class_names)
+
+    @classmethod
+    def generate_entity_type_name(cls, directory: Directory) -> str:
+        """Generate entity type name based on Directory."""
+        return f"{directory.name}_entity_type_{directory.id}"
+
+
 class Directory(Base):
     """Chierarcy of catalogue unit."""
 
@@ -190,6 +219,39 @@ class Directory(Base):
         backref=backref("directories", cascade="all,delete", viewonly=True),
         uselist=False,
     )
+
+    entity_type_id: Mapped[int] = mapped_column(
+        ForeignKey("EntityTypes.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    entity_type: Mapped[EntityType | None] = relationship(
+        EntityType,
+        remote_side=EntityType.id,
+        uselist=False,
+        lazy="selectin",
+    )
+
+    @property
+    def entity_type_name(self) -> str:
+        """Get entity type name."""
+        return self.entity_type.name if self.entity_type else ""
+
+    @property
+    def entity_type_object_class_names_set(self) -> set[str]:
+        """Get object class names of entity type."""
+        return (
+            self.entity_type.object_class_names_set
+            if self.entity_type
+            else set()
+        )
+
+    @property
+    def object_class_names_set(self) -> set[str]:
+        return set(
+            self.attributes_dict.get("objectClass", [])
+            + self.attributes_dict.get("objectclass", [])
+        )
 
     object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
     objectclass: Mapped[str] = synonym("object_class")
@@ -622,6 +684,11 @@ class Attribute(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
+    directory: Mapped[Directory] = relationship(
+        "Directory",
+        back_populates="attributes",
+        uselist=False,
+    )
     directory_id: Mapped[int] = mapped_column(
         "directoryId",
         ForeignKey("Directory.id", ondelete="CASCADE"),
@@ -631,12 +698,6 @@ class Attribute(Base):
     name: Mapped[str] = mapped_column(nullable=False, index=True)
     value: Mapped[str | None] = mapped_column(nullable=True)
     bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
-
-    directory: Mapped[Directory] = relationship(
-        "Directory",
-        back_populates="attributes",
-        uselist=False,
-    )
 
     @property
     def _decoded_value(self) -> str | None:

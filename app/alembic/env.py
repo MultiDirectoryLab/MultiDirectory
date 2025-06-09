@@ -21,12 +21,8 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def do_run_migrations(connection: AsyncConnection):
-    """Run sync migrations.
-
-    Args:
-        connection (AsyncConnection): async connection
-    """
+def run_sync_migrations(connection: AsyncConnection):
+    """Run sync migrations."""
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
@@ -47,7 +43,7 @@ async def run_async_migrations(settings: Settings):
     engine = create_async_engine(str(settings.POSTGRES_URI))
 
     async with engine.connect() as connection:
-        await connection.run_sync(do_run_migrations)
+        await connection.run_sync(run_sync_migrations)
 
 
 def run_migrations_online():
@@ -65,7 +61,7 @@ def run_migrations_online():
     if conn is None:
         asyncio.run(run_async_migrations(settings))
     else:
-        do_run_migrations(conn)
+        run_sync_migrations(conn)
 
 
 run_migrations_online()

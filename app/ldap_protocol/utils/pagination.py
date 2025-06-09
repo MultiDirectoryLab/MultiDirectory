@@ -28,13 +28,11 @@ class PaginationParams(BaseModel):
         ...,
         ge=1,
         le=sys.maxsize,
-        description="Page number.",
     )
     page_size: int = Field(
-        ...,
+        default=25,
         ge=1,
         le=100,
-        description="Page size.",
     )
 
 
@@ -128,7 +126,4 @@ class PaginationResult[S: Base]:
         result = await session.scalars(query)
         items = result.all()
 
-        return cls(
-            metadata=metadata,
-            items=items,
-        )
+        return cls(metadata=metadata, items=items)

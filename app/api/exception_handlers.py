@@ -47,3 +47,25 @@ async def handle_dns_error(
     """
     logger.critical("DNS manager error: {}", exc)
     raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+async def handle_instance_not_found_error(
+    request: Request,  # noqa: ARG001
+    exc: Exception,  # noqa: ARG001
+) -> NoReturn:
+    """Handle Instance Not Found error."""
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Instance not found.",
+    )
+
+
+async def handle_instance_cant_modify_error(
+    request: Request,  # noqa: ARG001
+    exc: Exception,  # noqa: ARG001
+) -> NoReturn:
+    """Handle Instance Cant Modify error."""
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="System Instance cannot be modified.",
+    )

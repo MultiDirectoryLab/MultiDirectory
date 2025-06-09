@@ -22,6 +22,7 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -112,6 +113,7 @@ class AddRequest(BaseRequest):
         session: AsyncSession,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
+        entity_type_dao: EntityTypeDAO,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler.
 
@@ -370,6 +372,17 @@ class AddRequest(BaseRequest):
         try:
             items_to_add.extend(attributes)
             session.add_all(items_to_add)
+            await session.flush()
+
+            await session.refresh(
+                instance=new_dir,
+                attribute_names=["attributes"],
+                with_for_update=None,
+            )
+            await entity_type_dao.attach_entity_type_to_directory(
+                directory=new_dir,
+                is_system_entity_type=False,
+            )
             await session.flush()
         except IntegrityError:
             await session.rollback()

@@ -103,6 +103,7 @@ async def test_ldap_base_modify(
         "person",
         "organizationalPerson",
         "posixAccount",
+        "inetOrgPerson",
         "user",
     ]
     assert attributes["title"] == [
