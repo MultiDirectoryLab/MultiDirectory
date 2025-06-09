@@ -251,7 +251,7 @@ class ModifyRequest(BaseRequest):
                 )
                 await session.commit()
 
-                yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+            yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
         finally:
             await session.refresh(directory)
             self.set_event_data(
