@@ -267,7 +267,7 @@ class ModifyRequest(BaseRequest):
             tuple[LDAPCodes, str]: result code and message
 
         Raises:
-            Exception: any exception
+            Exception: if can`t match exception and LDAP code.
         """
         match err:
             case ValueError():
@@ -289,12 +289,8 @@ class ModifyRequest(BaseRequest):
             case _:
                 raise Exception
 
-    def _get_dir_query(self) -> Select:
-        """Get directory query.
-
-        Returns:
-            Select: directory query
-        """
+    def _get_dir_query(self) -> Select[tuple[Directory]]:
+        """Get directory query."""
         return (
             select(Directory)
             .join(Directory.attributes)

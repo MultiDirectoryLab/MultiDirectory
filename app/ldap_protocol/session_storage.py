@@ -42,25 +42,11 @@ class SessionStorage(ABC):
 
     @abstractmethod
     async def _get_session_keys_by_uid(self, uid: int) -> set[str]:
-        """Get session keys by user id.
-
-        Args:
-            uid (int): user id
-
-        Returns:
-            set[str]: session keys
-        """
+        """Get session keys by user id."""
 
     @abstractmethod
     async def _get_session_keys_by_ip(self, ip: str) -> set[str]:
-        """Get session keys by ip.
-
-        Args:
-            ip (str): ip
-
-        Returns:
-            set[str]: session keys
-        """
+        """Get session keys by ip."""
 
     @abstractmethod
     async def get_user_sessions(
@@ -181,7 +167,7 @@ class SessionStorage(ABC):
         """Generate a new key for storing data in the storage.
 
         Returns:
-            str: A new key.
+            str: New key.
         """
         return f"http:{token_hex(self.key_length)}"
 

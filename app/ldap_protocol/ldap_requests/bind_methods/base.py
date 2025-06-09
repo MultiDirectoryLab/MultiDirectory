@@ -92,11 +92,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     @abstractmethod
     def is_valid(self, user: User) -> bool:
-        """Validate state.
-
-        Args:
-            user (User): User directory
-        """
+        """Validate state."""
 
     @abstractmethod
     def is_anonymous(self) -> bool:
@@ -108,12 +104,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     @abstractmethod
     async def get_user(self, session: AsyncSession, username: str) -> User:
-        """Get user.
-
-        Args:
-            session (AsyncSession): sqlalchemy session
-            username (str): username
-        """
+        """Get user."""
 
 
 class SaslAuthentication(AbstractLDAPAuth):
@@ -125,11 +116,4 @@ class SaslAuthentication(AbstractLDAPAuth):
     @classmethod
     @abstractmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
-        """Get auth from data.
-
-        Args:
-            data (list[ASN1Row]): data
-
-        Returns:
-            SaslAuthentication: sasl authentication
-        """
+        """Get auth from data."""

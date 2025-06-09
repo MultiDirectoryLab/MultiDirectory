@@ -97,7 +97,7 @@ def _find_krb_exp_attr(directory: Directory) -> Attribute | None:
     """Find krbprincipalexpiration attribute in directory.
 
     Args:
-        directory (Directory): the directory object
+        directory (Directory): directory object
 
     Returns:
         Attribute | None: the attribute with the name

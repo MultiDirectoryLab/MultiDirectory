@@ -70,11 +70,7 @@ class BaseResponse(ABC, BaseEncoder):
     @property
     @abstractmethod
     def PROTOCOL_OP(self) -> int:  # noqa: N802
-        """Protocol OP response code.
-
-        Returns:
-            int: Protocol OP response code
-        """
+        """Protocol OP response code."""
 
 
 class BindResponse(LDAPResult, BaseResponse):
@@ -265,11 +261,7 @@ class BaseExtendedResponseValue(ABC, BaseEncoder):
 
     @abstractmethod
     def get_value(self) -> str | None:
-        """Get response value.
-
-        Returns:
-            str | None: response value
-        """
+        """Get response value."""
 
 
 class ExtendedResponse(LDAPResult, BaseResponse):
