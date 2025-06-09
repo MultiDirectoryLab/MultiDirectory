@@ -257,9 +257,10 @@ if __name__ == "__main__":
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
     group.add_argument("--event_sender", action="store_true", help="Run tasks")
     group.add_argument(
-        "--certs_dumper",
-        action="store_true",
-        help="Dump certs",
+        "--event_handler", action="store_true", help="Run event_handler"
+    )
+    group.add_argument(
+        "--certs_dumper", action="store_true", help="Dump certs"
     )
     group.add_argument(
         "--migrate",
@@ -298,6 +299,12 @@ if __name__ == "__main__":
     elif args.certs_dumper:
         dump_acme_cert()
     elif args.migrate:
-        command.upgrade(Config("alembic.ini"), "head")
+        alembic_cfg = Config("alembic.ini", ini_section="main")
+        alembic_cfg.attributes["db_type"] = "main"
+        command.upgrade(alembic_cfg, "head")
+
+        alembic_cfg = Config("alembic.ini", ini_section="audit")
+        alembic_cfg.attributes["db_type"] = "audit"
+        command.upgrade(alembic_cfg, "head")
     elif args.event_handler:
         event_handler(settings=settings)
