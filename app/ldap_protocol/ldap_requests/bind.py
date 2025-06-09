@@ -222,7 +222,7 @@ class BindRequest(BaseRequest):
             await kadmin.add_principal(
                 user.get_upn_prefix(),
                 self.authentication_choice.password.get_secret_value(),
-                1,
+                0.1,
             )
 
         await ldap_session.set_user(user)
