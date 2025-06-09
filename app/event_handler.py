@@ -222,20 +222,41 @@ class EventHandler:
         }
 
     def _enrich_ldap_details(
-        self, event_data: AuditEvent, details: dict
+        self,
+        event_data: AuditEvent,
+        details: dict,
+        trigger: AuditPolicyTrigger,
     ) -> None:
         """Add LDAP-specific details to event details."""
         if event_data.request_code == OperationEvent.MODIFY:
-            details["target"] = event_data.request["object"]
-        elif event_data.request_code != OperationEvent.BIND:
-            details["target"] = event_data.request["entry"]
+            details["target_dn"] = event_data.request["object"]
 
-    def _prepare_details(self, event_data: AuditEvent) -> dict:
+            if not trigger.additional_info["change_attributes"]:
+                return
+
+            change_attribute = trigger.additional_info["change_attributes"][0]
+            if change_attribute in {"member", "memberof"}:
+                first_value = set(
+                    event_data.help_data["before_attrs"][change_attribute]
+                )
+                second_value = set(
+                    event_data.help_data["after_attrs"][change_attribute]
+                )
+                if not first_value - second_value:
+                    details["diff_groups"] = list(second_value - first_value)
+                else:
+                    details["diff_groups"] = list(first_value - second_value)
+        elif event_data.request_code != OperationEvent.BIND:
+            details["target_dn"] = event_data.request["entry"]
+
+    def _prepare_details(
+        self, event_data: AuditEvent, trigger: AuditPolicyTrigger
+    ) -> dict:
         """Prepare base details structure from event data."""
         details = event_data.help_data.get("details", {})
 
         if "LDAP" in event_data.protocol:
-            self._enrich_ldap_details(event_data, details)
+            self._enrich_ldap_details(event_data, details, trigger)
 
         return details
 
@@ -261,7 +282,7 @@ class EventHandler:
         """Normalize event data according to trigger policy."""
         normalized = {
             **self._get_common_fields(event_data, trigger),
-            "details": self._prepare_details(event_data),
+            "details": self._prepare_details(event_data, trigger),
         }
 
         if not trigger.operation_success:
