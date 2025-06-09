@@ -114,14 +114,15 @@ def track_audit_event(event_type: OperationEvent) -> Callable:
 
             else:
                 response = result
+
+                if event_type == OperationEvent.AFTER_2FA:
+                    username, response = result
+
                 if to_process_event:
                     is_success_request = True
 
-                    if event_type == OperationEvent.AFTER_2FA:
-                        username, response = result
-
-                        if not username:
-                            is_success_request = False
+                    if not username:
+                        is_success_request = False
 
                 return response
 
