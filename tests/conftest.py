@@ -57,6 +57,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.policies.audit_policy import RedisAuditDAO
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
@@ -72,6 +73,7 @@ class TestProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.RUNTIME)
     _cached_session: AsyncSession | None = None
     _cached_kadmin: Mock | None = None
+    _cached_redis_audit: Mock | None = None
     _cached_dns_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
 
@@ -101,6 +103,22 @@ class TestProvider(Provider):
         yield self._cached_kadmin
 
         self._cached_kadmin = None
+
+    @provide(scope=Scope.APP, provides=RedisAuditDAO)
+    async def get_redis_audit_dao(self) -> AsyncIterator[AsyncMock]:
+        """Get mock RedisAuditDAO."""
+        redis_audit_dao = Mock()
+
+        redis_audit_dao.is_event_processing_enabled = AsyncMock(
+            return_value=False
+        )
+
+        if not self._cached_redis_audit:
+            self._cached_redis_audit = redis_audit_dao
+
+        yield self._cached_redis_audit
+
+        self._cached_redis_audit = None
 
     @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
     async def get_dns_mngr(self) -> AsyncIterator[AsyncMock]:
