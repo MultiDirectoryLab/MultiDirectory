@@ -142,7 +142,7 @@ async def delete_bulk_object_classes(
     """Delete object classes by their names.
 
     Args:
-        object_classes_names (list[str]): List of object class names.
+        object_classes_names (LimitedListType): List of object class names.
         object_class_dao (ObjectClassDAO): Object Class DAO.
         session (AsyncSession): Database session.
     """

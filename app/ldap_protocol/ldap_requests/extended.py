@@ -41,7 +41,14 @@ class BaseExtendedValue(ABC, BaseModel):
     @classmethod
     @abstractmethod
     def from_data(cls, data: ASN1Row) -> "BaseExtendedValue":
-        """Create model from data, decoded from responseValue bytes."""
+        """Create model from data, decoded from responseValue bytes.
+
+        Args:
+            data (ASN1Row): Row with metadata.
+
+        Returns:
+            BaseExtendedValue: instance of BaseExtendedValue.
+        """
 
     @abstractmethod
     async def handle(
@@ -65,7 +72,14 @@ class BaseExtendedValue(ABC, BaseModel):
 
     @staticmethod
     def _decode_value(data: ASN1Row) -> ASN1Row:
-        """Decode value."""
+        """Decode value.
+
+        Args:
+            data (ASN1Row): Row with metadata.
+
+        Returns:
+            ASN1Row: Decoded row with metadata
+        """
         dec = Decoder()
         dec.start(data[1].value)  # type: ignore
         output = asn1todict(dec)

@@ -179,7 +179,7 @@ ignore-variadic-names = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101", "D104", "DOC501", "D417", "DOC201", "DOC402"] # Ignore rules for the `tests/` directory.
-"alembic/*.py" = ["I001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
+"app/alembic/*.py" = ["ANN001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
 
 [tool.ruff.lint.mccabe]
 # 15 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.

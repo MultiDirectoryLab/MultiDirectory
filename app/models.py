@@ -190,12 +190,23 @@ class EntityType(Base):
 
     @property
     def object_class_names_set(self) -> set[str]:
-        """Get object class names."""
+        """Get object class names.
+
+        Returns:
+            set[str]: object class names
+        """
         return set(self.object_class_names)
 
     @classmethod
     def generate_entity_type_name(cls, directory: Directory) -> str:
-        """Generate entity type name based on Directory."""
+        """Generate entity type name based on Directory.
+
+        Args:
+            directory (Directory): instance of Directory.
+
+        Returns:
+            str: entity type name.
+        """
         return f"{directory.name}_entity_type_{directory.id}"
 
 
@@ -234,12 +245,20 @@ class Directory(Base):
 
     @property
     def entity_type_name(self) -> str:
-        """Get entity type name."""
+        """Get entity type name.
+
+        Returns:
+            str: entity type name
+        """
         return self.entity_type.name if self.entity_type else ""
 
     @property
     def entity_type_object_class_names_set(self) -> set[str]:
-        """Get object class names of entity type."""
+        """Get object class names of entity type.
+
+        Returns:
+            set[str]: object class names of entity type.
+        """
         return (
             self.entity_type.object_class_names_set
             if self.entity_type
@@ -248,6 +267,11 @@ class Directory(Base):
 
     @property
     def object_class_names_set(self) -> set[str]:
+        """Object class names from directory's attribute.
+
+        Returns:
+            set[str]: object class names.
+        """
         return set(
             self.attributes_dict.get("objectClass", [])
             + self.attributes_dict.get("objectclass", [])

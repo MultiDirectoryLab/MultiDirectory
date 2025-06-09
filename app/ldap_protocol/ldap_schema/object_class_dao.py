@@ -76,14 +76,17 @@ class ObjectClassDAO:
     _session: AsyncSession
     _attribute_type_dao: AttributeTypeDAO
 
-    ObjectClassCantModifyError =
-
     def __init__(
         self,
         session: AsyncSession,
         attribute_type_dao: AttributeTypeDAO,
     ) -> None:
-        """Initialize Object Class DAO with session."""
+        """Initialize Object Class DAO with session.
+
+        Args:
+            session (AsyncSession): async db session.
+            attribute_type_dao (AttributeTypeDAO): Attribute Type DAO.
+        """
         self._session = session
         self._attribute_type_dao = attribute_type_dao
 
@@ -220,10 +223,9 @@ class ObjectClassDAO:
 
         Args:
             object_class_name (str): Object Class name.
-            session (AsyncSession): Database session.
 
         Returns:
-            ObjectClass | None: Object Class.
+            ObjectClass: Object Class.
 
         Raises:
             InstanceNotFoundError: Object class not found.
@@ -274,8 +276,9 @@ class ObjectClassDAO:
             new_statement (ObjectClassUpdateSchema): New statement of object
                 class
 
-        Raises: InstanceCantModifyError: If Object Class is system,\
-            it cannot be changed.
+        Raises:
+            InstanceCantModifyError: If Object Class is system,\
+                it cannot be changed.
         """
         if object_class.is_system:
             raise InstanceCantModifyError(

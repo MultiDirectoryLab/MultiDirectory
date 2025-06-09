@@ -107,7 +107,14 @@ class AbstractKRBManager(ABC):
 
     @abstractmethod
     async def get_princ(self, name: str) -> Principal | None:
-        """Get principal."""
+        """Get principal.
+
+        Args:
+            name (str): Principal name
+
+        Returns:
+            Principal | None:
+        """
 
     @abstractmethod
     async def change_password(self, name: str, new_password: str) -> None:
@@ -182,7 +189,11 @@ class KAdminLocalManager(AbstractKRBManager):
     client: KAdminProtocol
 
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
-        """Create threadpool and get loop."""
+        """Create threadpool and get loop.
+
+        Args:
+            loop (asyncio.AbstractEventLoop | None): event loop.
+        """
         self.loop = loop or asyncio.get_running_loop()
 
     async def connect(self) -> Self:
@@ -220,7 +231,11 @@ class KAdminLocalManager(AbstractKRBManager):
         await self.disconnect()
 
     async def _init_client(self) -> KAdminProtocol:
-        """Init kadmin local connection."""
+        """Init kadmin local connection.
+
+        Returns:
+            KAdminProtocol: client of kadmin.KAdmin
+        """
         return await self.loop.run_in_executor(self.pool, kadmv.local)
 
     async def add_princ(

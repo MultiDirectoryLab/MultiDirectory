@@ -59,8 +59,8 @@ async def create_access_policy(
         can_add (bool): can add
         can_modify (bool): can modify
         can_delete (bool): can delete
-        grant_dn (ENTRY_TYPE): main dn
-        groups (list[ENTRY_TYPE]): list of groups
+        grant_dn (GRANT_DN_STRING): main dn
+        groups (list[GRANT_DN_STRING]): list of groups
         session (AsyncSession): session
     """
     path = get_search_path(grant_dn)

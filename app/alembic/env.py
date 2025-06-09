@@ -22,7 +22,11 @@ target_metadata = Base.metadata
 
 
 def run_sync_migrations(connection: AsyncConnection):
-    """Run sync migrations."""
+    """Run sync migrations.
+
+    Args:
+        connection (AsyncConnection): async db connection.
+    """
     context.configure(
         connection=connection,
         target_metadata=target_metadata,

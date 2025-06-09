@@ -30,7 +30,14 @@ class EntityTypeSchema(BaseModel):
 
     @classmethod
     def from_db(cls, entity_type: EntityType) -> "EntityTypeSchema":
-        """Create an instance of Entity Type Schema from SQLA object."""
+        """Create an instance of Entity Type Schema from SQLA object.
+
+        Args:
+            entity_type (EntityType): Instance of Entity Type.
+
+        Returns:
+            EntityTypeSchema: Instance of Entity Type Schema.
+        """
         return cls(
             name=entity_type.name,
             is_system=entity_type.is_system,
@@ -57,7 +64,11 @@ class EntityTypeDAO:
     _session: AsyncSession
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize Entity Type DAO with a database session."""
+        """Initialize Entity Type DAO with a database session.
+
+        Args:
+            session (AsyncSession): async db session.
+        """
         self._session = session
 
     async def get_paginator(
@@ -234,7 +245,7 @@ class EntityTypeDAO:
                 is_system_entity_type=False,
             )
 
-        return None
+        return
 
     async def attach_entity_type_to_directory(
         self,

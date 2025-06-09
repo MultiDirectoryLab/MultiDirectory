@@ -121,6 +121,7 @@ class AddRequest(BaseRequest):
             session (AsyncSession): Async DB session
             ldap_session (LDAPSession): LDAP session
             kadmin (AbstractKadmin): Abstract Kerberos Admin
+            entity_type_dao (EntityTypeDAO): Entity Type DAO.
 
         Yields:
             AsyncGenerator[AddResponse, None]

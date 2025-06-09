@@ -279,7 +279,14 @@ class HTTPProvider(Provider):
         self,
         session: AsyncSession,
     ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
+        """Get Attribute Type DAO.
+
+        Args:
+            session (AsyncSession): async db session
+
+        Returns:
+            AttributeTypeDAO: Attribute Type DAO.
+        """
         return AttributeTypeDAO(session)
 
     @provide(provides=ObjectClassDAO)
@@ -287,7 +294,14 @@ class HTTPProvider(Provider):
         self,
         session: AsyncSession,
     ) -> ObjectClassDAO:
-        """Get Object Class DAO."""
+        """Get Object Class DAO.
+
+        Args:
+            session (AsyncSession): async db session.
+
+        Returns:
+            ObjectClassDAO: Object Class DAO.
+        """
         attribute_type_dao = AttributeTypeDAO(session)
         return ObjectClassDAO(
             attribute_type_dao=attribute_type_dao,
@@ -299,7 +313,14 @@ class HTTPProvider(Provider):
         self,
         session: AsyncSession,
     ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
+        """Get Entity Type DAO.
+
+        Args:
+            session (AsyncSession): async db session.
+
+        Returns:
+            EntityTypeDAO: Entity Type DAO.
+        """
         return EntityTypeDAO(session)
 
 

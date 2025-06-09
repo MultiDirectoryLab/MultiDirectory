@@ -74,6 +74,7 @@ async def setup_krb_catalogue(
         krbadmin_password (SecretStr): Kerberos admin password.
         ldap_session (LDAPSession): LDAP session.
         kadmin (AbstractKadmin): Kadmin manager.
+        entity_type_dao (EntityTypeDAO): Entity Type DAO.
 
     Raises:
         HTTPException: On conflict or failed creation.

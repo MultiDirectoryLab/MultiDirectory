@@ -71,7 +71,11 @@ class AttributeTypeDAO:
     _session: AsyncSession
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize Attribute Type DAO with session."""
+        """Initialize Attribute Type DAO with session.
+
+        Args:
+            session (AsyncSession): async db session.
+        """
         self._session = session
 
     async def get_paginator(
@@ -132,7 +136,7 @@ class AttributeTypeDAO:
             attribute_type_name (str): Attribute Type name.
 
         Returns:
-            AttributeType | None: Attribute Type.
+            AttributeType: Attribute Type.
 
         Raises:
             InstanceNotFoundError: Attribute Type not found.
@@ -206,7 +210,7 @@ class AttributeTypeDAO:
             attribute_type_names (list[str]): List of Attribute Types OIDs.
         """
         if not attribute_type_names:
-            return None
+            return
 
         await self._session.execute(
             delete(AttributeType)

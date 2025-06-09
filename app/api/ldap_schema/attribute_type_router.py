@@ -147,7 +147,7 @@ async def delete_bulk_attribute_types(
     """Delete Attribute Types by their names.
 
     Args:
-        attribute_types_names (list[str]): List of attribute type names.
+        attribute_types_names (LimitedListType): List of attribute type names.
         session (AsyncSession): Database session.
         attribute_type_dao (AttributeTypeDAO): Attribute Type dao.
     """

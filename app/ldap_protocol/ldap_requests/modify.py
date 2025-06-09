@@ -179,6 +179,7 @@ class ModifyRequest(BaseRequest):
             session_storage (SessionStorage): Session storage
             kadmin (AbstractKadmin): Kadmin
             settings (Settings): Settings
+            entity_type_dao (EntityTypeDAO): Entity Type DAO.
 
         Yields:
             AsyncGenerator[ModifyResponse, None]
@@ -304,7 +305,11 @@ class ModifyRequest(BaseRequest):
                 raise Exception
 
     def _get_dir_query(self) -> Select[tuple[Directory]]:
-        """Get directory query."""
+        """Get directory query.
+
+        Returns:
+            Select[tuple[Directory]]: SQLAlchemy select query.
+        """
         return (
             select(Directory)
             .join(Directory.attributes)
