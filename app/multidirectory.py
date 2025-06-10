@@ -17,7 +17,6 @@ from alembic.config import Config, command
 from dishka import make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
-from event_handler import EventHandler
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import exc as sa_exc
@@ -43,6 +42,7 @@ from api.exception_handlers import (
     handle_instance_not_found_error,
 )
 from config import Settings
+from event_handler import EventHandler
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
     EventHandlerProvider,
