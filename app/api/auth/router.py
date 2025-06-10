@@ -156,7 +156,6 @@ async def login(
         ip,
         user_agent,
     )
-    return user.sam_accout_name, response  #  type: ignore
 
 
 @auth_router.get("/me")
