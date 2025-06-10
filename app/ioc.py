@@ -226,14 +226,6 @@ class HTTPProvider(Provider):
             session=session,
         )
 
-    @provide(provides=EntityTypeDAO)
-    def get_entity_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
-
 
 class LDAPServerProvider(Provider):
     """Provider with session scope."""
