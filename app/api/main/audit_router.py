@@ -89,7 +89,7 @@ async def get_audit_destinations(
     :return list[AuditDestinationSchema]: List of destinations.
     """
     return [
-        AuditDestinationSchema.model_validate(model)
+        AuditDestinationSchema.model_validate(model.__dict__)
         for model in await session.scalars(select(AuditDestination))
     ]
 
