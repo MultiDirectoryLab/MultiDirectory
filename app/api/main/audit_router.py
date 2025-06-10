@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import inject
+from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
 from sqlalchemy import select
@@ -25,11 +25,11 @@ audit_router = APIRouter(
     prefix="/audit",
     tags=["Audit policy"],
     dependencies=[Depends(get_current_user)],
+    route_class=DishkaRoute,
 )
 
 
 @audit_router.get("/policies", status_code=status.HTTP_201_CREATED)
-@inject
 async def get_audit_policies(
     session: FromDishka[AsyncSession],
 ) -> list[AuditPolicySchema]:
@@ -45,7 +45,6 @@ async def get_audit_policies(
 
 
 @audit_router.put("/policy")
-@inject
 async def update_network_policy(
     policy: AuditPolicySchema,
     session: FromDishka[AsyncSession],
@@ -82,7 +81,6 @@ async def update_network_policy(
 
 
 @audit_router.get("/destinations")
-@inject
 async def get_audit_destinations(
     session: FromDishka[AsyncSession],
 ) -> list[AuditDestinationSchema]:
@@ -97,7 +95,6 @@ async def get_audit_destinations(
 
 
 @audit_router.post("/destination", status_code=status.HTTP_201_CREATED)
-@inject
 async def add_audit_destination(
     model: AuditDestinationSchemaRequest,
     session: FromDishka[AsyncSession],
@@ -130,7 +127,6 @@ async def add_audit_destination(
 
 
 @audit_router.put("/destination")
-@inject
 async def update_audit_destination(
     model: AuditDestinationSchema,
     session: FromDishka[AsyncSession],
@@ -170,7 +166,6 @@ async def update_audit_destination(
 
 
 @audit_router.delete("/destination/{destination_id}")
-@inject
 async def delete_audit_destination(
     destination_id: int,
     session: FromDishka[AsyncSession],
