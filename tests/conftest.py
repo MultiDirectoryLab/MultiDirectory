@@ -125,6 +125,50 @@ class TestProvider(Provider):
             ]
         )
         dns_manager.setup = AsyncMock()
+        dns_manager.create_zone = AsyncMock()
+        dns_manager.update_zone = AsyncMock()
+        dns_manager.delete_zone = AsyncMock()
+        dns_manager.update_server_options = AsyncMock()
+        dns_manager.get_server_options = AsyncMock(
+            return_value=[
+                {
+                    "name": "dnssec-validation",
+                    "value": "no",
+                },
+            ],
+        )
+        dns_manager.get_forward_zones = AsyncMock(
+            return_value=[
+                {
+                    "zone_name": "test.local",
+                    "zone_type": "forward",
+                    "forwarders": [
+                        "127.0.0.1",
+                        "127.0.0.2",
+                    ],
+                },
+            ],
+        )
+        dns_manager.get_all_zones_records = AsyncMock(
+            return_value=[
+                {
+                    "zone_name": "test.local",
+                    "zone_type": "master",
+                    "records": [
+                        {
+                            "record_type": "A",
+                            "records": [
+                                {
+                                    "record_name": "example.com",
+                                    "record_value": "127.0.0.1",
+                                    "ttl": 3600,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        )
 
         if not self._cached_dns_manager:
             self._cached_dns_manager = dns_manager
