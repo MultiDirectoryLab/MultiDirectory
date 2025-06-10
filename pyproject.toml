@@ -197,6 +197,7 @@ known-first-party = [
     "ioc",
     "schedule",
     "extra",
+    "audit_models",
 ]
 known-third-party = [
     "alembic",  # https://github.com/astral-sh/ruff/issues/10519
