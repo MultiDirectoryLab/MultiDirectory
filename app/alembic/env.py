@@ -4,9 +4,9 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from audit_models import Base as AuditBase
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from audit_models import Base as AuditBase
 from config import Settings
 from models import Base as MainBase
 
