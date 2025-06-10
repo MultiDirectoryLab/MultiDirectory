@@ -9,7 +9,7 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import AsyncIterator, Callable
+from typing import AsyncIterator, Callable, Coroutine
 
 import uvicorn
 import uvloop
@@ -23,6 +23,7 @@ from sqlalchemy import exc as sa_exc
 
 from api import (
     access_policy_router,
+    audit_router,
     auth_router,
     dns_router,
     entry_router,
@@ -41,8 +42,10 @@ from api.exception_handlers import (
     handle_instance_not_found_error,
 )
 from config import Settings
+from event_handler import EventHandler
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
+    EventHandlerProvider,
     HTTPProvider,
     LDAPServerProvider,
     MainProvider,
@@ -55,7 +58,7 @@ from ldap_protocol.exceptions import (
     InstanceNotFoundError,
 )
 from ldap_protocol.server import PoolClientHandler
-from schedule import scheduler
+from schedule import EVENTS_TASKS, MAINTENCE_TASKS, _schedule
 
 
 async def proc_time_header_middleware(
@@ -95,6 +98,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(auth_router)
     app.include_router(entry_router)
     app.include_router(network_router)
+    app.include_router(audit_router)
     app.include_router(mfa_router)
     app.include_router(pwd_router)
     app.include_router(krb5_router)
@@ -153,6 +157,7 @@ def create_prod_app(
         MFAProvider(),
         HTTPProvider(),
         MFACredsProvider(),
+        EventHandlerProvider(),
         context={Settings: settings},
     )
 
@@ -160,31 +165,14 @@ def create_prod_app(
     return app
 
 
-create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
-
-
-def ldap(settings: Settings) -> None:
+def run_server(
+    factory: Callable[[Settings], Coroutine],
+    settings: Settings,
+) -> None:
     """Run server."""
 
-    async def _servers(settings: Settings) -> None:
-        servers = []
-
-        for setting in (settings, settings.get_copy_4_tls()):
-            container = make_async_container(
-                LDAPServerProvider(),
-                MainProvider(),
-                MFAProvider(),
-                MFACredsProvider(),
-                context={Settings: setting},
-            )
-
-            settings = await container.get(Settings)
-            servers.append(PoolClientHandler(settings, container).start())
-
-        await asyncio.gather(*servers)
-
     def _run() -> None:
-        uvloop.run(_servers(settings), debug=settings.DEBUG)
+        uvloop.run(factory(settings), debug=settings.DEBUG)
 
     try:
         import py_hot_reload
@@ -197,6 +185,67 @@ def ldap(settings: Settings) -> None:
             _run()
 
 
+async def ldap_factory(settings: Settings) -> None:
+    """LDAP server factory."""
+    servers = []
+
+    for setting in (settings, settings.get_copy_4_tls()):
+        container = make_async_container(
+            LDAPServerProvider(),
+            MainProvider(),
+            MFAProvider(),
+            MFACredsProvider(),
+            context={Settings: setting},
+        )
+
+        settings = await container.get(Settings)
+        servers.append(PoolClientHandler(settings, container).start())
+
+    await asyncio.gather(*servers)
+
+
+async def maintence_scheduler_factory(settings: Settings) -> None:
+    """Script entrypoint for maintence scheduler."""
+    container = make_async_container(
+        MainProvider(),
+        context={Settings: settings},
+    )
+
+    async with asyncio.TaskGroup() as tg:
+        for task, timeout in MAINTENCE_TASKS:
+            tg.create_task(_schedule(task, timeout, container))
+
+
+async def events_scheduler_factory(settings: Settings) -> None:
+    """Script entrypoint for maintence scheduler."""
+    container = make_async_container(
+        MainProvider(),
+        EventHandlerProvider(),
+        context={Settings: settings},
+    )
+
+    async with asyncio.TaskGroup() as tg:
+        for task, timeout in EVENTS_TASKS:
+            tg.create_task(_schedule(task, timeout, container))
+
+
+async def event_handler_factory(settings: Settings) -> None:
+    """Run event handler."""
+    main_container = make_async_container(
+        MainProvider(),
+        EventHandlerProvider(),
+        context={Settings: settings},
+    )
+
+    await asyncio.gather(EventHandler(settings, main_container).start())
+
+
+create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
+ldap_server = partial(run_server, factory=ldap_factory)
+maintence_scheduler = partial(run_server, factory=maintence_scheduler_factory)
+events_scheduler = partial(run_server, factory=events_scheduler_factory)
+event_handler = partial(run_server, factory=event_handler_factory)
+
 if __name__ == "__main__":
     settings = Settings.from_os()
 
@@ -206,10 +255,12 @@ if __name__ == "__main__":
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
+    group.add_argument("--event_sender", action="store_true", help="Run tasks")
     group.add_argument(
-        "--certs_dumper",
-        action="store_true",
-        help="Dump certs",
+        "--event_handler", action="store_true", help="Run event_handler"
+    )
+    group.add_argument(
+        "--certs_dumper", action="store_true", help="Dump certs"
     )
     group.add_argument(
         "--migrate",
@@ -220,7 +271,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ldap:
-        ldap(settings)
+        ldap_server(settings=settings)
 
     elif args.shadow:
         uvicorn.run(
@@ -242,8 +293,18 @@ if __name__ == "__main__":
             factory=True,
         )
     elif args.scheduler:
-        scheduler(settings)
+        maintence_scheduler(settings=settings)
+    elif args.event_sender:
+        events_scheduler(settings=settings)
     elif args.certs_dumper:
         dump_acme_cert()
     elif args.migrate:
-        command.upgrade(Config("alembic.ini"), "head")
+        alembic_cfg = Config("alembic.ini", ini_section="main")
+        alembic_cfg.attributes["db_type"] = "main"
+        command.upgrade(alembic_cfg, "head")
+
+        alembic_cfg = Config("alembic.ini", ini_section="audit")
+        alembic_cfg.attributes["db_type"] = "audit"
+        command.upgrade(alembic_cfg, "head")
+    elif args.event_handler:
+        event_handler(settings=settings)

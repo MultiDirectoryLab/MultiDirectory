@@ -19,6 +19,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
@@ -68,7 +69,7 @@ class ModifyDNRequest(BaseRequest):
         >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
-    PROTOCOL_OP: ClassVar[int] = 12
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY_DN
 
     entry: str
     newrdn: str
@@ -89,6 +90,8 @@ class ModifyDNRequest(BaseRequest):
         self,
         ldap_session: LDAPSession,
         session: AsyncSession,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:

@@ -18,6 +18,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
@@ -38,7 +39,7 @@ class DeleteRequest(BaseRequest):
     DelRequest ::= [APPLICATION 10] LDAPDN
     """
 
-    PROTOCOL_OP: ClassVar[int] = 10
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.DELETE
 
     entry: str
 
@@ -52,6 +53,8 @@ class DeleteRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         session_storage: SessionStorage,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
         if not ldap_session.user:
@@ -76,6 +79,10 @@ class DeleteRequest(BaseRequest):
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
+
+        self.set_event_data(
+            {"before_attrs": self.get_directory_attrs(directory)}
+        )
 
         if not await session.scalar(
             mutate_ap(query, ldap_session.user, "del"),

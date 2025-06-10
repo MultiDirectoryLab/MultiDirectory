@@ -6,10 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from __future__ import annotations
 
-import enum
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
+from enum import IntEnum, StrEnum
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -20,6 +20,7 @@ from sqlalchemy import (
     ForeignKey,
     LargeBinary,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -35,7 +36,6 @@ from sqlalchemy.orm import (
     relationship,
     synonym,
 )
-from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
@@ -62,13 +62,13 @@ UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
 @compiles(UniqueConstraint, "postgresql")
 def compile_create_uc(
-    create: DDLElement,
+    create: UniqueConstraint,
     compiler: DDLCompiler,
     **kw: dict,
 ) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
-    postgresql_opts = create.dialect_options["postgresql"]  # type: ignore
+    postgresql_opts = create.dialect_options["postgresql"]
 
     if postgresql_opts.get("nulls_not_distinct"):
         return stmt.rstrip().replace("UNIQUE (", "UNIQUE NULLS NOT DISTINCT (")
@@ -289,6 +289,7 @@ class Directory(Base):
     attributes: Mapped[list[Attribute]] = relationship(
         "Attribute",
         cascade="all",
+        lazy="selectin",
         passive_deletes=True,
     )
 
@@ -829,7 +830,7 @@ class ObjectClass(Base):
         return f"ObjectClass({self.oid}:{self.name})"
 
 
-class MFAFlags(int, enum.Enum):
+class MFAFlags(IntEnum):
     """Two-Factor auth action."""
 
     DISABLED = 0
@@ -955,3 +956,111 @@ class AccessPolicy(Base):
         secondary=GroupAccessPolicyMembership.__table__,
         back_populates="access_policies",
     )
+
+
+class AuditSeverity(IntEnum):
+    """Audit policy severity."""
+
+    EMERGENCY = 0
+    ALERT = 1
+    CRITICAL = 2
+    ERROR = 3
+    WARNING = 4
+    NOTICE = 5
+    INFO = 6
+    DEBUG = 7
+
+
+class AuditPolicy(Base):
+    """Audit policy."""
+
+    __tablename__ = "AuditPolicies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+
+    is_enabled: Mapped[bool] = mapped_column(
+        nullable=False, server_default=expression.false()
+    )
+    severity: Mapped[AuditSeverity] = mapped_column(
+        Enum(AuditSeverity),
+        nullable=False,
+    )
+
+    triggers: Mapped[list[AuditPolicyTrigger]] = relationship(
+        "AuditPolicyTrigger",
+        back_populates="audit_policy",
+        cascade="all",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+
+class AuditPolicyTrigger(Base):
+    """Audit policy triggers."""
+
+    __tablename__ = "AuditPolicyTriggers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    is_ldap: Mapped[tbool]
+    is_http: Mapped[tbool]
+    operation_code: Mapped[int]
+    object_class: Mapped[str]
+    additional_info: Mapped[dict] = mapped_column(
+        postgresql.JSON, nullable=True
+    )
+    operation_success: Mapped[nbool]
+
+    audit_policy_id: Mapped[int] = mapped_column(
+        "audit_policy_id",
+        ForeignKey("AuditPolicies.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    audit_policy: Mapped[AuditPolicy] = relationship(
+        "AuditPolicy",
+        uselist=False,
+        back_populates="triggers",
+        lazy="selectin",
+    )
+
+
+class AuditDestinationProtocolType(StrEnum):
+    """Audit destination protocol type."""
+
+    UDP = "udp"
+    TCP = "tcp"
+    TLS = "tls"
+
+
+class AuditDestinationServiceType(StrEnum):
+    """Audit destination type."""
+
+    SYSLOG = "syslog"
+
+
+class AuditDestination(Base):
+    """Audit destinations."""
+
+    __tablename__ = "AuditDestinations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    service_type: Mapped[AuditDestinationServiceType] = mapped_column(
+        Enum(AuditDestinationServiceType), nullable=False
+    )
+    is_enabled: Mapped[tbool]
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    port: Mapped[int] = mapped_column(nullable=False)
+    username: Mapped[str | None] = mapped_column(String(255))
+    password: Mapped[str | None] = mapped_column(String(255))
+    protocol: Mapped[AuditDestinationProtocolType] = mapped_column(
+        Enum(AuditDestinationProtocolType),
+        nullable=False,
+    )
+    tls_verify_cert: Mapped[bool] = mapped_column(
+        nullable=False, server_default=expression.false()
+    )
+    ca_cert_data: Mapped[str | None] = mapped_column(Text)
+    client_cert_data: Mapped[str | None] = mapped_column(Text)
+    client_key_data: Mapped[str | None] = mapped_column(Text)
