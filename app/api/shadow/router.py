@@ -100,8 +100,13 @@ async def sync_password(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    policy = await PasswordPolicySchema.get_policy_settings(session)
-    errors = await policy.validate_password_with_policy(new_password, user)
+    password_policy = await PasswordPolicySchema.get_ensure_password_policy(
+        session
+    )
+    errors = await password_policy.validate_password_with_policy(
+        new_password,
+        user,
+    )
 
     if errors:
         raise HTTPException(

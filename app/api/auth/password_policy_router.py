@@ -34,7 +34,7 @@ async def get_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Get current policy setting."""
-    return await PasswordPolicySchema.get_policy_settings(session)
+    return await PasswordPolicySchema.get_ensure_password_policy(session)
 
 
 @password_policy_router.put("")
@@ -43,7 +43,7 @@ async def update_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Update current policy setting."""
-    await policy.update_policy_settings(session)
+    await policy.update_password_policy(session)
     return policy
 
 
@@ -52,4 +52,4 @@ async def reset_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Reset current policy setting."""
-    return await PasswordPolicySchema.delete_policy_settings(session)
+    return await PasswordPolicySchema.delete_password_policy(session)

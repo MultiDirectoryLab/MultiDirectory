@@ -136,13 +136,15 @@ class ModifyRequest(BaseRequest):
         ):
             return
 
-        policy = await PasswordPolicySchema.get_policy_settings(session)
+        password_policy = (
+            await PasswordPolicySchema.get_ensure_password_policy(session)
+        )
 
-        if policy.maximum_password_age_days == 0:
+        if password_policy.maximum_password_age_days == 0:
             return
 
         now = datetime.now(timezone.utc)
-        now += timedelta(days=policy.maximum_password_age_days)
+        now += timedelta(days=password_policy.maximum_password_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(
@@ -544,21 +546,23 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                validator = await PasswordPolicySchema.get_policy_settings(
-                    session
+                password_policy = (
+                    await PasswordPolicySchema.get_ensure_password_policy(
+                        session
+                    )
                 )
 
-                p_last_set = await validator.get_pwd_last_set(
+                p_last_set = await password_policy.get_ensure_pwd_last_set(
                     session,
                     directory.id,
                 )
 
-                errors = await validator.validate_password_with_policy(
+                errors = await password_policy.validate_password_with_policy(
                     password=value,
                     user=directory.user,
                 )
 
-                if validator.validate_min_age(p_last_set):
+                if password_policy.validate_min_age(p_last_set):
                     errors.append("Minimum age violation")
 
                 if errors:

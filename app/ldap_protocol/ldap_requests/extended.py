@@ -206,19 +206,21 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await session.get(User, ldap_session.user.id)  # type: ignore
 
-        validator = await PasswordPolicySchema.get_policy_settings(session)
+        password_policy = (
+            await PasswordPolicySchema.get_ensure_password_policy(session)
+        )
 
-        errors = await validator.validate_password_with_policy(
+        errors = await password_policy.validate_password_with_policy(
             password=new_password,
             user=user,
         )
 
-        p_last_set = await validator.get_pwd_last_set(
+        p_last_set = await password_policy.get_ensure_pwd_last_set(
             session,
             user.directory_id,
         )
 
-        if validator.validate_min_age(p_last_set):
+        if password_policy.validate_min_age(p_last_set):
             errors.append("Minimum age violation")
 
         if not errors and (

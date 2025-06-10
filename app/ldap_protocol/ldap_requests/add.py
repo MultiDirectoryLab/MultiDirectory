@@ -148,9 +148,11 @@ class AddRequest(BaseRequest):
             return
 
         if self.password is not None:
-            validator = await PasswordPolicySchema.get_policy_settings(session)
+            password_policy = (
+                await PasswordPolicySchema.get_ensure_password_policy(session)
+            )
             raw_password = self.password.get_secret_value()
-            errors = await validator.validate_password_with_policy(
+            errors = await password_policy.validate_password_with_policy(
                 password=raw_password,
                 user=None,
             )

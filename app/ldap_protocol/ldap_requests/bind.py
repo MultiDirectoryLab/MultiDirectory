@@ -170,12 +170,14 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        policy_pwd = await PasswordPolicySchema.get_policy_settings(session)
-        p_last_set = await policy_pwd.get_pwd_last_set(
+        password_policy = (
+            await PasswordPolicySchema.get_ensure_password_policy(session)
+        )
+        p_last_set = await password_policy.get_ensure_pwd_last_set(
             session=session,
             directory_id=user.directory_id,
         )
-        pwd_expired = policy_pwd.validate_max_age(p_last_set)
+        pwd_expired = password_policy.validate_max_age(p_last_set)
 
         is_krb_user = await check_kerberos_group(user, session)
 

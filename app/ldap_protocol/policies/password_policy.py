@@ -92,22 +92,22 @@ class PasswordPolicySchema(BaseModel):
         return self
 
     @classmethod
-    async def get_policy_settings(
+    async def get_ensure_password_policy(
         cls,
         session: AsyncSession,
     ) -> "PasswordPolicySchema":
-        """Get policy settings.
+        """Get ensure password policy.
 
         :param AsyncSession session: db
         :return PasswordPolicySchema: policy
         """
-        policy = await session.scalar(select(PasswordPolicy))
-        if not policy:
+        password_policy = await session.scalar(select(PasswordPolicy))
+        if not password_policy:
             return await cls().create_policy_settings(session)
-        return cls.model_validate(policy, from_attributes=True)
+        return cls.model_validate(password_policy, from_attributes=True)
 
-    async def update_policy_settings(self, session: AsyncSession) -> None:
-        """Update policy.
+    async def update_password_policy(self, session: AsyncSession) -> None:
+        """Update password policy.
 
         :param AsyncSession session: db
         """
@@ -116,8 +116,9 @@ class PasswordPolicySchema(BaseModel):
         )
         await session.commit()
 
+    # FIXME: why is it "delete"? its update
     @classmethod
-    async def delete_policy_settings(
+    async def delete_password_policy(
         cls,
         session: AsyncSession,
     ) -> "PasswordPolicySchema":
@@ -127,11 +128,11 @@ class PasswordPolicySchema(BaseModel):
         :return PasswordPolicySchema: schema policy
         """
         default_policy = cls()
-        await default_policy.update_policy_settings(session)
+        await default_policy.update_password_policy(session)
         return default_policy
 
     @staticmethod
-    def _count_password_exists_days(last_pwd_set: Attribute) -> int:
+    def _count_password_age_days(last_pwd_set: Attribute) -> int:
         """Get number of days, pwd exists.
 
         :param Attribute last_pwd_set: pwdLastSet
@@ -149,7 +150,7 @@ class PasswordPolicySchema(BaseModel):
         return (now - val).days
 
     @staticmethod
-    async def get_pwd_last_set(
+    async def get_ensure_pwd_last_set(
         session: AsyncSession,
         directory_id: int,
     ) -> Attribute:
@@ -191,9 +192,9 @@ class PasswordPolicySchema(BaseModel):
         if self.minimum_password_age_days == 0:
             return False
 
-        password_exists = self._count_password_exists_days(last_pwd_set)
+        password_age_days = self._count_password_age_days(last_pwd_set)
 
-        return password_exists < self.minimum_password_age_days
+        return password_age_days < self.minimum_password_age_days
 
     def validate_max_age(self, last_pwd_set: Attribute) -> bool:
         """Validate max password change age.
@@ -208,9 +209,9 @@ class PasswordPolicySchema(BaseModel):
         if self.maximum_password_age_days == 0:
             return False
 
-        password_exists = self._count_password_exists_days(last_pwd_set)
+        password_age_days = self._count_password_age_days(last_pwd_set)
 
-        return password_exists > self.maximum_password_age_days
+        return password_age_days > self.maximum_password_age_days
 
     async def validate_password_with_policy(
         self,
