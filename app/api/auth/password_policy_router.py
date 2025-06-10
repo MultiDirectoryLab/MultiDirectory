@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth import get_current_user
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 
-pwd_router = APIRouter(
+password_policy_router = APIRouter(
     prefix="/password-policy",
     dependencies=[Depends(get_current_user)],
     tags=["Password policy"],
@@ -20,7 +20,7 @@ pwd_router = APIRouter(
 )
 
 
-@pwd_router.post("", status_code=status.HTTP_201_CREATED)
+@password_policy_router.post("", status_code=status.HTTP_201_CREATED)
 async def create_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
@@ -29,7 +29,7 @@ async def create_policy(
     return await policy.create_policy_settings(session)
 
 
-@pwd_router.get("")
+@password_policy_router.get("")
 async def get_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
@@ -37,7 +37,7 @@ async def get_policy(
     return await PasswordPolicySchema.get_policy_settings(session)
 
 
-@pwd_router.put("")
+@password_policy_router.put("")
 async def update_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
@@ -47,7 +47,7 @@ async def update_policy(
     return policy
 
 
-@pwd_router.delete("")
+@password_policy_router.delete("")
 async def reset_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:

@@ -30,7 +30,7 @@ from api import (
     ldap_schema_router,
     mfa_router,
     network_router,
-    pwd_router,
+    password_policy_router,
     session_router,
     shadow_router,
 )
@@ -96,7 +96,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(entry_router)
     app.include_router(network_router)
     app.include_router(mfa_router)
-    app.include_router(pwd_router)
+    app.include_router(password_policy_router)
     app.include_router(krb5_router)
     app.include_router(dns_router)
     app.include_router(session_router)
