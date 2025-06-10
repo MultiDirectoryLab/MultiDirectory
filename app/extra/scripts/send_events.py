@@ -12,12 +12,12 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from audit_models import AuditLog
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ulid import ULID
 
+from audit_models import AuditLog
 from ioc import EventAsyncSession
 from models import (
     AuditDestination,
