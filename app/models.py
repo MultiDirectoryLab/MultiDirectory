@@ -68,7 +68,7 @@ def compile_create_uc(
 ) -> str:
     """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
-    postgresql_opts = create.dialect_options["postgresql"]  # type: ignore
+    postgresql_opts = create.dialect_options["postgresql"]
 
     if postgresql_opts.get("nulls_not_distinct"):
         return stmt.rstrip().replace("UNIQUE (", "UNIQUE NULLS NOT DISTINCT (")
