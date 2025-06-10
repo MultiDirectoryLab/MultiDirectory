@@ -223,7 +223,7 @@ async def update_server_options(
     await dns_manager.update_server_options(data)
 
 
-@dns_router.get("/server/settings")
+@dns_router.get("/server/options")
 async def get_server_options(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSServerParam]:
