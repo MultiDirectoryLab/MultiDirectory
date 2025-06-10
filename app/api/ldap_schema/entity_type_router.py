@@ -37,11 +37,11 @@ async def create_one_entity_type(
     """Create a new Entity Type.
 
     \f
-    :param EntityTypeSchema request_data: Data for creating Entity Type.
-    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None.
+    Args:
+        request_data (EntityTypeSchema): Data for creating Entity Type.
+        entity_type_dao (EntityTypeDAO): Entity Type DAO.
+        object_class_dao (ObjectClassDAO): Object Class DAO.
+        session (AsyncSession): Database session.
     """
     await object_class_dao.is_all_object_classes_exists(
         request_data.object_class_names
@@ -67,9 +67,12 @@ async def get_one_entity_type(
     """Retrieve a one Entity Type.
 
     \f
-    :param str entity_type_name: name of the Entity Type.
-    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
-    :return EntityTypeSchema: Entity Type Schema.
+    Args:
+        entity_type_name (str): name of the Entity Type.
+        entity_type_dao (EntityTypeDAO): Entity Type DAO.
+
+    Returns:
+        EntityTypeSchema: Entity Type Schema.
     """
     entity_type = await entity_type_dao.get_one_by_name(entity_type_name)
     return EntityTypeSchema.from_db(entity_type)
@@ -87,9 +90,12 @@ async def get_list_entity_types_with_pagination(
     """Retrieve a chunk of Entity Types with pagination.
 
     \f
-    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
-    :param PaginationParams params: Pagination parameters.
-    :return EntityTypePaginationSchema: Paginator Schema.
+    Args:
+        entity_type_dao (EntityTypeDAO): Entity Type DAO.
+        params (PaginationParams): Pagination parameters.
+
+    Returns:
+        EntityTypePaginationSchema: Paginator Schema.
     """
     pagination_result = await entity_type_dao.get_paginator(params=params)
 
@@ -116,12 +122,12 @@ async def modify_one_entity_type(
     """Modify an Entity Type.
 
     \f
-    :param str entity_type_name: Name of the Entity Type for modifying.
-    :param EntityTypeUpdateSchema request_data: Changed data.
-    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None.
+    Args:
+        entity_type_name (str): Name of the Entity Type for modifying.
+        request_data (EntityTypeUpdateSchema): Changed data.
+        entity_type_dao (EntityTypeDAO): Entity Type DAO.
+        object_class_dao (ObjectClassDAO): Object Class DAO.
+        session (AsyncSession): Database session.
     """
     entity_type = await entity_type_dao.get_one_by_name(entity_type_name)
 
@@ -145,10 +151,10 @@ async def delete_bulk_entity_types(
     """Delete Entity Types by their names.
 
     \f
-    :param LimitedListType entity_type_names: List of Entity Type names.
-    :param FromDishka[EntityTypeDAO] entity_type_dao: Entity Type DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None: None
+    Args:
+        entity_type_names (LimitedListType): List of Entity Type names.
+        entity_type_dao (EntityTypeDAO): Entity Type DAO.
+        session (AsyncSession): Database session.
     """
     await entity_type_dao.delete_all_by_names(entity_type_names)
     await session.commit()

@@ -53,7 +53,14 @@ class MainProvider(Provider):
 
     @provide(scope=Scope.APP)
     def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine."""
+        """Get async engine.
+
+        Args:
+            settings (Settings): settings.
+
+        Returns:
+            AsyncEngine:
+        """
         return create_async_engine(
             str(settings.POSTGRES_URI),
             pool_size=settings.INSTANCE_DB_POOL_SIZE,
@@ -70,7 +77,14 @@ class MainProvider(Provider):
         self,
         engine: AsyncEngine,
     ) -> async_sessionmaker[AsyncSession]:
-        """Create session factory."""
+        """Create session factory.
+
+        Args:
+            engine (AsyncEngine): Async Engine.
+
+        Returns:
+            async_sessionmaker[AsyncSession]:
+        """
         return async_sessionmaker(engine, expire_on_commit=False)
 
     @provide(scope=Scope.REQUEST)
@@ -78,7 +92,14 @@ class MainProvider(Provider):
         self,
         async_session: async_sessionmaker[AsyncSession],
     ) -> AsyncIterator[AsyncSession]:
-        """Create session for request."""
+        """Create session for request.
+
+        Args:
+            async_session (async_sessionmaker[AsyncSession]): async db session
+
+        Yields:
+            AsyncIterator[AsyncSession]
+        """
         async with async_session() as session:
             yield session
             await session.commit()
@@ -88,7 +109,14 @@ class MainProvider(Provider):
         self,
         session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractKadmin]:
-        """Get kerberos type."""
+        """Get kerberos type.
+
+        Args:
+            session_maker (async_sessionmaker[AsyncSession]): session maker
+
+        Returns:
+            type[AbstractKadmin]: kerberos class
+        """
         async with session_maker() as session:
             return await get_kerberos_class(session)
 
@@ -99,10 +127,11 @@ class MainProvider(Provider):
     ) -> AsyncIterator[KadminHTTPClient]:
         """Get kadmin class, inherits from AbstractKadmin.
 
-        :param Settings settings: app settings
-        :param AsyncSessionMaker session_maker: session maker
-        :return AsyncIterator[AbstractKadmin]: kadmin with client
-        :yield Iterator[AsyncIterator[AbstractKadmin]]: kadmin
+        Args:
+            settings (Settings): app settings
+
+        Yields:
+            AsyncIterator[AbstractKadmin]: kadmin with client
         """
         limits = httpx.Limits(
             max_connections=settings.KRB5_SERVER_MAX_CONN,
@@ -124,10 +153,12 @@ class MainProvider(Provider):
     ) -> AbstractKadmin:
         """Get kadmin class, inherits from AbstractKadmin.
 
-        :param Settings settings: app settings
-        :param AsyncSessionMaker session_maker: session maker
-        :return AsyncIterator[AbstractKadmin]: kadmin with client
-        :yield Iterator[AsyncIterator[AbstractKadmin]]: kadmin
+        Args:
+            client (KadminHTTPClient): app settings
+            kadmin_class (type[AbstractKadmin]): session maker
+
+        Returns:
+            AbstractKadmin: kadmin with client
         """
         return kadmin_class(client)
 
@@ -136,7 +167,14 @@ class MainProvider(Provider):
         self,
         session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractDNSManager]:
-        """Get DNS manager type."""
+        """Get DNS manager type.
+
+        Args:
+            session_maker (async_sessionmaker[AsyncSession]): session maker
+
+        Returns:
+            type[AbstractDNSManager]: DNS manager class
+        """
         async with session_maker() as session:
             return await get_dns_manager_class(session)
 
@@ -146,7 +184,15 @@ class MainProvider(Provider):
         session_maker: async_sessionmaker[AsyncSession],
         settings: Settings,
     ) -> DNSManagerSettings:
-        """Get DNS manager's settings."""
+        """Get DNS manager's settings.
+
+        Args:
+            session_maker (async_sessionmaker[AsyncSession]): session maker
+            settings (Settings): app settings
+
+        Returns:
+            DNSManagerSettings: DNS manager settings
+        """
         resolve_coro = resolve_dns_server_ip(settings.DNS_BIND_HOST)
         async with session_maker() as session:
             return await get_dns_manager_settings(session, resolve_coro)
@@ -157,7 +203,15 @@ class MainProvider(Provider):
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
     ) -> AsyncIterator[AbstractDNSManager]:
-        """Get DNSManager class."""
+        """Get DNSManager class.
+
+        Args:
+            settings (DNSManagerSettings): DNS Manager settings
+            dns_manager_class (type[AbstractDNSManager]): manager class
+
+        Yields:
+            AsyncIterator[AbstractDNSManager]
+        """
         yield dns_manager_class(settings=settings)
 
     @provide(scope=Scope.REQUEST)
@@ -173,7 +227,17 @@ class MainProvider(Provider):
         self,
         settings: Settings,
     ) -> AsyncIterator[SessionStorageClient]:
-        """Get redis connection."""
+        """Get redis connection.
+
+        Args:
+            settings: Settings with database dsn.
+
+        Yields:
+            AsyncIterator[SessionStorageClient]
+
+        Raises:
+            SystemError: Redis is not available
+        """
         client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
 
         if not await client.ping():
@@ -188,7 +252,15 @@ class MainProvider(Provider):
         client: SessionStorageClient,
         settings: Settings,
     ) -> SessionStorage:
-        """Get session storage."""
+        """Get session storage.
+
+        Args:
+            client (SessionStorageClient): session storage client
+            settings (Settings): app settings
+
+        Returns:
+            SessionStorage: session storage
+        """
         return RedisSessionStorage(
             client,
             settings.SESSION_KEY_LENGTH,
@@ -203,7 +275,11 @@ class HTTPProvider(Provider):
 
     @provide(provides=LDAPSession)
     async def get_session(self) -> LDAPSession:
-        """Create ldap session."""
+        """Create ldap session.
+
+        Returns:
+            LDAPSession: ldap session
+        """
         return LDAPSession()
 
     @provide(provides=AttributeTypeDAO)
@@ -211,7 +287,14 @@ class HTTPProvider(Provider):
         self,
         session: AsyncSession,
     ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
+        """Get Attribute Type DAO.
+
+        Args:
+            session (AsyncSession): async db session
+
+        Returns:
+            AttributeTypeDAO: Attribute Type DAO.
+        """
         return AttributeTypeDAO(session)
 
     @provide(provides=ObjectClassDAO)
@@ -219,7 +302,14 @@ class HTTPProvider(Provider):
         self,
         session: AsyncSession,
     ) -> ObjectClassDAO:
-        """Get Object Class DAO."""
+        """Get Object Class DAO.
+
+        Args:
+            session (AsyncSession): async db session.
+
+        Returns:
+            ObjectClassDAO: Object Class DAO.
+        """
         attribute_type_dao = AttributeTypeDAO(session)
         return ObjectClassDAO(
             attribute_type_dao=attribute_type_dao,
@@ -231,7 +321,14 @@ class HTTPProvider(Provider):
         self,
         session: AsyncSession,
     ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
+        """Get Entity Type DAO.
+
+        Args:
+            session (AsyncSession): async db session.
+
+        Returns:
+            EntityTypeDAO: Entity Type DAO.
+        """
         return EntityTypeDAO(session)
 
 
@@ -242,7 +339,14 @@ class LDAPServerProvider(Provider):
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_session(self, storage: SessionStorage) -> LDAPSession:
-        """Create ldap session."""
+        """Create ldap session.
+
+        Args:
+            storage (SessionStorage): session storage
+
+        Returns:
+            LDAPSession: ldap session
+        """
         return LDAPSession(storage=storage)
 
 
@@ -255,8 +359,11 @@ class MFACredsProvider(Provider):
     async def get_auth(self, session: AsyncSession) -> Creds | None:
         """Admin creds get.
 
-        :param Annotated[AsyncSession, Depends session: session
-        :return MFA_HTTP_Creds: optional creds
+        Args:
+            session (AsyncSession): async session
+
+        Returns:
+            MFA_HTTP_Creds: optional creds
         """
         return await get_creds(session, "mfa_key", "mfa_secret")
 
@@ -264,8 +371,11 @@ class MFACredsProvider(Provider):
     async def get_auth_ldap(self, session: AsyncSession) -> Creds | None:
         """Admin creds get.
 
-        :param AsyncSession session: db
-        :return MFA_LDAP_Creds: optional creds
+        Args:
+            session (AsyncSession): db
+
+        Returns:
+            MFA_LDAP_Creds: optional creds
         """
         return await get_creds(session, "mfa_key_ldap", "mfa_secret_ldap")
 
@@ -280,7 +390,14 @@ class MFAProvider(Provider):
         self,
         settings: Settings,
     ) -> AsyncIterator[MFAHTTPClient]:
-        """Get async client for DI."""
+        """Get async client for DI.
+
+        Args:
+            settings: Settings with database dsn.
+
+        Yields:
+            AsyncIterator[MFAHTTPClient].
+        """
         async with httpx.AsyncClient(
             timeout=settings.MFA_CONNECT_TIMEOUT_SECONDS,
             limits=httpx.Limits(
@@ -299,9 +416,13 @@ class MFAProvider(Provider):
     ) -> MultifactorAPI | None:
         """Get api from DI.
 
-        :param httpx.AsyncClient client: httpx client
-        :param Creds credentials: creds
-        :return MultifactorAPI: mfa integration
+        Args:
+            credentials (MFA_HTTP_Creds): http creds
+            client (MFAHTTPClient): https client
+            settings (Settings): settings
+
+        Returns:
+            MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
             return None
@@ -321,9 +442,13 @@ class MFAProvider(Provider):
     ) -> LDAPMultiFactorAPI | None:
         """Get api from DI.
 
-        :param httpx.AsyncClient client: httpx client
-        :param Creds credentials: creds
-        :return MultifactorAPI: mfa integration
+        Args:
+            credentials (MFA_LDAP_Creds): ldap creds
+            client (MFAHTTPClient): https client
+            settings (Settings): settings
+
+        Returns:
+            MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
             return None

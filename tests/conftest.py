@@ -9,7 +9,14 @@ import uuid
 import weakref
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Generator,
+    Iterator,
+    Literal,
+)
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -177,7 +184,11 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine."""
+        """Get async engine.
+
+        Args:
+            settings (Settings): Settings with database dsn.
+        """
         return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
@@ -185,7 +196,11 @@ class TestProvider(Provider):
         self,
         engine: AsyncEngine,
     ) -> async_sessionmaker[AsyncSession]:
-        """Create session factory."""
+        """Create session factory.
+
+        Args:
+            engine (AsyncEngine): async engine
+        """
         return async_sessionmaker(
             engine,
             expire_on_commit=False,
@@ -311,8 +326,16 @@ class MutePolicyBindRequest(BindRequest):
     __test__ = False
 
     @staticmethod
-    async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
-        """Stub."""
+    async def is_user_group_valid(*args: Any, **kwargs: Any) -> Literal[True]:
+        """Stub.
+
+        Args:
+            *args: arguments
+            **kwargs: keyword arguments
+
+        Returns:
+            Literal[True]: True
+        """
         return True
 
 
@@ -351,10 +374,20 @@ async def _migrations(
     config.attributes["app_settings"] = settings
 
     def upgrade(conn: AsyncConnection) -> None:
+        """Run up migrations.
+
+        Args:
+            conn (AsyncConnection): connection
+        """
         config.attributes["connection"] = conn
         command.upgrade(config, "head")
 
     def downgrade(conn: AsyncConnection) -> None:
+        """Run down migrations.
+
+        Args:
+            conn (AsyncConnection): connection
+        """
         config.attributes["connection"] = conn
         command.downgrade(config, "base")
 
@@ -454,7 +487,12 @@ def _server(
     event_loop: asyncio.BaseEventLoop,
     handler: PoolClientHandler,
 ) -> Generator:
-    """Run server in background."""
+    """Run server in background.
+
+    Args:
+        event_loop (asyncio.BaseEventLoop): events loop
+        handler (PoolClientHandler): handler
+    """
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(0.1))
     yield
@@ -464,7 +502,11 @@ def _server(
 
 @pytest.fixture
 def ldap_client(settings: Settings) -> ldap3.Connection:
-    """Get ldap clinet without a creds."""
+    """Get ldap clinet without a creds.
+
+    Args:
+        settings (Settings): Settings with database dsn.
+    """
     return ldap3.Connection(
         ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
     )
@@ -489,7 +531,8 @@ async def unbound_http_client(
 ) -> AsyncIterator[httpx.AsyncClient]:
     """Get async client for fastapi tests.
 
-    :param FastAPI app: asgi app
+    Args:
+        app (FastAPI): asgi app
     :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
     """
     async with httpx.AsyncClient(
@@ -508,10 +551,13 @@ async def http_client(
 ) -> httpx.AsyncClient:
     """Authenticate and return client with cookies.
 
-    :param httpx.AsyncClient unbound_http_client: client w/o cookies
-    :param TestCreds creds: creds to authn
-    :param None setup_session: just a fixture call
-    :return httpx.AsyncClient: bound client with cookies
+    Args:
+        unbound_http_client (httpx.AsyncClient): client w/o cookies
+        creds (TestCreds): creds to authn
+        setup_session (None): just a fixture call
+
+    Returns:
+        httpx.AsyncClient: bound client with cookies
     """
     response = await unbound_http_client.post(
         "auth/",
@@ -526,7 +572,11 @@ async def http_client(
 
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
-    """Get creds from test data."""
+    """Get creds from test data.
+
+    Args:
+        user (dict): user data
+    """
     return TestCreds(user["sam_accout_name"], user["password"])
 
 
@@ -538,7 +588,11 @@ def user() -> dict:
 
 @pytest.fixture
 def _force_override_tls(settings: Settings) -> Iterator:
-    """Override tls status for tests."""
+    """Override tls status for tests.
+
+    Args:
+        settings (Settings): Settings with database dsn.
+    """
     current_status = settings.USE_CORE_TLS
     settings.USE_CORE_TLS = True
     yield

@@ -40,7 +40,7 @@ async def test_session_creation(
 
     assert sessions
 
-    key = list(sessions.keys())[0]
+    key = next(iter(sessions.keys()))
 
     assert sessions[key]["id"] == user.id
     assert sessions[key]["issued"]
@@ -69,13 +69,13 @@ async def test_session_rekey(
     )
     sessions = await storage.get_user_sessions(user.id)
 
-    old_key = list(sessions.keys())[0]
+    old_key = next(iter(sessions.keys()))
     old_session = sessions[old_key]
 
     await storage.rekey_session(old_key, settings)
     sessions = await storage.get_user_sessions(user.id)
 
-    new_key = list(sessions.keys())[0]
+    new_key = next(iter(sessions.keys()))
     new_session = sessions[new_key]
 
     assert len(sessions) == 1
@@ -117,7 +117,7 @@ async def test_session_creation_ldap_bind_unbind(
 
     assert sessions
 
-    key = list(sessions.keys())[0]
+    key = next(iter(sessions.keys()))
 
     assert sessions[key]["id"] == user.id
     assert sessions[key]["issued"]
@@ -208,7 +208,7 @@ async def test_session_api_delete_detail(
     response = await http_client.get(f"sessions/{creds.un}")
     assert response.status_code == 200
 
-    session_id = list(response.json().keys())[0]
+    session_id = next(iter(response.json().keys()))
 
     assert len(await storage.get_user_sessions(user.id)) == 1
 
@@ -339,36 +339,36 @@ async def test_get_sessions_by_protocol(
 
     all_sessions = await storage.get_user_sessions(uid)
     assert len(all_sessions) == 2
-    key = list(all_sessions.keys())[0]
+    key = next(iter(all_sessions.keys()))
     assert all_sessions[key]["id"] == user.id
 
     http_sessions = await storage.get_user_sessions(uid, "http")
     assert len(http_sessions) == 1
-    key = list(http_sessions.keys())[0]
+    key = next(iter(http_sessions.keys()))
     assert http_sessions[key]["id"] == user.id
     assert http_sessions[key]["ip"] == http_ip
 
     ldap_sessions = await storage.get_user_sessions(uid, "ldap")
     assert len(ldap_sessions) == 1
-    key = list(ldap_sessions.keys())[0]
+    key = next(iter(ldap_sessions.keys()))
     assert ldap_sessions[key]["id"] == user.id
     assert ldap_sessions[key]["ip"] == ldap_ip
 
     ip_all_sessions = await storage.get_ip_sessions(http_ip)
     assert len(ip_all_sessions) == 1
-    key = list(ip_all_sessions.keys())[0]
+    key = next(iter(ip_all_sessions.keys()))
     assert ip_all_sessions[key]["id"] == user.id
     assert ip_all_sessions[key]["ip"] == http_ip
 
     ip_http_sessions = await storage.get_ip_sessions(http_ip, "http")
     assert len(ip_http_sessions) == 1
-    key = list(ip_http_sessions.keys())[0]
+    key = next(iter(ip_http_sessions.keys()))
     assert ip_http_sessions[key]["id"] == user.id
     assert ip_http_sessions[key]["ip"] == http_ip
 
     ip_ldap_sessions = await storage.get_ip_sessions(ldap_ip, "ldap")
     assert len(ip_ldap_sessions) == 1
-    key = list(ip_ldap_sessions.keys())[0]
+    key = next(iter(ip_ldap_sessions.keys()))
     assert ip_ldap_sessions[key]["id"] == user.id
     assert ip_ldap_sessions[key]["ip"] == ldap_ip
 

@@ -4,7 +4,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
 from config import Settings
 from models import Base
@@ -21,8 +21,12 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def run_sync_migrations(connection):
-    """Run sync migrations."""
+def run_sync_migrations(connection: AsyncConnection):
+    """Run sync migrations.
+
+    Args:
+        connection (AsyncConnection): async db connection.
+    """
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
@@ -34,8 +38,12 @@ def run_sync_migrations(connection):
         context.run_migrations()
 
 
-async def run_async_migrations(settings):
-    """Run async migrations."""
+async def run_async_migrations(settings: Settings):
+    """Run async migrations.
+
+    Args:
+        settings (Settings): Settings
+    """
     engine = create_async_engine(str(settings.POSTGRES_URI))
 
     async with engine.connect() as connection:

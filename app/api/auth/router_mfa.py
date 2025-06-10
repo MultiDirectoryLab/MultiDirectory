@@ -64,9 +64,12 @@ async def setup_mfa(
     """Set mfa credentials, rewrites if exists.
 
     \f
-    :param MFACreateRequest mfa: MuliFactor credentials
-    :param FromDishka[AsyncSession] session: db
-    :return bool: status
+    Args:
+        mfa (MFACreateRequest): MuliFactor credentials
+        session (FromDishka[AsyncSession]): db
+
+    Returns:
+        bool: status
     """
     async with session.begin_nested():
         await session.execute(
@@ -96,7 +99,12 @@ async def remove_mfa(
     session: FromDishka[AsyncSession],
     scope: Literal["ldap", "http"],
 ) -> None:
-    """Remove mfa credentials."""
+    """Remove mfa credentials.
+
+    Args:
+        session (FromDishka[AsyncSession]): Database session.
+        scope (Literal["ldap", "http"]): Scope of the credentials.
+    """
     if scope == "http":
         keys = ["mfa_key", "mfa_secret"]
     else:
@@ -117,7 +125,12 @@ async def get_mfa(
     """Get MFA creds.
 
     \f
-    :return MFAGetResponse: response.
+    Args:
+        mfa_creds (FromDishka[MFA_HTTP_Creds]): creds for http app.
+        mfa_creds_ldap (FromDishka[MFA_LDAP_Creds]): creds for ldap app.
+
+    Returns:
+        MFAGetResponse: response.
     """
     if not mfa_creds:
         mfa_creds = MFA_HTTP_Creds(Creds(None, None))
@@ -149,15 +162,20 @@ async def callback_mfa(
 
     Callback endpoint for MFA.
     \f
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[SessionStorage] storage: session storage
-    :param FromDishka[Settings] settings: app settings
-    :param FromDishka[MFA_HTTP_Creds] mfa_creds:
-        creds for multifactor (http app)
-    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
-    :param Annotated[str, Form access_token: token from multifactor callback
-    :raises HTTPException: if mfa not set up
-    :return RedirectResponse: on bypass or success
+    Args:
+        access_token (str): Token from multifactor callback.
+        session (FromDishka[AsyncSession]): db session.
+        storage (FromDishka[SessionStorage]): session storage.
+        settings (FromDishka[Settings]): app settings.
+        mfa_creds (FromDishka[MFA_HTTP_Creds]): creds for http app.
+        ip (IPv4Address | IPv6Address): Client IP address.
+        user_agent (str): Client user agent string.
+
+    Raises:
+        HTTPException: if mfa not set up
+
+    Returns:
+        RedirectResponse: on bypass or success
     """
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -206,20 +224,26 @@ async def two_factor_protocol(
     """Initiate two factor protocol with app.
 
     \f
-    :param Annotated[OAuth2Form, Depends form: password form
-    :param Request request: FastAPI request
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[MultifactorAPI] api: wrapper for MFA DAO
-    :param FromDishka[Settings] settings: app settings
-    :param FromDishka[SessionStorage] storage: redis storage
-    :param Response response: FastAPI response
-    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
-    :raises HTTPException: Missing API credentials
-    :raises HTTPException: Invalid credentials
-    :raises HTTPException: network policy violation
-    :raises HTTPException: Multifactor error
-    :return MFAChallengeResponse:
-        {'status': 'pending', 'message': https://example.com}.
+    Args:
+        form (Annotated[OAuth2Form, Depends]): Password form containing\
+            username and password.
+        request (Request): FastAPI request.
+        session (FromDishka[AsyncSession]): Database session.
+        api (FromDishka[MultifactorAPI]): Wrapper for MFA DAO.
+        settings (FromDishka[Settings]): App settings.
+        storage (FromDishka[SessionStorage]): Redis storage.
+        response (Response): FastAPI response.
+        ip (Annotated[IPv4Address | IPv6Address, Depends]): Client IP address.
+        user_agent (Annotated[str, Depends]): Client user agent string.
+
+    Raises:
+        HTTPException: Missing API credentials
+        HTTPException: Invalid credentials
+        HTTPException: network policy violation
+        HTTPException: Multifactor error
+
+    Returns:
+        MFAChallengeResponse: Response containing status and message.
     """
     if not api:
         raise HTTPException(

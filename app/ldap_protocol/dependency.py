@@ -12,12 +12,15 @@ from dishka import AsyncContainer
 T = TypeVar("T", bound=Callable)
 
 
-async def resolve_deps(func: T, container: AsyncContainer) -> T:
+async def resolve_deps[T: Callable](func: T, container: AsyncContainer) -> T:
     """Provide async dependencies.
 
-    :param T func: Awaitable
-    :param AsyncContainer container: IoC container
-    :return T: Awaitable
+    Args:
+        func (T): Awaitable
+        container (AsyncContainer): IoC container
+
+    Returns:
+        T: Awaitable
     """
     hints = get_type_hints(func)
     del hints["return"]

@@ -15,6 +15,14 @@ async def get_ldap_session(
     ldap_session: FromDishka[LDAPSession],
     user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> LDAPSession:
-    """Create LDAP session."""
+    """Create LDAP session.
+
+    Args:
+        ldap_session (FromDishka[LDAPSession]): LDAP session.
+        user (UserSchema): Current user.
+
+    Returns:
+        LDAPSession: LDAP session with user set.
+    """
     await ldap_session.set_user(user)
     return ldap_session

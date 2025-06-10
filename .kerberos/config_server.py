@@ -99,69 +99,87 @@ class AbstractKRBManager(ABC):
     ) -> None:
         """Create principal.
 
-        :param str name: principal
-        :param str | None password: if empty - uses randkey.
+        Args:
+            name (str): principal name
+            password (str | None): password, if empty - uses randkey.
+            **dbargs: database arguments
         """
 
     @abstractmethod
     async def get_princ(self, name: str) -> Principal | None:
         """Get principal.
 
-        :param str name: principal
-        :return kadmin.Principal: Principal
+        Args:
+            name (str): Principal name
+
+        Returns:
+            Principal | None:
         """
 
     @abstractmethod
     async def change_password(self, name: str, new_password: str) -> None:
         """Chanage principal's password.
 
-        :param str name: principal
-        :param str new_password: ...
+        Args:
+            name (str): principal name
+            new_password (str): password
         """
 
     @abstractmethod
-    async def create_or_update_princ_pw(self, name: str, new_password) -> None:
+    async def create_or_update_princ_pw(
+        self,
+        name: str,
+        new_password: str,
+    ) -> None:
         """Create new principal or update password.
 
-        :param str name: principal
-        :param _type_ new_password: pw
+        Args:
+            name (str): principal name
+            new_password (str): password
         """
 
     @abstractmethod
     async def del_princ(self, name: str) -> None:
         """Delete principal by name.
 
-        :param str name: principal
+        Args:
+            name (str): principal name
         """
 
     @abstractmethod
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename principal.
 
-        :param str name: original name
-        :param str new_name: new name
+        Args:
+            name (str): principal name
+            new_name (str): new principal name
         """
 
     @abstractmethod
     async def ktadd(self, names: list[str], fn: str) -> None:
         """Create or write to keytab.
 
-        :param str name: principal
-        :param str fn: filename
+        Args:
+            names (list[str]): principal names
+            fn (str): file name
         """
 
     @abstractmethod
     async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock principal.
 
-        :param str name: principal
+        Args:
+            name (str): principal name
+            **dbargs: database arguments
         """
 
     @abstractmethod
     async def force_pw_principal(self, name: str, **dbargs) -> None:
-        """Lock principal.
+        """Force password principal.
 
-        :param str name: principal
+        Args:
+            name (str): principal name
+            **dbargs: database arguments
         """
 
 
@@ -171,11 +189,19 @@ class KAdminLocalManager(AbstractKRBManager):
     client: KAdminProtocol
 
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
-        """Create threadpool and get loop."""
+        """Create threadpool and get loop.
+
+        Args:
+            loop (asyncio.AbstractEventLoop | None): event loop.
+        """
         self.loop = loop or asyncio.get_running_loop()
 
     async def connect(self) -> Self:
-        """Create threadpool for kadmin client."""
+        """Create threadpool for kadmin client.
+
+        Returns:
+            KAdminLocalManager:
+        """
         self.pool = ThreadPoolExecutor(max_workers=500).__enter__()
         self.client = await asyncio.wait_for(self._init_client(), 40)
         return self
@@ -195,11 +221,21 @@ class KAdminLocalManager(AbstractKRBManager):
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
-        """Destroy threadpool."""
+        """Destroy threadpool.
+
+        Args:
+            exc_type (type[BaseException] | None): exception type
+            exc (BaseException | None): exception
+            tb (TracebackType | None): traceback
+        """
         await self.disconnect()
 
     async def _init_client(self) -> KAdminProtocol:
-        """Init kadmin local connection."""
+        """Init kadmin local connection.
+
+        Returns:
+            KAdminProtocol: client of kadmin.KAdmin
+        """
         return await self.loop.run_in_executor(self.pool, kadmv.local)
 
     async def add_princ(
@@ -210,8 +246,10 @@ class KAdminLocalManager(AbstractKRBManager):
     ) -> None:
         """Create principal.
 
-        :param str name: principal
-        :param str | None password: if empty - uses randkey.
+        Args:
+            name (str): principal name
+            password (str): password, if empty - uses randkey.
+            **dbargs: database arguments
         """
         await self.loop.run_in_executor(
             self.pool,
@@ -243,8 +281,11 @@ class KAdminLocalManager(AbstractKRBManager):
     async def get_princ(self, name: str) -> Principal:
         """Get principal.
 
-        :param str name: principal
-        :return kadmin.Principal: Principal
+        Args:
+            name (str): principal name
+
+        Returns:
+            Principal: Principal kadmin object
         """
         principal = await self._get_raw_principal(name)
         return Principal.model_validate(principal, from_attributes=True)
@@ -252,8 +293,9 @@ class KAdminLocalManager(AbstractKRBManager):
     async def change_password(self, name: str, new_password: str) -> None:
         """Chanage principal's password.
 
-        :param str name: principal
-        :param str new_password: ...
+        Args:
+            name (str): principal name
+            new_password (str): password
         """
         princ = await self._get_raw_principal(name)
         await self.loop.run_in_executor(
@@ -262,11 +304,16 @@ class KAdminLocalManager(AbstractKRBManager):
             new_password,
         )
 
-    async def create_or_update_princ_pw(self, name: str, new_password) -> None:
-        """Create new principal or update password.
+    async def create_or_update_princ_pw(
+        self,
+        name: str,
+        new_password: str,
+    ) -> None:
+        """Create new or update password principal.
 
-        :param str name: principal
-        :param _type_ new_password: ...
+        Args:
+            name (str): principal name
+            new_password (str): password
         """
         try:
             await self.change_password(name, new_password)
@@ -276,15 +323,17 @@ class KAdminLocalManager(AbstractKRBManager):
     async def del_princ(self, name: str) -> None:
         """Delete principal by name.
 
-        :param str name: principal
+        Args:
+            name (str): principal name
         """
         await self.loop.run_in_executor(self.pool, self.client.delprinc, name)
 
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename principal.
 
-        :param str name: original name
-        :param str new_name: new name
+        Args:
+            name (str): Principal name.
+            new_name (str): Principal new name.
         """
         await self.loop.run_in_executor(
             self.pool,
@@ -296,9 +345,12 @@ class KAdminLocalManager(AbstractKRBManager):
     async def ktadd(self, names: list[str], fn: str) -> None:
         """Create or write to keytab.
 
-        :param str name: principal
-        :param str fn: filename
-        :raises self.PrincipalNotFoundError: on not found princ
+        Args:
+            names (list[str]): principal names
+            fn (str): file name
+
+        Raises:
+            PrincipalNotFoundError: Principal not found
         """
         principals = [await self._get_raw_principal(name) for name in names]
         if not all(principals):
@@ -310,16 +362,20 @@ class KAdminLocalManager(AbstractKRBManager):
     async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock princ.
 
-        :param str name: upn
+        Args:
+            name (str): principal names
+            **dbargs: database arguments
         """
         princ = await self._get_raw_principal(name)
         princ.expire = "Now"
         await self.loop.run_in_executor(self.pool, princ.commit)
 
     async def force_pw_principal(self, name: str, **dbargs) -> None:
-        """Lock princ.
+        """Force password principal.
 
-        :param str name: upn
+        Args:
+            name (str): principal names
+            **dbargs: database arguments
         """
         princ = await self._get_raw_principal(name)
         princ.pwexpire = "Now"
@@ -328,7 +384,14 @@ class KAdminLocalManager(AbstractKRBManager):
 
 @asynccontextmanager
 async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Create kadmin instance."""
+    """Create kadmin instance.
+
+    Args:
+        app (FastAPI): FastAPI app
+
+    Yields:
+        AsyncIterator[None]: Async iterator
+    """
     loop = asyncio.get_running_loop()
 
     async def try_set_kadmin(app: FastAPI) -> None:
@@ -343,7 +406,7 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
                 logging.info("Successfully connected to kadmin local")
                 return
 
-    loop.create_task(try_set_kadmin(app))
+    await loop.create_task(try_set_kadmin(app))
     yield
     if kadmind := getattr(app.state, "kadmind", None):
         await kadmind.disconnect()
@@ -352,12 +415,24 @@ async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def get_kadmin() -> KAdminLocalManager:
-    """Stub."""
+    """Stub.
+
+    Raises:
+        NotImplementedError: NotImplementedError
+    """
     raise NotImplementedError
 
 
 def handle_db_error(request: Request, exc: BaseException):  # noqa: ARG001
-    """Handle duplicate."""
+    """Handle duplicate.
+
+    Args:
+        request (Request): request
+        exc (BaseException): exception
+
+    Raises:
+        HTTPException: Database Error
+    """
     raise HTTPException(
         status.HTTP_424_FAILED_DEPENDENCY,
         detail="Database Error",
@@ -365,7 +440,15 @@ def handle_db_error(request: Request, exc: BaseException):  # noqa: ARG001
 
 
 def handle_duplicate(request: Request, exc: BaseException):  # noqa: ARG001
-    """Handle duplicate."""
+    """Handle duplicate.
+
+    Args:
+        request (Request): request
+        exc (BaseException): exception
+
+    Raises:
+        HTTPException: Principal already exists
+    """
     raise HTTPException(
         status.HTTP_409_CONFLICT,
         detail="Principal already exists",
@@ -373,7 +456,15 @@ def handle_duplicate(request: Request, exc: BaseException):  # noqa: ARG001
 
 
 def handle_not_found(request: Request, exc: BaseException):  # noqa: ARG001
-    """Handle duplicate."""
+    """Handle duplicate.
+
+    Args:
+        request (Request): request
+        exc (BaseException): exception
+
+    Raises:
+        HTTPException: Principal does not exist
+    """
     raise HTTPException(
         status.HTTP_404_NOT_FOUND,
         detail="Principal does not exist",
@@ -391,8 +482,9 @@ def write_configs(
 ) -> None:
     """Write two config files, strings are: hex bytes.
 
-    :param Annotated[str, Body krb5_config: krb5 hex bytes format config
-    :param Annotated[str, Body kdc_config: kdc hex bytes format config
+    Args:
+        krb5_config (str): krb5 hex bytes format config.
+        kdc_config (str): kdc hex bytes format config.
     """
     with open("/etc/krb5.conf", "wb") as f:
         f.write(bytes.fromhex(krb5_config))
@@ -403,7 +495,14 @@ def write_configs(
 
 @setup_router.post("/stash", status_code=201)
 async def run_setup_stash(schema: ConfigSchema) -> None:
-    """Set up stash file."""
+    """Set up stash file.
+
+    Args:
+        schema (ConfigSchema): Configuration schema for stash setup.
+
+    Raises:
+        HTTPException: Failed stash
+    """
     proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util",
         "-D",
@@ -437,8 +536,11 @@ async def run_setup_stash(schema: ConfigSchema) -> None:
 async def run_setup_subtree(schema: ConfigSchema) -> None:
     """Set up subtree in ldap.
 
-    :param ConfigSchema schema: _description_
-    :raises HTTPException: _description_
+    Args:
+        schema (ConfigSchema): Configuration schema for subtree setup.
+
+    Raises:
+        HTTPException: If setup fails.
     """
     create_proc = await asyncio.create_subprocess_exec(
         "kdb5_ldap_util",
@@ -492,9 +594,10 @@ async def add_princ(
 ) -> None:
     """Add principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        password (str | None): Principal password.
     """
     await kadmin.add_princ(name, password)
 
@@ -504,11 +607,14 @@ async def get_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
 ) -> Principal:
-    """Add principal.
+    """Get principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+
+    Returns:
+        Principal: Principal object.
     """
     return await kadmin.get_princ(name)
 
@@ -518,11 +624,11 @@ async def del_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
 ) -> None:
-    """Add principal.
+    """Delete principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
     """
     await kadmin.del_princ(name)
 
@@ -533,11 +639,12 @@ async def change_princ_password(
     name: Annotated[str, Body()],
     password: Annotated[str, Body()],
 ) -> None:
-    """Change princ pw principal.
+    """Change principal password.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        password (str): Principal password.
     """
     await kadmin.change_password(name, password)
 
@@ -552,11 +659,12 @@ async def create_or_update_princ_password(
     name: Annotated[str, Body()],
     password: Annotated[str, Body()],
 ) -> None:
-    """Change princ pw principal or create with new.
+    """Change principal password or create with new.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        password (str): Principal password.
     """
     await kadmin.create_or_update_princ_pw(name, password)
 
@@ -573,11 +681,11 @@ async def rename_princ(
 ) -> None:
     """Rename principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body new_name: principal new name
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
+        new_name (str): Principal new name.
     """
-    """"""
     await kadmin.rename_princ(name, new_name)
 
 
@@ -588,9 +696,12 @@ async def ktadd(
 ) -> FileResponse:
     """Ktadd principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        names (list[str]): List of principal names.
+
+    Returns:
+        FileResponse: Keytab file response.
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
     await kadmin.ktadd(names, filename)
@@ -608,8 +719,9 @@ async def lock_princ(
 ) -> None:
     """Lock principal.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
     """
     await kadmin.lock_princ(name)
 
@@ -619,10 +731,11 @@ async def force_pw_reset_principal(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: Annotated[str, Body(embed=True)],
 ) -> None:
-    """Mark princ as pw expired.
+    """Mark principal as password expired.
 
-    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
+    Args:
+        kadmin (AbstractKRBManager): Kadmin abstract manager.
+        name (str): Principal name.
     """
     await kadmin.force_pw_principal(name)
 
@@ -633,6 +746,12 @@ def get_status(request: Request) -> bool:
 
     true - is ready
     false - not set
+
+    Args:
+        request (Request): http request
+
+    Returns:
+        bool
     """
     kadmind = getattr(request.app.state, "kadmind", None)
 
@@ -640,7 +759,11 @@ def get_status(request: Request) -> bool:
 
 
 def create_app() -> FastAPI:
-    """Create FastAPI app."""
+    """Create FastAPI app.
+
+    Returns:
+        FastAPI: web app
+    """
     app = FastAPI(
         name="KadminMultiDirectory",
         title="KadminMultiDirectory",

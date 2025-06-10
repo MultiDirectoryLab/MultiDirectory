@@ -36,7 +36,11 @@ class LDAPMessage(ABC, BaseModel):
 
     @property
     def name(self) -> str:
-        """Message name."""
+        """Message name.
+
+        Returns:
+            str: message name
+        """
         return get_class_name(self.context)
 
 
@@ -46,7 +50,11 @@ class LDAPResponseMessage(LDAPMessage):
     context: SerializeAsAny[BaseResponse]
 
     def encode(self) -> bytes:
-        """Encode message to asn1."""
+        """Encode message to asn1.
+
+        Returns:
+            bytes
+        """
         enc = Encoder()
         enc.start()
         enc.enter(Numbers.Sequence)
@@ -76,7 +84,17 @@ class LDAPRequestMessage(LDAPMessage):
 
     @classmethod
     def from_bytes(cls, source: bytes) -> "LDAPRequestMessage":
-        """Create message from bytes."""
+        """Create message from bytes.
+
+        Args:
+            source: bytes
+
+        Returns:
+            LDAPRequestMessage
+
+        Raises:
+            ValueError: incorrect schema
+        """
         dec = Decoder()
         dec.start(source)
         output = asn1todict(dec)
@@ -118,10 +136,12 @@ class LDAPRequestMessage(LDAPMessage):
     def from_err(cls, source: bytes, err: Exception) -> LDAPResponseMessage:
         """Create error response message.
 
-        :param bytes source: source data
-        :param Exception err: any error
-        :raises ValueError: on invalid schema
-        :return LDAPResponseMessage: response with err code
+        Args:
+            source (bytes): source data
+            err (Exception): any error
+
+        Returns:
+            LDAPResponseMessage: response with err code
         """
         output = asn1todict(source)
         message_id = 0
@@ -153,7 +173,12 @@ class LDAPRequestMessage(LDAPMessage):
     ) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 
-        :yield LDAPResponseMessage: create response for context.
+        Args:
+            handler (Callable[..., AsyncGenerator[BaseResponse, None]]):\
+                handler
+
+        Yields:
+            LDAPResponseMessage: create response for context.
         """
         async for response in handler():
             yield LDAPResponseMessage(
