@@ -7,9 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
-from models import Attribute, Directory, Group, User
 from pydantic import Field, SecretStr
-from security import get_password_hash
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,6 +42,8 @@ from ldap_protocol.utils.queries import (
     get_search_path,
     validate_entry,
 )
+from models import Attribute, Directory, Group, User
+from security import get_password_hash
 
 from .base import BaseRequest
 
@@ -222,7 +222,10 @@ class AddRequest(BaseRequest):
                 )
 
             for value in attr.vals:
-                if attr.l_name in user_fields or attr.type == "userAccountControl":
+                if (
+                    attr.l_name in user_fields
+                    or attr.type == "userAccountControl"
+                ):
                     if not isinstance(value, str):
                         raise TypeError
                     user_attributes[attr.type] = value
@@ -334,7 +337,9 @@ class AddRequest(BaseRequest):
 
         if (is_user or is_group) and "gidnumber" not in self.attr_names:
             reverse_d_name = new_dir.name[::-1]
-            value = "513" if is_user else str(create_integer_hash(reverse_d_name))
+            value = (
+                "513" if is_user else str(create_integer_hash(reverse_d_name))
+            )
             attributes.append(
                 Attribute(
                     name="gidNumber",  # reverse dir name if it matches samAN
@@ -366,7 +371,11 @@ class AddRequest(BaseRequest):
                 # in case server is not available: raise error and rollback
                 # stub cannot raise error
                 if user:
-                    pw = self.password.get_secret_value() if self.password else None
+                    pw = (
+                        self.password.get_secret_value()
+                        if self.password
+                        else None
+                    )
                     await kadmin.add_principal(user.get_upn_prefix(), pw)
                 if is_computer:
                     await kadmin.add_principal(
