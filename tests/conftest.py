@@ -75,6 +75,9 @@ class TestProvider(Provider):
     _cached_dns_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
 
+    attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+
     @provide(scope=Scope.APP, provides=AbstractKadmin)
     async def get_kadmin(self) -> AsyncIterator[AsyncMock]:
         """Get mock kadmin."""
@@ -147,14 +150,6 @@ class TestProvider(Provider):
         yield await get_dns_manager_settings(session, resolver)
         weakref.finalize(resolver, resolver.close)
 
-    @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
-    def get_attribute_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
-
     @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
     def get_object_class_dao(
         self,
@@ -166,14 +161,6 @@ class TestProvider(Provider):
             attribute_type_dao=attribute_type_dao,
             session=session,
         )
-
-    @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
-    def get_entity_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:

@@ -51,6 +51,8 @@ class MainProvider(Provider):
     scope = Scope.APP
     settings = from_context(provides=Settings, scope=Scope.APP)
 
+    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+
     @provide(scope=Scope.APP)
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
@@ -160,14 +162,6 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings)
 
-    @provide(scope=Scope.REQUEST)
-    async def get_entity_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
-
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
@@ -200,19 +194,12 @@ class HTTPProvider(Provider):
     """HTTP LDAP session."""
 
     scope = Scope.REQUEST
+    attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
 
     @provide(provides=LDAPSession)
     async def get_session(self) -> LDAPSession:
         """Create ldap session."""
         return LDAPSession()
-
-    @provide(provides=AttributeTypeDAO)
-    def get_attribute_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
 
     @provide(provides=ObjectClassDAO)
     def get_object_class_dao(
