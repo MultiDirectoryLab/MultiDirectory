@@ -295,15 +295,13 @@ class EventHandler:
         session: EventAsyncSession,
     ) -> None:
         """Persist normalized events to database."""
-        session.add_all(
-            [
-                AuditLog(
-                    id=str(ULID.from_timestamp(event["timestamp"])),
-                    content=event,
-                )
-                for event in events
-            ]
-        )
+        session.add_all([
+            AuditLog(
+                id=str(ULID.from_timestamp(event["timestamp"])),
+                content=event,
+            )
+            for event in events
+        ])
         await session.commit()
 
     async def handle_event(
