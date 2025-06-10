@@ -24,7 +24,10 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
-from ldap_protocol.policies.password_policy import PasswordPolicySchema
+from ldap_protocol.policies.password_policy import (
+    PasswordPolicySchema,
+    post_save_password_actions,
+)
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -271,6 +274,7 @@ class AddRequest(BaseRequest):
 
             if self.password is not None:
                 user.password = get_password_hash(raw_password)
+                await post_save_password_actions(user, session)
 
             items_to_add.append(user)
             user.groups.extend(parent_groups)

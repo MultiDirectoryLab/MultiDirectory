@@ -572,6 +572,7 @@ class ModifyRequest(BaseRequest):
 
                 directory.user.password = get_password_hash(value)
                 await post_save_password_actions(directory.user, session)
+                await session.flush()
                 await kadmin.create_or_update_principal_pw(
                     directory.user.get_upn_prefix(),
                     value,

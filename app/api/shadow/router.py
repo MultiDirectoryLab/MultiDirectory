@@ -116,3 +116,4 @@ async def sync_password(
 
     user.password = get_password_hash(new_password)
     await post_save_password_actions(user, session)
+    await session.flush()

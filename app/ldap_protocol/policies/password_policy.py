@@ -52,7 +52,6 @@ async def post_save_password_actions(
     await session.execute(qeury)
 
     user.password_history.append(user.password)
-    await session.flush()
 
 
 class PasswordPolicySchema(BaseModel):
@@ -222,34 +221,33 @@ class PasswordPolicySchema(BaseModel):
 
         :param str password: new raw password
         :param User user: db user
-        :param AsyncSession session: db
-        :return bool: status
+        :return list[str]: errors
         """
-        errors = []
-        history: Iterable = []
+        errors: list[str] = []
+        history_password_hashes: Iterable = []
 
         if user is not None:
-            history = islice(
+            history_password_hashes = islice(
                 reversed(user.password_history),
                 self.password_history_length,
             )
 
-        for pwd_hash in history:
-            if verify_password(password, pwd_hash):
+        for password_hash in history_password_hashes:
+            if verify_password(password, password_hash):
                 errors.append("password history violation")
                 break
 
         if len(password) <= self.minimum_password_length:
             errors.append("password minimum length violation")
 
-        regex = (
-            re.search("[A-ZА-Я]", password) is not None,
-            re.search("[a-zа-я]", password) is not None,
-            re.search("[0-9]", password) is not None,
-            password.lower() not in _COMMON_PASSWORDS,
+        regexp = (
+            re.search("[A-ZА-Я]", password) is None,
+            re.search("[a-zа-я]", password) is None,
+            re.search("[0-9]", password) is None,
+            password.lower() in _COMMON_PASSWORDS,
         )
 
-        if self.password_must_meet_complexity_requirements and not all(regex):
+        if any(regexp):
             errors.append("password complexity violation")
 
         if password[-6:].isdecimal():
