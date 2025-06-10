@@ -26,7 +26,7 @@ async def test_anonymous_pwd_change(
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await ldap_client.bind(user_dn, password)
-    await ldap_client.modify_password(new_test_password)
+    await ldap_client.modify_password(new_test_password, user_dn, password)
 
     user = await get_user(session, user_dn)
     assert user
@@ -50,7 +50,7 @@ async def test_bind_pwd_change(
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await ldap_client.bind(user_dn, password)
-    await ldap_client.modify_password(new_test_password)
+    await ldap_client.modify_password(new_test_password, user_dn, password)
 
     user = await get_user(session, user_dn)
 
