@@ -2,12 +2,12 @@
 
 [[package]]
 name = "aioldap3"
-version = "1.1.1"
+version = "1.2"
 description = "New generation of async ldap3 client wrapper"
 optional = false
 python-versions = ">=3.8.1,<4.0.0"
 files = [
-    {file = "aioldap3-1.1.1-py3-none-any.whl", hash = "sha256:643f63ab6a1c3800a518258169744f655e9a1ec6e599e0a09b7441510d33d16f"},
+    {file = "aioldap3-1.2-py3-none-any.whl", hash = "sha256:3988d7b9b098257e91b59c75d6cf7197cda2749e7a4c25f1042fbc21be3461e9"},
 ]
 
 [package.dependencies]
@@ -15,7 +15,7 @@ ldap3 = ">=2.9.1,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/MultiDirectoryLab/aioldap3/releases/download/v1.1.1/aioldap3-1.1.1-py3-none-any.whl"
+url = "https://github.com/MultiDirectoryLab/aioldap3/releases/download/v1.2/aioldap3-1.2-py3-none-any.whl"
 
 [[package]]
 name = "alembic"
@@ -1934,4 +1934,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12.6"
-content-hash = "5a35f9cf9805cbeb1e801227881536de90af7c326e933da6c01fc07812d456e5"
+content-hash = "54b38b63425dbef53d67e0ce374d79f71b1af1673957d928a21f605974b678ac"
