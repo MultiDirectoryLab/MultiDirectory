@@ -143,24 +143,23 @@ select = [
 
 # Gradually remove all values marked 'TODO' and fix errors.
 ignore = [
-    "D203",  # this is necessary. Conflict with `D211`
-    "D213",  # this is necessary. Conflict with `D212`
-    "D301",  # this is necessary.
-    "UP035",  # this is necessary. We allowed deprecated import
-    "ANN002",  # this is necessary.
-    "ANN003",  # this is necessary.
-    "ASYNC109",
-    "ASYNC230",
-    "S311",  # this is necessary.
-    "B904",  # this is necessary.
-    "COM812",  # this is necessary. Cause conflicts when used with the formatter
-    "TC001",  # this is necessary.
-    "TC002",  # this is necessary.
-    "TC003",  # this is necessary.
-    "B905",  # this is necessary. get-attr-with-constant
-    "RUF029",
-    "DOC201",  # TODO delete it and fix
-    "ANN401",  # FIXME. 'Dynamically typed expressions (typing.Any) are disallowed'
+    "D203",  # Conflict with `D211`.
+    "D213",  # Conflict with `D212`.
+    "D301",  # It convert `"""Description."""` to `r"""Description."""`.
+    "UP035",  # We allowed deprecated import.
+    "ANN002",  # Disable type annotations for *args.
+    "ANN003",  # Disable type annotations for **kwargs.
+    "ASYNC109", # Allow timeout parameters into async func.
+    "ASYNC230", # Allow open files with blocking methods like open.
+    "S311",  # We used `random — Generate pseudo-random numbers`.
+    "B904",  # We don't used `raise ... FROM ..`.
+    "COM812",  # Cause conflicts when used with the formatter.
+    "TC001",  # First-party imports not defined in a type-checking block.
+    "TC002",  # Third-party imports not defined in a type-checking block.
+    "TC003",  # Standard library imports not defined in a type-checking block.
+    "B905",  # Allow `zip` calls without an explicit `strict` parameter.
+    "RUF029",  # 'Checks for functions declared async that do not await or otherwise use features requiring the function to be declared async.'
+    "ANN401",  # Allow dynamically typed expressions (typing.Any).
 ]
 
 fixable = ["ALL"]
