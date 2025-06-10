@@ -405,7 +405,7 @@ services:
       local.env
     command: python multidirectory.py --event_handler
     environment:
-      - HOSTNAME=event_handler
+      HANDLER_NAME: event_handler-1
   
   event_sender:
     image: multidirectory

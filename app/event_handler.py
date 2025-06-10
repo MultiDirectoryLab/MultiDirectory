@@ -55,8 +55,7 @@ class EventHandler:
         self.group_name = settings.EVENT_HANLDER_GROUP
         self.event_stream = settings.EVENT_STREAM_NAME
         self.settings = settings
-        # TODO: replace with arg from env
-        self.consumer_name = os.getenv("HOSTNAME", socket.gethostname())
+        self.consumer_name = os.getenv("HANDLER_NAME", socket.gethostname())
 
     def _check_modify_event(
         self, trigger: AuditPolicyTrigger, event: AuditEvent
