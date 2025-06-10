@@ -331,7 +331,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def get_dns_server_settings(self) -> list[DNSServerParam]: ...
+    async def get_server_options(self) -> list[DNSServerParam]: ...
 
     @abstractmethod
     async def restart_server(
@@ -521,7 +521,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
             )
 
     @logger_wraps()
-    async def get_dns_server_settings(self) -> list[DNSServerParam]:
+    async def get_server_options(self) -> list[DNSServerParam]:
         async with self._http_client:
             response = await self._http_client.get("/server/settings")
 
@@ -696,7 +696,7 @@ class DNSManager(AbstractDNSManager):
         raise NotImplementedError
 
     @logger_wraps()
-    async def get_dns_server_settings(self) -> list[DNSServerParam]:
+    async def get_server_options(self) -> list[DNSServerParam]:
         raise NotImplementedError
 
     @logger_wraps()
@@ -786,7 +786,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def get_dns_server_settings(self) -> list[DNSServerParam]:
+    async def get_server_options(self) -> list[DNSServerParam]:
         return []
 
     @logger_wraps(is_stub=True)
