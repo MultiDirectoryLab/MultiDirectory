@@ -198,19 +198,24 @@ services:
              --reload
 
   bind_dns:
-    image: ubuntu/bind9:latest
+    build:
+      context: .
+      dockerfile: ./.docker/bind9.Dockerfile
+    image: bind9md
     container_name: bind9
     hostname: bind9
     restart: unless-stopped
     volumes:
       - dns_server_file:/opt/
       - dns_server_config:/etc/bind/
+      - .dns/:/server/
     tty: true
     depends_on:
       ldap_server:
         condition: service_healthy
         restart: true
-    command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
+    working_dir: /server
+    command: bash -c "chown bind:bind /opt && chmod root:root /server/entrypoint.sh && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && ./entrypoint.sh"
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
