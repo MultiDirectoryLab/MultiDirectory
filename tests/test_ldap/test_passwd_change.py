@@ -35,8 +35,6 @@ async def test_anonymous_pwd_change(
 
     assert verify_password(new_test_password, user.password)
 
-    await anonymous_ldap_client.unbind()
-
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
@@ -59,5 +57,3 @@ async def test_bind_pwd_change(
     assert user.password
 
     assert verify_password(new_test_password, user.password)
-
-    await ldap_client.unbind()

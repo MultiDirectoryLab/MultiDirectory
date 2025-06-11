@@ -371,7 +371,7 @@ async def test_extended_pw_change_call(
     )
 
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
-    assert kadmin_args
+
     assert kadmin_args == ("user0", new_test_password)
 
 

@@ -311,9 +311,6 @@ async def test_ldap3_bind(
     """Test ldap3 bind."""
     assert ldap_client.is_bound
 
-    await ldap_client.unbind()
-    assert not ldap_client.is_bound
-
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")

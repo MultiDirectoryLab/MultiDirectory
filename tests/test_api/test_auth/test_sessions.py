@@ -114,9 +114,6 @@ async def test_session_creation_ldap_bind_unbind(
     assert sessions[key]["issued"]
     assert sessions[key]["ip"]
 
-    await anonymous_ldap_client.unbind()
-    assert not anonymous_ldap_client.is_bound
-
     try:
         assert not await storage.get_user_sessions(user.id)
     except AssertionError:

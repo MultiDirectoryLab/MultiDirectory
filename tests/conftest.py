@@ -473,7 +473,7 @@ async def ldap_client(
     )
     await conn.bind(creds.un, creds.pw)
     yield conn
-    return
+    await conn.unbind()
 
 
 @pytest.fixture
@@ -486,7 +486,7 @@ async def anonymous_ldap_client(
     )
     await conn.bind()
     yield conn
-    return
+    await conn.unbind()
 
 
 @pytest_asyncio.fixture(scope="function")
