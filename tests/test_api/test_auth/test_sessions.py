@@ -1,10 +1,8 @@
 """Test session workflow."""
 
-import asyncio
-
 import pytest
+from aioldap3 import LDAPConnection
 from httpx import AsyncClient
-from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -95,23 +93,16 @@ async def test_session_creation_ldap_bind_unbind(
     creds: TestCreds,
     storage: SessionStorage,
     session: AsyncSession,
-    ldap_client: Connection,
-    event_loop: asyncio.AbstractEventLoop,
+    anonymous_ldap_client: LDAPConnection,
 ) -> None:
     """Test session creation for ldap protocol."""
     user = await get_user(session, creds.un)
     assert user
     assert not await storage.get_user_sessions(user.id)
 
-    result = await event_loop.run_in_executor(
-        None,
-        ldap_client.rebind,
-        creds.un,
-        creds.pw,
-    )
+    await anonymous_ldap_client.bind(creds.un, creds.pw)
 
-    assert result
-    assert ldap_client.bound
+    assert anonymous_ldap_client.is_bound
 
     sessions = await storage.get_user_sessions(user.id)
 
@@ -122,9 +113,6 @@ async def test_session_creation_ldap_bind_unbind(
     assert sessions[key]["id"] == user.id
     assert sessions[key]["issued"]
     assert sessions[key]["ip"]
-
-    result = await event_loop.run_in_executor(None, ldap_client.unbind)
-    assert not ldap_client.bound
 
     try:
         assert not await storage.get_user_sessions(user.id)
@@ -257,10 +245,9 @@ async def test_block_ldap_user_without_session(
 @pytest.mark.usefixtures("setup_session")
 async def test_block_ldap_user_with_active_session(
     http_client: AsyncClient,
-    ldap_client: Connection,
+    anonymous_ldap_client: LDAPConnection,
     session: AsyncSession,
     storage: SessionStorage,
-    event_loop: asyncio.AbstractEventLoop,
 ) -> None:
     """Test blocking ldap user with active session."""
     user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
@@ -271,14 +258,8 @@ async def test_block_ldap_user_with_active_session(
     assert user
     assert not await storage.get_user_sessions(user.id)
 
-    result = await event_loop.run_in_executor(
-        None,
-        ldap_client.rebind,
-        un,
-        pw,
-    )
-    assert result
-    assert ldap_client.bound
+    await anonymous_ldap_client.bind(un, pw)
+    assert anonymous_ldap_client.is_bound
 
     sessions = await storage.get_user_sessions(user.id)
     assert sessions
