@@ -357,7 +357,7 @@ async def test_bind_create_user(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("_force_override_tls")
 async def test_extended_pw_change_call(
-    ldap_client: LDAPConnection,
+    anonymous_ldap_client: LDAPConnection,
     creds: TestCreds,
     kadmin: AbstractKadmin,
 ) -> None:
@@ -365,8 +365,10 @@ async def test_extended_pw_change_call(
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
-    await ldap_client.bind(user_dn, password)
-    await ldap_client.modify_password(new_test_password, user_dn, password)
+    await anonymous_ldap_client.bind(user_dn, password)
+    await anonymous_ldap_client.modify_password(
+        new_test_password, user_dn, password
+    )
 
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
     assert kadmin_args

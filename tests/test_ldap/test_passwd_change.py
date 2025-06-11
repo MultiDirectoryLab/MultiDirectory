@@ -18,15 +18,16 @@ from tests.conftest import TestCreds
 @pytest.mark.usefixtures("_force_override_tls")
 async def test_anonymous_pwd_change(
     session: AsyncSession,
-    ldap_client: LDAPConnection,
+    anonymous_ldap_client: LDAPConnection,
     creds: TestCreds,
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
-    await ldap_client.bind()
-    await ldap_client.modify_password(new_test_password, user_dn, password)
+    await anonymous_ldap_client.modify_password(
+        new_test_password, user_dn, password
+    )
 
     user = await get_user(session, user_dn)
     assert user
@@ -34,7 +35,7 @@ async def test_anonymous_pwd_change(
 
     assert verify_password(new_test_password, user.password)
 
-    await ldap_client.unbind()
+    await anonymous_ldap_client.unbind()
 
 
 @pytest.mark.asyncio

@@ -465,11 +465,26 @@ def _server(
 @pytest.fixture
 async def ldap_client(
     settings: Settings,
+    creds: TestCreds,
 ) -> AsyncIterator[aioldap3.LDAPConnection]:
     """Get ldap clinet without a creds."""
     conn = aioldap3.LDAPConnection(
         aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
     )
+    await conn.bind(creds.un, creds.pw)
+    yield conn
+    return
+
+
+@pytest.fixture
+async def anonymous_ldap_client(
+    settings: Settings,
+) -> AsyncIterator[aioldap3.LDAPConnection]:
+    """Get ldap clinet without a creds."""
+    conn = aioldap3.LDAPConnection(
+        aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
+    )
+    await conn.bind()
     yield conn
     return
 

@@ -307,29 +307,23 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind(
     ldap_client: LDAPConnection,
-    creds: TestCreds,
 ) -> None:
     """Test ldap3 bind."""
-    await ldap_client.bind(creds.un, creds.pw)
     assert ldap_client.is_bound
 
     await ldap_client.unbind()
-    assert ldap_client.is_bound
+    assert not ldap_client.is_bound
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind_sasl_plain(
-    ldap_client: LDAPConnection,
-    creds: TestCreds,
+    anonymous_ldap_client: LDAPConnection,
 ) -> None:
     """Test ldap3 bind."""
-    await ldap_client.bind(
-        creds.un,
-        creds.pw,
-    )
-    assert ldap_client.is_bound
+    # TODO SASL bind
+    assert anonymous_ldap_client.is_bound
 
 
 @pytest.mark.asyncio

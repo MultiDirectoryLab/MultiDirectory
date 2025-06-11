@@ -5,9 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest
-
 from aioldap3 import LDAPConnection
-from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
@@ -15,11 +13,8 @@ from tests.conftest import TestCreds
 @pytest.mark.usefixtures("session")
 async def test_ldap3_search(
     ldap_client: LDAPConnection,
-    creds: TestCreds,
 ) -> None:
     """Test ldap3 search."""
-    await ldap_client.bind(creds.un, creds.pw)
-
     result = await ldap_client.search(
         "dc=md,dc=test",
         "(objectclass=*)",
@@ -34,11 +29,9 @@ async def test_ldap3_search(
 @pytest.mark.usefixtures("session")
 async def test_ldap3_search_memberof(
     ldap_client: LDAPConnection,
-    creds: TestCreds,
 ) -> None:
     """Test ldap3 search memberof."""
     member = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-    await ldap_client.bind(creds.un, creds.pw)
 
     result = await ldap_client.search(
         "dc=md,dc=test",

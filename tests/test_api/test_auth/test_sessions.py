@@ -93,16 +93,16 @@ async def test_session_creation_ldap_bind_unbind(
     creds: TestCreds,
     storage: SessionStorage,
     session: AsyncSession,
-    ldap_client: LDAPConnection,
+    anonymous_ldap_client: LDAPConnection,
 ) -> None:
     """Test session creation for ldap protocol."""
     user = await get_user(session, creds.un)
     assert user
     assert not await storage.get_user_sessions(user.id)
 
-    await ldap_client.bind(creds.un, creds.pw)
+    await anonymous_ldap_client.bind(creds.un, creds.pw)
 
-    assert ldap_client.is_bound
+    assert anonymous_ldap_client.is_bound
 
     sessions = await storage.get_user_sessions(user.id)
 
@@ -114,8 +114,8 @@ async def test_session_creation_ldap_bind_unbind(
     assert sessions[key]["issued"]
     assert sessions[key]["ip"]
 
-    await ldap_client.unbind()
-    assert ldap_client.is_bound
+    await anonymous_ldap_client.unbind()
+    assert not anonymous_ldap_client.is_bound
 
     try:
         assert not await storage.get_user_sessions(user.id)
@@ -248,7 +248,7 @@ async def test_block_ldap_user_without_session(
 @pytest.mark.usefixtures("setup_session")
 async def test_block_ldap_user_with_active_session(
     http_client: AsyncClient,
-    ldap_client: LDAPConnection,
+    anonymous_ldap_client: LDAPConnection,
     session: AsyncSession,
     storage: SessionStorage,
 ) -> None:
@@ -261,8 +261,8 @@ async def test_block_ldap_user_with_active_session(
     assert user
     assert not await storage.get_user_sessions(user.id)
 
-    await ldap_client.bind(un, pw)
-    assert ldap_client.is_bound
+    await anonymous_ldap_client.bind(un, pw)
+    assert anonymous_ldap_client.is_bound
 
     sessions = await storage.get_user_sessions(user.id)
     assert sessions

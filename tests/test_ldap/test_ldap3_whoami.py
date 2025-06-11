@@ -5,20 +5,26 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest
-
 from aioldap3 import LDAPConnection
-from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_anonymous_whoami(
-    ldap_client: LDAPConnection,
-    creds: TestCreds,
+    anonymous_ldap_client: LDAPConnection,
 ) -> None:
     """Test anonymous pwd change."""
-    await ldap_client.bind(creds.un, creds.pw)
+    result = await anonymous_ldap_client.whoami()
 
+    assert result is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_bind_whoami(
+    ldap_client: LDAPConnection,
+) -> None:
+    """Test anonymous pwd change."""
     result = await ldap_client.whoami()
 
     assert result == "u:user0"
