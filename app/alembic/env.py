@@ -12,23 +12,20 @@ from models import Base as MainBase
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-db_type = context.get_x_argument(as_dictionary=True).get("db")
 config = context.config
-
-if db_type is None:
-    db_type = context.config.attributes.get("db_type")
+main_name_ini_section = config.config_ini_section
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-if db_type == "main":
+if main_name_ini_section == "main":
     target_metadata = MainBase.metadata
-elif db_type == "audit":
+elif main_name_ini_section == "audit":
     target_metadata = AuditBase.metadata
 else:
-    raise ValueError(f"Invalid db_type: {db_type}. Must be 'main' or 'audit'.")
+    raise ValueError(f"Invalid ini_section: {main_name_ini_section}")
 
 
 def run_sync_migrations(connection):
@@ -46,7 +43,7 @@ def run_sync_migrations(connection):
 
 async def run_async_migrations(settings):
     """Run async migrations."""
-    if db_type == "main":
+    if main_name_ini_section == "main":
         url = settings.MAIN_POSTGRES_URI
     else:
         url = settings.EVENT_POSTGRES_URI

@@ -300,11 +300,9 @@ if __name__ == "__main__":
         dump_acme_cert()
     elif args.migrate:
         alembic_cfg = Config("alembic.ini", ini_section="main")
-        alembic_cfg.attributes["db_type"] = "main"
         command.upgrade(alembic_cfg, "head")
 
         alembic_cfg = Config("alembic.ini", ini_section="audit")
-        alembic_cfg.attributes["db_type"] = "audit"
         command.upgrade(alembic_cfg, "head")
     elif args.event_handler:
         event_handler(settings=settings)

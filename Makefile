@@ -24,11 +24,11 @@ run:  ## runs server 386/636 port
 
 launch:  ## run standalone app without tty container
 	docker compose down;
-	docker compose run bash -c "alembic --name main -x db=main upgrade head && python ."
+	docker compose run bash -c "alembic --name main upgrade head && python ."
 
 downgrade:  ## re-run migration
 	docker exec -it multidirectory_api bash -c\
-		"alembic downgrade -1; alembic --name main -x db=main upgrade head;"
+		"alembic --name main downgrade -1; alembic --name main upgrade head;"
 
 down:  ## shutdown services
 	docker compose -f docker-compose.test.yml down --remove-orphans
@@ -56,7 +56,7 @@ stage_update:  ## update service
 	docker compose -f docker-compose.dev.yml pull;
 	make stage_up;
 	docker exec -it multidirectory-ldap bash -c\
-		"alembic downgrade -1; alembic --name main -x db=main upgrade head; python -m extra.setup_dev"
+		"alembic downgrade -1; alembic --name main upgrade head; python -m extra.setup_dev"
 
 krb_client_build:  ## build krb client service
 	docker build -f integration_tests/kerberos/Dockerfile . -t krbclient:runtime
@@ -65,7 +65,7 @@ krb_client:  ## run krb client bash
 	docker run --rm --init -it --name krbclient --network multidirectory_default krbclient:runtime bash
 
 migrations:  ## generate migration file
-	docker compose run ldap_server alembic --name main -x db=main revision --autogenerate
+	docker compose run ldap_server alembic --name main revision --autogenerate
 
 migrate:  ## upgrade db
-	docker compose run ldap_server alembic --name main -x db=main upgrade head
+	docker compose run ldap_server alembic --name main upgrade head

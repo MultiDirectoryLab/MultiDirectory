@@ -98,8 +98,7 @@ sleep 1
 
 #RUN migration
 docker run --rm -it --network md --env-file .env ghcr.io/multidirectorylab/multidirectory:latest sh -c "
-    alembic --name main -x db=main upgrade head;
-    alembic --name audit -x db=audit upgrade head
+    python multidirectory.py --migrate
 "
 
 echo "done ... visit https://$domain "
