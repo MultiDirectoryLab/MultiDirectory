@@ -316,10 +316,10 @@ async def test_ldap3_bind(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind_sasl_plain(
-    anonymous_ldap_client: LDAPConnection,
+    anonymous_ldap_client: LDAPConnection, creds: TestCreds
 ) -> None:
     """Test ldap3 bind."""
-    # TODO SASL bind
+    await anonymous_ldap_client.bind(creds.un, creds.pw, "SASL")
     assert anonymous_ldap_client.is_bound
 
 
