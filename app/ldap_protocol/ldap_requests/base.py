@@ -145,7 +145,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
                 ip=ip,
                 protocol="API_LDAP",
                 settings=settings,
-                help_data=self.get_event_data(),
+                context=self.get_event_data(),
             )
             asyncio.create_task(
                 redis_client.add_audit_event(

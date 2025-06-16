@@ -277,15 +277,20 @@ async def send_events(
     session: AsyncSession, event_session: EventAsyncSession
 ) -> None:
     """Send events."""
-    destinations = await session.scalars(select(AuditDestination))
+    destinations = await session.scalars(
+        select(AuditDestination)
+        .filter_by(is_enabled=True)
+    )  # fmt: skip
 
     if not destinations:
         return
     events = (
         await event_session.scalars(
-            select(AuditLog).with_for_update(skip_locked=True).limit(20)
+            select(AuditLog)
+            .with_for_update(skip_locked=True)
+            .limit(20)
         )
-    ).all()
+    ).all()  # fmt: skip
 
     for server in destinations:
         sender = senders[server.service_type](server)
