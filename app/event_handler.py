@@ -63,7 +63,7 @@ class EventHandler:
         """Check if modify event matches trigger conditions."""
         if (
             trigger.object_class
-            not in event.help_data["after_attrs"]["objectclass"]
+            not in event.context["after_attrs"]["objectclass"]
         ):
             return False
 
@@ -84,17 +84,17 @@ class EventHandler:
 
         change_attribute = trigger.additional_info["change_attributes"][0]
 
-        if change_attribute not in event.help_data["after_attrs"]:
+        if change_attribute not in event.context["after_attrs"]:
             raise ValueError
 
         if change_attribute in {"useraccountcontrol", "pwdlastset"}:
             first_value = int(
-                event.help_data["after_attrs"][change_attribute][0]
+                event.context["after_attrs"][change_attribute][0]
             )
             second_value = trigger.additional_info["value"]
         elif change_attribute in {"member", "memberof"}:
-            first_value = event.help_data["before_attrs"][change_attribute]
-            second_value = event.help_data["after_attrs"][change_attribute]
+            first_value = event.context["before_attrs"][change_attribute]
+            second_value = event.context["after_attrs"][change_attribute]
         else:
             raise ValueError
 
@@ -117,7 +117,7 @@ class EventHandler:
         """Check if event object class matches trigger object class."""
         return (
             trigger.object_class
-            in event.help_data["before_attrs"]["objectclass"]
+            in event.context["before_attrs"]["objectclass"]
         )
 
     def is_match_trigger(
@@ -236,10 +236,10 @@ class EventHandler:
             change_attribute = trigger.additional_info["change_attributes"][0]
             if change_attribute in {"member", "memberof"}:
                 first_value = set(
-                    event_data.help_data["before_attrs"][change_attribute]
+                    event_data.context["before_attrs"][change_attribute]
                 )
                 second_value = set(
-                    event_data.help_data["after_attrs"][change_attribute]
+                    event_data.context["after_attrs"][change_attribute]
                 )
                 if not first_value - second_value:
                     details["diff_groups"] = list(second_value - first_value)
@@ -252,7 +252,7 @@ class EventHandler:
         self, event_data: AuditEvent, trigger: AuditPolicyTrigger
     ) -> dict:
         """Prepare base details structure from event data."""
-        details = event_data.help_data.get("details", {})
+        details = event_data.context.get("details", {})
 
         if "LDAP" in event_data.protocol:
             self._enrich_ldap_details(event_data, details, trigger)
@@ -261,8 +261,8 @@ class EventHandler:
 
     def _extract_error_info(self, event_data: AuditEvent) -> dict[str, str]:
         """Extract error information from failed event."""
-        if "error_code" in event_data.help_data.get("details", {}):
-            details = event_data.help_data["details"]
+        if "error_code" in event_data.context.get("details", {}):
+            details = event_data.context["details"]
             return {
                 "error_code": details["error_code"],
                 "error_message": details["error_message"],

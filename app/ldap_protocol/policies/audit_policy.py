@@ -39,7 +39,7 @@ class AuditEvent(BaseModel):
     responses: list[dict[str, Any]]
     protocol: str
     request_code: OperationEvent
-    help_data: dict[str, Any]
+    context: dict[str, Any]
     username: str
     source_ip: IPv4Address | IPv6Address
     dest_port: int = Field(..., gt=0, lt=65536)
@@ -139,7 +139,7 @@ class AuditEventBuilder:
         responses: list["BaseResponse"],
         username: str,
         ip: IPv4Address | IPv6Address,
-        help_data: dict[str, Any],
+        context: dict[str, Any],
         settings: "Settings",
         protocol: str,
     ) -> AuditEvent:
@@ -149,7 +149,7 @@ class AuditEventBuilder:
             responses=[r.model_dump() for r in responses],
             protocol=protocol,
             request_code=request.PROTOCOL_OP,
-            help_data=help_data,
+            context=context,
             username=username,
             source_ip=ip,
             dest_port=settings.PORT,
@@ -172,28 +172,28 @@ class AuditEventBuilder:
         ip = get_ip_from_request(request)
         user_agent = get_user_agent_from_request(request)
 
-        help_data: dict[str, dict[str, str | int]] = {
+        context: dict[str, dict[str, str | int]] = {
             "details": {
                 "user-agent": user_agent,
             },
         }
 
         if event_type == OperationEvent.BIND:
-            help_data["details"]["auth_choice"] = "API"
+            context["details"]["auth_choice"] = "API"
 
         if error_code:
-            help_data["details"]["error_code"] = error_code
+            context["details"]["error_code"] = error_code
         if error_message:
-            help_data["details"]["error_message"] = error_message
+            context["details"]["error_message"] = error_message
         if target:
-            help_data["details"]["target"] = target
+            context["details"]["target"] = target
 
         return AuditEvent(
             request=dict(),
             responses=list(),
             protocol="API",
             request_code=event_type,
-            help_data=help_data,
+            context=context,
             username=username,
             source_ip=ip,
             dest_port=settings.HTTP_PORT,

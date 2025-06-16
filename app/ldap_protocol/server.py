@@ -400,7 +400,7 @@ class PoolClientHandler:
                         ip=ldap_session.ip,
                         protocol="TCP_LDAP",
                         settings=self.settings,
-                        help_data=message.context.get_event_data(),
+                        context=message.context.get_event_data(),
                     )
                     asyncio.create_task(
                         redis_client.add_audit_event(
