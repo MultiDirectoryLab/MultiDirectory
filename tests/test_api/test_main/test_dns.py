@@ -267,7 +267,7 @@ async def test_dns_delete_zone(
     dns_manager.delete_zone.assert_called()  # type: ignore
     assert (
         dns_manager.delete_zone.call_args.args  # type: ignore
-    ) == (zone_names, )
+    ) == (zone_names,)
 
 
 @pytest.mark.asyncio
@@ -293,7 +293,7 @@ async def test_dns_update_server_options(
     dns_manager.update_server_options.assert_called()  # type: ignore
     assert (
         dns_manager.update_server_options.call_args.args  # type: ignore
-    ) == (params, )
+    ) == (params,)
 
 
 @pytest.mark.asyncio
