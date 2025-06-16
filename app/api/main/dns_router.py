@@ -168,6 +168,7 @@ async def create_zone(
     await dns_manager.create_zone(
         data.zone_name,
         data.zone_type,
+        data.nameserver,
         data.params,
     )
 
