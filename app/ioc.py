@@ -219,7 +219,11 @@ class MainProvider(Provider):
         self,
         session: AsyncSession,
     ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
+        """Get Entity Type DAO.
+
+        Returns:
+            EntityTypeDAO: Entity Type DAO
+        """
         return EntityTypeDAO(session)
 
     @provide(scope=Scope.APP)
