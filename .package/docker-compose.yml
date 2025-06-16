@@ -274,6 +274,8 @@ services:
       - dns_server_file:/opt/
       - dns_server_config:/etc/bind/
     tty: true
+    env_file:
+      - .env
     depends_on:
       ldap_server:
         condition: service_healthy

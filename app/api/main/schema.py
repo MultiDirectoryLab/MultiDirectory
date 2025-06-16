@@ -112,6 +112,7 @@ class DNSServiceZoneCreateRequest(BaseModel):
 
     zone_name: str
     zone_type: DNSZoneType
+    nameserver: str | None = Field(None)
     params: list[DNSZoneParam]
 
 

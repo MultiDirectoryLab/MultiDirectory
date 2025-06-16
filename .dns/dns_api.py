@@ -127,6 +127,7 @@ class DNSZoneCreateRequest(BaseModel):
 
     zone_name: str
     zone_type: DNSZoneType
+    nameserver: str | None
     params: list[DNSZoneParam]
 
 
@@ -253,15 +254,20 @@ class BindDNSServerManager(AbstractDNSServerManager):
         self,
         zone_name: str,
         zone_type: str,
+        nameserver: str | None,
         params: list[DNSZoneParam],
     ) -> None:
         params_dict = {param.name: param.value for param in params}
         """Add new zone."""
         zf_template = TEMPLATES.get_template("zone.template")
-        # TODO: сделать получение ip железки
+        nameserver_ip = (
+            nameserver
+            if nameserver is not None
+            else os.getenv("DEFAULT_NAMESERVER")
+        )
         zone_file = await zf_template.render_async(
             domain=zone_name,
-            nameserver_ip="127.0.0.2",
+            nameserver_ip=nameserver_ip,
             ttl=params_dict.get("ttl", 604800),
         )
         with open(
@@ -604,12 +610,13 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
     @staticmethod
     def _add_new_server_param(
-        named_options: str, param: DNSServerParam
+        named_options: str,
+        param_name: str,
+        param_value: str,
     ) -> str:
         return re.sub(
-            r"(\s*)(};)",
-            rf"\1    {param.name} \
-                {'yes' if param.value is True else 'no'};\n\1\2",
+            r"(options\s*\{[\s\S]*?)(\s*\};)",
+            rf"\1    {param_name} {param_value};\2",
             named_options,
             flags=re.DOTALL,
         )
@@ -622,11 +629,19 @@ class BindDNSServerManager(AbstractDNSServerManager):
             named_options = file.read()
 
         for param in settings:
-            pattern = rf'\b{param.name}\s+\"[^\"]+\""'
-            matched_param = re.search(pattern, named_options)
+            if isinstance(param.value, list):
+                param_value = "{ " + f"{'; '.join(param.value)};" + " }"
+            else:
+                param_value = param.value
+            pattern = rf"^\s*{re.escape(param.name)}\s+"
+            matched_param = re.search(
+                pattern, named_options, flags=re.MULTILINE
+            )
             if matched_param is None:
                 named_options = self._add_new_server_param(
-                    named_options, param
+                    named_options,
+                    param.name,
+                    param_value,
                 )
             else:
                 re.sub(
@@ -678,6 +693,7 @@ async def create_zone(
     await dns_manager.add_zone(
         data.zone_name,
         data.zone_type,
+        data.nameserver,
         data.params,
     )
 

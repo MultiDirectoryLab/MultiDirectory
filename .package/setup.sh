@@ -2,6 +2,10 @@
 touch .env
 > .env
 
+read -p "Enter host server ip address: " server_ip
+server_ip=${server_ip}
+
+
 read -p "Enter postgres user [default: user]: " postgres_user
 postgres_user=${postgres_user:-user}
 
@@ -21,6 +25,7 @@ if [ -z "$domain" ]; then echo "interface domain required" && exit 1; fi
 
 secret_key=$(openssl rand -hex 32)
 
+echo "DEFAULT_NAMESERVER="$server_ip >> .env
 echo "POSTGRES_HOST="$postgres_host >> .env
 echo "POSTGRES_USER="$postgres_user >> .env
 echo "POSTGRES_DB="$postgres_db >> .env
