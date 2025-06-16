@@ -25,7 +25,9 @@ entryPoints:
   kpasswd:
     address: ":464"
   bind_dns:
-    address: ":53"
+    address: ":8000"
+  bind_dns_udp:
+    address: ":53/udp"
 
 tls:
   stores:

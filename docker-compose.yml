@@ -15,6 +15,7 @@ services:
       - "749:749"
       - "464:464"
       - "530:53"
+      - "53:53/udp"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./certs:/certs"
@@ -221,7 +222,9 @@ services:
       - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
       - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
       - traefik.tcp.routers.bind_dns.service=bind_dns
-      - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
+      - traefik.tcp.services.bind_dns.loadbalancer.server.port=8000
+      - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
+      - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
 
   kdc:
     build:
