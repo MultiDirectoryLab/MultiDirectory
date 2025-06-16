@@ -206,6 +206,8 @@ services:
     container_name: bind9
     hostname: bind9
     restart: unless-stopped
+    environment:
+      - DEFAULT_NAMESERVER=127.0.0.2
     volumes:
       - dns_server_file:/opt/
       - dns_server_config:/etc/bind/
