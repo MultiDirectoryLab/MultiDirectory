@@ -169,24 +169,22 @@ class EventHandler:
         operation_code = event_data.request_code
         matched_triggers: list[AuditPolicyTrigger] = []
 
-        triggers = (
-            await session.scalars(
-                select(AuditPolicyTrigger)
-                .join(AuditPolicyTrigger.audit_policy)
-                .where(
-                    AuditPolicy.is_enabled.is_(True),
-                    AuditPolicyTrigger.operation_code == operation_code,
-                    AuditPolicyTrigger.operation_success.is_(
-                        event_data.is_event_successful()
-                    ),
-                    or_(
-                        AuditPolicyTrigger.is_ldap.is_(is_ldap),
-                        AuditPolicyTrigger.is_http.is_(is_http),
-                    ),
-                )
-                .options(defaultload(AuditPolicyTrigger.audit_policy))
+        triggers = ( await session.scalars(
+            select(AuditPolicyTrigger)
+            .join(AuditPolicyTrigger.audit_policy)
+            .where(
+                AuditPolicy.is_enabled.is_(True),
+                AuditPolicyTrigger.operation_code == operation_code,
+                AuditPolicyTrigger.operation_success.is_(
+                    event_data.is_event_successful()
+                ),
+                or_(
+                    AuditPolicyTrigger.is_ldap.is_(is_ldap),
+                    AuditPolicyTrigger.is_http.is_(is_http),
+                ),
             )
-        ).all()
+            .options(defaultload(AuditPolicyTrigger.audit_policy))
+        )).all()  # fmt: skip
 
         if not triggers:
             return matched_triggers
