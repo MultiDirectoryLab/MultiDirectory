@@ -417,6 +417,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./app:/app
+      - ./audit:/audit
     env_file:
       local.env
     command: python multidirectory.py --event_sender

@@ -73,6 +73,7 @@ class Settings(BaseModel):
     EVENT_STREAM_NAME: str = "EVENT_LOG"
     EVENT_HANLDER_GROUP: str = "event_handlers"
     PROCESSED_EVENT_STREAM_NAME: str = "NORMAL_EVENT_LOG"
+    AUDIT_LOG_FILE: str = "/audit/audit.log"
 
     @computed_field  # type: ignore
     @cached_property

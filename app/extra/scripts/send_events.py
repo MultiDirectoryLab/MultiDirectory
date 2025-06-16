@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ulid import ULID
 
 from audit_models import AuditLog
+from config import Settings
 from ioc import EventAsyncSession
 from models import (
     AuditDestination,
@@ -273,8 +274,16 @@ senders: dict[AuditDestinationServiceType, type[SendersABC]] = {
 }
 
 
+def send_to_file(event: AuditLog, settings: Settings) -> None:
+    """Send event to file."""
+    with open(settings.AUDIT_LOG_FILE, "a") as f:
+        f.write(f"{event.id} {event.content}\n")
+
+
 async def send_events(
-    session: AsyncSession, event_session: EventAsyncSession
+    session: AsyncSession,
+    event_session: EventAsyncSession,
+    settings: Settings,
 ) -> None:
     """Send events."""
     destinations = await session.scalars(
@@ -313,6 +322,8 @@ async def send_events(
     await event_session.flush()
 
     for event in events:
+        to_delete = False
+
         if event.first_failed_at:
             first_failed_utc = event.first_failed_at.replace(
                 tzinfo=timezone.utc
@@ -320,12 +331,16 @@ async def send_events(
             time_passed = datetime.now(tz=timezone.utc) - first_failed_utc
 
             if time_passed > timedelta(hours=24):
-                await event_session.delete(event)
+                send_to_file(event, settings)
+                to_delete = True
 
         if (
             all(list(event.server_delivery_status.values()))
             and event.server_delivery_status.values()
         ):
+            to_delete = True
+
+        if to_delete:
             await event_session.delete(event)
 
         await event_session.flush()
