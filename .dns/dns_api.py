@@ -428,10 +428,12 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
     def reload(self, zone_name: str | None = None) -> None:
         """Reload zone with given name or all zones if none provided."""
-        subprocess.run(    # noqa: S603
-            "/usr/bin/rndc",
-            "reload",
-            zone_name if zone_name else "",
+        subprocess.run(  # noqa: S603
+            [
+                "/usr/sbin/rndc",
+                "reload",
+                zone_name if zone_name else "",
+            ],
         )
 
     async def restart(self) -> None:
@@ -444,15 +446,16 @@ class BindDNSServerManager(AbstractDNSServerManager):
             stderr=asyncio.subprocess.PIPE,
         )
 
-    async def first_setup(self, zone_name: str) -> str:
+    def first_setup(self, zone_name: str) -> str:
         """Perform first setup of Bind9 server."""
-        await self.add_zone(
+        self.add_zone(
             zone_name,
             "master",
+            None,
             params=[],
         )
         for record in FIRST_SETUP_RECORDS:
-            await self.add_record(
+            self.add_record(
                 DNSRecord(
                     record_name=record.get("name") + zone_name,
                     record_value=record.get("value") + zone_name,
@@ -548,7 +551,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
         return result
 
-    async def add_record(
+    def add_record(
         self,
         record: DNSRecord,
         record_type: DNSRecordType,
@@ -731,12 +734,12 @@ async def get_forward_zones(
 
 
 @record_router.post("")
-async def create_record(
+def create_record(
     data: DNSRecordCreateRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS record in given zone."""
-    await dns_manager.add_record(
+    dns_manager.add_record(
         DNSRecord(
             data.record_name,
             data.record_value,
@@ -821,12 +824,12 @@ async def get_server_settings(
 
 
 @server_router.post("/setup")
-async def setup_server(
+def setup_server(
     data: DNSServerSetupRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Init setup of DNS server."""
-    await dns_manager.first_setup(data.zone_name)
+    dns_manager.first_setup(data.zone_name)
 
 
 def create_app() -> FastAPI:
