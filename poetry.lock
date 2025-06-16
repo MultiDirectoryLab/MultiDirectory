@@ -992,6 +992,17 @@ build-docs = ["cloud-sptheme (>=1.10.1)", "sphinx (>=1.6)", "sphinxcontrib-fullt
 totp = ["cryptography"]
 
 [[package]]
+name = "password-validator"
+version = "1.0"
+description = "Validates password according to flexible and intuitive specifications"
+optional = false
+python-versions = "*"
+files = [
+    {file = "password_validator-1.0-py3-none-any.whl", hash = "sha256:4de1758e15b4e9bdf32933fcc99ce89efcdd28566e26e130726bb4295dd0d44c"},
+    {file = "password_validator-1.0.tar.gz", hash = "sha256:f12c1036b17c67fab607ad8003f43e73940793d7ab89bc7efcb2cd47c024533b"},
+]
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 description = "plugin and hook calling mechanisms for python"
@@ -1934,4 +1945,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12.6"
-content-hash = "5a35f9cf9805cbeb1e801227881536de90af7c326e933da6c01fc07812d456e5"
+content-hash = "00b7a11f7a3592a160ab3d1f80dcc4bd9d6bd1fca5a68cdd27f1626cad9d4637"

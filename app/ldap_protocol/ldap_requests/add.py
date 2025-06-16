@@ -25,7 +25,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
+    PasswordPolicyDAO,
     post_save_password_actions,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -151,11 +151,12 @@ class AddRequest(BaseRequest):
             return
 
         if self.password is not None:
-            password_policy = (
-                await PasswordPolicySchema.get_ensure_password_policy(session)
-            )
+            dao = PasswordPolicyDAO(session)
+            password_policy = await dao.get_ensure_password_policy()
+
             raw_password = self.password.get_secret_value()
-            errors = await password_policy.validate_password_with_policy(
+            errors = await dao.validate_password_with_policy(
+                password_policy,
                 password=raw_password,
                 user=None,
             )

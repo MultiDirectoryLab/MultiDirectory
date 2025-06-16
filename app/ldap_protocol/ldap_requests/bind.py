@@ -31,7 +31,7 @@ from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
 )
-from ldap_protocol.policies.password_policy import PasswordPolicySchema
+from ldap_protocol.policies.password_policy import PasswordPolicyDAO
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -170,19 +170,15 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        password_policy = (
-            await PasswordPolicySchema.get_ensure_password_policy(session)
-        )
-        p_last_set = await password_policy.get_ensure_pwd_last_set(
-            session=session,
-            directory_id=user.directory_id,
-        )
-        pwd_expired = password_policy.validate_max_age(p_last_set)
+        dao = PasswordPolicyDAO(session)
+        password_policy = await dao.get_ensure_password_policy()
 
+        pwd_last_set = await dao.get_ensure_pwd_last_set(user.directory_id)
+        pwd_expired = dao.validate_max_age(password_policy, pwd_last_set)
         is_krb_user = await check_kerberos_group(user, session)
 
         required_pwd_change = (
-            p_last_set == "0" or pwd_expired
+            pwd_last_set == "0" or pwd_expired  # noqa: S105
         ) and not is_krb_user
 
         if user.is_expired():

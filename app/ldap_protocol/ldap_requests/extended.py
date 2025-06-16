@@ -23,7 +23,7 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
+    PasswordPolicyDAO,
     post_save_password_actions,
 )
 from ldap_protocol.utils.queries import get_user
@@ -206,21 +206,17 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await session.get(User, ldap_session.user.id)  # type: ignore
 
-        password_policy = (
-            await PasswordPolicySchema.get_ensure_password_policy(session)
-        )
+        dao = PasswordPolicyDAO(session)
+        password_policy = await dao.get_ensure_password_policy()
 
-        errors = await password_policy.validate_password_with_policy(
+        errors = await dao.validate_password_with_policy(
+            password_policy=password_policy,
             password=new_password,
             user=user,
         )
 
-        p_last_set = await password_policy.get_ensure_pwd_last_set(
-            session,
-            user.directory_id,
-        )
-
-        if password_policy.validate_min_age(p_last_set):
+        pwd_last_set = await dao.get_ensure_pwd_last_set(user.directory_id)
+        if dao.validate_min_age(password_policy, pwd_last_set):
             errors.append("Minimum age violation")
 
         if not errors and (

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
+    PasswordPolicyDAO,
     post_save_password_actions,
 )
 from ldap_protocol.utils.queries import get_user
@@ -100,10 +100,11 @@ async def sync_password(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    password_policy = await PasswordPolicySchema.get_ensure_password_policy(
-        session
-    )
-    errors = await password_policy.validate_password_with_policy(
+    dao = PasswordPolicyDAO(session)
+    password_policy = await dao.get_ensure_password_policy()
+
+    errors = await dao.validate_password_with_policy(
+        password_policy,
         new_password,
         user,
     )

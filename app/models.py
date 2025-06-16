@@ -40,7 +40,7 @@ from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
-type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
+type KindType = Literal["AUXILIARY", "STRUCTURAL", "ABSTRACT"]
 
 
 class Base(DeclarativeBase, AsyncAttrs):
@@ -927,7 +927,6 @@ class PasswordPolicy(Base):
         nullable=False,
         server_default="7",
     )
-    password_must_meet_complexity_requirements: Mapped[tbool]
 
 
 class AccessPolicy(Base):

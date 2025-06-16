@@ -14,7 +14,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
     :param str plain_password: raw password
     :param str hashed_password: pwd hash from db
-    :return bool: is password valid
+    :return bool: is password verified
     """
     return pwd_context.verify(plain_password, hashed_password)
 

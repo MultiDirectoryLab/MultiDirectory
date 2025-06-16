@@ -21,7 +21,6 @@ async def test_policy_password(http_client: AsyncClient) -> None:
         "maximum_password_age_days": 0,
         "minimum_password_age_days": 0,
         "minimum_password_length": 7,
-        "password_must_meet_complexity_requirements": True,
     }
 
     response = await http_client.post("/password-policy", json=policy_data)

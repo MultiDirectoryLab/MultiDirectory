@@ -28,7 +28,7 @@ from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
+    PasswordPolicyDAO,
     post_save_password_actions,
 )
 from ldap_protocol.session_storage import SessionStorage
@@ -136,9 +136,8 @@ class ModifyRequest(BaseRequest):
         ):
             return
 
-        password_policy = (
-            await PasswordPolicySchema.get_ensure_password_policy(session)
-        )
+        dao = PasswordPolicyDAO(session)
+        password_policy = await dao.get_ensure_password_policy()
 
         if password_policy.maximum_password_age_days == 0:
             return
@@ -546,23 +545,17 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                password_policy = (
-                    await PasswordPolicySchema.get_ensure_password_policy(
-                        session
-                    )
-                )
+                dao = PasswordPolicyDAO(session)
+                password_policy = await dao.get_ensure_password_policy()
 
-                p_last_set = await password_policy.get_ensure_pwd_last_set(
-                    session,
-                    directory.id,
-                )
-
-                errors = await password_policy.validate_password_with_policy(
+                errors = await dao.validate_password_with_policy(
+                    password_policy,
                     password=value,
                     user=directory.user,
                 )
 
-                if password_policy.validate_min_age(p_last_set):
+                pwd_last_set = await dao.get_ensure_pwd_last_set(directory.id)
+                if dao.validate_min_age(password_policy, pwd_last_set):
                     errors.append("Minimum age violation")
 
                 if errors:

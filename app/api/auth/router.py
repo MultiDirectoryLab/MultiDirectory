@@ -25,6 +25,7 @@ from ldap_protocol.policies.network_policy import (
     get_user_network_policy,
 )
 from ldap_protocol.policies.password_policy import (
+    PasswordPolicyDAO,
     PasswordPolicySchema,
     post_save_password_actions,
 )
@@ -196,10 +197,10 @@ async def password_reset(
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    password_policy = await PasswordPolicySchema.get_ensure_password_policy(
-        session
-    )
-    errors = await password_policy.validate_password_with_policy(
+    dao = PasswordPolicyDAO(session)
+    password_policy = await dao.get_ensure_password_policy()
+    errors = await dao.validate_password_with_policy(
+        password_policy,
         new_password,
         user,
     )
@@ -349,8 +350,10 @@ async def first_setup(
 
             await session.flush()
 
+            dao = PasswordPolicyDAO(session)
             default_pwd_policy = PasswordPolicySchema()
-            errors = await default_pwd_policy.validate_password_with_policy(
+            errors = await dao.validate_password_with_policy(
+                default_pwd_policy,
                 password=request.password,
                 user=None,
             )
@@ -361,7 +364,8 @@ async def first_setup(
                     detail=errors,
                 )
 
-            await default_pwd_policy.create_policy_settings(session)
+            pwd_schema = PasswordPolicySchema()
+            await dao.create_policy_settings(pwd_schema)
 
             domain_query = (
                 select(Directory)
