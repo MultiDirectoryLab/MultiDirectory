@@ -21,8 +21,11 @@ def temporary_stub_entity_type_id(func: Callable) -> Callable:
     that precede the 'ba78cef9700a_initial_entity_type.py' migration
     and include working with the Directory.
 
-    :param Callable func: any function
-    :return Callable: any function
+    Args:
+        func (Callable): any function
+
+    Returns:
+        Callable: any function
     """
 
     def wrapper(*args, **kwargs):

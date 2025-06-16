@@ -38,21 +38,28 @@ class LDAPResult(BaseModel):
 
         populate_by_name = True
         arbitrary_types_allowed = True
-        json_encoders = {
-            bytes: lambda value: value.hex(),
-        }
+        json_encoders: ClassVar[dict] = {bytes: lambda value: value.hex()}
 
 
 class BaseEncoder(BaseModel):
     """Class with encoder methods."""
 
     def _get_asn1_fields(self) -> dict:
+        """Get ASN1 fields.
+
+        Returns:
+            dict: ASN1 fields
+        """
         fields = self.model_dump()
         fields.pop("PROTOCOL_OP", None)
         return fields
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize flat structure to bytes, write to encoder buffer."""
+        """Serialize flat structure to bytes, write to encoder buffer.
+
+        Args:
+            enc (Encoder): encoder
+        """
         for value in self._get_asn1_fields().values():
             enc.write(value, type_map[type(value)])
 
@@ -78,7 +85,11 @@ class BindResponse(LDAPResult, BaseResponse):
     server_sasl_creds: bytes | None = Field(None, alias="serverSaslCreds")
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize flat structure to bytes, write to encoder buffer."""
+        """Serialize flat structure to bytes, write to encoder buffer.
+
+        Args:
+            enc (Encoder): encoder
+        """
         enc.write(self.result_code, type_map[type(self.result_code)])
         enc.write(self.matched_dn, type_map[type(self.matched_dn)])
         enc.write(self.error_message, type_map[type(self.error_message)])
@@ -99,26 +110,44 @@ class PartialAttribute(BaseModel):
 
     @property
     def l_name(self) -> str:
-        """Get lower case name."""
+        """Get lower case name.
+
+        Returns:
+            str: lower case name
+        """
         return self.type.lower()
 
     @field_validator("type", mode="before")
     @classmethod
     def validate_type(cls, v: str | bytes | int) -> str:
+        """Validate type.
+
+        Args:
+            v (str | bytes | int): value
+
+        Returns:
+            str: value
+        """
         return str(v)
 
     @field_validator("vals", mode="before")
     @classmethod
     def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:
+        """Validate vals.
+
+        Args:
+            vals (list[str | int | bytes]): values
+
+        Returns:
+            list[str | bytes]: values
+        """
         return [v if isinstance(v, bytes) else str(v) for v in vals]
 
     class Config:
         """Allow class to use property."""
 
         arbitrary_types_allowed = True
-        json_encoders = {
-            bytes: lambda value: value.hex(),
-        }
+        json_encoders: ClassVar[dict] = {bytes: lambda value: value.hex()}
 
 
 class SearchResultEntry(BaseResponse):
@@ -143,7 +172,11 @@ class SearchResultEntry(BaseResponse):
     partial_attributes: list[PartialAttribute]
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize search response structure to asn1 buffer."""
+        """Serialize search response structure to asn1 buffer.
+
+        Args:
+            enc (Encoder): encoder
+        """
         enc.write(self.object_name, Numbers.OctetString)
         enc.enter(Numbers.Sequence)
 
@@ -169,6 +202,11 @@ class SearchResultDone(LDAPResult, BaseResponse):
     total_objects: int = 0
 
     def _get_asn1_fields(self) -> dict:
+        """Get ASN1 fields.
+
+        Returns:
+            dict: ASN1 fields
+        """
         fields = super()._get_asn1_fields()
         fields.pop("total_pages")
         fields.pop("total_objects")
@@ -240,7 +278,11 @@ class ExtendedResponse(LDAPResult, BaseResponse):
     response_value: SerializeAsAny[BaseExtendedResponseValue] | None
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize flat structure to bytes, write to encoder buffer."""
+        """Serialize flat structure to bytes, write to encoder buffer.
+
+        Args:
+            enc (Encoder): encoder
+        """
         enc.write(self.result_code, type_map[type(self.result_code)])
         enc.write(self.matched_dn, type_map[type(self.matched_dn)])
         enc.write(self.error_message, type_map[type(self.error_message)])

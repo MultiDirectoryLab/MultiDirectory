@@ -25,7 +25,15 @@ async def create_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
-    """Create current policy setting."""
+    """Create current policy setting.
+
+    Args:
+        policy (PasswordPolicySchema): Password policy schema to create.
+        session (AsyncSession): Database session.
+
+    Returns:
+        PasswordPolicySchema: Created password policy schema.
+    """
     return await policy.create_policy_settings(session)
 
 
@@ -33,7 +41,14 @@ async def create_policy(
 async def get_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
-    """Get current policy setting."""
+    """Get current policy setting.
+
+    Args:
+        session (AsyncSession): Database session.
+
+    Returns:
+        PasswordPolicySchema: Current password policy schema.
+    """
     return await PasswordPolicySchema.get_policy_settings(session)
 
 
@@ -42,7 +57,15 @@ async def update_policy(
     policy: PasswordPolicySchema,
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
-    """Update current policy setting."""
+    """Update current policy setting.
+
+    Args:
+        policy (PasswordPolicySchema): Password policy schema to update.
+        session (AsyncSession): Database session.
+
+    Returns:
+        PasswordPolicySchema: Updated password policy schema.
+    """
     await policy.update_policy_settings(session)
     return policy
 
@@ -51,5 +74,12 @@ async def update_policy(
 async def reset_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
-    """Reset current policy setting."""
+    """Reset current policy setting.
+
+    Args:
+        session (AsyncSession): Database session.
+
+    Returns:
+        PasswordPolicySchema: Reset password policy schema.
+    """
     return await PasswordPolicySchema.delete_policy_settings(session)

@@ -9,8 +9,8 @@ import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import Enum, StrEnum
-from typing import Any, Awaitable, Callable
+from enum import StrEnum
+from typing import Awaitable, Callable
 
 from dns.asyncquery import inbound_xfr as make_inbound_xfr, tcp as asynctcp
 from dns.asyncresolver import Resolver as AsyncResolver
@@ -46,14 +46,29 @@ log.add(
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:
-    """Log DNSManager calls."""
+    """Log DNSManager calls.
+
+    Args:
+        is_stub (bool): If True, marks the logger as a stub. Default is False.
+
+    Returns:
+        Callable: Decorator for logging.
+    """
 
     def wrapper(func: Callable) -> Callable:
+        """Decorator for logging function calls.
+
+        Args:
+            func (Callable): Function to wrap.
+
+        Returns:
+            Callable: Wrapped function.
+        """
         name = func.__name__
         bus_type = " stub " if is_stub else " "
 
         @functools.wraps(func)
-        async def wrapped(*args: str, **kwargs: str) -> Any:
+        async def wrapped(*args: str, **kwargs: str) -> object:
             logger = log.opt(depth=1)
 
             logger.info(f"Calling{bus_type}'{name}'")
@@ -77,7 +92,7 @@ class DNSConnectionError(ConnectionError):
     """API Error."""
 
 
-class DNSRecordType(str, Enum):
+class DNSRecordType(StrEnum):
     """DNS record types."""
 
     a = "A"
@@ -105,7 +120,13 @@ class DNSManagerSettings:
         dns_server_ip: str | None,
         tsig_key: str | None,
     ) -> None:
-        """Set settings."""
+        """Set settings.
+
+        Args:
+            zone_name (str | None): DNS zone name.
+            dns_server_ip (str | None): DNS server IP address.
+            tsig_key (str | None): TSIG key.
+        """
         self.zone_name = zone_name
         self.domain = zone_name + "." if zone_name is not None else None
         self.dns_server_ip = dns_server_ip
@@ -141,7 +162,11 @@ class AbstractDNSManager(ABC):
     """Abstract DNS manager class."""
 
     def __init__(self, settings: DNSManagerSettings) -> None:
-        """Set up DNS manager."""
+        """Set up DNS manager.
+
+        Args:
+            settings (DNSManagerSettings): DNS manager settings
+        """
         self._dns_settings = settings
 
     @logger_wraps()
@@ -155,7 +180,17 @@ class AbstractDNSManager(ABC):
         tsig_key: str | None,
         named_conf_local_part: str | None,
     ) -> None:
-        """Set up DNS server and DNS manager."""
+        """Set up DNS server and DNS manager.
+
+        Args:
+            session (AsyncSession): Database session
+            settings (Settings): Settings
+            domain (str): Domain name
+            dns_ip_address (str | None): DNS server IP address
+            zone_file (str | None): Zone file
+            tsig_key (str | None): TSIG key
+            named_conf_local_part (str | None): Named conf local part
+        """
         if zone_file is not None and named_conf_local_part is not None:
             with open(settings.DNS_ZONE_FILE, "w") as f:
                 f.write(zone_file)
@@ -184,15 +219,13 @@ class AbstractDNSManager(ABC):
                     .where(CatalogueSetting.name == name),
                 )
         else:
-            session.add_all(
-                [
-                    CatalogueSetting(name=name, value=value)
-                    for name, value in new_settings.items()
-                ]
-            )
+            session.add_all([
+                CatalogueSetting(name=name, value=value)
+                for name, value in new_settings.items()
+            ])
 
     @abstractmethod
-    async def create_record(
+    async def create_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -201,7 +234,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def update_record(
+    async def update_record(  # noqa: D102
         self,
         hostname: str,
         ip: str | None,
@@ -210,7 +243,7 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def delete_record(
+    async def delete_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -218,14 +251,21 @@ class AbstractDNSManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def get_all_records(self) -> list[DNSRecords]: ...
+    async def get_all_records(self) -> list[DNSRecords]: ...  # noqa: D102
 
 
 class DNSManager(AbstractDNSManager):
     """DNS server manager."""
 
     async def _send(self, action: Message) -> None:
-        """Send request to DNS server."""
+        """Send request to DNS server.
+
+        Args:
+            action (Message): DNS message
+
+        Raises:
+            DNSConnectionError:  DNS server IP is None
+        """
         if self._dns_settings.tsig_key is not None:
             action.use_tsig(
                 keyring=TsigKey("zone.", self._dns_settings.tsig_key),
@@ -245,7 +285,14 @@ class DNSManager(AbstractDNSManager):
         record_type: str,
         ttl: int | None,
     ) -> None:
-        """Create DNS record."""
+        """Create DNS record.
+
+        Args:
+            hostname (str): Hostname
+            ip (str): IP address
+            record_type (str): Record type
+            ttl (int | None): TTL
+        """
         action = Update(self._dns_settings.zone_name)
         action.add(hostname, ttl, record_type, ip)
 
@@ -253,7 +300,14 @@ class DNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
-        """Get all DNS records."""
+        """Get all DNS records.
+
+        Returns:
+            list[DNSRecords]
+
+        Raises:
+            DNSConnectionError: cant connect
+        """
         if (
             self._dns_settings.dns_server_ip is None
             or self._dns_settings.zone_name is None
@@ -305,7 +359,14 @@ class DNSManager(AbstractDNSManager):
         record_type: str,
         ttl: int | None,
     ) -> None:
-        """Update DNS record."""
+        """Update DNS record.
+
+        Args:
+            hostname (str): Hostname
+            ip (str | None): IP address
+            record_type (str): Record type
+            ttl (int | None): TTL
+        """
         action = Update(self._dns_settings.zone_name)
         action.replace(hostname, ttl, record_type, ip)
 
@@ -318,7 +379,13 @@ class DNSManager(AbstractDNSManager):
         ip: str,
         record_type: str,
     ) -> None:
-        """Delete DNS record."""
+        """Delete DNS record.
+
+        Args:
+            hostname (str): Hostname
+            ip (str): IP address
+            record_type (str): Record type
+        """
         action = Update(self._dns_settings.zone_name)
         action.delete(hostname, record_type, ip)
 
@@ -329,7 +396,7 @@ class StubDNSManager(AbstractDNSManager):
     """Stub client."""
 
     @logger_wraps(is_stub=True)
-    async def create_record(
+    async def create_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -338,7 +405,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def update_record(
+    async def update_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -347,7 +414,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def delete_record(
+    async def delete_record(  # noqa: D102
         self,
         hostname: str,
         ip: str,
@@ -356,14 +423,25 @@ class StubDNSManager(AbstractDNSManager):
 
     @logger_wraps(is_stub=True)
     async def get_all_records(self) -> list[DNSRecords]:
-        """Stub DNS manager get all records."""
+        """Stub DNS manager get all records.
+
+        Returns:
+            list[DNSRecords]
+        """
         return []
 
 
 async def get_dns_state(
     session: AsyncSession,
 ) -> "DNSManagerState":
-    """Get or create DNS manager state."""
+    """Get or create DNS manager state.
+
+    Args:
+        session (AsyncSession): Database session.
+
+    Returns:
+        DNSManagerState: Current DNS manager state.
+    """
     state = await session.scalar(
         select(CatalogueSetting)
         .filter(CatalogueSetting.name == DNS_MANAGER_STATE_NAME)
@@ -386,7 +464,12 @@ async def set_dns_manager_state(
     session: AsyncSession,
     state: DNSManagerState | str,
 ) -> None:
-    """Update DNS state."""
+    """Update DNS state.
+
+    Args:
+        session (AsyncSession): Database session.
+        state (DNSManagerState | str): New DNS manager state.
+    """
     await session.execute(
         update(CatalogueSetting)
         .values({"value": state})
@@ -395,7 +478,17 @@ async def set_dns_manager_state(
 
 
 async def resolve_dns_server_ip(host: str) -> str:
-    """Get DNS server IP from Docker network."""
+    """Get DNS server IP from Docker network.
+
+    Args:
+        host (str): Hostname to resolve.
+
+    Returns:
+        str: Resolved IP address.
+
+    Raises:
+        DNSConnectionError: If DNS server IP cannot be resolved.
+    """
     async_resolver = AsyncResolver()
     dns_server_ip_resolve = await async_resolver.resolve(host)
     if dns_server_ip_resolve is None or dns_server_ip_resolve.rrset is None:
@@ -407,7 +500,15 @@ async def get_dns_manager_settings(
     session: AsyncSession,
     resolve_coro: Awaitable[str],
 ) -> "DNSManagerSettings":
-    """Get DNS manager's settings."""
+    """Get DNS manager's settings.
+
+    Args:
+        session (AsyncSession): Database session.
+        resolve_coro (Awaitable[str]): Coroutine to resolve DNS server IP.
+
+    Returns:
+        DNSManagerSettings: DNS manager settings.
+    """
     settings_dict = {}
     for setting in await session.scalars(
         select(CatalogueSetting).filter(
@@ -416,7 +517,7 @@ async def get_dns_manager_settings(
                 CatalogueSetting.name == DNS_MANAGER_IP_ADDRESS_NAME,
                 CatalogueSetting.name == DNS_MANAGER_TSIG_KEY_NAME,
             )
-        )
+        ),
     ):
         settings_dict[setting.name] = setting.value
 
@@ -435,7 +536,14 @@ async def get_dns_manager_settings(
 async def get_dns_manager_class(
     session: AsyncSession,
 ) -> type[AbstractDNSManager]:
-    """Get DNS manager class."""
+    """Get DNS manager class.
+
+    Args:
+        session (AsyncSession): Database session.
+
+    Returns:
+        type[AbstractDNSManager]: DNS manager class type.
+    """
     if await get_dns_state(session) != DNSManagerState.NOT_CONFIGURED:
         return DNSManager
     return StubDNSManager

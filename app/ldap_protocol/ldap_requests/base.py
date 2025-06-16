@@ -27,8 +27,8 @@ log_api.add(
     colorize=False,
 )
 
-type handler = Callable[..., AsyncGenerator[BaseResponse, None]]
-type serializer = Callable[..., "BaseRequest"]
+type Handler = Callable[..., AsyncGenerator[BaseResponse, None]]
+type Serializer = Callable[..., BaseRequest]
 
 
 if TYPE_CHECKING:
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
             self,
             container: AsyncContainer,
         ) -> list[BaseResponse] | BaseResponse: ...
+
 else:
 
     class _APIProtocol: ...
@@ -48,8 +49,8 @@ else:
 class BaseRequest(ABC, _APIProtocol, BaseModel):
     """Base request builder."""
 
-    handle: ClassVar[handler]
-    from_data: ClassVar[serializer]
+    handle: ClassVar[Handler]
+    from_data: ClassVar[Serializer]
 
     @property
     @abstractmethod
@@ -60,11 +61,13 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         self,
         container: AsyncContainer,
     ) -> list[BaseResponse]:
-        """Hanlde response with api user.
+        """Handle response with api user.
 
-        :param DBUser user: user from db
-        :param AsyncSession session: db session
-        :return list[BaseResponse]: list of handled responses
+        Args:
+            container (AsyncContainer): Dependency injection container.
+
+        Returns:
+            list[BaseResponse]: list of handled responses
         """
         handler = await resolve_deps(func=self.handle, container=container)
         ldap_session = await container.get(LDAPSession)
@@ -93,5 +96,12 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         return responses
 
     async def handle_api(self, container: AsyncContainer) -> LDAPResult:
-        """Get single response."""
+        """Get single response.
+
+        Args:
+            container (AsyncContainer): Dependency injection container.
+
+        Returns:
+            LDAPResult: The first response from the handled API responses.
+        """
         return (await self._handle_api(container))[0]  # type: ignore
