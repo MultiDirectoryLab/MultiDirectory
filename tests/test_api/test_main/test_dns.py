@@ -195,6 +195,7 @@ async def test_dns_create_zone(
     """DNS Manager create zone test."""
     zone_name = "hello"
     zone_type = "master"
+    nameserver = None
     params = [
         DNSZoneParam(
             DNSZoneParamName.acl,
@@ -214,7 +215,7 @@ async def test_dns_create_zone(
     dns_manager.create_zone.assert_called()  # type: ignore
     assert (
         dns_manager.create_zone.call_args.args  # type: ignore
-    ) == (zone_name, zone_type, params)
+    ) == (zone_name, zone_type, nameserver, params)
 
 
 @pytest.mark.asyncio
