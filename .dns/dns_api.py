@@ -8,6 +8,7 @@ import asyncio
 import logging
 import os
 import re
+import subprocess
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
@@ -219,7 +220,7 @@ class AbstractDNSServerManager(ABC):
         """
 
     @abstractmethod
-    async def reload(self, zone: str | None = None) -> None:
+    def reload(self, zone: str | None = None) -> None:
         """Reload zone with given name or all zones if none provided.
 
         :param str | None name: zone name.
@@ -244,13 +245,13 @@ class BindDNSServerManager(AbstractDNSServerManager):
             zone_file, relativize=False, origin=zone_name
         )
 
-    async def _write_zone_data_to_file(
+    def _write_zone_data_to_file(
         self, zone_name: str, zone: dns.zone.Zone
     ) -> None:
         zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
-        await self.reload(zone_name)
+        self.reload(zone_name)
 
-    async def add_zone(
+    def add_zone(
         self,
         zone_name: str,
         zone_type: str,
@@ -265,7 +266,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
             if nameserver is not None
             else os.getenv("DEFAULT_NAMESERVER")
         )
-        zone_file = await zf_template.render_async(
+        zone_file = zf_template.render(
             domain=zone_name,
             nameserver_ip=nameserver_ip,
             ttl=params_dict.get("ttl", 604800),
@@ -277,7 +278,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
             file.write(zone_file)
 
         zo_template = TEMPLATES.get_template("zone_options.template")
-        zone_options = await zo_template.render_async(
+        zone_options = zo_template.render(
             zone_name=zone_name,
             zone_type=zone_type,
             forwarders=params_dict.get("forwarders"),
@@ -302,7 +303,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
         with open(NAMED_LOCAL, "a") as file:
             file.write(zone_options)
 
-        await self.reload(zone_name)
+        self.reload(zone_name)
 
     @staticmethod
     def _add_zone_param(
@@ -394,7 +395,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
         with open(NAMED_LOCAL, "w") as file:
             file.write(named_local)
 
-    async def delete_zone(self, zone_name: str) -> None:
+    def delete_zone(self, zone_name: str) -> None:
         """Delete existing zone."""
         named_local = None
         with open(NAMED_LOCAL) as file:
@@ -423,9 +424,9 @@ class BindDNSServerManager(AbstractDNSServerManager):
         if zone_type != DNSZoneType.FORWARD:
             os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
 
-        await self.restart()
+        self.restart()
 
-    async def reload(self, zone_name: str | None = None) -> None:
+    def reload(self, zone_name: str | None = None) -> None:
         """Reload zone with given name or all zones if none provided."""
         await asyncio.create_subprocess_exec(
             "rndc",
@@ -434,6 +435,11 @@ class BindDNSServerManager(AbstractDNSServerManager):
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+        )
+        subprocess.run(    # noqa: S603
+            "/usr/bin/rndc",
+            "reload",
+            zone_name if zone_name else "",
         )
 
     async def restart(self) -> None:
@@ -570,7 +576,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
             rdata, ttl=record.ttl
         )
 
-        await self._write_zone_data_to_file(zone_name, zone)
+        self._write_zone_data_to_file(zone_name, zone)
 
     async def delete_record(
         self,
@@ -592,7 +598,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
             if rdataset and rdata in rdataset:
                 rdataset.remove(rdata)
 
-        await self._write_zone_data_to_file(zone_name, zone)
+        self._write_zone_data_to_file(zone_name, zone)
 
     def update_record(
         self,
@@ -685,12 +691,12 @@ server_router = APIRouter(prefix="/server", tags=["server"])
 
 
 @zone_router.post("")
-async def create_zone(
+def create_zone(
     data: DNSZoneCreateRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS zone."""
-    await dns_manager.add_zone(
+    dns_manager.add_zone(
         data.zone_name,
         data.zone_type,
         data.nameserver,
@@ -708,12 +714,12 @@ def update_zone(
 
 
 @zone_router.delete("")
-async def delete_zone(
+def delete_zone(
     data: DNSZoneDeleteRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete DNS zone."""
-    await dns_manager.delete_zone(data.zone_name)
+    dns_manager.delete_zone(data.zone_name)
 
 
 @zone_router.get("")
@@ -797,12 +803,12 @@ async def restart_dns_server(
 
 
 @zone_router.get("/reload/{zone_name}")
-async def reload_zone(
+def reload_zone(
     zone_name: str,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Force reload DNS zone from zone file."""
-    await dns_manager.reload(zone_name)
+    dns_manager.reload(zone_name)
 
 
 @server_router.patch("/settings")
