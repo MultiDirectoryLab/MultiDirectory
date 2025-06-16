@@ -428,14 +428,6 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
     def reload(self, zone_name: str | None = None) -> None:
         """Reload zone with given name or all zones if none provided."""
-        await asyncio.create_subprocess_exec(
-            "rndc",
-            "reload",
-            zone_name if zone_name else "",
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
         subprocess.run(    # noqa: S603
             "/usr/bin/rndc",
             "reload",
