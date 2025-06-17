@@ -478,7 +478,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_success=is_ok,
                     additional_info={
                         "change_attributes": ["member"],
-                        "operation": ">",
+                        "operation": "<",
                         "result": True,
                     },
                     audit_policy=policy,
@@ -491,7 +491,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_success=is_ok,
                     additional_info={
                         "change_attributes": ["memberof"],
-                        "operation": ">",
+                        "operation": "<",
                         "result": True,
                     },
                     audit_policy=policy,
@@ -510,7 +510,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_success=is_ok,
                     additional_info={
                         "change_attributes": ["member"],
-                        "operation": "<",
+                        "operation": ">",
                         "result": True,
                     },
                     audit_policy=policy,
@@ -523,7 +523,7 @@ async def add_audit_pocilies(session: AsyncSession) -> None:
                     operation_success=is_ok,
                     additional_info={
                         "change_attributes": ["memberof"],
-                        "operation": "<",
+                        "operation": ">",
                         "result": True,
                     },
                     audit_policy=policy,
