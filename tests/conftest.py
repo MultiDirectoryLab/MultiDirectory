@@ -467,7 +467,7 @@ async def ldap_client(
     settings: Settings,
     creds: TestCreds,
 ) -> AsyncIterator[aioldap3.LDAPConnection]:
-    """Get ldap clinet without a creds."""
+    """Get LDAP client without credentials."""
     conn = aioldap3.LDAPConnection(
         aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
     )
