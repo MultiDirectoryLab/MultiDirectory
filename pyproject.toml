@@ -44,7 +44,7 @@ types-pytz = "^2022.7.1.0"
 
 [tool.poetry.group.test.dependencies]
 coverage = "7.8.0"
-gevent = "^24.10.3"
+gevent = "^25.5.1"
 pytest = "^8.3.3"
 pytest-asyncio = "^0.26.0"
 pytest-cov = "^4.1.0"
