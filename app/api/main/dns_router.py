@@ -17,6 +17,7 @@ from api.main.schema import (
     DNSServiceRecordCreateRequest,
     DNSServiceRecordDeleteRequest,
     DNSServiceRecordUpdateRequest,
+    DNSServiceReloadZoneRequest,
     DNSServiceSetupRequest,
     DNSServiceZoneCreateRequest,
     DNSServiceZoneDeleteRequest,
@@ -206,13 +207,13 @@ async def check_dns_forward_zone(
     ]
 
 
-@dns_router.get("/zone/reload/{zone_name}")
+@dns_router.get("/zone/reload/")
 async def reload_zone(
-    zone_name: str,
+    data: DNSServiceReloadZoneRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> None:
     """Reload given DNS zone."""
-    await dns_manager.reload_zone(zone_name)
+    await dns_manager.reload_zone(data.zone_name)
 
 
 @dns_router.patch("/server/options")
