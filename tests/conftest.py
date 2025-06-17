@@ -368,11 +368,6 @@ async def _migrations(
     engine = await container.get(AsyncEngine)
 
     config = AlembicConfig("alembic.ini", ini_section="main")
-
-    config.set_main_option("script_location", "alembic")
-    config.set_main_option("version_locations", "alembic/versions_main")
-    config.set_main_option("version_path_separator", "space")
-
     config.attributes["app_settings"] = settings
 
     def upgrade(conn: AsyncConnection) -> None:
