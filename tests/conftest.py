@@ -48,6 +48,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
+    StubDNSManager,
     get_dns_manager_settings,
 )
 from ldap_protocol.kerberos import AbstractKadmin
@@ -105,11 +106,8 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
     async def get_dns_mngr(self) -> AsyncIterator[AsyncMock]:
         """Get mock DNS manager."""
-        dns_manager = Mock()
+        dns_manager = AsyncMock(spec=StubDNSManager)
 
-        dns_manager.create_record = AsyncMock()
-        dns_manager.update_record = AsyncMock()
-        dns_manager.delete_record = AsyncMock()
         dns_manager.get_all_records = AsyncMock(
             return_value=[
                 {
@@ -124,11 +122,6 @@ class TestProvider(Provider):
                 },
             ]
         )
-        dns_manager.setup = AsyncMock()
-        dns_manager.create_zone = AsyncMock()
-        dns_manager.update_zone = AsyncMock()
-        dns_manager.delete_zone = AsyncMock()
-        dns_manager.update_server_options = AsyncMock()
         dns_manager.get_server_options = AsyncMock(
             return_value=[
                 {
