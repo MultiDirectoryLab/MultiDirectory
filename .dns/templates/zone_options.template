@@ -8,4 +8,3 @@ zone "{{ zone_name }}" {
     forward only;
     {%- endif %}
 };
-
