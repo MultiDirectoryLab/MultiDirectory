@@ -325,10 +325,6 @@ services:
         restart: true
     labels:
       - traefik.enable=true
-      - traefik.tcp.routers.bind_dns.rule=HostSNI(`${DOMAIN}`)
-      - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
-      - traefik.tcp.routers.bind_dns.service=bind_dns
-      - traefik.tcp.services.bind_dns.loadbalancer.server.port=8000
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
       - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
 
