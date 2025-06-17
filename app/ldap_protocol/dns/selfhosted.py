@@ -107,7 +107,16 @@ class SelfHostedDNSManager(AbstractDNSManager):
         async with self._http_client:
             response = await self._http_client.get("/zone")
 
-        return response.json()[0].get("records")
+        response_data = response.json()
+
+        if (
+            isinstance(response_data, list)
+            and len(response_data) > 0
+            and "records" in response_data[0]
+        ):
+            return response_data[0]["records"]
+        else:
+            return []
 
     @logger_wraps()
     async def get_all_zones_records(self) -> list[DNSZone]:
