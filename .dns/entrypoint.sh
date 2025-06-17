@@ -5,4 +5,3 @@
 wait -n
 
 exit $?
-
