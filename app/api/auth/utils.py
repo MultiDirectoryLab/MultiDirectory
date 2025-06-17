@@ -98,7 +98,7 @@ def track_audit_event(event_type: OperationEvent) -> Callable:
                 is_success_request = False
 
             try:
-                result = await endpoint_func(*args, **kwargs)
+                response = await endpoint_func(*args, **kwargs)
             except HTTPException as error:
                 if error.status_code == status.HTTP_426_UPGRADE_REQUIRED:
                     to_process_event = False
@@ -113,10 +113,8 @@ def track_audit_event(event_type: OperationEvent) -> Callable:
                 raise
 
             else:
-                response = result
-
                 if event_type == OperationEvent.AFTER_2FA:
-                    username, response = result
+                    username = request.state.username
 
                 if to_process_event:
                     is_success_request = True
