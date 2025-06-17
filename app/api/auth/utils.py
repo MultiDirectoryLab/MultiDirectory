@@ -109,9 +109,6 @@ def track_audit_event(event_type: OperationEvent) -> Callable:
 
                 raise
 
-            except Exception:
-                raise
-
             else:
                 if event_type == OperationEvent.AFTER_2FA:
                     username = request.state.username
