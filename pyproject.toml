@@ -8,7 +8,7 @@ packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "3.12.6"
-aioldap3 = {url = "https://github.com/MultiDirectoryLab/aioldap3/releases/download/v1.2/aioldap3-1.2-py3-none-any.whl"}
+aioldap3 = {url = "https://github.com/MultiDirectoryLab/aioldap3/releases/download/v1.3/aioldap3-1.3-py3-none-any.whl"}
 alembic = "^1.14.1"
 asn1 = "^2.7.1"
 asyncstdlib = "^3.10.6"
