@@ -367,7 +367,9 @@ async def test_extended_pw_change_call(
     new_test_password = "Password123"  # noqa
     await anonymous_ldap_client.bind(user_dn, password)
     await anonymous_ldap_client.modify_password(
-        new_test_password, user_dn, password
+        new_test_password,
+        user_dn,
+        password,
     )
 
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
