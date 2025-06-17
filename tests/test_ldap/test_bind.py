@@ -4,14 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from asyncio import BaseEventLoop
-from functools import partial
 from unittest.mock import AsyncMock, Mock
 
 import gssapi
 import pytest
+from aioldap3 import LDAPConnection, PlainSaslCreds
 from dishka import AsyncContainer, Scope
-from ldap3 import PLAIN, SASL, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -307,51 +305,28 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_ldap3_bind(
-    ldap_client: Connection,
-    event_loop: BaseEventLoop,
-    creds: TestCreds,
-) -> None:
+async def test_ldap3_bind(anonymous_ldap_client: LDAPConnection) -> None:
     """Test ldap3 bind."""
-    assert not ldap_client.bound
+    await anonymous_ldap_client.bind()
+    assert anonymous_ldap_client.is_bound
 
-    result = await event_loop.run_in_executor(None, ldap_client.bind)
-    assert result
-    assert ldap_client.bound
-
-    result = await event_loop.run_in_executor(
-        None,
-        partial(ldap_client.rebind, user=creds.un, password=creds.pw),
-    )
-    assert result
-    assert ldap_client.bound
-
-    result = await event_loop.run_in_executor(None, ldap_client.unbind)
-    assert not ldap_client.bound
+    await anonymous_ldap_client.unbind()
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_ldap3_bind_sasl_plain(
-    ldap_client: Connection,
-    event_loop: BaseEventLoop,
+    anonymous_ldap_client: LDAPConnection,
     creds: TestCreds,
 ) -> None:
-    """Test ldap3 bind."""
-    assert not ldap_client.bound
-
-    result = await event_loop.run_in_executor(
-        None,
-        ldap_client.rebind,
-        None,
-        None,
-        SASL,
-        PLAIN,
-        (None, creds.un, creds.pw),
+    """Test ldap3 bind with SASL PLAIN authentication."""
+    sasl_creds = PlainSaslCreds(creds.un, creds.pw)
+    await anonymous_ldap_client.bind(
+        method="SASL",
+        sasl_credentials=sasl_creds,
     )
-    assert result
-    assert ldap_client.bound
+    assert anonymous_ldap_client.is_bound
 
 
 @pytest.mark.asyncio

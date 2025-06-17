@@ -1,14 +1,13 @@
 """Test kadmin."""
 
 import asyncio
-from functools import partial
 from hashlib import blake2b
 from unittest.mock import Mock
 
 import pytest
+from aioldap3 import LDAPConnection
 from fastapi import status
 from httpx import AsyncClient
-from ldap3 import Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -358,8 +357,7 @@ async def test_bind_create_user(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("_force_override_tls")
 async def test_extended_pw_change_call(
-    event_loop: asyncio.BaseEventLoop,
-    ldap_client: Connection,
+    anonymous_ldap_client: LDAPConnection,
     creds: TestCreds,
     kadmin: AbstractKadmin,
 ) -> None:
@@ -367,23 +365,15 @@ async def test_extended_pw_change_call(
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
-
-    await event_loop.run_in_executor(
-        None,
-        partial(ldap_client.rebind, user=user_dn, password=password),
+    await anonymous_ldap_client.bind(user_dn, password)
+    await anonymous_ldap_client.modify_password(
+        new_test_password,
+        user_dn,
+        password,
     )
 
-    result = await event_loop.run_in_executor(
-        None,
-        partial(
-            ldap_client.extend.standard.modify_password,
-            old_password=password,
-            new_password=new_test_password,
-        ),
-    )
-
-    assert result
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
+
     assert kadmin_args == ("user0", new_test_password)
 
 
