@@ -242,7 +242,9 @@ class BindDNSServerManager(AbstractDNSServerManager):
     def _get_zone_obj_by_zone_name(zone_name) -> dns.zone.Zone:
         zone_file = os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone")
         return dns.zone.from_file(
-            zone_file, relativize=False, origin=zone_name
+            zone_file,
+            relativize=False,
+            origin=zone_name,
         )
 
     def _write_zone_data_to_file(
@@ -297,7 +299,10 @@ class BindDNSServerManager(AbstractDNSServerManager):
                 param_value = param.value
 
             zone_options = self._add_zone_param(
-                zone_options, zone_name, param_name, param_value
+                zone_options,
+                zone_name,
+                param_name,
+                param_value,
             )
 
         with open(NAMED_LOCAL, "a") as file:
@@ -343,10 +348,15 @@ class BindDNSServerManager(AbstractDNSServerManager):
         param_value: str,
     ) -> str:
         new_named_local = self._delete_zone_param(
-            named_local, zone_name, param_name
+            named_local,
+            zone_name,
+            param_name,
         )
         return self._add_zone_param(
-            new_named_local, zone_name, param_name, param_value
+            new_named_local,
+            zone_name,
+            param_name,
+            param_value,
         )
 
     def update_zone(self, zone_name: str, params: list[DNSZoneParam]) -> None:
@@ -374,7 +384,9 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
             if param.value is None:
                 named_local = self._delete_zone_param(
-                    named_local, zone_name, param_name
+                    named_local,
+                    zone_name,
+                    param_name,
                 )
                 continue
 
@@ -385,11 +397,17 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
             if has_param:
                 named_local = self._update_zone_param(
-                    named_local, zone_name, param_name, param_value
+                    named_local,
+                    zone_name,
+                    param_name,
+                    param_value,
                 )
             else:
                 named_local = self._add_zone_param(
-                    named_local, zone_name, param_name, param_value
+                    named_local,
+                    zone_name,
+                    param_name,
+                    param_value,
                 )
 
         with open(NAMED_LOCAL, "w") as file:
@@ -568,7 +586,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
         )
 
         zone.find_rdataset(record_name, rdata.rdtype, create=True).add(
-            rdata, ttl=record.ttl
+            rdata,
+            ttl=record.ttl,
         )
 
         self._write_zone_data_to_file(zone_name, zone)
@@ -584,7 +603,9 @@ class BindDNSServerManager(AbstractDNSServerManager):
         name = dns.name.from_text(record.record_name)
         rdatatype = dns.rdatatype.from_text(record_type)
         rdata = dns.rdata.from_text(
-            dns.rdataclass.IN, rdatatype, record.record_value
+            dns.rdataclass.IN,
+            rdatatype,
+            record.record_value,
         )
 
         if name in zone.nodes:
@@ -636,7 +657,9 @@ class BindDNSServerManager(AbstractDNSServerManager):
                 param_value = param.value
             pattern = rf"^\s*{re.escape(param.name)}\s+"
             matched_param = re.search(
-                pattern, named_options, flags=re.MULTILINE
+                pattern,
+                named_options,
+                flags=re.MULTILINE,
             )
             if matched_param is None:
                 named_options = self._add_new_server_param(
