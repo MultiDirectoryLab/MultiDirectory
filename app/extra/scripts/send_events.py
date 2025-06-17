@@ -190,12 +190,7 @@ class SyslogSender(SendersABC):
 
         # MSG (section 6.4)
         message = self._escape_message(message) if message else ""
-        logger.debug(
-            f"""
-            {priority} {self.SYSLOG_VERSION} {timestamp} {hostname}
-            {app_name} {proc_id} {msg_id} {sd_str}{message}
-            """
-        )
+
         return (
             f"<{priority}>{self.SYSLOG_VERSION} {timestamp} "
             f"{hostname} {app_name} {proc_id} {msg_id} "
