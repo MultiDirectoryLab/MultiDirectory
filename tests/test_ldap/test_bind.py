@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, Mock
 
 import gssapi
 import pytest
-from aioldap3 import LDAPConnection, SimpleSaslCreds
+from aioldap3 import LDAPConnection, PlainSaslCreds
 from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -319,7 +319,7 @@ async def test_ldap3_bind_sasl_plain(
     anonymous_ldap_client: LDAPConnection, creds: TestCreds
 ) -> None:
     """Test ldap3 bind with SASL PLAIN authentication."""
-    sasl_creds = SimpleSaslCreds(creds.un, creds.pw)
+    sasl_creds = PlainSaslCreds(creds.un, creds.pw)
     await anonymous_ldap_client.bind(
         creds.un, creds.pw, "SASL", sasl_credentials=sasl_creds
     )
