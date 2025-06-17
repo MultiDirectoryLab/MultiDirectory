@@ -137,7 +137,7 @@ async def get_mfa(
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
 @track_audit_event(event_type=OperationEvent.AFTER_2FA)
 async def callback_mfa(
-    request: Request,  # noqa: ARG001
+    request: Request,
     access_token: Annotated[
         str,
         Form(alias="accessToken", validation_alias="accessToken"),
@@ -166,6 +166,8 @@ async def callback_mfa(
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
+    request.state.username = ""
+
     try:
         payload = jwt.decode(
             access_token,
@@ -175,12 +177,12 @@ async def callback_mfa(
         )
     except (JWTError, AttributeError, JWKError) as err:
         logger.error(f"Invalid MFA token: {err}")
-        return "", RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)  # type: ignore
+        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
 
     user_id: int = int(payload.get("uid"))
     user = await session.get(DBUser, user_id)
     if user_id is None or not user:
-        return "", RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)  # type: ignore
+        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
 
     response = RedirectResponse("/", status.HTTP_302_FOUND)
     await create_and_set_session_key(
@@ -192,7 +194,8 @@ async def callback_mfa(
         ip,
         user_agent,
     )
-    return user.user_principal_name, response  # type: ignore
+    request.state.username = user.user_principal_name
+    return response
 
 
 @mfa_router.post("/connect", response_model=MFAChallengeResponse)
