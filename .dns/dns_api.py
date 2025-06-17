@@ -260,8 +260,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
         nameserver: str | None,
         params: list[DNSZoneParam],
     ) -> None:
-        params_dict = {param.name: param.value for param in params}
         """Add new zone."""
+        params_dict = {param.name: param.value for param in params}
         zf_template = TEMPLATES.get_template("zone.template")
         nameserver_ip = (
             nameserver
