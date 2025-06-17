@@ -281,7 +281,7 @@ class RedisAuditDAO:
             raise error
 
 
-async def add_audit_pocilies(session: AsyncSession) -> None:
+async def add_audit_policies(session: AsyncSession) -> None:
     """Add audit policies."""
     for object_class in {"organizationalUnit", "user", "group", "computer"}:
         for line, is_ok in {"ok": True, "fail": False}.items():
