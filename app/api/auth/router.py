@@ -29,7 +29,7 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.access_policy import create_access_policy
-from ldap_protocol.policies.audit_policy import add_audit_pocilies
+from ldap_protocol.policies.audit_policy import add_audit_policies
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -404,7 +404,7 @@ async def first_setup(
                 ],
                 session=session,
             )
-            await add_audit_pocilies(session)
+            await add_audit_policies(session)
             await session.commit()
 
         except IntegrityError:

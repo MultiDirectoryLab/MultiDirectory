@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.policies.audit_policy import add_audit_pocilies
+from ldap_protocol.policies.audit_policy import add_audit_policies
 
 # revision identifiers, used by Alembic.
 revision = "e4d6d99d32bd"
@@ -31,7 +31,7 @@ def upgrade() -> None:
         if not result.scalar_one_or_none():
             return
 
-        await add_audit_pocilies(session)
+        await add_audit_policies(session)
         await session.commit()
 
     op.create_table(
