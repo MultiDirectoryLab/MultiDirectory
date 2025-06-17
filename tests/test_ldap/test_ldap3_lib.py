@@ -11,9 +11,7 @@ from aioldap3 import LDAPConnection
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_ldap3_search(
-    ldap_client: LDAPConnection,
-) -> None:
+async def test_ldap3_search(ldap_client: LDAPConnection) -> None:
     """Test ldap3 search."""
     result = await ldap_client.search(
         "dc=md,dc=test",
