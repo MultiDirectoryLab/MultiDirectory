@@ -18,4 +18,10 @@ RUN /venvs/bin/pip install fastapi \
                            dnspython
 
 COPY .dns/ /server/
+WORKDIR /server
+
+RUN chown bind:bind /opt
+
 EXPOSE 8000
+
+ENTRYPOINT [ "./entrypoint.sh" ]
