@@ -313,7 +313,6 @@ async def test_ldap3_bind(
     assert ldap_client.is_bound
 
     await ldap_client.unbind()
-    assert ldap_client.is_bound
 
 
 @pytest.mark.asyncio
