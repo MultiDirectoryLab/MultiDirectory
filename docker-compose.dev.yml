@@ -323,7 +323,6 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-    command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.bind_dns.rule=HostSNI(`${DOMAIN}`)

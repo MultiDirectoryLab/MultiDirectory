@@ -217,8 +217,6 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-    working_dir: /server
-    command: bash -c "chown bind:bind /opt && chmod root:root /server/entrypoint.sh && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && ./entrypoint.sh"
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
