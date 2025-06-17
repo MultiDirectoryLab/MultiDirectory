@@ -70,8 +70,8 @@ class DNSRecordType(StrEnum):
 class DNSRecord:
     """Single DNS record."""
 
-    record_name: str
-    record_value: str
+    name: str
+    value: str
     ttl: int
 
 
@@ -79,7 +79,7 @@ class DNSRecord:
 class DNSRecords:
     """List of DNS records grouped by type."""
 
-    record_type: DNSRecordType
+    type: DNSRecordType
     records: list[DNSRecord]
 
 
@@ -87,8 +87,8 @@ class DNSRecords:
 class DNSZone:
     """DNS zone."""
 
-    zone_name: str
-    zone_type: DNSZoneType
+    name: str
+    type: DNSZoneType
     records: list[DNSRecords]
 
 
@@ -96,8 +96,8 @@ class DNSZone:
 class DNSForwardZone:
     """DNS forward zone."""
 
-    zone_name: str
-    zone_type: DNSZoneType
+    name: str
+    type: DNSZoneType
     forwarders: list[str]
 
 
@@ -475,8 +475,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
         for record in FIRST_SETUP_RECORDS:
             self.add_record(
                 DNSRecord(
-                    record_name=record.get("name") + zone_name,
-                    record_value=record.get("value") + zone_name,
+                    name=record.get("name") + zone_name,
+                    value=record.get("value") + zone_name,
                     ttl=604800,
                 ),
                 record.get("type"),
@@ -505,14 +505,14 @@ class BindDNSServerManager(AbstractDNSServerManager):
 
             result[record_type].append(
                 DNSRecord(
-                    record_name=name.to_text(),
-                    record_value=rdata.to_text(),
+                    name=name.to_text(),
+                    value=rdata.to_text(),
                     ttl=ttl,
                 )
             )
 
         return [
-            DNSRecords(record_type=record_type, records=records)
+            DNSRecords(type=record_type, records=records)
             for record_type, records in result.items()
         ]
 
@@ -530,8 +530,8 @@ class BindDNSServerManager(AbstractDNSServerManager):
             )
             result.append(
                 DNSZone(
-                    zone_name=zone_name,
-                    zone_type=zone_type,
+                    name=zone_name,
+                    type=zone_type,
                     records=zone_records,
                 )
             )
@@ -578,11 +578,11 @@ class BindDNSServerManager(AbstractDNSServerManager):
         """Add DNS record to given zone."""
         zone = self._get_zone_obj_by_zone_name(zone_name)
 
-        record_name = dns.name.from_text(record.record_name)
+        record_name = dns.name.from_text(record.name)
         rdata = dns.rdata.from_text(
             dns.rdataclass.IN,
             dns.rdatatype.from_text(record_type),
-            record.record_value,
+            record.value,
         )
 
         zone.find_rdataset(record_name, rdata.rdtype, create=True).add(
@@ -600,12 +600,12 @@ class BindDNSServerManager(AbstractDNSServerManager):
     ) -> None:
         """Delete specific record from given DNS zone."""
         zone = self._get_zone_obj_by_zone_name(zone_name)
-        name = dns.name.from_text(record.record_name)
+        name = dns.name.from_text(record.name)
         rdatatype = dns.rdatatype.from_text(record_type)
         rdata = dns.rdata.from_text(
             dns.rdataclass.IN,
             rdatatype,
-            record.record_value,
+            record.value,
         )
 
         if name in zone.nodes:
