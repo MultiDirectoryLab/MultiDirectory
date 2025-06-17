@@ -322,7 +322,7 @@ async def test_dns_get_server_options(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("add_dns_settings")
 @pytest.mark.usefixtures("session")
-async def test_dns_get_all_zones_wtih_records(
+async def test_dns_get_all_zones_with_records(
     http_client: AsyncClient,
     dns_manager: AbstractDNSManager,
 ) -> None:
