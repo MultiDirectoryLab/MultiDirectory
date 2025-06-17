@@ -112,7 +112,7 @@ class DNSServiceZoneCreateRequest(BaseModel):
 
     zone_name: str
     zone_type: DNSZoneType
-    nameserver: str | None = Field(None)
+    nameserver: str | None = None
     params: list[DNSZoneParam]
 
 
@@ -145,4 +145,4 @@ class DNSServiceOptionsUpdateRequest(BaseModel):
     """DNS server options update request scheme."""
 
     name: str
-    value: str | list[str] = Field("")
+    value: str | list[str] = ""
