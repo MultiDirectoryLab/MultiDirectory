@@ -33,6 +33,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("first_failed_at", sa.DateTime(), nullable=True),
+        sa.Column("retry_count", sa.Integer(), nullable=False, default=0),
         sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###
