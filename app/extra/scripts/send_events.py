@@ -306,7 +306,7 @@ async def send_events(
     session: AsyncSession,
     event_session: EventAsyncSession,
     settings: Settings,
-    logger: AuditLogger,
+    audit_logger: AuditLogger,
 ) -> None:
     """Send events."""
     destinations = await session.scalars(
@@ -361,7 +361,7 @@ async def send_events(
                 > timedelta(minutes=settings.AUDIT_THIRD_RETRY_TIME)
                 or event.retry_count > 3
             ):
-                logger.info(f"{event.id} {event.content}\n")
+                audit_logger.info(f"{event.id} {event.content}\n")
                 to_delete = True
 
         if (
