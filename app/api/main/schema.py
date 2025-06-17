@@ -75,8 +75,8 @@ class DNSServiceSetupRequest(BaseModel):
 
     dns_status: DNSManagerState
     domain: str
-    dns_ip_address: str | None = Field(None)
-    tsig_key: str | None = Field(None)
+    dns_ip_address: str | None = None
+    tsig_key: str | None = None
 
 
 class DNSServiceRecordBaseRequest(BaseModel):
@@ -84,14 +84,14 @@ class DNSServiceRecordBaseRequest(BaseModel):
 
     record_name: str
     record_type: str
-    zone_name: str | None = Field(None)
+    zone_name: str | None = None
 
 
 class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
     """DNS create request schema."""
 
     record_value: str
-    ttl: int | None = Field(None)
+    ttl: int | None = None
 
 
 class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
@@ -103,8 +103,8 @@ class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
 class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
     """DNS update request schema."""
 
-    record_value: str | None = Field(None)
-    ttl: int | None = Field(None)
+    record_value: str | None = None
+    ttl: int | None = None
 
 
 class DNSServiceZoneCreateRequest(BaseModel):
