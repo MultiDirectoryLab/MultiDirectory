@@ -309,6 +309,10 @@ async def test_ldap3_bind(
     ldap_client: LDAPConnection,
 ) -> None:
     """Test ldap3 bind."""
+    await ldap_client.bind()
+    assert ldap_client.is_bound
+
+    await ldap_client.unbind()
     assert ldap_client.is_bound
 
 
