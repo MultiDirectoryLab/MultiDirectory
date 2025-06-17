@@ -19,7 +19,7 @@ from ulid import ULID
 
 from audit_models import AuditLog
 from config import Settings
-from ioc import EventAsyncSession
+from ioc import AuditLogger, EventAsyncSession
 from models import (
     AuditDestination,
     AuditDestinationProtocolType,
@@ -274,12 +274,6 @@ senders: dict[AuditDestinationServiceType, type[SendersABC]] = {
 }
 
 
-def send_to_file(event: AuditLog, settings: Settings) -> None:
-    """Send event to file."""
-    with open(settings.AUDIT_LOG_FILE, "a") as f:
-        f.write(f"{event.id} {event.content}\n")
-
-
 def should_skip_event_retry(event: AuditLog, settings: Settings) -> bool:
     """Check if event should be skipped."""
     if not event.first_failed_at:
@@ -312,6 +306,7 @@ async def send_events(
     session: AsyncSession,
     event_session: EventAsyncSession,
     settings: Settings,
+    logger: AuditLogger,
 ) -> None:
     """Send events."""
     destinations = await session.scalars(
@@ -366,7 +361,7 @@ async def send_events(
                 > timedelta(minutes=settings.AUDIT_THIRD_RETRY_TIME)
                 or event.retry_count > 3
             ):
-                send_to_file(event, settings)
+                logger.info(f"{event.id} {event.content}\n")
                 to_delete = True
 
         if (

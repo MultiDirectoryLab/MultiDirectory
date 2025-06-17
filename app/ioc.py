@@ -4,6 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import logging
+from logging.handlers import RotatingFileHandler
 from typing import AsyncIterator, NewType
 
 import httpx
@@ -45,6 +47,7 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 EventAsyncSession = NewType("EventAsyncSession", AsyncSession)
+AuditLogger = NewType("AuditLogger", logging.Logger)
 
 
 class MainProvider(Provider):
@@ -264,9 +267,7 @@ class LDAPServerProvider(Provider):
 class EventHandlerProvider(Provider):
     """Event handler provider."""
 
-    scope = Scope.REQUEST
-
-    @provide()
+    @provide(scope=Scope.REQUEST)
     async def create_session_1(
         self,
         settings: Settings,
@@ -287,6 +288,24 @@ class EventHandlerProvider(Provider):
         )() as session:
             yield EventAsyncSession(session)
             await session.commit()
+
+    @provide(scope=Scope.APP)
+    def setup_audit_logging(self, settings: Settings) -> AuditLogger:
+        """Create audit logger.."""
+        logger = logging.getLogger("audit_log")
+        logger.setLevel(logging.INFO)
+
+        handler = RotatingFileHandler(
+            settings.AUDIT_LOG_FILE,
+            maxBytes=10 * 1024 * 1024,  # 10MB
+            backupCount=10,
+            encoding="utf-8",
+        )
+        formatter = logging.Formatter("%(message)s")
+        handler.setFormatter(formatter)
+
+        logger.addHandler(handler)
+        return logger  # type: ignore
 
 
 class MFACredsProvider(Provider):
