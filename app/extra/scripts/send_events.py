@@ -106,7 +106,7 @@ class SyslogSender(SendersABC):
             if use_tls:
                 ssl_context = ssl.create_default_context(
                     ssl.Purpose.SERVER_AUTH,
-                    cafile=self._destination.ca_cert_data
+                    cadata=self._destination.ca_cert_data
                     if self._destination.ca_cert_data
                     else None,
                 )
@@ -280,6 +280,34 @@ def send_to_file(event: AuditLog, settings: Settings) -> None:
         f.write(f"{event.id} {event.content}\n")
 
 
+def should_skip_event_retry(event: AuditLog, settings: Settings) -> bool:
+    """Check if event should be skipped."""
+    if not event.first_failed_at:
+        return False
+
+    if event.retry_count > 3:
+        return True
+
+    first_failed_utc = event.first_failed_at.astimezone(timezone.utc)
+    time_passed = datetime.now(tz=timezone.utc) - first_failed_utc
+
+    match event.retry_count:
+        case 1:
+            return time_passed < timedelta(
+                minutes=settings.AUDIT_FIRST_RETRY_TIME
+            )
+        case 2:
+            return time_passed < timedelta(
+                minutes=settings.AUDIT_SECOND_RETRY_TIME
+            )
+        case 3:
+            return time_passed < timedelta(
+                minutes=settings.AUDIT_THIRD_RETRY_TIME
+            )
+        case _:
+            return False
+
+
 async def send_events(
     session: AsyncSession,
     event_session: EventAsyncSession,
@@ -308,6 +336,9 @@ async def send_events(
             if event.server_delivery_status.get(server.id, False):
                 continue
 
+            if should_skip_event_retry(event, settings):
+                continue
+
             try:
                 await sender.send(event)
                 event.server_delivery_status[server.id] = True
@@ -319,30 +350,32 @@ async def send_events(
                 if event.first_failed_at is None:
                     event.first_failed_at = datetime.now(tz=timezone.utc)
 
+                event.retry_count += 1
+
     await event_session.flush()
 
     for event in events:
         to_delete = False
 
         if event.first_failed_at:
-            first_failed_utc = event.first_failed_at.replace(
-                tzinfo=timezone.utc
-            )
+            first_failed_utc = event.first_failed_at.astimezone(timezone.utc)
             time_passed = datetime.now(tz=timezone.utc) - first_failed_utc
 
-            if time_passed > timedelta(hours=24):
+            if (
+                time_passed
+                > timedelta(minutes=settings.AUDIT_THIRD_RETRY_TIME)
+                or event.retry_count > 3
+            ):
                 send_to_file(event, settings)
                 to_delete = True
 
         if (
             all(list(event.server_delivery_status.values()))
-            and event.server_delivery_status.values()
+            and event.server_delivery_status
         ):
             to_delete = True
 
         if to_delete:
             await event_session.delete(event)
-
-        await event_session.flush()
 
     await event_session.commit()

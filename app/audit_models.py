@@ -29,6 +29,7 @@ class AuditLog(Base):
     first_failed_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True
     )
+    retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
 
     @property
     def syslog_message(self) -> str:

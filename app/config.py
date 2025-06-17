@@ -73,7 +73,12 @@ class Settings(BaseModel):
     EVENT_STREAM_NAME: str = "EVENT_LOG"
     EVENT_HANLDER_GROUP: str = "event_handlers"
     PROCESSED_EVENT_STREAM_NAME: str = "NORMAL_EVENT_LOG"
+
     AUDIT_LOG_FILE: str = "/audit/audit.log"
+
+    AUDIT_FIRST_RETRY_TIME: int = 5
+    AUDIT_SECOND_RETRY_TIME: int = 60
+    AUDIT_THIRD_RETRY_TIME: int = 1440
 
     @computed_field  # type: ignore
     @cached_property
