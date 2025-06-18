@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import asyncio
 import logging
 import os
 import re
@@ -189,10 +188,6 @@ class DNSServerParam:
 
 class BindDNSServerManager:
     """Bind9 DNS server manager."""
-
-    def __init__(self, loop: asyncio.AbstractEventLoop | None = None):
-        """Initialize Bind9 DNS server manager."""
-        self.loop = loop or asyncio.get_running_loop()
 
     @staticmethod
     def _get_zone_obj_by_zone_name(zone_name) -> dns.zone.Zone:
