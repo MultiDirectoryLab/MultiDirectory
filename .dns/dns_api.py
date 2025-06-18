@@ -188,50 +188,7 @@ class DNSServerParam:
     value: str | list[str]
 
 
-class AbstractDNSServerManager(ABC):
-    """DNS server manager."""
-
-    @abstractmethod
-    async def add_zone(
-        self,
-        zone_name: str,
-        zone_type: str,
-        params: list[DNSZoneParam],
-    ) -> None:
-        """Add new zone.
-
-        :param str name: zone name
-        :param str zone_settings: zone settings of the new zone.
-        """
-
-    @abstractmethod
-    async def update_zone(self, name: str, params: list[DNSZoneParam]) -> None:
-        """Update zone settings.
-
-        :param str name: zone name
-        :param list params: list of new zone params.
-        """
-
-    @abstractmethod
-    async def delete_zone(self, name: str) -> None:
-        """Delete existing zone.
-
-        :param str name: zone name.
-        """
-
-    @abstractmethod
-    def reload(self, zone: str | None = None) -> None:
-        """Reload zone with given name or all zones if none provided.
-
-        :param str | None name: zone name.
-        """
-
-    @abstractmethod
-    async def restart(self) -> None:
-        """Restart Bind9 server."""
-
-
-class BindDNSServerManager(AbstractDNSServerManager):
+class BindDNSServerManager:
     """Bind9 DNS server manager."""
 
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None):
@@ -698,7 +655,7 @@ class BindDNSServerManager(AbstractDNSServerManager):
         return result
 
 
-async def get_dns_manager() -> type[AbstractDNSServerManager]:
+async def get_dns_manager() -> type[BindDNSServerManager]:
     """Get DNS server manager client."""
     return BindDNSServerManager()
 
