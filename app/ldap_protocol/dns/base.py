@@ -114,8 +114,8 @@ class DNSForwardServerStatus:
 class DNSRecord:
     """Single dns record."""
 
-    record_name: str
-    record_value: str
+    name: str
+    value: str
     ttl: int
 
 
@@ -123,7 +123,7 @@ class DNSRecord:
 class DNSRecords:
     """Grouped dns records."""
 
-    record_type: str
+    type: str
     records: list[DNSRecord]
 
 
@@ -131,8 +131,8 @@ class DNSRecords:
 class DNSZone:
     """DNS zone."""
 
-    zone_name: str
-    zone_type: DNSZoneType
+    name: str
+    type: DNSZoneType
     records: list[DNSRecords]
 
 
@@ -140,8 +140,8 @@ class DNSZone:
 class DNSForwardZone:
     """DNS forward zone."""
 
-    zone_name: str
-    zone_type: DNSZoneType
+    name: str
+    type: DNSZoneType
     forwarders: list[str]
 
 

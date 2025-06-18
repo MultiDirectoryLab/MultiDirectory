@@ -94,16 +94,14 @@ class RemoteDNSManager(AbstractDNSManager):
 
             result[record_type].append(
                 DNSRecord(
-                    record_name=(
-                        name.to_text() + f".{self._dns_settings.zone_name}"
-                    ),
-                    record_value=rdata.to_text(),
+                    name=(name.to_text() + f".{self._dns_settings.zone_name}"),
+                    value=rdata.to_text(),
                     ttl=ttl,
                 )
             )
 
         return [
-            DNSRecords(record_type=record_type, records=records)
+            DNSRecords(type=record_type, records=records)
             for record_type, records in result.items()
         ]
 
