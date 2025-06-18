@@ -549,7 +549,7 @@ class BindDNSServerManager:
 
         self._write_zone_data_to_file(zone_name, zone)
 
-    async def delete_record(
+    def delete_record(
         self,
         record: DNSRecord,
         record_type: DNSRecordType,
@@ -753,12 +753,12 @@ async def update_record(
 
 
 @record_router.delete("")
-async def delete_record(
+def delete_record(
     data: DNSRecordDeleteRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete existing DNS record."""
-    await dns_manager.delete_record(
+    dns_manager.delete_record(
         DNSRecord(
             data.record_name,
             data.record_value,
