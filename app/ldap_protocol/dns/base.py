@@ -169,9 +169,17 @@ class DNSManagerSettings:
 class AbstractDNSManager(ABC):
     """Abstract DNS manager class."""
 
-    def __init__(self, settings: DNSManagerSettings) -> None:
+    _dns_settings: DNSManagerSettings
+    _http_client: httpx.AsyncClient
+
+    def __init__(
+        self,
+        settings: DNSManagerSettings,
+        http_client: httpx.AsyncClient,
+    ) -> None:
         """Set up DNS manager."""
         self._dns_settings = settings
+        self._http_client = http_client
 
     async def setup(
         self,
@@ -182,14 +190,14 @@ class AbstractDNSManager(ABC):
         tsig_key: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        if dns_status == DNSManagerState.SELFHOSTED:
-            async with httpx.AsyncClient(
-                timeout=30, base_url=f"http://{dns_ip_address}:8000"
-            ) as client:
-                await client.post(
-                    "/server/setup",
-                    json={"zone_name": domain},
-                )
+        if (
+            dns_status == DNSManagerState.SELFHOSTED
+            and self._http_client is not None
+        ):
+            await self._http_client.post(
+                "/server/setup",
+                json={"zone_name": domain},
+            )
 
             tsig_key = None
 

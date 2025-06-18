@@ -7,14 +7,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import socket
 from dataclasses import asdict
 
-import httpx
-
 from .base import (
     AbstractDNSManager,
     DNSForwarderServerStatus,
     DNSForwardServerStatus,
     DNSForwardZone,
-    DNSManagerSettings,
     DNSRecords,
     DNSRecordType,
     DNSServerParam,
@@ -28,16 +25,6 @@ from .utils import logger_wraps
 class SelfHostedDNSManager(AbstractDNSManager):
     """Manager for selfhosted Bind9 DNS server."""
 
-    _http_client: httpx.AsyncClient
-
-    def __init__(self, settings: DNSManagerSettings) -> None:
-        """Set settings and additionally set http client for DNS API."""
-        super().__init__(settings=settings)
-        self._http_client = httpx.AsyncClient(
-            timeout=30,
-            base_url=f"http://{settings.dns_server_ip}:8000",
-        )
-
     @logger_wraps()
     async def create_record(
         self,
@@ -48,17 +35,16 @@ class SelfHostedDNSManager(AbstractDNSManager):
         zone_name: str | None = None,
     ) -> None:
         """Create DNS record."""
-        async with self._http_client:
-            await self._http_client.post(
-                "/record",
-                json={
-                    "zone_name": zone_name,
-                    "record_name": hostname,
-                    "record_type": record_type,
-                    "record_value": ip,
-                    "ttl": ttl,
-                },
-            )
+        await self._http_client.post(
+            "/record",
+            json={
+                "zone_name": zone_name,
+                "record_name": hostname,
+                "record_type": record_type,
+                "record_value": ip,
+                "ttl": ttl,
+            },
+        )
 
     @logger_wraps()
     async def update_record(
@@ -69,17 +55,16 @@ class SelfHostedDNSManager(AbstractDNSManager):
         ttl: int | None,
         zone_name: str | None = None,
     ) -> None:
-        async with self._http_client:
-            await self._http_client.patch(
-                "/record",
-                json={
-                    "zone_name": zone_name,
-                    "record_name": hostname,
-                    "record_type": record_type,
-                    "record_value": ip,
-                    "ttl": ttl,
-                },
-            )
+        await self._http_client.patch(
+            "/record",
+            json={
+                "zone_name": zone_name,
+                "record_name": hostname,
+                "record_type": record_type,
+                "record_value": ip,
+                "ttl": ttl,
+            },
+        )
 
     @logger_wraps()
     async def delete_record(
@@ -89,23 +74,20 @@ class SelfHostedDNSManager(AbstractDNSManager):
         record_type: str,
         zone_name: str | None = None,
     ) -> None:
-        async with self._http_client:
-            await self._http_client.request(
-                "delete",
-                "/record",
-                json={
-                    "zone_name": zone_name,
-                    "record_name": hostname,
-                    "record_type": record_type,
-                    "record_value": ip,
-                },
-            )
+        await self._http_client.request(
+            "delete",
+            "/record",
+            json={
+                "zone_name": zone_name,
+                "record_name": hostname,
+                "record_type": record_type,
+                "record_value": ip,
+            },
+        )
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
-        response = None
-        async with self._http_client:
-            response = await self._http_client.get("/zone")
+        response = await self._http_client.get("/zone")
 
         response_data = response.json()
 
@@ -120,17 +102,13 @@ class SelfHostedDNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def get_all_zones_records(self) -> list[DNSZone]:
-        response = None
-        async with self._http_client:
-            response = await self._http_client.get("/zone")
+        response = await self._http_client.get("/zone")
 
         return response.json()
 
     @logger_wraps()
     async def get_forward_zones(self) -> list[DNSForwardZone]:
-        response = None
-        async with self._http_client:
-            response = await self._http_client.get("/zone/forward")
+        response = await self._http_client.get("/zone/forward")
 
         return response.json()
 
@@ -142,16 +120,15 @@ class SelfHostedDNSManager(AbstractDNSManager):
         nameserver: str | None,
         params: list[DNSZoneParam],
     ) -> None:
-        async with self._http_client:
-            await self._http_client.post(
-                "/zone",
-                json={
-                    "zone_name": zone_name,
-                    "zone_type": zone_type,
-                    "nameserver": nameserver,
-                    "params": [asdict(param) for param in params],
-                },
-            )
+        await self._http_client.post(
+            "/zone",
+            json={
+                "zone_name": zone_name,
+                "zone_type": zone_type,
+                "nameserver": nameserver,
+                "params": [asdict(param) for param in params],
+            },
+        )
 
     @logger_wraps()
     async def update_zone(
@@ -159,27 +136,25 @@ class SelfHostedDNSManager(AbstractDNSManager):
         zone_name: str,
         params: list[DNSZoneParam],
     ) -> None:
-        async with self._http_client:
-            await self._http_client.patch(
-                "/zone",
-                json={
-                    "zone_name": zone_name,
-                    "params": [asdict(param) for param in params],
-                },
-            )
+        await self._http_client.patch(
+            "/zone",
+            json={
+                "zone_name": zone_name,
+                "params": [asdict(param) for param in params],
+            },
+        )
 
     @logger_wraps()
     async def delete_zone(
         self,
         zone_names: list[str],
     ) -> None:
-        async with self._http_client:
-            for zone_name in zone_names:
-                await self._http_client.request(
-                    "delete",
-                    "/zone",
-                    json={"zone_name": zone_name},
-                )
+        for zone_name in zone_names:
+            await self._http_client.request(
+                "delete",
+                "/zone",
+                json={"zone_name": zone_name},
+            )
 
     @logger_wraps()
     async def check_forward_dns_server(
@@ -206,16 +181,14 @@ class SelfHostedDNSManager(AbstractDNSManager):
         self,
         params: list[DNSServerParam],
     ) -> None:
-        async with self._http_client:
-            await self._http_client.patch(
-                "/server/settings",
-                json=[asdict(param) for param in params],
-            )
+        await self._http_client.patch(
+            "/server/settings",
+            json=[asdict(param) for param in params],
+        )
 
     @logger_wraps()
     async def get_server_options(self) -> list[DNSServerParam]:
-        async with self._http_client:
-            response = await self._http_client.get("/server/settings")
+        response = await self._http_client.get("/server/settings")
 
         return response.json()
 
@@ -223,13 +196,11 @@ class SelfHostedDNSManager(AbstractDNSManager):
     async def restart_server(
         self,
     ) -> None:
-        async with self._http_client:
-            await self._http_client.get("/server/restart")
+        await self._http_client.get("/server/restart")
 
     @logger_wraps()
     async def reload_zone(
         self,
         zone_name: str,
     ) -> None:
-        async with self._http_client:
-            await self._http_client.get(f"/zone/{zone_name}")
+        await self._http_client.get(f"/zone/{zone_name}")
