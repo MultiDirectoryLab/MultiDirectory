@@ -264,7 +264,7 @@ class BindDNSServerManager:
         with open(NAMED_LOCAL, "a") as file:
             file.write(zone_options)
 
-        self.reload(zone_name)
+        self.restart()
 
     @staticmethod
     def _add_zone_param(
@@ -410,14 +410,13 @@ class BindDNSServerManager:
             ],
         )
 
-    async def restart(self) -> None:
+    def restart(self) -> None:
         """Force Bind9 server to read config files again to apply changes."""
-        await asyncio.create_subprocess_exec(
-            "rndc",
-            "reconfig",
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        subprocess.run(  # noqa: S603
+            [
+                "/usr/sbin/rndc",
+                "reconfig",
+            ],
         )
 
     def first_setup(self, zone_name: str) -> str:
@@ -769,11 +768,11 @@ def delete_record(
 
 
 @server_router.get("/restart")
-async def restart_dns_server(
+def restart_dns_server(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Restart DNS server via reconfig."""
-    await dns_manager.restart()
+    dns_manager.restart()
 
 
 @zone_router.get("/reload/{zone_name}")
