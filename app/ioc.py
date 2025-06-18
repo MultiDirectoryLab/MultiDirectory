@@ -42,6 +42,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
+DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 
 
@@ -151,14 +152,26 @@ class MainProvider(Provider):
         async with session_maker() as session:
             return await get_dns_manager_settings(session, resolve_coro)
 
+    @provide(scope=Scope.APP)
+    async def get_dns_http_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[DNSManagerHTTPClient]:
+        """Get async client for DNS manager."""
+        async with httpx.AsyncClient(
+            base_url=f"http://{settings.DNS_BIND_HOST}:8000",
+        ) as client:
+            yield DNSManagerHTTPClient(client)
+
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr(
         self,
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
+        http_client: DNSManagerHTTPClient,
     ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class."""
-        yield dns_manager_class(settings=settings)
+        yield dns_manager_class(settings=settings, http_client=http_client)
 
     @provide(scope=Scope.REQUEST)
     async def get_entity_type_dao(
