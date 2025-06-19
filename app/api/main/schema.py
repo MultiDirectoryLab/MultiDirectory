@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
 from dishka import AsyncContainer
@@ -75,7 +76,7 @@ class DNSServiceSetupRequest(BaseModel):
 
     dns_status: DNSManagerState
     domain: str
-    dns_ip_address: str | None = None
+    dns_ip_address: IPv4Address | IPv6Address | None = None
     tsig_key: str | None = None
 
 
