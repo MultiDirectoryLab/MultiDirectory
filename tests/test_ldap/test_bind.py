@@ -301,7 +301,6 @@ async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
     ldap_session.delete_user.assert_called()
 
 
-@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
