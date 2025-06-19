@@ -1,3 +1,0 @@
-acl "allowed_ips" {
-    {{ ";\n".join(acl); }};
-};
