@@ -130,6 +130,8 @@ class EventHandler:
         if event.protocol == "API" and event.request_code in [
             OperationEvent.BIND,
             OperationEvent.AFTER_2FA,
+            OperationEvent.KERBEROS_AUTH,
+            OperationEvent.CHANGE_PASSWORD_KERBEROS,
         ]:
             return True
 
@@ -204,13 +206,20 @@ class EventHandler:
         self, event_data: AuditEvent, trigger: AuditPolicyTrigger
     ) -> dict:
         """Extract common fields from event data and trigger."""
+        protocol = "API" if "API" in event_data.protocol else "LDAP"
+        if trigger.operation_code in {
+            OperationEvent.KERBEROS_AUTH,
+            OperationEvent.CHANGE_PASSWORD_KERBEROS,
+        }:
+            protocol = "KERBEROS"
+
         return {
             "username": event_data.username,
             "source_ip": str(event_data.source_ip),
             "dest_port": event_data.dest_port,
             "timestamp": event_data.timestamp,
             "hostname": event_data.hostname,
-            "protocol": "API" if "API" in event_data.protocol else "LDAP",
+            "protocol": protocol,
             "event_type": trigger.audit_policy.name,
             "severity": trigger.audit_policy.severity,
             "policy_id": trigger.audit_policy.id,

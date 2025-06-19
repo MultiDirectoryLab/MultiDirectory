@@ -135,3 +135,5 @@ class OperationEvent(IntEnum):
     EXTENDED = ProtocolRequests.EXTENDED.value
     CHANGE_PASSWORD = 40
     AFTER_2FA = 41
+    KERBEROS_AUTH = 42
+    CHANGE_PASSWORD_KERBEROS = 43
