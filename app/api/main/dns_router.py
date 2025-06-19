@@ -127,15 +127,13 @@ async def setup_dns(
         else settings.DNS_BIND_HOST
     )
 
-    tsig_key = data.tsig_key
-
     try:
         await dns_manager.setup(
             session=session,
             dns_status=data.dns_status,
             domain=data.domain,
             dns_ip_address=dns_ip_address,
-            tsig_key=tsig_key,
+            tsig_key=data.tsig_key,
         )
     except Exception as e:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, e)
