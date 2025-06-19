@@ -31,6 +31,7 @@ class SendersABC(ABC):
     """Senders abstract base class."""
 
     _destination: AuditDestination
+    DEFAULT_APP_NAME: str = "MultiDirectory"
 
     def __init__(self, destination: AuditDestination) -> None:
         """Initialize SendersABC."""
@@ -52,10 +53,10 @@ class SyslogSender(SendersABC):
     service_name: AuditDestinationServiceType = (
         AuditDestinationServiceType.SYSLOG
     )
-    SYSLOG_VERSION = 1
-    DEFAULT_TIMEOUT = 10
+    SYSLOG_VERSION: int = 1
+    DEFAULT_TIMEOUT: int = 10
     DEFAULT_FACILITY = "authpriv"
-    _SYSLOG_FACILITIES = {
+    SYSLOG_FACILITIES: dict[str, int] = {
         "kernel": 0,
         "user": 1,
         "mail": 2,
@@ -81,7 +82,6 @@ class SyslogSender(SendersABC):
         "local6": 22,
         "local7": 23,
     }
-    DEFAULT_APP_NAME = "MultiDirectory"
 
     async def _send_udp(self, message: str) -> None:
         """Send UDP."""
@@ -97,50 +97,45 @@ class SyslogSender(SendersABC):
 
     async def _send_tcp(self, message: str) -> None:
         """Send TCP."""
-        try:
-            ssl_context = None
-            use_tls = (
-                self._destination.protocol == AuditDestinationProtocolType.TLS
+        ssl_context = None
+        use_tls = (
+            self._destination.protocol == AuditDestinationProtocolType.TLS
+        )
+
+        if use_tls:
+            ssl_context = ssl.create_default_context(
+                ssl.Purpose.SERVER_AUTH,
+                cadata=self._destination.ca_cert_data
+                if self._destination.ca_cert_data
+                else None,
             )
 
-            if use_tls:
-                ssl_context = ssl.create_default_context(
-                    ssl.Purpose.SERVER_AUTH,
-                    cadata=self._destination.ca_cert_data
-                    if self._destination.ca_cert_data
-                    else None,
+            if not self._destination.tls_verify_cert:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+
+            if (
+                self._destination.client_cert_data
+                and self._destination.client_key_data
+            ):
+                ssl_context.load_cert_chain(
+                    certfile=self._destination.client_cert_data,
+                    keyfile=self._destination.client_key_data,
                 )
 
-                if not self._destination.tls_verify_cert:
-                    ssl_context.check_hostname = False
-                    ssl_context.verify_mode = ssl.CERT_NONE
+        _, writer = await asyncio.wait_for(
+            asyncio.open_connection(
+                host=self._destination.host,
+                port=self._destination.port,
+                ssl=ssl_context if use_tls else None,
+            ),
+            timeout=self.DEFAULT_TIMEOUT,
+        )
 
-                if (
-                    self._destination.client_cert_data
-                    and self._destination.client_key_data
-                ):
-                    ssl_context.load_cert_chain(
-                        certfile=self._destination.client_cert_data,
-                        keyfile=self._destination.client_key_data,
-                    )
-
-            _, writer = await asyncio.wait_for(
-                asyncio.open_connection(
-                    host=self._destination.host,
-                    port=self._destination.port,
-                    ssl=ssl_context if use_tls else None,
-                ),
-                timeout=self.DEFAULT_TIMEOUT,
-            )
-
-            writer.write(message.encode("utf-8"))
-            await writer.drain()
-            writer.close()
-            await writer.wait_closed()
-
-        except Exception as e:
-            logger.error(f"[{'TLS' if use_tls else 'TCP'} Error] {e}")
-            raise
+        writer.write(message.encode("utf-8"))
+        await writer.drain()
+        writer.close()
+        await writer.wait_closed()
 
     def generate_rfc5424_message(
         self,
@@ -159,8 +154,8 @@ class SyslogSender(SendersABC):
         if not 0 <= severity_code <= 7:
             raise ValueError("Severity code must be between 0 and 7")
 
-        facility_code = self._SYSLOG_FACILITIES.get(
-            facility.lower(), self._SYSLOG_FACILITIES[self.DEFAULT_FACILITY]
+        facility_code = self.SYSLOG_FACILITIES.get(
+            facility.lower(), self.SYSLOG_FACILITIES[self.DEFAULT_FACILITY]
         )
         priority = (facility_code << 3) | severity_code
 
@@ -254,13 +249,19 @@ class SyslogSender(SendersABC):
         try:
             await callback(syslog_message)
         except TimeoutError as te:
-            logger.error(f"[ERROR] Timeout during syslog send: {te}")
+            logger.error(
+                f"Timeout during syslog {self._destination.name} send: {te}"
+            )
             raise
         except (OSError, ConnectionRefusedError, ConnectionError) as ce:
-            logger.error(f"[ERROR] Failed to send syslog: {ce}")
+            logger.error(
+                f"Failed to send syslog {self._destination.name}: {ce}"
+            )
             raise
         except Exception as e:
-            logger.error(f"[ERROR] Unexpected error during syslog send: {e}")
+            logger.error(
+                f"Error during syslog {self._destination.name} send: {e}"
+            )
             raise
 
 
