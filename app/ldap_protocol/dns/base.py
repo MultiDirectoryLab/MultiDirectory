@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
+from ipaddress import IPv4Address, IPv6Address
 
 import httpx
 from loguru import logger as loguru_logger
@@ -186,7 +187,7 @@ class AbstractDNSManager(ABC):
         session: AsyncSession,
         dns_status: str,
         domain: str,
-        dns_ip_address: str | None,
+        dns_ip_address: str | IPv4Address | IPv6Address | None,
         tsig_key: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
@@ -198,7 +199,6 @@ class AbstractDNSManager(ABC):
                 "/server/setup",
                 json={"zone_name": domain},
             )
-
             tsig_key = None
 
         new_settings = {
