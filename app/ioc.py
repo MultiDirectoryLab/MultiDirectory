@@ -268,7 +268,7 @@ class EventHandlerProvider(Provider):
     """Event handler provider."""
 
     @provide(scope=Scope.REQUEST)
-    async def create_session_1(
+    async def create_event_session(
         self,
         settings: Settings,
     ) -> AsyncIterator[EventAsyncSession]:
