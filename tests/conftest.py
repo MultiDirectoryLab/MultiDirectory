@@ -57,7 +57,10 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
-from ldap_protocol.policies.audit_policy import RedisAuditDAO
+from ldap_protocol.policies.audit_policy import (
+    RedisAuditDAO,
+    add_audit_policies,
+)
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
@@ -422,6 +425,7 @@ async def setup_session(session: AsyncSession) -> None:
         groups=["cn=domain admins,cn=groups," + domain.path_dn],
         session=session,
     )
+    await add_audit_policies(session)
     await session.commit()
 
 
