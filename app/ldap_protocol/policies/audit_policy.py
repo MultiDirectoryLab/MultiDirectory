@@ -668,7 +668,7 @@ def track_audit_event(event_type: OperationEvent) -> Callable:
                         username=username,
                         is_success_request=is_success_request,
                         settings=settings,
-                        target=target,  # type: ignore
+                        target=target,
                         error_code=error_code,
                         error_message=error_message,
                     )
