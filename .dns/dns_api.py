@@ -23,7 +23,6 @@ logging.basicConfig(level=logging.INFO)
 
 TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates/"),
-    enable_async=True,
     autoescape=True,
 )
 
