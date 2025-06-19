@@ -114,17 +114,8 @@ async def test_session_creation_ldap_bind_unbind(
     assert sessions[key]["issued"]
     assert sessions[key]["ip"]
 
-    try:
-        assert not await storage.get_user_sessions(user.id)
-    except AssertionError:
-        # in ~1% of cases session is not deleted because of ldap3 lib bug
-        import warnings
-
-        warnings.warn(
-            "Session was not deleted after ldap unbind.",
-            RuntimeWarning,
-            2,
-        )
+    await anonymous_ldap_client.unbind()
+    assert not await storage.get_user_sessions(user.id)
 
 
 @pytest.mark.asyncio
