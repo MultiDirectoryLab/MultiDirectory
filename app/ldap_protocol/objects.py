@@ -8,15 +8,7 @@ from enum import IntEnum, StrEnum, unique
 
 
 class Scope(IntEnum):
-    """Enum for search request.
-
-    ```
-    BASE_OBJECT = 0
-    SINGLE_LEVEL = 1
-    WHOLE_SUBTREE = 2
-    SUBORDINATE_SUBTREE = 3
-    ```
-    """
+    """Enum for search request."""
 
     BASE_OBJECT = 0
     SINGLE_LEVEL = 1
@@ -25,15 +17,7 @@ class Scope(IntEnum):
 
 
 class DerefAliases(IntEnum):
-    """Enum for search request.
-
-    ```
-    NEVER_DEREF_ALIASES = 0
-    DEREF_IN_SEARCHING = 1
-    DEREF_FINDING_BASE_OBJ = 2
-    DEREF_ALWAYS = 3
-    ```
-    """
+    """Enum for search request."""
 
     NEVER_DEREF_ALIASES = 0
     DEREF_IN_SEARCHING = 1
@@ -42,15 +26,7 @@ class DerefAliases(IntEnum):
 
 
 class LDAPMatchingRule(StrEnum):
-    """Enum for LDAP Matching Rules (extensibleMatch).
-
-    ```
-    LDAP_MATCHING_RULE_BIT_AND = "1.2.840.113556.1.4.803"
-    LDAP_MATCHING_RULE_BIT_OR = "1.2.840.113556.1.4.804"
-    LDAP_MATCHING_RULE_TRANSITIVE_EVAL = "1.2.840.113556.1.4.1941"
-    LDAP_MATCHING_RULE_DN_WITH_DATA = "1.2.840.113556.1.4.2253"
-    ```
-    """
+    """Enum for LDAP Matching Rules (extensibleMatch)."""
 
     LDAP_MATCHING_RULE_BIT_AND = "1.2.840.113556.1.4.803"
     LDAP_MATCHING_RULE_BIT_OR = "1.2.840.113556.1.4.804"
@@ -59,21 +35,7 @@ class LDAPMatchingRule(StrEnum):
 
 
 class ProtocolRequests(IntEnum):
-    """Enum for LDAP requests.
-
-    Attributes:
-        BIND: Represents the BindRequest operation (0)
-        UNBIND: Represents the UnbindRequest operation (2)
-        SEARCH: Represents the SearchRequest operation (3)
-        MODIFY: Represents the ModifyRequest operation (6)
-        ADD: Represents the AddRequest operation (8)
-        DELETE: Represents the DelRequest operation (10)
-        COMPARE: Represents the CompareRequest operation (14)
-        ABANDON: Represents the AbandonRequest operation (16)
-        EXTENDED: Represents the ExtendedRequest operation (23)
-        MODIFY_DN: Represents the ModifyDNRequest operation (12)
-
-    """
+    """Enum for LDAP requests."""
 
     BIND = 0
     UNBIND = 2
@@ -89,22 +51,7 @@ class ProtocolRequests(IntEnum):
 
 @unique
 class ProtocolResponse(IntEnum):
-    """Enum for LDAP resposnes.
-
-    Attributes:
-        BIND: Represents the BindResponse operation (1)
-        SEARCH_RES: Represents the SearchResultEntry operation (4)
-        SEARCH_RE: Represents the SearchResultDone operation (5)
-        MODIFY: Represents the ModifyResponse operation (7)
-        ADD: Represents the AddResponse operation (9)
-        DELETE: Represents the DelResponse operation (11)
-        MODIFY_DN: Represents the ModifyDNResponse operation (13)
-        COMPARE: Represents the CompareResponse operation (15)
-        SEARCH_RESULT_: Represents the SearchResultReference operation (19)
-        EXTENDED: Represents the ExtendedResponse operation (24)
-        INTERMEDIATE: Represents the IntermediateResponse operation (25)
-
-    """
+    """Enum for LDAP resposnes."""
 
     BIND = 1
     SEARCH_RESULT_ENTRY = 4
