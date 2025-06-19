@@ -190,6 +190,19 @@ class BindDNSServerManager:
 
     @staticmethod
     def _get_zone_obj_by_zone_name(zone_name) -> dns.zone.Zone:
+        """Get DNS zone object by zone name.
+
+        Algorithm:
+            1. Build the path to the zone file using the zone name.
+            2. Load the zone object using dns.zone.from_file.
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+
+        Returns:
+            dns.zone.Zone: Zone object.
+
+        """
         zone_file = os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone")
         return dns.zone.from_file(
             zone_file,
@@ -200,6 +213,17 @@ class BindDNSServerManager:
     def _write_zone_data_to_file(
         self, zone_name: str, zone: dns.zone.Zone
     ) -> None:
+        """Write zone data to file and reload the zone.
+
+        Algorithm:
+            1. Save the zone object to a file.
+            2. Call reload to apply changes.
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+            zone (dns.zone.Zone): Zone object.
+
+        """
         zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
         self.reload(zone_name)
 
@@ -210,7 +234,23 @@ class BindDNSServerManager:
         nameserver: str | None,
         params: list[DNSZoneParam],
     ) -> None:
-        """Add new zone."""
+        """Add a new DNS zone.
+
+        Algorithm:
+            1. Build a dictionary of zone parameters.
+            2. Render the zone file and zone options templates.
+            3. Process parameters (acl, forwarders, ttl, etc.) and add them
+            to the zone options.
+            4. Write the zone options to named.conf.local.
+            5. Restart the server.
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+            zone_type (str): Type of the DNS zone.
+            nameserver (str | None): Nameserver IP address.
+            params (list[DNSZoneParam]): List of zone parameters.
+
+        """
         params_dict = {param.name: param.value for param in params}
         zf_template = TEMPLATES.get_template("zone.template")
         nameserver_ip = (
@@ -267,6 +307,32 @@ class BindDNSServerManager:
         param_name: str,
         param_value: str,
     ) -> str:
+        """Add a zone parameter to named.conf.local.
+
+        Regex explanation:
+            - (zone\\s+"{zone_name}"\\s*{{[^}}]*?)
+                Captures the start of the zone block for the given zone_name,
+                including all content up to the closing '};'.
+            - (\\s*}};)
+                Captures the closing of the zone block
+                (with optional whitespace).
+                The regex is used to insert a new parameter
+                just before the end of the zone block.
+
+        Algorithm:
+            1. Use re.sub to add the parameter line inside the zone block.
+            2. Return the modified text.
+
+        Args:
+            named_local (str): Contents of named.conf.local.
+            zone_name (str): Name of the DNS zone.
+            param_name (str): Parameter name.
+            param_value (str): Parameter value.
+
+        Returns:
+            str: Modified named.conf.local content.
+
+        """
         pattern = rf'(zone\s+"{re.escape(zone_name)}"\s*{{[^}}]*?)(\s*}};)'
         replacement = rf"\1\n    {param_name} {param_value};\2"
         return re.sub(pattern, replacement, named_local, flags=re.DOTALL)
@@ -277,6 +343,33 @@ class BindDNSServerManager:
         zone_name: str,
         param_name: str,
     ) -> str:
+        """Delete a zone parameter from named.conf.local.
+
+        Regex explanation:
+            - (zone\\s+"{zone_name}"\\s*{{)
+                Captures the start of the zone block for the given zone_name.
+            - (.*?)
+                Non-greedy match for any content up to the parameter line.
+            - (^\\s*{param_name}\\s+(?:[^{{;\\n}}]+|{{[^}}]+}})\\s*;\\s*\\n)
+                Matches the parameter line (with possible value in braces
+                or not), including the trailing semicolon and newline.
+            - (.*?}})
+                Matches the rest of the zone block up to the closing brace.
+            The regex is used to remove the parameter line from the zone block.
+
+        Algorithm:
+            1. Use re.sub to remove the parameter line from the zone block.
+            2. Return the modified text.
+
+        Args:
+            named_local (str): Contents of named.conf.local.
+            zone_name (str): Name of the DNS zone.
+            param_name (str): Parameter name.
+
+        Returns:
+            str: Modified named.conf.local content.
+
+        """
         pattern = rf"""
         (zone\s+"{re.escape(zone_name)}"\s*{{)
         (.*?)
@@ -300,6 +393,23 @@ class BindDNSServerManager:
         param_name: str,
         param_value: str,
     ) -> str:
+        """Update a zone parameter in named.conf.local.
+
+        Algorithm:
+            1. Remove the old parameter value using _delete_zone_param.
+            2. Add the new value using _add_zone_param.
+            3. Return the modified text.
+
+        Args:
+            named_local (str): Contents of named.conf.local.
+            zone_name (str): Name of the DNS zone.
+            param_name (str): Parameter name.
+            param_value (str): Parameter value.
+
+        Returns:
+            str: Modified named.conf.local content.
+
+        """
         new_named_local = self._delete_zone_param(
             named_local,
             zone_name,
@@ -313,7 +423,35 @@ class BindDNSServerManager:
         )
 
     def update_zone(self, zone_name: str, params: list[DNSZoneParam]) -> None:
-        """Update zone settings."""
+        """Update zone parameters.
+
+        Regex explanation:
+            - ^zone\\s+"{zone_name}"\\s*{{
+                Matches the start of the zone block for the given zone_name.
+            - [^}}]*?
+                Non-greedy match for any content inside the block up
+                to the parameter.
+            - \\s{param_name}\\b
+                Matches the parameter name as a whole word.
+            - \\s+(?:[^{{;\\n}}]+|{{[^}}]+}})\\s*;
+                Matches the parameter value (either a simple value or a block
+                in braces), followed by a semicolon.
+            This regex is used to check if the parameter exists in the zone
+            block.
+
+        Algorithm:
+            1. Read named.conf.local content.
+            2. For each parameter, check if it exists in the zone block
+            using regex.
+            3. If value is None, remove the parameter; otherwise, update or
+            add it.
+            4. Write the modified config back to the file.
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+            params (list[DNSZoneParam]): List of zone parameters.
+
+        """
         named_local = None
         with open(NAMED_LOCAL) as file:
             named_local = file.read()
@@ -367,7 +505,30 @@ class BindDNSServerManager:
             file.write(named_local)
 
     def delete_zone(self, zone_name: str) -> None:
-        """Delete existing zone."""
+        """Delete an existing zone.
+
+        Regex explanation:
+            - ^\\s*zone\\s+"{zone_name}"\\s*{{
+                Matches the start of the zone block for the given zone_name.
+            - (?:[^{{}}]|{{(?:[^{{}}]|{{[^}}]*}})*}})*?
+                Non-greedy match for any content inside the block, including
+                nested braces.
+            - \\s*}};\\s*
+                Matches the closing of the zone block (with optional
+                whitespace).
+            This regex is used to remove the entire zone block from the config.
+
+        Algorithm:
+            1. Read named.conf.local content.
+            2. Determine the zone type.
+            3. Remove the zone block using regex.
+            4. If not a forward zone, remove the zone file.
+            5. Restart the server.
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+
+        """
         named_local = None
         with open(NAMED_LOCAL) as file:
             named_local = file.read()
@@ -398,7 +559,15 @@ class BindDNSServerManager:
         self.restart()
 
     def reload(self, zone_name: str | None = None) -> None:
-        """Reload zone with given name or all zones if none provided."""
+        """Reload a zone by name or all zones if no name is provided.
+
+        Algorithm:
+            1. Call rndc reload with the zone name or without it.
+
+        Args:
+            zone_name (str | None): Name of the DNS zone or None.
+
+        """
         subprocess.run(  # noqa: S603
             [
                 "/usr/sbin/rndc",
@@ -408,7 +577,11 @@ class BindDNSServerManager:
         )
 
     def restart(self) -> None:
-        """Force Bind9 server to read config files again to apply changes."""
+        """Restart the Bind9 server (reconfig).
+
+        Algorithm:
+            1. Call rndc reconfig.
+        """
         subprocess.run(  # noqa: S603
             [
                 "/usr/sbin/rndc",
@@ -417,7 +590,16 @@ class BindDNSServerManager:
         )
 
     def first_setup(self, zone_name: str) -> str:
-        """Perform first setup of Bind9 server."""
+        """Perform initial setup of the Bind9 server.
+
+        Algorithm:
+            1. Create a master zone.
+            2. Add standard SRV records for services (ldap, kerberos, etc.).
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+
+        """
         self.add_zone(
             zone_name,
             "master",
@@ -437,6 +619,26 @@ class BindDNSServerManager:
 
     @staticmethod
     def get_zone_type_by_zone_name(zone_name: str) -> DNSZoneType:
+        """Get the zone type by zone name.
+
+        Regex explanation:
+            - zone\\s+"{zone_name}"\\s*{{\\s*type\\s*([^;]+);
+                Matches the zone block for the given zone_name and captures
+                the type value after 'type'.
+            The first capturing group contains the zone type
+            (e.g., master, forward).
+
+        Algorithm:
+            1. Read named.conf.local content.
+            2. Use regex to find the zone block and extract the type.
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+
+        Returns:
+            DNSZoneType: Zone type.
+
+        """
         with open(NAMED_LOCAL) as file:
             named_local_settings = file.read()
 
@@ -448,7 +650,20 @@ class BindDNSServerManager:
         self,
         zone_name: str,
     ) -> DNSRecords:
-        """Get all records by given zone name."""
+        """Get all records from a zone by name.
+
+        Algorithm:
+            1. Load the zone object.
+            2. Iterate over all rdata and group by type.
+            3. Return a list of DNSRecords by type.
+
+        Args:
+            zone_name (str): Name of the DNS zone.
+
+        Returns:
+            list[DNSRecords]: List of DNSRecords grouped by type.
+
+        """
         result: defaultdict[str, list] = defaultdict(list)
 
         zone = self._get_zone_obj_by_zone_name(zone_name)
@@ -469,6 +684,18 @@ class BindDNSServerManager:
         ]
 
     def get_all_records(self) -> list[DNSZone]:
+        """Get all records from all zones.
+
+        Algorithm:
+            1. Scan the directory for zone files.
+            2. For each file, determine the zone name and type.
+            3. Get all records for the zone.
+            4. Return a list of DNSZone objects.
+
+        Returns:
+            list[DNSZone]: List of DNSZone objects.
+
+        """
         zone_files = os.listdir(ZONE_FILES_DIR)
 
         result: list[DNSZone] = []
@@ -491,7 +718,28 @@ class BindDNSServerManager:
         return result
 
     async def get_forward_zones(self) -> list[DNSForwardZone]:
-        """Get all forward DNS zones."""
+        """Get all forward DNS zones.
+
+        Regex explanation:
+            - zone\\s+"([^"]+)"\\s*{{
+                Captures the zone name.
+            - [^}}]*?type\\s+forward\\b[^}}]*?
+                Matches content up to the 'type forward' declaration.
+            - forwarders\\s*{{([^}}]+)}}
+                Captures the content inside the forwarders block
+                (list of forwarder IPs).
+            The first group is the zone name,
+            the second group is the forwarders list.
+
+        Algorithm:
+            1. Read named.conf.local content.
+            2. Use regex to find forward zone blocks and their forwarders.
+            3. Return a list of DNSForwardZone objects.
+
+        Returns:
+            list[DNSForwardZone]: List of forward zones.
+
+        """
         named_local = None
         with open(NAMED_LOCAL) as file:
             named_local = file.read()
@@ -527,7 +775,20 @@ class BindDNSServerManager:
         record_type: DNSRecordType,
         zone_name: str,
     ) -> None:
-        """Add DNS record to given zone."""
+        """Add a DNS record to a zone.
+
+        Algorithm:
+            1. Load the zone object.
+            2. Build rdata by type and value.
+            3. Add rdata to the rdataset.
+            4. Save changes to the zone file and reload the zone.
+
+        Args:
+            record (DNSRecord): DNS record to add.
+            record_type (DNSRecordType): Type of the DNS record.
+            zone_name (str): Name of the DNS zone.
+
+        """
         zone = self._get_zone_obj_by_zone_name(zone_name)
 
         record_name = dns.name.from_text(record.name)
@@ -550,7 +811,20 @@ class BindDNSServerManager:
         record_type: DNSRecordType,
         zone_name: str,
     ) -> None:
-        """Delete specific record from given DNS zone."""
+        """Delete a record from a zone.
+
+        Algorithm:
+            1. Load the zone object.
+            2. Find the rdataset by name and type.
+            3. If rdata is present, remove it from the rdataset.
+            4. Save changes to the zone file and reload the zone.
+
+        Args:
+            record (DNSRecord): DNS record to delete.
+            record_type (DNSRecordType): Type of the DNS record.
+            zone_name (str): Name of the DNS zone.
+
+        """
         zone = self._get_zone_obj_by_zone_name(zone_name)
         name = dns.name.from_text(record.name)
         rdatatype = dns.rdatatype.from_text(record_type)
@@ -575,9 +849,18 @@ class BindDNSServerManager:
         record_type,
         zone_name,
     ) -> None:
-        """Update specific record from given DNS zone.
+        """Update a record in a zone (value or TTL).
 
-        Only changing record value or ttl considered as record update.
+        Algorithm:
+            1. Delete the old record.
+            2. Add the new record with updated values.
+
+        Args:
+            old_record (DNSRecord): Old DNS record.
+            new_record (DNSRecord): New DNS record.
+            record_type: Type of the DNS record.
+            zone_name (str): Name of the DNS zone.
+
         """
         self.delete_record(old_record, record_type, zone_name)
         self.add_record(new_record, record_type, zone_name)
@@ -588,6 +871,31 @@ class BindDNSServerManager:
         param_name: str,
         param_value: str,
     ) -> str:
+        """Add a new parameter to the options block in named.conf.options.
+
+        Regex explanation:
+            - (options\\s*\\{{[\\s\\S]*?)
+                Captures the start of the options block and all its content
+                up to the closing '};'.
+            - (\\s*\\}};)
+                Captures the closing of the options block
+                (with optional whitespace).
+            The regex is used to insert a new parameter just before the end of
+            the options block.
+
+        Algorithm:
+            1. Use re.sub to add the parameter line inside the options block.
+            2. Return the modified text.
+
+        Args:
+            named_options (str): Contents of named.conf.options.
+            param_name (str): Parameter name.
+            param_value (str): Parameter value.
+
+        Returns:
+            str: Modified named.conf.options content.
+
+        """
         return re.sub(
             r"(options\s*\{[\s\S]*?)(\s*\};)",
             rf"\1    {param_name} {param_value};\2",
@@ -596,7 +904,26 @@ class BindDNSServerManager:
         )
 
     def update_dns_settings(self, settings: list[DNSServerParam]) -> None:
-        """Update given DNS server params or create if not present."""
+        """Update or add DNS server parameters.
+
+        Regex:
+            Example: r'^\\s*{param.name}\\s+'
+        Regex explanation:
+            - ^\\s*{param.name}\\s+
+                Matches the parameter name at the start of a line,
+                with optional leading whitespace.
+            Used to find the parameter line in the options block.
+
+        Algorithm:
+            1. Read named.conf.options content.
+            2. For each parameter, search for it using regex.
+            3. If not found, add it; otherwise, update it.
+            4. Write the modified config back to the file.
+
+        Args:
+            settings (list[DNSServerParam]): List of server parameters.
+
+        """
         named_options = None
 
         with open(NAMED_OPTIONS) as file:
@@ -631,7 +958,27 @@ class BindDNSServerManager:
 
     @staticmethod
     def get_server_settings() -> list[DNSServerParam]:
-        """Get list of modifiable DNS server settings."""
+        """Get a list of modifiable DNS server settings.
+
+        Regex explanation:
+            - \\b{param_name}\\s+
+                Matches the parameter name as a whole word,
+                followed by whitespace.
+            - ([^;\\n{{]+|{{[^}}]+}})
+                Captures the parameter value, which can be a simple value or
+                a block in braces.
+            The first capturing group contains the parameter value.
+
+        Algorithm:
+            1. Read named.conf.options content.
+            2. For each parameter in DNSServerParamName,
+            search for its value using regex.
+            3. Return a list of DNSServerParam objects.
+
+        Returns:
+            list[DNSServerParam]: List of server parameters.
+
+        """
         named_options = None
         with open(NAMED_OPTIONS) as file:
             named_options = file.read()
