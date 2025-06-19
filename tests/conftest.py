@@ -108,60 +108,52 @@ class TestProvider(Provider):
         """Get mock DNS manager."""
         dns_manager = AsyncMock(spec=StubDNSManager)
 
-        dns_manager.get_all_records = AsyncMock(
-            return_value=[
-                {
-                    "type": "A",
-                    "records": [
-                        {
-                            "name": "example.com",
-                            "value": "127.0.0.1",
-                            "ttl": 3600,
-                        },
-                    ],
-                },
-            ]
-        )
-        dns_manager.get_server_options = AsyncMock(
-            return_value=[
-                {
-                    "name": "dnssec-validation",
-                    "value": "no",
-                },
-            ],
-        )
-        dns_manager.get_forward_zones = AsyncMock(
-            return_value=[
-                {
-                    "name": "test.local",
-                    "type": "forward",
-                    "forwarders": [
-                        "127.0.0.1",
-                        "127.0.0.2",
-                    ],
-                },
-            ],
-        )
-        dns_manager.get_all_zones_records = AsyncMock(
-            return_value=[
-                {
-                    "name": "test.local",
-                    "type": "master",
-                    "records": [
-                        {
-                            "type": "A",
-                            "records": [
-                                {
-                                    "name": "example.com",
-                                    "value": "127.0.0.1",
-                                    "ttl": 3600,
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        )
+        dns_manager.get_all_records.return_value = [
+            {
+                "type": "A",
+                "records": [
+                    {
+                        "name": "example.com",
+                        "value": "127.0.0.1",
+                        "ttl": 3600,
+                    },
+                ],
+            },
+        ]
+        dns_manager.get_server_options.return_value = [
+            {
+                "name": "dnssec-validation",
+                "value": "no",
+            },
+        ]
+        dns_manager.get_forward_zones.return_value = [
+            {
+                "name": "test.local",
+                "type": "forward",
+                "forwarders": [
+                    "127.0.0.1",
+                    "127.0.0.2",
+                ],
+            },
+        ]
+        dns_manager.get_all_zones_records.return_value = [
+            {
+                "name": "test.local",
+                "type": "master",
+                "records": [
+                    {
+                        "type": "A",
+                        "records": [
+                            {
+                                "name": "example.com",
+                                "value": "127.0.0.1",
+                                "ttl": 3600,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ]
 
         if not self._cached_dns_manager:
             self._cached_dns_manager = dns_manager
