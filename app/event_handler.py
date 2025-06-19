@@ -188,9 +188,6 @@ class EventHandler:
             .options(defaultload(AuditPolicyTrigger.audit_policy))
         )).all()  # fmt: skip
 
-        if not triggers:
-            return matched_triggers
-
         logger.debug(
             f"Suitable triggers: {[trigger.id for trigger in triggers]}"
         )
