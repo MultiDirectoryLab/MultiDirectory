@@ -121,11 +121,7 @@ async def setup_dns(
 
     Create zone file, get TSIG key, reload DNS server if selfhosted.
     """
-    dns_ip_address = (
-        data.dns_ip_address
-        if data.dns_ip_address is not None and len(data.dns_ip_address)
-        else settings.DNS_BIND_HOST
-    )
+    dns_ip_address = data.dns_ip_address or settings.DNS_BIND_HOST
 
     try:
         await dns_manager.setup(
