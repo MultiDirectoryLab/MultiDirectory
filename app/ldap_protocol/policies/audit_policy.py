@@ -208,6 +208,7 @@ class RedisAuditDAO:
     """Implement Redis data access operations for audit event processing."""
 
     _client: Redis
+    IS_PROC_EVENT_KEY: str = "is_proc_events"
 
     def __init__(self, redis: Redis) -> None:
         """Initialize Redis client for audit event operations."""
@@ -218,16 +219,16 @@ class RedisAuditDAO:
         if request_code == OperationEvent.SEARCH:
             return False
 
-        data = await self._client.get("is_proc_events")
+        data = await self._client.get(self.IS_PROC_EVENT_KEY)
         return data is not None and int(data) == 1
 
     async def enable_event_processing(self) -> None:
         """Enable processing of audit events in Redis."""
-        await self._client.set("is_proc_events", 1)
+        await self._client.set(self.IS_PROC_EVENT_KEY, 1)
 
     async def disable_event_processing(self) -> None:
         """Disable processing of audit events in Redis."""
-        await self._client.set("is_proc_events", 0)
+        await self._client.set(self.IS_PROC_EVENT_KEY, 0)
 
     async def add_audit_event(
         self, stream_name: str, event: "AuditEvent"
