@@ -29,7 +29,10 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.access_policy import create_access_policy
-from ldap_protocol.policies.audit_policy import add_audit_policies
+from ldap_protocol.policies.audit_policy import (
+    add_audit_policies,
+    track_audit_event,
+)
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -54,7 +57,7 @@ from security import get_password_hash
 
 from .oauth2 import authenticate_user, get_current_user, get_user
 from .schema import OAuth2Form, SetupRequest
-from .utils import create_and_set_session_key, track_audit_event
+from .utils import create_and_set_session_key
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 

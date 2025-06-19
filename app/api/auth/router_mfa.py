@@ -30,6 +30,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
 )
 from ldap_protocol.objects import OperationEvent
+from ldap_protocol.policies.audit_policy import track_audit_event
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import (
@@ -45,7 +46,6 @@ from .schema import (
     MFAGetResponse,
     OAuth2Form,
 )
-from .utils import track_audit_event
 
 mfa_router = APIRouter(
     prefix="/multifactor",
