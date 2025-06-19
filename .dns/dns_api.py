@@ -263,7 +263,10 @@ class BindDNSServerManager:
 
     @staticmethod
     def _add_zone_param(
-        named_local: str, zone_name: str, param_name: str, param_value: str
+        named_local: str,
+        zone_name: str,
+        param_name: str,
+        param_value: str,
     ) -> str:
         pattern = rf'(zone\s+"{re.escape(zone_name)}"\s*{{[^}}]*?)(\s*}};)'
         replacement = rf"\1\n    {param_name} {param_value};\2"
