@@ -154,7 +154,7 @@ async def test_dns_setup_selfhosted(
     dns_status = DNSManagerState.SELFHOSTED
     domain = "example.com"
     tsig_key = None
-    dns_ip_address = None
+    dns_ip_address = "127.0.0.1"
     response = await http_client.post(
         "/dns/setup",
         json={
