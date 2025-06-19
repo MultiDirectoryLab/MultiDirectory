@@ -132,11 +132,11 @@ async def test_dns_get_all_records(http_client: AsyncClient) -> None:
     data = response.json()
     assert data == [
         {
-            "record_type": "A",
+            "type": "A",
             "records": [
                 {
-                    "record_name": "example.com",
-                    "record_value": "127.0.0.1",
+                    "name": "example.com",
+                    "value": "127.0.0.1",
                     "ttl": 3600,
                 }
             ],
@@ -335,15 +335,15 @@ async def test_dns_get_all_zones_with_records(
     data = response.json()
     assert data == [
         {
-            "zone_name": "test.local",
-            "zone_type": "master",
+            "name": "test.local",
+            "type": "master",
             "records": [
                 {
-                    "record_type": "A",
+                    "type": "A",
                     "records": [
                         {
-                            "record_name": "example.com",
-                            "record_value": "127.0.0.1",
+                            "name": "example.com",
+                            "value": "127.0.0.1",
                             "ttl": 3600,
                         },
                     ],
@@ -369,8 +369,8 @@ async def test_dns_get_all_forward_zones(
     data = response.json()
     assert data == [
         {
-            "zone_name": "test.local",
-            "zone_type": "forward",
+            "name": "test.local",
+            "type": "forward",
             "forwarders": [
                 "127.0.0.1",
                 "127.0.0.2",
