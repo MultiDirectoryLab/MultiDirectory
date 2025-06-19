@@ -163,10 +163,10 @@ async def callback_mfa(
     :raises HTTPException: if mfa not set up
     :return RedirectResponse: on bypass or success
     """
+    request.state.username = ""
+
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-
-    request.state.username = ""
 
     try:
         payload = jwt.decode(
