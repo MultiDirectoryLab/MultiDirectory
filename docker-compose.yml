@@ -15,6 +15,7 @@ services:
       - "749:749"
       - "464:464"
       - "530:53"
+      - "53:53/udp"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./certs:/certs"
@@ -198,25 +199,28 @@ services:
              --reload
 
   bind_dns:
-    image: ubuntu/bind9:latest
+    build:
+      context: .
+      dockerfile: ./.docker/bind9.Dockerfile
+    image: bind9md
     container_name: bind9
     hostname: bind9
     restart: unless-stopped
+    environment:
+      - DEFAULT_NAMESERVER=127.0.0.2
     volumes:
       - dns_server_file:/opt/
       - dns_server_config:/etc/bind/
+      - .dns/:/server/
     tty: true
     depends_on:
       ldap_server:
         condition: service_healthy
         restart: true
-    command: bash -c "chown bind:bind /opt && test -f /opt/zone.key && echo 'KEY EXISTS, SKIPPING...' || tsig-keygen zone. > /opt/zone.key && source docker-entrypoint.sh"
     labels:
       - traefik.enable=true
-      - traefik.tcp.routers.bind_dns.rule=HostSNI(`*`)
-      - traefik.tcp.routers.bind_dns.entrypoints=bind_dns
-      - traefik.tcp.routers.bind_dns.service=bind_dns
-      - traefik.tcp.services.bind_dns.loadbalancer.server.port=53
+      - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
+      - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
 
   kdc:
     build:

@@ -48,6 +48,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
+    StubDNSManager,
     get_dns_manager_settings,
 )
 from ldap_protocol.kerberos import AbstractKadmin
@@ -105,26 +106,54 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
     async def get_dns_mngr(self) -> AsyncIterator[AsyncMock]:
         """Get mock DNS manager."""
-        dns_manager = Mock()
+        dns_manager = AsyncMock(spec=StubDNSManager)
 
-        dns_manager.create_record = AsyncMock()
-        dns_manager.update_record = AsyncMock()
-        dns_manager.delete_record = AsyncMock()
-        dns_manager.get_all_records = AsyncMock(
-            return_value=[
-                {
-                    "record_type": "A",
-                    "records": [
-                        {
-                            "record_name": "example.com",
-                            "record_value": "127.0.0.1",
-                            "ttl": 3600,
-                        },
-                    ],
-                },
-            ]
-        )
-        dns_manager.setup = AsyncMock()
+        dns_manager.get_all_records.return_value = [
+            {
+                "type": "A",
+                "records": [
+                    {
+                        "name": "example.com",
+                        "value": "127.0.0.1",
+                        "ttl": 3600,
+                    },
+                ],
+            },
+        ]
+        dns_manager.get_server_options.return_value = [
+            {
+                "name": "dnssec-validation",
+                "value": "no",
+            },
+        ]
+        dns_manager.get_forward_zones.return_value = [
+            {
+                "name": "test.local",
+                "type": "forward",
+                "forwarders": [
+                    "127.0.0.1",
+                    "127.0.0.2",
+                ],
+            },
+        ]
+        dns_manager.get_all_zones_records.return_value = [
+            {
+                "name": "test.local",
+                "type": "master",
+                "records": [
+                    {
+                        "type": "A",
+                        "records": [
+                            {
+                                "name": "example.com",
+                                "value": "127.0.0.1",
+                                "ttl": 3600,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ]
 
         if not self._cached_dns_manager:
             self._cached_dns_manager = dns_manager
