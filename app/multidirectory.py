@@ -39,6 +39,7 @@ from api.exception_handlers import (
     handle_dns_error,
     handle_instance_cant_modify_error,
     handle_instance_not_found_error,
+    handle_not_implemented_error,
 )
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
@@ -123,6 +124,10 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.add_exception_handler(
         InstanceCantModifyError,
         handle_instance_cant_modify_error,
+    )
+    app.add_exception_handler(
+        NotImplementedError,
+        handle_not_implemented_error,
     )
 
     return app
