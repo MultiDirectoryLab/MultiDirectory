@@ -113,18 +113,9 @@ def upgrade() -> None:
         sa.Column("password", sa.String(length=255), nullable=True),
         sa.Column(
             "protocol",
-            sa.Enum("UDP", "TCP", "TLS", name="auditdestinationprotocoltype"),
+            sa.Enum("UDP", "TCP", name="auditdestinationprotocoltype"),
             nullable=False,
         ),
-        sa.Column(
-            "tls_verify_cert",
-            sa.Boolean(),
-            server_default=sa.text("false"),
-            nullable=False,
-        ),
-        sa.Column("ca_cert_data", sa.Text(), nullable=True),
-        sa.Column("client_cert_data", sa.Text(), nullable=True),
-        sa.Column("client_key_data", sa.Text(), nullable=True),
     )
     op.run_async(_create_audit_policies)
 
