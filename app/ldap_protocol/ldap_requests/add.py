@@ -23,6 +23,7 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -63,7 +64,7 @@ class AddRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = 8
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
 
     entry: str = Field(..., description="Any `DistinguishedName`")
     attributes: list[PartialAttribute]
@@ -97,6 +98,8 @@ class AddRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
@@ -212,6 +215,11 @@ class AddRequest(BaseRequest):
                 or attr.l_name == new_dir.rdname
             ):
                 continue
+
+            if attr.type.lower() == "objectclass":
+                self.set_event_data(
+                    {"before_attrs": {"objectclass": attr.vals}}
+                )
 
             for value in attr.vals:
                 if (

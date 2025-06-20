@@ -56,7 +56,10 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     return await session.scalar(
         select(User)
         .join(User.directory)
-        .options(policies)
+        .options(
+            policies,
+            selectinload(User.directory).selectinload(Directory.attributes),
+        )
         .where(get_filter_from_path(name)),
     )
 

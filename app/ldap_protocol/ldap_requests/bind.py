@@ -27,6 +27,7 @@ from ldap_protocol.ldap_requests.bind_methods import (
 )
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
@@ -48,7 +49,7 @@ from .base import BaseRequest
 class BindRequest(BaseRequest):
     """Bind request fields mapping."""
 
-    PROTOCOL_OP: ClassVar[int] = 0x0
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.BIND
 
     version: int
     name: str
@@ -135,6 +136,8 @@ class BindRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         mfa: LDAPMultiFactorAPI,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
@@ -155,6 +158,9 @@ class BindRequest(BaseRequest):
             return
 
         user = await self.authentication_choice.get_user(session, self.name)
+        self.set_event_data(
+            {"details": {"auth_choice": self.authentication_choice._name}}
+        )
 
         if not user or not self.authentication_choice.is_valid(user):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
@@ -221,14 +227,13 @@ class BindRequest(BaseRequest):
 
         await ldap_session.set_user(user)
         await set_last_logon_user(user, session, settings.TIMEZONE)
-
         yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
 
 class UnbindRequest(BaseRequest):
     """Remove user from ldap_session."""
 
-    PROTOCOL_OP: ClassVar[int] = 2
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.UNBIND
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003

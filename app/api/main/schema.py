@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
 from dishka import AsyncContainer
@@ -14,6 +15,7 @@ from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
+from models import AuditDestinationProtocolType, AuditDestinationServiceType
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -30,9 +32,10 @@ class SearchRequest(LDAPSearchRequest):
     async def handle_api(  # type: ignore
         self,
         container: AsyncContainer,
+        ip: IPv4Address | IPv6Address,
     ) -> list[SearchResultEntry | SearchResultDone]:
         """Get all responses."""
-        return await self._handle_api(container)  # type: ignore
+        return await self._handle_api(container, ip)  # type: ignore
 
 
 class SearchResponse(SearchResultDone):
@@ -104,3 +107,31 @@ class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
 
     record_value: str | None = Field(None)
     ttl: int | None = Field(None)
+
+
+class AuditPolicySchema(BaseModel):
+    """Audit policy schema."""
+
+    id: int
+    name: str
+    is_enabled: bool
+
+
+class AuditDestinationSchemaRequest(BaseModel):
+    """Audit destination request schema."""
+
+    name: str
+    service_type: AuditDestinationServiceType
+    is_enabled: bool
+    host: str
+    port: int
+    username: str | None
+    password: str | None
+    protocol: AuditDestinationProtocolType
+
+    class Config:  # noqa: D106
+        use_enum_values = True
+
+
+class AuditDestinationSchema(_MaterialFields, AuditDestinationSchemaRequest):
+    """Audit destination schema."""

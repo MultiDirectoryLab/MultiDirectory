@@ -36,6 +36,8 @@ services:
       - ldap_keytab:/LDAP_keytab/
     env_file:
       local.env
+    environment:
+      - SERVICE_NAME=ldap_server
     command: python -OO multidirectory.py --ldap
     tty: true
     depends_on:
@@ -85,6 +87,8 @@ services:
     env_file:
       local.env
     command: python multidirectory.py --http
+    environment:
+      - SERVICE_NAME=multidirectory_api
     tty: true
     labels:
       - "traefik.enable=true"
@@ -118,6 +122,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      event_postgres:
+        condition: service_healthy
 
   cert_check:
     image: multidirectory
@@ -148,6 +154,26 @@ services:
        - postgres:/data/postgres
     ports:
       - 5432:5432
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
+      interval: 1s
+      timeout: 15s
+      retries: 10
+      start_period: 3s
+
+  event_postgres:
+    container_name: event_postgres
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: password123
+      PGDATA: /data/postgres
+    volumes:
+       - event_postgres:/data/postgres
+    ports:
+      - 5433:5432
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
@@ -283,6 +309,8 @@ services:
       - ./certs:/certs
     env_file:
       local.env
+    environment:
+      - SERVICE_NAME=shadow_api
     command: python multidirectory.py --shadow
     ports:
       - 8001:8000
@@ -338,6 +366,10 @@ services:
     container_name: dragonfly
     expose:
       - 6379
+    # command: >
+    #   --dbfilename=dump
+    #   --dir=/data
+    #   --snapshot_cron="* * * * *"
     deploy:
       resources:
         limits:
@@ -353,7 +385,7 @@ services:
     image: ghcr.io/joeferner/redis-commander:latest
     restart: always
     environment:
-      - REDIS_HOSTS=sessions:dragonfly:6379:1
+      - REDIS_HOSTS=sessions:dragonfly:6379:1,events:dragonfly:6379:2
     user: redis
     labels:
       - "traefik.enable=true"
@@ -362,8 +394,47 @@ services:
       - "traefik.http.services.rc.loadbalancer.server.port=8081"
       - "traefik.http.routers.rc.service=rc"
 
+  event_handler:
+    image: multidirectory
+    container_name: event_handler
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: python multidirectory.py --event_handler
+    environment:
+      HANDLER_NAME: event_handler-1
+  
+  event_sender:
+    image: multidirectory
+    container_name: event_sender
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./app:/app
+      - ./audit:/audit
+    env_file:
+      local.env
+    command: python multidirectory.py --event_sender
+
+  syslog:
+    image: balabit/syslog-ng:latest
+    container_name: syslog-server      
+    volumes:
+      - ./syslog:/var/log
+      - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
+    privileged: true
+    restart: always
+
+
 volumes:
   postgres:
+  event_postgres:
   pgadmin:
   wireshark:
   kdc:

@@ -26,6 +26,7 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -99,7 +100,7 @@ class ModifyRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = 6
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY
 
     object: str
     changes: list[Changes]
@@ -153,6 +154,8 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         entity_type_dao: EntityTypeDAO,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
@@ -173,6 +176,8 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
+        before_attrs = self.get_directory_attrs(directory)
+
         names = {change.get_name() for change in self.changes}
 
         password_change_requested = self._check_password_change_requested(
@@ -181,67 +186,80 @@ class ModifyRequest(BaseRequest):
             ldap_session.user.directory_id,
         )
 
-        mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
-        can_modify = bool(await session.scalar(mutate_ap_q))
+        try:
+            mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
+            can_modify = bool(await session.scalar(mutate_ap_q))
 
-        if not can_modify and not password_change_requested:
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
-            return
-
-        for change in self.changes:
-            if change.modification.type in Directory.ro_fields:
-                continue
-
-            await self._update_password_expiration(change, session)
-
-            add_args = (
-                change,
-                directory,
-                session,
-                session_storage,
-                kadmin,
-                settings,
-            )
-
-            try:
-                if change.operation == Operation.ADD:
-                    await self._add(*add_args)
-
-                elif change.operation == Operation.DELETE:
-                    await self._delete(change, directory, session)
-
-                elif change.operation == Operation.REPLACE:
-                    async with session.begin_nested():
-                        await self._delete(change, directory, session, True)
-                        await session.flush()
-                        await self._add(*add_args)
-
-                await session.flush()
-                await session.execute(
-                    update(Directory).where(Directory.id == directory.id),
+            if not can_modify and not password_change_requested:
+                yield ModifyResponse(
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                 )
-                await session.commit()
-            except MODIFY_EXCEPTION_STACK as err:
-                await session.rollback()
-                result_code, message = self._match_bad_response(err)
-                yield ModifyResponse(result_code=result_code, message=message)
                 return
 
-        if "objectclass" in names:
-            await session.refresh(
-                instance=directory,
-                attribute_names=["attributes"],
-                with_for_update=None,
-            )
-            await entity_type_dao.attach_entity_type_to_directory(
-                directory=directory,
-                is_system_entity_type=False,
-            )
-            await session.commit()
+            for change in self.changes:
+                if change.modification.type in Directory.ro_fields:
+                    continue
 
-        yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+                await self._update_password_expiration(change, session)
+
+                add_args = (
+                    change,
+                    directory,
+                    session,
+                    session_storage,
+                    kadmin,
+                    settings,
+                )
+
+                try:
+                    if change.operation == Operation.ADD:
+                        await self._add(*add_args)
+
+                    elif change.operation == Operation.DELETE:
+                        await self._delete(change, directory, session)
+
+                    elif change.operation == Operation.REPLACE:
+                        async with session.begin_nested():
+                            await self._delete(
+                                change, directory, session, True
+                            )
+                            await session.flush()
+                            await self._add(*add_args)
+
+                    await session.flush()
+                    await session.execute(
+                        update(Directory).where(Directory.id == directory.id),
+                    )
+                    await session.commit()
+                except MODIFY_EXCEPTION_STACK as err:
+                    await session.rollback()
+                    result_code, message = self._match_bad_response(err)
+                    yield ModifyResponse(
+                        result_code=result_code, message=message
+                    )
+                    return
+
+            if "objectclass" in names:
+                await session.refresh(
+                    instance=directory,
+                    attribute_names=["attributes"],
+                    with_for_update=None,
+                )
+                await entity_type_dao.attach_entity_type_to_directory(
+                    directory=directory,
+                    is_system_entity_type=False,
+                )
+                await session.commit()
+
+            yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+        finally:
+            await session.refresh(directory)
+            self.set_event_data(
+                {
+                    "after_attrs": self.get_directory_attrs(directory),
+                    "before_attrs": before_attrs,
+                }
+            )
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:
@@ -269,6 +287,7 @@ class ModifyRequest(BaseRequest):
             select(Directory)
             .join(Directory.attributes)
             .options(
+                selectinload(Directory.attributes),
                 selectinload(Directory.groups),
                 selectinload(Directory.group).selectinload(Group.members),
             )

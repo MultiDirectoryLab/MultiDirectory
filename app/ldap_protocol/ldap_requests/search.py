@@ -31,7 +31,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
-from ldap_protocol.objects import DerefAliases, Scope
+from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
@@ -78,7 +78,7 @@ class SearchRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = 3
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.SEARCH
 
     base_object: str = Field("", description="Any `DistinguishedName`")
     scope: Scope
@@ -233,6 +233,9 @@ class SearchRequest(BaseRequest):
         session: AsyncSession,
         ldap_session: LDAPSession,
         settings: Settings,
+        for_api: bool = False,
+        *args: tuple,
+        **kwargs: dict,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry,
         None,
@@ -243,7 +246,12 @@ class SearchRequest(BaseRequest):
         Entry -> Reference (optional) -> Done
         """
         async with ldap_session.lock() as user:
-            async for response in self.get_result(user, session, settings):
+            async for response in self.get_result(
+                user,
+                session,
+                settings,
+                for_api,
+            ):
                 yield response
 
     async def get_result(
@@ -251,6 +259,7 @@ class SearchRequest(BaseRequest):
         user: UserSchema | None,
         session: AsyncSession,
         settings: Settings,
+        for_api: bool,
     ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
@@ -292,7 +301,7 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self.paginate_query(query, session)
 
-        async for response in self.tree_view(query, session):
+        async for response in self.tree_view(query, session, for_api):
             yield response
 
         yield SearchResultDone(
@@ -417,6 +426,7 @@ class SearchRequest(BaseRequest):
         self,
         query: Select,
         session: AsyncSession,
+        for_api: bool,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
@@ -539,9 +549,12 @@ class SearchRequest(BaseRequest):
             for attr in directory_fields:
                 attribute = getattr(directory, attr)
                 if attr == "objectsid":
-                    attribute = string_to_sid(attribute)
-                elif attr == "objectguid":
+                    if not for_api:
+                        attribute = string_to_sid(attribute)
+
+                elif attr == "objectguid" and not for_api:
                     attribute = attribute.bytes_le
+
                 attrs[directory.search_fields[attr]].append(attribute)
 
             yield SearchResultEntry(
