@@ -20,7 +20,6 @@ from sqlalchemy import (
     ForeignKey,
     LargeBinary,
     String,
-    Text,
     UniqueConstraint,
     func,
 )
@@ -1030,7 +1029,6 @@ class AuditDestinationProtocolType(StrEnum):
 
     UDP = "udp"
     TCP = "tcp"
-    TLS = "tls"
 
 
 class AuditDestinationServiceType(StrEnum):
@@ -1058,9 +1056,3 @@ class AuditDestination(Base):
         Enum(AuditDestinationProtocolType),
         nullable=False,
     )
-    tls_verify_cert: Mapped[bool] = mapped_column(
-        nullable=False, server_default=expression.false()
-    )
-    ca_cert_data: Mapped[str | None] = mapped_column(Text)
-    client_cert_data: Mapped[str | None] = mapped_column(Text)
-    client_key_data: Mapped[str | None] = mapped_column(Text)

@@ -110,10 +110,6 @@ async def add_audit_destination(
             username=model.username,
             password=model.password,
             protocol=model.protocol,
-            tls_verify_cert=model.tls_verify_cert,
-            ca_cert_data=model.ca_cert_data,
-            client_cert_data=model.client_cert_data,
-            client_key_data=model.client_key_data,
         )
         session.add(new_destination)
         await session.commit()
@@ -150,10 +146,6 @@ async def update_audit_destination(
         selected_destination.username = model.username
         selected_destination.password = model.password
         selected_destination.protocol = model.protocol
-        selected_destination.tls_verify_cert = model.tls_verify_cert
-        selected_destination.ca_cert_data = model.ca_cert_data
-        selected_destination.client_cert_data = model.client_cert_data
-        selected_destination.client_key_data = model.client_key_data
 
         await session.commit()
     except IntegrityError:

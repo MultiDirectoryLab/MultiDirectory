@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import socket
-import ssl
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -97,37 +96,10 @@ class SyslogSender(SendersABC):
 
     async def _send_tcp(self, message: str) -> None:
         """Send TCP."""
-        ssl_context = None
-        use_tls = (
-            self._destination.protocol == AuditDestinationProtocolType.TLS
-        )
-
-        if use_tls:
-            ssl_context = ssl.create_default_context(
-                ssl.Purpose.SERVER_AUTH,
-                cadata=self._destination.ca_cert_data
-                if self._destination.ca_cert_data
-                else None,
-            )
-
-            if not self._destination.tls_verify_cert:
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-
-            if (
-                self._destination.client_cert_data
-                and self._destination.client_key_data
-            ):
-                ssl_context.load_cert_chain(
-                    certfile=self._destination.client_cert_data,
-                    keyfile=self._destination.client_key_data,
-                )
-
         _, writer = await asyncio.wait_for(
             asyncio.open_connection(
                 host=self._destination.host,
                 port=self._destination.port,
-                ssl=ssl_context if use_tls else None,
             ),
             timeout=self.DEFAULT_TIMEOUT,
         )
@@ -240,10 +212,7 @@ class SyslogSender(SendersABC):
         )
         if self._destination.protocol == AuditDestinationProtocolType.UDP:
             callback = self._send_udp
-        elif self._destination.protocol in {
-            AuditDestinationProtocolType.TCP,
-            AuditDestinationProtocolType.TLS,
-        }:
+        elif self._destination.protocol == AuditDestinationProtocolType.TCP:
             callback = self._send_tcp
 
         try:

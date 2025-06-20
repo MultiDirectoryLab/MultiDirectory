@@ -128,10 +128,6 @@ class AuditDestinationSchemaRequest(BaseModel):
     username: str | None
     password: str | None
     protocol: AuditDestinationProtocolType
-    tls_verify_cert: bool
-    ca_cert_data: str | None
-    client_cert_data: str | None
-    client_key_data: str | None
 
     class Config:  # noqa: D106
         use_enum_values = True
