@@ -11,7 +11,7 @@ from ipaddress import IPv4Address, IPv6Address
 
 import httpx
 from loguru import logger as loguru_logger
-from sqlalchemy import update
+from sqlalchemy import case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import CatalogueSetting
@@ -209,12 +209,21 @@ class AbstractDNSManager(ABC):
             new_settings[DNS_MANAGER_TSIG_KEY_NAME] = tsig_key
 
         if self._dns_settings.domain is not None:
-            for name, value in new_settings.items():
-                await session.execute(
-                    update(CatalogueSetting)
-                    .values({"value": value})
-                    .where(CatalogueSetting.name == name),
+            await session.execute(
+                update(CatalogueSetting)
+                .where(CatalogueSetting.name.in_(new_settings.keys()))
+                .values(
+                    {
+                        "value": case(
+                            *[
+                                (CatalogueSetting.name == name, value)
+                                for name, value in new_settings.items()
+                            ],
+                            else_=CatalogueSetting.value,
+                        )
+                    }
                 )
+            )
         else:
             session.add_all(
                 [
