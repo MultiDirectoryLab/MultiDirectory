@@ -306,7 +306,7 @@ class AbstractDNSManager(ABC):
     @abstractmethod
     async def check_forward_dns_server(
         self,
-        dns_server_ip: str,
+        dns_server_ip: IPv4Address | IPv6Address,
     ) -> DNSForwardServerStatus:
         raise DNSNotImplementedError
 

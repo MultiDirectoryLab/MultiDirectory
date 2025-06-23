@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import socket
 from dataclasses import asdict
+from ipaddress import IPv4Address, IPv6Address
 
 from .base import (
     AbstractDNSManager,
@@ -159,19 +160,20 @@ class SelfHostedDNSManager(AbstractDNSManager):
     @logger_wraps()
     async def check_forward_dns_server(
         self,
-        dns_server_ip: str,
+        dns_server_ip: IPv4Address | IPv6Address,
     ) -> DNSForwardServerStatus:
+        str_dns_server_ip = str(dns_server_ip)
         try:
-            hostname, _, _ = socket.gethostbyaddr(dns_server_ip)
+            hostname, _, _ = socket.gethostbyaddr(str_dns_server_ip)
             fqdn = socket.getfqdn(hostname)
         except socket.herror:
             return DNSForwardServerStatus(
-                dns_server_ip,
+                str_dns_server_ip,
                 DNSForwarderServerStatus.NOT_FOUND,
                 None,
             )
         return DNSForwardServerStatus(
-            dns_server_ip,
+            str_dns_server_ip,
             DNSForwarderServerStatus.VALIDATED,
             fqdn,
         )
