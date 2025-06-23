@@ -267,7 +267,7 @@ services:
       - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
 
   bind_dns:
-    image: mirror.gcr.io/ubuntu/bind9:9.18-24.04_edge
+    image: ghcr.io/multidirectorylab/multidirectory_bind9:${VERSION:-latest}
     container_name: bind9
     hostname: bind9
     restart: unless-stopped
