@@ -443,6 +443,7 @@ class SearchRequest(BaseRequest):
             attrs["whenCreated"].append(
                 directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
             )
+            attrs["entityTypeName"].append(directory.entity_type_name)
 
             if directory.user:
                 if directory.user.account_exp is None:
@@ -451,6 +452,7 @@ class SearchRequest(BaseRequest):
                     attrs["accountExpires"].append(
                         str(dt_to_ft(directory.user.account_exp))
                     )
+
                 if directory.user.last_logon is None:
                     attrs["lastLogon"].append("0")
                 else:
