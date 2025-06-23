@@ -96,9 +96,6 @@ async def principal_block_sync(
 def _find_krb_exp_attr(directory: Directory) -> Attribute | None:
     """Find krbprincipalexpiration attribute in directory.
 
-    Args:
-        directory (Directory): directory object
-
     Returns:
         Attribute | None: the attribute with the name
             'krbprincipalexpiration', or None if not found.

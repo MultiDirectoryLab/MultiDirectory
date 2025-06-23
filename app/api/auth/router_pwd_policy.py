@@ -43,9 +43,6 @@ async def get_policy(
 ) -> PasswordPolicySchema:
     """Get current policy setting.
 
-    Args:
-        session (AsyncSession): Database session.
-
     Returns:
         PasswordPolicySchema: Current password policy schema.
     """
@@ -75,9 +72,6 @@ async def reset_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Reset current policy setting.
-
-    Args:
-        session (AsyncSession): Database session.
 
     Returns:
         PasswordPolicySchema: Reset password policy schema.

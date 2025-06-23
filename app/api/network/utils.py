@@ -14,9 +14,6 @@ from models import NetworkPolicy
 async def check_policy_count(session: AsyncSession) -> None:
     """Check if policy count euqals 1.
 
-    Args:
-        session (AsyncSession): db
-
     Raises:
         HTTPException: 422
     """

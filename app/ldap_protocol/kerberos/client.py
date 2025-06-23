@@ -43,9 +43,6 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def get_principal(self, name: str) -> dict:
         """Get principal.
 
-        Args:
-            name (str): principal name
-
         Returns:
             dict
 
@@ -61,9 +58,6 @@ class KerberosMDAPIClient(AbstractKadmin):
     @logger_wraps()
     async def del_principal(self, name: str) -> None:
         """Delete principal.
-
-        Args:
-            name (str): principal name
 
         Raises:
             KRBAPIError: API error
@@ -162,9 +156,6 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def lock_principal(self, name: str) -> None:
         """Lock principal.
 
-        Args:
-            name (str): user principal name
-
         Raises:
             KRBAPIError: API error
         """
@@ -178,9 +169,6 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     async def force_princ_pw_change(self, name: str) -> None:
         """Force mark password change for principal.
-
-        Args:
-            name (str): user principal name
 
         Raises:
             KRBAPIError: API error

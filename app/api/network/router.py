@@ -116,8 +116,6 @@ async def get_list_network_policies(
     """Get network.
 
     \f
-    Args:
-        session (AsyncSession): Database session
 
     Returns:
         list[PolicyResponse]: List of policies with their details.

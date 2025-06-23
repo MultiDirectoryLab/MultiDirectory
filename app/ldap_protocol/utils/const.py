@@ -37,9 +37,6 @@ EMAIL_RE = re.compile(
 def _type_validate_email(email: str) -> str:
     """Validate email.
 
-    Args:
-        email (str): email address
-
     Returns:
         str: email address
 

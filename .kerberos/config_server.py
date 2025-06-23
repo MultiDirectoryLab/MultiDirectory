@@ -324,9 +324,6 @@ class KAdminLocalManager(AbstractKRBManager):
 async def kadmin_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create kadmin instance.
 
-    Args:
-        app (FastAPI): FastAPI app
-
     Yields:
         AsyncIterator[None]: Async iterator
     """
@@ -685,11 +682,8 @@ def get_status(request: Request) -> bool:
     true - is ready
     false - not set
 
-    Args:
-        request (Request): http request
-
     Returns:
-        bool
+        bool: True if kadmin is ready, False otherwise.
     """
     kadmind = getattr(request.app.state, "kadmind", None)
 

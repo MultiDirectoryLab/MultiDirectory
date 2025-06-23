@@ -326,9 +326,6 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
 def _validate_oid(oid: str) -> str:
     """Validate ldap oid with regex.
 
-    Args:
-        oid (str): oid
-
     Returns:
         str:
 

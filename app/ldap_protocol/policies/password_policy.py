@@ -82,9 +82,6 @@ class PasswordPolicySchema(BaseModel):
     async def create_policy_settings(self, session: AsyncSession) -> Self:
         """Create policies settings.
 
-        Args:
-            session (AsyncSession): db session
-
         Returns:
             Self: Serialized password policy.
 
@@ -126,9 +123,6 @@ class PasswordPolicySchema(BaseModel):
         session: AsyncSession,
     ) -> "PasswordPolicySchema":
         """Reset (delete) default policy.
-
-        Args:
-            session (AsyncSession): db
 
         Returns:
             PasswordPolicySchema: schema policy
@@ -191,9 +185,6 @@ class PasswordPolicySchema(BaseModel):
     def validate_min_age(self, last_pwd_set: Attribute) -> bool:
         """Validate min password change age.
 
-        Args:
-            last_pwd_set (Attribute): last pwd set
-
         Returns:
             bool: can change pwd True - not valid, can not change False
             - valid, can change on minimum_password_age_days can always change.
@@ -207,9 +198,6 @@ class PasswordPolicySchema(BaseModel):
 
     def validate_max_age(self, last_pwd_set: Attribute) -> bool:
         """Validate max password change age.
-
-        Args:
-            last_pwd_set (Attribute): last pwd set
 
         Returns:
             bool: is pwd expired True - not valid, expired False -

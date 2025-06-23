@@ -82,9 +82,6 @@ async def proc_time_header_middleware(
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Lifespan context manager.
 
-    Args:
-        app (FastAPI): FastAPI application.
-
     Yields:
         AsyncIterator: async iterator
     """

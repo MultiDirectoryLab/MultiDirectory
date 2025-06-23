@@ -244,13 +244,8 @@ async def password_reset(
 async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     """Check if initial setup needed.
 
-    True if setup already complete, False if setup is needed.
-
-    Args:
-        session (FromDishka[AsyncSession]): Database session.
-
     Returns:
-        bool: True if setup is complete, False if setup is needed.
+        bool: True if setup already complete, False if setup is needed.
     """
     query = select(exists(Directory).where(Directory.parent_id.is_(None)))
     retval = await session.scalars(query)

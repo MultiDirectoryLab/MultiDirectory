@@ -18,9 +18,6 @@ class RawDefinitionParser:
     def _list_to_string(data: list[str]) -> str | None:
         """Convert list to string.
 
-        Args:
-            data (list[str]): list of strings
-
         Raises:
             ValueError: if list has more than one element
 

@@ -360,9 +360,6 @@ def create_user_name(directory_id: int) -> str:
 
     NOTE: keycloak
 
-    Args:
-        directory_id (int): Directory's id
-
     Returns:
         str: username
     """

@@ -272,9 +272,6 @@ class ModifyRequest(BaseRequest):
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         """Match bad response.
 
-        Args:
-            err (BaseException): error
-
         Returns:
             tuple[LDAPCodes, str]: result code and message
 

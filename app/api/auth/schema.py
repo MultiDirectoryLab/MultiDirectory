@@ -75,9 +75,6 @@ class SetupRequest(BaseModel):
     def validate_domain(cls, v: str) -> str:
         """Validate domain.
 
-        Args:
-            v (str): value
-
         Returns:
             str: Validated domain string.
 

@@ -126,9 +126,6 @@ class LDAPSession:
     def user(self, user: User) -> None:
         """User setter.
 
-        Args:
-            user (User): instance of User
-
         Raises:
             NotImplementedError: Cannot manually set user
         """

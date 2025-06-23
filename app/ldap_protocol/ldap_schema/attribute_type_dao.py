@@ -78,7 +78,7 @@ class AttributeTypeDAO:
         """Retrieve paginated attribute_types.
 
         Args:
-            params (PaginationParams): page_size and page_number.
+            params (PaginationParams): parameters for pagination.
 
         Returns:
             PaginationResult: Chunk of attribute_types and metadata.
@@ -125,9 +125,6 @@ class AttributeTypeDAO:
     ) -> AttributeType:
         """Get single Attribute Type by name.
 
-        Args:
-            attribute_type_name (str): Attribute Type name.
-
         Returns:
             AttributeType: Attribute Type.
 
@@ -151,9 +148,6 @@ class AttributeTypeDAO:
         attribute_type_names: list[str] | set[str],
     ) -> list[AttributeType]:
         """Get list of Attribute Types by names.
-
-        Args:
-            attribute_type_names (list[str]): Attribute Type names.
 
         Returns:
             list[AttributeType]: List of Attribute Types.

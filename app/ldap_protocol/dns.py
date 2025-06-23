@@ -426,9 +426,6 @@ async def get_dns_state(
 ) -> "DNSManagerState":
     """Get or create DNS manager state.
 
-    Args:
-        session (AsyncSession): Database session.
-
     Returns:
         DNSManagerState: Current DNS manager state.
     """
@@ -527,9 +524,6 @@ async def get_dns_manager_class(
     session: AsyncSession,
 ) -> type[AbstractDNSManager]:
     """Get DNS manager class.
-
-    Args:
-        session (AsyncSession): Database session.
 
     Returns:
         type[AbstractDNSManager]: DNS manager class type.

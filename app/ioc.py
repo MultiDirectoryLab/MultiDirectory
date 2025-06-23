@@ -76,9 +76,6 @@ class MainProvider(Provider):
     ) -> async_sessionmaker[AsyncSession]:
         """Create session factory.
 
-        Args:
-            engine (AsyncEngine): Async Engine.
-
         Returns:
             async_sessionmaker[AsyncSession]:
         """
@@ -90,9 +87,6 @@ class MainProvider(Provider):
         async_session: async_sessionmaker[AsyncSession],
     ) -> AsyncIterator[AsyncSession]:
         """Create session for request.
-
-        Args:
-            async_session (async_sessionmaker[AsyncSession]): async db session
 
         Yields:
             AsyncIterator[AsyncSession]
@@ -107,9 +101,6 @@ class MainProvider(Provider):
         session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractKadmin]:
         """Get kerberos type.
-
-        Args:
-            session_maker (async_sessionmaker[AsyncSession]): session maker
 
         Returns:
             type[AbstractKadmin]: kerberos class
@@ -165,9 +156,6 @@ class MainProvider(Provider):
         session_maker: async_sessionmaker[AsyncSession],
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type.
-
-        Args:
-            session_maker (async_sessionmaker[AsyncSession]): session maker
 
         Returns:
             type[AbstractDNSManager]: DNS manager class
@@ -290,9 +278,6 @@ class HTTPProvider(Provider):
     ) -> AttributeTypeDAO:
         """Get Attribute Type DAO.
 
-        Args:
-            session (AsyncSession): async db session
-
         Returns:
             AttributeTypeDAO: Attribute Type DAO.
         """
@@ -304,9 +289,6 @@ class HTTPProvider(Provider):
         session: AsyncSession,
     ) -> ObjectClassDAO:
         """Get Object Class DAO.
-
-        Args:
-            session (AsyncSession): async db session.
 
         Returns:
             ObjectClassDAO: Object Class DAO.
@@ -323,9 +305,6 @@ class HTTPProvider(Provider):
         session: AsyncSession,
     ) -> EntityTypeDAO:
         """Get Entity Type DAO.
-
-        Args:
-            session (AsyncSession): async db session.
 
         Returns:
             EntityTypeDAO: Entity Type DAO.
@@ -383,9 +362,6 @@ class MFAProvider(Provider):
         settings: Settings,
     ) -> AsyncIterator[MFAHTTPClient]:
         """Get async client for DI.
-
-        Args:
-            settings: Settings with database dsn.
 
         Yields:
             AsyncIterator[MFAHTTPClient].

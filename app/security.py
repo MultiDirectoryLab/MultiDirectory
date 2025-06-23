@@ -25,9 +25,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """Hash password.
 
-    Args:
-        password (str): raw pwd
-
     Returns:
         str: hash
     """

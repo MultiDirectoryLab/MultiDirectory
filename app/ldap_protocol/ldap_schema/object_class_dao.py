@@ -93,9 +93,6 @@ class ObjectClassDAO:
     ) -> PaginationResult:
         """Retrieve paginated Object Classes.
 
-        Args:
-            params (PaginationParams): page_size and page_number.
-
         Returns:
             PaginationResult: Chunk of object_classes and metadata.
         """
@@ -171,9 +168,6 @@ class ObjectClassDAO:
     ) -> int:
         """Count exists Object Class by names.
 
-        Args:
-            object_class_names (list[str]): object class names
-
         Returns:
             int: count of object classes
         """
@@ -190,9 +184,6 @@ class ObjectClassDAO:
         object_class_names: list[str],
     ) -> Literal[True]:
         """Check if all Object Classes exist.
-
-        Args:
-            object_class_names (list[str]): object class names
 
         Returns:
             Literal[True]: True if all object classes found.
@@ -218,9 +209,6 @@ class ObjectClassDAO:
     ) -> ObjectClass:
         """Get single Object Class by name.
 
-        Args:
-            object_class_name (str): Object Class name.
-
         Returns:
             ObjectClass: Object Class.
 
@@ -244,9 +232,6 @@ class ObjectClassDAO:
         object_class_names: list[str] | set[str],
     ) -> list[ObjectClass]:
         """Get list of Object Classes by names.
-
-        Args:
-            object_class_names (list[str]): object class names
 
         Returns:
             list[ObjectClass]: List of Object Classes.

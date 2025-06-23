@@ -271,9 +271,6 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
 def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
     """Get default domain attrs.
 
-    Args:
-        domain (Directory): instance of Directory
-
     Yields:
         Iterator[Attribute]
     """

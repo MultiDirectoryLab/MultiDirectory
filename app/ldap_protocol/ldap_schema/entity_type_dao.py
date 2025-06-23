@@ -70,9 +70,6 @@ class EntityTypeDAO:
     ) -> PaginationResult:
         """Retrieve paginated Entity Types.
 
-        Args:
-            params (PaginationParams): page_size and page_number.
-
         Returns:
             PaginationResult: Chunk of Entity Types and metadata.
         """
@@ -109,9 +106,6 @@ class EntityTypeDAO:
     ) -> EntityType:
         """Get single Entity Type by name.
 
-        Args:
-            entity_type_name (str): Entity Type name.
-
         Returns:
             EntityType: Instance of Entity Type.
 
@@ -135,9 +129,6 @@ class EntityTypeDAO:
         object_class_names: Iterable[str],
     ) -> EntityType | None:
         """Get single Entity Type by object class names.
-
-        Args:
-            object_class_names (Iterable[str]): object class names.
 
         Returns:
             EntityType | None: Instance of Entity Type or None.

@@ -60,9 +60,6 @@ class NetmasksMixin:
     def validate_group(cls, groups: list[str]) -> list[str]:
         """Validate groups.
 
-        Args:
-            groups (list[str]): groups names
-
         Returns:
             list[str]: groups
 
@@ -80,9 +77,6 @@ class NetmasksMixin:
     @classmethod
     def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:
         """Validate mfa groups.
-
-        Args:
-            mfa_groups (list[str]): mfa groups names
 
         Returns:
             list[str]: mfa groups

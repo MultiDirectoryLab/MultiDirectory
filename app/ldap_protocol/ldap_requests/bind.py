@@ -61,9 +61,6 @@ class BindRequest(BaseRequest):
     def from_data(cls, data: list[ASN1Row]) -> "BindRequest":
         """Get bind from data dict.
 
-        Args:
-            data (list[ASN1Row]): data
-
         Returns:
             BindRequest
 
@@ -278,9 +275,6 @@ class UnbindRequest(BaseRequest):
         ldap_session: LDAPSession,
     ) -> AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response.
-
-        Args:
-            ldap_session (LDAPSession): ldap session
 
         Yields:
             AsyncGenerator[BaseResponse, None]

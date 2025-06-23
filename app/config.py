@@ -131,7 +131,7 @@ class Settings(BaseModel):
         """Get timezone from a string.
 
         Args:
-            tz (str): timezone
+            tz (str): string timezone
 
         Returns:
             ZoneInfo:
