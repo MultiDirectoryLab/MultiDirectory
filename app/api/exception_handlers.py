@@ -54,6 +54,7 @@ async def handle_instance_cant_modify_error(
         detail="System Instance cannot be modified.",
     )
 
+
 async def handle_not_implemented_error(
     request: Request,  # noqa: ARG001
     exc: Exception,  # noqa: ARG001
