@@ -53,8 +53,7 @@ async def test_password_validator_not_contains_in_common_list(
     session: AsyncSession,
 ) -> None:
     """Test password validator for not containing in common list."""
-    schema = PasswordValidator()
-    schema.not_contains_in_common_list(session)
+    schema = PasswordValidator().not_contains_in_common_list(session)
     assert not await schema.validate("helpme")
     assert await schema.validate("not_common_Passw0Rd")
 
@@ -65,8 +64,7 @@ async def test_password_validator_not_contain_ban_word(
     session: AsyncSession,
 ) -> None:
     """Test password validator for not containing banned words into password."""  # noqa: E501
-    schema = PasswordValidator()
-    schema.not_contain_ban_word(session)
+    schema = PasswordValidator().not_contain_ban_word(session)
     assert not await schema.validate("prefix_alex_suffix")
     assert await schema.validate("!coRR3c7_P@$$w0rd")
 
