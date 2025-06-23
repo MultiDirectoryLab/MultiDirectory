@@ -139,7 +139,7 @@ class DNSServiceReloadZoneRequest(BaseModel):
 class DNSServiceForwardZoneCheckRequest(BaseModel):
     """Forwarder DNS server check request scheme."""
 
-    dns_server_ips: list[str]
+    dns_server_ips: list[IPv4Address | IPv6Address]
 
 
 class DNSServiceOptionsUpdateRequest(BaseModel):
