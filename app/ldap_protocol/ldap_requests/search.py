@@ -331,6 +331,7 @@ class SearchRequest(BaseRequest):
                 subqueryload(Directory.attributes),
                 joinedload(Directory.user),
                 joinedload(Directory.group),
+                joinedload(Directory.entity_type),
             )
             .distinct(Directory.id)
         )
@@ -451,6 +452,7 @@ class SearchRequest(BaseRequest):
                     attrs["accountExpires"].append(
                         str(dt_to_ft(directory.user.account_exp))
                     )
+
                 if directory.user.last_logon is None:
                     attrs["lastLogon"].append("0")
                 else:
