@@ -213,16 +213,18 @@ class AbstractDNSManager(ABC):
             new_settings[DNS_MANAGER_TSIG_KEY_NAME] = tsig_key
 
         if self._dns_settings.domain is not None:
+            settings = [
+                (CatalogueSetting.name == name, value)
+                for name, value in new_settings.items()
+            ]
+
             await session.execute(
                 update(CatalogueSetting)
                 .where(CatalogueSetting.name.in_(new_settings.keys()))
                 .values(
                     {
                         "value": case(
-                            *[
-                                (CatalogueSetting.name == name, value)
-                                for name, value in new_settings.items()
-                            ],
+                            *settings,
                             else_=CatalogueSetting.value,
                         )
                     }
