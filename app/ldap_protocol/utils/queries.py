@@ -122,7 +122,8 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
 
 
 async def get_group(
-    dn: str | GRANT_DN_STRING, session: AsyncSession
+    dn: str | GRANT_DN_STRING,
+    session: AsyncSession,
 ) -> Directory:
     """Get dir with group by dn.
 
