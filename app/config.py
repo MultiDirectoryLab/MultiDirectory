@@ -126,7 +126,8 @@ class Settings(BaseModel):
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
     @field_validator("TIMEZONE", mode="before")
-    def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
+    @classmethod
+    def create_tz(cls, tz: str) -> ZoneInfo:
         """Get timezone from a string.
 
         Args:
