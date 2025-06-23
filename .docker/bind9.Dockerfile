@@ -7,11 +7,11 @@ WORKDIR /venvs
 
 RUN python -m venv .venv
 RUN pip install \
-    fastapi \
-    uvicorn \
-    pydantic \
-    jinja2 \
-    dnspython
+    fastapi=0.115.12 \
+    uvicorn=0.34.2 \
+    pydantic=2.10.6 \
+    jinja2=3.1.6 \
+    dnspython=2.7.0
 
 FROM ubuntu/bind9:latest AS runtime
 
