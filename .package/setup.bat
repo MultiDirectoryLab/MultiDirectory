@@ -25,6 +25,9 @@ set /a rand=%Random%%%61
 set secret_key=!secret_key!!char:~%rand%,1!
 if !count! leq !length! goto Loop2
 
+:server_ip
+set /p "server_ip=Enter host server ip address: "
+IF "%server_ip%"=="" echo server ip required && goto server_ip
 
 set "postgres_user=user"
 set /p "postgres_user=Enter postgres user or just ENTER for default [%postgres_user%]: "
@@ -42,6 +45,7 @@ set /p "domain=Enter domain name: "
 IF "%domain%"=="" echo domain required && goto domain
 
 
+echo DEFAULT_NAMESERVER=%server_ip% >> .env
 echo POSTGRES_HOST=%postgres_host% >> .env
 echo POSTGRES_USER=%postgres_user% >> .env
 echo POSTGRES_DB=%postgres_db% >> .env
