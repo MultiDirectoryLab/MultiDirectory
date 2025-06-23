@@ -19,8 +19,8 @@ from typing import (
 )
 from unittest.mock import AsyncMock, Mock
 
+import aioldap3
 import httpx
-import ldap3
 import pytest
 import pytest_asyncio
 import redis.asyncio as redis
@@ -501,15 +501,38 @@ def _server(
 
 
 @pytest.fixture
-def ldap_client(settings: Settings) -> ldap3.Connection:
-    """Get ldap clinet without a creds.
+async def ldap_client(
+    settings: Settings,
+    creds: TestCreds,
+) -> AsyncIterator[aioldap3.LDAPConnection]:
+    """Get ldap clinet with creds.
 
     Args:
         settings (Settings): Settings with database dsn.
+        creds (TestCreds): credentials for ldap auth
+
+    Yields:
+        aioldap3.LDAPConnection: ldap async client
     """
-    return ldap3.Connection(
-        ldap3.Server(str(settings.HOST), settings.PORT, get_info="ALL")
+    conn = aioldap3.LDAPConnection(
+        aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
     )
+    await conn.bind(creds.un, creds.pw)
+    yield conn
+    await conn.unbind()
+
+
+@pytest.fixture
+async def anonymous_ldap_client(
+    settings: Settings,
+) -> AsyncIterator[aioldap3.LDAPConnection]:
+    """Get LDAP client without credentials."""
+    conn = aioldap3.LDAPConnection(
+        aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
+    )
+    await conn.bind()
+    yield conn
+    await conn.unbind()
 
 
 @pytest_asyncio.fixture(scope="function")
