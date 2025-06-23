@@ -205,9 +205,9 @@ class HTTPProvider(Provider):
     def get_object_class_dao(
         self,
         session: AsyncSession,
+        attribute_type_dao: AttributeTypeDAO,
     ) -> ObjectClassDAO:
         """Get Object Class DAO."""
-        attribute_type_dao = AttributeTypeDAO(session)
         return ObjectClassDAO(
             attribute_type_dao=attribute_type_dao,
             session=session,

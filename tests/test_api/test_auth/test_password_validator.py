@@ -128,9 +128,9 @@ async def test_password_validator_max_sequential_alphabet_symbols_count() -> (
 @pytest.mark.asyncio
 async def test_password_validator_max_repeating_symbols_in_row_count() -> None:
     """Test password validator for maximum repeating symbols in row count."""
-    schema = PasswordValidator().max_repeating_symbols_in_row_count(2)
-    assert not await schema.validate("aa!!3")
-    assert await schema.validate("a!3")
+    schema = PasswordValidator().max_repeating_symbols_in_row_count(3)
+    assert not await schema.validate("33aaa!!!3")
+    assert await schema.validate("33a!3")
     assert await schema.validate("abcdef")
 
 

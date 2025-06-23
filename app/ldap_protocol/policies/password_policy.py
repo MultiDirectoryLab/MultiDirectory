@@ -90,7 +90,7 @@ class PasswordPolicySchema(BaseModel):
     def _validate_minimum_pwd_length(self) -> Self:
         if self.min_length > self.max_length:
             raise ValueError(
-                "Minimum password length must be"
+                "Minimum password length must be "
                 "less or equal than maximum password length"
             )
         return self
@@ -105,7 +105,7 @@ class PasswordPolicySchema(BaseModel):
             + self.min_digits_count
         ) > self.max_length:
             raise ValueError(
-                "Sum of required characters must be"
+                "Sum of required characters must be "
                 "less or equal than the maximum password length."
             )
         return self
@@ -116,7 +116,7 @@ class PasswordPolicySchema(BaseModel):
             self.min_lowercase_letters_count + self.min_uppercase_letters_count
         ) > self.min_letters_count:
             raise ValueError(
-                "Sum of lowercase and uppercase letters must be"
+                "Sum of lowercase and uppercase letters must be "
                 "less or equal than the maximum letters count."
             )
         return self
@@ -125,7 +125,7 @@ class PasswordPolicySchema(BaseModel):
     def _validate_max_repeating_symbols_in_row_count(self) -> Self:
         if 0 < self.max_repeating_symbols_in_row_count < 2:
             raise ValueError(
-                "Repeating symbols in row count must be"
+                "Repeating symbols in row count must be "
                 "greater than 1 or equal 0."
             )
         return self
@@ -134,13 +134,13 @@ class PasswordPolicySchema(BaseModel):
     def _validate_max_sequential_keyboard_symbols_count(self) -> Self:
         if 0 < self.max_sequential_keyboard_symbols_count < 3:
             raise ValueError(
-                "Max sequential keyboard symbols count must be"
+                "Max sequential keyboard symbols count must be "
                 "greater than 2 or equal 0."
             )
 
         if self.max_sequential_keyboard_symbols_count > self.min_length:
             raise ValueError(
-                "Max sequential keyboard symbols count must be"
+                "Max sequential keyboard symbols count must be "
                 "less than or equal to the minimum password length."
             )
 
@@ -150,13 +150,13 @@ class PasswordPolicySchema(BaseModel):
     def _validate_max_sequential_alphabet_symbols_count(self) -> Self:
         if 0 < self.max_sequential_alphabet_symbols_count < 3:
             raise ValueError(
-                "Max sequential alphabet symbols count must be"
+                "Max sequential alphabet symbols count must be "
                 "greater than 2 or equal 0."
             )
 
         if self.max_sequential_alphabet_symbols_count > self.min_length:
             raise ValueError(
-                "Max sequential alphabet symbols count must be"
+                "Max sequential alphabet symbols count must be "
                 "less than or equal to the minimum password length."
             )
 

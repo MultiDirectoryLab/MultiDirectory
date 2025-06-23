@@ -112,7 +112,7 @@ async def max_repeating_symbols_in_row_count(
     password: str, count: int
 ) -> bool:
     """Validate maximum repeating symbols in row count in password."""
-    return not bool(re.findall(rf"(.)\{count - 1}+", password))
+    return not bool(re.findall(rf"(.)\1{{{count - 1}}}+", password))
 
 
 async def min_special_symbols_count(password: str, count: int) -> bool:
