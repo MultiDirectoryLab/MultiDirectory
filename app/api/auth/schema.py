@@ -71,7 +71,8 @@ class SetupRequest(BaseModel):
     password: str
 
     @field_validator("domain")
-    def validate_domain(cls, v: str) -> str:  # noqa FIXME why noqa?
+    @classmethod
+    def validate_domain(cls, v: str) -> str:
         """Validate domain.
 
         Args:
