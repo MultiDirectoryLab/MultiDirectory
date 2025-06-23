@@ -265,7 +265,7 @@ async def test_block_ldap_user_with_active_session(
     """Test blocking ldap user with active session."""
     user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
     un = "user_non_admin"
-    pw = "password"
+    pw = "_P@55w0rD!"
 
     user = await get_user(session, un)
     assert user

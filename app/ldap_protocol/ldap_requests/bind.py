@@ -161,7 +161,6 @@ class BindRequest(BaseRequest):
             return
 
         uac_check = await get_check_uac(session, user.directory_id)
-
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
@@ -170,20 +169,22 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        dao = PasswordPolicyDAO(session)
-        password_policy = await dao.get_ensure_password_policy()
-
-        pwd_last_set = await dao.get_ensure_pwd_last_set(user.directory_id)
-        pwd_expired = dao.validate_max_age(password_policy, pwd_last_set)
-        is_krb_user = await check_kerberos_group(user, session)
-
-        required_pwd_change = (
-            pwd_last_set == "0" or pwd_expired  # noqa: S105
-        ) and not is_krb_user
-
         if user.is_expired():
             yield get_bad_response(LDAPBindErrors.ACCOUNT_EXPIRED)
             return
+
+        password_policy_dao = PasswordPolicyDAO(session, user)
+        password_policy = await password_policy_dao.get_ensure_policy()
+        pwd_last_set = await password_policy_dao.get_ensure_pwd_last_set(
+            user.directory_id
+        )
+        is_pwd_expired = await password_policy_dao.check_expired_max_age(
+            password_policy,
+        )
+        is_krb_user = await check_kerberos_group(user, session)
+        required_pwd_change = (
+            pwd_last_set == "0" or is_pwd_expired  # noqa: S105
+        ) and not is_krb_user
 
         if required_pwd_change:
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)

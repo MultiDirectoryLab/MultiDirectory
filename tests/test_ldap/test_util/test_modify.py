@@ -462,7 +462,7 @@ async def test_ldap_modify_password_change(
 ) -> None:
     """Test ldapmodify on server."""
     dn = "cn=user0,ou=users,dc=md,dc=test"
-    new_password = "Password12345"  # noqa
+    new_password = "Pa55w0rD_qw"  # noqa: S105
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(

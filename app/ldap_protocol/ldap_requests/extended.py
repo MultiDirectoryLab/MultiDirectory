@@ -28,7 +28,7 @@ from ldap_protocol.policies.password_policy import (
 )
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
-from security import get_password_hash, verify_password
+from security import update_user_password, verify_password
 
 from .base import BaseRequest
 
@@ -206,18 +206,13 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await session.get(User, ldap_session.user.id)  # type: ignore
 
-        dao = PasswordPolicyDAO(session)
-        password_policy = await dao.get_ensure_password_policy()
+        password_policy_dao = PasswordPolicyDAO(session, user)
+        password_policy = await password_policy_dao.get_ensure_policy()
 
-        errors = await dao.validate_password_with_policy(
+        errors = await password_policy_dao.check_password_violations(
             password_policy=password_policy,
             password=new_password,
-            user=user,
         )
-
-        pwd_last_set = await dao.get_ensure_pwd_last_set(user.directory_id)
-        if dao.validate_min_age(password_policy, pwd_last_set):
-            errors.append("Minimum age violation")
 
         if not errors and (
             user.password is None
@@ -232,7 +227,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 await session.rollback()
                 raise PermissionError("Kadmin Error")
 
-            user.password = get_password_hash(new_password)
+            update_user_password(user, new_password)
             await post_save_password_actions(user, session)
             await session.execute(
                 update(Directory).where(Directory.id == user.directory_id),

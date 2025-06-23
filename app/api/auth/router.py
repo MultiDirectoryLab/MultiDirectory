@@ -37,7 +37,7 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_base_directories
 from models import Directory, Group, MFAFlags, User
-from security import get_password_hash
+from security import update_user_password
 
 from .oauth2 import authenticate_user, get_current_user, get_user
 from .schema import OAuth2Form, SetupRequest
@@ -197,12 +197,11 @@ async def password_reset(
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    dao = PasswordPolicyDAO(session)
-    password_policy = await dao.get_ensure_password_policy()
-    errors = await dao.validate_password_with_policy(
-        password_policy,
-        new_password,
-        user,
+    password_policy_dao = PasswordPolicyDAO(session, user)
+    password_policy = await password_policy_dao.get_ensure_policy()
+    errors = await password_policy_dao.check_password_violations(
+        password_policy=password_policy,
+        password=new_password,
     )
 
     if errors:
@@ -211,7 +210,7 @@ async def password_reset(
             detail=errors,
         )
 
-    user.password = get_password_hash(new_password)
+    update_user_password(user, new_password)
 
     try:
         await kadmin.create_or_update_principal_pw(
@@ -350,12 +349,11 @@ async def first_setup(
 
             await session.flush()
 
-            dao = PasswordPolicyDAO(session)
-            default_pwd_policy = PasswordPolicySchema()
-            errors = await dao.validate_password_with_policy(
-                default_pwd_policy,
+            password_policy_dao = PasswordPolicyDAO(session)
+            default_password_policy = PasswordPolicySchema()
+            errors = await password_policy_dao.check_password_violations(
+                password_policy=default_password_policy,
                 password=request.password,
-                user=None,
             )
 
             if errors:
@@ -364,8 +362,7 @@ async def first_setup(
                     detail=errors,
                 )
 
-            pwd_schema = PasswordPolicySchema()
-            await dao.create_policy_settings(pwd_schema)
+            await password_policy_dao.create_policy(default_password_policy)
 
             domain_query = (
                 select(Directory)

@@ -28,18 +28,18 @@ async def create_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Create current policy setting."""
-    dao = PasswordPolicyDAO(session)
-    pwd_schema = PasswordPolicySchema()
-    return await dao.create_policy_settings(pwd_schema)
+    password_policy_dao = PasswordPolicyDAO(session)
+    password_policy_schema = PasswordPolicySchema()
+    return await password_policy_dao.create_policy(password_policy_schema)
 
 
 @password_policy_router.get("")
-async def get_policy(
+async def get_ensure_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Get current policy setting."""
-    dao = PasswordPolicyDAO(session)
-    return await dao.get_ensure_password_policy()
+    password_policy_dao = PasswordPolicyDAO(session)
+    return await password_policy_dao.get_ensure_policy()
 
 
 @password_policy_router.put("")
@@ -48,8 +48,8 @@ async def update_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Update current policy setting."""
-    dao = PasswordPolicyDAO(session)
-    await dao.update_password_policy(password_policy)
+    password_policy_dao = PasswordPolicyDAO(session)
+    await password_policy_dao.update_policy(password_policy)
     return password_policy
 
 
@@ -58,5 +58,5 @@ async def reset_policy(
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Reset current policy setting."""
-    dao = PasswordPolicyDAO(session)
-    return await dao.delete_password_policy()
+    password_policy_dao = PasswordPolicyDAO(session)
+    return await password_policy_dao.reset_policy()

@@ -46,7 +46,7 @@ async def test_bind_ok_and_unbind(
     bind = MutePolicyBindRequest(
         version=0,
         name=creds.un,
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(password="_P@55w0rD!"),  # noqa: S106
     )
 
     result = await anext(

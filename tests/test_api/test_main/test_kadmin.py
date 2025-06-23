@@ -62,7 +62,7 @@ async def test_tree_creation(
     settings: Settings,
 ) -> None:
     """Test tree creation."""
-    krbadmin_pw = "Password123"
+    krbadmin_pw = "p@55w0rdI23"
     response = await http_client.post(
         "/kerberos/setup/tree",
         json={
@@ -112,7 +112,7 @@ async def test_tree_collision(http_client: AsyncClient) -> None:
         "/kerberos/setup/tree",
         json={
             "mail": "777@example.com",
-            "krbadmin_password": "Password123",
+            "krbadmin_password": "p@55w0rdI23",
         },
     )
 
@@ -122,7 +122,7 @@ async def test_tree_collision(http_client: AsyncClient) -> None:
         "/kerberos/setup/tree",
         json={
             "mail": "777@example.com",
-            "krbadmin_password": "Password123",
+            "krbadmin_password": "p@55w0rdI23",
         },
     )
 
@@ -144,9 +144,9 @@ async def test_setup_call(
     response = await http_client.post(
         "/kerberos/setup",
         json={
-            "krbadmin_password": "Password123",
+            "krbadmin_password": "p@55w0rdI23",
             "admin_password": creds.pw,
-            "stash_password": "Password123",
+            "stash_password": "p@55w0rdI23",
         },
     )
 
@@ -166,10 +166,10 @@ async def test_setup_call(
         "admin_dn": "cn=user0,ou=users,dc=md,dc=test",
         "services_dn": "ou=services,dc=md,dc=test",
         "krbadmin_dn": "cn=krbadmin,ou=users,dc=md,dc=test",
-        "krbadmin_password": "Password123",
+        "krbadmin_password": "p@55w0rdI23",
         "ldap_keytab_path": "/LDAP_keytab/ldap.keytab",
         "admin_password": creds.pw,
-        "stash_password": "Password123",
+        "stash_password": "p@55w0rdI23",
     }
 
 
@@ -191,9 +191,9 @@ async def test_status_change(
     await http_client.post(
         "/kerberos/setup",
         json={
-            "krbadmin_password": "Password123",
+            "krbadmin_password": "p@55w0rdI23",
             "admin_password": creds.pw,
-            "stash_password": "Password123",
+            "stash_password": "p@55w0rdI23",
         },
     )
 
@@ -258,7 +258,7 @@ async def test_ldap_add(
     :param TestKadminClient kadmin: kadmin
     """
     san = "ktest"
-    pw = "Password123"
+    pw = "p@55w0rdI23"
 
     response = await http_client.post(
         "/entry/add",
@@ -278,7 +278,7 @@ async def test_ldap_kadmin_delete_user(
     """Test API for delete object."""
     await http_client.post(
         "/entry/add",
-        json=_create_test_user_data("ktest", "Password123"),
+        json=_create_test_user_data("ktest", "p@55w0rdI23"),
     )
 
     response = await http_client.request(
@@ -333,7 +333,7 @@ async def test_bind_create_user(
 ) -> None:
     """Test bind create user."""
     san = "ktest"
-    pw = "Password123"
+    pw = "p@55w0rdI23"
 
     await http_client.post("/entry/add", json=_create_test_user_data(san, pw))
 
@@ -366,7 +366,7 @@ async def test_extended_pw_change_call(
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
     password = creds.pw
-    new_test_password = "Password123"  # noqa
+    new_test_password = "p@55w0rdI23"  # noqa
 
     await event_loop.run_in_executor(
         None,
@@ -492,9 +492,9 @@ async def test_admin_incorrect_pw_setup(http_client: AsyncClient) -> None:
     response = await http_client.post(
         "/kerberos/setup",
         json={
-            "krbadmin_password": "Password123",
+            "krbadmin_password": "p@55w0rdI23",
             "admin_password": "----",
-            "stash_password": "Password123",
+            "stash_password": "p@55w0rdI23",
         },
     )
     data = response.json()
@@ -510,10 +510,10 @@ async def test_api_update_password(
     """Update policy."""
     await http_client.patch(
         "auth/user/password",
-        json={"identity": "user0", "new_password": "Password123"},
+        json={"identity": "user0", "new_password": "p@55w0rdI23"},
     )
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
-    assert kadmin_args == ("user0", "Password123")
+    assert kadmin_args == ("user0", "p@55w0rdI23")
 
 
 @pytest.mark.asyncio
@@ -528,6 +528,6 @@ async def test_update_password(
     ) = KRBAPIError()
     response = await http_client.patch(
         "auth/user/password",
-        json={"identity": "user0", "new_password": "Password123"},
+        json={"identity": "user0", "new_password": "p@55w0rdI23"},
     )
     assert response.status_code == status.HTTP_424_FAILED_DEPENDENCY

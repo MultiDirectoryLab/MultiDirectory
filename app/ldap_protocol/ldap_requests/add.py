@@ -45,7 +45,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
-from security import get_password_hash
+from security import update_user_password
 
 from .base import BaseRequest
 
@@ -151,14 +151,13 @@ class AddRequest(BaseRequest):
             return
 
         if self.password is not None:
-            dao = PasswordPolicyDAO(session)
-            password_policy = await dao.get_ensure_password_policy()
-
+            password_policy_dao = PasswordPolicyDAO(session)
+            password_policy = await password_policy_dao.get_ensure_policy()
             raw_password = self.password.get_secret_value()
-            errors = await dao.validate_password_with_policy(
-                password_policy,
+
+            errors = await password_policy_dao.check_password_violations(
+                password_policy=password_policy,
                 password=raw_password,
-                user=None,
             )
 
             if errors:
@@ -274,7 +273,7 @@ class AddRequest(BaseRequest):
             )
 
             if self.password is not None:
-                user.password = get_password_hash(raw_password)
+                update_user_password(user, raw_password)
                 await post_save_password_actions(user, session)
 
             items_to_add.append(user)

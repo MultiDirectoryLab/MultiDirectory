@@ -21,7 +21,7 @@ from ldap_protocol.policies.password_policy import (
 )
 from ldap_protocol.utils.queries import get_user
 from models import MFAFlags
-from security import get_password_hash
+from security import update_user_password
 
 shadow_router = APIRouter(route_class=DishkaRoute)
 
@@ -100,13 +100,12 @@ async def sync_password(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    dao = PasswordPolicyDAO(session)
-    password_policy = await dao.get_ensure_password_policy()
+    password_policy_dao = PasswordPolicyDAO(session, user)
+    password_policy = await password_policy_dao.get_ensure_policy()
 
-    errors = await dao.validate_password_with_policy(
-        password_policy,
-        new_password,
-        user,
+    errors = await password_policy_dao.check_password_violations(
+        password_policy=password_policy,
+        password=new_password,
     )
 
     if errors:
@@ -115,6 +114,6 @@ async def sync_password(
             detail=errors,
         )
 
-    user.password = get_password_hash(new_password)
+    update_user_password(user, new_password)
     await post_save_password_actions(user, session)
     await session.flush()

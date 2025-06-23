@@ -85,6 +85,6 @@ async def test_ldap_validate_mfa(
     else:
         result = await mfa_api.ldap_validate_mfa(
             "user",
-            "password",
+            "_P@55w0rD!",
         )
         assert result == expected_result

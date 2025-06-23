@@ -59,7 +59,7 @@ DATA = [
                     "user_principal_name": "username1@multifactor.dev",
                     "mail": "username1@multifactor.dev",
                     "display_name": "User 1",
-                    "password": "password",
+                    "password": "_P@55w0rD!",
                     "groups": ["administrators", "operators"],
                 },
                 "attributes": {
@@ -80,7 +80,7 @@ DATA = [
                     "user_principal_name": "username2@multifactor.dev",
                     "mail": "username2@multifactor.dev",
                     "display_name": "User 2",
-                    "password": "password",
+                    "password": "_P@55w0rD!",
                     "groups": ["administrators", "operators"],
                 },
                 "attributes": {
@@ -103,7 +103,7 @@ DATA = [
             "user_principal_name": "username0@multifactor.dev",
             "mail": "username0@multifactor.dev",
             "display_name": "User 0",
-            "password": "password",
+            "password": "_P@55w0rD!",
             "groups": ["administrators", "operators"],
         },
         "attributes": {
@@ -129,7 +129,7 @@ DATA = [
                     "user_principal_name": "username3@multifactor.dev",
                     "mail": "username3@multifactor.dev",
                     "display_name": "User 3",
-                    "password": "password",
+                    "password": "_P@55w0rD!",
                     "groups": ["operators", "administrators"],
                 },
                 "attributes": {
@@ -155,7 +155,7 @@ DATA = [
                     "user_principal_name": "username4@multifactor.dev",
                     "mail": "username4@multifactor.dev",
                     "display_name": "User 4",
-                    "password": "password",
+                    "password": "_P@55w0rD!",
                     "groups": ["guests"],
                 },
                 "attributes": {
@@ -188,7 +188,7 @@ DATA = [
                             "user_principal_name": "username5@multifactor.dev",
                             "mail": "username5@multifactor.dev",
                             "display_name": "User 5",
-                            "password": "password",
+                            "password": "_P@55w0rD!",
                         },
                         "attributes": {
                             "objectClass": [
@@ -264,7 +264,7 @@ TEST_DATA = [
                     "user_principal_name": "user0",
                     "mail": "user0@mail.com",
                     "display_name": "user0",
-                    "password": "password",
+                    "password": "_P@55w0rD!",
                     "groups": ["domain admins"],
                 },
                 "attributes": {
@@ -289,7 +289,7 @@ TEST_DATA = [
                     "user_principal_name": "user_non_admin",
                     "mail": "user_non_admin@mail.com",
                     "display_name": "user_non_admin",
-                    "password": "password",
+                    "password": "_P@55w0rD!",
                     "groups": ["domain users"],
                 },
                 "attributes": {
@@ -329,7 +329,7 @@ TEST_DATA = [
                                     "user_principal_name": "user1",
                                     "mail": "user1@mail.com",
                                     "display_name": "user1",
-                                    "password": "password",
+                                    "password": "_P@55w0rD!",
                                     "groups": ["developers"],
                                 },
                                 "attributes": {

@@ -71,7 +71,7 @@ async def test_first_setup_and_oauth(
             "user_principal_name": "test",
             "display_name": "test",
             "mail": "test@md.example-345.ru",
-            "password": "Password123",
+            "password": "P@$$w0rdi23",
         },
     )
     assert response.status_code == status.HTTP_200_OK
@@ -82,7 +82,7 @@ async def test_first_setup_and_oauth(
 
     auth = await unbound_http_client.post(
         "auth/",
-        data={"username": "test", "password": "Password123"},
+        data={"username": "test", "password": "P@$$w0rdi23"},
     )
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["id"]
@@ -220,7 +220,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
         "auth/user/password",
         json={
             "identity": user_dn,
-            "new_password": "Password123",
+            "new_password": "N3W_P@ssw0rd123",
         },
     )
 
@@ -263,7 +263,7 @@ async def test_update_password(http_client: AsyncClient) -> None:
         "auth/user/password",
         json={
             "identity": "user0",
-            "new_password": "Password123",
+            "new_password": "P@ssw0rd123",
         },
     )
 
@@ -274,7 +274,7 @@ async def test_update_password(http_client: AsyncClient) -> None:
         "auth/",
         data={
             "username": "user0",
-            "password": "password",
+            "password": "_P@55w0rD!",
         },
     )
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
@@ -283,7 +283,7 @@ async def test_update_password(http_client: AsyncClient) -> None:
         "auth/",
         data={
             "username": "user0",
-            "password": "Password123",
+            "password": "P@ssw0rd123",
         },
     )
     assert new_auth.status_code == status.HTTP_200_OK
@@ -302,7 +302,7 @@ async def test_auth_disabled_user(
         "auth/",
         data={
             "username": "user0",
-            "password": "password",
+            "password": "_P@55w0rD!",
         },
     )
 
@@ -334,7 +334,7 @@ async def test_auth_disabled_user(
         "auth/",
         data={
             "username": "user0",
-            "password": "password",
+            "password": "_P@55w0rD!",
         },
     )
 

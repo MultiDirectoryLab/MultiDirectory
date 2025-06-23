@@ -48,7 +48,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
-from security import get_password_hash
+from security import update_user_password
 
 from .base import BaseRequest
 
@@ -136,14 +136,14 @@ class ModifyRequest(BaseRequest):
         ):
             return
 
-        dao = PasswordPolicyDAO(session)
-        password_policy = await dao.get_ensure_password_policy()
+        password_policy_dao = PasswordPolicyDAO(session)
+        password_policy = await password_policy_dao.get_ensure_policy()
 
-        if password_policy.maximum_password_age_days == 0:
+        if password_policy.max_age_days == 0:
             return
 
         now = datetime.now(timezone.utc)
-        now += timedelta(days=password_policy.maximum_password_age_days)
+        now += timedelta(days=password_policy.max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(
@@ -545,31 +545,29 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                dao = PasswordPolicyDAO(session)
-                password_policy = await dao.get_ensure_password_policy()
-
-                errors = await dao.validate_password_with_policy(
-                    password_policy,
-                    password=value,
-                    user=directory.user,
+                password_policy_dao = PasswordPolicyDAO(
+                    session,
+                    directory.user,
                 )
+                password_policy = await password_policy_dao.get_ensure_policy()
 
-                pwd_last_set = await dao.get_ensure_pwd_last_set(directory.id)
-                if dao.validate_min_age(password_policy, pwd_last_set):
-                    errors.append("Minimum age violation")
+                errors = await password_policy_dao.check_password_violations(
+                    password_policy=password_policy,
+                    password=value,
+                )
 
                 if errors:
                     raise PermissionError(
-                        f"Password policy violation: {errors}",
+                        f"Password policy violation: {errors}"
                     )
 
-                directory.user.password = get_password_hash(value)
-                await post_save_password_actions(directory.user, session)
+                update_user_password(directory.user, value)
                 await session.flush()
                 await kadmin.create_or_update_principal_pw(
                     directory.user.get_upn_prefix(),
                     value,
                 )
+                await post_save_password_actions(directory.user, session)
 
             else:
                 attrs.append(

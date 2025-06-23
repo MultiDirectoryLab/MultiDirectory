@@ -898,8 +898,34 @@ class NetworkPolicy(Base):
     )
 
 
+class CommonPassword(Base):
+    """List of common passwords."""
+
+    __tablename__ = "CommonPasswords"
+
+    password: Mapped[str] = mapped_column(
+        String(255),
+        primary_key=True,
+        nullable=False,
+        index=True,
+    )
+
+
+class PasswordBanWord(Base):
+    """List of banned password words."""
+
+    __tablename__ = "PasswordBanWords"
+
+    word: Mapped[str] = mapped_column(
+        String(255),
+        primary_key=True,
+        nullable=False,
+        index=True,
+    )
+
+
 class PasswordPolicy(Base):
-    """Password policy."""
+    """Password Policy."""
 
     __tablename__ = "PasswordPolicies"
 
@@ -911,21 +937,67 @@ class PasswordPolicy(Base):
         server_default="Default Policy",
     )
 
-    password_history_length: Mapped[int] = mapped_column(
+    history_length: Mapped[int] = mapped_column(
         nullable=False,
         server_default="4",
     )
-    maximum_password_age_days: Mapped[int] = mapped_column(
+
+    min_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-    minimum_password_age_days: Mapped[int] = mapped_column(
+    max_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-    minimum_password_length: Mapped[int] = mapped_column(
+
+    min_length: Mapped[int] = mapped_column(
         nullable=False,
         server_default="7",
+    )
+    max_length: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="32",
+    )
+
+    min_lowercase_letters_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    min_uppercase_letters_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    min_letters_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+
+    min_special_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    min_unique_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    max_repeating_symbols_in_row_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+
+    min_digits_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+
+    max_sequential_keyboard_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    max_sequential_alphabet_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
     )
 
 
