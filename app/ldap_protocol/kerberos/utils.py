@@ -15,18 +15,12 @@ from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 def logger_wraps(is_stub: bool = False) -> Callable:
     """Log kadmin calls.
 
-    Args:
-        is_stub (bool): flag to change logs (Default value = False)
-
     Returns:
         Callable: any method
     """
 
     def wrapper(func: Callable) -> Callable:
         """Wrap kadmin calls.
-
-        Args:
-            func (Callable): any function
 
         Returns:
             Callable: wrapped function
@@ -93,9 +87,6 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
 
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
     """Get kerberos server state.
-
-    Args:
-        session (AsyncSession): db session
 
     Returns:
         KerberosState: The current kerberos server state.

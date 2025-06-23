@@ -30,9 +30,6 @@ from .helpers import (
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories.
 
-    Args:
-        session (AsyncSession): sqlalchemy session
-
     Returns:
         list[Directory]: base domain directories
     """
@@ -208,9 +205,6 @@ async def set_last_logon_user(
 
 def get_search_path(dn: str) -> list[str]:
     """Get search path for dn.
-
-    Args:
-        dn (str): any DN, dn syntax
 
     Returns:
         list[str]: reversed list of dn values

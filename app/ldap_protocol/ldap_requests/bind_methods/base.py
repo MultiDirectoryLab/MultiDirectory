@@ -94,11 +94,8 @@ class AbstractLDAPAuth(ABC, BaseModel):
     def is_valid(self, user: User) -> bool:
         """Validate state.
 
-        Args:
-            user (User): instance of User.
-
         Returns:
-            bool:
+            bool: True if valid, False otherwise
         """
 
     @abstractmethod
@@ -132,9 +129,6 @@ class SaslAuthentication(AbstractLDAPAuth):
     @abstractmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
         """Get auth from data.
-
-        Args:
-            data (list[ASN1Row]): list of row with metadata.
 
         Returns:
             SaslAuthentication: Sasl auth form.

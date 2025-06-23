@@ -48,18 +48,12 @@ log.add(
 def logger_wraps(is_stub: bool = False) -> Callable:
     """Log DNSManager calls.
 
-    Args:
-        is_stub (bool): If True, marks the logger as a stub. Default is False.
-
     Returns:
         Callable: Decorator for logging.
     """
 
     def wrapper(func: Callable) -> Callable:
         """Decorator for logging function calls.
-
-        Args:
-            func (Callable): Function to wrap.
 
         Returns:
             Callable: Wrapped function.
@@ -162,11 +156,7 @@ class AbstractDNSManager(ABC):
     """Abstract DNS manager class."""
 
     def __init__(self, settings: DNSManagerSettings) -> None:
-        """Set up DNS manager.
-
-        Args:
-            settings (DNSManagerSettings): DNS manager settings
-        """
+        """Set up DNS manager."""
         self._dns_settings = settings
 
     @logger_wraps()

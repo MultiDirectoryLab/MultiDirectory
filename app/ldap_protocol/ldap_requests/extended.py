@@ -43,9 +43,6 @@ class BaseExtendedValue(ABC, BaseModel):
     def from_data(cls, data: ASN1Row) -> "BaseExtendedValue":
         """Create model from data, decoded from responseValue bytes.
 
-        Args:
-            data (ASN1Row): Row with metadata.
-
         Returns:
             BaseExtendedValue: instance of BaseExtendedValue.
         """
@@ -73,9 +70,6 @@ class BaseExtendedValue(ABC, BaseModel):
     @staticmethod
     def _decode_value(data: ASN1Row) -> ASN1Row:
         """Decode value.
-
-        Args:
-            data (ASN1Row): Row with metadata.
 
         Returns:
             ASN1Row: Decoded row with metadata
@@ -124,9 +118,6 @@ class WhoAmIRequestValue(BaseExtendedValue):
     @classmethod
     def from_data(cls, data: ASN1Row) -> "WhoAmIRequestValue":  # noqa: ARG003
         """Create model from data, WhoAmIRequestValue data is empty.
-
-        Args:
-            data: ASN1Row
 
         Returns:
             WhoAmIRequestValue
@@ -206,9 +197,6 @@ class StartTLSRequestValue(BaseExtendedValue):
     @classmethod
     def from_data(cls, data: ASN1Row) -> "StartTLSRequestValue":  # noqa: ARG003
         """Create model from data, decoded from responseValue bytes.
-
-        Args:
-            data: ASN1Row
 
         Returns:
             StartTLSRequestValue
@@ -334,9 +322,6 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     @classmethod
     def from_data(cls, data: ASN1Row) -> "PasswdModifyRequestValue":
         """Create model from data, decoded from responseValue bytes.
-
-        Args:
-            data: ASN1Row
 
         Returns:
             PasswdModifyRequestValue

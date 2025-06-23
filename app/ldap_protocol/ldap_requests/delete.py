@@ -46,9 +46,6 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         """Get delete request from data.
 
-        Args:
-            data (ASN1Row): ASN1Row containing the entry to delete.
-
         Returns:
             DeleteRequest: Instance of DeleteRequest with the entry set.
         """

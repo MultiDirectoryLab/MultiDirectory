@@ -485,12 +485,7 @@ async def test_delete_princ(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_admin_incorrect_pw_setup(http_client: AsyncClient) -> None:
-    """Test setup args.
-
-    Args:
-        http_client (AsyncClient): http cl
-        ldap_session (LDAPSession): ldap
-    """
+    """Test setup args."""
     response = await http_client.get("/kerberos/status")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == KerberosState.NOT_CONFIGURED

@@ -26,11 +26,8 @@ class SaslPLAINAuthentication(SaslAuthentication):
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
 
-        Args:
-            user (User | None): in db user
-
         Returns:
-            bool: status
+            bool: True if password is valid, False otherwise.
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -44,16 +41,13 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """Check if auth is anonymous.
 
         Returns:
-            bool: status
+            bool: True if anonymous, False otherwise.
         """
         return False
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
         """Get auth from data.
-
-        Args:
-            data (list[ASN1Row]): data
 
         Returns:
             SaslPLAINAuthentication

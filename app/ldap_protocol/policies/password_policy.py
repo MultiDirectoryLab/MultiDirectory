@@ -72,14 +72,6 @@ class PasswordPolicySchema(BaseModel):
 
     @model_validator(mode="after")
     def _validate_minimum_pwd_age(self) -> "PasswordPolicySchema":
-        """Validate minimum password age.
-
-        Returns:
-            self
-
-        Raises:
-            ValueError: not valid
-        """
         if self.minimum_password_age_days > self.maximum_password_age_days:
             raise ValueError(
                 "Minimum password age days must be "
@@ -113,9 +105,6 @@ class PasswordPolicySchema(BaseModel):
     ) -> "PasswordPolicySchema":
         """Get policy settings.
 
-        Args:
-            session (AsyncSession): db
-
         Returns:
             PasswordPolicySchema: policy
         """
@@ -125,11 +114,7 @@ class PasswordPolicySchema(BaseModel):
         return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(self, session: AsyncSession) -> None:
-        """Update policy.
-
-        Args:
-            session (AsyncSession): db
-        """
+        """Update policy."""
         await session.execute(
             (update(PasswordPolicy).values(self.model_dump(mode="json"))),
         )
@@ -155,9 +140,6 @@ class PasswordPolicySchema(BaseModel):
     @staticmethod
     def _count_password_exists_days(last_pwd_set: Attribute) -> int:
         """Get number of days, pwd exists.
-
-        Args:
-            last_pwd_set (Attribute): pwdLastSet
 
         Returns:
             int: count of days

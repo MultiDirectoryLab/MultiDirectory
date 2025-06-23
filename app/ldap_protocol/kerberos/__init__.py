@@ -20,9 +20,6 @@ from .utils import get_krb_server_state, set_state, unlock_principal
 async def get_kerberos_class(session: AsyncSession) -> type[AbstractKadmin]:
     """Get kerberos server state.
 
-    Args:
-        session (AsyncSession): db
-
     Returns:
         type[KerberosMDAPIClient] | type[StubKadminMDADPIClient]: api
     """

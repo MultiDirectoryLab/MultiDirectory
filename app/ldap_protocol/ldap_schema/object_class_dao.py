@@ -40,9 +40,6 @@ class ObjectClassSchema(BaseSchemaModel):
     def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
         """Create an instance of Object Class Schema from SQLA object.
 
-        Args:
-            object_class (ObjectClass): source
-
         Returns:
             ObjectClassSchema: instance of ObjectClassSchema.
         """

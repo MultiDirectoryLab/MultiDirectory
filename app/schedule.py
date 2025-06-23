@@ -51,11 +51,7 @@ async def _schedule(
 
 
 def scheduler(settings: Settings) -> None:
-    """Sript entrypoint.
-
-    Args:
-        settings (Settings): Settings with database dsn.
-    """
+    """Sript entrypoint."""
 
     async def runner(settings: Settings) -> None:
         container = make_async_container(

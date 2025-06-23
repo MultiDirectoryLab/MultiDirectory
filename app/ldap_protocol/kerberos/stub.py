@@ -11,12 +11,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def setup(self, *args, **kwargs) -> None:  # type: ignore
-        """Call setup.
-
-        Args:
-            *args: arguments
-            **kwargs: keyword arguments
-        """
+        """Call setup."""
         await super().setup(*args, **kwargs)
 
     @logger_wraps(is_stub=True)

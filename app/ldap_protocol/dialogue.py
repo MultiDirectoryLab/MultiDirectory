@@ -137,11 +137,7 @@ class LDAPSession:
         )
 
     async def set_user(self, user: User | UserSchema) -> None:
-        """Bind user to session concurrently save.
-
-        Args:
-            user (User | UserSchema): instance of User or UserSchema
-        """
+        """Bind user to session concurrently save."""
         async with self._lock:
             if isinstance(user, User):
                 self._user = await UserSchema.from_db(user, self.key)

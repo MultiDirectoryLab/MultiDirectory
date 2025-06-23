@@ -92,9 +92,6 @@ class AddRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "AddRequest":
         """Deserialize.
 
-        Args:
-            data (ASN1Row): data
-
         Returns:
             AddRequest
         """

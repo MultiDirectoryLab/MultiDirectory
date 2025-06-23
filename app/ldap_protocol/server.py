@@ -365,12 +365,7 @@ class PoolClientHandler:
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
-        """Request full log.
-
-        Args:
-            addr (str): address
-            msg (LDAPRequestMessage): message
-        """
+        """Request full log."""
         log.debug(
             f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}\n",
@@ -378,12 +373,7 @@ class PoolClientHandler:
 
     @staticmethod
     def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
-        """Response full log.
-
-        Args:
-            addr (str): address
-            msg (LDAPResponseMessage): message
-        """
+        """Response full log."""
         log.debug(
             f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}"[:3000],
@@ -391,12 +381,7 @@ class PoolClientHandler:
 
     @staticmethod
     def _log_short(addr: str, msg: LDAPMessage) -> None:
-        """Short log.
-
-        Args:
-            addr (str): address
-            msg (LDAPMessage): message
-        """
+        """Short log."""
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(
@@ -519,21 +504,13 @@ class PoolClientHandler:
 
     @staticmethod
     async def _run_server(server: asyncio.base_events.Server) -> None:
-        """Run server.
-
-        Args:
-            server (asyncio.base_events.Server): async server
-        """
+        """Run server."""
         async with server:
             await server.serve_forever()
 
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:
-        """Log server addresses.
-
-        Args:
-            server (asyncio.base_events.Server): async server
-        """
+        """Log server addresses."""
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
         log.info(f"Server on {addrs}")
 

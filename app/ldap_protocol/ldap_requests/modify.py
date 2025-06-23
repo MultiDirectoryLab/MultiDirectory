@@ -112,9 +112,6 @@ class ModifyRequest(BaseRequest):
     def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
         """Get modify request from data.
 
-        Args:
-            data (list[ASN1Row]): data
-
         Returns:
             ModifyRequest: modify request
         """
@@ -305,11 +302,6 @@ class ModifyRequest(BaseRequest):
                 raise Exception
 
     def _get_dir_query(self) -> Select[tuple[Directory]]:
-        """Get directory query.
-
-        Returns:
-            Select[tuple[Directory]]: SQLAlchemy select query.
-        """
         return (
             select(Directory)
             .join(Directory.attributes)

@@ -37,11 +37,7 @@ class AbstractKadmin(ABC):
     client: httpx.AsyncClient
 
     def __init__(self, client: httpx.AsyncClient) -> None:
-        """Set client.
-
-        Args:
-            client (httpx.AsyncClient): http async client
-        """
+        """Set client."""
         self.client = client
 
     async def setup_configs(

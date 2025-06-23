@@ -55,11 +55,7 @@ class BaseEncoder(BaseModel):
         return fields
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize flat structure to bytes, write to encoder buffer.
-
-        Args:
-            enc (Encoder): encoder
-        """
+        """Serialize flat structure to bytes, write to encoder buffer."""
         for value in self._get_asn1_fields().values():
             enc.write(value, type_map[type(value)])
 
@@ -85,11 +81,7 @@ class BindResponse(LDAPResult, BaseResponse):
     server_sasl_creds: bytes | None = Field(None, alias="serverSaslCreds")
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize flat structure to bytes, write to encoder buffer.
-
-        Args:
-            enc (Encoder): encoder
-        """
+        """Serialize flat structure to bytes, write to encoder buffer."""
         enc.write(self.result_code, type_map[type(self.result_code)])
         enc.write(self.matched_dn, type_map[type(self.matched_dn)])
         enc.write(self.error_message, type_map[type(self.error_message)])
@@ -122,9 +114,6 @@ class PartialAttribute(BaseModel):
     def validate_type(cls, v: str | bytes | int) -> str:
         """Validate type.
 
-        Args:
-            v (str | bytes | int): value
-
         Returns:
             str: value
         """
@@ -134,9 +123,6 @@ class PartialAttribute(BaseModel):
     @classmethod
     def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:
         """Validate vals.
-
-        Args:
-            vals (list[str | int | bytes]): values
 
         Returns:
             list[str | bytes]: values
@@ -172,11 +158,7 @@ class SearchResultEntry(BaseResponse):
     partial_attributes: list[PartialAttribute]
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize search response structure to asn1 buffer.
-
-        Args:
-            enc (Encoder): encoder
-        """
+        """Serialize search response structure to asn1 buffer."""
         enc.write(self.object_name, Numbers.OctetString)
         enc.enter(Numbers.Sequence)
 
@@ -278,11 +260,7 @@ class ExtendedResponse(LDAPResult, BaseResponse):
     response_value: SerializeAsAny[BaseExtendedResponseValue] | None
 
     def to_asn1(self, enc: Encoder) -> None:
-        """Serialize flat structure to bytes, write to encoder buffer.
-
-        Args:
-            enc (Encoder): encoder
-        """
+        """Serialize flat structure to bytes, write to encoder buffer."""
         enc.write(self.result_code, type_map[type(self.result_code)])
         enc.write(self.matched_dn, type_map[type(self.matched_dn)])
         enc.write(self.error_message, type_map[type(self.error_message)])

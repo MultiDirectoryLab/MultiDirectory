@@ -191,9 +191,6 @@ def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
 def get_generalized_now(tz: ZoneInfo) -> str:
     """Get generalized time (formated) with tz.
 
-    Args:
-        tz (ZoneInfo): timezone
-
     Returns:
         str: generalized time
     """
@@ -202,9 +199,6 @@ def get_generalized_now(tz: ZoneInfo) -> str:
 
 def _get_domain(name: str) -> str:
     """Get domain from name.
-
-    Args:
-        name (str): directory path
 
     Returns:
         str: domain
@@ -233,9 +227,6 @@ def create_integer_hash(text: str, size: int = 9) -> int:
 
 def get_windows_timestamp(value: datetime) -> int:
     """Get the Windows timestamp from the value.
-
-    Args:
-        value (datetime): date and time
 
     Returns:
         int: Windows timestamp

@@ -37,9 +37,6 @@ class RawDefinitionParser:
     def _get_attribute_type_info(raw_definition: str) -> AttributeTypeInfo:
         """Get attribute type info.
 
-        Args:
-            raw_definition (str): raw definition of attribute type
-
         Returns:
             AttributeTypeInfo: parsed attribute type info
         """
@@ -49,9 +46,6 @@ class RawDefinitionParser:
     @staticmethod
     def get_object_class_info(raw_definition: str) -> ObjectClassInfo:
         """Get object class info.
-
-        Args:
-            raw_definition (str): raw definition of object class
 
         Returns:
             ObjectClassInfo: parsed object class info

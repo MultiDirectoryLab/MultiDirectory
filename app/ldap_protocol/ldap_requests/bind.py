@@ -268,9 +268,6 @@ class UnbindRequest(BaseRequest):
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
         """Unbind request has no body.
 
-        Args:
-            data (dict[str, list[ASN1Row]]): data
-
         Returns:
             UnbindRequest
         """

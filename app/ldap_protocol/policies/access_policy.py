@@ -27,9 +27,6 @@ __all__ = ["create_access_policy", "get_policies", "mutate_ap"]
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
     """Get policies.
 
-    Args:
-        session (AsyncSession): db
-
     Returns:
         list[AccessPolicy]: result
     """

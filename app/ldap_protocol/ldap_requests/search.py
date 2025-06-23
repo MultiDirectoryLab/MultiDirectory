@@ -114,9 +114,6 @@ class SearchRequest(BaseRequest):
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "SearchRequest":
         """Get search request from data.
 
-        Args:
-            data (dict[str, list[ASN1Row]]): data
-
         Returns:
             SearchRequest: LDAP search request
         """

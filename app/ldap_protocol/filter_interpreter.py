@@ -29,14 +29,6 @@ MEMBERS_ATTRS = {
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
-    """Get substring.
-
-    Args:
-        right (ASN1Row): Row with metadata
-
-    Returns:
-        str: substring
-    """
     expr = right.value[0]
     value = expr.value
     if isinstance(value, bytes):

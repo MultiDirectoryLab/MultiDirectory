@@ -42,22 +42,11 @@ class SessionStorage(ABC):
 
     @abstractmethod
     async def _get_session_keys_by_uid(self, uid: int) -> set[str]:
-        """Get session keys by user id.
-
-        Args:
-            uid (int): uid.
-
-        Returns:
-            set[str]: session keys
-        """
+        """Get session keys by user id."""
 
     @abstractmethod
     async def _get_session_keys_by_ip(self, ip: str) -> set[str]:
-        """Get session keys by ip.
-
-        Args:
-            ip (str): IP address.
-        """
+        """Get session keys by ip."""
 
     @abstractmethod
     async def get_user_sessions(
@@ -97,19 +86,11 @@ class SessionStorage(ABC):
 
     @abstractmethod
     async def clear_user_sessions(self, uid: int) -> None:
-        """Clear user sessions.
-
-        Args:
-            uid (int): user id
-        """
+        """Clear user sessions."""
 
     @abstractmethod
     async def delete_user_session(self, session_id: str) -> None:
-        """Delete user session.
-
-        Args:
-            session_id (str): session id
-        """
+        """Delete user session."""
 
     @staticmethod
     def _sign(session_id: str, settings: Settings) -> str:
@@ -130,9 +111,6 @@ class SessionStorage(ABC):
 
     def get_user_agent_hash(self, user_agent: str) -> str:
         """Get user agent hash.
-
-        Args:
-            user_agent (str): user agent
 
         Returns:
             str: The hash of the user agent.
@@ -164,14 +142,6 @@ class SessionStorage(ABC):
         return f"keys:{protocol}:{uid}"
 
     def _get_protocol(self, session_id: str) -> ProtocolType:
-        """Get protocol.
-
-        Args:
-            session_id (str): Session id
-
-        Returns:
-            ProtocolType: Protocol type for given session_id
-        """
         return "http" if session_id.startswith("http:") else "ldap"
 
     def _generate_key(self) -> str:
@@ -183,14 +153,6 @@ class SessionStorage(ABC):
         return f"http:{token_hex(self.key_length)}"
 
     def _get_lock_key(self, session_id: str) -> str:
-        """Get lock key.
-
-        Args:
-            session_id (str): session id
-
-        Returns:
-            str: lock key
-        """
         return f"lock:{session_id}"
 
     @abstractmethod
@@ -291,9 +253,6 @@ class SessionStorage(ABC):
     @abstractmethod
     async def check_session(self, session_id: str) -> bool:
         """Check session.
-
-        Args:
-            session_id (str): session id
 
         Returns:
             bool: True if session exists
@@ -436,18 +395,11 @@ class RedisSessionStorage(SessionStorage):
         return json.loads(data)
 
     async def delete(self, keys: Iterable[str]) -> None:
-        """Delete data associated with the given key from storage.
-
-        Args:
-            keys (Iterable[str]): The keys to delete from the storage.
-        """
+        """Delete data associated with the given key from storage."""
         await self._storage.delete(*keys)
 
     async def _fetch_keys(self, key: str) -> set[str]:
         """Fetch keys.
-
-        Args:
-            key (str): key
 
         Returns:
             set[str]: A set of decoded keys from the storage.
@@ -797,9 +749,6 @@ class RedisSessionStorage(SessionStorage):
 
     async def check_session(self, session_id: str) -> bool:
         """Check session.
-
-        Args:
-            session_id (str): session id
 
         Returns:
             bool: True if exists.

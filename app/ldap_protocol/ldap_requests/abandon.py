@@ -22,9 +22,6 @@ class AbandonRequest(BaseRequest):
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "AbandonRequest":  # noqa: ARG003
         """Create structure from ASN1Row dataclass list.
 
-        Args:
-            data (dict[str, list[ASN1Row]]): data
-
         Returns:
             AbandonRequest: Instance of AbandonRequest.
         """

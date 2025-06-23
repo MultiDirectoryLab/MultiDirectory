@@ -95,9 +95,6 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 def _create_basic_app(settings: Settings) -> FastAPI:
     """Create basic FastAPI app with dependencies overrides.
 
-    Args:
-        settings (Settings): Settings with database dsn.
-
     Returns:
         FastAPI: Configured FastAPI application.
     """
@@ -149,9 +146,6 @@ def _create_basic_app(settings: Settings) -> FastAPI:
 def _create_shadow_app(settings: Settings) -> FastAPI:
     """Create shadow FastAPI app for shadow.
 
-    Args:
-        settings (Settings): Settings with database dsn.
-
     Returns:
         FastAPI: Configured FastAPI application for shadow API.
     """
@@ -197,11 +191,7 @@ create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 
 
 def ldap(settings: Settings) -> None:
-    """Run server.
-
-    Args:
-        settings (Settings): Settings with database dsn.
-    """
+    """Run server."""
 
     async def _servers(settings: Settings) -> None:
         servers = []

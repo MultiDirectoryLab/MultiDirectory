@@ -184,11 +184,7 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine.
-
-        Args:
-            settings (Settings): Settings with database dsn.
-        """
+        """Get async engine."""
         return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
@@ -374,20 +370,12 @@ async def _migrations(
     config.attributes["app_settings"] = settings
 
     def upgrade(conn: AsyncConnection) -> None:
-        """Run up migrations.
-
-        Args:
-            conn (AsyncConnection): connection
-        """
+        """Run up migrations."""
         config.attributes["connection"] = conn
         command.upgrade(config, "head")
 
     def downgrade(conn: AsyncConnection) -> None:
-        """Run down migrations.
-
-        Args:
-            conn (AsyncConnection): connection
-        """
+        """Run down migrations."""
         config.attributes["connection"] = conn
         command.downgrade(config, "base")
 
@@ -595,11 +583,7 @@ async def http_client(
 
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
-    """Get creds from test data.
-
-    Args:
-        user (dict): user data
-    """
+    """Get creds from test data."""
     return TestCreds(user["sam_accout_name"], user["password"])
 
 
@@ -611,11 +595,7 @@ def user() -> dict:
 
 @pytest.fixture
 def _force_override_tls(settings: Settings) -> Iterator:
-    """Override tls status for tests.
-
-    Args:
-        settings (Settings): Settings with database dsn.
-    """
+    """Override tls status for tests."""
     current_status = settings.USE_CORE_TLS
     settings.USE_CORE_TLS = True
     yield

@@ -22,11 +22,7 @@ target_metadata = Base.metadata
 
 
 def run_sync_migrations(connection: AsyncConnection):
-    """Run sync migrations.
-
-    Args:
-        connection (AsyncConnection): async db connection.
-    """
+    """Run sync migrations."""
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
@@ -39,11 +35,7 @@ def run_sync_migrations(connection: AsyncConnection):
 
 
 async def run_async_migrations(settings: Settings):
-    """Run async migrations.
-
-    Args:
-        settings (Settings): Settings
-    """
+    """Run async migrations."""
     engine = create_async_engine(str(settings.POSTGRES_URI))
 
     async with engine.connect() as connection:

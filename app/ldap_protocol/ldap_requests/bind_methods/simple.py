@@ -23,9 +23,6 @@ class SimpleAuthentication(AbstractLDAPAuth):
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
 
-        Args:
-            user (User | None): User object or None.
-
         Returns:
             bool: status
         """

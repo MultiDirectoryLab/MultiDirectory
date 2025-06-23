@@ -201,9 +201,6 @@ class EntityType(Base):
     def generate_entity_type_name(cls, directory: Directory) -> str:
         """Generate entity type name based on Directory.
 
-        Args:
-            directory (Directory): instance of Directory.
-
         Returns:
             str: entity type name.
         """

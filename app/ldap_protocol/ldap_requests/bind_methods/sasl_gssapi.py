@@ -82,9 +82,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     def is_valid(self, user: User | None) -> bool:  # noqa: ARG002
         """Check if GSSAPI token is valid.
 
-        Args:
-            user (User | None): indb user
-
         Returns:
             bool: status
         """
@@ -164,14 +161,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             return GSSAPIAuthStatus.ERROR
 
     def _validate_security_layer(self, client_layer: GSSAPISL) -> bool:
-        """Validate security layer.
-
-        Args:
-            client_layer (GSSAPISL): client security layer
-
-        Returns:
-            bool: validate result
-        """
         supported = GSSAPISL.SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer
 

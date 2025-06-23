@@ -300,9 +300,6 @@ def value_to_string(
 def asn1todict(decoder: Decoder) -> list[ASN1Row]:
     """Recursively collect ASN.1 data to list of ASNRows.
 
-    Args:
-        decoder (Decoder): instance of Decoder
-
     Returns:
         list[ASN1Row]:
     """

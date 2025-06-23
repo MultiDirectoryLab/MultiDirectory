@@ -55,9 +55,6 @@ class MainProvider(Provider):
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine.
 
-        Args:
-            settings (Settings): settings.
-
         Returns:
             AsyncEngine:
         """
@@ -345,9 +342,6 @@ class LDAPServerProvider(Provider):
     async def get_session(self, storage: SessionStorage) -> LDAPSession:
         """Create ldap session.
 
-        Args:
-            storage (SessionStorage): session storage
-
         Returns:
             LDAPSession: ldap session
         """
@@ -363,9 +357,6 @@ class MFACredsProvider(Provider):
     async def get_auth(self, session: AsyncSession) -> Creds | None:
         """Admin creds get.
 
-        Args:
-            session (AsyncSession): async session
-
         Returns:
             MFA_HTTP_Creds: optional creds
         """
@@ -374,9 +365,6 @@ class MFACredsProvider(Provider):
     @provide(provides=MFA_LDAP_Creds)
     async def get_auth_ldap(self, session: AsyncSession) -> Creds | None:
         """Admin creds get.
-
-        Args:
-            session (AsyncSession): db
 
         Returns:
             MFA_LDAP_Creds: optional creds

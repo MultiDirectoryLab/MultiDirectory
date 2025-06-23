@@ -107,23 +107,11 @@ class AbstractKRBManager(ABC):
 
     @abstractmethod
     async def get_princ(self, name: str) -> Principal | None:
-        """Get principal.
-
-        Args:
-            name (str): Principal name
-
-        Returns:
-            Principal | None:
-        """
+        """Get principal."""
 
     @abstractmethod
     async def change_password(self, name: str, new_password: str) -> None:
-        """Chanage principal's password.
-
-        Args:
-            name (str): principal name
-            new_password (str): password
-        """
+        """Change principal's password."""
 
     @abstractmethod
     async def create_or_update_princ_pw(
@@ -140,20 +128,11 @@ class AbstractKRBManager(ABC):
 
     @abstractmethod
     async def del_princ(self, name: str) -> None:
-        """Delete principal by name.
-
-        Args:
-            name (str): principal name
-        """
+        """Delete principal by name."""
 
     @abstractmethod
     async def rename_princ(self, name: str, new_name: str) -> None:
-        """Rename principal.
-
-        Args:
-            name (str): principal name
-            new_name (str): new principal name
-        """
+        """Rename principal."""
 
     @abstractmethod
     async def ktadd(self, names: list[str], fn: str) -> None:
@@ -166,21 +145,11 @@ class AbstractKRBManager(ABC):
 
     @abstractmethod
     async def lock_princ(self, name: str, **dbargs) -> None:
-        """Lock principal.
-
-        Args:
-            name (str): principal name
-            **dbargs: database arguments
-        """
+        """Lock principal."""
 
     @abstractmethod
     async def force_pw_principal(self, name: str, **dbargs) -> None:
-        """Force password principal.
-
-        Args:
-            name (str): principal name
-            **dbargs: database arguments
-        """
+        """Force password principal."""
 
 
 class KAdminLocalManager(AbstractKRBManager):
@@ -189,11 +158,7 @@ class KAdminLocalManager(AbstractKRBManager):
     client: KAdminProtocol
 
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
-        """Create threadpool and get loop.
-
-        Args:
-            loop (asyncio.AbstractEventLoop | None): event loop.
-        """
+        """Create threadpool and get loop."""
         self.loop = loop or asyncio.get_running_loop()
 
     async def connect(self) -> Self:
@@ -281,9 +246,6 @@ class KAdminLocalManager(AbstractKRBManager):
     async def get_princ(self, name: str) -> Principal:
         """Get principal.
 
-        Args:
-            name (str): principal name
-
         Returns:
             Principal: Principal kadmin object
         """
@@ -291,12 +253,7 @@ class KAdminLocalManager(AbstractKRBManager):
         return Principal.model_validate(principal, from_attributes=True)
 
     async def change_password(self, name: str, new_password: str) -> None:
-        """Chanage principal's password.
-
-        Args:
-            name (str): principal name
-            new_password (str): password
-        """
+        """Chanage principal's password."""
         princ = await self._get_raw_principal(name)
         await self.loop.run_in_executor(
             self.pool,
@@ -321,20 +278,11 @@ class KAdminLocalManager(AbstractKRBManager):
             await self.add_princ(name, new_password)
 
     async def del_princ(self, name: str) -> None:
-        """Delete principal by name.
-
-        Args:
-            name (str): principal name
-        """
+        """Delete principal by name."""
         await self.loop.run_in_executor(self.pool, self.client.delprinc, name)
 
     async def rename_princ(self, name: str, new_name: str) -> None:
-        """Rename principal.
-
-        Args:
-            name (str): Principal name.
-            new_name (str): Principal new name.
-        """
+        """Rename principal."""
         await self.loop.run_in_executor(
             self.pool,
             self.client.rename_principal,
@@ -360,23 +308,13 @@ class KAdminLocalManager(AbstractKRBManager):
             await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
 
     async def lock_princ(self, name: str, **dbargs) -> None:
-        """Lock princ.
-
-        Args:
-            name (str): principal names
-            **dbargs: database arguments
-        """
+        """Lock princ."""
         princ = await self._get_raw_principal(name)
         princ.expire = "Now"
         await self.loop.run_in_executor(self.pool, princ.commit)
 
     async def force_pw_principal(self, name: str, **dbargs) -> None:
-        """Force password principal.
-
-        Args:
-            name (str): principal names
-            **dbargs: database arguments
-        """
+        """Force password principal."""
         princ = await self._get_raw_principal(name)
         princ.pwexpire = "Now"
         await self.loop.run_in_executor(self.pool, princ.commit)

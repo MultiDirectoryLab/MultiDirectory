@@ -35,9 +35,6 @@ class AttributeTypeSchema(BaseSchemaModel):
     def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
         """Create an instance from database.
 
-        Args:
-            attribute_type (AttributeType): instance of AttributeType
-
         Returns:
             AttributeTypeSchema: serialized AttributeType.
         """
@@ -71,11 +68,7 @@ class AttributeTypeDAO:
     _session: AsyncSession
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize Attribute Type DAO with session.
-
-        Args:
-            session (AsyncSession): async db session.
-        """
+        """Initialize Attribute Type DAO with session."""
         self._session = session
 
     async def get_paginator(
