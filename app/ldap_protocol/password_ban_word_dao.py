@@ -11,12 +11,12 @@ from models import PasswordBanWord
 
 
 class PasswordBanWordDAO:
-    """Common Password DAO."""
+    """Password Ban Word DAO."""
 
     _session: AsyncSession
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize Common Password DAO with session."""
+        """Initialize Password Ban Word DAO with session."""
         self._session = session
 
     async def create_one(self, word: str) -> None:
