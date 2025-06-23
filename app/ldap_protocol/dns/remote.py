@@ -15,18 +15,7 @@ from dns.tsig import Key as TsigKey
 from dns.update import Update
 from dns.zone import Zone
 
-from .base import (
-    AbstractDNSManager,
-    DNSConnectionError,
-    DNSForwardServerStatus,
-    DNSForwardZone,
-    DNSRecord,
-    DNSRecords,
-    DNSServerParam,
-    DNSZone,
-    DNSZoneParam,
-    DNSZoneType,
-)
+from .base import AbstractDNSManager, DNSConnectionError, DNSRecord, DNSRecords
 from .utils import logger_wraps
 
 
@@ -133,67 +122,3 @@ class RemoteDNSManager(AbstractDNSManager):
         action.delete(hostname, record_type, ip)
 
         await self._send(action)
-
-    @logger_wraps()
-    async def get_forward_zones(self) -> list[DNSForwardZone]:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def get_all_zones_records(self) -> list[DNSZone]:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def create_zone(
-        self,
-        zone_name: str,
-        zone_type: DNSZoneType,
-        nameserver: str | None,
-        params: list[DNSZoneParam],
-    ) -> None:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def update_zone(
-        self,
-        zone_name: str,
-        params: list[DNSZoneParam] | None,
-    ) -> None:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def delete_zone(
-        self,
-        zone_names: list[str],
-    ) -> None:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def check_forward_dns_server(
-        self,
-        dns_server_ip: str,
-    ) -> DNSForwardServerStatus:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def update_server_options(
-        self,
-        params: list[DNSServerParam],
-    ) -> None:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def get_server_options(self) -> list[DNSServerParam]:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def restart_server(
-        self,
-    ) -> None:
-        raise NotImplementedError
-
-    @logger_wraps()
-    async def reload_zone(
-        self,
-        zone_name: str,
-    ) -> None:
-        raise NotImplementedError

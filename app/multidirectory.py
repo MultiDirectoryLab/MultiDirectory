@@ -50,7 +50,7 @@ from ioc import (
     MFACredsProvider,
     MFAProvider,
 )
-from ldap_protocol.dns import DNSConnectionError
+from ldap_protocol.dns import DNSConnectionError, DNSNotImplementedError
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
@@ -126,7 +126,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
         handle_instance_cant_modify_error,
     )
     app.add_exception_handler(
-        NotImplementedError,
+        DNSNotImplementedError,
         handle_not_implemented_error,
     )
 

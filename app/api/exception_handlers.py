@@ -62,5 +62,5 @@ async def handle_not_implemented_error(
     """Handle Not Implemented error."""
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="This feature is not implemented.",
+        detail="This feature is supported with selfhosted DNS server.",
     )

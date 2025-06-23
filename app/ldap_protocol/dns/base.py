@@ -50,6 +50,10 @@ class DNSConnectionError(ConnectionError):
     """API Error."""
 
 
+class DNSNotImplementedError(NotImplementedError):
+    """API Not Implemented Error."""
+
+
 class DNSRecordType(StrEnum):
     """DNS record types."""
 
@@ -265,10 +269,12 @@ class AbstractDNSManager(ABC):
     async def get_all_records(self) -> list[DNSRecords]: ...
 
     @abstractmethod
-    async def get_all_zones_records(self) -> list[DNSZone]: ...
+    async def get_all_zones_records(self) -> list[DNSZone]:
+        raise DNSNotImplementedError
 
     @abstractmethod
-    async def get_forward_zones(self) -> list[DNSForwardZone]: ...
+    async def get_forward_zones(self) -> list[DNSForwardZone]:
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def create_zone(
@@ -277,32 +283,37 @@ class AbstractDNSManager(ABC):
         zone_type: DNSZoneType,
         nameserver: str | None,
         params: list[DNSZoneParam],
-    ) -> None: ...
+    ) -> None:
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def update_zone(
         self,
         zone_name: str,
         params: list[DNSZoneParam] | None,
-    ) -> None: ...
+    ) -> None:
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def delete_zone(
         self,
         zone_names: list[str],
-    ) -> None: ...
+    ) -> None:
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def check_forward_dns_server(
         self,
         dns_server_ip: str,
-    ) -> DNSForwardServerStatus: ...
+    ) -> DNSForwardServerStatus:
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def update_server_options(
         self,
         params: list[DNSServerParam],
-    ) -> None: ...
+    ) -> None:
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def get_server_options(self) -> list[DNSServerParam]: ...
@@ -310,10 +321,12 @@ class AbstractDNSManager(ABC):
     @abstractmethod
     async def restart_server(
         self,
-    ) -> None: ...
+    ) -> None:
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def reload_zone(
         self,
         zone_name: str,
-    ) -> None: ...
+    ) -> None:
+        raise DNSNotImplementedError
