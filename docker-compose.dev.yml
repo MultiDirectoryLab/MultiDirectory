@@ -311,7 +311,7 @@ services:
           memory: 0.5GiB
 
   bind_dns:
-    image: ubuntu/bind9:latest
+    image: bind9md
     container_name: bind9
     hostname: bind9
     restart: unless-stopped
