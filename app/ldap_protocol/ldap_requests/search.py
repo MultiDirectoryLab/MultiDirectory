@@ -331,6 +331,7 @@ class SearchRequest(BaseRequest):
                 subqueryload(Directory.attributes),
                 joinedload(Directory.user),
                 joinedload(Directory.group),
+                joinedload(Directory.entity_type),
             )
             .distinct(Directory.id)
         )
@@ -443,7 +444,6 @@ class SearchRequest(BaseRequest):
             attrs["whenCreated"].append(
                 directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
             )
-            attrs["entityTypeName"].append(directory.entity_type_name)
 
             if directory.user:
                 if directory.user.account_exp is None:

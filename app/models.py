@@ -279,6 +279,7 @@ class Directory(Base):
         nullable=False,
     )
     objectguid: Mapped[str] = synonym("object_guid")
+    entitytypename: Mapped[str] = synonym("entity_type_name")
 
     path: Mapped[list[str]] = mapped_column(
         postgresql.ARRAY(String),
@@ -342,6 +343,7 @@ class Directory(Base):
     )
 
     search_fields = {
+        "entitytypename": "entityTypeName",
         "name": "name",
         "objectguid": "objectGUID",
         "objectsid": "objectSid",
@@ -354,6 +356,7 @@ class Directory(Base):
         "authTimestamp",
         "objectGUID",
         "objectSid",
+        "entityTypeName",
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
