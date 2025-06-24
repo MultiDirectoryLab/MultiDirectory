@@ -1,14 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Создаем .env файл если не существует
+:: Create .env file if it does not exist
 if not exist ".env" type nul > .env
 
-:: Удаляем пустые переменные из файла
+:: Deleting empty lines and comments from .env file
 findstr /v /r /c:"^[^=]*=$" .env > .env.tmp
 move /y .env.tmp .env >nul
 
-:: ========== ОПРЕДЕЛЕНИЕ ПЕРЕМЕННЫХ ==========
+:: ========== VARIABLE DEFINITION ==========
 
 :: 1. DEFAULT_NAMESERVER
 findstr /b /i /c:"DEFAULT_NAMESERVER=" .env >nul
