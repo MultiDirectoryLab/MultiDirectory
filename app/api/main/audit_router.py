@@ -103,8 +103,6 @@ async def add_audit_destination(
             is_enabled=model.is_enabled,
             host=model.host,
             port=model.port,
-            username=model.username,
-            password=model.password,
             protocol=model.protocol,
         )
         session.add(new_destination)
@@ -139,8 +137,6 @@ async def update_audit_destination(
         selected_destination.is_enabled = model.is_enabled
         selected_destination.host = model.host
         selected_destination.port = model.port
-        selected_destination.username = model.username
-        selected_destination.password = model.password
         selected_destination.protocol = model.protocol
 
         await session.commit()

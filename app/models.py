@@ -1053,8 +1053,6 @@ class AuditDestination(Base):
     is_enabled: Mapped[tbool]
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(nullable=False)
-    username: Mapped[str | None] = mapped_column(String(255))
-    password: Mapped[str | None] = mapped_column(String(255))
     protocol: Mapped[AuditDestinationProtocolType] = mapped_column(
         Enum(AuditDestinationProtocolType),
         nullable=False,

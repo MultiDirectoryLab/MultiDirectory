@@ -109,8 +109,6 @@ def upgrade() -> None:
         ),
         sa.Column("host", sa.String(length=255), nullable=False),
         sa.Column("port", sa.Integer(), nullable=False),
-        sa.Column("username", sa.String(length=255), nullable=True),
-        sa.Column("password", sa.String(length=255), nullable=True),
         sa.Column(
             "protocol",
             sa.Enum("UDP", "TCP", name="auditdestinationprotocoltype"),
