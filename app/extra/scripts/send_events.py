@@ -279,6 +279,8 @@ async def send_events(
         .filter_by(is_enabled=True)
     )  # fmt: skip
 
+    active_destination_ids = [destination.id for destination in destinations]
+
     if not destinations:
         return
     events = (
@@ -311,6 +313,10 @@ async def send_events(
                     event.first_failed_at = datetime.now(tz=timezone.utc)
 
                 event.retry_count += 1
+            finally:
+                for server_id in event.server_delivery_status:
+                    if server_id not in active_destination_ids:
+                        del event.server_delivery_status[server_id]
 
     await event_session.flush()
 
