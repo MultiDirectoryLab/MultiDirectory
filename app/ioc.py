@@ -17,6 +17,15 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
+from api.utils import (
+    AuthManager,
+    DNSManager,
+    KerberosService,
+    MFAManager,
+    NetworkPolicyService,
+    ShadowMFAService,
+    ShadowPasswordService,
+)
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -194,6 +203,90 @@ class MainProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    @provide(provides=AuthManager, scope=Scope.REQUEST)
+    async def get_auth_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        mfa: MultifactorAPI,
+        storage: SessionStorage,
+    ) -> AuthManager:
+        """DI-провайдер для AuthManager."""
+        return AuthManager(
+            session=session,
+            settings=settings,
+            mfa=mfa,
+            storage=storage,
+        )
+
+    @provide(provides=MFAManager)
+    async def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManager:
+        """DI-провайдер для MFAManager."""
+        return MFAManager(
+            session=session,
+            settings=settings,
+            storage=storage,
+            mfa_api=mfa_api,
+        )
+
+    @provide(provides=DNSManager)
+    async def get_dns_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+    ) -> DNSManager:
+        """DI-провайдер для DNSManager."""
+        return DNSManager(
+            session=session,
+            settings=settings,
+        )
+
+    @provide(provides=KerberosService)
+    async def get_kerberos_service(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        kadmin: AbstractKadmin,
+    ) -> KerberosService:
+        """DI-провайдер для KerberosService."""
+        return KerberosService(
+            session=session,
+            settings=settings,
+            kadmin=kadmin,
+        )
+
+    @provide(provides=NetworkPolicyService)
+    async def get_network_policy_service(
+        self,
+        session: AsyncSession,
+    ) -> NetworkPolicyService:
+        """DI-провайдер для NetworkPolicyService."""
+        return NetworkPolicyService(
+            session=session,
+        )
+
+    @provide(provides=ShadowMFAService)
+    async def get_shadow_mfa_service(
+        self,
+        session: AsyncSession,
+    ) -> ShadowMFAService:
+        """DI-провайдер для ShadowMFAService."""
+        return ShadowMFAService(session=session)
+
+    @provide(provides=ShadowPasswordService)
+    async def get_shadow_password_service(
+        self,
+        session: AsyncSession,
+    ) -> ShadowPasswordService:
+        """DI-провайдер для ShadowPasswordService."""
+        return ShadowPasswordService(session=session)
 
 
 class HTTPProvider(Provider):
