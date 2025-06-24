@@ -33,23 +33,19 @@ audit_router = APIRouter(
 async def get_audit_policies(
     session: FromDishka[AsyncSession],
 ) -> list[AuditPolicySchema]:
-    """Get policies."""
+    """Get audit policies."""
     return [
-        AuditPolicySchema(
-            id=model.id,
-            name=model.name,
-            is_enabled=model.is_enabled,
-        )
+        AuditPolicySchema.model_validate(model.__dict__)
         for model in await session.scalars(select(AuditPolicy))
     ]
 
 
 @audit_router.put("/policy")
-async def update_network_policy(
+async def update_audit_policy(
     policy: AuditPolicySchema,
     session: FromDishka[AsyncSession],
 ) -> AuditPolicySchema:
-    """Update network policy.
+    """Update audit policy.
 
     :param AuditPolicySchema policy: update request
     :raises HTTPException: 404 policy not found
@@ -119,7 +115,7 @@ async def add_audit_destination(
             "Entry already exists",
         )
 
-    return AuditDestinationSchema.model_validate(new_destination)
+    return AuditDestinationSchema.model_validate(new_destination.__dict__)
 
 
 @audit_router.put("/destination")
