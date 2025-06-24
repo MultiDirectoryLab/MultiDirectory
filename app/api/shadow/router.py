@@ -9,11 +9,14 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.objects import OperationEvent
+from ldap_protocol.policies.audit_policy import track_audit_event
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -27,11 +30,14 @@ shadow_router = APIRouter(route_class=DishkaRoute)
 
 
 @shadow_router.post("/mfa/push")
+@track_audit_event(event_type=OperationEvent.KERBEROS_AUTH)
 async def proxy_request(
     principal: Annotated[str, Body(embed=True)],
     ip: Annotated[IPv4Address, Body(embed=True)],
     mfa: FromDishka[LDAPMultiFactorAPI],
     session: FromDishka[AsyncSession],
+    request: Request,  # noqa: ARG001
+    settings: FromDishka[Settings],  # noqa: ARG001
 ) -> None:
     """Proxy request to mfa."""
     user = await get_user(session, principal)
@@ -77,10 +83,13 @@ async def proxy_request(
 
 
 @shadow_router.post("/sync/password")
+@track_audit_event(event_type=OperationEvent.CHANGE_PASSWORD_KERBEROS)
 async def sync_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
     session: FromDishka[AsyncSession],
+    request: Request,  # noqa: ARG001
+    settings: FromDishka[Settings],  # noqa: ARG001
 ) -> None:
     """Reset user's (entry) password.
 

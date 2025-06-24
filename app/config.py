@@ -49,8 +49,10 @@ class Settings(BaseModel):
     POSTGRES_DB: str = "postgres"
 
     POSTGRES_HOST: str = "postgres"
+    EVENT_POSTGRES_HOST: str = "event_postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+    SERVICE_NAME: str | None = None
 
     KV_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/0")
     SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/1")
@@ -66,15 +68,37 @@ class Settings(BaseModel):
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
 
+    EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
+
+    EVENT_STREAM_NAME: str = "EVENT_LOG"
+    EVENT_HANLDER_GROUP: str = "event_handlers"
+    PROCESSED_EVENT_STREAM_NAME: str = "NORMAL_EVENT_LOG"
+
+    AUDIT_LOG_FILE: str = "/audit/audit.log"
+
+    AUDIT_FIRST_RETRY_TIME: int = 5
+    AUDIT_SECOND_RETRY_TIME: int = 60
+    AUDIT_THIRD_RETRY_TIME: int = 1440
+
     @computed_field  # type: ignore
     @cached_property
-    def POSTGRES_URI(self) -> PostgresDsn:  # noqa
+    def MAIN_POSTGRES_URI(self) -> PostgresDsn:  # noqa: N802
+        """Build postgres DSN."""
+        return self._get_db_uri(self.POSTGRES_HOST)
+
+    @computed_field  # type: ignore
+    @cached_property
+    def EVENT_POSTGRES_URI(self) -> PostgresDsn:  # noqa: N802
+        """Build postgres DSN."""
+        return self._get_db_uri(self.EVENT_POSTGRES_HOST)
+
+    def _get_db_uri(self, host: str) -> PostgresDsn:
         """Build postgres DSN."""
         return PostgresDsn(
             f"{self.POSTGRES_SCHEMA}://"
             f"{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@"
-            f"{self.POSTGRES_HOST}/"
+            f"{host}/"
             f"{self.POSTGRES_DB}"
         )
 

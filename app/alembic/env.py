@@ -6,19 +6,26 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from audit_models import Base as AuditBase
 from config import Settings
-from models import Base
+from models import Base as MainBase
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+main_name_ini_section = config.config_ini_section
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+if main_name_ini_section == "main":
+    target_metadata = MainBase.metadata
+elif main_name_ini_section == "audit":
+    target_metadata = AuditBase.metadata
+else:
+    raise ValueError(f"Invalid ini_section: {main_name_ini_section}")
 
 
 def run_sync_migrations(connection):
@@ -36,7 +43,12 @@ def run_sync_migrations(connection):
 
 async def run_async_migrations(settings):
     """Run async migrations."""
-    engine = create_async_engine(str(settings.POSTGRES_URI))
+    if main_name_ini_section == "main":
+        url = settings.MAIN_POSTGRES_URI
+    else:
+        url = settings.EVENT_POSTGRES_URI
+
+    engine = create_async_engine(str(url))
 
     async with engine.connect() as connection:
         await connection.run_sync(run_sync_migrations)

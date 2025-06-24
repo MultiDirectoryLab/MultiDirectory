@@ -21,11 +21,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from api.auth.utils import (
-    create_and_set_session_key,
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
+from api.auth.utils import create_and_set_session_key
 from config import Settings
 from ldap_protocol.multifactor import (
     Creds,
@@ -33,8 +29,14 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
+from ldap_protocol.objects import OperationEvent
+from ldap_protocol.policies.audit_policy import track_audit_event
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.utils.helpers import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from models import CatalogueSetting, User as DBUser
 
 from .oauth2 import ALGORITHM, authenticate_user
@@ -133,7 +135,9 @@ async def get_mfa(
 
 
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
+@track_audit_event(event_type=OperationEvent.AFTER_2FA)
 async def callback_mfa(
+    request: Request,
     access_token: Annotated[
         str,
         Form(alias="accessToken", validation_alias="accessToken"),
@@ -159,6 +163,8 @@ async def callback_mfa(
     :raises HTTPException: if mfa not set up
     :return RedirectResponse: on bypass or success
     """
+    request.state.username = ""
+
     if not mfa_creds:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
@@ -188,6 +194,7 @@ async def callback_mfa(
         ip,
         user_agent,
     )
+    request.state.username = user.user_principal_name
     return response
 
 

@@ -4,6 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv6Address
+from typing import Annotated
+
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, Request
 from fastapi.routing import APIRouter
@@ -15,6 +18,7 @@ from ldap_protocol.ldap_requests import (
     ModifyRequest,
 )
 from ldap_protocol.ldap_responses import LDAPResult
+from ldap_protocol.utils.helpers import get_ip_from_request
 
 from .schema import SearchRequest, SearchResponse, SearchResultDone
 from .utils import get_ldap_session
@@ -31,9 +35,10 @@ entry_router = APIRouter(
 async def search(
     request: SearchRequest,
     req: Request,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
-    responses = await request.handle_api(req.state.dishka_container)
+    responses = await request.handle_api(req.state.dishka_container, ip)
     metadata: SearchResultDone = responses.pop(-1)  # type: ignore
 
     return SearchResponse(
@@ -50,29 +55,34 @@ async def search(
 async def add(
     request: AddRequest,
     req: Request,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> LDAPResult:
     """LDAP ADD entry request."""
-    return await request.handle_api(req.state.dishka_container)
+    return await request.handle_api(req.state.dishka_container, ip)
 
 
 @entry_router.patch("/update")
 async def modify(
     request: ModifyRequest,
     req: Request,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> LDAPResult:
     """LDAP MODIFY entry request."""
-    return await request.handle_api(req.state.dishka_container)
+    return await request.handle_api(req.state.dishka_container, ip)
 
 
 @entry_router.patch("/update_many")
 async def modify_many(
     requests: list[ModifyRequest],
     req: Request,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> list[LDAPResult]:
     """Bulk LDAP MODIFY entry request."""
     results = []
     for request in requests:
-        results.append(await request.handle_api(req.state.dishka_container))
+        results.append(
+            await request.handle_api(req.state.dishka_container, ip)
+        )
     return results
 
 
@@ -80,15 +90,17 @@ async def modify_many(
 async def modify_dn(
     request: ModifyDNRequest,
     req: Request,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
-    return await request.handle_api(req.state.dishka_container)
+    return await request.handle_api(req.state.dishka_container, ip)
 
 
 @entry_router.delete("/delete")
 async def delete(
     request: DeleteRequest,
     req: Request,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> LDAPResult:
     """LDAP DELETE entry request."""
-    return await request.handle_api(req.state.dishka_container)
+    return await request.handle_api(req.state.dishka_container, ip)
