@@ -287,7 +287,8 @@ async def send_events(
         await event_session.scalars(
             select(AuditLog)
             .with_for_update(skip_locked=True)
-            .limit(20)
+            .limit(100)
+            .order_by(AuditLog.id.asc())
         )
     ).all()  # fmt: skip
 
