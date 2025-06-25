@@ -210,38 +210,6 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    @provide(provides=AuthManager, scope=Scope.REQUEST)
-    async def get_auth_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        mfa: MultifactorAPI,
-        storage: SessionStorage,
-    ) -> AuthManager:
-        """DI-провайдер для AuthManager."""
-        return AuthManager(
-            session=session,
-            settings=settings,
-            mfa=mfa,
-            storage=storage,
-        )
-
-    @provide(provides=MFAManager, scope=Scope.REQUEST)
-    async def get_mfa_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        storage: SessionStorage,
-        mfa_api: MultifactorAPI,
-    ) -> MFAManager:
-        """DI-провайдер для MFAManager."""
-        return MFAManager(
-            session=session,
-            settings=settings,
-            storage=storage,
-            mfa_api=mfa_api,
-        )
-
 
 class HTTPProvider(Provider):
     """HTTP LDAP session."""
@@ -280,6 +248,38 @@ class HTTPProvider(Provider):
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
+
+    @provide(provides=AuthManager, scope=Scope.REQUEST)
+    async def get_auth_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        mfa: MultifactorAPI,
+        storage: SessionStorage,
+    ) -> AuthManager:
+        """DI-провайдер для AuthManager."""
+        return AuthManager(
+            session=session,
+            settings=settings,
+            mfa=mfa,
+            storage=storage,
+        )
+
+    @provide(provides=MFAManager, scope=Scope.REQUEST)
+    async def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManager:
+        """DI-провайдер для MFAManager."""
+        return MFAManager(
+            session=session,
+            settings=settings,
+            storage=storage,
+            mfa_api=mfa_api,
+        )
 
 
 class LDAPServerProvider(Provider):

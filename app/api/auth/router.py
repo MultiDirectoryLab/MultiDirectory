@@ -10,7 +10,6 @@ from typing import Annotated
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import AuthManager
@@ -20,10 +19,8 @@ from api.utils.exceptions import (
     MFAError,
     UnauthorizedError,
 )
-from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
@@ -35,10 +32,6 @@ auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 @auth_router.post("/")
 async def login(
     form: Annotated[OAuth2Form, Depends()],
-    session: FromDishka[AsyncSession],
-    settings: FromDishka[Settings],
-    mfa: FromDishka[MultifactorAPI],
-    storage: FromDishka[SessionStorage],
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
@@ -52,10 +45,6 @@ async def login(
 
     \f
     :param Annotated[OAuth2Form, Depends form: login form
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[Settings] settings: app settings
-    :param FromDishka[MultifactorAPI] mfa: mfa api wrapper
-    :param FromDishka[SessionStorage] storage: session storage
     :param Response response: FastAPI response
     :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
     :param Annotated[str, Depends user_agent: client user agent
@@ -66,7 +55,6 @@ async def login(
     :raises HTTPException: 403 if user account is expired
     :raises HTTPException: 403 if ip is not provided
     :raises HTTPException: 403 if user not part of network policy
-    :raises HTTPException: 426 if mfa required
     :return None: None
     """
     try:
