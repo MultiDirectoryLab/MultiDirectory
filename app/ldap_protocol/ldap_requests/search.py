@@ -364,7 +364,6 @@ class SearchRequest(BaseRequest):
             .options(
                 selectinload(Directory.groups).joinedload(Group.directory),
                 joinedload(Directory.entity_type),
-                selectinload(Directory.attributes),
             )
             .options(*self._get_attributes_to_load())
             .distinct(Directory.id)
