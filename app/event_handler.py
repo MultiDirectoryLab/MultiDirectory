@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import itertools
 import operator
 import os
 import socket
@@ -340,7 +341,26 @@ class EventHandler:
                 self.event_stream, self.group_name, event_id
             )
 
-    async def read_stream(self) -> None:
+    async def process_events(
+        self,
+        events: list[tuple[str, dict[bytes, bytes]]],
+    ) -> None:
+        """Process flattened events."""
+        for event_id, event_data in events:
+            async with self.container(scope=Scope.REQUEST) as container:
+                kwargs = await resolve_deps(
+                    func=self.handle_event,
+                    container=container,
+                )
+                await asyncio.gather(
+                    self.handle_event(
+                        AuditEvent.from_redis(event_data),
+                        event_id,
+                        **kwargs,
+                    )
+                )
+
+    async def consume_stream(self) -> None:
         """Continuously read and process events from Redis stream."""
         redis_client: RedisAuditDAO = await self.container.get(RedisAuditDAO)
         await redis_client.create_consumer_group(
@@ -355,22 +375,11 @@ class EventHandler:
                     consumer_name=self.consumer_name,
                     block=5000,
                 )
+                flattened_events = itertools.chain.from_iterable(
+                    event_list for _, event_list in events
+                )
 
-                async with self.container(scope=Scope.REQUEST) as container:
-                    for _, event_list in events:
-                        for event_id, event_data in event_list:
-                            audit_event = AuditEvent.from_redis(event_data)
-                            kwargs = await resolve_deps(
-                                func=self.handle_event,
-                                container=container,
-                            )
-                            await asyncio.gather(
-                                self.handle_event(
-                                    audit_event,
-                                    event_id,
-                                    **kwargs,
-                                ),
-                            )
+                await self.process_events(list(flattened_events))
             except ConnectionError:
                 await asyncio.sleep(1)
             except Exception as exc:
@@ -379,7 +388,7 @@ class EventHandler:
     async def start(self) -> None:
         """Start event handler main processing loop."""
         try:
-            await self.read_stream()
+            await self.consume_stream()
         finally:
             await self.container.close()
 
