@@ -188,8 +188,9 @@ class AuthManager:
         :return: None.
         """
         setup_already_performed = await self.__session.scalar(
-            select(Directory).filter(Directory.parent_id.is_(None))
-        )
+            select(Directory)
+            .filter(Directory.parent_id.is_(None))
+        )  # fmt: skip
         if setup_already_performed:
             raise ForbiddenError("Setup already performed")
         data = [
@@ -281,7 +282,9 @@ class AuthManager:
         async with self.__session.begin_nested():
             try:
                 await setup_enviroment(
-                    self.__session, dn=request.domain, data=data
+                    self.__session,
+                    dn=request.domain,
+                    data=data,
                 )
                 await self.__session.flush()
                 default_pwd_policy = PasswordPolicySchema()

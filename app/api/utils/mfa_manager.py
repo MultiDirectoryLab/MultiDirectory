@@ -13,7 +13,6 @@ from fastapi.responses import RedirectResponse
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
 from loguru import logger
-from pydantic import SecretStr
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +27,7 @@ from api.auth.utils import create_and_set_session_key
 from api.utils.exceptions import ForbiddenError, MFAError, NotFoundError
 from config import Settings
 from ldap_protocol.multifactor import (
+    Creds,
     MFA_HTTP_Creds,
     MFA_LDAP_Creds,
     MultifactorAPI,
@@ -75,11 +75,13 @@ class MFAManager:
                 )
             )
             await self.__session.flush()
-            self.__session.add(
-                CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key)
-            )
-            self.__session.add(
-                CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret)
+            self.__session.add_all(
+                (
+                    CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key),
+                    CatalogueSetting(
+                        name=mfa.secret_name, value=mfa.mfa_secret
+                    ),
+                )
             )
             await self.__session.commit()
         return True
@@ -95,12 +97,16 @@ class MFAManager:
         else:
             keys = ["mfa_key_ldap", "mfa_secret_ldap"]
         await self.__session.execute(
-            delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys))
-        )
+            delete(CatalogueSetting)
+            .filter(CatalogueSetting.name.in_(keys))
+        )  # fmt: skip
+
         await self.__session.commit()
 
     async def get_mfa(
-        self, mfa_creds: MFA_HTTP_Creds, mfa_creds_ldap: MFA_LDAP_Creds
+        self,
+        mfa_creds: MFA_HTTP_Creds | None,
+        mfa_creds_ldap: MFA_LDAP_Creds | None,
     ) -> MFAGetResponse:
         """Get MFA keys for http and ldap.
 
@@ -108,15 +114,15 @@ class MFAManager:
         :param mfa_creds_ldap: MFA_LDAP_Creds
         :return: MFAGetResponse.
         """
+        if not mfa_creds:
+            mfa_creds = MFA_HTTP_Creds(Creds(None, None))
+        if not mfa_creds_ldap:
+            mfa_creds_ldap = MFA_LDAP_Creds(Creds(None, None))
         return MFAGetResponse(
             mfa_key=mfa_creds.key,
-            mfa_secret=SecretStr(mfa_creds.secret)
-            if mfa_creds.secret is not None
-            else None,
+            mfa_secret=mfa_creds.secret,
             mfa_key_ldap=mfa_creds_ldap.key,
-            mfa_secret_ldap=SecretStr(mfa_creds_ldap.secret)
-            if mfa_creds_ldap.secret is not None
-            else None,
+            mfa_secret_ldap=mfa_creds_ldap.secret,
         )
 
     async def callback_mfa(
@@ -219,9 +225,8 @@ class MFAManager:
                     user_agent,
                 )
                 return MFAChallengeResponse(status="bypass", message="")
-            import logging
 
-            logging.critical(f"API error {traceback.format_exc()}")
+            logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
         except self.__mfa_api.MFAMissconfiguredError:
             await create_and_set_session_key(
@@ -246,8 +251,7 @@ class MFAManager:
                     user_agent,
                 )
                 return MFAChallengeResponse(status="bypass", message="")
-            import logging
 
-            logging.critical(f"API error {traceback.format_exc()}")
+            logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
         return MFAChallengeResponse(status="pending", message=redirect_url)

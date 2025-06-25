@@ -70,8 +70,8 @@ async def login(
             detail=str(exc),
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except ForbiddenError as exc:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except ForbiddenError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
     except MFAError as exc:
         raise HTTPException(status.HTTP_426_UPGRADE_REQUIRED, detail=str(exc))
 

@@ -17,11 +17,7 @@ from api.auth import get_current_user
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import MFAManager
 from api.utils.exceptions import ForbiddenError, MFAError, NotFoundError
-from ldap_protocol.multifactor import (
-    MFA_HTTP_Creds,
-    MFA_LDAP_Creds,
-    MultifactorAPI,
-)
+from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 from .schema import (
     MFAChallengeResponse,
@@ -108,20 +104,9 @@ async def callback_mfa(
         return await mfa_manager.callback_mfa(
             access_token, mfa_creds, ip, user_agent
         )
-    except ForbiddenError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e),
-        ) from e
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        ) from e
-    except MFAError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
         ) from e
 
 
@@ -129,7 +114,6 @@ async def callback_mfa(
 async def two_factor_protocol(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
-    api: FromDishka[MultifactorAPI],
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
@@ -152,7 +136,11 @@ async def two_factor_protocol(
     """
     try:
         return await mfa_manager.two_factor_protocol(
-            form, request, api, response, ip, user_agent
+            form,
+            request,
+            response,
+            ip,
+            user_agent,
         )
     except ForbiddenError as exc:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc))
