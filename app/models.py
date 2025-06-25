@@ -299,14 +299,14 @@ class Directory(Base):
         uselist=False,
         cascade="all",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="joined",
     )
     user: Mapped[User] = relationship(
         "User",
         uselist=False,
-        lazy="selectin",
         cascade="all",
         passive_deletes=True,
+        lazy="joined",
     )
     groups: Mapped[list[Group]] = relationship(
         "Group",
@@ -317,7 +317,6 @@ class Directory(Base):
         cascade="all",
         passive_deletes=True,
         overlaps="group,directory",
-        lazy="selectin",
     )
     access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
@@ -525,7 +524,6 @@ class Group(Base):
         "Directory",
         back_populates="group",
         uselist=False,
-        lazy="joined",
     )
 
     search_fields: ClassVar[dict[str, str]] = {}
