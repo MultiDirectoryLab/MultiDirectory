@@ -4,13 +4,13 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import logging
-from logging.handlers import RotatingFileHandler
 from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
+from loguru import logger
+from loguru._logger import Logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -47,7 +47,7 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 EventAsyncSession = NewType("EventAsyncSession", AsyncSession)
-AuditLogger = NewType("AuditLogger", logging.Logger)
+AuditLogger = NewType("AuditLogger", Logger)
 
 
 class MainProvider(Provider):
@@ -268,7 +268,9 @@ class LDAPServerProvider(Provider):
 class EventHandlerProvider(Provider):
     """Event handler provider."""
 
-    @provide(scope=Scope.REQUEST)
+    scope = Scope.REQUEST
+
+    @provide()
     async def create_event_session(
         self,
         settings: Settings,
@@ -290,23 +292,16 @@ class EventHandlerProvider(Provider):
             yield EventAsyncSession(session)
             await session.commit()
 
-    @provide(scope=Scope.APP)
+    @provide()
     def setup_audit_logging(self, settings: Settings) -> AuditLogger:
         """Create audit logger.."""
-        logger = logging.getLogger("audit_log")
-        logger.setLevel(logging.INFO)
-
-        handler = RotatingFileHandler(
+        logger.add(
             settings.AUDIT_LOG_FILE,
-            maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=10,
-            encoding="utf-8",
+            rotation="10 MB",
+            compression="zip",
         )
-        formatter = logging.Formatter("%(message)s")
-        handler.setFormatter(formatter)
 
-        logger.addHandler(handler)
-        return logger  # type: ignore
+        return AuditLogger(logger)  # type: ignore
 
 
 class MFACredsProvider(Provider):
