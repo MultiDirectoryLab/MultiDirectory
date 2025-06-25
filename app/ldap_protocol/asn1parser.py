@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from typing import Generic, TypeVar
 
-from asn1 import Classes, Decoder, Numbers, Tag, Types
+from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 
 
 class TagNumbers(IntEnum):
@@ -285,4 +285,5 @@ class LDAPOID(StrEnum):
 
     @classmethod
     def has_value(cls, value: str) -> bool:
-        return value in cls._value2member_map_
+        """Check if value is a valid LDAPOID."""
+        return Encoder._re_oid.match(value) is not None
