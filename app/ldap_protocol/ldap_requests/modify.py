@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
@@ -267,10 +267,10 @@ class ModifyRequest(BaseRequest):
     def _get_dir_query(self) -> Select:
         return (
             select(Directory)
-            .join(Directory.attributes)
             .options(
+                selectinload(Directory.attributes),
                 selectinload(Directory.groups),
-                selectinload(Directory.group).selectinload(Group.members),
+                joinedload(Directory.group).selectinload(Group.members),
             )
             .filter(get_filter_from_path(self.object))
         )
