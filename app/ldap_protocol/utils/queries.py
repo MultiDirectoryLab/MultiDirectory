@@ -12,7 +12,12 @@ from zoneinfo import ZoneInfo
 from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
+from sqlalchemy.orm import (
+    InstrumentedAttribute,
+    defaultload,
+    joinedload,
+    selectinload,
+)
 from sqlalchemy.sql.expression import ColumnElement
 
 from models import Attribute, Directory, Group, User
@@ -81,7 +86,8 @@ async def get_directories(
     query = (
         select(Directory)
         .filter(or_(*paths))
-        .options(defaultload(Directory.group).selectinload(Group.members))
+        .options(joinedload(Directory.group).selectinload(Group.members))
+        .options(selectinload(Directory.groups))
     )
 
     results = await session.scalars(query)
@@ -141,7 +147,7 @@ async def check_kerberos_group(
 
     query = (
         select(Group)
-        .join(Group.users)
+        .options(selectinload(Group.users))
         .join(Group.directory)
         .filter(Group.users.contains(user))
         .filter(Directory.name.ilike("krbadmin"))
