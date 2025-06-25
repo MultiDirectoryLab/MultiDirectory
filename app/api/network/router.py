@@ -43,6 +43,7 @@ async def add_network_policy(
 ) -> PolicyResponse:
     """Add policy.
 
+    \f
     :param Policy policy: policy to add
     :raises HTTPException: 422 invalid group DN
     :raises HTTPException: 422 Entry already exists
@@ -108,6 +109,7 @@ async def get_list_network_policies(
 ) -> list[PolicyResponse]:
     """Get network.
 
+    \f
     :return list[PolicyResponse]: all policies.
     """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
@@ -154,6 +156,8 @@ async def delete_network_policy(
 ) -> list[PolicyResponse]:
     """Delete policy.
 
+    - **policy_id**: int, policy to delete
+    \f
     :param int policy_id: id
     :param User user: requires login
     :raises HTTPException: 404
@@ -195,7 +199,7 @@ async def switch_network_policy(
     """Switch state of policy.
 
     - **policy_id**: int, policy to switch
-
+    \f
     :param int policy_id: id
     :param User user: requires login
     :raises HTTPException: 404
@@ -223,6 +227,7 @@ async def update_network_policy(
 ) -> PolicyResponse:
     """Update network policy.
 
+    \f
     :param PolicyUpdate policy: update request
     :raises HTTPException: 404 policy not found
     :raises HTTPException: 422 Invalid group DN
@@ -306,7 +311,7 @@ async def swap_network_policy(
 
     - **first_policy_id**: policy to swap
     - **second_policy_id**: policy to swap
-
+    \f
     :param int first_policy_id: policy to swap
     :param int second_policy_id: policy to swap
     :raises HTTPException: 404
