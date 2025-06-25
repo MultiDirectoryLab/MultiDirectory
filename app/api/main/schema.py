@@ -4,13 +4,14 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
 from dishka import AsyncContainer
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
-from ldap_protocol.dns import DNSManagerState
+from ldap_protocol.dns import DNSManagerState, DNSZoneParam, DNSZoneType
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
@@ -75,8 +76,8 @@ class DNSServiceSetupRequest(BaseModel):
 
     dns_status: DNSManagerState
     domain: str
-    dns_ip_address: str | None = Field(None)
-    tsig_key: str | None = Field(None)
+    dns_ip_address: IPv4Address | IPv6Address | None = None
+    tsig_key: str | None = None
 
 
 class DNSServiceRecordBaseRequest(BaseModel):
@@ -84,13 +85,14 @@ class DNSServiceRecordBaseRequest(BaseModel):
 
     record_name: str
     record_type: str
+    zone_name: str | None = None
 
 
 class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
     """DNS create request schema."""
 
     record_value: str
-    ttl: int | None = Field(None)
+    ttl: int | None = None
 
 
 class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
@@ -102,5 +104,46 @@ class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
 class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
     """DNS update request schema."""
 
-    record_value: str | None = Field(None)
-    ttl: int | None = Field(None)
+    record_value: str | None = None
+    ttl: int | None = None
+
+
+class DNSServiceZoneCreateRequest(BaseModel):
+    """DNS zone create request scheme."""
+
+    zone_name: str
+    zone_type: DNSZoneType
+    nameserver: str | None = None
+    params: list[DNSZoneParam]
+
+
+class DNSServiceZoneUpdateRequest(BaseModel):
+    """DNS zone update request scheme."""
+
+    zone_name: str
+    params: list[DNSZoneParam]
+
+
+class DNSServiceZoneDeleteRequest(BaseModel):
+    """DNS zone delete request scheme."""
+
+    zone_names: list[str]
+
+
+class DNSServiceReloadZoneRequest(BaseModel):
+    """DNS zone reload request scheme."""
+
+    zone_name: str
+
+
+class DNSServiceForwardZoneCheckRequest(BaseModel):
+    """Forwarder DNS server check request scheme."""
+
+    dns_server_ips: list[IPv4Address | IPv6Address]
+
+
+class DNSServiceOptionsUpdateRequest(BaseModel):
+    """DNS server options update request scheme."""
+
+    name: str
+    value: str | list[str] = ""
