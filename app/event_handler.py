@@ -16,7 +16,6 @@ from loguru import logger
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
-from ulid import ULID
 
 from audit_models import AuditLog
 from config import Settings
@@ -300,15 +299,7 @@ class EventHandler:
         session: EventAsyncSession,
     ) -> None:
         """Persist normalized events to database."""
-        session.add_all(
-            [
-                AuditLog(
-                    id=str(ULID.from_timestamp(event["timestamp"])),
-                    content=event,
-                )
-                for event in events
-            ]
-        )
+        session.add_all([AuditLog(content=event) for event in events])
         await session.commit()
 
     async def handle_event(

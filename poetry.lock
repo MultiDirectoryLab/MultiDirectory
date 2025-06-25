@@ -1473,21 +1473,6 @@ files = [
 ]
 
 [[package]]
-name = "python-ulid"
-version = "3.0.0"
-description = "Universally unique lexicographically sortable identifier"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "python_ulid-3.0.0-py3-none-any.whl", hash = "sha256:e4c4942ff50dbd79167ad01ac725ec58f924b4018025ce22c858bfcff99a5e31"},
-    {file = "python_ulid-3.0.0.tar.gz", hash = "sha256:e50296a47dc8209d28629a22fc81ca26c00982c78934bd7766377ba37ea49a9f"},
-]
-
-[package.extras]
-pydantic = ["pydantic (>=2.0)"]
-
-[[package]]
 name = "pytz"
 version = "2025.2"
 description = "World timezone definitions, modern and historical"
@@ -2064,4 +2049,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.12.6"
-content-hash = "0ec3bb7cbbc08149bcb1d0886527bed970c54a1d95a7b5e5a5871d3d323b6e50"
+content-hash = "146b6a1d04430daec7af2000f77b42152fd027d79cf6108f211b056607b5bf10"

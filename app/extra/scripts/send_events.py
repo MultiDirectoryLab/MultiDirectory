@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import socket
+import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -14,7 +15,6 @@ from typing import Any
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from ulid import ULID
 
 from audit_models import AuditLog
 from config import Settings
@@ -118,7 +118,7 @@ class SyslogSender(SendersABC):
         severity_code = event.content["severity"]
         facility = self.DEFAULT_FACILITY
         app_name = self.DEFAULT_APP_NAME
-        msg_id = event.id
+        msg_id = str(event.id)
         message = event.syslog_message
         hostname = event.content["hostname"]
         proc_id = event.content["service_name"]
@@ -182,7 +182,7 @@ class SyslogSender(SendersABC):
                 .replace("]", "\\]")
             )
 
-        sd_id = f"{app_name}@{ULID()}"
+        sd_id = f"{app_name}@{uuid.uuid4()}"
         params = []
 
         for k, v in structured_data.items():

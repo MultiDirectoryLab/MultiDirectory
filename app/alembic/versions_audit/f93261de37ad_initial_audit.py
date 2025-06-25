@@ -21,7 +21,7 @@ def upgrade() -> None:
     """Upgrade."""
     op.create_table(
         "audit_log",
-        sa.Column("id", sa.String(), nullable=False),
+        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column(
             "content", postgresql.JSON(astext_type=sa.Text()), nullable=False
         ),

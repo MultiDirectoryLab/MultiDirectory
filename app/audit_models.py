@@ -4,9 +4,10 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -21,13 +22,19 @@ class AuditLog(Base):
 
     __tablename__ = "audit_log"
 
-    id: Mapped[str] = mapped_column(String(26), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        default=uuid.uuid4,
+        primary_key=True,
+    )
     content: Mapped[dict] = mapped_column(postgresql.JSON, nullable=False)
     server_delivery_status: Mapped[dict] = mapped_column(
-        postgresql.JSON, nullable=False
+        postgresql.JSON,
+        nullable=False,
     )
     first_failed_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True
+        DateTime,
+        nullable=True,
     )
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
 
