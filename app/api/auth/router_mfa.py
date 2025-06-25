@@ -9,13 +9,14 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Depends, Form, Request, Response, status
+from fastapi import Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from api.auth import get_current_user
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import MFAManager
+from api.utils.exceptions import ForbiddenError, MFAError, NotFoundError
 from ldap_protocol.multifactor import (
     MFA_HTTP_Creds,
     MFA_LDAP_Creds,
@@ -133,6 +134,15 @@ async def two_factor_protocol(
     :return MFAChallengeResponse:
         {'status': 'pending', 'message': https://example.com}.
     """
-    return await mfa_manager.two_factor_protocol(
-        form, request, api, response, ip, user_agent
-    )
+    try:
+        return await mfa_manager.two_factor_protocol(
+            form, request, api, response, ip, user_agent
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except NotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+    except MFAError as exc:
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=str(exc))
