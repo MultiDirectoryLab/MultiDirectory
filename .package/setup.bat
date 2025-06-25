@@ -59,7 +59,7 @@ if errorlevel 1 (
     if not defined postgres_password (
         set "chars=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         set "pass="
-        for /L %%i in (1,1,32) do (
+        for /L %%i in (1,1,16) do (
             set /a "rand=!random! %% 62"
             for %%j in (!rand!) do set "pass=!pass!!chars:~%%j,1!"
         )
