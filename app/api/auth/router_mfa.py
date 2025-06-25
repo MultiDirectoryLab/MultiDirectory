@@ -104,9 +104,25 @@ async def callback_mfa(
     :raises HTTPException: if mfa not set up
     :return RedirectResponse: on bypass or success
     """
-    return await mfa_manager.callback_mfa(
-        access_token, mfa_creds, ip, user_agent
-    )
+    try:
+        return await mfa_manager.callback_mfa(
+            access_token, mfa_creds, ip, user_agent
+        )
+    except ForbiddenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from e
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+    except MFAError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
 
 
 @mfa_router.post("/connect", response_model=MFAChallengeResponse)
