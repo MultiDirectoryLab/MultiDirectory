@@ -15,7 +15,13 @@ from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import (
+    LoaderCriteriaOption,
+    joinedload,
+    selectinload,
+    with_loader_criteria,
+)
+from sqlalchemy.orm.strategy_options import _AbstractLoad
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -46,9 +52,21 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AttributeType, Directory, Group, ObjectClass
+from models import (
+    Attribute,
+    AttributeType,
+    Directory,
+    Group,
+    ObjectClass,
+    User,
+)
 
 from .base import BaseRequest
+
+_attrs = ["tokengroups", "memberof", "member"]
+_attrs.extend(User.search_fields.keys())
+_attrs.extend(Directory.search_fields.keys())
+_ATTRS_TO_CLEAN = set(_attrs)
 
 
 class SearchRequest(BaseRequest):
@@ -317,6 +335,24 @@ class SearchRequest(BaseRequest):
     def all_attrs(self) -> bool:
         return "*" in self.requested_attrs or not self.requested_attrs
 
+    def _get_attributes_to_load(
+        self,
+    ) -> tuple[_AbstractLoad] | tuple[_AbstractLoad, LoaderCriteriaOption]:
+        """Get attributes to load."""
+        if self.all_attrs:
+            return (selectinload(Directory.attributes),)
+
+        attrs = list(
+            filter(
+                lambda attr: attr not in _ATTRS_TO_CLEAN, self.requested_attrs
+            )
+        )
+
+        return selectinload(Directory.attributes), with_loader_criteria(
+            Attribute,
+            func.lower(Attribute.name).in_(attrs),
+        )
+
     def build_query(
         self,
         base_directories: list[Directory],
@@ -330,6 +366,7 @@ class SearchRequest(BaseRequest):
                 joinedload(Directory.entity_type),
                 selectinload(Directory.attributes),
             )
+            .options(*self._get_attributes_to_load())
             .distinct(Directory.id)
         )
 
