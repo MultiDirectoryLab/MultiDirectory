@@ -947,7 +947,7 @@ class BindDNSServerManager:
                     param_value,
                 )
             else:
-                re.sub(
+                named_options = re.sub(
                     pattern,
                     f"{param.name} {'yes' if param.value is True else 'no'}",
                     named_options,
