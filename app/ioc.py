@@ -254,14 +254,14 @@ class HTTPProvider(Provider):
         self,
         session: AsyncSession,
         settings: Settings,
-        mfa: MultifactorAPI,
+        mfa_api: MultifactorAPI,
         storage: SessionStorage,
     ) -> AuthManager:
         """DI-провайдер для AuthManager."""
         return AuthManager(
             session=session,
             settings=settings,
-            mfa=mfa,
+            mfa_api=mfa_api,
             storage=storage,
         )
 

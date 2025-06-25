@@ -52,20 +52,20 @@ class AuthManager:
         self,
         session: AsyncSession,
         settings: Settings,
-        mfa: MultifactorAPI,
+        mfa_api: MultifactorAPI,
         storage: SessionStorage,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
         :param session: SQLAlchemy AsyncSession
         :param settings: Settings
-        :param mfa: MultifactorAPI
+        :param mfa_api: MultifactorAPI
         :param storage: SessionStorage.
         """
-        self.session = session
-        self.settings = settings
-        self.mfa = mfa
-        self.storage = storage
+        self.__session = session
+        self.__settings = settings
+        self.__mfa_api = mfa_api
+        self.__storage = storage
 
     async def login(
         self,
@@ -87,7 +87,7 @@ class AuthManager:
         :return: None
         """
         user = await authenticate_user(
-            self.session, form.username, form.password
+            self.__session, form.username, form.password
         )
         if not user:
             raise UnauthorizedError("Incorrect username or password")
@@ -100,39 +100,41 @@ class AuthManager:
             .exists()
         )
         is_part_of_admin_group = (
-            await self.session.scalars(select(query))
+            await self.__session.scalars(select(query))
         ).one()
         if not is_part_of_admin_group:
             raise ForbiddenError("User not part of domain admins")
 
-        uac_check = await get_check_uac(self.session, user.directory_id)
+        uac_check = await get_check_uac(self.__session, user.directory_id)
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             raise ForbiddenError("User account is disabled")
         if user.is_expired():
             raise ForbiddenError("User account is expired")
 
-        network_policy = await get_user_network_policy(ip, user, self.session)
+        network_policy = await get_user_network_policy(
+            ip, user, self.__session
+        )
         if network_policy is None:
             raise ForbiddenError("User not part of network policy")
 
-        if self.mfa and network_policy.mfa_status in (
+        if self.__mfa_api and network_policy.mfa_status in (
             MFAFlags.ENABLED,
             MFAFlags.WHITELIST,
         ):
             request_2fa = True
             if network_policy.mfa_status == MFAFlags.WHITELIST:
                 request_2fa = await check_mfa_group(
-                    network_policy, user, self.session
+                    network_policy, user, self.__session
                 )
             if request_2fa:
                 raise MFAError("Requires MFA connect")
 
         await create_and_set_session_key(
             user,
-            self.session,
-            self.settings,
+            self.__session,
+            self.__settings,
             response,
-            self.storage,
+            self.__storage,
             ip,
             user_agent,
         )
@@ -152,10 +154,10 @@ class AuthManager:
             if user not found, policy not passed, or Kerberos error
         :return: None.
         """
-        user = await get_user(self.session, identity)
+        user = await get_user(self.__session, identity)
         if not user:
             raise ForbiddenError("User not found")
-        policy = await PasswordPolicySchema.get_policy_settings(self.session)
+        policy = await PasswordPolicySchema.get_policy_settings(self.__session)
         errors = await policy.validate_password_with_policy(new_password, user)
         if errors:
             raise ForbiddenError(errors)
@@ -166,8 +168,8 @@ class AuthManager:
             )
         except KRBAPIError:
             raise KerberosError("Failed kerberos password update")
-        await post_save_password_actions(user, self.session)
-        await self.session.commit()
+        await post_save_password_actions(user, self.__session)
+        await self.__session.commit()
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
@@ -175,7 +177,7 @@ class AuthManager:
         :return: bool.
         """
         query = select(exists(Directory).where(Directory.parent_id.is_(None)))
-        retval = await self.session.scalars(query)
+        retval = await self.__session.scalars(query)
         return retval.one()
 
     async def perform_first_setup(self, request: SetupRequest) -> None:
@@ -185,7 +187,7 @@ class AuthManager:
         :raises AuthManager.ForbiddenError: if setup already performed
         :return: None.
         """
-        setup_already_performed = await self.session.scalar(
+        setup_already_performed = await self.__session.scalar(
             select(Directory).filter(Directory.parent_id.is_(None))
         )
         if setup_already_performed:
@@ -276,12 +278,12 @@ class AuthManager:
                 ],
             },
         ]
-        async with self.session.begin_nested():
+        async with self.__session.begin_nested():
             try:
                 await setup_enviroment(
-                    self.session, dn=request.domain, data=data
+                    self.__session, dn=request.domain, data=data
                 )
-                await self.session.flush()
+                await self.__session.flush()
                 default_pwd_policy = PasswordPolicySchema()
                 errors = (
                     await default_pwd_policy.validate_password_with_policy(
@@ -291,11 +293,11 @@ class AuthManager:
                 )
                 if errors:
                     raise ForbiddenError(errors)
-                await default_pwd_policy.create_policy_settings(self.session)
+                await default_pwd_policy.create_policy_settings(self.__session)
                 domain_query = select(Directory).filter(
                     Directory.parent_id.is_(None)
                 )
-                domain = (await self.session.scalars(domain_query)).one()
+                domain = (await self.__session.scalars(domain_query)).one()
                 await create_access_policy(
                     name="Root Access Policy",
                     can_add=True,
@@ -304,7 +306,7 @@ class AuthManager:
                     can_delete=True,
                     grant_dn=domain.path_dn,
                     groups=["cn=domain admins,cn=groups," + domain.path_dn],
-                    session=self.session,
+                    session=self.__session,
                 )
                 await create_access_policy(
                     name="ReadOnly Access Policy",
@@ -317,11 +319,11 @@ class AuthManager:
                         "cn=readonly domain controllers,cn=groups,"
                         + domain.path_dn,
                     ],
-                    session=self.session,
+                    session=self.__session,
                 )
-                await self.session.commit()
+                await self.__session.commit()
             except IntegrityError:
-                await self.session.rollback()
+                await self.__session.rollback()
                 raise ForbiddenError("Setup already performed (locked)")
             else:
                 get_base_directories.cache_clear()

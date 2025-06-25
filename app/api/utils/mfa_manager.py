@@ -54,10 +54,10 @@ class MFAManager:
         :param storage: SessionStorage
         :param mfa_api: MultifactorAPI
         """
-        self.session = session
-        self.settings = settings
-        self.storage = storage
-        self.mfa_api = mfa_api
+        self.__session = session
+        self.__settings = settings
+        self.__storage = storage
+        self.__mfa_api = mfa_api
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -65,8 +65,8 @@ class MFAManager:
         :param mfa: MFACreateRequest
         :return: bool
         """
-        async with self.session.begin_nested():
-            await self.session.execute(
+        async with self.__session.begin_nested():
+            await self.__session.execute(
                 delete(CatalogueSetting).filter(
                     operator.or_(
                         CatalogueSetting.name == mfa.key_name,
@@ -74,14 +74,14 @@ class MFAManager:
                     ),
                 )
             )
-            await self.session.flush()
-            self.session.add(
+            await self.__session.flush()
+            self.__session.add(
                 CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key)
             )
-            self.session.add(
+            self.__session.add(
                 CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret)
             )
-            await self.session.commit()
+            await self.__session.commit()
         return True
 
     async def remove_mfa(self, scope: str) -> None:
@@ -94,10 +94,10 @@ class MFAManager:
             keys = ["mfa_key", "mfa_secret"]
         else:
             keys = ["mfa_key_ldap", "mfa_secret_ldap"]
-        await self.session.execute(
+        await self.__session.execute(
             delete(CatalogueSetting).filter(CatalogueSetting.name.in_(keys))
         )
-        await self.session.commit()
+        await self.__session.commit()
 
     async def get_mfa(
         self, mfa_creds: MFA_HTTP_Creds, mfa_creds_ldap: MFA_LDAP_Creds
@@ -153,17 +153,17 @@ class MFAManager:
             user_id = int(uid)
         except (TypeError, ValueError):
             raise ForbiddenError("UID is not an integer")
-        user = await self.session.get(DBUser, user_id)
+        user = await self.__session.get(DBUser, user_id)
         if user is None:
             raise NotFoundError("User not found")
         response = RedirectResponse("/", 302)
 
         await create_and_set_session_key(
             user,
-            self.session,
-            self.settings,
+            self.__session,
+            self.__settings,
             response,
-            self.storage,
+            self.__storage,
             ip,
             user_agent,
         )
@@ -173,7 +173,6 @@ class MFAManager:
         self,
         form: OAuth2Form,
         request: Request,
-        api: MultifactorAPI,
         response: Response,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
@@ -182,7 +181,6 @@ class MFAManager:
 
         :param form: OAuth2Form
         :param request: FastAPI Request
-        :param api: MultifactorAPI
         :param response: FastAPI Response
         :param ip: str
         :param user_agent: str
@@ -191,30 +189,32 @@ class MFAManager:
         :raises MFAError: for MFA-specific errors
         """
         user = await authenticate_user(
-            self.session, form.username, form.password
+            self.__session, form.username, form.password
         )
         if not user:
             raise ForbiddenError("Invalid credentials")
-        network_policy = await get_user_network_policy(ip, user, self.session)
+        network_policy = await get_user_network_policy(
+            ip, user, self.__session
+        )
         if network_policy is None:
             raise ForbiddenError("Network policy not passed")
         try:
             url = request.url_for("callback_mfa")
-            if self.settings.USE_CORE_TLS:
+            if self.__settings.USE_CORE_TLS:
                 url = url.replace(scheme="https")
-            redirect_url = await api.get_create_mfa(
+            redirect_url = await self.__mfa_api.get_create_mfa(
                 user.user_principal_name,
                 url.components.geturl(),
                 user.id,
             )
-        except MultifactorAPI.MFAConnectError:
+        except self.__mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
                 await create_and_set_session_key(
                     user,
-                    self.session,
-                    self.settings,
+                    self.__session,
+                    self.__settings,
                     response,
-                    self.storage,
+                    self.__storage,
                     ip,
                     user_agent,
                 )
@@ -223,25 +223,25 @@ class MFAManager:
 
             logging.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
-        except MultifactorAPI.MFAMissconfiguredError:
+        except self.__mfa_api.MFAMissconfiguredError:
             await create_and_set_session_key(
                 user,
-                self.session,
-                self.settings,
+                self.__session,
+                self.__settings,
                 response,
-                self.storage,
+                self.__storage,
                 ip,
                 user_agent,
             )
             return MFAChallengeResponse(status="bypass", message="")
-        except MultifactorAPI.MultifactorError as error:
+        except self.__mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
                 await create_and_set_session_key(
                     user,
-                    self.session,
-                    self.settings,
+                    self.__session,
+                    self.__settings,
                     response,
-                    self.storage,
+                    self.__storage,
                     ip,
                     user_agent,
                 )
