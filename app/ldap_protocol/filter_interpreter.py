@@ -13,6 +13,7 @@ from typing import Callable
 
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from models import Attribute, Directory, Group, User
@@ -71,8 +72,8 @@ def _filter_memberof(dn: str) -> UnaryExpression:
     return Directory.id.in_(
         (
             select(Directory.id)
-            .join(Directory.groups)
-            .where(Group.id == group_id_subquery)
+            .options(selectinload(Directory.groups))
+            .where(Directory.groups.any(Group.id == group_id_subquery))
         ),
     )  # type: ignore
 
@@ -89,7 +90,7 @@ def _filter_member(dn: str) -> UnaryExpression:
     return Directory.id.in_(
         (
             select(Group.directory_id)
-            .join(Group.users)
+            .options(selectinload(Group.users))
             .where(User.id == user_id_subquery)
         ),
     )  # type: ignore
@@ -149,7 +150,9 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
         if attr in Directory.search_fields:
             return not_(eq(getattr(Directory, attr), None))
 
-        return Attribute.name.ilike(item.value.lower())
+        return Directory.attributes.any(
+            Attribute.name.ilike(item.value.lower())
+        )
 
     if (
         len(item.value) == 3
