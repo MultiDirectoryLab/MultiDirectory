@@ -181,7 +181,6 @@ jobs:
             --target=runtime \
             -f .docker/bind9.Dockerfile . \
             -t $TAG \
-            -t $TAG2 \
             --cache-to type=gha,mode=max \
             --cache-from $TAG \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
