@@ -173,7 +173,7 @@ class MainProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
 
-    @provide(scope=Scope.APP)
+    @provide()
     async def get_redis_for_sessions(
         self,
         settings: Settings,
@@ -187,7 +187,7 @@ class MainProvider(Provider):
         yield SessionStorageClient(client)
         await client.aclose()
 
-    @provide(scope=Scope.APP)
+    @provide()
     async def get_session_storage(
         self,
         client: SessionStorageClient,
@@ -200,9 +200,10 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    @provide(scope=Scope.APP)
+    @provide()
     async def get_events_redis_client(
-        self, settings: Settings
+        self,
+        settings: Settings,
     ) -> AsyncIterator[RedisAuditDAO]:
         """Get events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
