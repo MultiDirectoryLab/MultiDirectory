@@ -15,7 +15,7 @@ from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import defaultload, joinedload, subqueryload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -46,7 +46,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AttributeType, Directory, Group, ObjectClass, User
+from models import AttributeType, Directory, Group, ObjectClass
 
 from .base import BaseRequest
 
@@ -325,13 +325,10 @@ class SearchRequest(BaseRequest):
         """Build tree query."""
         query = (
             select(Directory)
-            .join(User, isouter=True)
-            .join(Directory.attributes, isouter=True)
             .options(
-                subqueryload(Directory.attributes),
-                joinedload(Directory.user),
-                joinedload(Directory.group),
+                selectinload(Directory.groups).joinedload(Group.directory),
                 joinedload(Directory.entity_type),
+                selectinload(Directory.attributes),
             )
             .distinct(Directory.id)
         )
@@ -380,12 +377,12 @@ class SearchRequest(BaseRequest):
 
         if self.member:
             query = query.options(
-                defaultload(Directory.group).selectinload(Group.members)
+                joinedload(Directory.group).selectinload(Group.members)
             )
 
         if self.member_of or self.token_groups:
             query = query.options(
-                defaultload(Directory.groups).joinedload(Group.directory)
+                selectinload(Directory.groups).joinedload(Group.directory)
             )
 
         return query
