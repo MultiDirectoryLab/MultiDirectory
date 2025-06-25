@@ -30,6 +30,7 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
+from api.utils.mfa_manager import MFAManager
 from multidirectory import _create_basic_app
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
@@ -41,6 +42,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
+from api.utils.auth_manager import AuthManager
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider, SessionStorageClient
@@ -308,6 +310,37 @@ class TestProvider(Provider):
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
+
+    @provide(scope=Scope.REQUEST, provides=AuthManager)
+    async def get_auth_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        mfa: MultifactorAPI,
+        storage: SessionStorage,
+    ) -> AuthManager:
+        return AuthManager(
+            session=session,
+            settings=settings,
+            mfa=mfa,
+            storage=storage,
+        )
+
+    @provide(provides=MFAManager, scope=Scope.REQUEST)
+    async def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManager:
+        """DI-провайдер для MFAManager."""
+        return MFAManager(
+            session=session,
+            settings=settings,
+            storage=storage,
+            mfa_api=mfa_api,
         )
 
 

@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
+from api.utils.auth_manager import AuthManager
+from api.utils.mfa_manager import MFAManager
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -206,6 +208,38 @@ class MainProvider(Provider):
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
+
+    @provide(provides=AuthManager, scope=Scope.REQUEST)
+    async def get_auth_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        mfa: MultifactorAPI,
+        storage: SessionStorage,
+    ) -> AuthManager:
+        """DI-провайдер для AuthManager."""
+        return AuthManager(
+            session=session,
+            settings=settings,
+            mfa=mfa,
+            storage=storage,
+        )
+
+    @provide(provides=MFAManager, scope=Scope.REQUEST)
+    async def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManager:
+        """DI-провайдер для MFAManager."""
+        return MFAManager(
+            session=session,
+            settings=settings,
+            storage=storage,
+            mfa_api=mfa_api,
         )
 
 

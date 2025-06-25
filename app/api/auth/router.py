@@ -10,41 +10,24 @@ from typing import Annotated
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
-from sqlalchemy import exists, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
+from api.utils import AuthManager
+from api.utils.exceptions import (
+    ForbiddenError,
+    KerberosError,
+    MFAError,
+    UnauthorizedError,
+)
 from config import Settings
-from extra.setup_dev import setup_enviroment
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.policies.access_policy import create_access_policy
-from ldap_protocol.policies.network_policy import (
-    check_mfa_group,
-    get_user_network_policy,
-)
-from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
-    post_save_password_actions,
-)
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag,
-    get_check_uac,
-)
-from ldap_protocol.utils.helpers import ft_now
-from ldap_protocol.utils.queries import get_base_directories
-from models import Directory, Group, MFAFlags, User
-from security import get_password_hash
 
-from .oauth2 import authenticate_user, get_current_user, get_user
+from .oauth2 import get_current_user
 from .schema import OAuth2Form, SetupRequest
-from .utils import (
-    create_and_set_session_key,
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
@@ -59,6 +42,7 @@ async def login(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
+    auth_manager: FromDishka[AuthManager],
 ) -> None:
     """Create session to cookies and storage.
 
@@ -74,6 +58,8 @@ async def login(
     :param FromDishka[SessionStorage] storage: session storage
     :param Response response: FastAPI response
     :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
+    :param Annotated[str, Depends user_agent: client user agent
+    :param FromDishka[AuthManager] auth_manager: auth manager
     :raises HTTPException: 401 if incorrect username or password
     :raises HTTPException: 403 if user not part of domain admins
     :raises HTTPException: 403 if user account is disabled
@@ -83,74 +69,34 @@ async def login(
     :raises HTTPException: 426 if mfa required
     :return None: None
     """
-    user = await authenticate_user(session, form.username, form.password)
-
-    if not user:
+    try:
+        await auth_manager.login(
+            form=form,
+            response=response,
+            ip=ip,
+            user_agent=user_agent,
+        )
+    except UnauthorizedError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail=str(exc),
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    query = (
-        select(Group)
-        .join(Group.users)
-        .join(Group.directory)
-        .filter(User.id == user.id, Directory.name == "domain admins")
-        .exists()
-    )
-
-    is_part_of_admin_group = (await session.scalars(select(query))).one()
-
-    if not is_part_of_admin_group:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    uac_check = await get_check_uac(session, user.directory_id)
-
-    if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    if user.is_expired():
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    if not ip:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    network_policy = await get_user_network_policy(ip, user, session)
-
-    if network_policy is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    if mfa and network_policy.mfa_status in (
-        MFAFlags.ENABLED,
-        MFAFlags.WHITELIST,
-    ):
-        request_2fa = True
-        if network_policy.mfa_status == MFAFlags.WHITELIST:
-            request_2fa = await check_mfa_group(network_policy, user, session)
-
-        if request_2fa:
-            raise HTTPException(
-                status.HTTP_426_UPGRADE_REQUIRED,
-                detail="Requires MFA connect",
-            )
-
-    await create_and_set_session_key(
-        user,
-        session,
-        settings,
-        response,
-        storage,
-        ip,
-        user_agent,
-    )
+    except ForbiddenError as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except MFAError as exc:
+        raise HTTPException(status.HTTP_426_UPGRADE_REQUIRED, detail=str(exc))
 
 
 @auth_router.get("/me")
 async def users_me(
     user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> UserSchema:
-    """Get current logged in user data."""
+    """Get current logged-in user data.
+
+    :param user: UserSchema (current user)
+    :return: UserSchema
+    """
     return user
 
 
@@ -160,7 +106,13 @@ async def logout(
     storage: FromDishka[SessionStorage],
     user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> None:
-    """Delete token cookies."""
+    """Delete token cookies and user session.
+
+    :param response: FastAPI Response
+    :param storage: SessionStorage
+    :param user: UserSchema (current user)
+    :return: None
+    """
     response.delete_cookie("id", httponly=True)
     await storage.delete_user_session(user.session_id)
 
@@ -173,64 +125,38 @@ async def logout(
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
-    session: FromDishka[AsyncSession],
     kadmin: FromDishka[AbstractKadmin],
+    auth_manager: FromDishka[AuthManager],
 ) -> None:
     """Reset user's (entry) password.
 
-    - **identity**: user identity, any
-    `userPrincipalName`, `saMAccountName` or `DN`
-    - **new_password**: password to set
-    \f
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[AbstractKadmin] kadmin: kadmin api
-    :param Annotated[str, Body identity: reset target user
-    :param Annotated[str, Body new_password: new password for user
+    :param identity: user identity (userPrincipalName, saMAccountName or DN)
+    :param new_password: new password
+    :param kadmin: kadmin api
+    :param auth_manager: AuthManager
     :raises HTTPException: 404 if user not found
-    :raises HTTPException: 422 if password not valid
+    :raises HTTPException: 422 if password is invalid
     :raises HTTPException: 424 if kerberos password update failed
-    :return None: None
+    :return: None
     """
-    user = await get_user(session, identity)
-
-    if not user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
-
-    policy = await PasswordPolicySchema.get_policy_settings(session)
-    errors = await policy.validate_password_with_policy(new_password, user)
-
-    if errors:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=errors,
-        )
-
-    user.password = get_password_hash(new_password)
-
     try:
-        await kadmin.create_or_update_principal_pw(
-            user.get_upn_prefix(),
-            new_password,
-        )
-    except KRBAPIError:
+        await auth_manager.reset_password(identity, new_password, kadmin)
+    except KerberosError as exc:
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
+    except ForbiddenError as exc:
         raise HTTPException(
-            status.HTTP_424_FAILED_DEPENDENCY,
-            "Failed kerberos password update",
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         )
-
-    await post_save_password_actions(user, session)
-    await session.commit()
 
 
 @auth_router.get("/setup")
-async def check_setup(session: FromDishka[AsyncSession]) -> bool:
-    """Check if initial setup needed.
+async def check_setup(auth_manager: FromDishka[AuthManager]) -> bool:
+    """Check if initial setup is required.
 
-    True if setup already complete, False if setup is needed.
+    :param auth_manager: AuthManager
+    :return: bool
     """
-    query = select(exists(Directory).where(Directory.parent_id.is_(None)))
-    retval = await session.scalars(query)
-    return retval.one()
+    return await auth_manager.check_setup_needed()
 
 
 @auth_router.post(
@@ -240,159 +166,16 @@ async def check_setup(session: FromDishka[AsyncSession]) -> bool:
 )
 async def first_setup(
     request: SetupRequest,
-    session: FromDishka[AsyncSession],
+    auth_manager: FromDishka[AuthManager],
 ) -> None:
-    """Perform initial setup."""
-    setup_already_performed = await session.scalar(
-        select(Directory)
-        .filter(Directory.parent_id.is_(None))
-    )  # fmt: skip
+    """Perform initial structure and policy setup.
 
-    if setup_already_performed:
-        raise HTTPException(status.HTTP_423_LOCKED)
-
-    data = [
-        {
-            "name": "groups",
-            "object_class": "container",
-            "attributes": {
-                "objectClass": ["top"],
-                "sAMAccountName": ["groups"],
-            },
-            "children": [
-                {
-                    "name": "domain admins",
-                    "object_class": "group",
-                    "attributes": {
-                        "objectClass": ["top", "posixGroup"],
-                        "groupType": ["-2147483646"],
-                        "instanceType": ["4"],
-                        "sAMAccountName": ["domain admins"],
-                        "sAMAccountType": ["268435456"],
-                        "gidNumber": ["512"],
-                    },
-                    "objectSid": 512,
-                },
-                {
-                    "name": "domain users",
-                    "object_class": "group",
-                    "attributes": {
-                        "objectClass": ["top", "posixGroup"],
-                        "groupType": ["-2147483646"],
-                        "instanceType": ["4"],
-                        "sAMAccountName": ["domain users"],
-                        "sAMAccountType": ["268435456"],
-                        "gidNumber": ["513"],
-                    },
-                    "objectSid": 513,
-                },
-                {
-                    "name": "readonly domain controllers",
-                    "object_class": "group",
-                    "attributes": {
-                        "objectClass": ["top", "posixGroup"],
-                        "groupType": ["-2147483646"],
-                        "instanceType": ["4"],
-                        "sAMAccountName": ["readonly domain controllers"],
-                        "sAMAccountType": ["268435456"],
-                        "gidNumber": ["521"],
-                    },
-                    "objectSid": 521,
-                },
-            ],
-        },
-        {
-            "name": "users",
-            "object_class": "organizationalUnit",
-            "attributes": {"objectClass": ["top", "container"]},
-            "children": [
-                {
-                    "name": request.username,
-                    "object_class": "user",
-                    "organizationalPerson": {
-                        "sam_accout_name": request.username,
-                        "user_principal_name": request.user_principal_name,
-                        "mail": request.mail,
-                        "display_name": request.display_name,
-                        "password": request.password,
-                        "groups": ["domain admins"],
-                    },
-                    "attributes": {
-                        "objectClass": [
-                            "top",
-                            "person",
-                            "organizationalPerson",
-                            "posixAccount",
-                            "shadowAccount",
-                            "inetOrgPerson",
-                        ],
-                        "pwdLastSet": [ft_now()],
-                        "loginShell": ["/bin/bash"],
-                        "uidNumber": ["1000"],
-                        "gidNumber": ["513"],
-                        "userAccountControl": ["512"],
-                    },
-                    "objectSid": 500,
-                },
-            ],
-        },
-    ]
-
-    async with session.begin_nested():
-        try:
-            await setup_enviroment(session, dn=request.domain, data=data)
-
-            await session.flush()
-
-            default_pwd_policy = PasswordPolicySchema()
-            errors = await default_pwd_policy.validate_password_with_policy(
-                password=request.password,
-                user=None,
-            )
-
-            if errors:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=errors,
-                )
-
-            await default_pwd_policy.create_policy_settings(session)
-
-            domain_query = (
-                select(Directory)
-                .filter(Directory.parent_id.is_(None))
-            )  # fmt:skip
-            domain = (await session.scalars(domain_query)).one()
-
-            await create_access_policy(
-                name="Root Access Policy",
-                can_add=True,
-                can_modify=True,
-                can_read=True,
-                can_delete=True,
-                grant_dn=domain.path_dn,
-                groups=["cn=domain admins,cn=groups," + domain.path_dn],
-                session=session,
-            )
-
-            await create_access_policy(
-                name="ReadOnly Access Policy",
-                can_add=False,
-                can_modify=False,
-                can_read=True,
-                can_delete=False,
-                grant_dn=domain.path_dn,
-                groups=[
-                    "cn=readonly domain controllers,cn=groups,"
-                    + domain.path_dn,
-                ],
-                session=session,
-            )
-
-            await session.commit()
-
-        except IntegrityError:
-            await session.rollback()
-            raise HTTPException(status.HTTP_423_LOCKED)
-        else:
-            get_base_directories.cache_clear()
+    :param request: SetupRequest
+    :param auth_manager: AuthManager
+    :raises HTTPException: 423 if setup already performed
+    :return: None
+    """
+    try:
+        await auth_manager.perform_first_setup(request)
+    except ForbiddenError as exc:
+        raise HTTPException(status.HTTP_423_LOCKED, detail=str(exc))
