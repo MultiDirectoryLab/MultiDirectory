@@ -342,11 +342,11 @@ class SearchRequest(BaseRequest):
         if self.all_attrs:
             return (selectinload(Directory.attributes),)
 
-        attrs = list(
-            filter(
-                lambda attr: attr not in _ATTRS_TO_CLEAN, self.requested_attrs
-            )
-        )
+        attrs = [
+            attr
+            for attr in self.requested_attrs
+            if attr not in _ATTRS_TO_CLEAN
+        ]
 
         return selectinload(Directory.attributes), with_loader_criteria(
             Attribute,
