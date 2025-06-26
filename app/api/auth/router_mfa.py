@@ -16,7 +16,14 @@ from fastapi.routing import APIRouter
 from api.auth import get_current_user
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import MFAManager
-from api.utils.exceptions import ForbiddenError, MFAError, NotFoundError
+from api.utils.exceptions import (
+    ForbiddenError,
+    InvalidCredentials,
+    MFAError,
+    MissingMFACredentials,
+    NetworkPolicyError,
+    NotFoundError,
+)
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 from .schema import (
@@ -142,22 +149,14 @@ async def two_factor_protocol(
             ip,
             user_agent,
         )
-    except ForbiddenError as exc:
-        msg = str(exc)
-        if msg == "Missing API credentials":
-            raise HTTPException(
-                status.HTTP_428_PRECONDITION_REQUIRED, detail=msg
-            )
-        elif msg == "Invalid credentials":
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg
-            )
-        else:
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    except NotFoundError as exc:
+    except InvalidCredentials as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
         )
+    except (MissingMFACredentials, NetworkPolicyError, ForbiddenError):
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+    except NotFoundError:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
     except MFAError as exc:
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=str(exc))

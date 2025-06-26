@@ -24,7 +24,14 @@ from api.auth.schema import (
     OAuth2Form,
 )
 from api.auth.utils import create_and_set_session_key
-from api.utils.exceptions import ForbiddenError, MFAError, NotFoundError
+from api.utils.exceptions import (
+    ForbiddenError,
+    InvalidCredentials,
+    MFAError,
+    MissingMFACredentials,
+    NetworkPolicyError,
+    NotFoundError,
+)
 from config import Settings
 from ldap_protocol.multifactor import (
     Creds,
@@ -45,7 +52,7 @@ class MFAManager:
         session: AsyncSession,
         settings: Settings,
         storage: SessionStorage,
-        mfa_api: MultifactorAPI,
+        mfa_api: MultifactorAPI | None,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -79,7 +86,8 @@ class MFAManager:
                 (
                     CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key),
                     CatalogueSetting(
-                        name=mfa.secret_name, value=mfa.mfa_secret
+                        name=mfa.secret_name,
+                        value=mfa.mfa_secret,
                     ),
                 )
             )
@@ -190,17 +198,17 @@ class MFAManager:
         :raises MFAError: for MFA-specific errors
         """
         if not self.__mfa_api:
-            raise ForbiddenError("Missing API credentials")
+            raise MissingMFACredentials()
         user = await authenticate_user(
             self.__session, form.username, form.password
         )
         if not user:
-            raise ForbiddenError("Invalid credentials")
+            raise InvalidCredentials()
         network_policy = await get_user_network_policy(
             ip, user, self.__session
         )
         if network_policy is None:
-            raise ForbiddenError("Network policy not passed")
+            raise NetworkPolicyError()
         try:
             url = request.url_for("callback_mfa")
             if self.__settings.USE_CORE_TLS:
@@ -222,7 +230,6 @@ class MFAManager:
                     user_agent,
                 )
                 return MFAChallengeResponse(status="bypass", message="")
-
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
         except self.__mfa_api.MFAMissconfiguredError:
@@ -248,7 +255,6 @@ class MFAManager:
                     user_agent,
                 )
                 return MFAChallengeResponse(status="bypass", message="")
-
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
         return MFAChallengeResponse(status="pending", message=redirect_url)

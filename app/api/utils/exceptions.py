@@ -27,3 +27,15 @@ class DNSError(Exception):
 
 class UnauthorizedError(Exception):
     """Raised when authentication fails."""
+
+
+class MissingMFACredentials(ForbiddenError):
+    """Raised when MFA API credentials are missing."""
+
+
+class InvalidCredentials(ForbiddenError):
+    """Raised when user credentials are invalid."""
+
+
+class NetworkPolicyError(ForbiddenError):
+    """Raised when network policy is not passed."""

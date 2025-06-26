@@ -52,7 +52,7 @@ class AuthManager:
         self,
         session: AsyncSession,
         settings: Settings,
-        mfa_api: MultifactorAPI,
+        mfa_api: MultifactorAPI | None,
         storage: SessionStorage,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
@@ -87,7 +87,9 @@ class AuthManager:
         :return: None
         """
         user = await authenticate_user(
-            self.__session, form.username, form.password
+            self.__session,
+            form.username,
+            form.password,
         )
         if not user:
             raise UnauthorizedError("Incorrect username or password")
@@ -112,7 +114,9 @@ class AuthManager:
             raise ForbiddenError("User account is expired")
 
         network_policy = await get_user_network_policy(
-            ip, user, self.__session
+            ip,
+            user,
+            self.__session,
         )
         if network_policy is None:
             raise ForbiddenError("User not part of network policy")
