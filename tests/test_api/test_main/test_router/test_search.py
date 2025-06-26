@@ -305,8 +305,9 @@ async def test_api_bytes_to_hex(http_client: AsyncClient) -> None:
 async def test_api_search_by_entity_type_name(
     http_client: AsyncClient,
 ) -> None:
-    """Test api search."""
+    """Test api search by entity type name."""
     entity_type_name = "User"
+
     raw_response = await http_client.post(
         "entry/search",
         json={
@@ -328,5 +329,11 @@ async def test_api_search_by_entity_type_name(
     assert response["search_result"]
 
     for obj in response["search_result"]:
-        if obj["partial_attributes"] == "entityTypeName":
-            assert obj["vals"] == [entity_type_name]
+        for attr in obj["partial_attributes"]:
+            if attr["type"] == "entityTypeName":
+                assert attr["vals"] == [entity_type_name]
+                break
+        else:
+            pytest.fail(
+                f"Entity type name '{entity_type_name}' not found in attributes"  # noqa: E501
+            )
