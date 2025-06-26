@@ -143,7 +143,18 @@ async def two_factor_protocol(
             user_agent,
         )
     except ForbiddenError as exc:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc))
+        msg = str(exc)
+        if msg == "Missing API credentials":
+            raise HTTPException(
+                status.HTTP_428_PRECONDITION_REQUIRED, detail=msg
+            )
+        elif msg == "Invalid credentials":
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg
+            )
+        else:
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
+
     except NotFoundError as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)

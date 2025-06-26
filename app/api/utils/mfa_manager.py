@@ -194,6 +194,8 @@ class MFAManager:
         :raises ForbiddenError: if credentials invalid or policy not passed
         :raises MFAError: for MFA-specific errors
         """
+        if not self.__mfa_api:
+            raise ForbiddenError("Missing API credentials")
         user = await authenticate_user(
             self.__session, form.username, form.password
         )
