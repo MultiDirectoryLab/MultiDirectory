@@ -26,11 +26,11 @@ from api.auth.schema import (
 from api.auth.utils import create_and_set_session_key
 from api.utils.exceptions import (
     ForbiddenError,
-    InvalidCredentials,
+    InvalidCredentialsError,
     MFAError,
-    MissingMFACredentials,
+    MFATokenError,
+    MissingMFACredentialsError,
     NetworkPolicyError,
-    NotFoundError,
 )
 from config import Settings
 from ldap_protocol.multifactor import (
@@ -159,14 +159,14 @@ class MFAManager:
             )
         except (JWTError, AttributeError, JWKError) as err:
             logger.error(f"Invalid MFA token: {err}")
-            raise ForbiddenError("Invalid MFA token")
+            raise MFATokenError()
 
         user_id: int = int(payload.get("uid"))
         user = await self.__session.get(DBUser, user_id)
-        if user is None:
-            raise NotFoundError("User not found")
-        response = RedirectResponse("/", 302)
+        if user_id is None or not user:
+            raise MFATokenError()
 
+        response = RedirectResponse("/", 302)
         await create_and_set_session_key(
             user,
             self.__session,
@@ -198,12 +198,12 @@ class MFAManager:
         :raises MFAError: for MFA-specific errors
         """
         if not self.__mfa_api:
-            raise MissingMFACredentials()
+            raise MissingMFACredentialsError()
         user = await authenticate_user(
             self.__session, form.username, form.password
         )
         if not user:
-            raise InvalidCredentials()
+            raise InvalidCredentialsError()
         network_policy = await get_user_network_policy(
             ip, user, self.__session
         )

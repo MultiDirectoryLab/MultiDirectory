@@ -18,9 +18,10 @@ from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import MFAManager
 from api.utils.exceptions import (
     ForbiddenError,
-    InvalidCredentials,
+    InvalidCredentialsError,
     MFAError,
-    MissingMFACredentials,
+    MFATokenError,
+    MissingMFACredentialsError,
     NetworkPolicyError,
     NotFoundError,
 )
@@ -111,6 +112,8 @@ async def callback_mfa(
         return await mfa_manager.callback_mfa(
             access_token, mfa_creds, ip, user_agent
         )
+    except MFATokenError:
+        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -149,12 +152,12 @@ async def two_factor_protocol(
             ip,
             user_agent,
         )
-    except InvalidCredentials as exc:
+    except InvalidCredentialsError as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         )
-    except (MissingMFACredentials, NetworkPolicyError, ForbiddenError):
+    except (MissingMFACredentialsError, NetworkPolicyError, ForbiddenError):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
     except NotFoundError:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)

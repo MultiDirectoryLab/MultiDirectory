@@ -29,13 +29,17 @@ class UnauthorizedError(Exception):
     """Raised when authentication fails."""
 
 
-class MissingMFACredentials(ForbiddenError):
+class MissingMFACredentialsError(ForbiddenError):
     """Raised when MFA API credentials are missing."""
 
 
-class InvalidCredentials(ForbiddenError):
+class InvalidCredentialsError(ForbiddenError):
     """Raised when user credentials are invalid."""
 
 
 class NetworkPolicyError(ForbiddenError):
     """Raised when network policy is not passed."""
+
+
+class MFATokenError(Exception):
+    """Raised when MFA token is invalid or user not found for callback."""
