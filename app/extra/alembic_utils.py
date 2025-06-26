@@ -6,15 +6,15 @@ import sqlalchemy as sa
 from alembic import op
 
 
-def temporary_stub_entity_type_id(func: Callable) -> Callable:
-    """Add and drop the 'entity_type_id' column in the 'Directory' table.
+def temporary_stub_entity_type_name(func: Callable) -> Callable:
+    """Add and drop the 'entity_type_name' column in the 'Directory' table.
 
     State of the database at the time of migration
-    doesn`t contains 'entity_type_id' column into 'Directory' table,
+    doesn`t contains 'entity_type_name' column into 'Directory' table,
     but 'Directory' model has the column.
 
-    Before starting the migration, add 'entity_type_id' column.
-    Then migration complited, delete 'entity_type_id' column.
+    Before starting the migration, add 'entity_type_name' column.
+    Then migration complited, delete 'entity_type_name' column.
 
     Don`t like excluding columns with Deferred(),
     because you will need to refactor SQL queries
@@ -28,10 +28,10 @@ def temporary_stub_entity_type_id(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         op.add_column(
             "Directory",
-            sa.Column("entity_type_id", sa.Integer(), nullable=True),
+            sa.Column("entity_type_name", sa.Integer(), nullable=True),
         )
         func(*args, **kwargs)
-        op.drop_column("Directory", "entity_type_id")
+        op.drop_column("Directory", "entity_type_name")
         return None
 
     return wrapper

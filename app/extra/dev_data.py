@@ -219,7 +219,7 @@ TEST_DATA = [
                 "name": "domain admins",
                 "object_class": "group",
                 "attributes": {
-                    "objectClass": ["top"],
+                    "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": ["domain admins"],
@@ -231,7 +231,7 @@ TEST_DATA = [
                 "object_class": "group",
                 "groups": ["domain admins"],
                 "attributes": {
-                    "objectClass": ["top"],
+                    "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": ["developers"],
@@ -242,7 +242,7 @@ TEST_DATA = [
                 "name": "domain users",
                 "object_class": "group",
                 "attributes": {
-                    "objectClass": ["top"],
+                    "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": ["domain users"],
@@ -274,6 +274,7 @@ TEST_DATA = [
                         "organizationalPerson",
                         "posixAccount",
                         "inetOrgPerson",
+                        "shadowAccount",
                     ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
@@ -295,10 +296,12 @@ TEST_DATA = [
                 "attributes": {
                     "objectClass": [
                         "top",
+                        # "user",
                         "person",
                         "organizationalPerson",
                         "posixAccount",
                         "inetOrgPerson",
+                        "shadowAccount",
                     ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
@@ -309,7 +312,7 @@ TEST_DATA = [
                 "name": "russia",
                 "object_class": "organizationalUnit",
                 "attributes": {
-                    "objectClass": ["top"],
+                    "objectClass": ["top", "container"],
                     "sAMAccountName": ["groups"],
                 },
                 "children": [
@@ -317,7 +320,7 @@ TEST_DATA = [
                         "name": "moscow",
                         "object_class": "organizationalUnit",
                         "attributes": {
-                            "objectClass": ["top"],
+                            "objectClass": ["top", "container"],
                             "sAMAccountName": ["groups"],
                         },
                         "children": [
@@ -335,9 +338,11 @@ TEST_DATA = [
                                 "attributes": {
                                     "objectClass": [
                                         "top",
+                                        "user",
                                         "person",
                                         "organizationalPerson",
                                         "posixAccount",
+                                        "shadowAccount",
                                         "inetOrgPerson",
                                     ],
                                     "posixEmail": ["user1@mail.com"],

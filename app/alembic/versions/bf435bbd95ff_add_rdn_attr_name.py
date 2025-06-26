@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from extra.alembic_utils import temporary_stub_entity_type_id
+from extra.alembic_utils import temporary_stub_entity_type_name
 from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
@@ -20,7 +20,7 @@ branch_labels = None
 depends_on = None
 
 
-@temporary_stub_entity_type_id
+@temporary_stub_entity_type_name
 def upgrade() -> None:
     """Upgrade."""
     op.add_column("Directory", sa.Column("rdname", sa.String(length=64)))
@@ -55,7 +55,7 @@ def upgrade() -> None:
     op.alter_column("Directory", "rdname", nullable=False)
 
 
-@temporary_stub_entity_type_id
+@temporary_stub_entity_type_name
 def downgrade() -> None:
     """Downgrade."""
     bind = op.get_bind()
