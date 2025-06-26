@@ -152,13 +152,8 @@ class MFAManager:
         except (JWTError, AttributeError, JWKError) as err:
             logger.error(f"Invalid MFA token: {err}")
             raise ForbiddenError("Invalid MFA token")
-        uid = payload.get("uid")
-        if uid is None:
-            raise ForbiddenError("UID missing in token")
-        try:
-            user_id = int(uid)
-        except (TypeError, ValueError):
-            raise ForbiddenError("UID is not an integer")
+
+        user_id: int = int(payload.get("uid"))
         user = await self.__session.get(DBUser, user_id)
         if user is None:
             raise NotFoundError("User not found")
