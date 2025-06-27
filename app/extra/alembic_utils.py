@@ -28,7 +28,7 @@ def temporary_stub_entity_type_name(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         op.add_column(
             "Directory",
-            sa.Column("entity_type_name", sa.Integer(), nullable=True),
+            sa.Column("entity_type_name", sa.String(255), nullable=True),
         )
         func(*args, **kwargs)
         op.drop_column("Directory", "entity_type_name")
