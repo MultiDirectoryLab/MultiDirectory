@@ -100,14 +100,15 @@ async def test_ldap_base_modify(
     for attr in directory.attributes:
         attributes[attr.name].append(attr.value)
 
-    assert attributes["objectClass"] == [
+    assert set(attributes["objectClass"]) == {
         "top",
         "person",
         "organizationalPerson",
         "posixAccount",
         "inetOrgPerson",
         "user",
-    ]
+        "shadowAccount",
+    }
     assert attributes["title"] == [
         "Grand Poobah",
         "Grand Poobah1",
