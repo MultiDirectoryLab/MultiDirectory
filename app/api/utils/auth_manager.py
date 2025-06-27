@@ -23,7 +23,7 @@ from api.utils.exceptions import (
 )
 from config import Settings
 from extra.setup_dev import setup_enviroment
-from ldap_protocol.kerberos.base import AbstractKadmin
+from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
@@ -159,16 +159,28 @@ class AuthManager:
         :return: None.
         """
         user = await get_user(self.__session, identity)
+
         if not user:
             raise UserNotFoundError("User not found")
+
         policy = await PasswordPolicySchema.get_policy_settings(self.__session)
         errors = await policy.validate_password_with_policy(new_password, user)
+
         if errors:
             raise PasswordPolicyError(errors)
+
         user.password = get_password_hash(new_password)
-        await kadmin.create_or_update_principal_pw(
-            user.get_upn_prefix(), new_password
-        )
+
+        try:
+            await kadmin.create_or_update_principal_pw(
+                user.get_upn_prefix(),
+                new_password,
+            )
+        except KRBAPIError:
+            raise KRBAPIError(
+                "Failed kerberos password update",
+            )
+
         await post_save_password_actions(user, self.__session)
         await self.__session.commit()
 

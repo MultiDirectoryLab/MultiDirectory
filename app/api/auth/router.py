@@ -22,6 +22,7 @@ from api.utils.exceptions import (
 )
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos.base import KRBAPIError
 from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
@@ -134,11 +135,12 @@ async def password_reset(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.args[0]
         )
-    except UserNotFoundError as exc:
+    except UserNotFoundError:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
         )
+    except KRBAPIError as exc:
+        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(exc))
 
 
 @auth_router.get("/setup")
