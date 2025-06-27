@@ -211,6 +211,7 @@ class Directory(Base):
 
     entitytypename: Mapped[str | None] = synonym("entity_type_name")
     entity_type_name: Mapped[str | None] = mapped_column(
+        String(255),
         ForeignKey("EntityTypes.name", ondelete="SET NULL"),
         index=True,
         nullable=True,
@@ -220,7 +221,6 @@ class Directory(Base):
         remote_side=EntityType.name,
         foreign_keys=[entity_type_name],
         uselist=False,
-        lazy="selectin",
     )
 
     @property
