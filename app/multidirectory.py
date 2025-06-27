@@ -19,6 +19,7 @@ from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 from sqlalchemy import exc as sa_exc
 
 from api import (
@@ -146,6 +147,31 @@ def _create_shadow_app(settings: Settings) -> FastAPI:
     return app
 
 
+def _add_app_sqlalchemy_debugger(app: FastAPI, settings: Settings) -> None:
+    try:
+        import json
+        from dataclasses import asdict
+
+        from fastapi_sqlalchemy_monitor import SQLAlchemyMonitor
+        from fastapi_sqlalchemy_monitor.action import Action
+        from fastapi_sqlalchemy_monitor.statistics import AlchemyStatistics
+    except ImportError:
+        pass
+    else:
+
+        class JsonPrintStatistics(Action):
+            """Action that prints current statistics."""
+
+            def handle(self, statistics: AlchemyStatistics) -> None:
+                logger.debug(str(statistics), json.dumps(asdict(statistics)))
+
+        app.add_middleware(
+            SQLAlchemyMonitor,
+            engine=settings.engine,
+            actions=[JsonPrintStatistics()],
+        )
+
+
 def create_prod_app(
     factory: Callable[[Settings], FastAPI] = _create_basic_app,
     settings: Settings | None = None,
@@ -160,6 +186,9 @@ def create_prod_app(
         MFACredsProvider(),
         context={Settings: settings},
     )
+
+    if settings.ENABLE_SQLALCHEMY_LOGGING:
+        _add_app_sqlalchemy_debugger(app, settings)
 
     setup_dishka(container, app)
     return app
