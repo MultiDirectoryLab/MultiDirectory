@@ -85,3 +85,14 @@ async def handle_instance_cant_modify_error(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="System Instance cannot be modified.",
     )
+
+
+async def handle_not_implemented_error(
+    request: Request,  # noqa: ARG001
+    exc: Exception,  # noqa: ARG001
+) -> NoReturn:
+    """Handle Not Implemented error."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="This feature is supported with selfhosted DNS server.",
+    )

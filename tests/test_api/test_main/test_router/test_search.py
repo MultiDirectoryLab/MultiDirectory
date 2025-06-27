@@ -298,3 +298,42 @@ async def test_api_bytes_to_hex(http_client: AsyncClient) -> None:
     for attr in response["search_result"][0]["partial_attributes"]:
         if attr["type"] == "attr_with_bvalue":
             assert attr["vals"][0] == b"any".hex()
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_api_search_by_entity_type_name(
+    http_client: AsyncClient,
+) -> None:
+    """Test api search by entity type name."""
+    entity_type_name = "User"
+
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": f"(entitytypename={entity_type_name})",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    response = raw_response.json()
+
+    assert response["resultCode"] == LDAPCodes.SUCCESS
+    assert response["search_result"]
+
+    for obj in response["search_result"]:
+        for attr in obj["partial_attributes"]:
+            if attr["type"] == "entityTypeName":
+                assert attr["vals"] == [entity_type_name]
+                break
+        else:
+            pytest.fail(
+                f"Entity type name '{entity_type_name}' not found in attributes"  # noqa: E501
+            )

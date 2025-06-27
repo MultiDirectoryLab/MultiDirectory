@@ -120,6 +120,7 @@ class Settings(BaseModel):
     DNS_BIND_HOST: str = "bind_dns"
     DNS_TSIG_KEY: str = "/DNS_server_file/zone.key"
     DNS_ZONE_FILE: str = "/DNS_server_file/db.zone"
+    DNS_REVERSE_ZONE_FILE: str = "/DNS_server_file/db.reverse.zone"
     DNS_SERVER_NAMED_CONF: str = "/DNS_server_configs/named.conf"
     DNS_SERVER_NAMED_CONF_LOCAL: str = "/DNS_server_configs/named.conf.local"
 

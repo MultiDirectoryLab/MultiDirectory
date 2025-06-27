@@ -75,7 +75,7 @@ class EntityTypeDAO:
         """
         return await PaginationResult[EntityType].get(
             params=params,
-            query=select(EntityType).order_by(EntityType.id),
+            query=select(EntityType).order_by(EntityType.name),
             sqla_model=EntityType,
             session=self._session,
         )
@@ -166,7 +166,7 @@ class EntityTypeDAO:
 
         result = await self._session.execute(
             select(Directory)
-            .where(Directory.entity_type_id == entity_type.id)
+            .where(Directory.entity_type_name == entity_type.name)
             .options(selectinload(Directory.attributes))
         )  # fmt: skip
 
@@ -205,9 +205,9 @@ class EntityTypeDAO:
             .where(
                 EntityType.name.in_(entity_type_names),
                 EntityType.is_system.is_(False),
-                EntityType.id.notin_(
-                    select(Directory.entity_type_id)
-                    .where(Directory.entity_type_id.isnot(None))
+                EntityType.name.notin_(
+                    select(Directory.entity_type_name)
+                    .where(Directory.entity_type_name.isnot(None))
                 ),
             ),
         )  # fmt: skip
@@ -216,7 +216,7 @@ class EntityTypeDAO:
         """Find all Directories without Entity Type and attach it to them."""
         result = await self._session.execute(
             select(Directory)
-            .where(Directory.entity_type_id.is_(None))
+            .where(Directory.entity_type_name.is_(None))
             .options(
                 selectinload(Directory.attributes),
                 selectinload(Directory.entity_type),

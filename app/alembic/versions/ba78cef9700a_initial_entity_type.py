@@ -27,7 +27,6 @@ def upgrade() -> None:
     """Upgrade database schema and data, creating Entity Types."""
     op.create_table(
         "EntityTypes",
-        sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column(
             "object_class_names",
@@ -35,13 +34,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("is_system", sa.Boolean(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index(
-        op.f("ix_Entity_Type_name"),
-        "EntityTypes",
-        ["name"],
-        unique=True,
+        sa.PrimaryKeyConstraint("name"),
     )
     op.create_index(
         op.f("ix_Entity_Type_object_class_names"),
@@ -52,20 +45,20 @@ def upgrade() -> None:
 
     op.add_column(
         "Directory",
-        sa.Column("entity_type_id", sa.Integer(), nullable=True),
+        sa.Column("entity_type_name", sa.String(length=255), nullable=True),
     )
     op.create_index(
-        op.f("ix_Directory_entity_type_id"),
+        op.f("ix_Directory_entity_type_name"),
         "Directory",
-        ["entity_type_id"],
+        ["entity_type_name"],
         unique=False,
     )
     op.create_foreign_key(
-        "Directory_entity_type_id_fkey",
+        "Directory_entity_type_name_fkey",
         "Directory",
         "EntityTypes",
-        ["entity_type_id"],
-        ["id"],
+        ["entity_type_name"],
+        ["name"],
         ondelete="SET NULL",
     )
 
@@ -169,15 +162,17 @@ def downgrade() -> None:
     )
 
     op.drop_constraint(
-        "Directory_entity_type_id_fkey",
+        "Directory_entity_type_name_fkey",
         "Directory",
         type_="foreignkey",
     )
-    op.drop_index(op.f("ix_Directory_entity_type_id"), table_name="Directory")
-    op.drop_column("Directory", "entity_type_id")
+    op.drop_index(
+        op.f("ix_Directory_entity_type_name"),
+        table_name="Directory",
+    )
+    op.drop_column("Directory", "entity_type_name")
 
     op.drop_index(
         op.f("ix_Entity_Type_object_class_names"), table_name="EntityTypes"
     )
-    op.drop_index(op.f("ix_Entity_Type_name"), table_name="EntityTypes")
     op.drop_table("EntityTypes")

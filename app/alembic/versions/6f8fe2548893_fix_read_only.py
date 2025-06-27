@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
-from extra.alembic_utils import temporary_stub_entity_type_id
+from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.utils.helpers import create_integer_hash
 from models import Attribute, Directory
 
@@ -21,7 +21,7 @@ branch_labels = None
 depends_on = None
 
 
-@temporary_stub_entity_type_id
+@temporary_stub_entity_type_name
 def upgrade() -> None:
     """Upgrade."""
     bind = op.get_bind()

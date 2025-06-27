@@ -175,12 +175,10 @@ class EntityType(Base):
 
     __tablename__ = "EntityTypes"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(
         String(255),
-        nullable=False,
-        unique=True,
-        index=True,
+        ForeignKey("Directory.entity_type_name", ondelete="CASCADE"),
+        primary_key=True,
     )
     object_class_names: Mapped[list[str]] = mapped_column(
         postgresql.ARRAY(String),
@@ -228,26 +226,19 @@ class Directory(Base):
         uselist=False,
     )
 
-    entity_type_id: Mapped[int] = mapped_column(
-        ForeignKey("EntityTypes.id", ondelete="SET NULL"),
+    entitytypename: Mapped[str | None] = synonym("entity_type_name")
+    entity_type_name: Mapped[str | None] = mapped_column(
+        String(255),
+        ForeignKey("EntityTypes.name", ondelete="SET NULL"),
         index=True,
         nullable=True,
     )
     entity_type: Mapped[EntityType | None] = relationship(
         EntityType,
-        remote_side=EntityType.id,
+        remote_side=EntityType.name,
+        foreign_keys=[entity_type_name],
         uselist=False,
-        lazy="selectin",
     )
-
-    @property
-    def entity_type_name(self) -> str:
-        """Get entity type name.
-
-        Returns:
-            str: entity type name
-        """
-        return self.entity_type.name if self.entity_type else ""
 
     @property
     def entity_type_object_class_names_set(self) -> set[str]:
@@ -309,7 +300,6 @@ class Directory(Base):
         nullable=False,
     )
     objectguid: Mapped[str] = synonym("object_guid")
-    entitytypename: Mapped[str] = synonym("entity_type_name")
 
     path: Mapped[list[str]] = mapped_column(
         postgresql.ARRAY(String),
