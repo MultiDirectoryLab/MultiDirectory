@@ -21,6 +21,12 @@ def _create_test_user_data(
     name: str,
     pw: str,
 ) -> dict[str, str | list[dict[str, str | list[str]]]]:
+    """Create test user data.
+
+    Args:
+        name (str): user name
+        pw (str): user password
+    """
     return {
         "entry": "cn=ktest,dc=md,dc=test",
         "password": pw,
@@ -137,8 +143,9 @@ async def test_setup_call(
 ) -> None:
     """Test setup args.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     response = await http_client.post(
         "/kerberos/setup",
@@ -180,8 +187,9 @@ async def test_status_change(
 ) -> None:
     """Test setup args.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     response = await http_client.get("/kerberos/status")
     assert response.status_code == status.HTTP_200_OK
@@ -208,8 +216,9 @@ async def test_ktadd(
 ) -> None:
     """Test ktadd.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     names = ["test1", "test2"]
     response = await http_client.post("/kerberos/ktadd", json=names)
@@ -234,8 +243,9 @@ async def test_ktadd_404(
 ) -> None:
     """Test ktadd failure.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     kadmin.ktadd.side_effect = KRBAPIError()  # type: ignore
 
@@ -253,8 +263,9 @@ async def test_ldap_add(
 ) -> None:
     """Test add calls add_principal on user creation.
 
-    :param AsyncClient http_client: http
-    :param TestKadminClient kadmin: kadmin
+    Args:
+        http_client (AsyncClient): http
+        kadmin (TestKadminClient): kadmin
     """
     san = "ktest"
     pw = "Password123"
@@ -385,8 +396,9 @@ async def test_add_princ(
 ) -> None:
     """Test setup args.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     response = await http_client.post(
         "/kerberos/principal/add",
@@ -408,8 +420,9 @@ async def test_rename_princ(
 ) -> None:
     """Test setup args.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     response = await http_client.patch(
         "/kerberos/principal/rename",
@@ -431,8 +444,9 @@ async def test_change_princ(
 ) -> None:
     """Test setup args.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     response = await http_client.patch(
         "/kerberos/principal/reset",
@@ -454,8 +468,9 @@ async def test_delete_princ(
 ) -> None:
     """Test setup args.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    Args:
+        http_client (AsyncClient): http cl
+        ldap_session (LDAPSession): ldap
     """
     response = await http_client.request(
         "delete",
@@ -470,11 +485,7 @@ async def test_delete_princ(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_admin_incorrect_pw_setup(http_client: AsyncClient) -> None:
-    """Test setup args.
-
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
-    """
+    """Test setup args."""
     response = await http_client.get("/kerberos/status")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == KerberosState.NOT_CONFIGURED

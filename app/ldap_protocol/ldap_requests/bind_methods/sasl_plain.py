@@ -26,8 +26,8 @@ class SaslPLAINAuthentication(SaslAuthentication):
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
 
-        :param User | None user: indb user
-        :return bool: status
+        Returns:
+            bool: True if password is valid, False otherwise.
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -40,13 +40,18 @@ class SaslPLAINAuthentication(SaslAuthentication):
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.
 
-        :return bool: status
+        Returns:
+            bool: True if anonymous, False otherwise.
         """
         return False
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
-        """Get auth from data."""
+        """Get auth from data.
+
+        Returns:
+            SaslPLAINAuthentication
+        """
         _, username, password = data[1].value.split("\\x00")
         return cls(
             credentials=data[1].value,
@@ -55,5 +60,13 @@ class SaslPLAINAuthentication(SaslAuthentication):
         )
 
     async def get_user(self, session: AsyncSession, _: str) -> User:
-        """Get user."""
+        """Get user.
+
+        Args:
+            session (AsyncSession): async db session
+            _ (str): unused arg
+
+        Returns:
+            User: user
+        """
         return await get_user(session, self.username)  # type: ignore

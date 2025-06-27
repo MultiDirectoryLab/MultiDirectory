@@ -20,11 +20,19 @@ class AbandonRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "AbandonRequest":  # noqa: ARG003
-        """Create structure from ASN1Row dataclass list."""
+        """Create structure from ASN1Row dataclass list.
+
+        Returns:
+            AbandonRequest: Instance of AbandonRequest.
+        """
         return cls(message_id=1)
 
     async def handle(self) -> AsyncGenerator:
-        """Handle message with current user."""
+        """Handle message with current user.
+
+        Yields:
+            AsyncGenerator: Async generator.
+        """
         await asyncio.sleep(0)
         return
         yield  # type: ignore

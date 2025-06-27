@@ -41,7 +41,11 @@ class BaseExtendedValue(ABC, BaseModel):
     @classmethod
     @abstractmethod
     def from_data(cls, data: ASN1Row) -> "BaseExtendedValue":
-        """Create model from data, decoded from responseValue bytes."""
+        """Create model from data, decoded from responseValue bytes.
+
+        Returns:
+            BaseExtendedValue: instance of BaseExtendedValue.
+        """
 
     @abstractmethod
     async def handle(
@@ -51,10 +55,25 @@ class BaseExtendedValue(ABC, BaseModel):
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> BaseExtendedResponseValue:
-        """Generate specific extended resoponse."""
+        """Generate specific extended resoponse.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            session (AsyncSession): Database session
+            kadmin (AbstractKadmin): Kerberos client
+            settings (Settings): Settings
+
+        Returns:
+            BaseExtendedResponseValue
+        """
 
     @staticmethod
     def _decode_value(data: ASN1Row) -> ASN1Row:
+        """Decode value.
+
+        Returns:
+            ASN1Row: Decoded row with metadata
+        """
         dec = Decoder()
         dec.start(data[1].value)  # type: ignore
         output = asn1todict(dec)
@@ -79,7 +98,11 @@ class WhoAmIResponse(BaseExtendedResponseValue):
     authz_id: str
 
     def get_value(self) -> str | None:
-        """Get authz id."""
+        """Get authz id.
+
+        Returns:
+            str | None
+        """
         return self.authz_id
 
 
@@ -94,7 +117,11 @@ class WhoAmIRequestValue(BaseExtendedValue):
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "WhoAmIRequestValue":  # noqa: ARG003
-        """Create model from data, WhoAmIRequestValue data is empty."""
+        """Create model from data, WhoAmIRequestValue data is empty.
+
+        Returns:
+            WhoAmIRequestValue
+        """
         return cls()
 
     async def handle(
@@ -104,7 +131,17 @@ class WhoAmIRequestValue(BaseExtendedValue):
         kadmin: AbstractKadmin,  # noqa: ARG002
         settings: Settings,  # noqa: ARG002
     ) -> "WhoAmIResponse":
-        """Return user from session."""
+        """Return user from session.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            _ (AsyncSession): Database session
+            kadmin (AbstractKadmin): Kerberos client
+            settings (Settings): Settings
+
+        Returns:
+            WhoAmIResponse
+        """
         un = (
             f"u:{ldap_session.user.user_principal_name}"
             if ldap_session.user
@@ -118,7 +155,11 @@ class StartTLSResponse(BaseExtendedResponseValue):
     """Start tls response."""
 
     def get_value(self) -> str | None:
-        """Get response value."""
+        """Get response value.
+
+        Returns:
+            str | None
+        """
         return ""
 
 
@@ -134,7 +175,20 @@ class StartTLSRequestValue(BaseExtendedValue):
         kadmin: AbstractKadmin,  # noqa: ARG002
         settings: Settings,
     ) -> StartTLSResponse:
-        """Update password of current or selected user."""
+        """Update password of current or selected user.
+
+        Args:
+            ldap_session: LDAPSession
+            session: AsyncSession
+            kadmin: AbstractKadmin
+            settings: Settings
+
+        Returns:
+            StartTLSResponse
+
+        Raises:
+            PermissionError: No TLS
+        """
         if settings.USE_CORE_TLS:
             return StartTLSResponse()
 
@@ -142,7 +196,11 @@ class StartTLSRequestValue(BaseExtendedValue):
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "StartTLSRequestValue":  # noqa: ARG003
-        """Create model from data, decoded from responseValue bytes."""
+        """Create model from data, decoded from responseValue bytes.
+
+        Returns:
+            StartTLSRequestValue
+        """
         return cls()
 
 
@@ -156,7 +214,11 @@ class PasswdModifyResponse(BaseExtendedResponseValue):
     gen_passwd: str = ""
 
     def get_value(self) -> str | None:
-        """Return gen password."""
+        """Get response value.
+
+        Returns:
+            str | None
+        """
         return self.gen_passwd
 
 
@@ -188,7 +250,20 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> PasswdModifyResponse:
-        """Update password of current or selected user."""
+        """Update password of current or selected user.
+
+        Args:
+            ldap_session: LDAPSession
+            session: AsyncSession
+            kadmin: AbstractKadmin
+            settings: Settings
+
+        Returns:
+            PasswdModifyResponse
+
+        Raises:
+            PermissionError: user not authorized
+        """
         if not settings.USE_CORE_TLS:
             raise PermissionError("TLS required")
 
@@ -246,7 +321,11 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "PasswdModifyRequestValue":
-        """Create model from data, decoded from responseValue bytes."""
+        """Create model from data, decoded from responseValue bytes.
+
+        Returns:
+            PasswdModifyRequestValue
+        """
         d: list = cls._decode_value(data)  # type: ignore
         if len(d) == 3:
             return cls(
@@ -289,7 +368,17 @@ class ExtendedRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
     ) -> AsyncGenerator[ExtendedResponse, None]:
-        """Call proxy handler."""
+        """Call proxy handler.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            session (AsyncSession): Async db session
+            kadmin (AbstractKadmin): Stub client for non set up dirs.
+            settings (Settings): Settings with database dsn
+
+        Yields:
+            AsyncGenerator[ExtendedResponse, None]:
+        """
         try:
             response = await self.request_value.handle(
                 ldap_session,
@@ -315,8 +404,12 @@ class ExtendedRequest(BaseRequest):
     def from_data(cls, data: list[ASN1Row]) -> "ExtendedRequest":
         """Create extended request from asn.1 decoded string.
 
-        :param ASN1Row data: any data
-        :return ExtendedRequest: universal request
+        Args:
+            data(ASN1Row): any data
+            data: list[ASN1Row]:
+
+        Returns:
+            ExtendedRequest: universal request
         """
         oid = data[0].value
         ext_request = EXTENDED_REQUEST_OID_MAP[oid]

@@ -582,7 +582,7 @@ class BindDNSServerManager:
         Algorithm:
             1. Call rndc reconfig.
         """
-        subprocess.run(  # noqa: S603
+        subprocess.run(
             [
                 "/usr/sbin/rndc",
                 "reconfig",

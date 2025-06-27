@@ -26,7 +26,12 @@ async def principal_block_sync(
     session: AsyncSession,
     settings: Settings,
 ) -> None:
-    """Synchronize principal and user account blocking."""
+    """Synchronize principal and user account blocking.
+
+    Args:
+        session (AsyncSession): Database session.
+        settings (Settings): Settings.
+    """
     for user in await session.scalars(select(User)):
         uac_check = await get_check_uac(session, user.directory_id)
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
@@ -91,9 +96,9 @@ async def principal_block_sync(
 def _find_krb_exp_attr(directory: Directory) -> Attribute | None:
     """Find krbprincipalexpiration attribute in directory.
 
-    :param Directory directory: the directory object
-    :return Atrribute | None: the attribute with
-        the name 'krbprincipalexpiration', or None if not found.
+    Returns:
+        Attribute | None: the attribute with the name
+            'krbprincipalexpiration', or None if not found.
     """
     for attr in directory.attributes:
         if attr.name == "krbprincipalexpiration":

@@ -65,9 +65,12 @@ async def proc_time_header_middleware(
 ) -> Response:
     """Set X-Process-Time header.
 
-    :param Request request: _description_
-    :param Callable call_next: _description_
-    :return Response: _description_
+    Args:
+        request (Request): _description_
+        call_next (Callable): _description_
+
+    Returns:
+        Response: Response object with X-Process-Time header.
     """
     start_time = time.perf_counter()
     response = await call_next(request)
@@ -78,12 +81,21 @@ async def proc_time_header_middleware(
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Lifespan context manager.
+
+    Yields:
+        AsyncIterator: async iterator
+    """
     yield
     await app.state.dishka_container.close()
 
 
 def _create_basic_app(settings: Settings) -> FastAPI:
-    """Create basic FastAPI app with dependencies overrides."""
+    """Create basic FastAPI app with dependencies overrides.
+
+    Returns:
+        FastAPI: Configured FastAPI application.
+    """
     app = FastAPI(
         name="MultiDirectory",
         title="MultiDirectory",
@@ -134,7 +146,11 @@ def _create_basic_app(settings: Settings) -> FastAPI:
 
 
 def _create_shadow_app(settings: Settings) -> FastAPI:
-    """Create shadow FastAPI app for shadow."""
+    """Create shadow FastAPI app for shadow.
+
+    Returns:
+        FastAPI: Configured FastAPI application for shadow API.
+    """
     app = FastAPI(
         name="Shadow API",
         title="Internal API",
@@ -150,7 +166,15 @@ def create_prod_app(
     factory: Callable[[Settings], FastAPI] = _create_basic_app,
     settings: Settings | None = None,
 ) -> FastAPI:
-    """Create production app with container."""
+    """Create production app with container.
+
+    Args:
+        factory (Callable[[Settings], FastAPI]): _create_basic_app
+        settings (Settings | None): (Default value = None)
+
+    Returns:
+        FastAPI: application.
+    """
     settings = settings or Settings.from_os()
     app = factory(settings)
     container = make_async_container(
@@ -189,6 +213,7 @@ def ldap(settings: Settings) -> None:
         await asyncio.gather(*servers)
 
     def _run() -> None:
+        """Run ldap server."""
         uvloop.run(_servers(settings), debug=settings.DEBUG)
 
     try:

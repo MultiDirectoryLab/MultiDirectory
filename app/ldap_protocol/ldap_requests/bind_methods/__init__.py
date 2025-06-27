@@ -25,15 +25,15 @@ sasl_mechanism_map: dict[SASLMethod, type[SaslAuthentication]] = {
 }
 
 __all__ = [
-    "get_bad_response",
-    "sasl_mechanism_map",
+    "GSSAPISL",
     "AbstractLDAPAuth",
+    "GSSAPIAuthStatus",
+    "LDAPBindErrors",
     "SASLMethod",
     "SaslAuthentication",
     "SaslGSSAPIAuthentication",
     "SaslPLAINAuthentication",
     "SimpleAuthentication",
-    "GSSAPIAuthStatus",
-    "GSSAPISL",
-    "LDAPBindErrors",
+    "get_bad_response",
+    "sasl_mechanism_map",
 ]

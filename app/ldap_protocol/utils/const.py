@@ -13,6 +13,17 @@ from .helpers import validate_entry
 
 
 def _type_validate_entry(entry: str) -> str:
+    """Validate entry name.
+
+    Args:
+        entry (str): entry name
+
+    Returns:
+        str: entry name
+
+    Raises:
+        ValueError: Invalid entry name
+    """
     if validate_entry(entry):
         return entry
     raise ValueError(f"Invalid entry name {entry}")
@@ -24,9 +35,17 @@ EMAIL_RE = re.compile(
 
 
 def _type_validate_email(email: str) -> str:
+    """Validate email.
+
+    Returns:
+        str: email address
+
+    Raises:
+        ValueError: Invalid email
+    """
     if EMAIL_RE.fullmatch(email):
         return email
-    raise ValueError(f"Invalid entry name {email}")
+    raise ValueError(f"Invalid email {email}")
 
 
 GRANT_DN_STRING = Annotated[str, AfterValidator(_type_validate_entry)]

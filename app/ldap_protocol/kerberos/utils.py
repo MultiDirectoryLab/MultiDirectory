@@ -1,7 +1,7 @@
 """Utils for kadmin."""
 
 from functools import wraps
-from typing import Any, Callable
+from typing import Callable
 
 import httpx
 from sqlalchemy import delete, select, update
@@ -15,16 +15,21 @@ from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 def logger_wraps(is_stub: bool = False) -> Callable:
     """Log kadmin calls.
 
-    :param bool is_stub: flag to change logs, defaults to False
-    :return Callable: any method
+    Returns:
+        Callable: any method
     """
 
     def wrapper(func: Callable) -> Callable:
+        """Wrap kadmin calls.
+
+        Returns:
+            Callable: wrapped function
+        """
         name = func.__name__
         bus_type = " stub " if is_stub else " "
 
         @wraps(func)
-        async def wrapped(*args: str, **kwargs: str) -> Any:
+        async def wrapped(*args: str, **kwargs: str) -> object:
             logger = log.opt(depth=1)
             try:
                 principal = args[1]
@@ -58,6 +63,10 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     This function updates the server state in the database by either adding
     a new entry, updating an existing entry, or deleting and re-adding the
     entry if there are multiple entries found.
+
+    Args:
+        session (AsyncSession): Database session
+        state (KerberosState): Kerberos server state
     """
     results = await session.execute(
         select(CatalogueSetting)
@@ -77,7 +86,11 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
 
 
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
-    """Get kerberos server state."""
+    """Get kerberos server state.
+
+    Returns:
+        KerberosState: The current kerberos server state.
+    """
     state = await session.scalar(
         select(CatalogueSetting)
         .filter(CatalogueSetting.name == KERBEROS_STATE_NAME)
@@ -91,8 +104,9 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
 async def unlock_principal(name: str, session: AsyncSession) -> None:
     """Unlock principal.
 
-    :param str name: upn
-    :param AsyncSession session: db
+    Args:
+        name (str): upn
+        session (AsyncSession): db
     """
     subquery = (
         select(Directory.id)

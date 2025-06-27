@@ -99,14 +99,24 @@ class SearchRequest(BaseRequest):
 
     @field_serializer("filter")
     def serialize_filter(self, val: ASN1Row | None, _info: Any) -> str | None:
-        """Serialize filter field."""
+        """Serialize filter field.
+
+        Args:
+            val (ASN1Row | None): instance of ASN1Row
+            _info (Any): not used
+
+        Returns:
+            str | None
+        """
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
-    def from_data(
-        cls,
-        data: dict[str, list[ASN1Row]],
-    ) -> "SearchRequest":
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "SearchRequest":
+        """Get search request from data.
+
+        Returns:
+            SearchRequest: LDAP search request
+        """
         (
             base_object,
             scope,
@@ -131,6 +141,11 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def requested_attrs(self) -> list[str]:
+        """Get requested attributes.
+
+        Returns:
+            list[str]: requested attributes
+        """
         return [attr.lower() for attr in self.attributes]
 
     async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
@@ -167,7 +182,12 @@ class SearchRequest(BaseRequest):
     ) -> defaultdict[str, list[str]]:
         """Get RootDSE.
 
-        :return defaultdict[str, list[str]]: queried attrs
+        Args:
+            session (AsyncSession): Database session
+            settings (Settings): Settings
+
+        Returns:
+            defaultdict[str, list[str]]: queried attrs
         """
         data = defaultdict(list)
         domain_query = (
@@ -222,9 +242,8 @@ class SearchRequest(BaseRequest):
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
-        :param ASN1Row filter_: requested filter_
-        :param AsyncSession session: sa session
-        :return UnaryExpression: condition
+        Returns:
+            UnaryExpression | ColumnElement
         """
         return cast_filter2sql(self.filter)
 
@@ -241,6 +260,15 @@ class SearchRequest(BaseRequest):
 
         Provides following responses:
         Entry -> Reference (optional) -> Done
+
+        Args:
+            session (AsyncSession): Database session
+            ldap_session (LDAPSession): LDAP session
+            settings (Settings): Settings
+
+        Yields:
+            AsyncGenerator[SearchResultDone | SearchResultReference |\
+                SearchResultEntry, None]
         """
         async with ldap_session.lock() as user:
             async for response in self.get_result(user, session, settings):
@@ -254,9 +282,13 @@ class SearchRequest(BaseRequest):
     ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
-        :param bool user_logged: is user in session
-        :param AsyncSession session: sa session
-        :yield SearchResult: search result
+        Args:
+            user (UserSchema | None): schema of user
+            session (AsyncSession): async session.
+            settings (Settings): settings.
+
+        Yields:
+            AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == "cn=schema"
@@ -303,18 +335,38 @@ class SearchRequest(BaseRequest):
 
     @cached_property
     def member_of(self) -> bool:
+        """Check if member of is requested.
+
+        Returns:
+            bool: True if member of is requested, False otherwise
+        """
         return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def member(self) -> bool:
+        """Check if member is requested.
+
+        Returns:
+            bool: True if member is requested, False otherwise
+        """
         return "member" in self.requested_attrs or self.all_attrs
 
     @cached_property
     def token_groups(self) -> bool:
+        """Check if token groups is requested.
+
+        Returns:
+            bool: True if token groups is requested, False otherwise
+        """
         return "tokengroups" in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:
+        """Check if all attributes are requested.
+
+        Returns:
+            bool: True if all attributes are requested, False otherwise
+        """
         return "*" in self.requested_attrs or not self.requested_attrs
 
     def build_query(
@@ -322,7 +374,15 @@ class SearchRequest(BaseRequest):
         base_directories: list[Directory],
         user: UserSchema,
     ) -> Select:
-        """Build tree query."""
+        """Build tree query.
+
+        Args:
+            base_directories (list[Directory]): instances of Directory
+            user (UserSchema): serialized user
+
+        Returns:
+            Select
+        """
         query = (
             select(Directory)
             .join(User, isouter=True)
@@ -397,9 +457,12 @@ class SearchRequest(BaseRequest):
     ) -> tuple[Select, int, int]:
         """Paginate query.
 
-        :param _type_ query: _description_
-        :param _type_ session: _description_
-        :return tuple[select, int, int]: query, pages_total, count
+        Args:
+            query (Select): SQLAlchemy select query
+            session (AsyncSession): async session
+
+        Returns:
+            tuple[Select, int, int]: select query, pages_total, count
         """
         if self.page_number is None:
             return query, 0, 0
@@ -412,14 +475,22 @@ class SearchRequest(BaseRequest):
         end = start + self.size_limit
         query = query.offset(start).limit(end)
 
-        return query, int(ceil(count / float(self.size_limit))), count
+        return query, ceil(count / float(self.size_limit)), count
 
     async def tree_view(  # noqa: C901
         self,
         query: Select,
         session: AsyncSession,
     ) -> AsyncGenerator[SearchResultEntry, None]:
-        """Yield all resulted directories."""
+        """Yield all resulted directories.
+
+        Args:
+            query (Select): SQLAlchemy select query
+            session (AsyncSession): async session
+
+        Yields:
+            AsyncGenerator[SearchResultEntry, None]: yielded directories
+        """
         directories = await session.stream_scalars(query)
         # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 
@@ -462,10 +533,8 @@ class SearchRequest(BaseRequest):
                     attrs["authTimestamp"].append(directory.user.last_logon)
 
             if (
-                self.member_of
-                and "group" in obj_classes
-                or "user" in obj_classes
-            ):
+                self.member_of and "group" in obj_classes
+            ) or "user" in obj_classes:
                 for group in directory.groups:
                     attrs["memberOf"].append(group.directory.path_dn)
 

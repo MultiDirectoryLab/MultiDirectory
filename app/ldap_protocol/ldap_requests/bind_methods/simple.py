@@ -23,8 +23,8 @@ class SimpleAuthentication(AbstractLDAPAuth):
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
 
-        :param User | None user: indb user
-        :return bool: status
+        Returns:
+            bool: status
         """
         password = getattr(user, "password", None)
         if password is not None:
@@ -34,10 +34,19 @@ class SimpleAuthentication(AbstractLDAPAuth):
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.
 
-        :return bool: status
+        Returns:
+            bool: True if password is empty, False otherwise.
         """
         return not self.password
 
     async def get_user(self, session: AsyncSession, username: str) -> User:
-        """Get user."""
+        """Get user.
+
+        Args:
+            session (AsyncSession): Database session.
+            username (str): Username to search for.
+
+        Returns:
+            User: User object if found, raises exception otherwise.
+        """
         return await get_user(session, username)  # type: ignore

@@ -57,7 +57,12 @@ class PoolClientHandler:
     ssl_context: ssl.SSLContext | None = None
 
     def __init__(self, settings: Settings, container: AsyncContainer):
-        """Set workers number for single client concurrent handling."""
+        """Set workers number for single client concurrent handling.
+
+        Args:
+            settings (Settings): settings
+            container (AsyncContainer): container
+        """
         self.container = container
         self.settings = settings
 
@@ -77,7 +82,12 @@ class PoolClientHandler:
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
     ) -> None:
-        """Create session, queue and start message handlers concurrently."""
+        """Create session, queue and start message handlers concurrently.
+
+        Args:
+            reader (asyncio.StreamReader): reader
+            writer (asyncio.StreamWriter): writer
+        """
         async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
             addr, first_chunk = await self.recieve(
@@ -124,7 +134,11 @@ class PoolClientHandler:
                     await writer.wait_closed()
 
     def _load_ssl_context(self) -> None:
-        """Load SSL context for LDAPS."""
+        """Load SSL context for LDAPS.
+
+        Raises:
+            SystemExit: Certs not found
+        """
         if self.settings.USE_CORE_TLS and self.settings.LDAP_LOAD_SSL_CERT:
             if not self.settings.check_certs_exist():
                 log.critical("Certs not found, exiting...")
@@ -143,8 +157,15 @@ class PoolClientHandler:
     ) -> tuple[IPv4Address | IPv6Address, bytes]:
         """Get ip from proxy protocol header.
 
-        :param bytes data: data
-        :return tuple: ip, data
+        Args:
+            data (bytes): data
+            writer (asyncio.StreamWriter): writer
+
+        Returns:
+            tuple: ip, data
+
+        Raises:
+            ValueError: Invalid source address
         """
         peername = ":".join(map(str, writer.get_extra_info("peername")))
         peer_addr = ip_address(peername.split(":")[0])
@@ -184,12 +205,17 @@ class PoolClientHandler:
         self,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
-        return_addr: Literal[True, False] | bool = False,
+        return_addr: bool = False,
     ) -> tuple[IPv4Address | IPv6Address, bytes] | bytes:
         """Read N packets by 1kB.
 
-        :param asyncio.StreamReader reader: reader
-        :return tuple: ip, data
+        Args:
+            reader (asyncio.StreamReader): reader
+            writer (asyncio.StreamWriter): writer
+            return_addr (bool): address (Default value = "read")
+
+        Returns:
+            tuple[IPv4Address | IPv6Address, bytes] | bytes:
         """
         buffer = BytesIO()
         addr = None
@@ -229,8 +255,11 @@ class PoolClientHandler:
         source:
         https://github.com/cannatag/ldap3/blob/dev/ldap3/strategy/base.py#L455
 
-        :param bytes data: body
-        :return int: actual size
+        Args:
+            data (bytes): body
+
+        Returns:
+            int: actual size
         """
         if len(data) > 2:
             if data[1] <= 127:  # short
@@ -255,12 +284,15 @@ class PoolClientHandler:
     ) -> None:
         """Create request object and send it to queue.
 
-        :param bytes data: initial data
-        :param asyncio.StreamReader reader: reader
-        :param asyncio.StreamWriter writer: writer
-        :param AsyncContainer container: container
-        :raises ConnectionAbortedError: if client sends empty request (b'')
-        :raises RuntimeError: reraises on unexpected exc
+        Args:
+            data (bytes): initial data
+            reader (asyncio.StreamReader): reader
+            writer (asyncio.StreamWriter): writer
+            container (AsyncContainer): container
+
+        Raises:
+            ConnectionAbortedError: if client sends empty request (b'')
+            RuntimeError: reraises on unexpected exc
         """
         ldap_session: LDAPSession = await container.get(LDAPSession)
         while True:
@@ -294,9 +326,16 @@ class PoolClientHandler:
     ) -> bytes:
         """Unwrap request with GSSAPI security layer if needed.
 
-        :param bytes data: request data
-        :param LDAPSession ldap_session: session
-        :return bytes: unwrapped data
+        Args:
+            data (bytes): request data
+            ldap_session (LDAPSession): session
+
+        Returns:
+            bytes: unwrapped data
+
+        Raises:
+            ConnectionAbortedError: SASL buffer length mismatch or\
+                GSSAPI security context not found
         """
         if ldap_session.gssapi_security_layer in (
             GSSAPISL.INTEGRITY_PROTECTION,
@@ -326,6 +365,7 @@ class PoolClientHandler:
 
     @staticmethod
     def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
+        """Request full log."""
         log.debug(
             f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}\n",
@@ -333,6 +373,7 @@ class PoolClientHandler:
 
     @staticmethod
     def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
+        """Response full log."""
         log.debug(
             f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}"[:3000],
@@ -340,6 +381,7 @@ class PoolClientHandler:
 
     @staticmethod
     def _log_short(addr: str, msg: LDAPMessage) -> None:
+        """Short log."""
         log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
 
     async def _handle_single_response(
@@ -347,7 +389,15 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
         container: AsyncContainer,
     ) -> None:
-        """Get message from queue and handle it."""
+        """Get message from queue and handle it.
+
+        Args:
+            writer (asyncio.StreamWriter): writer
+            container (AsyncContainer): container
+
+        Raises:
+            RuntimeError: any error
+        """
         ldap_session: LDAPSession = await container.get(LDAPSession)
         addr = str(ldap_session.ip)
 
@@ -387,10 +437,13 @@ class PoolClientHandler:
     ) -> bytes:
         """Wrap response with GSSAPI security layer if needed.
 
-        :param bytes data: response data
-        :param LDAPSession ldap_session: session
-        :param int protocol_op: protocol operation
-        :return bytes: wrapped data
+        Args:
+            data (bytes): response data
+            ldap_session (LDAPSession): session
+            protocol_op (int): protocol operation
+
+        Returns:
+            bytes: wrapped data
         """
         if (
             ldap_session.gssapi_authenticated
@@ -423,6 +476,10 @@ class PoolClientHandler:
         Spawns (default 5) workers,
         then every task awaits for queue object,
         cycle locks until pool completes at least 1 task.
+
+        Args:
+            writer (asyncio.StreamWriter): writer
+            container (AsyncContainer): container
         """
         tasks = [
             self._handle_single_response(writer, container)
@@ -432,7 +489,11 @@ class PoolClientHandler:
         await asyncio.gather(*tasks)
 
     async def _get_server(self) -> asyncio.base_events.Server:
-        """Get async server."""
+        """Get async server.
+
+        Returns:
+            asyncio.base_events.Server: async server
+        """
         return await asyncio.start_server(
             self,
             str(self.settings.HOST),
@@ -449,6 +510,7 @@ class PoolClientHandler:
 
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:
+        """Log server addresses."""
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
         log.info(f"Server on {addrs}")
 

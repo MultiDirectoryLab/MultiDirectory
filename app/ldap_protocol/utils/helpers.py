@@ -148,8 +148,12 @@ def validate_entry(entry: str) -> bool:
 
     cn=first,dc=example,dc=com -> valid
     cn=first,dc=example,dc=com -> valid
-    :param str entry: any str
-    :return bool: result
+
+    Args:
+        entry (str): entry path
+
+    Returns:
+        bool: entry path is correct
     """
     return all(
         re.match(r"^[a-zA-Z\-]+$", part.split("=")[0])
@@ -159,22 +163,46 @@ def validate_entry(entry: str) -> bool:
 
 
 def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
-    """Check if an entry in a base dn."""
+    """Check if an entry in a base dn.
+
+    Args:
+        base_directory (Directory): instance of Directory
+        entry (str): entry path
+
+    Returns:
+        bool: True if the entry is in the base directory, False otherwise
+    """
     return entry.lower().endswith(base_directory.path_dn.lower())
 
 
 def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
-    """Check if an entry is a base dn."""
+    """Check if an entry is a base dn.
+
+    Args:
+        base_directory (Directory): base Directory instance
+        entry (str): entry path
+
+    Returns:
+        bool: True if the entry is a base dn, False otherwise
+    """
     return base_directory.path_dn.lower() == entry.lower()
 
 
 def get_generalized_now(tz: ZoneInfo) -> str:
-    """Get generalized time (formated) with tz."""
+    """Get generalized time (formated) with tz.
+
+    Returns:
+        str: generalized time
+    """
     return datetime.now(tz).strftime("%Y%m%d%H%M%S.%f%z")
 
 
 def _get_domain(name: str) -> str:
-    """Get domain from name."""
+    """Get domain from name.
+
+    Returns:
+        str: domain
+    """
     return ".".join(
         [
             item[3:].lower()
@@ -187,15 +215,22 @@ def _get_domain(name: str) -> str:
 def create_integer_hash(text: str, size: int = 9) -> int:
     """Create integer hash from text.
 
-    :param str text: any string
-    :param int size: fixed size of hash, defaults to 15
-    :return int: hash
+    Args:
+        text (str): any string
+        size (int): fixed size of hash, defaults to 9
+
+    Returns:
+        int: hash
     """
     return int(hashlib.sha256(text.encode("utf-8")).hexdigest(), 16) % 10**size
 
 
 def get_windows_timestamp(value: datetime) -> int:
-    """Get the Windows timestamp from the value."""
+    """Get the Windows timestamp from the value.
+
+    Returns:
+        int: Windows timestamp
+    """
     return (int(value.timestamp()) + 11644473600) * 10000000
 
 
@@ -207,6 +242,12 @@ def dt_to_ft(dt: datetime) -> int:
     """Convert a datetime to a Windows filetime.
 
     If the object is time zone-naive, it is forced to UTC before conversion.
+
+    Args:
+        dt (datetime): date and time
+
+    Returns:
+        int: Windows filetime
     """
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) != 0:
         dt = dt.astimezone(ZoneInfo("UTC"))
@@ -221,6 +262,12 @@ def ft_to_dt(filetime: int) -> datetime:
     The new datetime object is timezone-naive but is equivalent to tzinfo=utc.
     1) Get seconds and remainder in terms of Unix epoch
     2) Convert to datetime object, with remainder as microseconds.
+
+    Args:
+        filetime (int): Windows file time number
+
+    Returns:
+        datetime: Python datetime
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
     return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(
@@ -229,7 +276,11 @@ def ft_to_dt(filetime: int) -> datetime:
 
 
 def ft_now() -> str:
-    """Get now filetime timestamp."""
+    """Get now filetime timestamp.
+
+    Returns:
+        str: now filetime timestamp
+    """
     return str(dt_to_ft(datetime.now(tz=ZoneInfo("UTC"))))
 
 
@@ -245,8 +296,11 @@ def string_to_sid(sid_string: str) -> bytes:
         - The identifier authority is packed as a 6-byte sequence.
         - Each sub-authority is packed as a 4-byte sequence.
 
-    :param sid_string: The string representation of the SID
-    :return bytes: The binary representation of the SID
+    Args:
+        sid_string (str): The string representation of the SID
+
+    Returns:
+        bytes: The binary representation of the SID
     """
     parts = sid_string.split("-")
 
@@ -274,19 +328,25 @@ def create_object_sid(
 ) -> str:
     """Generate the objectSid attribute for an object.
 
-    :param domain: domain directory
-    :param int rid: relative identifier
-    :param bool reserved: A flag indicating whether the RID is reserved.
-                          If `True`, the given RID is used directly. If
-                          `False`, 1000 is added to the given RID to generate
-                          the final RID
-    :return str: the complete objectSid as a string
+    Args:
+        domain (Directory): domain directory
+        rid (int): relative identifier
+        reserved (bool): A flag indicating whether the RID is reserved.
+            If `True`, the given RID is used directly. If `False`, 1000
+            is added to the given RID to generate the final RID
+
+    Returns:
+        str: the complete objectSid as a string
     """
     return domain.object_sid + f"-{rid if reserved else 1000 + rid}"
 
 
 def generate_domain_sid() -> str:
-    """Generate domain objectSid attr."""
+    """Generate domain objectSid attr.
+
+    Returns:
+        str: domain objectSid attr
+    """
     sub_authorities = [
         random.randint(1000000000, (1 << 32) - 1),
         random.randint(1000000000, (1 << 32) - 1),
@@ -299,6 +359,9 @@ def create_user_name(directory_id: int) -> str:
     """Create username by directory id.
 
     NOTE: keycloak
+
+    Returns:
+        str: username
     """
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
 

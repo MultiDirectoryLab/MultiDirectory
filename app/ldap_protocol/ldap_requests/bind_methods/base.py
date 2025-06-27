@@ -48,7 +48,11 @@ class LDAPBindErrors(StrEnum):
     ACCOUNT_LOCKED_OUT = "775"
 
     def __str__(self) -> str:
-        """Return the error message as a string."""
+        """Return the error message as a string.
+
+        Returns:
+            str: Error message
+        """
         return (
             "80090308: LdapErr: DSID-0C09030B, "
             "comment: AcceptSecurityContext error, "
@@ -59,11 +63,14 @@ class LDAPBindErrors(StrEnum):
 def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
     """Generate BindResponse object with an invalid credentials error.
 
-    :param LDAPBindErrors error_message: Error message to include in the
-                                         response
-    :return BindResponse: A response object with the result code set to
-                          INVALID_CREDENTIALS, an empty matchedDN, and the
-                          provided error message
+    Args:
+        error_message (LDAPBindErrors): Error message to include in the\
+            response
+
+    Returns:
+        BindResponse: A response object with the result code set to\
+            INVALID_CREDENTIALS, an empty matchedDN, and the provided error\
+            message
     """
     return BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
@@ -85,15 +92,31 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     @abstractmethod
     def is_valid(self, user: User) -> bool:
-        """Validate state."""
+        """Validate state.
+
+        Returns:
+            bool: True if valid, False otherwise
+        """
 
     @abstractmethod
     def is_anonymous(self) -> bool:
-        """Return true if anonymous."""
+        """Check if anonymous.
+
+        Returns:
+            bool: True if anonymous, False otherwise
+        """
 
     @abstractmethod
     async def get_user(self, session: AsyncSession, username: str) -> User:
-        """Get user."""
+        """Get user.
+
+        Args:
+            session (AsyncSession): async db session.
+            username (str): user name.
+
+        Returns:
+            User: instance of User.
+        """
 
 
 class SaslAuthentication(AbstractLDAPAuth):
@@ -105,4 +128,8 @@ class SaslAuthentication(AbstractLDAPAuth):
     @classmethod
     @abstractmethod
     def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
-        """Get auth from data."""
+        """Get auth from data.
+
+        Returns:
+            SaslAuthentication: Sasl auth form.
+        """

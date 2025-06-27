@@ -18,8 +18,14 @@ from models import User
 def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
     """Get IP address from request.
 
-    :param Request request: The incoming request object.
-    :return IPv4Address | None: The IP address or None.
+    Args:
+        request (Request): The incoming request object.
+
+    Raises:
+        HTTPException: If the request client is None.
+
+    Returns:
+        IPv4Address | IPv6Address: The IP address or None.
     """
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
@@ -35,8 +41,8 @@ def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
 def get_user_agent_from_request(request: Request) -> str:
     """Get user agent from request.
 
-    :param Request request: The incoming request object.
-    :return str: The user agent header.
+    Returns:
+        str: The user agent header.
     """
     user_agent_header = request.headers.get("User-Agent")
     return user_agent_header if user_agent_header else ""
@@ -56,10 +62,14 @@ async def create_and_set_session_key(
     Update the user's last logon time and set the appropriate cookies
     in the response.
 
-    :param User user: db user
-    :param AsyncSession session: db session
-    :param Settings settings: app settings
-    :param Response response: fastapi response object
+    Args:
+        user (User): db user
+        session (AsyncSession): db session
+        settings (Settings): app settings
+        response (Response): fastapi response object
+        storage (SessionStorage): session storage backend
+        ip (IPv4Address | IPv6Address): IP address of the client
+        user_agent (str): user agent string of the client
     """
     await set_last_logon_user(user, session, settings.TIMEZONE)
 

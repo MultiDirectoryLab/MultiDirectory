@@ -67,7 +67,14 @@ class BaseSchemaModel[S: Base](BaseModel):
     @classmethod
     @abstractmethod
     def from_db(cls, sqla_instance: S) -> "BaseSchemaModel[S]":
-        """Create an instance of Schema from instance of SQLA model."""
+        """Create an instance of Schema from instance of SQLA model.
+
+        Args:
+            sqla_instance (S): instance of SQLAlchemy Model
+
+        Returns:
+            BaseSchemaModel[S]: instance of Schema
+        """
 
 
 @dataclass
@@ -88,7 +95,20 @@ class PaginationResult[S: Base]:
         sqla_model: type[S],
         session: AsyncSession,
     ) -> "PaginationResult[S]":
-        """Get paginator."""
+        """Get paginator.
+
+        Args:
+            query (Select[tuple[S]]): SQLAlchemy query to execute.
+            params (PaginationParams): Pagination parameters.
+            sqla_model (type[S]): SQLAlchemy model class to paginate.
+            session (AsyncSession): SQLAlchemy async session.
+
+        Raises:
+            ValueError: If the query does not have an order_by clause.
+
+        Returns:
+            PaginationResult[S]: Paginator with metadata and items.
+        """
         if query._order_by_clause is None or len(query._order_by_clause) == 0:
             raise ValueError("Select query must have an order_by clause.")
 

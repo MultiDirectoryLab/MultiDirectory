@@ -9,7 +9,7 @@ from __future__ import annotations
 import enum
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
@@ -66,7 +66,16 @@ def compile_create_uc(
     compiler: DDLCompiler,
     **kw: dict,
 ) -> str:
-    """Add NULLS NOT DISTINCT if its in args."""
+    """Add NULLS NOT DISTINCT if its in args.
+
+    Args:
+        create (DDLElement): The DDL element to compile.
+        compiler (DDLCompiler): The DDL compiler instance.
+        **kw (dict): Additional keyword arguments.
+
+    Returns:
+        str: Compiled unique constraint statement.
+    """
     stmt = compiler.visit_unique_constraint(create, **kw)
     postgresql_opts = create.dialect_options["postgresql"]  # type: ignore
 
@@ -179,12 +188,20 @@ class EntityType(Base):
 
     @property
     def object_class_names_set(self) -> set[str]:
-        """Get object class names."""
+        """Get object class names.
+
+        Returns:
+            set[str]: object class names
+        """
         return set(self.object_class_names)
 
     @classmethod
     def generate_entity_type_name(cls, directory: Directory) -> str:
-        """Generate entity type name based on Directory."""
+        """Generate entity type name based on Directory.
+
+        Returns:
+            str: entity type name.
+        """
         return f"{directory.name}_entity_type_{directory.id}"
 
 
@@ -225,7 +242,11 @@ class Directory(Base):
 
     @property
     def entity_type_object_class_names_set(self) -> set[str]:
-        """Get object class names of entity type."""
+        """Get object class names of entity type.
+
+        Returns:
+            set[str]: object class names of entity type.
+        """
         return (
             self.entity_type.object_class_names_set
             if self.entity_type
@@ -234,6 +255,11 @@ class Directory(Base):
 
     @property
     def object_class_names_set(self) -> set[str]:
+        """Object class names from directory's attribute.
+
+        Returns:
+            set[str]: object class names.
+        """
         return set(
             self.attributes_dict.get("objectClass", [])
             + self.attributes_dict.get("objectclass", [])
@@ -289,6 +315,12 @@ class Directory(Base):
 
     @property
     def attributes_dict(self) -> defaultdict[str, list[str]]:
+        """Get attributes dictionary.
+
+        Returns:
+            defaultdict[str, list[str]]: Dictionary of attribute names\
+                to their values.
+        """
         attributes = defaultdict(list)
         for attribute in self.attributes:
             attributes[attribute.name].extend(attribute.values)
@@ -336,14 +368,14 @@ class Directory(Base):
         ),
     )
 
-    search_fields = {
+    search_fields: ClassVar[dict[str, str]] = {
         "entitytypename": "entityTypeName",
         "name": "name",
         "objectguid": "objectGUID",
         "objectsid": "objectSid",
     }
 
-    ro_fields = {
+    ro_fields: ClassVar[set[str]] = {
         "uid",
         "whenCreated",
         "lastLogon",
@@ -354,29 +386,52 @@ class Directory(Base):
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
-        """Get distinguished name prefix."""
+        """Get distinguished name prefix.
+
+        Returns:
+            DistinguishedNamePrefix: Prefix for distinguished name.
+        """
         return {
             "organizationalUnit": "ou",
             "domain": "dc",
         }.get(self.object_class, "cn")  # type: ignore
 
     def get_dn(self, dn: str = "cn") -> str:
-        """Get distinguished name."""
+        """Get distinguished name.
+
+        Args:
+            dn (str): Distinguished name prefix (default: "cn").
+
+        Returns:
+            str: Distinguished name.
+        """
         return f"{dn}={self.name}"
 
     @property
     def is_domain(self) -> bool:
-        """Is directory domain."""
+        """Is directory domain.
+
+        Returns:
+            bool: True if directory is domain, otherwise False.
+        """
         return not self.parent_id and self.object_class == "domain"
 
     @property
     def host_principal(self) -> str:
-        """Principal computer name."""
+        """Principal computer name.
+
+        Returns:
+            str: Host principal name.
+        """
         return f"host/{self.name}"
 
     @property
     def path_dn(self) -> str:
-        """Get DN from path."""
+        """Get DN from path.
+
+        Returns:
+            str: Distinguished name from path.
+        """
         return ",".join(reversed(self.path))
 
     def create_path(
@@ -384,18 +439,31 @@ class Directory(Base):
         parent: Directory | None = None,
         dn: str = "cn",
     ) -> None:
-        """Create path from a new directory."""
+        """Create path from a new directory.
+
+        Args:
+            parent (Directory | None): Parent directory (default: None).
+            dn (str): Distinguished name prefix (default: "cn").
+        """
         pre_path: list[str] = parent.path if parent else []
-        self.path = pre_path + [self.get_dn(dn)]
+        self.path = [*pre_path, self.get_dn(dn)]
         self.depth = len(self.path)
         self.rdname = dn
 
     def __str__(self) -> str:
-        """Dir name."""
+        """Dir name.
+
+        Returns:
+            str: Directory name.
+        """
         return f"Directory({self.name})"
 
     def __repr__(self) -> str:
-        """Dir id and name."""
+        """Dir id and name.
+
+        Returns:
+            str: Directory id and name.
+        """
         return f"Directory({self.id}:{self.name})"
 
 
@@ -452,7 +520,7 @@ class User(Base):
         DateTime(timezone=True),
     )
 
-    search_fields = {
+    search_fields: ClassVar[dict[str, str]] = {
         "mail": "mail",
         "samaccountname": "sAMAccountName",
         "userprincipalname": "userPrincipalName",
@@ -461,7 +529,7 @@ class User(Base):
         "accountexpires": "accountExpires",
     }
 
-    fields = {
+    fields: ClassVar[dict[str, str]] = {
         "loginshell": "loginShell",
         "uidnumber": "uidNumber",
         "homedirectory": "homeDirectory",
@@ -486,24 +554,40 @@ class User(Base):
     )
 
     def get_upn_prefix(self) -> str:
-        """Get userPrincipalName prefix."""
+        """Get userPrincipalName prefix.
+
+        Returns:
+            str: Prefix of userPrincipalName.
+        """
         return self.user_principal_name.split("@")[0]
 
     def __str__(self) -> str:
-        """User show."""
+        """User show.
+
+        Returns:
+            str: User string representation.
+        """
         return f"User({self.sam_accout_name})"
 
     def __repr__(self) -> str:
-        """User map with dir id."""
+        """User map with dir id.
+
+        Returns:
+            str: User id and directory id.
+        """
         return f"User({self.directory_id}:{self.sam_accout_name})"
 
     def is_expired(self) -> bool:
-        """Check AccountExpires."""
+        """Check AccountExpires.
+
+        Returns:
+            bool: True if account is expired, otherwise False.
+        """
         if self.account_exp is None:
             return False
 
-        now = datetime.now(tz=timezone.utc)
-        user_account_exp = self.account_exp.astimezone(timezone.utc)
+        now = datetime.now(tz=UTC)
+        user_account_exp = self.account_exp.astimezone(UTC)
 
         return now > user_account_exp
 
@@ -585,11 +669,19 @@ class Group(Base):
     )
 
     def __str__(self) -> str:
-        """Group id."""
+        """Group id.
+
+        Returns:
+            str: Group id.
+        """
         return f"Group({self.id})"
 
     def __repr__(self) -> str:
-        """Group id and dir id."""
+        """Group id and dir id.
+
+        Returns:
+            str: Group id and directory id.
+        """
         return f"Group({self.id}:{self.directory_id})"
 
 
@@ -623,7 +715,11 @@ class Attribute(Base):
 
     @property
     def _decoded_value(self) -> str | None:
-        """Get attribute value."""
+        """Get attribute value.
+
+        Returns:
+            str | None: Decoded attribute value.
+        """
         if self.value:
             return self.value
         if self.bvalue:
@@ -632,15 +728,27 @@ class Attribute(Base):
 
     @property
     def values(self) -> list[str]:
-        """Get attribute value by list."""
+        """Get attribute value by list.
+
+        Returns:
+            list[str]: List of attribute values.
+        """
         return [self._decoded_value] if self._decoded_value else []
 
     def __str__(self) -> str:
-        """Attribute name and value."""
+        """Attribute name and value.
+
+        Returns:
+            str: Attribute name and value.
+        """
         return f"Attribute({self.name}:{self._decoded_value})"
 
     def __repr__(self) -> str:
-        """Attribute name and value."""
+        """Attribute name and value.
+
+        Returns:
+            str: Attribute name and value.
+        """
         return f"Attribute({self.name}:{self._decoded_value})"
 
 
@@ -663,7 +771,14 @@ class AttributeType(Base):
     is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
 
     def get_raw_definition(self) -> str:
-        """Format SQLAlchemy Attribute Type object to LDAP definition."""
+        """Format SQLAlchemy Attribute Type object to LDAP definition.
+
+        Returns:
+            str: LDAP definition string.
+
+        Raises:
+            ValueError: If required fields are missing.
+        """
         if not self.oid or not self.name or not self.syntax:
             err_msg = f"{self}: Fields 'oid', 'name', and 'syntax' are required for LDAP definition."  # noqa: E501
             raise ValueError(err_msg)
@@ -683,11 +798,19 @@ class AttributeType(Base):
         return " ".join(chunks)
 
     def __str__(self) -> str:
-        """AttributeType name."""
+        """AttributeType name.
+
+        Returns:
+            str: AttributeType name.
+        """
         return f"AttributeType({self.name})"
 
     def __repr__(self) -> str:
-        """AttributeType oid and name."""
+        """AttributeType oid and name.
+
+        Returns:
+            str: AttributeType oid and name.
+        """
         return f"AttributeType({self.oid}:{self.name})"
 
 
@@ -784,7 +907,14 @@ class ObjectClass(Base):
     )
 
     def get_raw_definition(self) -> str:
-        """Format SQLAlchemy Object Class object to LDAP definition."""
+        """Format SQLAlchemy Object Class object to LDAP definition.
+
+        Returns:
+            str: LDAP definition string.
+
+        Raises:
+            ValueError: If required fields are missing.
+        """
         if not self.oid or not self.name or not self.kind:
             err_msg = f"{self}: Fields 'oid', 'name', and 'kind' are required for LDAP definition."  # noqa: E501
             raise ValueError(err_msg)
@@ -809,20 +939,36 @@ class ObjectClass(Base):
 
     @property
     def attribute_type_names_must(self) -> list[str]:
-        """Display attribute types must."""
+        """Display attribute types must.
+
+        Returns:
+            list[str]: List of must attribute type names.
+        """
         return [attr.name for attr in self.attribute_types_must]
 
     @property
     def attribute_type_names_may(self) -> list[str]:
-        """Display attribute types may."""
+        """Display attribute types may.
+
+        Returns:
+            list[str]: List of may attribute type names.
+        """
         return [attr.name for attr in self.attribute_types_may]
 
     def __str__(self) -> str:
-        """ObjectClass name."""
+        """ObjectClass name.
+
+        Returns:
+            str: ObjectClass name.
+        """
         return f"ObjectClass({self.name})"
 
     def __repr__(self) -> str:
-        """ObjectClass oid and name."""
+        """ObjectClass oid and name.
+
+        Returns:
+            str: ObjectClass oid and name.
+        """
         return f"ObjectClass({self.oid}:{self.name})"
 
 
