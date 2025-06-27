@@ -130,15 +130,20 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import functools
 import hashlib
 import random
 import re
 import struct
+import time
 from calendar import timegm
 from datetime import datetime
 from hashlib import blake2b
 from operator import attrgetter
+from typing import Callable
 from zoneinfo import ZoneInfo
+
+from loguru import logger
 
 from models import Directory
 
@@ -304,3 +309,18 @@ def create_user_name(directory_id: int) -> str:
 
 
 get_class_name = attrgetter("__class__.__name__")
+
+
+def profile_async(func: Callable) -> Callable:
+    """Decorate to profile async functions."""
+
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs) -> object:  # type: ignore
+        start = time.perf_counter()
+        result = await func(*args, **kwargs)
+        logger.critical(
+            f"Time {func.__name__} executed: {time.perf_counter() - start:.4f}"
+        )
+        return result
+
+    return wrapper

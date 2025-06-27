@@ -21,6 +21,8 @@ from pydantic import (
     computed_field,
     field_validator,
 )
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.pool import NullPool
 
 
 def _get_vendor_version() -> str:
@@ -48,7 +50,7 @@ class Settings(BaseModel):
     POSTGRES_SCHEMA: ClassVar[str] = "postgresql+psycopg"
     POSTGRES_DB: str = "postgres"
 
-    POSTGRES_HOST: str = "postgres"
+    POSTGRES_HOST: str = "pgpool"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
@@ -115,6 +117,8 @@ class Settings(BaseModel):
     DNS_SERVER_NAMED_CONF: str = "/DNS_server_configs/named.conf"
     DNS_SERVER_NAMED_CONF_LOCAL: str = "/DNS_server_configs/named.conf.local"
 
+    ENABLE_SQLALCHEMY_LOGGING: bool = False
+
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
     @field_validator("TIMEZONE", mode="before")
@@ -152,6 +156,16 @@ class Settings(BaseModel):
     def check_certs_exist(self) -> bool:
         """Check if certs exist."""
         return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)
+
+    @cached_property
+    def engine(self) -> AsyncEngine:
+        """Get engine."""
+        return create_async_engine(
+            str(self.POSTGRES_URI),
+            poolclass=NullPool,
+            future=True,
+            pool_pre_ping=True,
+        )
 
     @classmethod
     def from_os(cls) -> "Settings":

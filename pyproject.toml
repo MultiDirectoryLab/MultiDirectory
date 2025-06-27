@@ -50,6 +50,7 @@ pytest-asyncio = "^0.26.0"
 pytest-cov = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
+fastapi-sqlalchemy-monitor = "^1.1.3"
 py-hot-reload = "^1.0.6"
 watchdog = "4.0.2"
 

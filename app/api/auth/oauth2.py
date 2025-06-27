@@ -12,7 +12,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import defaultload
+from sqlalchemy.orm import joinedload, selectinload
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
@@ -90,8 +90,9 @@ async def get_current_user(
 
     user = await session.scalar(
         select(User)
-        .options(defaultload(User.groups).selectinload(Group.access_policies))
-        .where(User.id == user_id)
+        .filter_by(id=user_id)
+        .options(joinedload(User.directory))
+        .options(selectinload(User.groups).selectinload(Group.access_policies))
     )
 
     if user is None:
