@@ -228,7 +228,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
         if item.attr in Directory.search_fields:
             return not_(eq(getattr(Directory, item.attr), None))
 
-        return Attribute.name.ilike(item.attr)
+        return Directory.attributes.any(Attribute.name.ilike(item.attr))
 
     is_substring = item.val.startswith("*") or item.val.endswith("*")
 
