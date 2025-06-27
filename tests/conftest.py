@@ -40,6 +40,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
+from api.utils.auth_manager import AuthManager
+from api.utils.mfa_manager import MFAManager
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from extra.dev_data import ENTITY_TYPE_DATAS
@@ -309,6 +311,37 @@ class TestProvider(Provider):
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
+
+    @provide(scope=Scope.REQUEST, provides=AuthManager)
+    async def get_auth_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        mfa_api: MultifactorAPI,
+        storage: SessionStorage,
+    ) -> AuthManager:
+        return AuthManager(
+            session=session,
+            settings=settings,
+            mfa_api=mfa_api,
+            storage=storage,
+        )
+
+    @provide(provides=MFAManager, scope=Scope.REQUEST)
+    async def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManager:
+        """DI-провайдер для MFAManager."""
+        return MFAManager(
+            session=session,
+            settings=settings,
+            storage=storage,
+            mfa_api=mfa_api,
         )
 
 

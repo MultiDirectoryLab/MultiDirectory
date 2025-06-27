@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
+from api.utils.auth_manager import AuthManager
+from api.utils.mfa_manager import MFAManager
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -162,32 +164,6 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings, http_client=http_client)
 
-    @provide(scope=Scope.REQUEST)
-    async def get_attribute_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
-
-    @provide(scope=Scope.REQUEST)
-    async def get_object_class_dao(
-        self,
-        attribute_type_dao: AttributeTypeDAO,
-        session: AsyncSession,
-    ) -> ObjectClassDAO:
-        """Get Object Class DAO."""
-        return ObjectClassDAO(session, attribute_type_dao)
-
-    @provide(scope=Scope.REQUEST)
-    async def get_entity_type_dao(
-        self,
-        object_class_dao: ObjectClassDAO,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session, object_class_dao)
-
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
@@ -226,34 +202,63 @@ class HTTPProvider(Provider):
         """Create ldap session."""
         return LDAPSession()
 
-    @provide(provides=AttributeTypeDAO)
-    def get_attribute_type_dao(
+    @provide(scope=Scope.REQUEST)
+    async def get_attribute_type_dao(
         self,
         session: AsyncSession,
     ) -> AttributeTypeDAO:
         """Get Attribute Type DAO."""
         return AttributeTypeDAO(session)
 
-    @provide(provides=ObjectClassDAO)
-    def get_object_class_dao(
+    @provide(scope=Scope.REQUEST)
+    async def get_object_class_dao(
         self,
         attribute_type_dao: AttributeTypeDAO,
         session: AsyncSession,
     ) -> ObjectClassDAO:
         """Get Object Class DAO."""
-        return ObjectClassDAO(
-            attribute_type_dao=attribute_type_dao,
-            session=session,
-        )
+        return ObjectClassDAO(session, attribute_type_dao)
 
-    @provide(provides=EntityTypeDAO)
-    def get_entity_type_dao(
+    @provide(scope=Scope.REQUEST)
+    async def get_entity_type_dao(
         self,
         object_class_dao: ObjectClassDAO,
         session: AsyncSession,
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session, object_class_dao)
+
+    @provide(provides=AuthManager, scope=Scope.REQUEST)
+    async def get_auth_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        mfa_api: MultifactorAPI,
+        storage: SessionStorage,
+    ) -> AuthManager:
+        """DI-провайдер для AuthManager."""
+        return AuthManager(
+            session=session,
+            settings=settings,
+            mfa_api=mfa_api,
+            storage=storage,
+        )
+
+    @provide(provides=MFAManager, scope=Scope.REQUEST)
+    async def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManager:
+        """DI-провайдер для MFAManager."""
+        return MFAManager(
+            session=session,
+            settings=settings,
+            storage=storage,
+            mfa_api=mfa_api,
+        )
 
 
 class LDAPServerProvider(Provider):
