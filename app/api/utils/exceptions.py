@@ -43,3 +43,11 @@ class NetworkPolicyError(ForbiddenError):
 
 class MFATokenError(Exception):
     """Raised when MFA token is invalid or user not found for callback."""
+
+
+class UserNotFoundError(ForbiddenError):
+    """Raised when user is not found during password reset."""
+
+
+class PasswordPolicyError(ForbiddenError):
+    """Raised when password does not meet policy requirements."""

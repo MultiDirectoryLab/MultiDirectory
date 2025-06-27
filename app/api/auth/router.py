@@ -15,9 +15,10 @@ from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import AuthManager
 from api.utils.exceptions import (
     ForbiddenError,
-    KerberosError,
     MFAError,
+    PasswordPolicyError,
     UnauthorizedError,
+    UserNotFoundError,
 )
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin
@@ -129,11 +130,13 @@ async def password_reset(
     """
     try:
         await auth_manager.reset_password(identity, new_password, kadmin)
-    except KerberosError as exc:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
-    except ForbiddenError as exc:
+    except PasswordPolicyError as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.args[0]
+        )
+    except UserNotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         )
 

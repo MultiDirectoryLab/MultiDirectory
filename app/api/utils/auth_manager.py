@@ -16,13 +16,13 @@ from api.auth.schema import OAuth2Form, SetupRequest
 from api.auth.utils import create_and_set_session_key
 from api.utils.exceptions import (
     ForbiddenError,
-    KerberosError,
     MFAError,
+    PasswordPolicyError,
     UnauthorizedError,
+    UserNotFoundError,
 )
 from config import Settings
 from extra.setup_dev import setup_enviroment
-from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
@@ -160,18 +160,15 @@ class AuthManager:
         """
         user = await get_user(self.__session, identity)
         if not user:
-            raise ForbiddenError("User not found")
+            raise UserNotFoundError("User not found")
         policy = await PasswordPolicySchema.get_policy_settings(self.__session)
         errors = await policy.validate_password_with_policy(new_password, user)
         if errors:
-            raise ForbiddenError(errors)
+            raise PasswordPolicyError(errors)
         user.password = get_password_hash(new_password)
-        try:
-            await kadmin.create_or_update_principal_pw(
-                user.get_upn_prefix(), new_password
-            )
-        except KRBAPIError:
-            raise KerberosError("Failed kerberos password update")
+        await kadmin.create_or_update_principal_pw(
+            user.get_upn_prefix(), new_password
+        )
         await post_save_password_actions(user, self.__session)
         await self.__session.commit()
 
