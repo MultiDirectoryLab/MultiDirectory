@@ -362,6 +362,8 @@ class SearchRequest(BaseRequest):
         """Build tree query."""
         query = (
             select(Directory)
+            .join(Directory.user, isouter=True)
+            .join(Directory.group, isouter=True)
             .options(
                 selectinload(Directory.groups)
                 .joinedload(Group.directory),
