@@ -1,3 +1,9 @@
+"""DNS API module.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import (
@@ -33,7 +39,11 @@ from .utils import (
 async def get_dns_manager_class(
     session: AsyncSession,
 ) -> type[AbstractDNSManager]:
-    """Get DNS manager class."""
+    """Get DNS manager class.
+
+    Returns:
+        AbstractDNSManager: Class of the DNS manager based on the current DNS.
+    """
     dns_state = await get_dns_state(session)
     if dns_state == DNSManagerState.SELFHOSTED:
         return SelfHostedDNSManager

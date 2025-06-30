@@ -26,7 +26,8 @@ class StubDNSManager(AbstractDNSManager):
         record_type: str,
         ttl: int | None,
         zone_name: str | None = None,
-    ) -> None: ...
+    ) -> None:
+        """Stub DNS manager create record."""
 
     @logger_wraps(is_stub=True)
     async def update_record(
@@ -36,7 +37,8 @@ class StubDNSManager(AbstractDNSManager):
         record_type: str,
         ttl: int,
         zone_name: str | None = None,
-    ) -> None: ...
+    ) -> None:
+        """Stub DNS manager update record."""
 
     @logger_wraps(is_stub=True)
     async def delete_record(
@@ -45,13 +47,20 @@ class StubDNSManager(AbstractDNSManager):
         ip: str,
         record_type: str,
         zone_name: str | None = None,
-    ) -> None: ...
+    ) -> None:
+        """Stub DNS manager delete record."""
 
     @logger_wraps(is_stub=True)
-    async def get_all_zones_records(self) -> None: ...
+    async def get_all_zones_records(self) -> None:
+        """Stub DNS manager get all zones records."""
 
     @logger_wraps(is_stub=True)
     async def get_forward_zones(self) -> list[DNSForwardZone]:
+        """Stub DNS manager get forward zones.
+
+        Returns:
+            list[DNSForwardZone]: List of DNSForwardZone objects.
+        """
         return []
 
     @logger_wraps(is_stub=True)
@@ -61,49 +70,54 @@ class StubDNSManager(AbstractDNSManager):
         zone_type: DNSZoneType,
         nameserver: str | None,
         params: list[DNSZoneParam],
-    ) -> None: ...
+    ) -> None:
+        """Stub DNS manager create zone."""
 
     @logger_wraps(is_stub=True)
     async def update_zone(
         self,
         zone_name: str,
         params: list[DNSZoneParam] | None,
-    ) -> None: ...
+    ) -> None:
+        """Stub DNS manager update zone."""
 
     @logger_wraps(is_stub=True)
-    async def delete_zone(
-        self,
-        zone_names: list[str],
-    ) -> None: ...
+    async def delete_zone(self, zone_names: list[str]) -> None:
+        """Stub DNS manager delete zone."""
 
     @logger_wraps(is_stub=True)
-    async def check_forward_dns_server(
-        self,
-        dns_server_ip: str,
-    ) -> None: ...
+    async def check_forward_dns_server(self, dns_server_ip: str) -> None:
+        """Stub DNS manager check forward DNS server."""
 
     @logger_wraps(is_stub=True)
     async def update_server_options(
         self,
         params: list[DNSServerParam],
-    ) -> None: ...
+    ) -> None:
+        """Stub DNS manager update server options."""
 
     @logger_wraps(is_stub=True)
     async def get_server_options(self) -> list[DNSServerParam]:
+        """Stub DNS manager get server options.
+
+        Returns:
+            list[DNSServerParam]: List of DNSServerParam objects.
+        """
         return []
 
     @logger_wraps(is_stub=True)
-    async def restart_server(
-        self,
-    ) -> None: ...
+    async def restart_server(self) -> None:
+        """Stub DNS manager restart server."""
 
     @logger_wraps(is_stub=True)
-    async def reload_zone(
-        self,
-        zone_name: str,
-    ) -> None: ...
+    async def reload_zone(self, zone_name: str) -> None:
+        """Stub DNS manager reload zone."""
 
     @logger_wraps(is_stub=True)
     async def get_all_records(self) -> list[DNSRecords]:
-        """Stub DNS manager get all records."""
+        """Stub DNS manager get all records.
+
+        Returns:
+            list[DNSRecords]: List of DNSRecords objects.
+        """
         return []

@@ -181,7 +181,11 @@ async def setup_dns(
 async def get_dns_zone(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSZone]:
-    """Get all DNS records of all zones."""
+    """Get all DNS records of all zones.
+
+    Returns:
+        list[DNSZone]: List of DNSZone objects with records.
+    """
     return await dns_manager.get_all_zones_records()
 
 
@@ -189,7 +193,11 @@ async def get_dns_zone(
 async def get_forward_dns_zones(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSForwardZone]:
-    """Get list of DNS forward zones with forwarders."""
+    """Get list of DNS forward zones with forwarders.
+
+    Returns:
+        list[DNSForwardZone]: List of DNSForwardZone objects.
+    """
     return await dns_manager.get_forward_zones()
 
 
@@ -233,7 +241,12 @@ async def check_dns_forward_zone(
     data: DNSServiceForwardZoneCheckRequest,
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSForwardServerStatus]:
-    """Check given DNS forward zone for availability."""
+    """Check given DNS forward zone for availability.
+
+    Returns:
+        list[DNSForwardServerStatus]: List of DNSForwardServerStatus objects
+        indicating the status of each DNS server.
+    """
     return [
         await dns_manager.check_forward_dns_server(dns_server_ip)
         for dns_server_ip in data.dns_server_ips
@@ -262,7 +275,11 @@ async def update_server_options(
 async def get_server_options(
     dns_manager: FromDishka[AbstractDNSManager],
 ) -> list[DNSServerParam]:
-    """Get list of modifiable DNS server params."""
+    """Get list of modifiable DNS server params.
+
+    Returns:
+        list[DNSServerParam]: List of DNSServerParam objects.
+    """
     return await dns_manager.get_server_options()
 
 

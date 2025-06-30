@@ -91,7 +91,11 @@ async def handle_not_implemented_error(
     request: Request,  # noqa: ARG001
     exc: Exception,  # noqa: ARG001
 ) -> NoReturn:
-    """Handle Not Implemented error."""
+    """Handle Not Implemented error.
+
+    Raises:
+        HTTPException: This feature is supported with selfhosted DNS server.
+    """
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="This feature is supported with selfhosted DNS server.",

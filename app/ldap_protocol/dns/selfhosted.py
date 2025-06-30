@@ -56,6 +56,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         ttl: int | None,
         zone_name: str | None = None,
     ) -> None:
+        """Update DNS record."""
         await self._http_client.patch(
             "/record",
             json={
@@ -75,6 +76,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         record_type: str,
         zone_name: str | None = None,
     ) -> None:
+        """Delete DNS record."""
         await self._http_client.request(
             "delete",
             "/record",
@@ -88,6 +90,11 @@ class SelfHostedDNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
+        """Get all DNS records.
+
+        Returns:
+            list[DNSRecords]: List of DNS records grouped by type.
+        """
         response = await self._http_client.get("/zone")
 
         response_data = response.json()
@@ -103,12 +110,22 @@ class SelfHostedDNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def get_all_zones_records(self) -> list[DNSZone]:
+        """Get all DNS zones with their records.
+
+        Returns:
+            list[DNSZone]: List of DNS zones with their records.
+        """
         response = await self._http_client.get("/zone")
 
         return response.json()
 
     @logger_wraps()
     async def get_forward_zones(self) -> list[DNSForwardZone]:
+        """Get all forward zones.
+
+        Returns:
+            list[DNSForwardZone]: List of forward zones.
+        """
         response = await self._http_client.get("/zone/forward")
 
         return response.json()
@@ -121,6 +138,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         nameserver: str | None,
         params: list[DNSZoneParam],
     ) -> None:
+        """Create DNS zone."""
         await self._http_client.post(
             "/zone",
             json={
@@ -137,6 +155,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         zone_name: str,
         params: list[DNSZoneParam],
     ) -> None:
+        """Update DNS zone."""
         await self._http_client.patch(
             "/zone",
             json={
@@ -146,10 +165,8 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
     @logger_wraps()
-    async def delete_zone(
-        self,
-        zone_names: list[str],
-    ) -> None:
+    async def delete_zone(self, zone_names: list[str]) -> None:
+        """Delete DNS zone."""
         for zone_name in zone_names:
             await self._http_client.request(
                 "delete",
@@ -162,6 +179,11 @@ class SelfHostedDNSManager(AbstractDNSManager):
         self,
         dns_server_ip: IPv4Address | IPv6Address,
     ) -> DNSForwardServerStatus:
+        """Check if the forward DNS server is reachable and return its FQDN.
+
+        Returns:
+            DNSForwardServerStatus: Status of the forward DNS server.
+        """
         str_dns_server_ip = str(dns_server_ip)
         try:
             hostname, _, _ = socket.gethostbyaddr(str_dns_server_ip)
@@ -183,6 +205,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         self,
         params: list[DNSServerParam],
     ) -> None:
+        """Update DNS server options."""
         await self._http_client.patch(
             "/server/settings",
             json=[asdict(param) for param in params],
@@ -190,19 +213,21 @@ class SelfHostedDNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def get_server_options(self) -> list[DNSServerParam]:
+        """Get list of modifiable DNS server params.
+
+        Returns:
+            list[DNSServerParam]: List of DNSServerParam objects.
+        """
         response = await self._http_client.get("/server/settings")
 
         return response.json()
 
     @logger_wraps()
-    async def restart_server(
-        self,
-    ) -> None:
+    async def restart_server(self) -> None:
+        """Restart DNS server."""
         await self._http_client.get("/server/restart")
 
     @logger_wraps()
-    async def reload_zone(
-        self,
-        zone_name: str,
-    ) -> None:
+    async def reload_zone(self, zone_name: str) -> None:
+        """Reload DNS zone."""
         await self._http_client.get(f"/zone/{zone_name}")
