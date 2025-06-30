@@ -7,7 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Query, status
+from fastapi import HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
@@ -40,17 +41,24 @@ async def create_one_attribute_type(
     :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
           manager.
     :param FromDishka[AsyncSession] session: Database session.
+    :raises HTTPException: 409 if attr already exists
     :return None.
     """
-    await attribute_type_dao.create_one(
-        oid=request_data.oid,
-        name=request_data.name,
-        syntax=_DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
-        single_value=request_data.single_value,
-        no_user_modification=_DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-        is_system=_DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-    )
-    await session.commit()
+    try:
+        await attribute_type_dao.create_one(
+            oid=request_data.oid,
+            name=request_data.name,
+            syntax=_DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
+            single_value=request_data.single_value,
+            no_user_modification=_DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
+            is_system=_DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
+        )
+        await session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Attribute already exists",
+        )
 
 
 @ldap_schema_router.get(
@@ -119,19 +127,26 @@ async def modify_one_attribute_type(
     :param AttributeTypeUpdateSchema request_data: Changed data.
     :param FromDishka[AsyncSession] session: Database session.
     :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
+    :raises HTTPException: 403 if attr read-only
     :return None.
     """
-    attribute_type = await attribute_type_dao.get_one_by_name(
-        attribute_type_name
-    )
+    try:
+        attribute_type = await attribute_type_dao.get_one_by_name(
+            attribute_type_name
+        )
 
-    request_data.syntax = _DEFAULT_ATTRIBUTE_TYPE_SYNTAX
-    request_data.no_user_modification = _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD
-    await attribute_type_dao.modify_one(
-        attribute_type=attribute_type,
-        new_statement=request_data,
-    )
-    await session.commit()
+        request_data.syntax = _DEFAULT_ATTRIBUTE_TYPE_SYNTAX
+        request_data.no_user_modification = _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD
+        await attribute_type_dao.modify_one(
+            attribute_type=attribute_type,
+            new_statement=request_data,
+        )
+        await session.commit()
+    except attribute_type_dao.AttributeTypeCantModifyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(error),
+        )
 
 
 @ldap_schema_router.post(
