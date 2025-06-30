@@ -15,13 +15,7 @@ from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import (
-    LoaderCriteriaOption,
-    joinedload,
-    selectinload,
-    with_loader_criteria,
-)
-from sqlalchemy.orm.strategy_options import _AbstractLoad
+from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -338,12 +332,13 @@ class SearchRequest(BaseRequest):
     def all_attrs(self) -> bool:
         return "*" in self.requested_attrs or not self.requested_attrs
 
-    def _get_attributes_to_load(
+    def _mutate_query_with_attributes_to_load(
         self,
-    ) -> tuple[_AbstractLoad] | tuple[_AbstractLoad, LoaderCriteriaOption]:
+        query: Select,
+    ) -> Select:
         """Get attributes to load."""
         if self.all_attrs:
-            return (selectinload(Directory.attributes),)
+            return query.options(selectinload(Directory.attributes))
 
         attrs = [
             attr
@@ -351,9 +346,12 @@ class SearchRequest(BaseRequest):
             if attr not in _ATTRS_TO_CLEAN
         ]
 
-        return selectinload(Directory.attributes), with_loader_criteria(
-            Attribute,
-            func.lower(Attribute.name).in_(attrs),
+        return query.options(
+            selectinload(Directory.attributes),
+            with_loader_criteria(
+                Attribute,
+                func.lower(Attribute.name).in_(attrs),
+            ),
         )
 
     def build_query(
@@ -365,12 +363,13 @@ class SearchRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                selectinload(Directory.groups).joinedload(Group.directory),
+                selectinload(Directory.groups)
+                .joinedload(Group.directory),
                 joinedload(Directory.entity_type),
             )
-            .options(*self._get_attributes_to_load())
-        )
+        )  # fmt: skip
 
+        query = self._mutate_query_with_attributes_to_load(query)
         query = mutate_ap(query, user)
 
         for base_directory in base_directories:
@@ -457,16 +456,16 @@ class SearchRequest(BaseRequest):
         attrs: dict[str, list[str]],
         session: AsyncSession,
     ) -> None:
-        if "distinguishedname" not in self.requested_attrs:
+        if "distinguishedname" not in self.requested_attrs or self.all_attrs:
             attrs["distinguishedName"].append(distinguished_name)
 
-        if "whenCreated" in self.requested_attrs:
+        if "whenCreated" in self.requested_attrs or self.all_attrs:
             attrs["whenCreated"].append(
                 directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
             )
 
         if directory.user:
-            if "accountexpires" in self.requested_attrs:
+            if "accountexpires" in self.requested_attrs or self.all_attrs:
                 if directory.user.account_exp is None:
                     attrs["accountExpires"].append("0")
                 else:
@@ -477,6 +476,7 @@ class SearchRequest(BaseRequest):
             if (
                 "lastlogon" in self.requested_attrs
                 or "authTimestamp" in self.requested_attrs
+                or self.all_attrs
             ):
                 if directory.user.last_logon is None:
                     attrs["lastLogon"].append("0")
