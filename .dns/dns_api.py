@@ -24,6 +24,7 @@ logging.basicConfig(level=logging.INFO)
 TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates/"),
     autoescape=True,
+    keep_trailing_newline=True,
 )
 
 ZONE_FILES_DIR = "/opt"
