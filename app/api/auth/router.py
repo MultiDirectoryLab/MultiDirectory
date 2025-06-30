@@ -13,7 +13,6 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from config import Settings
 from extra.setup_dev import setup_enviroment
@@ -95,9 +94,10 @@ async def login(
 
     query = (
         select(Group)
-        .options(selectinload(Group.users))
+        .join(Group.users)
         .join(Group.directory)
         .filter(User.id == user.id, Directory.name == "domain admins")
+        .limit(1)
         .exists()
     )
 
