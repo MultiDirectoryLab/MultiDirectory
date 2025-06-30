@@ -156,7 +156,7 @@ services:
       migrations:
         condition: service_completed_successfully
 
-  postgres:
+  postgres-db:
     container_name: MD-postgres
     image: mirror.gcr.io/postgres:16
     restart: unless-stopped
@@ -175,6 +175,33 @@ services:
       timeout: 60s
       retries: 10
       start_period: 5s
+
+  postgres:
+    image: bitnami/pgpool:latest
+    hostname: 'postgres'
+    ports:
+      - 5432:5432
+    environment:
+      - PGPOOL_BACKEND_NODES=0:postgres-db:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER:-user1}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD:-password123}
+      - PGPOOL_ENABLE_LDAP=no
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER:-user1}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password123}
+      - PGPOOL_ADMIN_USERNAME=${POSTGRES_USER:-user1}
+      - PGPOOL_ADMIN_PASSWORD=${POSTGRES_PASSWORD:-password123}
+      - PGPOOL_MAX_POOL=${PGPOOL_MAX_POOL:-100}
+    healthcheck:
+      test: ["CMD", "/opt/bitnami/scripts/pgpool/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres:/bitnami/postgresql
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+        restart: true
 
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
