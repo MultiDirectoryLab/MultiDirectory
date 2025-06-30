@@ -61,10 +61,10 @@ class MFAManager:
         :param storage: SessionStorage
         :param mfa_api: MultifactorAPI
         """
-        self.__session = session
-        self.__settings = settings
-        self.__storage = storage
-        self.__mfa_api = mfa_api
+        self._session = session
+        self._settings = settings
+        self._storage = storage
+        self._mfa_api = mfa_api
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -72,8 +72,8 @@ class MFAManager:
         :param mfa: MFACreateRequest
         :return: bool
         """
-        async with self.__session.begin_nested():
-            await self.__session.execute(
+        async with self._session.begin_nested():
+            await self._session.execute(
                 delete(CatalogueSetting).filter(
                     operator.or_(
                         CatalogueSetting.name == mfa.key_name,
@@ -81,8 +81,8 @@ class MFAManager:
                     ),
                 )
             )
-            await self.__session.flush()
-            self.__session.add_all(
+            await self._session.flush()
+            self._session.add_all(
                 (
                     CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key),
                     CatalogueSetting(
@@ -91,7 +91,7 @@ class MFAManager:
                     ),
                 )
             )
-            await self.__session.commit()
+            await self._session.commit()
         return True
 
     async def remove_mfa(self, scope: str) -> None:
@@ -104,12 +104,12 @@ class MFAManager:
             keys = ["mfa_key", "mfa_secret"]
         else:
             keys = ["mfa_key_ldap", "mfa_secret_ldap"]
-        await self.__session.execute(
+        await self._session.execute(
             delete(CatalogueSetting)
             .filter(CatalogueSetting.name.in_(keys))
         )  # fmt: skip
 
-        await self.__session.commit()
+        await self._session.commit()
 
     async def get_mfa(
         self,
@@ -162,17 +162,17 @@ class MFAManager:
             raise MFATokenError()
 
         user_id: int = int(payload.get("uid"))
-        user = await self.__session.get(DBUser, user_id)
+        user = await self._session.get(DBUser, user_id)
         if user_id is None or not user:
             raise MFATokenError()
 
         response = RedirectResponse("/", 302)
         await create_and_set_session_key(
             user,
-            self.__session,
-            self.__settings,
+            self._session,
+            self._settings,
             response,
-            self.__storage,
+            self._storage,
             ip,
             user_agent,
         )
@@ -197,60 +197,58 @@ class MFAManager:
         :raises ForbiddenError: if credentials invalid or policy not passed
         :raises MFAError: for MFA-specific errors
         """
-        if not self.__mfa_api.is_initialized:
+        if not self._mfa_api.is_initialized:
             raise MissingMFACredentialsError()
         user = await authenticate_user(
-            self.__session, form.username, form.password
+            self._session, form.username, form.password
         )
         if not user:
             raise InvalidCredentialsError()
-        network_policy = await get_user_network_policy(
-            ip, user, self.__session
-        )
+        network_policy = await get_user_network_policy(ip, user, self._session)
         if network_policy is None:
             raise NetworkPolicyError()
         try:
             url = request.url_for("callback_mfa")
-            if self.__settings.USE_CORE_TLS:
+            if self._settings.USE_CORE_TLS:
                 url = url.replace(scheme="https")
-            redirect_url = await self.__mfa_api.get_create_mfa(
+            redirect_url = await self._mfa_api.get_create_mfa(
                 user.user_principal_name,
                 url.components.geturl(),
                 user.id,
             )
-        except self.__mfa_api.MFAConnectError:
+        except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
                 await create_and_set_session_key(
                     user,
-                    self.__session,
-                    self.__settings,
+                    self._session,
+                    self._settings,
                     response,
-                    self.__storage,
+                    self._storage,
                     ip,
                     user_agent,
                 )
                 return MFAChallengeResponse(status="bypass", message="")
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
-        except self.__mfa_api.MFAMissconfiguredError:
+        except self._mfa_api.MFAMissconfiguredError:
             await create_and_set_session_key(
                 user,
-                self.__session,
-                self.__settings,
+                self._session,
+                self._settings,
                 response,
-                self.__storage,
+                self._storage,
                 ip,
                 user_agent,
             )
             return MFAChallengeResponse(status="bypass", message="")
-        except self.__mfa_api.MultifactorError as error:
+        except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
                 await create_and_set_session_key(
                     user,
-                    self.__session,
-                    self.__settings,
+                    self._session,
+                    self._settings,
                     response,
-                    self.__storage,
+                    self._storage,
                     ip,
                     user_agent,
                 )
