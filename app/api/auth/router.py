@@ -14,8 +14,9 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import AuthManager
 from api.utils.exceptions import (
-    ForbiddenError,
-    MFAError,
+    AlreadyConfiguredError,
+    LoginFailedError,
+    MFARequiredError,
     PasswordPolicyError,
     UnauthorizedError,
     UserNotFoundError,
@@ -72,9 +73,9 @@ async def login(
             detail=str(exc),
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except ForbiddenError:
+    except LoginFailedError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
-    except MFAError as exc:
+    except MFARequiredError as exc:
         raise HTTPException(status.HTTP_426_UPGRADE_REQUIRED, detail=str(exc))
 
 
@@ -171,5 +172,5 @@ async def first_setup(
     """
     try:
         await auth_manager.perform_first_setup(request)
-    except ForbiddenError as exc:
+    except AlreadyConfiguredError as exc:
         raise HTTPException(status.HTTP_423_LOCKED, detail=str(exc))

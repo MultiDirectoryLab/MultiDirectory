@@ -51,3 +51,15 @@ class UserNotFoundError(ForbiddenError):
 
 class PasswordPolicyError(ForbiddenError):
     """Raised when password does not meet policy requirements."""
+
+
+class LoginFailedError(Exception):
+    """Raised when login fails due to invalid credentials."""
+
+
+class MFARequiredError(Exception):
+    """Raised when MFA is required for login."""
+
+
+class AlreadyConfiguredError(Exception):
+    """Raised when setup is already performed."""
