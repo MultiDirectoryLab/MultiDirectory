@@ -92,11 +92,29 @@ async def get_directories(
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     """Get dirs with groups by dn list."""
-    return [
-        directory.group
-        for directory in await get_directories(dn_list, session)
-        if directory.group is not None
-    ]
+    paths = []
+
+    for dn in dn_list:
+        for base_directory in await get_base_directories(session):
+            if dn_is_base_directory(base_directory, dn):
+                continue
+
+            paths.append(get_filter_from_path(dn))
+
+    if not paths:
+        return paths  # type: ignore
+
+    query = (
+        select(Group)
+        .join(Group.directory, isouter=True)
+        .filter(or_(*paths))
+        .options(selectinload(Group.members))
+        .options(joinedload(Group.directory).selectinload(Directory.groups))
+    )
+
+    results = await session.scalars(query)
+
+    return list(results.all())
 
 
 async def get_group(
