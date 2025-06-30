@@ -124,10 +124,10 @@ class ModifyRequest(BaseRequest):
             )
         return cls(object=entry.value, changes=changes)
 
-    async def _update_password_expiration(
+    def _update_password_expiration(
         self,
         change: Changes,
-        session: AsyncSession,
+        policy: PasswordPolicySchema,
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
@@ -135,8 +135,6 @@ class ModifyRequest(BaseRequest):
             and change.modification.vals[0] == "19700101000000Z"
         ):
             return
-
-        policy = await PasswordPolicySchema.get_policy_settings(session)
 
         if policy.maximum_password_age_days == 0:
             return
@@ -165,7 +163,9 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        policy = await PasswordPolicySchema.get_policy_settings(session)
         query = self._get_dir_query()
+        query = mutate_ap(query, ldap_session.user)
 
         directory = await session.scalar(mutate_ap(query, ldap_session.user))
 
@@ -194,7 +194,7 @@ class ModifyRequest(BaseRequest):
             if change.modification.type in Directory.ro_fields:
                 continue
 
-            await self._update_password_expiration(change, session)
+            self._update_password_expiration(change, policy)
 
             add_args = (
                 change,
@@ -222,25 +222,23 @@ class ModifyRequest(BaseRequest):
                 await session.execute(
                     update(Directory).where(Directory.id == directory.id),
                 )
-                await session.commit()
             except MODIFY_EXCEPTION_STACK as err:
                 await session.rollback()
                 result_code, message = self._match_bad_response(err)
                 yield ModifyResponse(result_code=result_code, message=message)
                 return
 
-        if "objectclass" in names:
             await session.refresh(
                 instance=directory,
-                attribute_names=["attributes"],
-                with_for_update=None,
+                attribute_names=["groups", "attributes"],
             )
+
+        if "objectclass" in names:
             await entity_type_dao.attach_entity_type_to_directory(
                 directory=directory,
                 is_system_entity_type=False,
             )
-            await session.commit()
-
+        await session.commit()
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
