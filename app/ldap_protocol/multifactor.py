@@ -133,8 +133,7 @@ class MultifactorAPI:
         self.client = client
         self.settings = settings
         self.auth: tuple[str, str] = (key, secret)
-        if key and secret:
-            self.is_initialized = True
+        self.is_initialized = bool(key, secret)
 
     @staticmethod
     def _generate_trace_id_header() -> dict[str, str]:
