@@ -7,7 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Query, status
+from fastapi import HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
@@ -38,18 +39,25 @@ async def create_one_object_class(
     :param ObjectClassSchema request_data: Data for creating Object Class.
     :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :param FromDishka[AsyncSession] session: Database session.
+    :raises HTTPException: 409 if object class already exists
     :return None.
     """
-    await object_class_dao.create_one(
-        oid=request_data.oid,
-        name=request_data.name,
-        superior_name=request_data.superior_name,
-        kind=request_data.kind,
-        is_system=_DEFAULT_OBJECT_CLASS_IS_SYSTEM,
-        attribute_type_names_must=request_data.attribute_type_names_must,
-        attribute_type_names_may=request_data.attribute_type_names_may,
-    )
-    await session.commit()
+    try:
+        await object_class_dao.create_one(
+            oid=request_data.oid,
+            name=request_data.name,
+            superior_name=request_data.superior_name,
+            kind=request_data.kind,
+            is_system=_DEFAULT_OBJECT_CLASS_IS_SYSTEM,
+            attribute_type_names_must=request_data.attribute_type_names_must,
+            attribute_type_names_may=request_data.attribute_type_names_may,
+        )
+        await session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Object Class already exists",
+        )
 
 
 @ldap_schema_router.get(
@@ -119,13 +127,21 @@ async def modify_one_object_class(
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    object_class = await object_class_dao.get_one_by_name(object_class_name)
+    try:
+        object_class = await object_class_dao.get_one_by_name(
+            object_class_name
+        )
 
-    await object_class_dao.modify_one(
-        object_class=object_class,
-        new_statement=request_data,
-    )
-    await session.commit()
+        await object_class_dao.modify_one(
+            object_class=object_class,
+            new_statement=request_data,
+        )
+        await session.commit()
+    except object_class_dao.ObjectClassCantModifyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(error),
+        )
 
 
 @ldap_schema_router.post(
