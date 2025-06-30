@@ -285,7 +285,6 @@ class Directory(Base):
         "Attribute",
         cascade="all",
         passive_deletes=True,
-        lazy="noload",
     )
 
     @property
@@ -318,7 +317,6 @@ class Directory(Base):
         cascade="all",
         passive_deletes=True,
         overlaps="group,directory",
-        lazy="noload",
     )
     access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
@@ -326,7 +324,6 @@ class Directory(Base):
         primaryjoin="Directory.id == AccessPolicyMembership.dir_id",
         secondaryjoin="AccessPolicyMembership.policy_id == AccessPolicy.id",
         back_populates="directories",
-        lazy="noload",
     )
 
     __table_args__ = (
