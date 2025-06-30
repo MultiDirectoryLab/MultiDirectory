@@ -228,37 +228,8 @@ class HTTPProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session, object_class_dao)
 
-    @provide(provides=AuthManager, scope=Scope.REQUEST)
-    async def get_auth_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        mfa_api: MultifactorAPI,
-        storage: SessionStorage,
-    ) -> AuthManager:
-        """DI-провайдер для AuthManager."""
-        return AuthManager(
-            session=session,
-            settings=settings,
-            mfa_api=mfa_api,
-            storage=storage,
-        )
-
-    @provide(provides=MFAManager, scope=Scope.REQUEST)
-    async def get_mfa_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        storage: SessionStorage,
-        mfa_api: MultifactorAPI,
-    ) -> MFAManager:
-        """DI-провайдер для MFAManager."""
-        return MFAManager(
-            session=session,
-            settings=settings,
-            storage=storage,
-            mfa_api=mfa_api,
-        )
+    auth_manager = provide(AuthManager, scope=Scope.REQUEST)
+    mfa_manager = provide(provides=MFAManager, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(Provider):
@@ -322,7 +293,7 @@ class MFAProvider(Provider):
         credentials: MFA_HTTP_Creds,
         client: MFAHTTPClient,
         settings: Settings,
-    ) -> MultifactorAPI | None:
+    ) -> MultifactorAPI:
         """Get api from DI.
 
         :param httpx.AsyncClient client: httpx client
@@ -330,7 +301,7 @@ class MFAProvider(Provider):
         :return MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
-            return None
+            return MultifactorAPI
         return MultifactorAPI(
             credentials.key,
             credentials.secret,

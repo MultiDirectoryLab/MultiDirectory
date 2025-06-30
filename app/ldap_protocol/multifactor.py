@@ -111,6 +111,8 @@ class MultifactorAPI:
     AUTH_URL_ADMIN = "/access/requests"
     REFRESH_URL = "/token/refresh"
 
+    is_initialized = False
+
     client: httpx.AsyncClient
     settings: Settings
 
@@ -131,6 +133,7 @@ class MultifactorAPI:
         self.client = client
         self.settings = settings
         self.auth: tuple[str, str] = (key, secret)
+        self.is_initialized = True
 
     @staticmethod
     def _generate_trace_id_header() -> dict[str, str]:

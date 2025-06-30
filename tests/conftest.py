@@ -198,14 +198,9 @@ class TestProvider(Provider):
             session=session,
         )
 
-    @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
-    def get_entity_type_dao(
-        self,
-        object_class_dao: ObjectClassDAO,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session, object_class_dao)
+    get_entity_type_dao = provide(
+        EntityTypeDAO, scope=Scope.REQUEST, cache=False
+    )
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -313,36 +308,8 @@ class TestProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    @provide(scope=Scope.REQUEST, provides=AuthManager)
-    async def get_auth_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        mfa_api: MultifactorAPI,
-        storage: SessionStorage,
-    ) -> AuthManager:
-        return AuthManager(
-            session=session,
-            settings=settings,
-            mfa_api=mfa_api,
-            storage=storage,
-        )
-
-    @provide(provides=MFAManager, scope=Scope.REQUEST)
-    async def get_mfa_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        storage: SessionStorage,
-        mfa_api: MultifactorAPI,
-    ) -> MFAManager:
-        """DI-провайдер для MFAManager."""
-        return MFAManager(
-            session=session,
-            settings=settings,
-            storage=storage,
-            mfa_api=mfa_api,
-        )
+    auth_manager = provide(AuthManager, scope=Scope.REQUEST)
+    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
 
 
 @dataclass

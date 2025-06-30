@@ -15,8 +15,10 @@ from api.auth.oauth2 import authenticate_user
 from api.auth.schema import OAuth2Form, SetupRequest
 from api.auth.utils import create_and_set_session_key
 from api.utils.exceptions import (
+    AlreadyConfiguredError,
     ForbiddenError,
-    MFAError,
+    LoginFailedError,
+    MFARequiredError,
     PasswordPolicyError,
     UnauthorizedError,
     UserNotFoundError,
@@ -52,7 +54,7 @@ class AuthManager:
         self,
         session: AsyncSession,
         settings: Settings,
-        mfa_api: MultifactorAPI | None,
+        mfa_api: MultifactorAPI,
         storage: SessionStorage,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
@@ -106,13 +108,13 @@ class AuthManager:
             await self.__session.scalars(select(query))
         ).one()
         if not is_part_of_admin_group:
-            raise ForbiddenError("User not part of domain admins")
+            raise LoginFailedError("User not part of domain admins")
 
         uac_check = await get_check_uac(self.__session, user.directory_id)
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
-            raise ForbiddenError("User account is disabled")
+            raise LoginFailedError("User account is disabled")
         if user.is_expired():
-            raise ForbiddenError("User account is expired")
+            raise LoginFailedError("User account is expired")
 
         network_policy = await get_user_network_policy(
             ip,
@@ -120,9 +122,9 @@ class AuthManager:
             self.__session,
         )
         if network_policy is None:
-            raise ForbiddenError("User not part of network policy")
+            raise LoginFailedError("User not part of network policy")
 
-        if self.__mfa_api and network_policy.mfa_status in (
+        if self.__mfa_api.is_initialized and network_policy.mfa_status in (
             MFAFlags.ENABLED,
             MFAFlags.WHITELIST,
         ):
@@ -132,7 +134,7 @@ class AuthManager:
                     network_policy, user, self.__session
                 )
             if request_2fa:
-                raise MFAError("Requires MFA connect")
+                raise MFARequiredError("Requires MFA connect")
 
         await create_and_set_session_key(
             user,
@@ -206,7 +208,7 @@ class AuthManager:
             .filter(Directory.parent_id.is_(None))
         )  # fmt: skip
         if setup_already_performed:
-            raise ForbiddenError("Setup already performed")
+            raise AlreadyConfiguredError("Setup already performed")
         data = [
             {
                 "name": "groups",
@@ -341,6 +343,8 @@ class AuthManager:
                 await self.__session.commit()
             except IntegrityError:
                 await self.__session.rollback()
-                raise ForbiddenError("Setup already performed (locked)")
+                raise AlreadyConfiguredError(
+                    "Setup already performed (locked)"
+                )
             else:
                 get_base_directories.cache_clear()
