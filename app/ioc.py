@@ -314,7 +314,7 @@ class MFAProvider(Provider):
         :return MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
-            return MultifactorAPI
+            return MultifactorAPI("", "", client, settings)
         return MultifactorAPI(
             credentials.key,
             credentials.secret,
