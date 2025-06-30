@@ -10,11 +10,11 @@ def temporary_stub_entity_type_name(func: Callable) -> Callable:
     """Add and drop the 'entity_type_name' column in the 'Directory' table.
 
     State of the database at the time of migration
-    doesn`t contains 'entity_type_name' column into 'Directory' table,
+    doesn't contain 'entity_type_name' column in the 'Directory' table,
     but 'Directory' model has the column.
 
     Before starting the migration, add 'entity_type_name' column.
-    Then migration complited, delete 'entity_type_name' column.
+    Then migration completed, delete 'entity_type_name' column.
 
     Don`t like excluding columns with Deferred(),
     because you will need to refactor SQL queries
