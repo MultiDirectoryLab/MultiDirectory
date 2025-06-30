@@ -52,7 +52,7 @@ class MFAManager:
         session: AsyncSession,
         settings: Settings,
         storage: SessionStorage,
-        mfa_api: MultifactorAPI | None,
+        mfa_api: MultifactorAPI,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -197,7 +197,7 @@ class MFAManager:
         :raises ForbiddenError: if credentials invalid or policy not passed
         :raises MFAError: for MFA-specific errors
         """
-        if not self.__mfa_api:
+        if not self.__mfa_api.is_initialized:
             raise MissingMFACredentialsError()
         user = await authenticate_user(
             self.__session, form.username, form.password
