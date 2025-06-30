@@ -41,6 +41,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
+from api.utils.auth_manager import AuthManager
+from api.utils.mfa_manager import MFAManager
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider, SessionStorageClient
@@ -196,13 +198,9 @@ class TestProvider(Provider):
             session=session,
         )
 
-    @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
-    def get_entity_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
+    get_entity_type_dao = provide(
+        EntityTypeDAO, scope=Scope.REQUEST, cache=False
+    )
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -309,6 +307,9 @@ class TestProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    auth_manager = provide(AuthManager, scope=Scope.REQUEST)
+    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
 
 
 @dataclass

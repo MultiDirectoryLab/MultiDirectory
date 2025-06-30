@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
+from api.utils.auth_manager import AuthManager
+from api.utils.mfa_manager import MFAManager
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -173,14 +175,6 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings, http_client=http_client)
 
-    @provide(scope=Scope.REQUEST)
-    async def get_entity_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
-
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
@@ -247,6 +241,9 @@ class HTTPProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
 
+    auth_manager = provide(AuthManager, scope=Scope.REQUEST)
+    mfa_manager = provide(provides=MFAManager, scope=Scope.REQUEST)
+
 
 class LDAPServerProvider(Provider):
     """Provider with session scope."""
@@ -309,7 +306,7 @@ class MFAProvider(Provider):
         credentials: MFA_HTTP_Creds,
         client: MFAHTTPClient,
         settings: Settings,
-    ) -> MultifactorAPI | None:
+    ) -> MultifactorAPI:
         """Get api from DI.
 
         :param httpx.AsyncClient client: httpx client
@@ -317,7 +314,7 @@ class MFAProvider(Provider):
         :return MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
-            return None
+            return MultifactorAPI("", "", client, settings)
         return MultifactorAPI(
             credentials.key,
             credentials.secret,
