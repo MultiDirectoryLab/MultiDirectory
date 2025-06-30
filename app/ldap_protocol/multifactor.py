@@ -58,7 +58,13 @@ async def get_creds(
 ) -> Creds | None:
     """Get API creds.
 
-    :return tuple[str, str]: api key and secret
+    Args:
+        session (AsyncSession): session
+        key_name (str): key name
+        secret_name (str): secret name
+
+    Returns:
+        tuple[str, str]: api key and secret
     """
     query = (
         select(CatalogueSetting)
@@ -84,23 +90,14 @@ class MultifactorAPI:
 
     Methods:
     - `__init__(key, secret, client, settings)`: Initializes the object with
-      the required credentials and bound HTTP client from di.
+        the required credentials and bound HTTP client from di.
     - `ldap_validate_mfa(username, password)`: Validates MFA for a user. If the
-      password is not provided, sends a push notification and waits for user
-      approval with a timeout of 60 seconds.
+        password is not provided, sends a push notification and waits for user
+        approval with a timeout of 60 seconds.
     - `get_create_mfa(username)`: Retrieves or creates an MFA token for the
-      specified user.
+        specified user.
     - `refresh_token()`: Refreshes the authentication token using the refresh
-      endpoint.
-
-    Attributes:
-    - `MultifactorError`: Exception class for MFA-related errors.
-    - `AUTH_URL_USERS`: Endpoint URL for user authentication requests.
-    - `AUTH_URL_ADMIN`: Endpoint URL for admin authentication requests.
-    - `REFRESH_URL`: Endpoint URL for token refresh.
-    - `client`: Asynchronous HTTP client for making requests.
-    - `settings`: Configuration settings for the MFA service.
-
+        endpoint.
     """
 
     MultifactorError = _MultifactorError
@@ -123,10 +120,12 @@ class MultifactorAPI:
     ):
         """Set creds and web client.
 
-        :param str key: mfa key
-        :param str secret: mfa secret
-        :param httpx.AsyncClient client: client for making queries (activated)
-        :param Settings settings: app settings
+        Args:
+            key (str): mfa key
+            secret (str): mfa secret
+            client (httpx.AsyncClient): client for making queries
+                (activated)
+            settings (Settings): app settings
         """
         self.client = client
         self.settings = settings
@@ -134,6 +133,11 @@ class MultifactorAPI:
 
     @staticmethod
     def _generate_trace_id_header() -> dict[str, str]:
+        """Generate trace id header.
+
+        Returns:
+            dict[str, str]
+        """
         return {"mf-trace-id": f"md:{uuid.uuid4()}"}
 
     @log_mfa.catch(reraise=True)
@@ -149,14 +153,18 @@ class MultifactorAPI:
         timeout is 60 seconds.
         "m" key-character is used to mark push request in multifactor API.
 
-        :param str username: un
-        :param str password: pwd
-        :param NetworkPolicy policy: policy
-        :raises MultifactorError: connect timeout
-        :raises MultifactorError: invalid json
-        :raises MultifactorError: Invalid status
-        :return bool: status
-        """
+        Args:
+            username (str): un
+            password (str): pwd
+
+        Returns:
+            bool: status
+
+        Raises:
+            MFAConnectError: API Timeout
+            MFAMissconfiguredError: API Key or Secret is invalid
+            MultifactorError: status error
+        """  # noqa: DOC502
         passcode = password or "m"
         log_mfa.debug(f"LDAP MFA request: {username}, {password}")
         try:
@@ -211,14 +219,19 @@ class MultifactorAPI:
     ) -> str:
         """Create mfa link.
 
-        :param str username: un
-        :param str callback_url: callback uri to send token
-        :param int uid: user id
-        :raises httpx.TimeoutException: on timeout
-        :raises self.MultifactorError: on invalid json, Key or error status
-            code
-        :return str: url to open in new page
-        """
+        Args:
+            username (str): un
+            callback_url (str): callback uri to send token
+            uid (int): user id
+
+        Returns:
+            str: url to open in new page
+
+        Raises:
+            MFAConnectError: API Timeout
+            MFAMissconfiguredError: API Key or Secret is invalid
+            MultifactorError: Incorrect resource
+        """  # noqa: DOC502
         data = {
             "identity": username,
             "claims": {
@@ -264,10 +277,15 @@ class MultifactorAPI:
     async def refresh_token(self, token: str) -> str:
         """Refresh mfa token.
 
-        :param str token: str jwt token
-        :raises self.MultifactorError: on api err
-        :return str: new token
-        """
+        Args:
+            token (str): str jwt token
+
+        Returns:
+            str: new token
+
+        Raises:
+            MultifactorError: on api err
+        """  # noqa: DOC502
         try:
             response = await self.client.post(
                 self.settings.MFA_API_URI + self.REFRESH_URL,

@@ -35,12 +35,10 @@ async def create_one_attribute_type(
 ) -> None:
     """Create a new Attribute Type.
 
-    \f
-    :param AttributeTypeSchema request_data: Data for creating Attribute Type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
-          manager.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None.
+    Args:
+        request_data (AttributeTypeSchema): Data for creating attribute type.
+        session (AsyncSession): Database session.
+        attribute_type_dao (AttributeTypeDAO): Database session.
     """
     await attribute_type_dao.create_one(
         oid=request_data.oid,
@@ -62,12 +60,14 @@ async def get_one_attribute_type(
     attribute_type_name: str,
     attribute_type_dao: FromDishka[AttributeTypeDAO],
 ) -> AttributeTypeSchema:
-    """Retrieve a one Attribute Type.
+    """Retrieve a single attribute type by name.
 
-    \f
-    :param str attribute_type_name: name of the Attribute Type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
-    :return AttributeTypeSchema: Attribute Type Schema.
+    Args:
+        attribute_type_name (str): Name of the attribute type.
+        attribute_type_dao (AttributeTypeDAO): Attribute Type dao.
+
+    Returns:
+        AttributeTypeSchema: Attribute type schema.
     """
     attribute_type = await attribute_type_dao.get_one_by_name(
         attribute_type_name
@@ -84,12 +84,14 @@ async def get_list_attribute_types_with_pagination(
     attribute_type_dao: FromDishka[AttributeTypeDAO],
     params: Annotated[PaginationParams, Query()],
 ) -> AttributeTypePaginationSchema:
-    """Retrieve a chunk of Attribute Types with pagination.
+    """Retrieve a paginated list of attribute types.
 
-    \f
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
-    :param PaginationParams params: Pagination parameters.
-    :return AttributeTypePaginationSchema: Paginator Schema.
+    Args:
+        attribute_type_dao (AttributeTypeDAO): Attribute Type dao.
+        params (PaginationParams): Pagination parameters.
+
+    Returns:
+        AttributeTypePaginationSchema: Paginated attribute types.
     """
     pagination_result = await attribute_type_dao.get_paginator(params=params)
 
@@ -112,14 +114,13 @@ async def modify_one_attribute_type(
     session: FromDishka[AsyncSession],
     attribute_type_dao: FromDishka[AttributeTypeDAO],
 ) -> None:
-    """Modify an Attribute Type.
+    """Modify an attribute type.
 
-    \f
-    :param str attribute_type_name: name of the Attribute Type for modifying.
-    :param AttributeTypeUpdateSchema request_data: Changed data.
-    :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
-    :return None.
+    Args:
+        attribute_type_name (str): Name of the attribute type to modify.
+        request_data (AttributeTypeUpdateSchema): Data to update.
+        session (AsyncSession): Database session.
+        attribute_type_dao (AttributeTypeDAO): Attribute Type dao.
     """
     attribute_type = await attribute_type_dao.get_one_by_name(
         attribute_type_name
@@ -145,11 +146,10 @@ async def delete_bulk_attribute_types(
 ) -> None:
     """Delete Attribute Types by their names.
 
-    \f
-    :param LimitedListType attribute_types_names: List of Attribute Type names
-    :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute type dao.
-    :return None: None
+    Args:
+        attribute_types_names (LimitedListType): List of attribute type names.
+        session (AsyncSession): Database session.
+        attribute_type_dao (AttributeTypeDAO): Attribute Type dao.
     """
     await attribute_type_dao.delete_all_by_names(attribute_types_names)
     await session.commit()

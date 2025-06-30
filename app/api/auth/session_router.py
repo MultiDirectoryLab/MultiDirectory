@@ -26,7 +26,19 @@ async def get_user_session(
     storage: FromDishka[SessionStorage],
     session: FromDishka[AsyncSession],
 ) -> dict[str, SessionContentSchema]:
-    """Get user (upn, san or dn) data."""
+    """Get user session data by UPN, SAN, or DN.
+
+    Args:
+        upn (str): User principal name, SAN, or DN.
+        storage (SessionStorage): Session storage dependency.
+        session (AsyncSession): Database session.
+
+    Returns:
+        dict[str, SessionContentSchema]: Dictionary of session data for user.
+
+    Raises:
+        HTTPException: If user is not found.
+    """
     user = await get_user(session, upn)
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
@@ -39,7 +51,16 @@ async def delete_user_sessions(
     storage: FromDishka[SessionStorage],
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Delete user (upn, san or dn) data."""
+    """Delete all sessions for a user by UPN, SAN, or DN.
+
+    Args:
+        upn (str): User principal name, SAN, or DN.
+        storage (SessionStorage): Session storage dependency.
+        session (AsyncSession): Database session.
+
+    Raises:
+        HTTPException: If user is not found.
+    """
     user = await get_user(session, upn)
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
@@ -54,5 +75,10 @@ async def delete_session(
     session_id: str,
     storage: FromDishka[SessionStorage],
 ) -> None:
-    """Delete current logged in user data."""
+    """Delete a specific user session by session ID.
+
+    Args:
+        session_id (str): Session identifier.
+        storage (SessionStorage): Session storage dependency.
+    """
     await storage.delete_user_session(session_id)

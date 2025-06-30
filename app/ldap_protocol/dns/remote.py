@@ -23,7 +23,14 @@ class RemoteDNSManager(AbstractDNSManager):
     """DNS server manager."""
 
     async def _send(self, action: Message) -> None:
-        """Send request to DNS server."""
+        """Send request to DNS server.
+
+        Args:
+            action (Message): DNS action to perform.
+
+        Raises:
+            DNSConnectionError: If the DNS server IP is not set.
+        """
         if self._dns_settings.tsig_key is not None:
             action.use_tsig(
                 keyring=TsigKey("zone.", self._dns_settings.tsig_key),
@@ -52,7 +59,14 @@ class RemoteDNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
-        """Get all DNS records."""
+        """Get all DNS records.
+
+        Returns:
+            list[DNSRecords]: List of DNS records grouped by type.
+
+        Raises:
+            DNSConnectionError: If the DNS server IP or zone name is not set.
+        """
         if (
             self._dns_settings.dns_server_ip is None
             or self._dns_settings.zone_name is None

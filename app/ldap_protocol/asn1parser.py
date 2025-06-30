@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, TypeVar
 
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
 from pydantic import AfterValidator
@@ -65,7 +65,7 @@ T = TypeVar(
 
 
 @dataclass
-class ASN1Row(Generic[T]):
+class ASN1Row[T: "ASN1Row | list[ASN1Row] | str | bytes | int | float"]:
     """Row with metadata."""
 
     class_id: int
@@ -74,11 +74,26 @@ class ASN1Row(Generic[T]):
 
     @classmethod
     def from_tag(cls, tag: Tag, value: T) -> "ASN1Row":
-        """Create row from tag."""
+        """Create row from tag.
+
+        Args:
+            tag (Tag): instance of Tag
+            value (T): any value
+
+        Returns:
+            ASN1Row
+        """
         return cls(tag.cls, tag.nr, value)
 
     def _handle_extensible_match(self) -> str:
-        """Handle extensible match filters."""
+        """Handle extensible match filters.
+
+        Returns:
+            str: match
+
+        Raises:
+            TypeError: If value isnt a list
+        """
         oid = attribute = value = None
         dn_attributes = False
 
@@ -121,7 +136,14 @@ class ASN1Row(Generic[T]):
         return f"({match})"
 
     def _handle_substring(self) -> str:
-        """Process and format substring operations for LDAP."""
+        """Process and format substring operations for LDAP.
+
+        Returns:
+            str: substring
+
+        Raises:
+            ValueError: Invalid tag_id
+        """
         value = (
             self.value.decode(errors="replace")
             if isinstance(self.value, bytes)
@@ -145,6 +167,16 @@ class ASN1Row(Generic[T]):
         Recursively processes ASN.1 structures to construct a valid LDAP
         filter string based on LDAP operations such as AND, OR, and
         substring matches.
+
+        Args:
+            obj (ASN1Row | T | None): (Default value = None)
+
+        Returns:
+            str: result string
+
+        Raises:
+            ValueError: Invalid tag_id
+            TypeError: cant serialize
         """
         if obj is None:
             obj = self
@@ -218,7 +250,7 @@ class ASN1Row(Generic[T]):
         elif isinstance(obj, str):
             return obj
 
-        elif isinstance(obj, int) or isinstance(obj, float):
+        elif isinstance(obj, int | float):
             return str(obj)
 
         else:
@@ -229,6 +261,9 @@ class ASN1Row(Generic[T]):
 
         The method recursively serializes ASN.1 rows into the LDAP filter
         format based on tag IDs and class IDs.
+
+        Returns:
+            str:
         """
         return self.serialize()
 
@@ -237,7 +272,15 @@ def value_to_string(
     tag: Tag,
     value: str | bytes | int | bool,
 ) -> bytes | str | int:
-    """Convert value to string."""
+    """Convert value to string.
+
+    Args:
+        tag (Tag): instance of Tag
+        value (str | bytes | int | bool): value
+
+    Returns:
+        bytes | str | int:
+    """
     if tag.nr == Numbers.Integer:
         with suppress(ValueError):
             return int(value)
@@ -255,7 +298,11 @@ def value_to_string(
 
 
 def asn1todict(decoder: Decoder) -> list[ASN1Row]:
-    """Recursively collect ASN.1 data to list of ASNRows."""
+    """Recursively collect ASN.1 data to list of ASNRows.
+
+    Returns:
+        list[ASN1Row]:
+    """
     out = []
     while not decoder.eof():
         tag = decoder.peek()
@@ -277,7 +324,14 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
 
 
 def _validate_oid(oid: str) -> str:
-    """Validate ldap oid with regex."""
+    """Validate ldap oid with regex.
+
+    Returns:
+        str:
+
+    Raises:
+        ValueError: Invalid LDAPOID
+    """
     if not Encoder._re_oid.match(oid):
         raise ValueError("Invalid LDAPOID")
     return oid

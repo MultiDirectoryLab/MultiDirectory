@@ -32,13 +32,12 @@ async def create_one_object_class(
     object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Create a new Object Class.
+    """Create a new object class.
 
-    \f
-    :param ObjectClassSchema request_data: Data for creating Object Class.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None.
+    Args:
+        request_data (ObjectClassSchema): Data for creating object class.
+        object_class_dao (ObjectClassDAO): Object Class DAO.
+        session (AsyncSession): Database session.
     """
     await object_class_dao.create_one(
         oid=request_data.oid,
@@ -61,12 +60,14 @@ async def get_one_object_class(
     object_class_name: str,
     object_class_dao: FromDishka[ObjectClassDAO],
 ) -> ObjectClassSchema:
-    """Retrieve a one object class.
+    """Retrieve a single object class by name.
 
-    \f
-    :param str object_class_name: name of the Object Class.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :return ObjectClassSchema: One Object Class Schemas.
+    Args:
+        object_class_name (str): Name of the object class.
+        object_class_dao (ObjectClassDAO): Object Class DAO.
+
+    Returns:
+        ObjectClassSchema: Object class schema.
     """
     object_class = await object_class_dao.get_one_by_name(object_class_name)
 
@@ -82,12 +83,14 @@ async def get_list_object_classes_with_pagination(
     object_class_dao: FromDishka[ObjectClassDAO],
     params: Annotated[PaginationParams, Query()],
 ) -> ObjectClassPaginationSchema:
-    """Retrieve a list of all object classes with paginate.
+    """Retrieve a paginated list of object classes.
 
-    \f
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param PaginationParams params: Pagination parameters.
-    :return ObjectClassPaginationSchema: Paginator.
+    Args:
+        object_class_dao (ObjectClassDAO): Object Class DAO.
+        params (PaginationParams): Pagination parameters.
+
+    Returns:
+        ObjectClassPaginationSchema: Paginated object classes.
     """
     pagination_result = await object_class_dao.get_paginator(params=params)
 
@@ -110,14 +113,13 @@ async def modify_one_object_class(
     object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Modify an Object Class.
+    """Modify an object class.
 
-    \f
-    :param str object_class_name: Name of the Object Class for modifying.
-    :param ObjectClassUpdateSchema request_data: Changed data.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None.
+    Args:
+        object_class_name (str): Name of the object class to modify.
+        request_data (ObjectClassUpdateSchema): Data to update.
+        object_class_dao (ObjectClassDAO): Object Class DAO.
+        session (AsyncSession): Database session.
     """
     object_class = await object_class_dao.get_one_by_name(object_class_name)
 
@@ -137,13 +139,12 @@ async def delete_bulk_object_classes(
     object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Delete Object Classes by their names.
+    """Delete object classes by their names.
 
-    \f
-    :param LimitedListType object_classes_names: List of Object Classes names.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None: None
+    Args:
+        object_classes_names (LimitedListType): List of object class names.
+        object_class_dao (ObjectClassDAO): Object Class DAO.
+        session (AsyncSession): Database session.
     """
     await object_class_dao.delete_all_by_names(object_classes_names)
     await session.commit()

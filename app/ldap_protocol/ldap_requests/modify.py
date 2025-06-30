@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
@@ -68,7 +68,11 @@ class Changes(BaseModel):
     modification: PartialAttribute
 
     def get_name(self) -> str:
-        """Get mod name."""
+        """Get mod name.
+
+        Returns:
+            str: mod name
+        """
         return self.modification.type.lower()
 
 
@@ -106,6 +110,11 @@ class ModifyRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
+        """Get modify request from data.
+
+        Returns:
+            ModifyRequest: modify request
+        """
         entry, proto_changes = data
 
         changes = []
@@ -129,7 +138,12 @@ class ModifyRequest(BaseRequest):
         change: Changes,
         session: AsyncSession,
     ) -> None:
-        """Update password expiration if policy allows."""
+        """Update password expiration if policy allows.
+
+        Args:
+            change (Changes): Change
+            session (AsyncSession): Database session
+        """
         if not (
             change.modification.type == "krbpasswordexpiration"
             and change.modification.vals[0] == "19700101000000Z"
@@ -141,7 +155,7 @@ class ModifyRequest(BaseRequest):
         if policy.maximum_password_age_days == 0:
             return
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         now += timedelta(days=policy.maximum_password_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
@@ -154,7 +168,19 @@ class ModifyRequest(BaseRequest):
         settings: Settings,
         entity_type_dao: EntityTypeDAO,
     ) -> AsyncGenerator[ModifyResponse, None]:
-        """Change request handler."""
+        """Change request handler.
+
+        Args:
+            ldap_session (LDAPSession): LDAP session
+            session (AsyncSession): Database session
+            session_storage (SessionStorage): Session storage
+            kadmin (AbstractKadmin): Kadmin
+            settings (Settings): Settings
+            entity_type_dao (EntityTypeDAO): Entity Type DAO.
+
+        Yields:
+            AsyncGenerator[ModifyResponse, None]
+        """
         if not ldap_session.user:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
@@ -244,6 +270,14 @@ class ModifyRequest(BaseRequest):
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
+        """Match bad response.
+
+        Returns:
+            tuple[LDAPCodes, str]: result code and message
+
+        Raises:
+            Exception: if can`t match exception and LDAP code.
+        """
         match err:
             case ValueError():
                 logger.error(f"Invalid value: {err}")
@@ -262,9 +296,9 @@ class ModifyRequest(BaseRequest):
                 return LDAPCodes.STRONGER_AUTH_REQUIRED, ""
 
             case _:
-                raise err
+                raise Exception
 
-    def _get_dir_query(self) -> Select:
+    def _get_dir_query(self) -> Select[tuple[Directory]]:
         return (
             select(Directory)
             .join(Directory.attributes)
@@ -281,6 +315,16 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         user_dir_id: int,
     ) -> bool:
+        """Check if password change is requested.
+
+        Args:
+            names (set[str]): attr names
+            directory (Directory): directory
+            user_dir_id (int): user id
+
+        Returns:
+            bool: True if password change is requested, False otherwise
+        """
         return (
             ("userpassword" in names or "unicodepwd" in names)
             and len(names) == 1

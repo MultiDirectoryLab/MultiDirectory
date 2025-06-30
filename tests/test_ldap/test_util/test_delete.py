@@ -30,14 +30,12 @@ async def test_ldap_delete(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "name: test\n"
-                "cn: test\n"
-                "objectClass: organization\n"
-                "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-            )
+            f"dn: {dn}\n"
+            "name: test\n"
+            "cn: test\n"
+            "objectClass: organization\n"
+            "objectClass: top\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -94,13 +92,11 @@ async def test_ldap_delete_w_access_control(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\n"
-                "name: test\n"
-                "cn: test\n"
-                "objectClass: organization\n"
-                "objectClass: top\n"
-            )
+            f"dn: {dn}\n"
+            "name: test\n"
+            "cn: test\n"
+            "objectClass: organization\n"
+            "objectClass: top\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(  # Add as Admin

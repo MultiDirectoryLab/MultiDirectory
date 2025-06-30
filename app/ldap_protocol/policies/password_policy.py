@@ -29,8 +29,9 @@ async def post_save_password_actions(
 ) -> None:
     """Post save actions for password update.
 
-    :param User user: user from db
-    :param AsyncSession session: db
+    Args:
+        user (User): user from db
+        session (AsyncSession): db
     """
     await session.execute(  # update bind reject attribute
         update(Attribute)
@@ -81,8 +82,11 @@ class PasswordPolicySchema(BaseModel):
     async def create_policy_settings(self, session: AsyncSession) -> Self:
         """Create policies settings.
 
-        :param AsyncSession session: db session
-        :return PasswordPolicySchema: password policy.
+        Returns:
+            Self: Serialized password policy.
+
+        Raises:
+            PermissionError: Policy already exists.
         """
         existing_policy = await session.scalar(select(exists(PasswordPolicy)))
         if existing_policy:
@@ -98,8 +102,8 @@ class PasswordPolicySchema(BaseModel):
     ) -> "PasswordPolicySchema":
         """Get policy settings.
 
-        :param AsyncSession session: db
-        :return PasswordPolicySchema: policy
+        Returns:
+            PasswordPolicySchema: policy
         """
         policy = await session.scalar(select(PasswordPolicy))
         if not policy:
@@ -107,10 +111,7 @@ class PasswordPolicySchema(BaseModel):
         return cls.model_validate(policy, from_attributes=True)
 
     async def update_policy_settings(self, session: AsyncSession) -> None:
-        """Update policy.
-
-        :param AsyncSession session: db
-        """
+        """Update policy."""
         await session.execute(
             (update(PasswordPolicy).values(self.model_dump(mode="json"))),
         )
@@ -123,8 +124,8 @@ class PasswordPolicySchema(BaseModel):
     ) -> "PasswordPolicySchema":
         """Reset (delete) default policy.
 
-        :param AsyncSession session: db
-        :return PasswordPolicySchema: schema policy
+        Returns:
+            PasswordPolicySchema: schema policy
         """
         default_policy = cls()
         await default_policy.update_policy_settings(session)
@@ -134,8 +135,8 @@ class PasswordPolicySchema(BaseModel):
     def _count_password_exists_days(last_pwd_set: Attribute) -> int:
         """Get number of days, pwd exists.
 
-        :param Attribute last_pwd_set: pwdLastSet
-        :return int: days
+        Returns:
+            int: count of days
         """
         tz = ZoneInfo("UTC")
         now = datetime.now(tz=tz)
@@ -155,9 +156,12 @@ class PasswordPolicySchema(BaseModel):
     ) -> Attribute:
         """Get pwdLastSet.
 
-        :param AsyncSession session: db
-        :param int directory_id: id
-        :return Attribute: pwdLastSet
+        Args:
+            session (AsyncSession): db
+            directory_id (int): id
+
+        Returns:
+            Attribute: pwdLastSet
         """
         plset = await session.scalar(
             select(Attribute)
@@ -181,12 +185,9 @@ class PasswordPolicySchema(BaseModel):
     def validate_min_age(self, last_pwd_set: Attribute) -> bool:
         """Validate min password change age.
 
-        :param Attribute last_pwd_set: last pwd set
-        :return bool: can change pwd
-            True - not valid, can not change
-            False - valid, can change
-
-            on minimum_password_age_days can always change.
+        Returns:
+            bool: can change pwd True - not valid, can not change False
+            - valid, can change on minimum_password_age_days can always change.
         """
         if self.minimum_password_age_days == 0:
             return False
@@ -198,12 +199,9 @@ class PasswordPolicySchema(BaseModel):
     def validate_max_age(self, last_pwd_set: Attribute) -> bool:
         """Validate max password change age.
 
-        :param Attribute last_pwd_set: last pwd set
-        :return bool: is pwd expired
-            True - not valid, expired
-            False - valid, not expired
-
-            on maximum_password_age_days always valid.
+        Returns:
+            bool: is pwd expired True - not valid, expired False -
+            valid, not expired on maximum_password_age_days always valid.
         """
         if self.maximum_password_age_days == 0:
             return False
@@ -219,10 +217,12 @@ class PasswordPolicySchema(BaseModel):
     ) -> list[str]:
         """Validate password with chosen policy.
 
-        :param str password: new raw password
-        :param User user: db user
-        :param AsyncSession session: db
-        :return bool: status
+        Args:
+            password (str): new raw password
+            user (User): db user
+
+        Returns:
+            bool: status
         """
         errors = []
         history: Iterable = []
@@ -242,9 +242,9 @@ class PasswordPolicySchema(BaseModel):
             errors.append("password minimum length violation")
 
         regex = (
-            re.search("[A-ZА-Я]", password) is not None,
-            re.search("[a-zа-я]", password) is not None,
-            re.search("[0-9]", password) is not None,
+            re.search(r"[A-ZА-Я]", password) is not None,  # noqa: RUF001
+            re.search(r"[a-zа-я]", password) is not None,  # noqa: RUF001
+            re.search(r"[0-9]", password) is not None,
             password.lower() not in _COMMON_PASSWORDS,
         )
 

@@ -33,7 +33,19 @@ async def proxy_request(
     mfa: FromDishka[LDAPMultiFactorAPI],
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Proxy request to mfa."""
+    """Proxy request to mfa.
+
+    Args:
+        principal (str): user principal name
+        ip (IPv4Address): user ip address
+        mfa (FromDishka[LDAPMultiFactorAPI]): mfa api
+        session (FromDishka[AsyncSession]): db session
+
+    Raises:
+        HTTPException: 401 if mfa is required but not passed or failed
+        HTTPException: 403 if user is not allowed to use kerberos
+        HTTPException: 422 if user not found
+    """
     user = await get_user(session, principal)
 
     if not user:
@@ -87,13 +99,14 @@ async def sync_password(
     - **principal**: user upn
     - **new_password**: password to set
     \f
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[AbstractKadmin] kadmin: kadmin api
-    :param Annotated[str, Body principal: reset target user
-    :param Annotated[str, Body new_password: new password for user
-    :raises HTTPException: 404 if user not found
-    :raises HTTPException: 422 if password not valid
-    :return None: None
+    Args:
+        principal (Annotated[str, Body]): user principal name
+        new_password (Annotated[str, Body]): new password for user
+        session (FromDishka[AsyncSession]): db
+
+    Raises:
+        HTTPException: 422 if password not valid
+        HTTPException: 404 if user not found
     """
     user = await get_user(session, principal)
 

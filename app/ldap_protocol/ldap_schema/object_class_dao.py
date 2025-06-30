@@ -38,7 +38,11 @@ class ObjectClassSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
-        """Create an instance of Object Class Schema from SQLA object."""
+        """Create an instance of Object Class Schema from SQLA object.
+
+        Returns:
+            ObjectClassSchema: instance of ObjectClassSchema.
+        """
         return cls(
             oid=object_class.oid,
             name=object_class.name,
@@ -69,15 +73,17 @@ class ObjectClassDAO:
     _session: AsyncSession
     _attribute_type_dao: AttributeTypeDAO
 
-    ObjectClassNotFoundError = InstanceNotFoundError
-    ObjectClassCantModifyError = InstanceCantModifyError
-
     def __init__(
         self,
         session: AsyncSession,
         attribute_type_dao: AttributeTypeDAO,
     ) -> None:
-        """Initialize Object Class DAO with session."""
+        """Initialize Object Class DAO with session.
+
+        Args:
+            session (AsyncSession): async db session.
+            attribute_type_dao (AttributeTypeDAO): Attribute Type DAO.
+        """
         self._session = session
         self._attribute_type_dao = attribute_type_dao
 
@@ -87,8 +93,8 @@ class ObjectClassDAO:
     ) -> PaginationResult:
         """Retrieve paginated Object Classes.
 
-        :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of Object Classes and metadata.
+        Returns:
+            PaginationResult: Chunk of object_classes and metadata.
         """
         return await PaginationResult[ObjectClass].get(
             params=params,
@@ -109,15 +115,17 @@ class ObjectClassDAO:
     ) -> None:
         """Create a new Object Class.
 
-        :param str oid: OID.
-        :param str name: Name.
-        :param str | None superior_name: Parent Object Class.
-        :param KindType kind: Kind.
-        :param bool is_system: Object Class is system.
-        :param list[str] attribute_type_names_must: Attribute Types must.
-        :param list[str] attribute_type_names_may: Attribute Types may.
-        :raise ObjectClassNotFoundError: If superior Object Class not found.
-        :return None.
+        Args:
+            oid (str): OID.
+            name (str): Name.
+            superior_name (str | None): Parent Object Class.
+            kind (KindType): Kind.
+            is_system (bool): Object Class is system.
+            attribute_type_names_must (list[str]): Attribute Types must.
+            attribute_type_names_may (list[str]): Attribute Types may.
+
+        Raises:
+            InstanceNotFoundError: Superior (parent) Object class not found.
         """
         superior = (
             await self.get_one_by_name(superior_name)
@@ -125,7 +133,7 @@ class ObjectClassDAO:
             else None
         )
         if superior_name and not superior:
-            raise self.ObjectClassNotFoundError(
+            raise InstanceNotFoundError(
                 f"Superior (parent) Object class {superior_name} not found\
                     in schema."
             )
@@ -160,8 +168,8 @@ class ObjectClassDAO:
     ) -> int:
         """Count exists Object Class by names.
 
-        :param list[str] object_class_names: Object Class names.
-        :return int.
+        Returns:
+            int: count of object classes
         """
         count_query = (
             select(func.count())
@@ -177,16 +185,18 @@ class ObjectClassDAO:
     ) -> Literal[True]:
         """Check if all Object Classes exist.
 
-        :param list[str] object_class_names: Object Class names.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return bool.
+        Returns:
+            Literal[True]: True if all object classes found.
+
+        Raises:
+            InstanceNotFoundError: Object class not found.
         """
         count_ = await self.count_exists_object_class_by_names(
             object_class_names
         )
 
         if count_ != len(object_class_names):
-            raise self.ObjectClassNotFoundError(
+            raise InstanceNotFoundError(
                 f"Not all Object Classes\
                     with names {object_class_names} found."
             )
@@ -199,9 +209,11 @@ class ObjectClassDAO:
     ) -> ObjectClass:
         """Get single Object Class by name.
 
-        :param str object_class_name: Object Class name.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return ObjectClass: Instance of Object Class.
+        Returns:
+            ObjectClass: Object Class.
+
+        Raises:
+            InstanceNotFoundError: Object class not found.
         """
         object_class = await self._session.scalar(
             select(ObjectClass)
@@ -209,7 +221,7 @@ class ObjectClassDAO:
         )  # fmt: skip
 
         if not object_class:
-            raise self.ObjectClassNotFoundError(
+            raise InstanceNotFoundError(
                 f"Object Class with name '{object_class_name}' not found."
             )
 
@@ -221,8 +233,8 @@ class ObjectClassDAO:
     ) -> list[ObjectClass]:
         """Get list of Object Classes by names.
 
-        :param list[str] object_class_names: Object Classes names.
-        :return list[ObjectClass]: List of Object Classes.
+        Returns:
+            list[ObjectClass]: List of Object Classes.
         """
         query = await self._session.scalars(
             select(ObjectClass)
@@ -241,14 +253,17 @@ class ObjectClassDAO:
     ) -> None:
         """Modify Object Class.
 
-        :param ObjectClass object_class: Object Class.
-        :param ObjectClassUpdateSchema new_statement: New statement ObjectClass
-        :raise ObjectClassCantModifyError: If Object Class is system,\
-            it cannot be changed.
-        :return None.
+        Args:
+            object_class (ObjectClass): Object Class.
+            new_statement (ObjectClassUpdateSchema): New statement of object
+                class
+
+        Raises:
+            InstanceCantModifyError: If Object Class is system,\
+                it cannot be changed.
         """
         if object_class.is_system:
-            raise self.ObjectClassCantModifyError(
+            raise InstanceCantModifyError(
                 "System Object Class cannot be modified."
             )
 
@@ -277,8 +292,8 @@ class ObjectClassDAO:
     ) -> None:
         """Delete not system Object Classes by Names.
 
-        :param list[str] object_classes_names: Object Classes names.
-        :return None.
+        Args:
+            object_classes_names (list[str]): Object classes names.
         """
         await self._session.execute(
             delete(ObjectClass)

@@ -50,7 +50,15 @@ class UserSchema:
         user: User,
         session_id: str,
     ) -> UserSchema:
-        """Create model from db model."""
+        """Create model from db model.
+
+        Args:
+            user (User): instance of User
+            session_id (str): session id
+
+        Returns:
+            UserSchema: instance of UserSchema
+        """
         return cls(
             id=user.id,
             session_id=session_id.split(".")[0],
@@ -85,7 +93,12 @@ class LDAPSession:
         user: UserSchema | None = None,
         storage: SessionStorage | None = None,
     ) -> None:
-        """Set lock."""
+        """Set lock.
+
+        Args:
+            user (UserSchema | None): instance of UserSchema
+            storage (SessionStorage | None): instance of SessionStorage
+        """
         self._lock = asyncio.Lock()
         self._user: UserSchema | None = user
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
@@ -93,16 +106,29 @@ class LDAPSession:
         self.storage = storage
 
     def __str__(self) -> str:
-        """Session with id."""
+        """Session with id.
+
+        Returns:
+            str: session with id
+        """
         return f"LDAPSession({self.id})"
 
     @property
     def user(self) -> UserSchema | None:
-        """User getter, not implemented."""
+        """User getter, not implemented.
+
+        Returns:
+            UserSchema | None: instance of UserSchema
+        """
         return self._user
 
     @user.setter
     def user(self, user: User) -> None:
+        """User setter.
+
+        Raises:
+            NotImplementedError: Cannot manually set user
+        """
         raise NotImplementedError(
             "Cannot manually set user, use `set_user()` instead",
         )
@@ -124,13 +150,21 @@ class LDAPSession:
             self._user = None
 
     async def get_user(self) -> UserSchema | None:
-        """Get user from session concurrently save."""
+        """Get user from session concurrently save.
+
+        Returns:
+            UserSchema | None: instance of UserSchema
+        """
         async with self._lock:
             return self._user
 
     @asynccontextmanager
     async def lock(self) -> AsyncIterator[UserSchema | None]:
-        """Lock session, user cannot be deleted or get while lock is set."""
+        """Lock session, user cannot be deleted or get while lock is set.
+
+        Yields:
+            AsyncIterator[UserSchema | None]: instance of UserSchema
+        """
         async with self._lock:
             yield self._user
 
@@ -147,7 +181,15 @@ class LDAPSession:
         ip: IPv4Address | IPv6Address,
         session: AsyncSession,
     ) -> None:
-        """Validate network policies."""
+        """Validate network policies.
+
+        Args:
+            ip (IPv4Address | IPv6Address): IP
+            session (AsyncSession): async session
+
+        Raises:
+            PermissionError: NetworkPolicy is None
+        """
         policy = await self._get_policy(ip, session)  # type: ignore
         if policy is not None:
             self.policy = policy
@@ -158,10 +200,19 @@ class LDAPSession:
 
     @property
     def key(self) -> str:
-        """Get key."""
+        """Get key.
+
+        Returns:
+            str: key
+        """
         return f"ldap:{self.id}"
 
     def _bound_ip(self) -> bool:
+        """Check if ip is bound.
+
+        Returns:
+            bool: True if ip is bound, False otherwise
+        """
         return hasattr(self, "ip")
 
     async def bind_session(self) -> None:
@@ -186,6 +237,10 @@ class LDAPSession:
         """Ensure session exists in storage.
 
         Does nothing if anonymous, wait 30s and if user bound, check it.
+
+        Raises:
+            AttributeError: Storage is not set
+            ConnectionAbortedError: Session missing in storage
         """
         if self.storage is None:
             raise AttributeError("Storage is not set")

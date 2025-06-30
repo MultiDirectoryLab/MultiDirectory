@@ -92,10 +92,9 @@ async def test_shadow_api_whitelist_without_user_group(
 ) -> None:
     """Test shadow api whitelist without user group."""
     await session.execute(
-        update(NetworkPolicy).values(
-            {NetworkPolicy.mfa_status: MFAFlags.WHITELIST}
-        ),
-    )
+        update(NetworkPolicy)
+        .values({NetworkPolicy.mfa_status: MFAFlags.WHITELIST}),
+    )  # fmt: skip
 
     response = await http_client.post(
         "/shadow/mfa/push",
@@ -114,10 +113,9 @@ async def test_shadow_api_enable_mfa(
 ) -> None:
     """Test shadow api enable mfa."""
     await session.execute(
-        update(NetworkPolicy).values(
-            {NetworkPolicy.mfa_status: MFAFlags.ENABLED}
-        ),
-    )
+        update(NetworkPolicy)
+        .values({NetworkPolicy.mfa_status: MFAFlags.ENABLED}),
+    )  # fmt: skip
 
     response = await http_client.post(
         "/shadow/mfa/push",

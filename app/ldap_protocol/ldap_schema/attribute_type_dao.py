@@ -33,7 +33,11 @@ class AttributeTypeSchema(BaseSchemaModel):
 
     @classmethod
     def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
-        """Create an instance of Attribute Type Schema from SQLA object."""
+        """Create an instance from database.
+
+        Returns:
+            AttributeTypeSchema: serialized AttributeType.
+        """
         return cls(
             oid=attribute_type.oid,
             name=attribute_type.name,
@@ -62,8 +66,6 @@ class AttributeTypeDAO:
     """Attribute Type DAO."""
 
     _session: AsyncSession
-    AttributeTypeNotFoundError = InstanceNotFoundError
-    AttributeTypeCantModifyError = InstanceCantModifyError
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Attribute Type DAO with session."""
@@ -73,10 +75,13 @@ class AttributeTypeDAO:
         self,
         params: PaginationParams,
     ) -> PaginationResult:
-        """Retrieve paginated Attribute Types.
+        """Retrieve paginated attribute_types.
 
-        :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of Attribute Types and metadata.
+        Args:
+            params (PaginationParams): parameters for pagination.
+
+        Returns:
+            PaginationResult: Chunk of attribute_types and metadata.
         """
         return await PaginationResult[AttributeType].get(
             params=params,
@@ -96,13 +101,13 @@ class AttributeTypeDAO:
     ) -> None:
         """Create a new Attribute Type.
 
-        :param str oid: OID.
-        :param str name: Name.
-        :param str syntax: Syntax.
-        :param bool single_value: Single value.
-        :param bool no_user_modification: User can't modify it.
-        :param bool is_system: Attribute Type is system.
-        :return None.
+        Args:
+            oid (str): OID.
+            name (str): Name.
+            syntax (str): Syntax.
+            single_value (bool): Single value.
+            no_user_modification (bool): User can't modify it.
+            is_system (bool): Attribute Type is system.
         """
         attribute_type = AttributeType(
             oid=oid,
@@ -120,9 +125,11 @@ class AttributeTypeDAO:
     ) -> AttributeType:
         """Get single Attribute Type by name.
 
-        :param str attribute_type_name: Attribute Type name.
-        :raise AttributeTypeNotFoundError: If Attribute Type not found.
-        :return AttributeType: Instance of Attribute Type.
+        Returns:
+            AttributeType: Attribute Type.
+
+        Raises:
+            InstanceNotFoundError: Attribute Type not found.
         """
         attribute_type = await self._session.scalar(
             select(AttributeType)
@@ -130,7 +137,7 @@ class AttributeTypeDAO:
         )  # fmt: skip
 
         if not attribute_type:
-            raise self.AttributeTypeNotFoundError(
+            raise InstanceNotFoundError(
                 f"Attribute Type with name '{attribute_type_name}' not found."
             )
 
@@ -142,8 +149,8 @@ class AttributeTypeDAO:
     ) -> list[AttributeType]:
         """Get list of Attribute Types by names.
 
-        :param list[str] attribute_type_names: Attribute Type names.
-        :return list[AttributeType]: List of Attribute Types.
+        Returns:
+            list[AttributeType]: List of Attribute Types.
         """
         if not attribute_type_names:
             return []
@@ -161,14 +168,16 @@ class AttributeTypeDAO:
     ) -> None:
         """Modify Attribute Type.
 
-        :param AttributeType attribute_type: Attribute Type.
-        :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
-        :raise AttributeTypeCantModifyError: If Attribute Type is system,\
-            it cannot be changed.
-        :return None.
+        Args:
+            attribute_type (AttributeType): Attribute Type.
+            new_statement (AttributeTypeUpdateSchema): Attribute Type
+                Schema.
+
+        Raises:
+            InstanceCantModifyError: System Attribute Type cannot be modified.
         """
         if attribute_type.is_system:
-            raise self.AttributeTypeCantModifyError(
+            raise InstanceCantModifyError(
                 "System Attribute Type cannot be modified."
             )
 
@@ -184,12 +193,11 @@ class AttributeTypeDAO:
     ) -> None:
         """Delete not system Attribute Types by names.
 
-        :param list[str] attribute_type_names: List of Attribute Types names.
-        :param AsyncSession session: Database session.
-        :return None: None.
+        Args:
+            attribute_type_names (list[str]): List of Attribute Types OIDs.
         """
         if not attribute_type_names:
-            return None
+            return
 
         await self._session.execute(
             delete(AttributeType)

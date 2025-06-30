@@ -23,7 +23,11 @@ class SearchRequest(LDAPSearchRequest):
     filter: str = Field(..., examples=["(objectClass=*)"])  # type: ignore
 
     def cast_filter(self) -> UnaryExpression | ColumnElement:
-        """Cast str filter to sa sql."""
+        """Cast str filter to sa sql.
+
+        Returns:
+            UnaryExpression | ColumnElement: SQL expression for the filter.
+        """
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
         return cast_str_filter2sql(Filter.parse(filter_).simplify())
 
@@ -32,7 +36,15 @@ class SearchRequest(LDAPSearchRequest):
         self,
         container: AsyncContainer,
     ) -> list[SearchResultEntry | SearchResultDone]:
-        """Get all responses."""
+        """Get all responses.
+
+        Args:
+            container (AsyncContainer): Async container with dependencies.
+
+        Returns:
+            list[SearchResultEntry | SearchResultDone]: List of LDAP search\
+                result entries or done responses.
+        """
         return await self._handle_api(container)  # type: ignore
 
 
@@ -51,6 +63,8 @@ class KerberosSetupRequest(BaseModel):
 
 
 class _PolicyFields:
+    """Policy fields."""
+
     name: str
     can_read: bool
     can_add: bool
@@ -60,6 +74,8 @@ class _PolicyFields:
 
 
 class _MaterialFields:
+    """Material fields."""
+
     id: int
 
 

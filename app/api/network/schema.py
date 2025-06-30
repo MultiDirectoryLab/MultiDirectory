@@ -40,7 +40,11 @@ class NetmasksMixin:
     @computed_field  # type: ignore
     @property
     def complete_netmasks(self) -> list[IPv4Address | IPv4Network]:
-        """Validate range or return networks range."""
+        """Validate range or return networks range.
+
+        Returns:
+            list[IPv4Address | IPv4Network]: complete netmasks
+        """
         values = []
         for item in self.netmasks:
             if isinstance(item, IPRange):
@@ -54,6 +58,14 @@ class NetmasksMixin:
     @field_validator("groups")
     @classmethod
     def validate_group(cls, groups: list[str]) -> list[str]:
+        """Validate groups.
+
+        Returns:
+            list[str]: groups
+
+        Raises:
+            ValueError: Invalid DN
+        """
         if not groups:
             return groups
         if all(validate_entry(group) for group in groups):
@@ -64,6 +76,14 @@ class NetmasksMixin:
     @field_validator("mfa_groups")
     @classmethod
     def validate_mfa_group(cls, mfa_groups: list[str]) -> list[str]:
+        """Validate mfa groups.
+
+        Returns:
+            list[str]: mfa groups
+
+        Raises:
+            ValueError: Invalid DN
+        """
         if not mfa_groups:
             return mfa_groups
         if all(validate_entry(group) for group in mfa_groups):
@@ -79,8 +99,12 @@ class NetmasksMixin:
     ) -> list[str | dict]:
         """Serialize netmasks to list.
 
-        :param IPv4IntefaceListType netmasks: ip masks
-        :return list[str | dict]: ready to json serialized
+        Args:
+            netmasks(IPv4IntefaceListType): ip masks
+            netmasks: IPv4IntefaceListType:
+
+        Returns:
+            list[str | dict]: ready to json serialized
         """
         values: list[str | dict] = []
 
@@ -159,7 +183,14 @@ class PolicyUpdate(BaseModel, NetmasksMixin):
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> Self:
-        """Validate if all fields are empty."""
+        """Validate if all fields are empty.
+
+        Returns:
+            PolicyUpdate:
+
+        Raises:
+            ValueError: Name, netmasks and group cannot be empty
+        """
         if not self.name and not self.netmasks and not self.groups:
             raise ValueError("Name, netmasks and group cannot be empty")
 

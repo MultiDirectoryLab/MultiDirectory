@@ -82,15 +82,16 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     def is_valid(self, user: User | None) -> bool:  # noqa: ARG002
         """Check if GSSAPI token is valid.
 
-        :param User | None user: indb user
-        :return bool: status
+        Returns:
+            bool: status
         """
         return True
 
     def is_anonymous(self) -> bool:
         """Check if auth is anonymous.
 
-        :return bool: status
+        Returns:
+            bool: status
         """
         return False
 
@@ -98,8 +99,12 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     def from_data(cls, data: list[ASN1Row]) -> "SaslGSSAPIAuthentication":
         """Get auth from data.
 
-        :param list[ASN1Row] data: data
-        :return SaslGSSAPIAuthentication
+        Args:
+            data(list[ASN1Row]): data
+            data: list[ASN1Row]:
+
+        Returns:
+            SaslGSSAPIAuthentication
         """
         return cls(
             ticket=data[1].value if len(data) > 1 else b"",
@@ -112,8 +117,9 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ) -> None:
         """Init security context.
 
-        :param AsyncSession session: db session
-        :param Settings settings: settings
+        Args:
+            session (AsyncSession): db session
+            settings (Settings): settings
         """
         base_dn_list = await get_base_directories(session)
         base_dn = base_dn_list[0].name
@@ -140,8 +146,12 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ) -> GSSAPIAuthStatus:
         """Handle the ticket and make gssapi step.
 
-        :param gssapi.SecurityContext server_ctx: GSSAPI security context
-        :return GSSAPIAuthStatus: status
+        Args:
+            server_ctx(gssapi.SecurityContext): GSSAPI security context
+            server_ctx: gssapi.SecurityContext:
+
+        Returns:
+            GSSAPIAuthStatus: status
         """
         try:
             out_token = server_ctx.step(self.ticket)
@@ -151,12 +161,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             return GSSAPIAuthStatus.ERROR
 
     def _validate_security_layer(self, client_layer: GSSAPISL) -> bool:
-        """Validate security layer.
-
-        :param int client_layer: client security layer
-        :param Settings settings: settings
-        :return bool: validate result
-        """
         supported = GSSAPISL.SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer
 
@@ -166,9 +170,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ) -> GSSAPIAuthStatus:
         """Handle final client message.
 
-        :param gssapi.SecurityContext server_ctx: GSSAPI security context
-        :param Settings settings: settings
-        :return GSSAPIAuthStatus: status
+        Args:
+            server_ctx (gssapi.SecurityContext): GSSAPI security context
+
+        Returns:
+            GSSAPIAuthStatus: status
         """
         try:
             unwrap_message = server_ctx.unwrap(self.ticket)
@@ -195,9 +201,12 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ) -> bytes:
         """Generate final wrap message.
 
-        :param gssapi.SecurityContext server_ctx: gssapi context
-        :param Settings settings: settings
-        :return bytes: message
+        Args:
+            server_ctx (gssapi.SecurityContext): gssapi context
+            settings (Settings): settings
+
+        Returns:
+            bytes: message
         """
         max_size = settings.GSSAPI_MAX_OUTPUT_TOKEN_SIZE
         if GSSAPISL.SUPPORTED_SECURITY_LAYERS == GSSAPISL.NO_SECURITY:
@@ -219,9 +228,13 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ) -> BindResponse | None:
         """GSSAPI step.
 
-        :param AsyncSession session: db session
-        :param LDAPSession ldap_session: ldap session
-        :param Settings settings: settings
+        Args:
+            session (AsyncSession): db session
+            ldap_session (LDAPSession): ldap session
+            settings (Settings): settings
+
+        Returns:
+            BindResponse | None
         """
         self._ldap_session = ldap_session
 
@@ -265,8 +278,12 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ) -> User | None:
         """Get user.
 
-        :param gssapi.SecurityContext ctx: gssapi context
-        :param AsyncSession session: db session
+        Args:
+            session (AsyncSession): db session
+            username (str): user name
+
+        Returns:
+            User | None
         """
         ctx = self._ldap_session.gssapi_security_context
         if not ctx:

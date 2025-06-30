@@ -26,26 +26,26 @@ def find_members_recursive_cte(dn: str) -> CTE:
     ------------------
 
     1. **Base Query (Initial Part of the CTE)**:
-       The function begins by defining the initial part of the CTE, named
-       `directory_hierarchy`. This query selects the `directory_id` and
-       `group_id` from the `Directory` and `Groups` tables, filtering based
-       on the distinguished name (DN) provided by the `dn` argument.
+        !The function begins by defining the initial part of the CTE, named
+        !`directory_hierarchy`. This query selects the `directory_id` and
+        !`group_id` from the `Directory` and `Groups` tables, filtering based
+        !on the distinguished name (DN) provided by the `dn` argument.
 
     2. **Recursive Part of the CTE**:
-       The second part of the CTE is recursive. It joins the results of
-       `directory_hierarchy` with the `DirectoryMemberships` table to find
-       all groups that are members of other groups, iterating through
-       all nested memberships.
+        !The second part of the CTE is recursive. It joins the results of
+        !`directory_hierarchy` with the `DirectoryMemberships` table to find
+        !all groups that are members of other groups, iterating through
+        !all nested memberships.
 
     3. **Combining Results**:
-       The CTE combines the initial and recursive parts using `union_all`
-       effectively creating a recursive query that gathers all directorie
-       and their associated groups, both directly and indirectly related.
+        !The CTE combines the initial and recursive parts using `union_all`
+        !effectively creating a recursive query that gathers all directorie
+        !and their associated groups, both directly and indirectly related.
 
     4. **Final Query**:
-       The final query applies the method (typically a comparison operation
-       to the results of the CTE, returning the desired condition for furthe
-       use in the main query.
+        !The final query applies the method (typically a comparison operation
+        !to the results of the CTE, returning the desired condition for furthe
+        !use in the main query.
 
     The query translates to the following SQL:
 
@@ -76,6 +76,11 @@ def find_members_recursive_cte(dn: str) -> CTE:
     In the case of a recursive search through the specified group1, the search
     result will be as follows: user1, user2, group2, user3, group3, user4.
 
+    Args:
+        dn (str): domain name
+
+    Returns:
+        CTE: Common Table Expression
     """
     directory_hierarchy = (
         select(Directory.id.label("directory_id"), Group.id.label("group_id"))
@@ -102,7 +107,7 @@ def find_members_recursive_cte(dn: str) -> CTE:
     return directory_hierarchy.union_all(recursive_part)
 
 
-def find_root_group_recursive_cte(dn_list: list) -> CTE:
+def find_root_group_recursive_cte(dn_list: list[str]) -> CTE:
     """Create CTE to filter directory root group.
 
     The query translates to the following SQL:
@@ -135,6 +140,11 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     result will be as follows: group1, group2, group3,
     user4.
 
+    Args:
+        dn_list (list[str]): domain names
+
+    Returns:
+        CTE: Common Table Expression
     """
     directory_hierarchy = (
         select(
@@ -177,6 +187,15 @@ async def get_members_root_group(
     result will be as follows: group1, user1, user2, group2, user3, group3,
     user4.
 
+    Args:
+        dn (str): domain name
+        session (AsyncSession): async session
+
+    Returns:
+        list[Directory]: list of directories
+
+    Raises:
+        RuntimeError: not found directory
     """
     cte = find_root_group_recursive_cte([dn])
     result = await session.scalars(select(cte.c.directory_id))
@@ -206,7 +225,7 @@ async def get_members_root_group(
         select(Directory)
         .where(
             or_(
-                *[Directory.id == dir_id for dir_id in dir_ids],
+                *[Directory.id == dir_id for dir_id in dir_ids]
             )
         )
     )  # fmt: skip
@@ -222,9 +241,12 @@ async def get_all_parent_group_directories(
 ) -> AsyncScalarResult | None:
     """Get all parent groups directory.
 
-    :param list[Group] groups: directory groups
-    :param AsyncSession session: session
-    :return set[Directory]: all groups and their parent group directories
+    Args:
+        groups (list[Group]): directory groups
+        session (AsyncSession): session
+
+    Returns:
+        AsyncScalarResult | None: all groups and their parent group directories
     """
     dn_list = [group.directory.path_dn for group in groups]
 

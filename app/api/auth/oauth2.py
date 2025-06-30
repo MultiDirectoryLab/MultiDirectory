@@ -38,10 +38,13 @@ async def authenticate_user(
 ) -> User | None:
     """Get user and verify password.
 
-    :param AsyncSession session: sa session
-    :param str username: any str
-    :param str password: any str
-    :return User | None: User model (pydantic)
+    Args:
+        session (AsyncSession): sa session
+        username (str): any str
+        password (str): any str
+
+    Returns:
+        User | None: User model (pydantic)
     """
     user = await get_user(session, username)
 
@@ -68,15 +71,21 @@ async def get_current_user(
     request's cookies, verifies the session, and returns the user schema.
     Makes a rekey of the session if necessary.
 
-    :param FromDishka[Settings] settings: settings
-    :param FromDishka[AsyncSession] session: db session
-    :param FromDishka[SessionStorage] session_storage: session storage
-    :param Request request: request
-    :param Response response: response
-    :param Annotated[IPv4Address | IPv6Address] ip: ip address
-    :param Annotated[str] user_agent: user agent
-    :return UserSchema: user schema
-    """
+    Args:
+        settings (FromDishka[Settings]): settings
+        session (FromDishka[AsyncSession]): db session
+        session_storage (FromDishka[SessionStorage]): session storage
+        request (Request): request
+        response (Response): response
+        ip (Annotated[IPv4Address | IPv6Address]): ip address
+        user_agent (Annotated[str]): user agent
+
+    Returns:
+        UserSchema: user schema
+
+    Raises:
+        _CREDENTIALS_EXCEPTION: creds not valid
+    """  # noqa: DOC502
     session_key = request.cookies.get("id", "")
     try:
         user_id = await session_storage.get_user_id(

@@ -26,7 +26,11 @@ from .base import (
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:
-    """Log DNSManager calls."""
+    """Log DNSManager calls.
+
+    Returns:
+        Callable: Decorator for logging DNSManager calls.
+    """
 
     def wrapper(func: Callable) -> Callable:
         name = func.__name__
@@ -53,10 +57,15 @@ def logger_wraps(is_stub: bool = False) -> Callable:
     return wrapper
 
 
-async def get_dns_state(
-    session: AsyncSession,
-) -> "DNSManagerState":
-    """Get or create DNS manager state."""
+async def get_dns_state(session: AsyncSession) -> "DNSManagerState":
+    """Get or create DNS manager state.
+
+    Args:
+        session (AsyncSession): Database session.
+
+    Returns:
+        DNSManagerState: Current state of the DNS manager.
+    """
     state = await session.scalar(
         select(CatalogueSetting)
         .filter(CatalogueSetting.name == DNS_MANAGER_STATE_NAME)
@@ -88,7 +97,14 @@ async def set_dns_manager_state(
 
 
 async def resolve_dns_server_ip(host: str) -> str:
-    """Get DNS server IP from Docker network."""
+    """Get DNS server IP from Docker network.
+
+    Returns:
+        str: IP address of the DNS server.
+
+    Raises:
+        DNSConnectionError: If the DNS server IP cannot be resolved.
+    """
     async_resolver = AsyncResolver()
     dns_server_ip_resolve = await async_resolver.resolve(host)
     if dns_server_ip_resolve is None or dns_server_ip_resolve.rrset is None:
@@ -100,7 +116,15 @@ async def get_dns_manager_settings(
     session: AsyncSession,
     resolve_coro: Awaitable[str],
 ) -> "DNSManagerSettings":
-    """Get DNS manager's settings."""
+    """Get DNS manager's settings.
+
+    Args:
+        session (AsyncSession): Database session.
+        resolve_coro (Awaitable[str]): Coroutine to resolve DNS server IP.
+
+    Returns:
+        DNSManagerSettings: DNS manager settings.
+    """
     settings_dict = {}
     for setting in await session.scalars(
         select(CatalogueSetting).filter(

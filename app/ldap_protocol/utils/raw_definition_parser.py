@@ -16,6 +16,14 @@ class RawDefinitionParser:
 
     @staticmethod
     def _list_to_string(data: list[str]) -> str | None:
+        """Convert list to string.
+
+        Raises:
+            ValueError: if list has more than one element
+
+        Returns:
+            str | None: single string if list has one element
+        """
         if not data:
             return None
         if len(data) == 1:
@@ -24,13 +32,23 @@ class RawDefinitionParser:
 
     @staticmethod
     def _get_attribute_type_info(raw_definition: str) -> AttributeTypeInfo:
+        """Get attribute type info.
+
+        Returns:
+            AttributeTypeInfo: parsed attribute type info
+        """
         tmp = AttributeTypeInfo.from_definition(definitions=[raw_definition])
-        return list(tmp.values())[0]
+        return next(iter(tmp.values()))
 
     @staticmethod
     def get_object_class_info(raw_definition: str) -> ObjectClassInfo:
+        """Get object class info.
+
+        Returns:
+            ObjectClassInfo: parsed object class info
+        """
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
-        return list(tmp.values())[0]
+        return next(iter(tmp.values()))
 
     @staticmethod
     async def _get_attribute_types_by_names(
@@ -47,6 +65,14 @@ class RawDefinitionParser:
     def create_attribute_type_by_raw(
         raw_definition: str,
     ) -> AttributeType:
+        """Create attribute type by raw definition.
+
+        Args:
+            raw_definition (str): raw definition of attribute type
+
+        Returns:
+            AttributeType: created attribute type instance
+        """
         attribute_type_info = RawDefinitionParser._get_attribute_type_info(
             raw_definition=raw_definition
         )
@@ -78,7 +104,15 @@ class RawDefinitionParser:
         session: AsyncSession,
         object_class_info: ObjectClassInfo,
     ) -> ObjectClass:
-        """Create Object Class by ObjectClassInfo."""
+        """Create Object Class by ObjectClassInfo.
+
+        Args:
+            session (AsyncSession): db session
+            object_class_info (ObjectClassInfo): object class info
+
+        Returns:
+            ObjectClass: object class instance
+        """
         superior_name = RawDefinitionParser._list_to_string(
             object_class_info.superior
         )

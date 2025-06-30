@@ -32,7 +32,15 @@ async def search(
     request: SearchRequest,
     req: Request,
 ) -> SearchResponse:
-    """LDAP SEARCH entry request."""
+    """Handle LDAP SEARCH entry request.
+
+    Args:
+        request (SearchRequest): object containing search parameters.
+        req (Request): object for accessing application state.
+
+    Returns:
+        SearchResponse: Response containing search results and metadata.
+    """
     responses = await request.handle_api(req.state.dishka_container)
     metadata: SearchResultDone = responses.pop(-1)  # type: ignore
 
@@ -51,7 +59,15 @@ async def add(
     request: AddRequest,
     req: Request,
 ) -> LDAPResult:
-    """LDAP ADD entry request."""
+    """Handle LDAP ADD entry request.
+
+    Args:
+        request (AddRequest): object containing entry data to add.
+        req (Request): object for accessing application state.
+
+    Returns:
+        LDAPResult: Result of the add operation.
+    """
     return await request.handle_api(req.state.dishka_container)
 
 
@@ -60,7 +76,15 @@ async def modify(
     request: ModifyRequest,
     req: Request,
 ) -> LDAPResult:
-    """LDAP MODIFY entry request."""
+    """Handle LDAP MODIFY entry request.
+
+    Args:
+        request (ModifyRequest): object containing modification data.
+        req (Request): object for accessing application state.
+
+    Returns:
+        LDAPResult: Result of the modify operation.
+    """
     return await request.handle_api(req.state.dishka_container)
 
 
@@ -69,7 +93,16 @@ async def modify_many(
     requests: list[ModifyRequest],
     req: Request,
 ) -> list[LDAPResult]:
-    """Bulk LDAP MODIFY entry request."""
+    """Handle bulk LDAP MODIFY entry requests.
+
+    Args:
+        requests (list[ModifyRequest]): List of ModifyRequest objects\
+            containing modification data.
+        req (Request): object for accessing application state.
+
+    Returns:
+        list[LDAPResult]: List of results for each modify operation.
+    """
     results = []
     for request in requests:
         results.append(await request.handle_api(req.state.dishka_container))
@@ -81,7 +114,15 @@ async def modify_dn(
     request: ModifyDNRequest,
     req: Request,
 ) -> LDAPResult:
-    """LDAP MODIFY entry DN request."""
+    """Handle LDAP MODIFY entry DN request.
+
+    Args:
+        request (ModifyDNRequest): object containing DN modification data.
+        req (Request): object for accessing application state.
+
+    Returns:
+        LDAPResult: Result of the DN modify operation.
+    """
     return await request.handle_api(req.state.dishka_container)
 
 
@@ -90,5 +131,13 @@ async def delete(
     request: DeleteRequest,
     req: Request,
 ) -> LDAPResult:
-    """LDAP DELETE entry request."""
+    """Handle LDAP DELETE entry request.
+
+    Args:
+        request (DeleteRequest): object containing entry to delete.
+        req (Request): object for accessing application state.
+
+    Returns:
+        LDAPResult: Result of the delete operation.
+    """
     return await request.handle_api(req.state.dishka_container)

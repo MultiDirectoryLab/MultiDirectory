@@ -24,12 +24,17 @@ from pydantic import (
 
 
 def _get_vendor_version() -> str:
+    """Get vendor version.
+
+    Returns:
+        str: vendor version
+    """
     with open("/pyproject.toml", "rb") as f:
         return tomllib.load(f)["tool"]["poetry"]["version"]
 
 
 class Settings(BaseModel):
-    """Settigns with database dsn."""
+    """Settings with database dsn."""
 
     DOMAIN: str
 
@@ -69,7 +74,11 @@ class Settings(BaseModel):
     @computed_field  # type: ignore
     @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
-        """Build postgres DSN."""
+        """Build postgres DSN.
+
+        Returns:
+            PostgresDsn: postgres DSN
+        """
         return PostgresDsn(
             f"{self.POSTGRES_SCHEMA}://"
             f"{self.POSTGRES_USER}:"
@@ -118,8 +127,19 @@ class Settings(BaseModel):
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
     @field_validator("TIMEZONE", mode="before")
-    def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
-        """Get timezone from a string."""
+    @classmethod
+    def create_tz(cls, tz: str) -> ZoneInfo:
+        """Get timezone from a string.
+
+        Args:
+            tz (str): string timezone
+
+        Returns:
+            ZoneInfo:
+
+        Raises:
+            ValueError: timezone info not found
+        """
         try:
             value = ZoneInfo(tz)
         except ZoneInfoNotFoundError as err:
@@ -134,14 +154,19 @@ class Settings(BaseModel):
     def MFA_API_URI(self) -> str:  # noqa: N802
         """Multifactor API url.
 
-        :return str: url
+        Returns:
+            str: url
         """
         if self.MFA_API_SOURCE == "dev":
             return "https://api.multifactor.dev"
         return "https://api.multifactor.ru"
 
     def get_copy_4_tls(self) -> "Settings":
-        """Create a copy for TLS bind."""
+        """Create a copy for TLS bind.
+
+        Returns:
+            Settings:
+        """
         from copy import copy
 
         tls_settings = copy(self)
@@ -150,10 +175,18 @@ class Settings(BaseModel):
         return tls_settings
 
     def check_certs_exist(self) -> bool:
-        """Check if certs exist."""
+        """Check if certs exist.
+
+        Returns:
+            bool
+        """
         return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)
 
     @classmethod
     def from_os(cls) -> "Settings":
-        """Get cls from environ."""
+        """Get cls from environ.
+
+        Returns:
+            Settings:
+        """
         return Settings(**os.environ)

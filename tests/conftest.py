@@ -9,7 +9,14 @@ import uuid
 import weakref
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Generator,
+    Iterator,
+    Literal,
+)
 from unittest.mock import AsyncMock, Mock
 
 import aioldap3
@@ -214,7 +221,11 @@ class TestProvider(Provider):
         self,
         engine: AsyncEngine,
     ) -> async_sessionmaker[AsyncSession]:
-        """Create session factory."""
+        """Create session factory.
+
+        Args:
+            engine (AsyncEngine): async engine
+        """
         return async_sessionmaker(
             engine,
             expire_on_commit=False,
@@ -340,8 +351,16 @@ class MutePolicyBindRequest(BindRequest):
     __test__ = False
 
     @staticmethod
-    async def is_user_group_valid(*args, **kwargs) -> bool:  # type: ignore
-        """Stub."""
+    async def is_user_group_valid(*args: Any, **kwargs: Any) -> Literal[True]:
+        """Stub.
+
+        Args:
+            *args: arguments
+            **kwargs: keyword arguments
+
+        Returns:
+            Literal[True]: True
+        """
         return True
 
 
@@ -380,10 +399,12 @@ async def _migrations(
     config.attributes["app_settings"] = settings
 
     def upgrade(conn: AsyncConnection) -> None:
+        """Run up migrations."""
         config.attributes["connection"] = conn
         command.upgrade(config, "head")
 
     def downgrade(conn: AsyncConnection) -> None:
+        """Run down migrations."""
         config.attributes["connection"] = conn
         command.downgrade(config, "base")
 
@@ -483,7 +504,12 @@ def _server(
     event_loop: asyncio.BaseEventLoop,
     handler: PoolClientHandler,
 ) -> Generator:
-    """Run server in background."""
+    """Run server in background.
+
+    Args:
+        event_loop (asyncio.BaseEventLoop): events loop
+        handler (PoolClientHandler): handler
+    """
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(0.1))
     yield
@@ -496,7 +522,15 @@ async def ldap_client(
     settings: Settings,
     creds: TestCreds,
 ) -> AsyncIterator[aioldap3.LDAPConnection]:
-    """Get LDAP client without credentials."""
+    """Get ldap clinet with creds.
+
+    Args:
+        settings (Settings): Settings with database dsn.
+        creds (TestCreds): credentials for ldap auth
+
+    Yields:
+        aioldap3.LDAPConnection: ldap async client
+    """
     conn = aioldap3.LDAPConnection(
         aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
     )
@@ -537,7 +571,8 @@ async def unbound_http_client(
 ) -> AsyncIterator[httpx.AsyncClient]:
     """Get async client for fastapi tests.
 
-    :param FastAPI app: asgi app
+    Args:
+        app (FastAPI): asgi app
     :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
     """
     async with httpx.AsyncClient(
@@ -556,10 +591,13 @@ async def http_client(
 ) -> httpx.AsyncClient:
     """Authenticate and return client with cookies.
 
-    :param httpx.AsyncClient unbound_http_client: client w/o cookies
-    :param TestCreds creds: creds to authn
-    :param None setup_session: just a fixture call
-    :return httpx.AsyncClient: bound client with cookies
+    Args:
+        unbound_http_client (httpx.AsyncClient): client w/o cookies
+        creds (TestCreds): creds to authn
+        setup_session (None): just a fixture call
+
+    Returns:
+        httpx.AsyncClient: bound client with cookies
     """
     response = await unbound_http_client.post(
         "auth/",

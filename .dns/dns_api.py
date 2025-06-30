@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import logging
 import os
 import re
-import subprocess
+import subprocess  # noqa: S404
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
@@ -190,7 +190,7 @@ class BindDNSServerManager:
     """Bind9 DNS server manager."""
 
     @staticmethod
-    def _get_zone_obj_by_zone_name(zone_name) -> dns.zone.Zone:
+    def _get_zone_obj_by_zone_name(zone_name: str) -> dns.zone.Zone:
         """Get DNS zone object by zone name.
 
         Algorithm:
@@ -583,7 +583,7 @@ class BindDNSServerManager:
         Algorithm:
             1. Call rndc reconfig.
         """
-        subprocess.run(  # noqa: S603
+        subprocess.run(
             [
                 "/usr/sbin/rndc",
                 "reconfig",
@@ -847,8 +847,8 @@ class BindDNSServerManager:
         self,
         old_record: DNSRecord,
         new_record: DNSRecord,
-        record_type,
-        zone_name,
+        record_type: DNSRecordType,
+        zone_name: str,
     ) -> None:
         """Update a record in a zone (value or TTL).
 
@@ -999,7 +999,11 @@ class BindDNSServerManager:
 
 
 async def get_dns_manager() -> type[BindDNSServerManager]:
-    """Get DNS server manager client."""
+    """Get DNS server manager client.
+
+    Returns:
+        BindDNSServerManager: dns manager.
+    """
     return BindDNSServerManager()
 
 
@@ -1044,7 +1048,11 @@ def delete_zone(
 async def get_all_records_by_zone(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> list[DNSZone]:
-    """Get all DNS records grouped by zone."""
+    """Get all DNS records grouped by zone.
+
+    Returns:
+        list[DNSZone]: List of DNSZone objects with records.
+    """
     return dns_manager.get_all_records()
 
 
@@ -1052,7 +1060,11 @@ async def get_all_records_by_zone(
 async def get_forward_zones(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> list[DNSForwardZone]:
-    """Get all forward DNS zones."""
+    """Get all forward DNS zones.
+
+    Returns:
+        list[DNSForwardZone]: List of DNSForwardZone objects.
+    """
     return await dns_manager.get_forward_zones()
 
 
@@ -1142,7 +1154,11 @@ def update_dns_server_settings(
 async def get_server_settings(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> list[DNSServerParam]:
-    """Get list of modifiable server settings."""
+    """Get list of modifiable server settings.
+
+    Returns:
+        list[DNSServerParam]: List of server parameters.
+    """
     return dns_manager.get_server_settings()
 
 
@@ -1156,7 +1172,11 @@ def setup_server(
 
 
 def create_app() -> FastAPI:
-    """Create FastAPI app."""
+    """Create FastAPI app.
+
+    Returns:
+        FastAPI: FastAPI application instance.
+    """
     app = FastAPI(
         name="DNSServerManager",
         title="DNSServerManager",

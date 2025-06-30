@@ -72,15 +72,29 @@ class AddRequest(BaseRequest):
 
     @property
     def attr_names(self) -> dict[str, list[str | bytes]]:
+        """Get attribute names.
+
+        Returns:
+            dict[str, list[str | bytes]]: attribute names
+        """
         return {attr.l_name: attr.vals for attr in self.attributes}
 
     @property
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
+        """Get attributes dictionary.
+
+        Returns:
+            dict[str, list[str | bytes]]: attributes dictionary
+        """
         return {attr.type: attr.vals for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
-        """Deserialize."""
+        """Deserialize.
+
+        Returns:
+            AddRequest
+        """
         entry, attributes = data  # type: ignore
         attributes = [
             PartialAttribute(
@@ -98,7 +112,20 @@ class AddRequest(BaseRequest):
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
     ) -> AsyncGenerator[AddResponse, None]:
-        """Add request handler."""
+        """Add request handler.
+
+        Args:
+            session (AsyncSession): Async DB session
+            ldap_session (LDAPSession): LDAP session
+            kadmin (AbstractKadmin): Abstract Kerberos Admin
+            entity_type_dao (EntityTypeDAO): Entity Type DAO.
+
+        Yields:
+            AsyncGenerator[AddResponse, None]
+
+        Raises:
+            TypeError: not valid attribute type
+        """
         if not ldap_session.user:
             yield AddResponse(**INVALID_ACCESS_RESPONSE)
             return
@@ -396,9 +423,13 @@ class AddRequest(BaseRequest):
     ) -> "AddRequest":
         """Create AddRequest from dict.
 
-        :param str entry: entry
-        :param dict[str, list[str]] attributes: dict of attrs
-        :return AddRequest: instance
+        Args:
+            entry (str): entry
+            attributes (dict[str, list[str]]): attributes
+            password (str | None): (Default value = None)
+
+        Returns:
+            AddRequest: instance
         """
         return AddRequest(
             entry=entry,

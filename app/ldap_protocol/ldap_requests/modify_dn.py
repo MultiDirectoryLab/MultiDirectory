@@ -65,6 +65,7 @@ class ModifyDNRequest(BaseRequest):
         deleteoldrdn=true
         new_superior='ou=users,dc=multifactor,dc=dev'
 
+    Args:
         >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
@@ -77,7 +78,15 @@ class ModifyDNRequest(BaseRequest):
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyDNRequest":
-        """Create structure from ASN1Row dataclass list."""
+        """Create structure from ASN1Row dataclass list.
+
+        Args:
+            data (list[ASN1Row]): List of ASN1Row objects containing\
+                the request data.
+
+        Returns:
+            ModifyDNRequest: Instance of ModifyDNRequest with parsed data.
+        """
         return cls(
             entry=data[0].value,
             newrdn=data[1].value,
@@ -90,7 +99,15 @@ class ModifyDNRequest(BaseRequest):
         ldap_session: LDAPSession,
         session: AsyncSession,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
-        """Handle message with current user."""
+        """Handle message with current user.
+
+        Args:
+            ldap_session (LDAPSession): Current LDAP session.
+            session (AsyncSession): Database session.
+
+        Yields:
+            ModifyDNResponse: Response to the Modify DN request.
+        """
         if not ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return

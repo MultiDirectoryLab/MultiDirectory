@@ -221,22 +221,18 @@ class AbstractDNSManager(ABC):
             await session.execute(
                 update(CatalogueSetting)
                 .where(CatalogueSetting.name.in_(new_settings.keys()))
-                .values(
-                    {
-                        "value": case(
-                            *settings,
-                            else_=CatalogueSetting.value,
-                        )
-                    }
-                )
+                .values({
+                    "value": case(
+                        *settings,
+                        else_=CatalogueSetting.value,
+                    )
+                })
             )
         else:
-            session.add_all(
-                [
-                    CatalogueSetting(name=name, value=value)
-                    for name, value in new_settings.items()
-                ]
-            )
+            session.add_all([
+                CatalogueSetting(name=name, value=value)
+                for name, value in new_settings.items()
+            ])
 
     @abstractmethod
     async def create_record(
@@ -246,7 +242,8 @@ class AbstractDNSManager(ABC):
         record_type: str,
         ttl: int | None,
         zone_name: str | None = None,
-    ) -> None: ...
+    ) -> None:
+        """Create DNS record."""
 
     @abstractmethod
     async def update_record(
@@ -256,7 +253,8 @@ class AbstractDNSManager(ABC):
         record_type: str,
         ttl: int | None,
         zone_name: str | None = None,
-    ) -> None: ...
+    ) -> None:
+        """Update DNS record."""
 
     @abstractmethod
     async def delete_record(
@@ -265,17 +263,43 @@ class AbstractDNSManager(ABC):
         ip: str,
         record_type: str,
         zone_name: str | None = None,
-    ) -> None: ...
+    ) -> None:
+        """Delete DNS record."""
 
     @abstractmethod
-    async def get_all_records(self) -> list[DNSRecords]: ...
+    async def get_all_records(self) -> list[DNSRecords]:
+        """Get all DNS records of all zones.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+
+        Returns:
+            list[DNSRecords]: List of DNSRecords objects with records.
+        """
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def get_all_zones_records(self) -> list[DNSZone]:
+        """Get all DNS records grouped by zone.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+
+        Returns:
+            list[DNSZone]: List of DNSZone objects with records.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
     async def get_forward_zones(self) -> list[DNSForwardZone]:
+        """Get all forward zones.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+
+        Returns:
+            list[DNSForwardZone]: List of DNSForwardZone objects.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
@@ -286,6 +310,17 @@ class AbstractDNSManager(ABC):
         nameserver: str | None,
         params: list[DNSZoneParam],
     ) -> None:
+        """Create DNS zone.
+
+        Args:
+            zone_name (str): Name of the zone.
+            zone_type (DNSZoneType): Type of the zone (master or forward).
+            nameserver (str | None): Nameserver for the zone, if applicable.
+            params (list[DNSZoneParam]): List of parameters for the zone.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
@@ -294,13 +329,27 @@ class AbstractDNSManager(ABC):
         zone_name: str,
         params: list[DNSZoneParam] | None,
     ) -> None:
+        """Update DNS zone.
+
+        Args:
+            zone_name (str): Name of the zone to update.
+            params (list[DNSZoneParam] | None): List of parameters to update.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
-    async def delete_zone(
-        self,
-        zone_names: list[str],
-    ) -> None:
+    async def delete_zone(self, zone_names: list[str]) -> None:
+        """Delete DNS zone.
+
+        Args:
+            zone_names (list[str]): List of zone names to delete.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
@@ -308,6 +357,17 @@ class AbstractDNSManager(ABC):
         self,
         dns_server_ip: IPv4Address | IPv6Address,
     ) -> DNSForwardServerStatus:
+        """Check if the given DNS server is reachable and valid.
+
+        Args:
+            dns_server_ip (IPv4Address | IPv6Address): IP address of DNS server
+
+        Returns:
+            DNSForwardServerStatus: Status of the DNS server.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
@@ -315,20 +375,45 @@ class AbstractDNSManager(ABC):
         self,
         params: list[DNSServerParam],
     ) -> None:
+        """Update DNS server options.
+
+        Args:
+            params (list[DNSServerParam]): List of server parameters to update.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
-    async def get_server_options(self) -> list[DNSServerParam]: ...
+    async def get_server_options(self) -> list[DNSServerParam]:
+        """Get list of modifiable DNS server params.
 
-    @abstractmethod
-    async def restart_server(
-        self,
-    ) -> None:
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+
+        Returns:
+            list[DNSServerParam]: List of DNSServerParam objects.
+        """
         raise DNSNotImplementedError
 
     @abstractmethod
-    async def reload_zone(
-        self,
-        zone_name: str,
-    ) -> None:
+    async def restart_server(self) -> None:
+        """Restart DNS server.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+        """
+        raise DNSNotImplementedError
+
+    @abstractmethod
+    async def reload_zone(self, zone_name: str) -> None:
+        """Reload DNS zone.
+
+        Args:
+            zone_name (str): Name of the zone to reload.
+
+        Raises:
+            DNSNotImplementedError: If the method is not implemented.
+        """
         raise DNSNotImplementedError

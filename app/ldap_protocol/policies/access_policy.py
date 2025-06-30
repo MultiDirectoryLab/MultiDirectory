@@ -21,14 +21,14 @@ from ldap_protocol.utils.queries import (
 from models import AccessPolicy, Directory, Group
 
 T = TypeVar("T", bound=Select)
-__all__ = ["get_policies", "create_access_policy", "mutate_ap"]
+__all__ = ["create_access_policy", "get_policies", "mutate_ap"]
 
 
 async def get_policies(session: AsyncSession) -> list[AccessPolicy]:
     """Get policies.
 
-    :param AsyncSession session: db
-    :return list[AccessPolicy]: result
+    Returns:
+        list[AccessPolicy]: result
     """
     query = select(AccessPolicy).options(
         selectinload(AccessPolicy.groups).selectinload(Group.directory),
@@ -48,7 +48,18 @@ async def create_access_policy(
     groups: list[GRANT_DN_STRING],
     session: AsyncSession,
 ) -> None:
-    """Get policies."""
+    """Get policies.
+
+    Args:
+        name (str): access policy name
+        can_read (bool): can read
+        can_add (bool): can add
+        can_modify (bool): can modify
+        can_delete (bool): can delete
+        grant_dn (GRANT_DN_STRING): main dn
+        groups (list[GRANT_DN_STRING]): list of groups
+        session (AsyncSession): session
+    """
     path = get_search_path(grant_dn)
     dir_filter = get_path_filter(
         column=Directory.path[1 : len(path)],
@@ -71,16 +82,21 @@ async def create_access_policy(
     await session.flush()
 
 
-def mutate_ap(
+def mutate_ap[T: Select](
     query: T,
     user: UserSchema,
     action: Literal["add", "read", "modify", "del"] = "read",
 ) -> T:
     """Modify query with read rule filter, joins acess policies.
 
-    :param T query: select(Directory)
-    :param UserSchema user: user data
-    :return T: select(Directory).join(Directory.access_policies)
+    Args:
+        query (T): select(Directory)
+        user (UserSchema): serialized user
+        action (Literal["add", "read", "modify", "del"]):
+            (Default value = "read")
+
+    Returns:
+        T: select(Directory).join(Directory.access_policies)
     """
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 

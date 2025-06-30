@@ -9,7 +9,7 @@ DC=multifactor
     CN=User 4
   OU="2FA"
     CN=Service Accounts
-      CN=User 5
+        CN=User 5
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -54,7 +54,14 @@ async def _create_dir(
     domain: Directory,
     parent: Directory | None = None,
 ) -> None:
-    """Create data recursively."""
+    """Create data recursively.
+
+    Args:
+        data (dict): data
+        session (AsyncSession): Database session
+        domain (Directory): domain
+        parent (Directory | None): parent
+    """
     dir_ = Directory(
         object_class=data["object_class"],
         name=data["name"],
@@ -163,7 +170,16 @@ async def setup_enviroment(
     data: list,
     dn: str = "multifactor.dev",
 ) -> None:
-    """Create directories and users for enviroment."""
+    """Create directories and users for enviroment.
+
+    Args:
+        session (AsyncSession): Database async session
+        data (list): data
+        dn (str): domain name (Default value = 'multifactor.dev')
+
+    Raises:
+        Exception: Failed to setup environment
+    """
     cat_result = await session.execute(select(Directory))
     if cat_result.scalar_one_or_none():
         logger.warning("dev data already set up")
@@ -232,4 +248,4 @@ async def setup_enviroment(
         import traceback
 
         logger.error(traceback.format_exc())
-        raise
+        raise Exception("Failed to setup environment")

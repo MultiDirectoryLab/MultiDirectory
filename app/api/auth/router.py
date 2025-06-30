@@ -63,25 +63,28 @@ async def login(
     """Create session to cookies and storage.
 
     - **username**: username formats:
-    `DN`, `userPrincipalName`, `saMAccountName`
+        `DN`, `userPrincipalName`, `saMAccountName`
     - **password**: password
 
     \f
-    :param Annotated[OAuth2Form, Depends form: login form
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[Settings] settings: app settings
-    :param FromDishka[MultifactorAPI] mfa: mfa api wrapper
-    :param FromDishka[SessionStorage] storage: session storage
-    :param Response response: FastAPI response
-    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
-    :raises HTTPException: 401 if incorrect username or password
-    :raises HTTPException: 403 if user not part of domain admins
-    :raises HTTPException: 403 if user account is disabled
-    :raises HTTPException: 403 if user account is expired
-    :raises HTTPException: 403 if ip is not provided
-    :raises HTTPException: 403 if user not part of network policy
-    :raises HTTPException: 426 if mfa required
-    :return None: None
+    Args:
+        form (OAuth2Form): Login form with username and password.
+        session (FromDishka[AsyncSession]): Database session.
+        settings (FromDishka[Settings]): Application settings.
+        mfa (FromDishka[MultifactorAPI]): MFA API wrapper.
+        storage (FromDishka[SessionStorage]): Session storage.
+        response (Response): FastAPI response object.
+        ip (IPv4Address | IPv6Address): Client IP address.
+        user_agent (str): Client user agent string.
+
+    Raises:
+        HTTPException: 401 if incorrect username or password
+        HTTPException: 403 if user not part of domain admins
+        HTTPException: 403 if user account is disabled
+        HTTPException: 403 if user account is expired
+        HTTPException: 403 if ip is not provided
+        HTTPException: 403 if user not part of network policy
+        HTTPException: 426 if mfa required
     """
     user = await authenticate_user(session, form.username, form.password)
 
@@ -150,7 +153,14 @@ async def login(
 async def users_me(
     user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> UserSchema:
-    """Get current logged in user data."""
+    """Get current logged in user data.
+
+    Args:
+        user (UserSchema): Current user schema from dependency.
+
+    Returns:
+        UserSchema: Current user data.
+    """
     return user
 
 
@@ -160,7 +170,13 @@ async def logout(
     storage: FromDishka[SessionStorage],
     user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> None:
-    """Delete token cookies."""
+    """Delete token cookies.
+
+    Args:
+        response (Response): FastAPI response object.
+        storage (FromDishka[SessionStorage]): Session storage.
+        user (UserSchema): Current user schema from dependency.
+    """
     response.delete_cookie("id", httponly=True)
     await storage.delete_user_session(user.session_id)
 
@@ -182,14 +198,16 @@ async def password_reset(
     `userPrincipalName`, `saMAccountName` or `DN`
     - **new_password**: password to set
     \f
-    :param FromDishka[AsyncSession] session: db
-    :param FromDishka[AbstractKadmin] kadmin: kadmin api
-    :param Annotated[str, Body identity: reset target user
-    :param Annotated[str, Body new_password: new password for user
-    :raises HTTPException: 404 if user not found
-    :raises HTTPException: 422 if password not valid
-    :raises HTTPException: 424 if kerberos password update failed
-    :return None: None
+    Args:
+        identity (str): Reset target user identity.
+        new_password (str): New password for user.
+        session (FromDishka[AsyncSession]): Database session.
+        kadmin (FromDishka[AbstractKadmin]): Kadmin API instance.
+
+    Raises:
+        HTTPException: 404 if user not found
+        HTTPException: 422 if password not valid
+        HTTPException: 424 if kerberos password update failed
     """
     user = await get_user(session, identity)
 
@@ -226,7 +244,8 @@ async def password_reset(
 async def check_setup(session: FromDishka[AsyncSession]) -> bool:
     """Check if initial setup needed.
 
-    True if setup already complete, False if setup is needed.
+    Returns:
+        bool: True if setup already complete, False if setup is needed.
     """
     query = select(exists(Directory).where(Directory.parent_id.is_(None)))
     retval = await session.scalars(query)
@@ -242,7 +261,17 @@ async def first_setup(
     request: SetupRequest,
     session: FromDishka[AsyncSession],
 ) -> None:
-    """Perform initial setup."""
+    """Perform initial setup.
+
+    Args:
+        request (SetupRequest): Setup request containing domain and user data.
+        session (FromDishka[AsyncSession]): Database session.
+
+    Raises:
+        HTTPException: 422 if password policy validation fails
+        HTTPException: 423 if setup already performed
+        HTTPException: 424 if integrity error occurs during setup.
+    """
     setup_already_performed = await session.scalar(
         select(Directory)
         .filter(Directory.parent_id.is_(None))
