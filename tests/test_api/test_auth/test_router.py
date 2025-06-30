@@ -237,7 +237,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
             "time_limit": 10,
             "types_only": True,
             "filter": "(objectClass=*)",
-            "attributes": [],
+            "attributes": ["*"],
             "page_number": 1,
         },
     )

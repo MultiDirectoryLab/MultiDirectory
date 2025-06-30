@@ -141,15 +141,15 @@ async def test_api_search_filter_member(http_client: AsyncClient) -> None:
             "time_limit": 10,
             "types_only": True,
             "filter": f"(member={member})",
-            "attributes": [],
+            "attributes": ["distinguishedName"],
             "page_number": 1,
         },
     )
 
     response = raw_response.json()
-
     assert response["resultCode"] == LDAPCodes.SUCCESS
-    assert response["search_result"][0]["object_name"] == group
+    dns = (d["object_name"] for d in response["search_result"])
+    assert group in dns
 
 
 @pytest.mark.asyncio
@@ -234,8 +234,8 @@ async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
                         (displayName=*non-exists*)
                     )
                 )
-                      """,
-            "attributes": [],
+            """,
+            "attributes": ["distinguishedName"],
             "page_number": 1,
         },
     )

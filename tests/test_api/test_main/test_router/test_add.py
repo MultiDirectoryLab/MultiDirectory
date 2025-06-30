@@ -91,7 +91,7 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
             "time_limit": 10,
             "types_only": True,
             "filter": "(objectClass=*)",
-            "attributes": [],
+            "attributes": ["*"],
             "page_number": 1,
         },
     )

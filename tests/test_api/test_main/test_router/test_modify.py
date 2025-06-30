@@ -119,7 +119,7 @@ async def test_api_modify_many(http_client: AsyncClient) -> None:
             "time_limit": 10,
             "types_only": True,
             "filter": "(objectClass=*)",
-            "attributes": [],
+            "attributes": ["testing_attr", "accountExpires"],
             "page_number": 1,
         },
     )
