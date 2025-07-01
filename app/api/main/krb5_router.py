@@ -20,7 +20,6 @@ from api.utils import KerberosService
 from api.utils.exceptions import (
     KerberosConflictError,
     KerberosDependencyError,
-    KerberosInternalError,
     KerberosNotFoundError,
     KerberosUnavailableError,
 )
@@ -91,10 +90,7 @@ async def setup_kdc(
         task = await kerberos_service.setup_kdc(data, user, request)
     except KerberosDependencyError as exc:
         raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
-    except KerberosInternalError as exc:
-        raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
-        )
+
     return Response(background=task)
 
 
