@@ -222,6 +222,15 @@ services:
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
       - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
 
+  kea:
+    image: kea_image:0.1
+    container_name: kea
+    tty: true
+    restart: unless-stopped
+    volumes:
+      - kea_data:/var/lib/kea
+    network_mode: host
+
   kdc:
     build:
       context: .
@@ -375,3 +384,4 @@ volumes:
   dns_server_config:
   ldap_keytab:
   dragonflydata:
+  kea_data:
