@@ -17,6 +17,7 @@ from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
     PaginationResult,
+    build_paginated_search_query,
 )
 from models import Attribute, Directory, EntityType
 
@@ -61,10 +62,12 @@ class EntityTypeDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Entity Types and metadata.
         """
-        query = select(EntityType).order_by(EntityType.name)
-
-        if params.query:
-            query = query.where(EntityType.name.ilike(f"%{params.query}%"))
+        query = build_paginated_search_query(
+            EntityType,
+            EntityType.name,
+            params,
+            EntityType.name,
+        )
 
         return await PaginationResult[EntityType].get(
             params=params,

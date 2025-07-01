@@ -20,6 +20,7 @@ from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
     PaginationResult,
+    build_paginated_search_query,
 )
 from models import EntityType, KindType, ObjectClass
 
@@ -76,10 +77,12 @@ class ObjectClassDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Object Classes and metadata.
         """
-        query = select(ObjectClass).order_by(ObjectClass.id)
-
-        if params.query:
-            query = query.where(ObjectClass.name.ilike(f"%{params.query}%"))
+        query = build_paginated_search_query(
+            ObjectClass,
+            ObjectClass.id,
+            params,
+            ObjectClass.name,
+        )
 
         return await PaginationResult[ObjectClass].get(
             params=params,

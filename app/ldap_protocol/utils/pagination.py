@@ -12,6 +12,7 @@ from typing import Sequence, TypeVar
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.expression import Select
 
 from models import Base
@@ -34,6 +35,24 @@ class PaginationParams(BaseModel):
         le=100,
     )
     query: str | None = None
+
+
+def build_paginated_search_query(
+    model: type[S],
+    order_by_field: InstrumentedAttribute,
+    params: PaginationParams,
+    search_field: InstrumentedAttribute | None = None,
+) -> Select:
+    """Build query."""
+    if search_field is None:
+        search_field = order_by_field
+
+    query = select(model).order_by(order_by_field)
+
+    if params.query:
+        query = query.where(search_field.ilike(f"%{params.query}%"))
+
+    return query
 
 
 @dataclass

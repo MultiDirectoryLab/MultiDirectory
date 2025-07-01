@@ -16,6 +16,7 @@ from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
     PaginationResult,
+    build_paginated_search_query,
 )
 from models import AttributeType
 
@@ -65,10 +66,12 @@ class AttributeTypeDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Attribute Types and metadata.
         """
-        query = select(AttributeType).order_by(AttributeType.id)
-
-        if params.query:
-            query = query.where(AttributeType.name.ilike(f"%{params.query}%"))
+        query = build_paginated_search_query(
+            AttributeType,
+            AttributeType.id,
+            params,
+            AttributeType.name,
+        )
 
         return await PaginationResult[AttributeType].get(
             params=params,
