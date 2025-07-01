@@ -28,15 +28,6 @@ class EntityTypeSchema(BaseModel):
     is_system: bool
     object_class_names: list[str] = Field([], min_length=1, max_length=10000)
 
-    @classmethod
-    def from_db(cls, entity_type: EntityType) -> "EntityTypeSchema":
-        """Create an instance of Entity Type Schema from SQLA object."""
-        return cls(
-            name=entity_type.name,
-            is_system=entity_type.is_system,
-            object_class_names=entity_type.object_class_names,
-        )
-
 
 class EntityTypeUpdateSchema(BaseModel):
     """Entity Type Schema for modify/update."""

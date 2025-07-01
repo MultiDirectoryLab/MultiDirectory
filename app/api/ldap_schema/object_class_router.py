@@ -78,7 +78,7 @@ async def get_one_object_class(
     """
     object_class = await object_class_dao.get_one_by_name(object_class_name)
 
-    return ObjectClassSchema.from_db(object_class)
+    return ObjectClassSchema.model_validate(object_class, from_attributes=True)
 
 
 @ldap_schema_router.get(
@@ -100,7 +100,8 @@ async def get_list_object_classes_with_pagination(
     pagination_result = await object_class_dao.get_paginator(params=params)
 
     items = [
-        ObjectClassSchema.from_db(item) for item in pagination_result.items
+        ObjectClassSchema.model_validate(item, from_attributes=True)
+        for item in pagination_result.items
     ]
     return ObjectClassPaginationSchema(
         metadata=pagination_result.metadata,

@@ -80,7 +80,10 @@ async def get_one_attribute_type(
     attribute_type = await attribute_type_dao.get_one_by_name(
         attribute_type_name
     )
-    return AttributeTypeSchema.from_db(attribute_type)
+    return AttributeTypeSchema.model_validate(
+        attribute_type,
+        from_attributes=True,
+    )
 
 
 @ldap_schema_router.get(
@@ -102,7 +105,8 @@ async def get_list_attribute_types_with_pagination(
     pagination_result = await attribute_type_dao.get_paginator(params=params)
 
     items = [
-        AttributeTypeSchema.from_db(item) for item in pagination_result.items
+        AttributeTypeSchema.model_validate(item, from_attributes=True)
+        for item in pagination_result.items
     ]
     return AttributeTypePaginationSchema(
         metadata=pagination_result.metadata,
