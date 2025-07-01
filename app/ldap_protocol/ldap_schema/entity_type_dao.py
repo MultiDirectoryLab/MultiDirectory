@@ -61,10 +61,14 @@ class EntityTypeDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Entity Types and metadata.
         """
+        query = select(EntityType).order_by(EntityType.name)
+
+        if params.query:
+            query = query.where(EntityType.name.ilike(f"%{params.query}%"))
+
         return await PaginationResult[EntityType].get(
             params=params,
-            query=select(EntityType).order_by(EntityType.name),
-            sqla_model=EntityType,
+            query=query,
             session=self._session,
         )
 

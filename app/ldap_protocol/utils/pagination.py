@@ -73,7 +73,6 @@ class PaginationResult[S: Base]:
         cls,
         query: Select[tuple[S]],
         params: PaginationParams,
-        sqla_model: type[S],
         session: AsyncSession,
     ) -> "PaginationResult[S]":
         """Get paginator."""
@@ -84,9 +83,6 @@ class PaginationResult[S: Base]:
             page_number=params.page_number,
             page_size=params.page_size,
         )
-
-        if params.query:
-            query = query.where(sqla_model.name.ilike(f"%{params.query}%"))  # type: ignore
 
         total_count_query = select(func.count()).select_from(query.subquery())
         metadata.total_count = (await session.scalars(total_count_query)).one()

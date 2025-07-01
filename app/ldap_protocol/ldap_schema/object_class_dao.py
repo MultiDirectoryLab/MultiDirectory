@@ -76,10 +76,14 @@ class ObjectClassDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Object Classes and metadata.
         """
+        query = select(ObjectClass).order_by(ObjectClass.id)
+
+        if params.query:
+            query = query.where(ObjectClass.name.ilike(f"%{params.query}%"))
+
         return await PaginationResult[ObjectClass].get(
             params=params,
-            query=select(ObjectClass).order_by(ObjectClass.id),
-            sqla_model=ObjectClass,
+            query=query,
             session=self._session,
         )
 

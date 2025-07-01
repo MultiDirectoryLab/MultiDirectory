@@ -65,10 +65,14 @@ class AttributeTypeDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Attribute Types and metadata.
         """
+        query = select(AttributeType).order_by(AttributeType.id)
+
+        if params.query:
+            query = query.where(AttributeType.name.ilike(f"%{params.query}%"))
+
         return await PaginationResult[AttributeType].get(
             params=params,
-            query=select(AttributeType).order_by(AttributeType.id),
-            sqla_model=AttributeType,
+            query=query,
             session=self._session,
         )
 
