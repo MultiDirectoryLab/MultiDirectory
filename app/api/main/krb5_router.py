@@ -47,7 +47,6 @@ KERBEROS_POLICY_NAME = "Kerberos Access Policy"
     dependencies=[Depends(get_current_user)],
 )
 async def setup_krb_catalogue(
-    session: FromDishka[AsyncSession],
     mail: Annotated[EmailStr, Body()],
     krbadmin_password: Annotated[SecretStr, Body()],
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],

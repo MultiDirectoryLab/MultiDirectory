@@ -4,6 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from fastapi.templating import Jinja2Templates
+
 from .typing import KDCContext
 
 
@@ -14,7 +16,7 @@ class TemplateRenderer:
     using provided Jinja2 templates and context data.
     """
 
-    def __init__(self, templates):
+    def __init__(self, templates: Jinja2Templates) -> None:
         """Initialize TemplateRenderer with Jinja2 templates.
 
         :param templates: Jinja2 environment or template loader.

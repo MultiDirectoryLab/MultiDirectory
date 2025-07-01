@@ -4,6 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import AsyncIterator
+
 import backoff
 from fastapi import Request
 from pydantic import SecretStr
@@ -363,7 +365,9 @@ class KerberosService:
                 f"Error deleting principal: {exc}"
             ) from exc
 
-    async def ktadd(self, names: list[str]) -> tuple:
+    async def ktadd(
+        self, names: list[str]
+    ) -> tuple[AsyncIterator[bytes], BackgroundTask]:
         """Generate keytab and return (aiter_bytes, background_task).
 
         :param list[str] names: List of principal names.
