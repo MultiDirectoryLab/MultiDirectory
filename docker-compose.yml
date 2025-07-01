@@ -224,6 +224,9 @@ services:
 
   kea:
     image: kea_image:0.1
+    build:
+      context: .
+      dockerfile: ./.docker/kea.Dockerfile
     container_name: kea
     tty: true
     restart: unless-stopped
