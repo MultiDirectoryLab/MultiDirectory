@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import (
 
 from api import shadow_router
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.utils import KerberosService
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from extra.dev_data import ENTITY_TYPE_DATAS
@@ -322,6 +323,7 @@ class TestProvider(Provider):
 
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
+    kerberos_service = provide(KerberosService, scope=Scope.APP)
 
 
 @dataclass
