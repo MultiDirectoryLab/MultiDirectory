@@ -167,7 +167,7 @@ class ModifyRequest(BaseRequest):
         query = self._get_dir_query()
         query = mutate_ap(query, ldap_session.user)
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        directory = await session.scalar(query)
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
