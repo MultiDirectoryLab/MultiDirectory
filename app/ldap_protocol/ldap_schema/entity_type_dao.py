@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Iterable
 
+import sqlalchemy
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -134,7 +135,7 @@ class EntityTypeDAO:
             )
         )  # fmt: skip
 
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def modify_one(
         self,
@@ -246,12 +247,16 @@ class EntityTypeDAO:
             entity_type_name = EntityType.generate_entity_type_name(
                 directory=directory
             )
-            await self.create_one(
-                name=entity_type_name,
-                object_class_names=object_class_names,
-                is_system=is_system_entity_type,
-            )
-            await self._session.flush()
-            entity_type = await self.get_one_by_name(entity_type_name)
+            try:
+                await self.create_one(
+                    name=entity_type_name,
+                    object_class_names=object_class_names,
+                    is_system=is_system_entity_type,
+                )
+                await self._session.flush()
+            except sqlalchemy.exc.IntegrityError:
+                entity_type = await self.get_entity_type_by_object_class_names(
+                    object_class_names
+                )
 
         directory.entity_type = entity_type
