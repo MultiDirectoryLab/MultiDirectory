@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
 import sys
-from abc import abstractmethod
 from dataclasses import dataclass
 from math import ceil
 from typing import Sequence, TypeVar
@@ -13,6 +12,7 @@ from typing import Sequence, TypeVar
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.expression import Select
 
 from models import Base
@@ -34,6 +34,25 @@ class PaginationParams(BaseModel):
         ge=1,
         le=100,
     )
+    query: str | None = None
+
+
+def build_paginated_search_query(
+    model: type[S],
+    order_by_field: InstrumentedAttribute,
+    params: PaginationParams,
+    search_field: InstrumentedAttribute | None = None,
+) -> Select:
+    """Build query."""
+    if search_field is None:
+        search_field = order_by_field
+
+    query = select(model).order_by(order_by_field)
+
+    if params.query:
+        query = query.where(search_field.ilike(f"%{params.query}%"))
+
+    return query
 
 
 @dataclass
@@ -58,18 +77,6 @@ class BasePaginationSchema[P: BaseModel](BaseModel):
         arbitrary_types_allowed = True
 
 
-class BaseSchemaModel[S: Base](BaseModel):
-    """Model for Schema.
-
-    Schema is used for serialization and deserialization.
-    """
-
-    @classmethod
-    @abstractmethod
-    def from_db(cls, sqla_instance: S) -> "BaseSchemaModel[S]":
-        """Create an instance of Schema from instance of SQLA model."""
-
-
 @dataclass
 class PaginationResult[S: Base]:
     """Paginator.
@@ -85,7 +92,6 @@ class PaginationResult[S: Base]:
         cls,
         query: Select[tuple[S]],
         params: PaginationParams,
-        sqla_model: type[S],
         session: AsyncSession,
     ) -> "PaginationResult[S]":
         """Get paginator."""
@@ -97,7 +103,7 @@ class PaginationResult[S: Base]:
             page_size=params.page_size,
         )
 
-        total_count_query = select(func.count()).select_from(sqla_model)
+        total_count_query = select(func.count()).select_from(query.subquery())
         metadata.total_count = (await session.scalars(total_count_query)).one()
         metadata.total_pages = ceil(metadata.total_count / params.page_size)
 

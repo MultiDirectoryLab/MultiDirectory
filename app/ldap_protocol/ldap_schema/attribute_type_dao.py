@@ -14,14 +14,14 @@ from ldap_protocol.exceptions import (
 )
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
-    BaseSchemaModel,
     PaginationParams,
     PaginationResult,
+    build_paginated_search_query,
 )
 from models import AttributeType
 
 
-class AttributeTypeSchema(BaseSchemaModel):
+class AttributeTypeSchema(BaseModel):
     """Attribute Type Schema."""
 
     oid: str
@@ -30,18 +30,6 @@ class AttributeTypeSchema(BaseSchemaModel):
     single_value: bool
     no_user_modification: bool
     is_system: bool
-
-    @classmethod
-    def from_db(cls, attribute_type: AttributeType) -> "AttributeTypeSchema":
-        """Create an instance of Attribute Type Schema from SQLA object."""
-        return cls(
-            oid=attribute_type.oid,
-            name=attribute_type.name,
-            syntax=attribute_type.syntax,
-            single_value=attribute_type.single_value,
-            no_user_modification=attribute_type.no_user_modification,
-            is_system=attribute_type.is_system,
-        )
 
 
 class AttributeTypeUpdateSchema(BaseModel):
@@ -78,10 +66,16 @@ class AttributeTypeDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Attribute Types and metadata.
         """
+        query = build_paginated_search_query(
+            AttributeType,
+            AttributeType.id,
+            params,
+            AttributeType.name,
+        )
+
         return await PaginationResult[AttributeType].get(
             params=params,
-            query=select(AttributeType).order_by(AttributeType.id),
-            sqla_model=AttributeType,
+            query=query,
             session=self._session,
         )
 

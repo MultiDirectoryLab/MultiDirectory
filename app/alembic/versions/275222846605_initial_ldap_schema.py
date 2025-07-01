@@ -158,8 +158,21 @@ def upgrade() -> None:
         "ObjectClassAttributeTypeMustMemberships",
         ["attribute_type_name", "object_class_name"],
     )
-    # ### end Alembic commands ###
-
+    op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+    op.create_index(
+        "idx_attribute_types_name_gin_trgm",
+        "AttributeTypes",
+        [sa.literal_column("name gin_trgm_ops")],
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
+    )
+    op.create_index(
+        "idx_object_classes_name_gin_trgm",
+        "ObjectClasses",
+        [sa.literal_column("name gin_trgm_ops")],
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
+    )
     # NOTE: Load attributeTypes into the database
     at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
         "attributeTypes"
@@ -293,6 +306,18 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
+    op.drop_index(
+        "idx_object_classes_name_gin_trgm",
+        table_name="ObjectClasses",
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
+    )
+    op.drop_index(
+        "idx_attribute_types_name_gin_trgm",
+        table_name="AttributeTypes",
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
+    )
     op.drop_constraint(
         "object_class_must_attribute_type_uc",
         "ObjectClassAttributeTypeMustMemberships",

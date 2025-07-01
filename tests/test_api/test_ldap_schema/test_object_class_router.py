@@ -4,6 +4,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassUpdateSchema
+
 from .test_object_class_router_datasets import (
     test_create_one_object_class_dataset,
     test_delete_bulk_object_classes_dataset,
@@ -41,6 +43,61 @@ async def test_create_one_object_class(
     )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
+
+
+@pytest.mark.parametrize(
+    "dataset",
+    test_create_one_object_class_dataset,
+)
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_create_object_class_type_conflict_when_already_exists(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test that creating a duplicate object class type returns a 409."""
+    for attribute_type_data in dataset["attribute_types"]:
+        response = await http_client.post(
+            "/schema/attribute_type",
+            json=attribute_type_data,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.post(
+        "/schema/object_class",
+        json=dataset["object_class"],
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.post(
+        "/schema/object_class",
+        json=dataset["object_class"],
+    )
+    assert response.status_code == status.HTTP_409_CONFLICT
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_modify_system_object_class(http_client: AsyncClient) -> None:
+    """Test modify system object_class."""
+    page_number = 1
+    page_size = 10
+    response = await http_client.get(
+        f"/schema/object_classes?page_number={page_number}&page_size={page_size}"
+    )
+    for object_class in response.json()["items"]:
+        if object_class["is_system"] is True:
+            object_class_name = object_class["name"]
+            request_data = ObjectClassUpdateSchema.model_validate(object_class)
+            response = await http_client.patch(
+                f"/schema/object_class/{object_class_name}",
+                json=request_data.model_dump(),
+            )
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            break
+    else:
+        pytest.fail("No system object class")
 
 
 @pytest.mark.asyncio

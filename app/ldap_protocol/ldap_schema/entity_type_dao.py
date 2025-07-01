@@ -17,6 +17,7 @@ from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
     PaginationResult,
+    build_paginated_search_query,
 )
 from models import Attribute, Directory, EntityType
 
@@ -27,15 +28,6 @@ class EntityTypeSchema(BaseModel):
     name: str
     is_system: bool
     object_class_names: list[str] = Field([], min_length=1, max_length=10000)
-
-    @classmethod
-    def from_db(cls, entity_type: EntityType) -> "EntityTypeSchema":
-        """Create an instance of Entity Type Schema from SQLA object."""
-        return cls(
-            name=entity_type.name,
-            is_system=entity_type.is_system,
-            object_class_names=entity_type.object_class_names,
-        )
 
 
 class EntityTypeUpdateSchema(BaseModel):
@@ -70,10 +62,16 @@ class EntityTypeDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Entity Types and metadata.
         """
+        query = build_paginated_search_query(
+            EntityType,
+            EntityType.name,
+            params,
+            EntityType.name,
+        )
+
         return await PaginationResult[EntityType].get(
             params=params,
-            query=select(EntityType).order_by(EntityType.name),
-            sqla_model=EntityType,
+            query=query,
             session=self._session,
         )
 

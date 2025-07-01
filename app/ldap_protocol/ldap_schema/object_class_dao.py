@@ -18,14 +18,14 @@ from ldap_protocol.exceptions import (
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
-    BaseSchemaModel,
     PaginationParams,
     PaginationResult,
+    build_paginated_search_query,
 )
 from models import EntityType, KindType, ObjectClass
 
 
-class ObjectClassSchema(BaseSchemaModel):
+class ObjectClassSchema(BaseModel):
     """Object Class Schema."""
 
     oid: str
@@ -35,19 +35,6 @@ class ObjectClassSchema(BaseSchemaModel):
     is_system: bool
     attribute_type_names_must: list[str]
     attribute_type_names_may: list[str]
-
-    @classmethod
-    def from_db(cls, object_class: ObjectClass) -> "ObjectClassSchema":
-        """Create an instance of Object Class Schema from SQLA object."""
-        return cls(
-            oid=object_class.oid,
-            name=object_class.name,
-            superior_name=object_class.superior_name,
-            kind=object_class.kind,
-            is_system=object_class.is_system,
-            attribute_type_names_must=object_class.attribute_type_names_must,
-            attribute_type_names_may=object_class.attribute_type_names_may,
-        )
 
 
 class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
@@ -90,10 +77,16 @@ class ObjectClassDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Object Classes and metadata.
         """
+        query = build_paginated_search_query(
+            ObjectClass,
+            ObjectClass.id,
+            params,
+            ObjectClass.name,
+        )
+
         return await PaginationResult[ObjectClass].get(
             params=params,
-            query=select(ObjectClass).order_by(ObjectClass.id),
-            sqla_model=ObjectClass,
+            query=query,
             session=self._session,
         )
 

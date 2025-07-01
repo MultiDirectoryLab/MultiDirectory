@@ -72,7 +72,7 @@ async def get_one_entity_type(
     :return EntityTypeSchema: Entity Type Schema.
     """
     entity_type = await entity_type_dao.get_one_by_name(entity_type_name)
-    return EntityTypeSchema.from_db(entity_type)
+    return EntityTypeSchema.model_validate(entity_type, from_attributes=True)
 
 
 @ldap_schema_router.get(
@@ -94,7 +94,8 @@ async def get_list_entity_types_with_pagination(
     pagination_result = await entity_type_dao.get_paginator(params=params)
 
     items = [
-        EntityTypeSchema.from_db(item) for item in pagination_result.items
+        EntityTypeSchema.model_validate(item, from_attributes=True)
+        for item in pagination_result.items
     ]
     return EntityTypePaginationSchema(
         metadata=pagination_result.metadata,

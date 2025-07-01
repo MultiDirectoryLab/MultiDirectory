@@ -37,6 +37,13 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("name"),
     )
     op.create_index(
+        "idx_entity_types_name_gin_trgm",
+        "EntityTypes",
+        [sa.literal_column("name gin_trgm_ops")],
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
+    )
+    op.create_index(
         op.f("ix_Entity_Type_object_class_names"),
         "EntityTypes",
         ["object_class_names"],
@@ -141,6 +148,12 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade database schema and data back to the previous state."""
+    op.drop_index(
+        "idx_entity_types_name_gin_trgm",
+        table_name="EntityTypes",
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
+    )
     op.drop_constraint("ObjectClasses_oid_uc", "ObjectClasses", type_="unique")
     op.create_index(
         "ix_ObjectClasses_oid",
