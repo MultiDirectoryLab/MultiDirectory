@@ -55,15 +55,11 @@ class KerberosService:
             kadmin (AbstractKadmin): Kerberos admin interface.
 
         """
-        self._session: AsyncSession = session
-        self._settings: Settings = settings
-        self._kadmin: AbstractKadmin = kadmin
-        self._template_render: TemplateRenderer = TemplateRenderer(
-            settings.TEMPLATES
-        )
-        self._ldap_manager: LDAPStructureManager = LDAPStructureManager(
-            session
-        )
+        self._session = session
+        self._settings = settings
+        self._kadmin = kadmin
+        self._template_render = TemplateRenderer(settings.TEMPLATES)
+        self._ldap_manager = LDAPStructureManager(session)
 
     async def setup_krb_catalogue(
         self,

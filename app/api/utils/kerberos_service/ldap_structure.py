@@ -25,7 +25,7 @@ class LDAPStructureManager:
         :param AsyncSession session: SQLAlchemy async session.
         :return None.
         """
-        self._session: AsyncSession = session
+        self._session = session
 
     async def create_kerberos_structure(
         self,
