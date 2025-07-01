@@ -15,7 +15,6 @@ from starlette.background import BackgroundTask
 from api.auth.oauth2 import authenticate_user
 from api.main.schema import KerberosSetupRequest
 from api.utils.exceptions import (
-    KerberosConflictError,
     KerberosDependencyError,
     KerberosNotFoundError,
     KerberosUnavailableError,
@@ -80,26 +79,21 @@ class KerberosService:
             KerberosConflictError: On structure creation conflict.
 
         """
-        try:
-            base_dn = await self._get_base_dn()
-            krbadmin, services_container, krbgroup = self._build_dns(base_dn)
-            group, services, rkb_user = self._build_add_requests(
-                krbadmin, services_container, krbgroup, mail, krbadmin_password
-            )
-            await self._ldap_manager.create_kerberos_structure(
-                group,
-                services,
-                rkb_user,
-                ldap_session,
-                self._kadmin,
-                entity_type_dao,
-                services_container,
-                krbgroup,
-            )
-        except Exception as exc:
-            raise KerberosConflictError(
-                f"Error generating KDC tree: {exc}"
-            ) from exc
+        base_dn = await self._get_base_dn()
+        krbadmin, services_container, krbgroup = self._build_dns(base_dn)
+        group, services, rkb_user = self._build_add_requests(
+            krbadmin, services_container, krbgroup, mail, krbadmin_password
+        )
+        await self._ldap_manager.create_kerberos_structure(
+            group,
+            services,
+            rkb_user,
+            ldap_session,
+            self._kadmin,
+            entity_type_dao,
+            services_container,
+            krbgroup,
+        )
 
     async def _get_base_dn(self) -> str:
         """Get the base distinguished name (DN) for the directory.
