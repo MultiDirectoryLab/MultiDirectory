@@ -14,7 +14,6 @@ from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
 from api.utils import KerberosService
@@ -117,11 +116,11 @@ async def ktadd(
     :return bytes: file
     """
     try:
-        aiter, bg_task = await kerberos_service.ktadd(names)
+        aiter_bytes, bg_task = await kerberos_service.ktadd(names)
     except KerberosNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
     return StreamingResponse(
-        aiter,
+        aiter_bytes,
         media_type="application/txt",
         headers={"Content-Disposition": 'attachment; filename="krb5.keytab"'},
         background=bg_task,
