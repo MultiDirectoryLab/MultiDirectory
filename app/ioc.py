@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
+from api.utils import KerberosService
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -246,6 +247,8 @@ class HTTPProvider(Provider):
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
+
+    kerberos_service = provide(KerberosService, scope=Scope.APP)
 
 
 class LDAPServerProvider(Provider):
