@@ -80,7 +80,7 @@ def mutate_ap(
 
     :param T query: select(Directory)
     :param UserSchema user: user data
-    :return T:
+    :return T: modified query
     """
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 
