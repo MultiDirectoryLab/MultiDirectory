@@ -15,7 +15,3 @@ class KerberosDependencyError(Exception):
 
 class KerberosUnavailableError(Exception):
     """Raised when the service is unavailable."""
-
-
-class KerberosInternalError(Exception):
-    """Raised for internal errors."""
