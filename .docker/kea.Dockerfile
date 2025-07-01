@@ -10,7 +10,7 @@ RUN mkdir /var/lib/kea
 RUN mkdir /run/kea && chown _kea:_kea /run/kea
 RUN touch /var/lib/kea/kea-leases4.csv && chown _kea:_kea /var/lib/kea
 
-COPY .docker/entrypint/start.sh /start.sh
+COPY .docker/entrypoint/kea_entrypoint.sh /kea_entrypoint.sh
 RUN chmod +x /start.sh
 
-CMD ["/start.sh"]
+CMD ["/kea_entrypoint.sh"]
