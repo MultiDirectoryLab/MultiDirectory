@@ -37,7 +37,6 @@ from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
-    create_async_engine,
 )
 
 from api import shadow_router
@@ -207,7 +206,7 @@ class TestProvider(Provider):
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
-        return create_async_engine(str(settings.POSTGRES_URI), pool_size=10)
+        return settings.engine
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
     def get_session_factory(

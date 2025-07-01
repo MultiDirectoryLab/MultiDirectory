@@ -73,6 +73,7 @@ def _filter_memberof(dn: str) -> UnaryExpression:
             select(Directory.id)
             .join(Directory.groups)
             .where(Group.id == group_id_subquery)
+            .distinct(Directory.id)
         ),
     )  # type: ignore
 
@@ -91,6 +92,7 @@ def _filter_member(dn: str) -> UnaryExpression:
             select(Group.directory_id)
             .join(Group.users)
             .where(User.id == user_id_subquery)
+            .distinct(Group.directory_id)
         ),
     )  # type: ignore
 
@@ -149,7 +151,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
         if attr in Directory.search_fields:
             return not_(eq(getattr(Directory, attr), None))
 
-        return Attribute.name.ilike(item.value.lower())
+        return Directory.attributes.any(Attribute.name.ilike(item.value))
 
     if (
         len(item.value) == 3
@@ -225,7 +227,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
         if item.attr in Directory.search_fields:
             return not_(eq(getattr(Directory, item.attr), None))
 
-        return Attribute.name.ilike(item.attr)
+        return Directory.attributes.any(Attribute.name.ilike(item.attr))
 
     is_substring = item.val.startswith("*") or item.val.endswith("*")
 

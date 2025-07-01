@@ -97,6 +97,7 @@ async def login(
         .join(Group.users)
         .join(Group.directory)
         .filter(User.id == user.id, Directory.name == "domain admins")
+        .limit(1)
         .exists()
     )
 

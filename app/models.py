@@ -221,6 +221,7 @@ class Directory(Base):
         remote_side=EntityType.name,
         foreign_keys=[entity_type_name],
         uselist=False,
+        lazy="raise",
     )
 
     @property
@@ -285,6 +286,7 @@ class Directory(Base):
         "Attribute",
         cascade="all",
         passive_deletes=True,
+        lazy="raise",
     )
 
     @property
@@ -299,14 +301,14 @@ class Directory(Base):
         uselist=False,
         cascade="all",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="joined",
     )
     user: Mapped[User] = relationship(
         "User",
         uselist=False,
-        lazy="selectin",
         cascade="all",
         passive_deletes=True,
+        lazy="joined",
     )
     groups: Mapped[list[Group]] = relationship(
         "Group",
@@ -317,7 +319,7 @@ class Directory(Base):
         cascade="all",
         passive_deletes=True,
         overlaps="group,directory",
-        lazy="selectin",
+        lazy="raise",
     )
     access_policies: Mapped[list[AccessPolicy]] = relationship(
         "AccessPolicy",
@@ -325,6 +327,7 @@ class Directory(Base):
         primaryjoin="Directory.id == AccessPolicyMembership.dir_id",
         secondaryjoin="AccessPolicyMembership.policy_id == AccessPolicy.id",
         back_populates="directories",
+        lazy="raise",
     )
 
     __table_args__ = (
@@ -479,7 +482,6 @@ class User(Base):
         primaryjoin="User.directory_id == DirectoryMembership.directory_id",
         secondaryjoin="DirectoryMembership.group_id == Group.id",
         back_populates="users",
-        lazy="selectin",
         cascade="all",
         passive_deletes=True,
         overlaps="group,groups,directory",
@@ -525,7 +527,6 @@ class Group(Base):
         "Directory",
         back_populates="group",
         uselist=False,
-        lazy="joined",
     )
 
     search_fields: ClassVar[dict[str, str]] = {}

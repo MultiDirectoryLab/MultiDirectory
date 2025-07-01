@@ -80,7 +80,7 @@ def mutate_ap(
 
     :param T query: select(Directory)
     :param UserSchema user: user data
-    :return T: select(Directory).join(Directory.access_policies)
+    :return T: modified query
     """
     whitelist = AccessPolicy.id.in_(user.access_policies_ids)
 
@@ -105,4 +105,4 @@ def mutate_ap(
     elif action == "del":
         ap_filter = AccessPolicy.can_delete.is_(True) & whitelist
 
-    return query.join(Directory.access_policies, isouter=True).where(ap_filter)
+    return query.where(Directory.access_policies.any(ap_filter))

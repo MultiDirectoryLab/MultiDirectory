@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import InstrumentedAttribute, defaultload, selectinload
+from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
 from models import Attribute, Directory, Group, User
@@ -81,7 +81,8 @@ async def get_directories(
     query = (
         select(Directory)
         .filter(or_(*paths))
-        .options(defaultload(Directory.group).selectinload(Group.members))
+        .options(joinedload(Directory.group).selectinload(Group.members))
+        .options(selectinload(Directory.groups))
     )
 
     results = await session.scalars(query)
@@ -91,11 +92,29 @@ async def get_directories(
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     """Get dirs with groups by dn list."""
-    return [
-        directory.group
-        for directory in await get_directories(dn_list, session)
-        if directory.group is not None
-    ]
+    paths = []
+
+    for dn in dn_list:
+        for base_directory in await get_base_directories(session):
+            if dn_is_base_directory(base_directory, dn):
+                continue
+
+            paths.append(get_filter_from_path(dn))
+
+    if not paths:
+        return paths  # type: ignore
+
+    query = (
+        select(Group)
+        .join(Group.directory, isouter=True)
+        .filter(or_(*paths))
+        .options(selectinload(Group.members))
+        .options(joinedload(Group.directory).selectinload(Directory.groups))
+    )
+
+    results = await session.scalars(query)
+
+    return list(results.all())
 
 
 async def get_group(
@@ -112,7 +131,7 @@ async def get_group(
         if dn_is_base_directory(base_directory, dn):
             raise ValueError("Cannot set memberOf with base dn")
 
-    query = select(Directory).options(defaultload(Directory.group))
+    query = select(Directory).options(joinedload(Directory.group))
 
     if validate_entry(dn):
         query = query.filter(Directory.path == get_search_path(dn))
@@ -141,7 +160,7 @@ async def check_kerberos_group(
 
     query = (
         select(Group)
-        .join(Group.users)
+        .options(selectinload(Group.users))
         .join(Group.directory)
         .filter(Group.users.contains(user))
         .filter(Directory.name.ilike("krbadmin"))

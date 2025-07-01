@@ -15,7 +15,7 @@ from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import defaultload, joinedload, subqueryload
+from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -46,9 +46,21 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AttributeType, Directory, Group, ObjectClass, User
+from models import (
+    Attribute,
+    AttributeType,
+    Directory,
+    Group,
+    ObjectClass,
+    User,
+)
 
 from .base import BaseRequest
+
+_attrs = ["tokengroups", "memberof", "member"]
+_attrs.extend(User.search_fields.keys())
+_attrs.extend(Directory.search_fields.keys())
+_ATTRS_TO_CLEAN = set(_attrs)
 
 
 class SearchRequest(BaseRequest):
@@ -242,9 +254,12 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
-        async with ldap_session.lock() as user:
-            async for response in self.get_result(user, session, settings):
-                yield response
+        async for response in self.get_result(
+            ldap_session.user,
+            session,
+            settings,
+        ):
+            yield response
 
     async def get_result(
         self,
@@ -317,6 +332,28 @@ class SearchRequest(BaseRequest):
     def all_attrs(self) -> bool:
         return "*" in self.requested_attrs or not self.requested_attrs
 
+    def _mutate_query_with_attributes_to_load(
+        self,
+        query: Select,
+    ) -> Select:
+        """Get attributes to load."""
+        if self.all_attrs:
+            return query.options(selectinload(Directory.attributes))
+
+        attrs = [
+            attr
+            for attr in self.requested_attrs
+            if attr not in _ATTRS_TO_CLEAN
+        ]
+
+        return query.options(
+            selectinload(Directory.attributes),
+            with_loader_criteria(
+                Attribute,
+                func.lower(Attribute.name).in_(attrs),
+            ),
+        )
+
     def build_query(
         self,
         base_directories: list[Directory],
@@ -325,17 +362,16 @@ class SearchRequest(BaseRequest):
         """Build tree query."""
         query = (
             select(Directory)
-            .join(User, isouter=True)
-            .join(Directory.attributes, isouter=True)
+            .join(Directory.user, isouter=True)
+            .join(Directory.group, isouter=True)
             .options(
-                subqueryload(Directory.attributes),
-                joinedload(Directory.user),
-                joinedload(Directory.group),
+                selectinload(Directory.groups)
+                .joinedload(Group.directory),
                 joinedload(Directory.entity_type),
             )
-            .distinct(Directory.id)
-        )
+        )  # fmt: skip
 
+        query = self._mutate_query_with_attributes_to_load(query)
         query = mutate_ap(query, user)
 
         for base_directory in base_directories:
@@ -380,12 +416,12 @@ class SearchRequest(BaseRequest):
 
         if self.member:
             query = query.options(
-                defaultload(Directory.group).selectinload(Group.members)
+                joinedload(Directory.group).selectinload(Group.members)
             )
 
         if self.member_of or self.token_groups:
             query = query.options(
-                defaultload(Directory.groups).joinedload(Group.directory)
+                selectinload(Directory.groups).joinedload(Group.directory)
             )
 
         return query
@@ -414,6 +450,70 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
+    async def _fill_attrs(
+        self,
+        directory: Directory,
+        obj_classes: list[str],
+        distinguished_name: str,
+        attrs: dict[str, list[str]],
+        session: AsyncSession,
+    ) -> None:
+        if "distinguishedname" not in self.requested_attrs or self.all_attrs:
+            attrs["distinguishedName"].append(distinguished_name)
+
+        if "whenCreated" in self.requested_attrs or self.all_attrs:
+            attrs["whenCreated"].append(
+                directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
+            )
+
+        if directory.user:
+            if "accountexpires" in self.requested_attrs or self.all_attrs:
+                if directory.user.account_exp is None:
+                    attrs["accountExpires"].append("0")
+                else:
+                    attrs["accountExpires"].append(
+                        str(dt_to_ft(directory.user.account_exp))
+                    )
+
+            if (
+                "lastlogon" in self.requested_attrs
+                or "authTimestamp" in self.requested_attrs
+                or self.all_attrs
+            ):
+                if directory.user.last_logon is None:
+                    attrs["lastLogon"].append("0")
+                else:
+                    attrs["lastLogon"].append(
+                        str(get_windows_timestamp(directory.user.last_logon))
+                    )
+                    attrs["authTimestamp"].append(
+                        directory.user.last_logon.isoformat()
+                    )
+
+        if self.member_of:
+            for group in directory.groups:
+                attrs["memberOf"].append(group.directory.path_dn)
+
+        if self.token_groups and "user" in obj_classes:
+            attrs["tokenGroups"].append(
+                str(string_to_sid(directory.object_sid))
+            )
+
+            group_directories = await get_all_parent_group_directories(
+                directory.groups,
+                session,
+            )
+
+            if group_directories is not None:
+                async for directory_ in group_directories:
+                    attrs["tokenGroups"].append(
+                        str(string_to_sid(directory_.object_sid))
+                    )
+
+        if self.member and "group" in obj_classes and directory.group:
+            for member in directory.group.members:
+                attrs["member"].append(member.path_dn)
+
     async def tree_view(  # noqa: C901
         self,
         query: Select,
@@ -421,7 +521,6 @@ class SearchRequest(BaseRequest):
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
-        # logger.debug(query.compile(compile_kwargs={"literal_binds": True}))  # noqa
 
         async for directory in directories:
             attrs = defaultdict(list)
@@ -440,54 +539,13 @@ class SearchRequest(BaseRequest):
 
             distinguished_name = directory.path_dn
 
-            attrs["distinguishedName"].append(distinguished_name)
-            attrs["whenCreated"].append(
-                directory.created_at.strftime("%Y%m%d%H%M%S.0Z"),
+            await self._fill_attrs(
+                directory,
+                obj_classes,
+                distinguished_name,
+                attrs,
+                session,
             )
-
-            if directory.user:
-                if directory.user.account_exp is None:
-                    attrs["accountExpires"].append("0")
-                else:
-                    attrs["accountExpires"].append(
-                        str(dt_to_ft(directory.user.account_exp))
-                    )
-
-                if directory.user.last_logon is None:
-                    attrs["lastLogon"].append("0")
-                else:
-                    attrs["lastLogon"].append(
-                        str(get_windows_timestamp(directory.user.last_logon))
-                    )
-                    attrs["authTimestamp"].append(directory.user.last_logon)
-
-            if (
-                self.member_of
-                and "group" in obj_classes
-                or "user" in obj_classes
-            ):
-                for group in directory.groups:
-                    attrs["memberOf"].append(group.directory.path_dn)
-
-            if self.token_groups and "user" in obj_classes:
-                attrs["tokenGroups"].append(
-                    str(string_to_sid(directory.object_sid))
-                )
-
-                group_directories = await get_all_parent_group_directories(
-                    directory.groups,
-                    session,
-                )
-
-                if group_directories is not None:
-                    async for directory_ in group_directories:
-                        attrs["tokenGroups"].append(
-                            str(string_to_sid(directory_.object_sid))
-                        )
-
-            if self.member and "group" in obj_classes and directory.group:
-                for member in directory.group.members:
-                    attrs["member"].append(member.path_dn)
 
             if directory.user:
                 if self.all_attrs:
