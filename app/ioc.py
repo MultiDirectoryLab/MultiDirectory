@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
+from api.utils import DNSManager
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -246,6 +247,19 @@ class HTTPProvider(Provider):
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
+
+    get_dns_manager = provide(DNSManager, scope=scope)
+    # @provide(provides=DNSManager)
+    # async def get_dns_manager(
+    #     self,
+    #     session: AsyncSession,
+    #     settings: Settings,
+    # ) -> DNSManager:
+    #     """DI-провайдер для DNSManager."""
+    #     return DNSManager(
+    #         session=session,
+    #         settings=settings,
+    #     )
 
 
 class LDAPServerProvider(Provider):
