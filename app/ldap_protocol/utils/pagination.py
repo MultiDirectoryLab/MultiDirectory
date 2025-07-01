@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
 import sys
-from abc import abstractmethod
 from dataclasses import dataclass
 from math import ceil
 from typing import Sequence, TypeVar
@@ -34,6 +33,7 @@ class PaginationParams(BaseModel):
         ge=1,
         le=100,
     )
+    query: str | None = None
 
 
 @dataclass
@@ -56,18 +56,6 @@ class BasePaginationSchema[P: BaseModel](BaseModel):
         """Config for Paginator."""
 
         arbitrary_types_allowed = True
-
-
-class BaseSchemaModel[S: Base](BaseModel):
-    """Model for Schema.
-
-    Schema is used for serialization and deserialization.
-    """
-
-    @classmethod
-    @abstractmethod
-    def from_db(cls, sqla_instance: S) -> "BaseSchemaModel[S]":
-        """Create an instance of Schema from instance of SQLA model."""
 
 
 @dataclass
@@ -97,7 +85,10 @@ class PaginationResult[S: Base]:
             page_size=params.page_size,
         )
 
-        total_count_query = select(func.count()).select_from(sqla_model)
+        if params.query:
+            query = query.where(sqla_model.name.ilike(f"%{params.query}%"))  # type: ignore
+
+        total_count_query = select(func.count()).select_from(query.subquery())
         metadata.total_count = (await session.scalars(total_count_query)).one()
         metadata.total_pages = ceil(metadata.total_count / params.page_size)
 
