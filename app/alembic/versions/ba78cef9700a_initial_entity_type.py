@@ -36,6 +36,12 @@ def upgrade() -> None:
         sa.Column("is_system", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("name"),
     )
+    op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+    op.execute(
+        sa.text(
+            "CREATE INDEX IF NOT EXISTS idx_name_gin_trgm ON EntityTypes USING GIN (name gin_trgm_ops)"  # noqa: E501
+        )
+    )
     op.create_index(
         op.f("ix_Entity_Type_object_class_names"),
         "EntityTypes",

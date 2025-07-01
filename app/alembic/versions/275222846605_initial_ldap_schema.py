@@ -158,7 +158,17 @@ def upgrade() -> None:
         "ObjectClassAttributeTypeMustMemberships",
         ["attribute_type_name", "object_class_name"],
     )
-    # ### end Alembic commands ###
+    op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+    op.execute(
+        sa.text(
+            "CREATE INDEX IF NOT EXISTS idx_name_gin_trgm ON AttributeTypes USING GIN (name gin_trgm_ops)"  # noqa: E501
+        )
+    )
+    op.execute(
+        sa.text(
+            "CREATE INDEX IF NOT EXISTS idx_name_gin_trgm ON ObjectClasses USING GIN (name gin_trgm_ops)"  # noqa: E501
+        )
+    )
 
     # NOTE: Load attributeTypes into the database
     at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
