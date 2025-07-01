@@ -18,10 +18,12 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     LargeBinary,
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -165,7 +167,14 @@ class EntityType(Base):
     """Entity Type."""
 
     __tablename__ = "EntityTypes"
-
+    __table_args__ = (
+        Index(
+            "idx_entity_types_name_gin_trgm",
+            text("name gin_trgm_ops"),
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+    )
     name: Mapped[str] = mapped_column(
         String(255),
         ForeignKey("Directory.entity_type_name", ondelete="CASCADE"),
@@ -648,6 +657,14 @@ class AttributeType(Base):
     """Attribute Type."""
 
     __tablename__ = "AttributeTypes"
+    __table_args__ = (
+        Index(
+            "idx_attribute_types_name_gin_trgm",
+            text("name gin_trgm_ops"),
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
@@ -745,7 +762,14 @@ class ObjectClass(Base):
     """Object Class."""
 
     __tablename__ = "ObjectClasses"
-
+    __table_args__ = (
+        Index(
+            "idx_object_classes_name_gin_trgm",
+            text("name gin_trgm_ops"),
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     name: Mapped[str] = mapped_column(

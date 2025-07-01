@@ -36,11 +36,12 @@ def upgrade() -> None:
         sa.Column("is_system", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("name"),
     )
-    op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
-    op.execute(
-        sa.text(
-            "CREATE INDEX IF NOT EXISTS idx_name_gin_trgm ON EntityTypes USING GIN (name gin_trgm_ops)"  # noqa: E501
-        )
+    op.create_index(
+        "idx_entity_types_name_gin_trgm",
+        "EntityTypes",
+        [sa.literal_column("name gin_trgm_ops")],
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
     )
     op.create_index(
         op.f("ix_Entity_Type_object_class_names"),
@@ -147,6 +148,12 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade database schema and data back to the previous state."""
+    op.drop_index(
+        "idx_entity_types_name_gin_trgm",
+        table_name="EntityTypes",
+        postgresql_using="gin",
+        postgresql_ops={"name": "gin_trgm_ops"},
+    )
     op.drop_constraint("ObjectClasses_oid_uc", "ObjectClasses", type_="unique")
     op.create_index(
         "ix_ObjectClasses_oid",
