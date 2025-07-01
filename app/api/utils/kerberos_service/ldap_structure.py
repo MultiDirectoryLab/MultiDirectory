@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.utils.exceptions import KerberosConflictError
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests import AddRequest
@@ -72,7 +73,7 @@ class LDAPStructureManager:
             await self._session.flush()
             if not all(result.result_code == 0 for result in results):
                 await self._session.rollback()
-                raise Exception(
+                raise KerberosConflictError(
                     "Error creating Kerberos structure in directory"
                 )
             await create_access_policy(
