@@ -75,7 +75,7 @@ services:
       .env
     command: python multidirectory.py --migrate
     depends_on:
-      postgres:
+      pgpool:
         condition: service_healthy
 
   ldap_server:
@@ -156,7 +156,7 @@ services:
       migrations:
         condition: service_completed_successfully
 
-  postgres-db:
+  postgres:
     container_name: MD-postgres
     image: mirror.gcr.io/postgres:16
     restart: unless-stopped
@@ -176,13 +176,10 @@ services:
       retries: 10
       start_period: 5s
 
-  postgres:
+  pgpool:
     image: bitnami/pgpool:latest
-    hostname: 'postgres'
-    ports:
-      - 5432:5432
     environment:
-      - PGPOOL_BACKEND_NODES=0:postgres-db:5432
+      - PGPOOL_BACKEND_NODES=0:postgres:5432
       - PGPOOL_SR_CHECK_USER=${POSTGRES_USER:-user1}
       - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD:-password123}
       - PGPOOL_ENABLE_LDAP=no
@@ -199,7 +196,7 @@ services:
     volumes:
       - postgres:/bitnami/postgresql
     depends_on:
-      postgres-db:
+      postgres:
         condition: service_healthy
         restart: true
 
