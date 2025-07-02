@@ -53,8 +53,6 @@ def build_paginated_search_query[S: Base](
             # raise ValueError("Search field is not specified.")
             search_field = order_by_field
 
-            # TODO а еще тут можно сделать валидацию что на это поле есть GIN индекс, т.к. тут ilike
-
         query = query.where(search_field.ilike(f"%{params.query}%"))
 
     return query
