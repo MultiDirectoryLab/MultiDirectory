@@ -255,7 +255,7 @@ class EntityTypeDAO:
                 )
                 await self.__session.flush()
             except IntegrityError:
-                # This happens when Race Condition occurs.
+                # NOTE: This happens when Race Condition occurs.
                 # If the Entity Type already exists, we can ignore the error.
                 pass
 

@@ -41,16 +41,13 @@ def build_paginated_search_query[S: Base](
     model: type[S],
     order_by_field: InstrumentedAttribute,
     params: PaginationParams,
-    search_field: InstrumentedAttribute
-    | None = None,  # TODO lets do min len 3 for trigramm search
+    search_field: InstrumentedAttribute | None = None,
 ) -> Select[tuple[S]]:
     """Build query."""
     query = select(model).order_by(order_by_field)
 
     if params.query:
         if search_field is None:
-            # TODO лучше райзить ошибку, чем додумывать за разработчиком
-            # raise ValueError("Search field is not specified.")
             search_field = order_by_field
 
         query = query.where(search_field.ilike(f"%{params.query}%"))
