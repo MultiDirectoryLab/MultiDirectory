@@ -40,6 +40,7 @@ if TYPE_CHECKING:
             self,
             container: AsyncContainer,
         ) -> list[BaseResponse] | BaseResponse: ...
+
 else:
 
     class _APIProtocol: ...

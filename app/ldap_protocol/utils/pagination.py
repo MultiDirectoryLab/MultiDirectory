@@ -41,7 +41,8 @@ def build_paginated_search_query[S: Base](
     model: type[S],
     order_by_field: InstrumentedAttribute,
     params: PaginationParams,
-    search_field: InstrumentedAttribute | None = None,  # TODO lets do min len 3 for trigramm search
+    search_field: InstrumentedAttribute
+    | None = None,  # TODO lets do min len 3 for trigramm search
 ) -> Select[tuple[S]]:
     """Build query."""
     query = select(model).order_by(order_by_field)
