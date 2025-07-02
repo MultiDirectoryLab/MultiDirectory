@@ -8,6 +8,7 @@ from typing import Iterable
 
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -46,12 +47,12 @@ class EntityTypePaginationSchema(BasePaginationSchema[EntityTypeSchema]):
 class EntityTypeDAO:
     """Entity Type DAO."""
 
-    _session: AsyncSession
+    __session: AsyncSession
     EntityTypeNotFoundError = InstanceNotFoundError
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Entity Type DAO with a database session."""
-        self._session = session
+        self.__session = session
 
     async def get_paginator(
         self,
@@ -63,16 +64,16 @@ class EntityTypeDAO:
         :return PaginationResult: Chunk of Entity Types and metadata.
         """
         query = build_paginated_search_query(
-            EntityType,
-            EntityType.name,
-            params,
-            EntityType.name,
+            model=EntityType,
+            order_by_field=EntityType.name,
+            params=params,
+            search_field=EntityType.name,
         )
 
         return await PaginationResult[EntityType].get(
             params=params,
             query=query,
-            session=self._session,
+            session=self.__session,
         )
 
     async def create_one(
@@ -90,10 +91,10 @@ class EntityTypeDAO:
         """
         entity_type = EntityType(
             name=name,
-            object_class_names=object_class_names,
+            object_class_names=sorted(set(object_class_names)),
             is_system=is_system,
         )
-        self._session.add(entity_type)
+        self.__session.add(entity_type)
 
     async def get_one_by_name(
         self,
@@ -105,7 +106,7 @@ class EntityTypeDAO:
         :raise EntityTypeNotFoundError: If Entity Type not found.
         :return EntityType: Instance of Entity Type.
         """
-        entity_type = await self._session.scalar(
+        entity_type = await self.__session.scalar(
             select(EntityType)
             .where(EntityType.name == entity_type_name)
         )  # fmt: skip
@@ -126,7 +127,7 @@ class EntityTypeDAO:
         :param Iterable[str] object_class_names: object class names.
         :return EntityType | None: Instance of Entity Type or None.
         """
-        result = await self._session.execute(
+        result = await self.__session.execute(
             select(EntityType)
             .where(
                 EntityType.object_class_names.contains(object_class_names),
@@ -134,7 +135,7 @@ class EntityTypeDAO:
             )
         )  # fmt: skip
 
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def modify_one(
         self,
@@ -156,14 +157,14 @@ class EntityTypeDAO:
         entity_type.name = new_statement.name
         entity_type.object_class_names = new_statement.object_class_names
 
-        result = await self._session.execute(
+        result = await self.__session.execute(
             select(Directory)
             .where(Directory.entity_type_name == entity_type.name)
             .options(selectinload(Directory.attributes))
         )  # fmt: skip
 
         for directory in result.scalars():
-            await self._session.execute(
+            await self.__session.execute(
                 delete(Attribute)
                 .where(
                     Attribute.directory == directory,
@@ -175,7 +176,7 @@ class EntityTypeDAO:
             )  # fmt: skip
 
             for object_class_name in entity_type.object_class_names:
-                self._session.add(
+                self.__session.add(
                     Attribute(
                         directory=directory,
                         value=object_class_name,
@@ -192,7 +193,7 @@ class EntityTypeDAO:
         :param list[str] entity_type_names: Entity Type names.
         :return None.
         """
-        await self._session.execute(
+        await self.__session.execute(
             delete(EntityType)
             .where(
                 EntityType.name.in_(entity_type_names),
@@ -209,7 +210,7 @@ class EntityTypeDAO:
 
         :return None.
         """
-        result = await self._session.execute(
+        result = await self.__session.execute(
             select(Directory)
             .where(Directory.entity_type_name.is_(None))
             .options(
@@ -246,12 +247,20 @@ class EntityTypeDAO:
             entity_type_name = EntityType.generate_entity_type_name(
                 directory=directory
             )
-            await self.create_one(
-                name=entity_type_name,
-                object_class_names=object_class_names,
-                is_system=is_system_entity_type,
+            try:
+                await self.create_one(
+                    name=entity_type_name,
+                    object_class_names=object_class_names,
+                    is_system=is_system_entity_type,
+                )
+                await self.__session.flush()
+            except IntegrityError:
+                # NOTE: This happens when Race Condition occurs.
+                # If the Entity Type already exists, we can ignore the error.
+                pass
+
+            entity_type = await self.get_entity_type_by_object_class_names(
+                object_class_names
             )
-            await self._session.flush()
-            entity_type = await self.get_one_by_name(entity_type_name)
 
         directory.entity_type = entity_type

@@ -49,13 +49,13 @@ class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
 class AttributeTypeDAO:
     """Attribute Type DAO."""
 
-    _session: AsyncSession
+    __session: AsyncSession
     AttributeTypeNotFoundError = InstanceNotFoundError
     AttributeTypeCantModifyError = InstanceCantModifyError
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Attribute Type DAO with session."""
-        self._session = session
+        self.__session = session
 
     async def get_paginator(
         self,
@@ -67,16 +67,16 @@ class AttributeTypeDAO:
         :return PaginationResult: Chunk of Attribute Types and metadata.
         """
         query = build_paginated_search_query(
-            AttributeType,
-            AttributeType.id,
-            params,
-            AttributeType.name,
+            model=AttributeType,
+            order_by_field=AttributeType.id,
+            params=params,
+            search_field=AttributeType.name,
         )
 
         return await PaginationResult[AttributeType].get(
             params=params,
             query=query,
-            session=self._session,
+            session=self.__session,
         )
 
     async def create_one(
@@ -106,7 +106,7 @@ class AttributeTypeDAO:
             no_user_modification=no_user_modification,
             is_system=is_system,
         )
-        self._session.add(attribute_type)
+        self.__session.add(attribute_type)
 
     async def get_one_by_name(
         self,
@@ -118,7 +118,7 @@ class AttributeTypeDAO:
         :raise AttributeTypeNotFoundError: If Attribute Type not found.
         :return AttributeType: Instance of Attribute Type.
         """
-        attribute_type = await self._session.scalar(
+        attribute_type = await self.__session.scalar(
             select(AttributeType)
             .where(AttributeType.name == attribute_type_name)
         )  # fmt: skip
@@ -142,7 +142,7 @@ class AttributeTypeDAO:
         if not attribute_type_names:
             return []
 
-        query = await self._session.scalars(
+        query = await self.__session.scalars(
             select(AttributeType)
             .where(AttributeType.name.in_(attribute_type_names)),
         )  # fmt: skip
@@ -185,7 +185,7 @@ class AttributeTypeDAO:
         if not attribute_type_names:
             return None
 
-        await self._session.execute(
+        await self.__session.execute(
             delete(AttributeType)
             .where(
                 AttributeType.name.in_(attribute_type_names),

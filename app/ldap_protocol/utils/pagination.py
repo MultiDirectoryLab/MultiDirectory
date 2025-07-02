@@ -37,19 +37,19 @@ class PaginationParams(BaseModel):
     query: str | None = None
 
 
-def build_paginated_search_query(
+def build_paginated_search_query[S: Base](
     model: type[S],
     order_by_field: InstrumentedAttribute,
     params: PaginationParams,
     search_field: InstrumentedAttribute | None = None,
-) -> Select:
+) -> Select[tuple[S]]:
     """Build query."""
-    if search_field is None:
-        search_field = order_by_field
-
     query = select(model).order_by(order_by_field)
 
     if params.query:
+        if search_field is None:
+            search_field = order_by_field
+
         query = query.where(search_field.ilike(f"%{params.query}%"))
 
     return query

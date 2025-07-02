@@ -53,8 +53,8 @@ class ObjectClassUpdateSchema(BaseModel):
 class ObjectClassDAO:
     """Object Class DAO."""
 
-    _session: AsyncSession
-    _attribute_type_dao: AttributeTypeDAO
+    __session: AsyncSession
+    __attribute_type_dao: AttributeTypeDAO
 
     ObjectClassNotFoundError = InstanceNotFoundError
     ObjectClassCantModifyError = InstanceCantModifyError
@@ -65,8 +65,8 @@ class ObjectClassDAO:
         attribute_type_dao: AttributeTypeDAO,
     ) -> None:
         """Initialize Object Class DAO with session."""
-        self._session = session
-        self._attribute_type_dao = attribute_type_dao
+        self.__session = session
+        self.__attribute_type_dao = attribute_type_dao
 
     async def get_paginator(
         self,
@@ -78,16 +78,16 @@ class ObjectClassDAO:
         :return PaginationResult: Chunk of Object Classes and metadata.
         """
         query = build_paginated_search_query(
-            ObjectClass,
-            ObjectClass.id,
-            params,
-            ObjectClass.name,
+            model=ObjectClass,
+            order_by_field=ObjectClass.id,
+            params=params,
+            search_field=ObjectClass.name,
         )
 
         return await PaginationResult[ObjectClass].get(
             params=params,
             query=query,
-            session=self._session,
+            session=self.__session,
         )
 
     async def create_one(
@@ -129,10 +129,12 @@ class ObjectClassDAO:
             if name not in attribute_type_names_must
         ]
 
-        attribute_types_must = await self._attribute_type_dao.get_all_by_names(
-            attribute_type_names_must
+        attribute_types_must = (
+            await self.__attribute_type_dao.get_all_by_names(
+                attribute_type_names_must
+            )
         )
-        attribute_types_may = await self._attribute_type_dao.get_all_by_names(
+        attribute_types_may = await self.__attribute_type_dao.get_all_by_names(
             attribute_types_may_filtered
         )
 
@@ -145,7 +147,7 @@ class ObjectClassDAO:
             attribute_types_must=attribute_types_must,
             attribute_types_may=attribute_types_may,
         )
-        self._session.add(object_class)
+        self.__session.add(object_class)
 
     async def count_exists_object_class_by_names(
         self,
@@ -161,7 +163,7 @@ class ObjectClassDAO:
             .select_from(ObjectClass)
             .where(ObjectClass.name.in_(object_class_names))
         )
-        result = await self._session.scalars(count_query)
+        result = await self.__session.scalars(count_query)
         return result.one()
 
     async def is_all_object_classes_exists(
@@ -196,7 +198,7 @@ class ObjectClassDAO:
         :raise ObjectClassNotFoundError: If Object Class not found.
         :return ObjectClass: Instance of Object Class.
         """
-        object_class = await self._session.scalar(
+        object_class = await self.__session.scalar(
             select(ObjectClass)
             .where(ObjectClass.name == object_class_name)
         )  # fmt: skip
@@ -217,7 +219,7 @@ class ObjectClassDAO:
         :param list[str] object_class_names: Object Classes names.
         :return list[ObjectClass]: List of Object Classes.
         """
-        query = await self._session.scalars(
+        query = await self.__session.scalars(
             select(ObjectClass)
             .where(ObjectClass.name.in_(object_class_names))
             .options(
@@ -247,7 +249,7 @@ class ObjectClassDAO:
 
         object_class.attribute_types_must.clear()
         object_class.attribute_types_must.extend(
-            await self._attribute_type_dao.get_all_by_names(
+            await self.__attribute_type_dao.get_all_by_names(
                 new_statement.attribute_type_names_must
             ),
         )
@@ -259,7 +261,7 @@ class ObjectClassDAO:
         ]
         object_class.attribute_types_may.clear()
         object_class.attribute_types_may.extend(
-            await self._attribute_type_dao.get_all_by_names(
+            await self.__attribute_type_dao.get_all_by_names(
                 attribute_types_may_filtered
             ),
         )
@@ -273,7 +275,7 @@ class ObjectClassDAO:
         :param list[str] object_classes_names: Object Classes names.
         :return None.
         """
-        await self._session.execute(
+        await self.__session.execute(
             delete(ObjectClass)
             .where(
                 ObjectClass.name.in_(object_classes_names),
