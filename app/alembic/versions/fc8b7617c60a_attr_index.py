@@ -17,10 +17,9 @@ depends_on = None
 
 def upgrade() -> None:
     """Create index for Attribute name field."""
-    op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
     op.execute(
         sa.text(
-            "CREATE INDEX IF NOT EXISTS idx_attributes_name_gin_trgm "
+            "CREATE INDEX idx_attributes_name_gin_trgm "
             'ON "Attributes" USING GIN(name gin_trgm_ops);'
         )
     )
@@ -34,6 +33,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop index for Attribute name field."""
-    op.execute(sa.text("DROP INDEX IF EXISTS idx_attributes_name_gin_trgm"))
-    op.execute(sa.text("DROP INDEX IF EXISTS idx_attributes_lw_name_btree"))
-    op.execute(sa.text("DROP EXTENSION IF EXISTS pg_trgm"))
+    op.execute(sa.text("DROP INDEX idx_attributes_lw_name_btree"))
+    op.execute(sa.text("DROP INDEX idx_attributes_name_gin_trgm"))

@@ -37,19 +37,23 @@ class PaginationParams(BaseModel):
     query: str | None = None
 
 
-def build_paginated_search_query(
+def build_paginated_search_query[S: Base](
     model: type[S],
     order_by_field: InstrumentedAttribute,
     params: PaginationParams,
-    search_field: InstrumentedAttribute | None = None,
-) -> Select:
+    search_field: InstrumentedAttribute | None = None,  # TODO lets do min len 3 for trigramm search
+) -> Select[tuple[S]]:
     """Build query."""
-    if search_field is None:
-        search_field = order_by_field
-
     query = select(model).order_by(order_by_field)
 
     if params.query:
+        if search_field is None:
+            # TODO лучше райзить ошибку, чем додумывать за разработчиком
+            # raise ValueError("Search field is not specified.")
+            search_field = order_by_field
+
+            # TODO а еще тут можно сделать валидацию что на это поле есть GIN индекс, т.к. тут ilike
+
         query = query.where(search_field.ilike(f"%{params.query}%"))
 
     return query
