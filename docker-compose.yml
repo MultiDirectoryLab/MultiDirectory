@@ -158,7 +158,6 @@ services:
 
   pgpool:
     image: bitnami/pgpool:latest
-    # hostname: 'postgres'
     ports:
       - 5432:5432
     environment:

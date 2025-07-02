@@ -12,9 +12,9 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: test_pwd
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-    command: alembic upgrade head
+    command: python multidirectory.py --migrate
     depends_on:
-      postgres:
+      pgpool:
         condition: service_healthy
 
   cert_check:
@@ -98,6 +98,28 @@ services:
       timeout: 15s
       retries: 10
       start_period: 3s
+
+  pgpool:
+    image: bitnami/pgpool:latest
+    environment:
+      - PGPOOL_BACKEND_NODES=0:postgres:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER:-user}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD:-test_pwd}
+      - PGPOOL_ENABLE_LDAP=no
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER:-user}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-test_pwd}
+      - PGPOOL_ADMIN_USERNAME=${POSTGRES_USER:-user}
+      - PGPOOL_ADMIN_PASSWORD=${POSTGRES_PASSWORD:-test_pwd}
+      - PGPOOL_MAX_POOL=${PGPOOL_MAX_POOL:-100}
+    healthcheck:
+      test: ["CMD", "/opt/bitnami/scripts/pgpool/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
 
   ssh:
     container_name: md-ssh
