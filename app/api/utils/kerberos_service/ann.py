@@ -17,7 +17,12 @@ class KerberosAdminDnGroup(NamedTuple):
     krbadmin_group_dn: str
 
 
-AddRequests = tuple[AddRequest, AddRequest, AddRequest]
+class AddRequests(NamedTuple):
+    """AddRequests for Kerberos admin structure: group, services, krb_user."""
+
+    group: AddRequest
+    services: AddRequest
+    krb_user: AddRequest
 
 
 class KDCContext(TypedDict):
@@ -29,3 +34,10 @@ class KDCContext(TypedDict):
     krbgroup: str
     services_container: str
     ldap_uri: str
+
+
+class LdapRootInfo(NamedTuple):
+    """LDAP root DN and domain info."""
+
+    base_dn: str
+    domain: str
