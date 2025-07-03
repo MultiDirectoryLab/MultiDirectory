@@ -129,10 +129,12 @@ class KerberosService:
     ) -> AddRequests:
         """Build AddRequest objects for group, services, and admin user.
 
-        :param KerberosAdminDnGroup dns: DNs for krbadmin, services container, and group.
+        :param KerberosAdminDnGroup dns:
+            DNs for krbadmin, services container, and group.
         :param str mail: Email for krbadmin.
         :param SecretStr krbadmin_password: Password for krbadmin.
-        :return AddRequests: NamedTuple of AddRequest for group, services, and user.
+        :return AddRequests:
+            NamedTuple of AddRequest for group, services, and user.
         """
         group = AddRequest.from_dict(
             dns.krbadmin_group_dn,
