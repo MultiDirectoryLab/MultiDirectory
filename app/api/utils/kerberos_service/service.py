@@ -105,7 +105,7 @@ class KerberosService:
         )
 
     async def _get_base_dn(self) -> LdapRootInfo:
-        """Get the base distinguished name (DN) and domain for the directory."""
+        """Get LDAP root DN and domain."""
         base_dn_list = await get_base_directories(self._session)
         return LdapRootInfo(
             base_dn=base_dn_list[0].path_dn,
