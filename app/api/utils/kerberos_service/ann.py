@@ -4,14 +4,18 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import TypedDict
+from typing import NamedTuple, TypedDict
 
 from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.ldap_responses import AddResponse
 
-BaseDn = tuple[str, str, str]
+
+class KerberosAdminDnGroup(NamedTuple):
+    krbadmin_dn: str
+    services_container_dn: str
+    krbadmin_group_dn: str
+
+
 AddRequests = tuple[AddRequest, AddRequest, AddRequest]
-AddResponses = tuple[AddResponse, AddResponse, AddResponse]
 
 
 class KDCContext(TypedDict):

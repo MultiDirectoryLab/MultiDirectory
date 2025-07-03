@@ -89,7 +89,9 @@ async def setup_kdc(
     try:
         task = await kerberos_service.setup_kdc(data, user, request)
     except KerberosDependencyError as exc:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        )
 
     return Response(background=task)
 
