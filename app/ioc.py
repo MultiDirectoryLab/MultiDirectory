@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
+from api.utils import NetworkPolicyService
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -206,6 +207,16 @@ class MainProvider(Provider):
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
+
+    @provide(provides=NetworkPolicyService)
+    async def get_network_policy_service(
+        self,
+        session: AsyncSession,
+    ) -> NetworkPolicyService:
+        """DI-провайдер для NetworkPolicyService."""
+        return NetworkPolicyService(
+            session=session,
         )
 
 

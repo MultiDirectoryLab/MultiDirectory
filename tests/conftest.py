@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
+from api.utils import NetworkPolicyService
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider, SessionStorageClient
@@ -308,6 +309,16 @@ class TestProvider(Provider):
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
+
+    @provide(provides=NetworkPolicyService, scope=Scope.REQUEST)
+    async def get_network_policy_service(
+        self,
+        session: AsyncSession,
+    ) -> NetworkPolicyService:
+        """DI-провайдер для NetworkPolicyService."""
+        return NetworkPolicyService(
+            session=session,
         )
 
 
