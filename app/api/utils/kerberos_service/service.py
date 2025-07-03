@@ -117,7 +117,11 @@ class KerberosService:
         krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
         services_container = f"ou=services,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
-        return KerberosAdminDnGroup(krbadmin, services_container, krbgroup)
+        return KerberosAdminDnGroup(
+            krbadmin,
+            services_container,
+            krbgroup,
+        )
 
     def _build_add_requests(
         self,
