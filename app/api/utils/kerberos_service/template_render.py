@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import jinja2
 
-from .typing import KDCContext
+from .ann import KDCContext
 
 
 class TemplateRenderer:

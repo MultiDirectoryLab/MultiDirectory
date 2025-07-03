@@ -32,7 +32,7 @@ class LDAPStructureManager:
         self,
         group: AddRequest,
         services: AddRequest,
-        rkb_user: AddRequest,
+        krb_user: AddRequest,
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
@@ -43,7 +43,7 @@ class LDAPStructureManager:
 
         :param AddRequest group: AddRequest for Kerberos group.
         :param AddRequest services: AddRequest for services container.
-        :param AddRequest rkb_user: AddRequest for Kerberos admin user.
+        :param AddRequest krb_user: AddRequest for Kerberos admin user.
         :param LDAPSession ldap_session: LDAP session.
         :param AbstractKadmin kadmin: Kerberos admin interface.
         :param EntityTypeDAO entity_type_dao: DAO for entity types.
@@ -56,17 +56,26 @@ class LDAPStructureManager:
             results = (
                 await anext(
                     services.handle(
-                        self._session, ldap_session, kadmin, entity_type_dao
+                        self._session,
+                        ldap_session,
+                        kadmin,
+                        entity_type_dao,
                     )
                 ),
                 await anext(
                     group.handle(
-                        self._session, ldap_session, kadmin, entity_type_dao
+                        self._session,
+                        ldap_session,
+                        kadmin,
+                        entity_type_dao,
                     )
                 ),
                 await anext(
-                    rkb_user.handle(
-                        self._session, ldap_session, kadmin, entity_type_dao
+                    krb_user.handle(
+                        self._session,
+                        ldap_session,
+                        kadmin,
+                        entity_type_dao,
                     )
                 ),
             )
