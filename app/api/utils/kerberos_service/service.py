@@ -112,7 +112,8 @@ class KerberosService:
         """Build DN strings for Kerberos admin, services, and group.
 
         :param str base_dn: Base DN.
-        :return KerberosAdminDnGroup: NamedTuple с DN для krbadmin, services_container, krbadmin_group.
+        :return KerberosAdminDnGroup:
+            NamedTuple с DN для krbadmin, services_container, krbadmin_group.
         """
         krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
         services_container = f"ou=services,{base_dn}"

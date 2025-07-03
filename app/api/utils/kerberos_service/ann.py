@@ -10,7 +10,7 @@ from ldap_protocol.ldap_requests import AddRequest
 
 
 class KerberosAdminDnGroup(NamedTuple):
-    """NamedTuple for storing Kerberos admin-related DNs: admin, services container, and admin group."""
+    """Kerberos admin, services container, and admin group DNs."""
 
     krbadmin_dn: str
     services_container_dn: str
