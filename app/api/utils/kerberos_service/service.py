@@ -81,17 +81,10 @@ class KerberosService:
         """
         base_dn_info = await self._get_base_dn()
         dns = self._build_kerberos_admin_dns(base_dn_info.base_dn)
-        group, services, krb_user = self._build_add_requests(
-            dns.krbadmin_dn,
-            dns.services_container_dn,
-            dns.krbadmin_group_dn,
+        add_requests = self._build_add_requests(
+            dns,
             mail,
             krbadmin_password,
-        )
-        add_requests = AddRequests(
-            group=group,
-            services=services,
-            krb_user=krb_user,
         )
         await self._ldap_manager.create_kerberos_structure(
             add_requests.group,
@@ -130,23 +123,19 @@ class KerberosService:
 
     def _build_add_requests(
         self,
-        krbadmin_dn: str,
-        services_container: str,
-        krbgroup: str,
+        dns: KerberosAdminDnGroup,
         mail: str,
         krbadmin_password: SecretStr,
     ) -> AddRequests:
         """Build AddRequest objects for group, services, and admin user.
 
-        :param str krbadmin_dn: DN for krbadmin user.
-        :param str services_container: DN for services container.
-        :param str krbgroup: DN for krbadmin group.
+        :param KerberosAdminDnGroup dns: DNs for krbadmin, services container, and group.
         :param str mail: Email for krbadmin.
         :param SecretStr krbadmin_password: Password for krbadmin.
-        :return AddRequests: Tuple of AddRequest for group, services, and user.
+        :return AddRequests: NamedTuple of AddRequest for group, services, and user.
         """
         group = AddRequest.from_dict(
-            krbgroup,
+            dns.krbadmin_group_dn,
             {
                 "objectClass": ["group", "top", "posixGroup"],
                 "groupType": ["-2147483646"],
@@ -156,11 +145,11 @@ class KerberosService:
             },
         )
         services = AddRequest.from_dict(
-            services_container,
+            dns.services_container_dn,
             {"objectClass": ["organizationalUnit", "top", "container"]},
         )
         krb_user = AddRequest.from_dict(
-            krbadmin_dn,
+            dns.krbadmin_dn,
             password=krbadmin_password.get_secret_value(),
             attributes={
                 "mail": [mail],
@@ -180,7 +169,7 @@ class KerberosService:
                 "sn": ["krbadmin"],
                 "uid": ["krbadmin"],
                 "homeDirectory": ["/home/krbadmin"],
-                "memberOf": [krbgroup],
+                "memberOf": [dns.krbadmin_group_dn],
                 "sAMAccountName": ["krbadmin"],
                 "userPrincipalName": ["krbadmin"],
                 "displayName": ["Kerberos Administrator"],
