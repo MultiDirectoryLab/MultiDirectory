@@ -165,10 +165,11 @@ class MainProvider(Provider):
     @provide(scope=Scope.REQUEST)
     async def get_entity_type_dao(
         self,
+        object_class_dao: ObjectClassDAO,
         session: AsyncSession,
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
+        return EntityTypeDAO(session, object_class_dao)
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
@@ -231,10 +232,11 @@ class HTTPProvider(Provider):
     @provide(provides=EntityTypeDAO)
     def get_entity_type_dao(
         self,
+        object_class_dao: ObjectClassDAO,
         session: AsyncSession,
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
+        return EntityTypeDAO(session, object_class_dao)
 
 
 class LDAPServerProvider(Provider):

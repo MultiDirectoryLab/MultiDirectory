@@ -13,7 +13,9 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from extra.dev_data import ENTITY_TYPE_DATAS
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from models import Attribute, Directory, User
 
 # revision identifiers, used by Alembic.
@@ -86,7 +88,15 @@ def upgrade() -> None:
     async def _create_entity_types(connection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
-        entity_type_dao = EntityTypeDAO(session)
+        attribute_type_dao = AttributeTypeDAO(session)
+        object_class_dao = ObjectClassDAO(
+            session,
+            attribute_type_dao=attribute_type_dao,
+        )
+        entity_type_dao = EntityTypeDAO(
+            session,
+            object_class_dao=object_class_dao,
+        )
 
         for entity_type_data in ENTITY_TYPE_DATAS:
             await entity_type_dao.create_one(
@@ -137,7 +147,15 @@ def upgrade() -> None:
     async def _attach_entity_type_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)
         session.begin()
-        entity_type_dao = EntityTypeDAO(session)
+        attribute_type_dao = AttributeTypeDAO(session)
+        object_class_dao = ObjectClassDAO(
+            session,
+            attribute_type_dao=attribute_type_dao,
+        )
+        entity_type_dao = EntityTypeDAO(
+            session,
+            object_class_dao=object_class_dao,
+        )
 
         await entity_type_dao.attach_entity_type_to_directories()
 
