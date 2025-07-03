@@ -32,7 +32,7 @@ from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
-from .ann import AddRequests, KDCContext, KerberosAdminDnGroup
+from .ann import AddRequests, KDCContext, KerberosAdminDnGroup, LdapRootInfo
 from .ldap_structure import LDAPStructureManager
 from .template_render import TemplateRenderer
 
@@ -79,8 +79,8 @@ class KerberosService:
             KerberosConflictError: On structure creation conflict.
 
         """
-        base_dn, _ = await self._get_base_dn()
-        dns = self._build_kerberos_admin_dns(base_dn)
+        base_dn_info = await self._get_base_dn()
+        dns = self._build_kerberos_admin_dns(base_dn_info.base_dn)
         group, services, krb_user = self._build_add_requests(
             dns.krbadmin_dn,
             dns.services_container_dn,
@@ -88,10 +88,15 @@ class KerberosService:
             mail,
             krbadmin_password,
         )
+        add_requests = AddRequests(
+            group=group,
+            services=services,
+            krb_user=krb_user,
+        )
         await self._ldap_manager.create_kerberos_structure(
-            group,
-            services,
-            krb_user,
+            add_requests.group,
+            add_requests.services,
+            add_requests.krb_user,
             ldap_session,
             self._kadmin,
             entity_type_dao,
@@ -99,14 +104,13 @@ class KerberosService:
             dns.krbadmin_group_dn,
         )
 
-    async def _get_base_dn(self) -> tuple[str, str]:
-        """Get the base distinguished name (DN) for the directory.
-
-        :raises Exception: If base DN cannot be retrieved.
-        :return str: Base DN string.
-        """
+    async def _get_base_dn(self) -> LdapRootInfo:
+        """Get the base distinguished name (DN) and domain for the directory."""
         base_dn_list = await get_base_directories(self._session)
-        return base_dn_list[0].path_dn, base_dn_list[0].name
+        return LdapRootInfo(
+            base_dn=base_dn_list[0].path_dn,
+            domain=base_dn_list[0].name,
+        )
 
     def _build_kerberos_admin_dns(self, base_dn: str) -> KerberosAdminDnGroup:
         """Build DN strings for Kerberos admin, services, and group.
@@ -182,7 +186,11 @@ class KerberosService:
                 "displayName": ["Kerberos Administrator"],
             },
         )
-        return group, services, krb_user
+        return AddRequests(
+            group=group,
+            services=services,
+            krb_user=krb_user,
+        )
 
     async def setup_kdc(
         self,
@@ -241,13 +249,13 @@ class KerberosService:
         :raises Exception: If base DN cannot be retrieved.
         :return KDCContext: Typed dict with all required KDC context fields.
         """
-        base_dn, domain = await self._get_base_dn()
-        krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
-        krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
-        services_container = f"ou=services,{base_dn}"
+        base_dn_info = await self._get_base_dn()
+        krbadmin = f"cn=krbadmin,ou=users,{base_dn_info.base_dn}"
+        krbgroup = f"cn=krbadmin,cn=groups,{base_dn_info.base_dn}"
+        services_container = f"ou=services,{base_dn_info.base_dn}"
         return KDCContext(
-            base_dn=base_dn,
-            domain=domain,
+            base_dn=base_dn_info.base_dn,
+            domain=base_dn_info.domain,
             krbadmin=krbadmin,
             krbgroup=krbgroup,
             services_container=services_container,
