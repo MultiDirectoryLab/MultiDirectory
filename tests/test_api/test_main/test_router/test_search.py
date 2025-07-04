@@ -225,7 +225,6 @@ async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
                         |(objectClass=group)
                         (objectClass=user)
                         (objectClass=ou)
-                        (objectClass=catalog)
                         (objectClass=organizationalUnit)
                         (objectClass=container)
                     )

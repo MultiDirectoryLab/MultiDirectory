@@ -365,10 +365,6 @@ ENTITY_TYPE_DATAS = [
     {"name": "Computer", "object_class_names": ["top", "computer"]},
     {"name": "Container", "object_class_names": ["top", "container"]},
     {
-        "name": "Catalog",
-        "object_class_names": ["top", "container", "catalog"],
-    },
-    {
         "name": "Organizational Unit",
         "object_class_names": ["top", "container", "organizationalUnit"],
     },

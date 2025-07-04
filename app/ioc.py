@@ -163,6 +163,23 @@ class MainProvider(Provider):
         yield dns_manager_class(settings=settings, http_client=http_client)
 
     @provide(scope=Scope.REQUEST)
+    async def get_attribute_type_dao(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeDAO:
+        """Get Attribute Type DAO."""
+        return AttributeTypeDAO(session)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_object_class_dao(
+        self,
+        attribute_type_dao: AttributeTypeDAO,
+        session: AsyncSession,
+    ) -> ObjectClassDAO:
+        """Get Object Class DAO."""
+        return ObjectClassDAO(session, attribute_type_dao)
+
+    @provide(scope=Scope.REQUEST)
     async def get_entity_type_dao(
         self,
         object_class_dao: ObjectClassDAO,
@@ -220,10 +237,10 @@ class HTTPProvider(Provider):
     @provide(provides=ObjectClassDAO)
     def get_object_class_dao(
         self,
+        attribute_type_dao: AttributeTypeDAO,
         session: AsyncSession,
     ) -> ObjectClassDAO:
         """Get Object Class DAO."""
-        attribute_type_dao = AttributeTypeDAO(session)
         return ObjectClassDAO(
             attribute_type_dao=attribute_type_dao,
             session=session,

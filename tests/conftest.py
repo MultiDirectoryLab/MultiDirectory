@@ -186,10 +186,10 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
     def get_object_class_dao(
         self,
+        attribute_type_dao: AttributeTypeDAO,
         session: AsyncSession,
     ) -> ObjectClassDAO:
         """Get Object Class DAO."""
-        attribute_type_dao = AttributeTypeDAO(session)
         return ObjectClassDAO(
             attribute_type_dao=attribute_type_dao,
             session=session,
