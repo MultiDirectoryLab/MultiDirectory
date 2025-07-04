@@ -253,22 +253,24 @@ class BindDNSServerManager:
 
         """
         params_dict = {param.name: param.value for param in params}
-        zf_template = TEMPLATES.get_template("zone.template")
-        nameserver_ip = (
-            nameserver
-            if nameserver is not None
-            else os.getenv("DEFAULT_NAMESERVER")
-        )
-        zone_file = zf_template.render(
-            domain=zone_name,
-            nameserver_ip=nameserver_ip,
-            ttl=params_dict.get("ttl", 604800),
-        )
-        with open(
-            os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"),
-            "w",
-        ) as file:
-            file.write(zone_file)
+
+        if zone_type != DNSZoneType.FORWARD:
+            zf_template = TEMPLATES.get_template("zone.template")
+            nameserver_ip = (
+                nameserver
+                if nameserver is not None
+                else os.getenv("DEFAULT_NAMESERVER")
+            )
+            zone_file = zf_template.render(
+                domain=zone_name,
+                nameserver_ip=nameserver_ip,
+                ttl=params_dict.get("ttl", 604800),
+            )
+            with open(
+                os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"),
+                "w",
+            ) as file:
+                file.write(zone_file)
 
         zo_template = TEMPLATES.get_template("zone_options.template")
         zone_options = zo_template.render(
