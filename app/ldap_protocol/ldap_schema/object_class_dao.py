@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Literal
+from typing import Iterable, Literal
 
 from pydantic import BaseModel
 from sqlalchemy import delete, func, select
@@ -149,9 +149,9 @@ class ObjectClassDAO:
         )
         self.__session.add(object_class)
 
-    async def count_exists_object_class_by_names(
+    async def _count_exists_object_class_by_names(
         self,
-        object_class_names: list[str],
+        object_class_names: Iterable[str],
     ) -> int:
         """Count exists Object Class by names.
 
@@ -168,7 +168,7 @@ class ObjectClassDAO:
 
     async def is_all_object_classes_exists(
         self,
-        object_class_names: list[str],
+        object_class_names: Iterable[str],
     ) -> Literal[True]:
         """Check if all Object Classes exist.
 
@@ -176,7 +176,9 @@ class ObjectClassDAO:
         :raise ObjectClassNotFoundError: If Object Class not found.
         :return bool.
         """
-        count_ = await self.count_exists_object_class_by_names(
+        object_class_names = set(object_class_names)
+
+        count_ = await self._count_exists_object_class_by_names(
             object_class_names
         )
 

@@ -186,10 +186,10 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
     def get_object_class_dao(
         self,
+        attribute_type_dao: AttributeTypeDAO,
         session: AsyncSession,
     ) -> ObjectClassDAO:
         """Get Object Class DAO."""
-        attribute_type_dao = AttributeTypeDAO(session)
         return ObjectClassDAO(
             attribute_type_dao=attribute_type_dao,
             session=session,
@@ -198,10 +198,11 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
     def get_entity_type_dao(
         self,
+        object_class_dao: ObjectClassDAO,
         session: AsyncSession,
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
-        return EntityTypeDAO(session)
+        return EntityTypeDAO(session, object_class_dao)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -474,7 +475,12 @@ async def entity_type_dao(
     """Get session and aquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        yield EntityTypeDAO(session)
+        attribute_type_dao = AttributeTypeDAO(session)
+        object_class_dao = ObjectClassDAO(
+            session,
+            attribute_type_dao=attribute_type_dao,
+        )
+        yield EntityTypeDAO(session, object_class_dao)
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -21,7 +21,9 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
 from models import (
@@ -140,7 +142,12 @@ async def _create_dir(
 
     await session.flush()
 
-    entity_type_dao = EntityTypeDAO(session)
+    attribute_type_dao = AttributeTypeDAO(session)
+    object_class_dao = ObjectClassDAO(
+        session,
+        attribute_type_dao=attribute_type_dao,
+    )
+    entity_type_dao = EntityTypeDAO(session, object_class_dao)
     await session.refresh(
         instance=dir_,
         attribute_names=["attributes"],
@@ -213,7 +220,12 @@ async def setup_enviroment(
         session.add_all(list(get_domain_object_class(domain)))
         await session.flush()
 
-        entity_type_dao = EntityTypeDAO(session)
+        attribute_type_dao = AttributeTypeDAO(session)
+        object_class_dao = ObjectClassDAO(
+            session,
+            attribute_type_dao=attribute_type_dao,
+        )
+        entity_type_dao = EntityTypeDAO(session, object_class_dao)
         await session.refresh(
             instance=domain,
             attribute_names=["attributes"],

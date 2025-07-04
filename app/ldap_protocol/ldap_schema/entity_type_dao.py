@@ -48,11 +48,17 @@ class EntityTypeDAO:
     """Entity Type DAO."""
 
     __session: AsyncSession
+    __object_class_dao: ObjectClassDAO
     EntityTypeNotFoundError = InstanceNotFoundError
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        object_class_dao: ObjectClassDAO,
+    ) -> None:
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
+        self.__object_class_dao = object_class_dao
 
     async def get_paginator(
         self,
@@ -236,9 +242,14 @@ class EntityTypeDAO:
 
         :param Directory directory: Directory to attach Entity Type.
         :param bool is_system_entity_type: Is system Entity Type.
+        :param ObjectClassDAO object_class_dao: Object Class DAO.
         :return None.
         """
         object_class_names = directory.object_class_names_set
+
+        await self.__object_class_dao.is_all_object_classes_exists(
+            object_class_names
+        )
 
         entity_type = await self.get_entity_type_by_object_class_names(
             object_class_names

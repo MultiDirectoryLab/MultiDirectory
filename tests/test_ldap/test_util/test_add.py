@@ -229,7 +229,7 @@ async def test_add_bvalue_attr(
     """Test AddRequest with bytes data."""
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
-        attributes=[{"type": "objectClass", "vals": [b"test"]}],
+        attributes=[{"type": "objectClass", "vals": [b"container"]}],
         password=None,
     )
     result = await anext(
