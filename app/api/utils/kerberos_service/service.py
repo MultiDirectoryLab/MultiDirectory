@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncIterator
 
 import backoff
+from dishka import AsyncContainer
 from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -285,19 +286,19 @@ class KerberosService:
         :param KerberosSetupRequest data: Setup request data.
         :return BackgroundTask: Background task for principal creation.
         """
-        async with request.app.state.dishka_container() as container:
-            new_kadmin: AbstractKadmin = await container.get(AbstractKadmin)
-            task = BackgroundTask(
-                backoff.on_exception(
-                    backoff.fibo,
-                    Exception,
-                    max_tries=10,
-                    logger=None,
-                    raise_on_giveup=False,
-                )(new_kadmin.add_principal),
-                user.user_principal_name.split("@")[0],
-                data.admin_password.get_secret_value(),
-            )
+        container: AsyncContainer = request.state.dishka_container
+        new_kadmin: AbstractKadmin = await container.get(AbstractKadmin)
+        task = BackgroundTask(
+            backoff.on_exception(
+                backoff.fibo,
+                Exception,
+                max_tries=10,
+                logger=None,
+                raise_on_giveup=False,
+            )(new_kadmin.add_principal),
+            user.user_principal_name.split("@")[0],
+            data.admin_password.get_secret_value(),
+        )
         return task
 
     async def add_principal(self, primary: str, instance: str) -> None:
