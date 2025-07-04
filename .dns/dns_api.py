@@ -254,7 +254,7 @@ class BindDNSServerManager:
         self,
         zone_name: str,
         zone_type: str,
-        nameserver: str | None,
+        nameserver_ip: str | None,
         params: list[DNSZoneParam],
     ) -> None:
         """Add a new DNS zone.
@@ -278,8 +278,8 @@ class BindDNSServerManager:
 
         if zone_type != DNSZoneType.FORWARD:
             nameserver_ip = (
-                nameserver
-                if nameserver is not None
+                nameserver_ip
+                if nameserver_ip is not None
                 else os.getenv("DEFAULT_NAMESERVER")
             )
             nameserver = (
