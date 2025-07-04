@@ -228,11 +228,33 @@ class BindDNSServerManager:
         zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
         self.reload(zone_name)
 
+    def _get_base_domain(self) -> str:
+        """Get base domain.
+
+        Algorithm:
+            1. Open named.conf.local.
+            2. Get first domain.
+
+        """
+        named_local = None
+
+        with open(NAMED_LOCAL) as file:
+            named_local = file.read()
+
+        pattern = r"""
+            zone\s+"([^"]+)"\s*{[^}]*?
+            type\s+master\b[^}]*?
+        """
+
+        matches = re.search(pattern, named_local, re.DOTALL | re.VERBOSE)
+
+        return matches.group(1)
+
     def add_zone(
         self,
         zone_name: str,
         zone_type: str,
-        nameserver: str | None,
+        nameserver_ip: str | None,
         params: list[DNSZoneParam],
     ) -> None:
         """Add a new DNS zone.
@@ -248,27 +270,59 @@ class BindDNSServerManager:
         Args:
             zone_name (str): Name of the DNS zone.
             zone_type (str): Type of the DNS zone.
-            nameserver (str | None): Nameserver IP address.
+            nameserver_ip (str | None): Nameserver IP address.
             params (list[DNSZoneParam]): List of zone parameters.
 
         """
         params_dict = {param.name: param.value for param in params}
-        zf_template = TEMPLATES.get_template("zone.template")
-        nameserver_ip = (
-            nameserver
-            if nameserver is not None
-            else os.getenv("DEFAULT_NAMESERVER")
-        )
-        zone_file = zf_template.render(
-            domain=zone_name,
-            nameserver_ip=nameserver_ip,
-            ttl=params_dict.get("ttl", 604800),
-        )
-        with open(
-            os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"),
-            "w",
-        ) as file:
-            file.write(zone_file)
+
+        if zone_type != DNSZoneType.FORWARD:
+            nameserver_ip = (
+                nameserver_ip
+                if nameserver_ip is not None
+                else os.getenv("DEFAULT_NAMESERVER")
+            )
+            nameserver = (
+                self._get_base_domain()
+                if "in-addr.arpa" in zone_name
+                else zone_name
+            )
+
+            zf_template = TEMPLATES.get_template("zone.template")
+            zone_file = zf_template.render(
+                domain=zone_name,
+                nameserver=nameserver,
+                ttl=params_dict.get("ttl", 604800),
+            )
+            with open(
+                os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"),
+                "w",
+            ) as file:
+                file.write(zone_file)
+
+            if "in-addr.arpa" not in zone_name:
+                for record in [
+                    DNSRecord(
+                        name=zone_name,
+                        value=nameserver_ip,
+                        ttl=604800,
+                    ),
+                    DNSRecord(
+                        name=f"ns1.{zone_name}",
+                        value=nameserver_ip,
+                        ttl=604800,
+                    ),
+                    DNSRecord(
+                        name=f"ns2.{zone_name}",
+                        value="127.0.0.1",
+                        ttl=604800,
+                    ),
+                ]:
+                    self.add_record(
+                        record,
+                        DNSRecordType.A,
+                        zone_name=zone_name,
+                    )
 
         zo_template = TEMPLATES.get_template("zone_options.template")
         zone_options = zo_template.render(
@@ -907,13 +961,14 @@ class BindDNSServerManager:
     def update_dns_settings(self, settings: list[DNSServerParam]) -> None:
         """Update or add DNS server parameters.
 
-        Regex:
-            Example: r'^\\s*{param.name}\\s+'
         Regex explanation:
-            - ^\\s*{param.name}\\s+
-                Matches the parameter name at the start of a line,
-                with optional leading whitespace.
-            Used to find the parameter line in the options block.
+            - \\b{param_name}\\s+
+                Matches the parameter name as a whole word,
+                followed by whitespace.
+            - ([^;\\n{{]+|{{[^}}]+}})
+                Captures the parameter value, which can be a simple value or
+                a block in braces.
+            The first capturing group contains the parameter value.
 
         Algorithm:
             1. Read named.conf.options content.
@@ -935,7 +990,7 @@ class BindDNSServerManager:
                 param_value = "{ " + f"{'; '.join(param.value)};" + " }"
             else:
                 param_value = param.value
-            pattern = rf"^\s*{re.escape(param.name)}\s+"
+            pattern = rf"\b{re.escape(param.name)}\s+([^;\n{{]+|{{[^}}]+}})"
             matched_param = re.search(
                 pattern,
                 named_options,
@@ -950,12 +1005,14 @@ class BindDNSServerManager:
             else:
                 named_options = re.sub(
                     pattern,
-                    f"{param.name} {'yes' if param.value is True else 'no'}",
+                    f"{param.name} {param_value}",
                     named_options,
                 )
 
         with open(NAMED_OPTIONS, "w") as file:
             file.write(named_options)
+
+        self.restart()
 
     @staticmethod
     def get_server_settings() -> list[DNSServerParam]:
