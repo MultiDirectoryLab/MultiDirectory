@@ -907,13 +907,14 @@ class BindDNSServerManager:
     def update_dns_settings(self, settings: list[DNSServerParam]) -> None:
         """Update or add DNS server parameters.
 
-        Regex:
-            Example: r'^\\s*{param.name}\\s+'
         Regex explanation:
-            - ^\\s*{param.name}\\s+
-                Matches the parameter name at the start of a line,
-                with optional leading whitespace.
-            Used to find the parameter line in the options block.
+            - \\b{param_name}\\s+
+                Matches the parameter name as a whole word,
+                followed by whitespace.
+            - ([^;\\n{{]+|{{[^}}]+}})
+                Captures the parameter value, which can be a simple value or
+                a block in braces.
+            The first capturing group contains the parameter value.
 
         Algorithm:
             1. Read named.conf.options content.
@@ -935,7 +936,7 @@ class BindDNSServerManager:
                 param_value = "{ " + f"{'; '.join(param.value)};" + " }"
             else:
                 param_value = param.value
-            pattern = rf"^\s*{re.escape(param.name)}\s+"
+            pattern = rf"\b{re.escape(param.name)}\s+([^;\n{{]+|{{[^}}]+}})"
             matched_param = re.search(
                 pattern,
                 named_options,
@@ -950,12 +951,14 @@ class BindDNSServerManager:
             else:
                 named_options = re.sub(
                     pattern,
-                    f"{param.name} {'yes' if param.value is True else 'no'}",
+                    f"{param.name} {param_value}",
                     named_options,
                 )
 
         with open(NAMED_OPTIONS, "w") as file:
             file.write(named_options)
+
+        self.restart()
 
     @staticmethod
     def get_server_settings() -> list[DNSServerParam]:
