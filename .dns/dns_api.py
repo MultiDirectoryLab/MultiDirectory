@@ -228,6 +228,28 @@ class BindDNSServerManager:
         zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
         self.reload(zone_name)
 
+    def _get_base_domain(self) -> str:
+        """Get base domain.
+
+        Algorithm:
+            1. Open named.conf.local.
+            2. Get first domain.
+
+        """
+        named_local = None
+
+        with open(NAMED_LOCAL) as file:
+            named_local = file.read()
+
+        pattern = r"""
+            zone\s+"([^"]+)"\s*{[^}]*?
+            type\s+master\b[^}]*?
+        """
+
+        matches = re.search(pattern, named_local, re.DOTALL | re.VERBOSE)
+
+        return matches.group(1)
+
     def add_zone(
         self,
         zone_name: str,
@@ -255,15 +277,21 @@ class BindDNSServerManager:
         params_dict = {param.name: param.value for param in params}
 
         if zone_type != DNSZoneType.FORWARD:
-            zf_template = TEMPLATES.get_template("zone.template")
             nameserver_ip = (
                 nameserver
                 if nameserver is not None
                 else os.getenv("DEFAULT_NAMESERVER")
             )
+            nameserver = (
+                self._get_base_domain()
+                if "in-addr.arpa" in zone_name
+                else zone_name
+            )
+
+            zf_template = TEMPLATES.get_template("zone.template")
             zone_file = zf_template.render(
                 domain=zone_name,
-                nameserver_ip=nameserver_ip,
+                nameserver=nameserver,
                 ttl=params_dict.get("ttl", 604800),
             )
             with open(
@@ -271,6 +299,30 @@ class BindDNSServerManager:
                 "w",
             ) as file:
                 file.write(zone_file)
+
+            if "in-addr.arpa" not in zone_name:
+                for record in [
+                    DNSRecord(
+                        name=zone_name,
+                        value=nameserver_ip,
+                        ttl=604800,
+                    ),
+                    DNSRecord(
+                        name=f"ns1.{zone_name}",
+                        value=nameserver_ip,
+                        ttl=604800,
+                    ),
+                    DNSRecord(
+                        name=f"ns2.{zone_name}",
+                        value="127.0.0.1",
+                        ttl=604800,
+                    ),
+                ]:
+                    self.add_record(
+                        record,
+                        DNSRecordType.A,
+                        zone_name=zone_name,
+                    )
 
         zo_template = TEMPLATES.get_template("zone_options.template")
         zone_options = zo_template.render(
