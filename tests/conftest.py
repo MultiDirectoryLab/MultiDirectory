@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
+from api.utils import KerberosService
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider, SessionStorageClient
@@ -309,6 +310,8 @@ class TestProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    kerberos_service = provide(KerberosService, scope=Scope.APP)
 
 
 @dataclass
