@@ -1,11 +1,11 @@
 $ORIGIN .
 $TTL {{ ttl }}
 {{ domain }}        IN      SOA     ns1.{{ nameserver }}. support.md.ru. (
-                {{ today }}01
-                10800
-                3600
-                604800
-                21600
-                )
-                IN  NS  ns1.{{ nameserver }}.
-                IN  NS  ns2.{{ nameserver }}.
+                    {{ today }}01
+                    10800
+                    3600
+                    604800
+                    21600
+                    )
+                    IN  NS  ns1.{{ nameserver }}.
+                    IN  NS  ns2.{{ nameserver }}.
