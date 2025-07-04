@@ -270,7 +270,7 @@ class BindDNSServerManager:
         Args:
             zone_name (str): Name of the DNS zone.
             zone_type (str): Type of the DNS zone.
-            nameserver (str | None): Nameserver IP address.
+            nameserver_ip (str | None): Nameserver IP address.
             params (list[DNSZoneParam]): List of zone parameters.
 
         """
