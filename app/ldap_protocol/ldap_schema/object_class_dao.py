@@ -161,7 +161,7 @@ class ObjectClassDAO:
         count_query = (
             select(func.count())
             .select_from(ObjectClass)
-            .where(ObjectClass.name.in_(object_class_names))
+            .where(func.lower(ObjectClass.name).in_(object_class_names))
         )
         result = await self.__session.scalars(count_query)
         return result.one()
@@ -176,7 +176,9 @@ class ObjectClassDAO:
         :raise ObjectClassNotFoundError: If Object Class not found.
         :return bool.
         """
-        object_class_names = set(object_class_names)
+        object_class_names = set(
+            object_class.lower() for object_class in object_class_names
+        )
 
         count_ = await self._count_exists_object_class_by_names(
             object_class_names

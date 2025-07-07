@@ -60,7 +60,7 @@ from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
-from models import Directory
+from models import AttributeType, Directory
 
 
 class TestProvider(Provider):
@@ -430,6 +430,26 @@ async def setup_session(session: AsyncSession) -> None:
         grant_dn=domain.path_dn,
         groups=["cn=domain admins,cn=groups," + domain.path_dn],
         session=session,
+    )
+    session.add(
+        AttributeType(
+            oid="1.2.3.4.5.6.7.8",
+            name="attr_with_bvalue",
+            syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+        )
+    )
+    session.add(
+        AttributeType(
+            oid="1.2.3.4.5.6.7.8.9",
+            name="testing_attr",
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+        )
     )
     await session.commit()
 
