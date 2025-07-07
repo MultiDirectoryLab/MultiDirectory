@@ -28,7 +28,6 @@ from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
 from models import (
     Attribute,
-    AttributeType,
     Directory,
     DirectoryMembership,
     Group,
@@ -186,28 +185,6 @@ async def setup_enviroment(
     domain.rdname = ""
 
     async with session.begin_nested():
-        session.add(
-            AttributeType(
-                oid="1.2.3.4.5.6.7.8",
-                name="attr_with_bvalue",
-                syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
-                single_value=True,
-                no_user_modification=False,
-                is_system=True,
-            )
-        )
-        session.add(
-            AttributeType(
-                oid="1.2.3.4.5.6.7.8.9",
-                name="testing_attr",
-                syntax="1.3.6.1.4.1.1466.115.121.1.15",
-                single_value=True,
-                no_user_modification=False,
-                is_system=True,
-            )
-        )
-        await session.flush()
-
         session.add(domain)
         session.add(
             NetworkPolicy(
