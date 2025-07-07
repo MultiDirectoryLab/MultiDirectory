@@ -209,16 +209,6 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    @provide(provides=NetworkPolicyService)
-    async def get_network_policy_service(
-        self,
-        session: AsyncSession,
-    ) -> NetworkPolicyService:
-        """DI-провайдер для NetworkPolicyService."""
-        return NetworkPolicyService(
-            session=session,
-        )
-
 
 class HTTPProvider(Provider):
     """HTTP LDAP session."""
@@ -257,6 +247,11 @@ class HTTPProvider(Provider):
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
+
+    network_policy_service = provide(
+        NetworkPolicyService,
+        scope=scope,
+    )
 
 
 class LDAPServerProvider(Provider):

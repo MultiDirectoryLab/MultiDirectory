@@ -311,15 +311,10 @@ class TestProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    @provide(provides=NetworkPolicyService, scope=Scope.REQUEST)
-    async def get_network_policy_service(
-        self,
-        session: AsyncSession,
-    ) -> NetworkPolicyService:
-        """DI-провайдер для NetworkPolicyService."""
-        return NetworkPolicyService(
-            session=session,
-        )
+    network_policy_service = provide(
+        NetworkPolicyService,
+        scope=Scope.REQUEST,
+    )
 
 
 @dataclass

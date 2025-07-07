@@ -73,7 +73,7 @@ async def delete_network_policy(
     policy_id: int,
     request: Request,
     network_policy_service: FromDishka[NetworkPolicyService],
-) -> list[PolicyResponse]:
+) -> RedirectResponse:
     """Delete policy.
 
     \f
@@ -85,13 +85,18 @@ async def delete_network_policy(
     :return bool: status of delete
     """
     try:
-        return await network_policy_service.delete_policy(policy_id, request)
+        await network_policy_service.delete_policy(policy_id)
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
     except PolicyError as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         )
+    return RedirectResponse(
+        request.url_for("policy"),
+        status_code=status.HTTP_303_SEE_OTHER,
+        headers=request.headers,
+    )
 
 
 @network_router.patch("/{policy_id}")
