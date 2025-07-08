@@ -311,7 +311,7 @@ class TestProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    kerberos_service = provide(KerberosService, scope=Scope.APP)
+    kerberos_service = provide(KerberosService, scope=Scope.REQUEST)
 
 
 @dataclass

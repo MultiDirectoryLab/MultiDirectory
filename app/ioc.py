@@ -248,7 +248,7 @@ class HTTPProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
 
-    kerberos_service = provide(KerberosService, scope=Scope.APP)
+    kerberos_service = provide(KerberosService, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(Provider):
