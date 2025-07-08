@@ -239,9 +239,9 @@ class MultifactorAPI:
                 json=data,
             )
         except httpx.TimeoutException as err:
-            raise self.MFAConnectError("API Timeout") from err
+            raise self.MFAConnectError(f"API Timeout: {err}") from err
         except httpx.ConnectError as err:
-            raise self.MFAConnectError("API Connection Error") from err
+            raise self.MFAConnectError(f"API Connection Error: {err}") from err
 
         if response.status_code == 401:
             raise self.MFAMissconfiguredError("API Key or Secret is invalid")
