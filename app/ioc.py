@@ -240,7 +240,7 @@ class HTTPProvider(Provider):
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
 
-    kerberos_service = provide(KerberosService, scope=Scope.APP)
+    kerberos_service = provide(KerberosService, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(Provider):
