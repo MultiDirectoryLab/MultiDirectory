@@ -19,6 +19,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
@@ -89,6 +90,7 @@ class ModifyDNRequest(BaseRequest):
         self,
         ldap_session: LDAPSession,
         session: AsyncSession,
+        entity_type_dao: EntityTypeDAO,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:
@@ -254,8 +256,18 @@ class ModifyDNRequest(BaseRequest):
 
             # NOTE: update relationship, don't delete row
             await session.refresh(directory)
-
             await session.delete(directory)
+            await session.flush()
+
+            await session.refresh(
+                instance=new_directory,
+                attribute_names=["attributes"],
+                with_for_update=None,
+            )
+            await entity_type_dao.attach_entity_type_to_directory(
+                directory=new_directory,
+                is_system_entity_type=False,
+            )
             await session.flush()
 
         await session.commit()
