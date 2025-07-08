@@ -66,3 +66,68 @@ async def test_api_delete_non_exist_object(http_client: AsyncClient) -> None:
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.NO_SUCH_OBJECT
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_delete_many(http_client: AsyncClient) -> None:
+    """Test API for bulk delete objects."""
+    entry_dn_1 = "cn=test,dc=md,dc=test"
+    entry_dn_2 = "cn=test2,dc=md,dc=test"
+    entry_dn_3 = "cn=test3,dc=md,dc=test"
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": entry_dn_2,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["test2"]},
+                {"type": "cn", "vals": ["test2"]},
+                {"type": "testing_attr", "vals": ["test2"]},
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top", "user"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": entry_dn_3,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["test3"]},
+                {"type": "cn", "vals": ["test3"]},
+                {"type": "testing_attr", "vals": ["test3"]},
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top", "user"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+
+    response = await http_client.request(
+        "delete",
+        "/entry/delete_many",
+        json=[
+            {"entry": entry_dn_1},
+            {"entry": entry_dn_2},
+            {"entry": entry_dn_3},
+        ],
+    )
+
+    data = response.json()
+
+    assert all(
+        [result.get("resultCode") == LDAPCodes.SUCCESS for result in data]
+    )

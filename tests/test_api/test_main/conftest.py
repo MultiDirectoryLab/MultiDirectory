@@ -159,3 +159,177 @@ async def add_dns_settings(
         ],
     )
     await session.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def adding_test_user2(
+    app: FastAPI, http_client: AsyncClient, _force_override_tls: None
+) -> None:
+    """Test add user2 like keycloak."""
+    test_user_dn = "cn=test2,dc=md,dc=test"
+    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'  # noqa
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": test_user_dn,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["test2"]},
+                {"type": "cn", "vals": ["test2"]},
+                {"type": "testing_attr", "vals": ["test2"]},
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top", "user"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": test_user_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["Test2"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "mail",
+                        "vals": ["new_user2@md.test"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "userPrincipalName",
+                        "vals": ["new_user2@md.test"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "displayName",
+                        "vals": ["Test User2"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "unicodePwd",
+                        "vals": [user_password],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "memberOf",
+                        "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["0"],
+                    },
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+
+
+@pytest_asyncio.fixture(scope="function")
+async def adding_test_user3(
+    app: FastAPI, http_client: AsyncClient, _force_override_tls: None
+) -> None:
+    """Test add user3 like keycloak."""
+    test_user_dn = "cn=test3,dc=md,dc=test"
+    user_password = '"\x00P\x00@\x00s\x00s\x00w\x000\x00r\x00d\x00"\x00'  # noqa
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": test_user_dn,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["test3"]},
+                {"type": "cn", "vals": ["test3"]},
+                {"type": "testing_attr", "vals": ["test3"]},
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top", "user"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": test_user_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["Test3"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "mail",
+                        "vals": ["new_user3@md.test"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "userPrincipalName",
+                        "vals": ["new_user3@md.test"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "displayName",
+                        "vals": ["Test User3"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "unicodePwd",
+                        "vals": [user_password],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "memberOf",
+                        "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                    },
+                },
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["0"],
+                    },
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS

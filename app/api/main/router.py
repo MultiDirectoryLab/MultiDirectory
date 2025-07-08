@@ -92,3 +92,15 @@ async def delete(
 ) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(req.state.dishka_container)
+
+
+@entry_router.delete("/delete_many")
+async def delete_many(
+    requests: list[DeleteRequest],
+    req: Request,
+) -> list[LDAPResult]:
+    """Bulk LDAP DELETE entry request."""
+    results = []
+    for request in requests:
+        results.append(await request.handle_api(req.state.dishka_container))
+    return results
