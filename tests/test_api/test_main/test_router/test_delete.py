@@ -116,8 +116,7 @@ async def test_api_delete_many(http_client: AsyncClient) -> None:
     data = response.json()
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
-    response = await http_client.request(
-        "delete",
+    response = await http_client.post(
         "/entry/delete_many",
         json=[
             {"entry": entry_dn_1},

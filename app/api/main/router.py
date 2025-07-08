@@ -94,7 +94,7 @@ async def delete(
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.delete("/delete_many")
+@entry_router.post("/delete_many")
 async def delete_many(
     requests: list[DeleteRequest],
     req: Request,
