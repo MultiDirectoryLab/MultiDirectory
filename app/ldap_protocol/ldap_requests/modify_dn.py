@@ -185,11 +185,6 @@ class ModifyDNRequest(BaseRequest):
 
         try:
             session.add(new_directory)
-            await session.refresh(
-                instance=new_directory,
-                attribute_names=["attributes"],
-                with_for_update=None,
-            )
             await entity_type_dao.attach_entity_type_to_directory(
                 directory=new_directory,
                 is_system_entity_type=False,
