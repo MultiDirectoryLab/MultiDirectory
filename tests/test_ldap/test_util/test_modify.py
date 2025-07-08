@@ -450,7 +450,10 @@ async def test_ldap_modify_dn(
 
     assert await session.scalar(
         select(Directory)
-        .filter(Directory.path == ["dc=test", "dc=md", "ou=users", "cn=user2"])
+        .filter(
+            Directory.path == ["dc=test", "dc=md", "ou=users", "cn=user2"],
+            Directory.entity_type_name.isnot(None),
+        )
     )  # fmt: skip
 
 

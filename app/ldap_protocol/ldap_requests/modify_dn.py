@@ -179,16 +179,13 @@ class ModifyDNRequest(BaseRequest):
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
                 access_policies=new_parent_dir.access_policies,
+                # entity_type=
             )
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
 
         try:
             session.add(new_directory)
-            await entity_type_dao.attach_entity_type_to_directory(
-                directory=new_directory,
-                is_system_entity_type=False,
-            )
             await session.flush()
         except IntegrityError:
             await session.rollback()
@@ -260,8 +257,18 @@ class ModifyDNRequest(BaseRequest):
 
             # NOTE: update relationship, don't delete row
             await session.refresh(directory)
-
             await session.delete(directory)
+            await session.flush()
+
+            await session.refresh(
+                instance=new_directory,
+                attribute_names=["attributes"],
+                with_for_update=None,
+            )
+            await entity_type_dao.attach_entity_type_to_directory(
+                directory=new_directory,
+                is_system_entity_type=False,
+            )
             await session.flush()
 
         await session.commit()
