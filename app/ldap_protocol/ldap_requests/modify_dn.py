@@ -179,7 +179,6 @@ class ModifyDNRequest(BaseRequest):
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
                 access_policies=new_parent_dir.access_policies,
-                # entity_type=
             )
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
