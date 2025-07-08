@@ -245,7 +245,8 @@ class AddRequest(BaseRequest):
                 elif attr.type == "memberOf":
                     if not isinstance(value, str):
                         raise TypeError
-                    group_attributes.append(value)
+                    if value.lower() != "domain users":
+                        group_attributes.append(value)
 
                 else:
                     attributes.append(
