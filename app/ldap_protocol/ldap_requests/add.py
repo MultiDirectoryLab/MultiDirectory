@@ -245,8 +245,7 @@ class AddRequest(BaseRequest):
                 elif attr.type == "memberOf":
                     if not isinstance(value, str):
                         raise TypeError
-                    if value.lower() != "domain users":
-                        group_attributes.append(value)
+                    group_attributes.append(value)
 
                 else:
                     attributes.append(
@@ -267,9 +266,12 @@ class AddRequest(BaseRequest):
         is_computer = "computer" in self.attributes_dict.get("objectClass", [])
 
         if is_user:
-            parent_groups.append(
-                (await get_group("domain users", ctx.session)).group,
-            )
+            if not any(
+                g.name.lower() == "domain users" for g in parent_groups
+            ):
+                parent_groups.append(
+                    (await get_group("domain users", ctx.session)).group,
+                )
 
             sam_account_name = user_attributes.get(
                 "sAMAccountName",
