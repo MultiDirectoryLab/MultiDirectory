@@ -249,7 +249,7 @@ async def two_factor_protocol(
             url.components.geturl(),
             user.id,
         )
-    except MultifactorAPI.MFAConnectError:
+    except MultifactorAPI.MFAConnectError as exc:
         if network_policy.bypass_no_connection:
             await create_and_set_session_key(
                 user,
@@ -263,10 +263,7 @@ async def two_factor_protocol(
             return MFAChallengeResponse(status="bypass", message="")
 
         logger.critical(f"API error {traceback.format_exc()}")
-        raise HTTPException(
-            status.HTTP_406_NOT_ACCEPTABLE,
-            "Multifactor error",
-        )
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=str(exc))
 
     except MultifactorAPI.MFAMissconfiguredError:
         await create_and_set_session_key(
