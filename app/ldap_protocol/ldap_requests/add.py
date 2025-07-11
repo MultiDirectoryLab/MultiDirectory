@@ -267,7 +267,8 @@ class AddRequest(BaseRequest):
 
         if is_user:
             if not any(
-                g.name.lower() == "domain users" for g in parent_groups
+                group.directory.name.lower() == "domain users"
+                for group in parent_groups
             ):
                 parent_groups.append(
                     (await get_group("domain users", ctx.session)).group,
