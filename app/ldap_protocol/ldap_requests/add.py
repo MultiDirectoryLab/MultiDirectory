@@ -225,6 +225,8 @@ class AddRequest(BaseRequest):
                 elif attr.type == "memberOf":
                     if not isinstance(value, str):
                         raise TypeError
+                    if value in group_attributes:
+                        continue
                     group_attributes.append(value)
 
                 else:
@@ -237,6 +239,14 @@ class AddRequest(BaseRequest):
                         ),
                     )
 
+        # Проверка на уникальность групп
+        if len(group_attributes) != len(set(group_attributes)):
+            yield AddResponse(
+                result_code=LDAPCodes.OPERATIONS_ERROR,
+                errorMessage="Duplicate groups are not allowed.",
+            )
+            return
+
         parent_groups = await get_groups(group_attributes, session)
         is_group = "group" in self.attributes_dict.get("objectClass", [])
         is_user = (
@@ -246,9 +256,13 @@ class AddRequest(BaseRequest):
         is_computer = "computer" in self.attributes_dict.get("objectClass", [])
 
         if is_user:
-            parent_groups.append(
-                (await get_group("domain users", session)).group,
-            )
+            if not any(
+                group.directory.name.lower() == "domain users"
+                for group in parent_groups
+            ):
+                parent_groups.append(
+                    (await get_group("domain users", session)).group
+                )
 
             sam_accout_name = user_attributes.get(
                 "sAMAccountName",
