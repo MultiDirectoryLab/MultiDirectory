@@ -82,7 +82,8 @@ class IdentityManager:
         :param response: FastAPI response
         :param ip: Client IP
         :param user_agent: Client User-Agent
-        :raises IdentityManager.UnauthorizedError: if incorrect username/password
+        :raises
+            IdentityManager.UnauthorizedError: if incorrect username/password
         :raises IdentityManager.ForbiddenError:
             if user not in group, disabled, expired, or failed policy
         :raises IdentityManager.MFARequiredError: if MFA is required
