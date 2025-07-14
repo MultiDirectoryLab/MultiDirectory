@@ -199,7 +199,8 @@ class NetworkPolicyService:
             raise PolicyError("At least one policy should be active")
 
     def _build_network_policy_from_schema(
-        self, policy: Policy
+        self,
+        policy: Policy,
     ) -> NetworkPolicy:
         """Create a NetworkPolicy ORM object from a Policy schema."""
         return NetworkPolicy(
@@ -216,7 +217,10 @@ class NetworkPolicyService:
         )
 
     async def _set_policy_groups(
-        self, policy_obj, group_dns, attr_name
+        self,
+        policy_obj: NetworkPolicy,
+        group_dns: list[str] | None,
+        attr_name: str,
     ) -> list[str]:
         """Set groups or mfa_groups for a policy object and return their DNs.
 
@@ -235,7 +239,9 @@ class NetworkPolicyService:
         return []
 
     def _update_policy_fields(
-        self, policy: NetworkPolicy, request: PolicyUpdate
+        self,
+        policy: NetworkPolicy,
+        request: PolicyUpdate,
     ) -> None:
         """Update fields of a NetworkPolicy from a PolicyUpdate schema."""
         for field in PolicyUpdate.fields_map:
@@ -275,7 +281,8 @@ class NetworkPolicyService:
         )
 
     def _build_policy_response_from_model(
-        self, policy: NetworkPolicy
+        self,
+        policy: NetworkPolicy,
     ) -> PolicyResponse:
         """Build a PolicyResponse from a NetworkPolicy ORM object."""
         return PolicyResponse(
@@ -302,7 +309,9 @@ class NetworkPolicyService:
         )
 
     def _build_swap_response(
-        self, policy1: NetworkPolicy, policy2: NetworkPolicy
+        self,
+        policy1: NetworkPolicy,
+        policy2: NetworkPolicy,
     ) -> SwapResponse:
         """Build a SwapResponse from two NetworkPolicy ORM objects."""
         return SwapResponse(
