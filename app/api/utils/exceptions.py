@@ -13,10 +13,6 @@ class PolicyError(Exception):
     """Raised for policy-specific errors."""
 
 
-class MFAError(Exception):
-    """Raised for MFA-specific errors."""
-
-
 class KerberosError(Exception):
     """Raised for Kerberos-related errors."""
 
@@ -35,10 +31,6 @@ class MissingMFACredentialsError(ForbiddenError):
 
 class InvalidCredentialsError(ForbiddenError):
     """Raised when user credentials are invalid."""
-
-
-class NetworkPolicyError(ForbiddenError):
-    """Raised when network policy is not passed."""
 
 
 class MFATokenError(Exception):
