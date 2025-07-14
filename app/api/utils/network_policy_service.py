@@ -24,75 +24,43 @@ from models import Group, NetworkPolicy
 
 
 class NetworkPolicyService:
-    """Сервис сетевых политик."""
+    """Service for network policy business logic."""
 
     def __init__(self, session: AsyncSession) -> None:
-        """Инициализация зависимостей сервиса (через DI).
+        """Initialize the service with a database session.
 
         :param session: SQLAlchemy AsyncSession
         """
         self.session = session
 
     async def add_policy(self, policy: Policy) -> PolicyResponse:
-        """Добавить новую сетевую политику.
+        """Add a new network policy.
 
         :param policy: Policy (pydantic schema)
-        :raises PolicyError: при ошибке
-        :return: PolicyResponse.
+        :raises PolicyError: if an error occurs
+        :return: PolicyResponse
         """
-        new_policy = NetworkPolicy(
-            name=policy.name,
-            netmasks=policy.complete_netmasks,
-            priority=policy.priority,
-            raw=policy.model_dump(mode="json")["netmasks"],
-            mfa_status=policy.mfa_status,
-            is_http=policy.is_http,
-            is_ldap=policy.is_ldap,
-            is_kerberos=policy.is_kerberos,
-            bypass_no_connection=policy.bypass_no_connection,
-            bypass_service_failure=policy.bypass_service_failure,
+        new_policy = self._build_network_policy_from_schema(policy)
+        group_dns = await self._set_policy_groups(
+            new_policy, policy.groups, "groups"
         )
-        group_dns = []
-        mfa_group_dns = []
-        if policy.groups:
-            groups = await get_groups(policy.groups, self.session)
-            new_policy.groups = groups
-            group_dns = [group.directory.path_dn for group in groups]
-        if policy.mfa_groups:
-            mfa_groups = await get_groups(policy.mfa_groups, self.session)
-            new_policy.mfa_groups = mfa_groups
-            mfa_group_dns = [group.directory.path_dn for group in mfa_groups]
+        mfa_group_dns = await self._set_policy_groups(
+            new_policy, policy.mfa_groups, "mfa_groups"
+        )
         try:
             self.session.add(new_policy)
             await self.session.commit()
         except IntegrityError:
             raise PolicyError("Entry already exists")
         await self.session.refresh(new_policy)
-        return PolicyResponse(
-            id=new_policy.id,
-            name=new_policy.name,
-            netmasks=[
-                n for n in new_policy.netmasks if isinstance(n, IPv4Network)
-            ],
-            raw=list(new_policy.raw)
-            if isinstance(new_policy.raw, list | tuple)
-            else [str(new_policy.raw)],
-            enabled=new_policy.enabled,
-            priority=new_policy.priority,
-            groups=group_dns,
-            mfa_status=new_policy.mfa_status,
-            mfa_groups=mfa_group_dns,
-            is_http=new_policy.is_http,
-            is_ldap=new_policy.is_ldap,
-            is_kerberos=new_policy.is_kerberos,
-            bypass_no_connection=new_policy.bypass_no_connection,
-            bypass_service_failure=new_policy.bypass_service_failure,
+        return self._build_policy_response(
+            new_policy, group_dns, mfa_group_dns
         )
 
     async def get_policies(self) -> list[PolicyResponse]:
-        """Получить список всех политик.
+        """Get a list of all network policies.
 
-        :return: list[PolicyResponse].
+        :return: list of PolicyResponse
         """
         groups = selectinload(NetworkPolicy.groups).selectinload(
             Group.directory
@@ -106,40 +74,18 @@ class NetworkPolicyService:
             .order_by(NetworkPolicy.priority.asc()),
         )
         return [
-            PolicyResponse(
-                id=policy.id,
-                name=policy.name,
-                netmasks=[
-                    n for n in policy.netmasks if isinstance(n, IPv4Network)
-                ],
-                raw=list(policy.raw)
-                if isinstance(policy.raw, list | tuple)
-                else [str(policy.raw)],
-                enabled=policy.enabled,
-                priority=policy.priority,
-                groups=[group.directory.path_dn for group in policy.groups],
-                mfa_status=policy.mfa_status,
-                mfa_groups=[
-                    group.directory.path_dn for group in policy.mfa_groups
-                ],
-                is_http=policy.is_http,
-                is_ldap=policy.is_ldap,
-                is_kerberos=policy.is_kerberos,
-                bypass_no_connection=policy.bypass_no_connection,
-                bypass_service_failure=policy.bypass_service_failure,
-            )
+            self._build_policy_response_from_model(policy)
             for policy in policies
         ]
 
     async def delete_policy(self, policy_id: int) -> None:
-        """Удалить политику по id.
+        """Delete a network policy by its ID.
 
         :param policy_id: int
-        :param request: Request
-        :raises NotFoundError: если политика не найдена
-        :raises PolicyError:
-            если активна только одна политика или на ошибка базы данных
-        :return: None.
+        :raises NotFoundError: if the policy is not found
+        :raises
+            PolicyError: if only one active policy remains
+        :return: None
         """
         policy = await self.session.get(
             NetworkPolicy, policy_id, with_for_update=True
@@ -160,12 +106,12 @@ class NetworkPolicyService:
             await self.session.commit()
 
     async def switch_policy(self, policy_id: int) -> bool:
-        """Переключить состояние политики (enable/disable).
+        """Toggle the enabled state of a network policy.
 
         :param policy_id: int
-        :raises NotFoundError: если политика не найдена
-        :raises PolicyError: если активна только одна политика
-        :return: bool.
+        :raises NotFoundError: if the policy is not found
+        :raises PolicyError: if only one active policy remains
+        :return: bool
         """
         policy = await self.session.get(
             NetworkPolicy, policy_id, with_for_update=True
@@ -179,12 +125,12 @@ class NetworkPolicyService:
         return True
 
     async def update_policy(self, request: PolicyUpdate) -> PolicyResponse:
-        """Обновить политику.
+        """Update an existing network policy.
 
         :param request: PolicyUpdate (pydantic schema)
-        :raises NotFoundError: если политика не найдена
-        :raises PolicyError: при ошибке
-        :return: PolicyResponse.
+        :raises NotFoundError: if the policy is not found
+        :raises PolicyError: if an error occurs
+        :return: PolicyResponse
         """
         selected_policy = await self.session.get(
             NetworkPolicy,
@@ -197,37 +143,27 @@ class NetworkPolicyService:
         )
         if not selected_policy:
             raise NotFoundError("Policy not found")
-        for field in PolicyUpdate.fields_map:
-            value = getattr(request, field)
-            if value is not None:
-                setattr(selected_policy, field, value)
-        if request.netmasks:
-            selected_policy.netmasks = request.complete_netmasks
-            selected_policy.raw = request.model_dump(mode="json")["netmasks"]
-        if request.groups is not None and len(request.groups) > 0:
-            groups = await get_groups(request.groups, self.session)
-            selected_policy.groups = groups
-            [group.directory.path_dn for group in groups]
-        elif request.groups is not None and len(request.groups) == 0:
-            selected_policy.groups.clear()
-        if request.mfa_groups is not None and len(request.mfa_groups) > 0:
-            mfa_groups = await get_groups(request.mfa_groups, self.session)
-            selected_policy.mfa_groups = mfa_groups
-            [group.directory.path_dn for group in mfa_groups]
-        elif request.mfa_groups is not None and len(request.mfa_groups) == 0:
-            selected_policy.mfa_groups.clear()
+        self._update_policy_fields(selected_policy, request)
+        groups_path_dn = await self._set_policy_groups(
+            selected_policy, request.groups, "groups"
+        )
+        mfa_groups_path_dn = await self._set_policy_groups(
+            selected_policy, request.mfa_groups, "mfa_groups"
+        )
         try:
             await self.session.commit()
         except IntegrityError:
             raise PolicyError("Entry already exists")
-        return self._build_policy_response(selected_policy)
+        return self._build_policy_response(
+            selected_policy, groups_path_dn, mfa_groups_path_dn
+        )
 
     async def swap_policy(self, swap: SwapRequest) -> SwapResponse:
-        """Поменять приоритеты двух политик.
+        """Swap the priorities of two network policies.
 
         :param swap: SwapRequest (pydantic schema)
-        :raises NotFoundError: если какая-то политика не найдена
-        :return: SwapResponse.
+        :raises NotFoundError: if either policy is not found
+        :return: SwapResponse
         """
         policy1 = await self.session.get(
             NetworkPolicy,
@@ -241,20 +177,16 @@ class NetworkPolicyService:
         )
         if not policy1 or not policy2:
             raise NotFoundError("Policy not found")
+
         policy1.priority, policy2.priority = policy2.priority, policy1.priority
         await self.session.commit()
-        return SwapResponse(
-            first_policy_id=policy1.id,
-            first_policy_priority=policy1.priority,
-            second_policy_id=policy2.id,
-            second_policy_priority=policy2.priority,
-        )
+        return self._build_swap_response(policy1, policy2)
 
     async def check_policy_count(self) -> None:
-        """Проверить, что активна только одна политика.
+        """Check that there is more than one active policy.
 
-        :param session: AsyncSession
-        :raises PolicyError: если активна только одна политика.
+        :raises PolicyError: if only one active policy remains
+        :return: None
         """
         count = await self.session.scalars(
             (
@@ -263,11 +195,89 @@ class NetworkPolicyService:
                 .filter_by(enabled=True)
             ),
         )
-
         if count.one() == 1:
             raise PolicyError("At least one policy should be active")
 
-    def _build_policy_response(self, policy: NetworkPolicy) -> PolicyResponse:
+    def _build_network_policy_from_schema(
+        self, policy: Policy
+    ) -> NetworkPolicy:
+        """Create a NetworkPolicy ORM object from a Policy schema."""
+        return NetworkPolicy(
+            name=policy.name,
+            netmasks=policy.complete_netmasks,
+            priority=policy.priority,
+            raw=policy.model_dump(mode="json")["netmasks"],
+            mfa_status=policy.mfa_status,
+            is_http=policy.is_http,
+            is_ldap=policy.is_ldap,
+            is_kerberos=policy.is_kerberos,
+            bypass_no_connection=policy.bypass_no_connection,
+            bypass_service_failure=policy.bypass_service_failure,
+        )
+
+    async def _set_policy_groups(
+        self, policy_obj, group_dns, attr_name
+    ) -> list[str]:
+        """Set groups or mfa_groups for a policy object and return their DNs.
+
+        :param policy_obj: NetworkPolicy ORM object
+        :param group_dns: list of group DNs or None
+        :param attr_name: 'groups' or 'mfa_groups'
+        :return: list of group DNs
+        """
+        if group_dns is not None:
+            if len(group_dns) > 0:
+                groups = await get_groups(group_dns, self.session)
+                setattr(policy_obj, attr_name, groups)
+                return [group.directory.path_dn for group in groups]
+            else:
+                getattr(policy_obj, attr_name).clear()
+        return []
+
+    def _update_policy_fields(
+        self, policy: NetworkPolicy, request: PolicyUpdate
+    ) -> None:
+        """Update fields of a NetworkPolicy from a PolicyUpdate schema."""
+        for field in PolicyUpdate.fields_map:
+            value = getattr(request, field)
+            if value is not None:
+                setattr(policy, field, value)
+        if request.netmasks:
+            policy.netmasks = request.complete_netmasks
+            policy.raw = request.model_dump(mode="json")["netmasks"]
+
+    def _build_policy_response(
+        self,
+        policy: NetworkPolicy,
+        group_dns: list[str],
+        mfa_group_dns: list[str],
+    ) -> PolicyResponse:
+        """Build a PolicyResponse from a NetworkPolicy and group DNs."""
+        return PolicyResponse(
+            id=policy.id,
+            name=policy.name,
+            netmasks=[
+                n for n in policy.netmasks if isinstance(n, IPv4Network)
+            ],
+            raw=list(policy.raw)
+            if isinstance(policy.raw, list | tuple)
+            else [str(policy.raw)],
+            enabled=policy.enabled,
+            priority=policy.priority,
+            groups=group_dns,
+            mfa_status=policy.mfa_status,
+            mfa_groups=mfa_group_dns,
+            is_http=policy.is_http,
+            is_ldap=policy.is_ldap,
+            is_kerberos=policy.is_kerberos,
+            bypass_no_connection=policy.bypass_no_connection,
+            bypass_service_failure=policy.bypass_service_failure,
+        )
+
+    def _build_policy_response_from_model(
+        self, policy: NetworkPolicy
+    ) -> PolicyResponse:
+        """Build a PolicyResponse from a NetworkPolicy ORM object."""
         return PolicyResponse(
             id=policy.id,
             name=policy.name,
@@ -289,4 +299,15 @@ class NetworkPolicyService:
             is_kerberos=policy.is_kerberos,
             bypass_no_connection=policy.bypass_no_connection,
             bypass_service_failure=policy.bypass_service_failure,
+        )
+
+    def _build_swap_response(
+        self, policy1: NetworkPolicy, policy2: NetworkPolicy
+    ) -> SwapResponse:
+        """Build a SwapResponse from two NetworkPolicy ORM objects."""
+        return SwapResponse(
+            first_policy_id=policy1.id,
+            first_policy_priority=policy1.priority,
+            second_policy_id=policy2.id,
+            second_policy_priority=policy2.priority,
         )
