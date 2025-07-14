@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
-from api.utils.auth_manager import AuthManager
+from api.utils.auth_manager import IdentityManager
 from api.utils.mfa_manager import MFAManager
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
@@ -241,7 +241,7 @@ class HTTPProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
 
-    auth_manager = provide(AuthManager, scope=Scope.REQUEST)
+    auth_manager = provide(IdentityManager, scope=Scope.REQUEST)
     mfa_manager = provide(provides=MFAManager, scope=Scope.REQUEST)
 
 

@@ -1,4 +1,4 @@
-"""AuthManager: Class for encapsulating authentication business logic.
+"""IdentityManager: Class for encapsulating authentication business logic.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -47,7 +47,7 @@ from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
 
-class AuthManager:
+class IdentityManager:
     """Authentication manager."""
 
     def __init__(
@@ -82,10 +82,10 @@ class AuthManager:
         :param response: FastAPI response
         :param ip: Client IP
         :param user_agent: Client User-Agent
-        :raises AuthManager.UnauthorizedError: if incorrect username/password
-        :raises AuthManager.ForbiddenError:
+        :raises IdentityManager.UnauthorizedError: if incorrect username/password
+        :raises IdentityManager.ForbiddenError:
             if user not in group, disabled, expired, or failed policy
-        :raises AuthManager.MFARequiredError: if MFA is required
+        :raises IdentityManager.MFARequiredError: if MFA is required
         :return: None
         """
         user = await authenticate_user(
@@ -156,7 +156,7 @@ class AuthManager:
         :param identity: str
         :param new_password: str
         :param kadmin: Kerberos kadmin client
-        :raises AuthManager.ForbiddenError:
+        :raises IdentityManager.ForbiddenError:
             if user not found, policy not passed, or Kerberos error
         :return: None.
         """
@@ -199,7 +199,7 @@ class AuthManager:
         """Perform the initial setup of structure and policies.
 
         :param request: Any (expected object with setup parameters)
-        :raises AuthManager.ForbiddenError: if setup already performed
+        :raises IdentityManager.ForbiddenError: if setup already performed
         :return: None.
         """
         setup_already_performed = await self._session.scalar(

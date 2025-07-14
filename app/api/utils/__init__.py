@@ -4,10 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .auth_manager import AuthManager
+from .auth_manager import IdentityManager
 from .mfa_manager import MFAManager
 
 __all__ = [
-    "AuthManager",
+    "IdentityManager",
     "MFAManager",
 ]
