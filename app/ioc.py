@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
+from api.utils import NetworkPolicyService
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -246,6 +247,11 @@ class HTTPProvider(Provider):
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
+
+    network_policy_service = provide(
+        NetworkPolicyService,
+        scope=scope,
+    )
 
 
 class LDAPServerProvider(Provider):
