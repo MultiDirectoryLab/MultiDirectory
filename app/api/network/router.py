@@ -168,7 +168,3 @@ async def swap_network_policy(
         return await network_policy_service.swap_policy(swap)
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except PolicyError as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-        )
