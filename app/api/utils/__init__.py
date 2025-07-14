@@ -5,3 +5,5 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from .network_policy_service import NetworkPolicyService
+
+__all__ = ["NetworkPolicyService"]
