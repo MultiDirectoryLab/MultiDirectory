@@ -452,7 +452,7 @@ async def test_ldap_modify_dn(
         select(Directory)
         .filter(
             Directory.path == ["dc=test", "dc=md", "ou=users", "cn=user2"],
-            Directory.entity_type_name.isnot(None),
+            Directory.entity_type_id.isnot(None),
         )
     )  # fmt: skip
 

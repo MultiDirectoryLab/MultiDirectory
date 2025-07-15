@@ -42,6 +42,7 @@ from sqlalchemy.ext.asyncio import (
 from api import shadow_router
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
+from extra.dev_data import ENTITY_TYPE_DATAS
 from ioc import MFACredsProvider, SessionStorageClient
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -410,7 +411,25 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def setup_session(session: AsyncSession) -> None:
+async def setup_entity(session: AsyncSession) -> None:
+    """Get session and aquire after completion."""
+    attribute_type_dao = AttributeTypeDAO(session)
+    object_class_dao = ObjectClassDAO(
+        session,
+        attribute_type_dao=attribute_type_dao,
+    )
+    entity_type_dao = EntityTypeDAO(session, object_class_dao=object_class_dao)
+    for entity_type_data in ENTITY_TYPE_DATAS:
+        await entity_type_dao.create_one(
+            name=entity_type_data["name"],  # type: ignore
+            object_class_names=entity_type_data["object_class_names"],
+            is_system=True,
+        )
+    await session.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def setup_session(session: AsyncSession, setup_entity: None) -> None:
     """Get session and aquire after completion."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
