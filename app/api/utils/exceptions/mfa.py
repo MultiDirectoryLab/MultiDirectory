@@ -5,33 +5,37 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 
-class ForbiddenError(Exception):
+class MFAIdentityError(Exception):
+    """Base exception for MFA identity-related errors."""
+
+
+class ForbiddenError(MFAIdentityError):
     """Raised when an action is forbidden."""
 
 
-class MFARequiredError(Exception):
+class MFARequiredError(MFAIdentityError):
     """Raised when MFA is required for authentication."""
 
 
-class MFAError(Exception):
+class MFAError(MFAIdentityError):
     """Raised for general MFA errors."""
 
 
-class MFATokenError(Exception):
+class MFATokenError(MFAIdentityError):
     """Raised when an MFA token is invalid or missing."""
 
 
-class MissingMFACredentialsError(Exception):
+class MissingMFACredentialsError(MFAIdentityError):
     """Raised when MFA credentials are missing or not configured."""
 
 
-class InvalidCredentialsError(Exception):
+class InvalidCredentialsError(MFAIdentityError):
     """Raised when provided credentials are invalid."""
 
 
-class NetworkPolicyError(Exception):
+class NetworkPolicyError(MFAIdentityError):
     """Raised when a network policy violation occurs."""
 
 
-class NotFoundError(Exception):
+class NotFoundError(MFAIdentityError):
     """Raised when a required resource is not found user, MFA config."""
