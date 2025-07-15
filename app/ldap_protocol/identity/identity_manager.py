@@ -19,6 +19,7 @@ from api.exceptions.auth import (
 from api.exceptions.mfa import MFARequiredError
 from config import Settings
 from extra.setup_dev import setup_enviroment
+from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
@@ -41,7 +42,7 @@ from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
 
-class IdentityManager:
+class IdentityManager(SessionKeyCreatorMixin):
     """Authentication manager."""
 
     def __init__(
@@ -67,7 +68,8 @@ class IdentityManager:
         self,
         form: OAuth2Form,
         ip: IPv4Address | IPv6Address,
-    ) -> User:
+        user_agent: str,
+    ) -> tuple[User, str]:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
@@ -129,7 +131,15 @@ class IdentityManager:
                 )
             if request_2fa:
                 raise MFARequiredError("Requires MFA connect")
-        return user
+
+        key = await self.create_session_key(
+            user,
+            self._storage,
+            self._settings,
+            ip,
+            user_agent,
+        )
+        return user, key
 
     async def reset_password(
         self,
