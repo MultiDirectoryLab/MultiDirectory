@@ -439,7 +439,7 @@ class IdentityManagerFastAPIAdapter:
         """
         return await self._manager.check_setup_needed()
 
-    async def perform_first_setup(self, request) -> None:
+    async def perform_first_setup(self, request: SetupRequest) -> None:
         """Perform initial structure and policy setup.
 
         :param request: SetupRequest with setup parameters
