@@ -15,7 +15,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
-from api.utils.auth_manager import IdentityManager
+from api.utils.auth_manager import (
+    IdentityManager,
+    IdentityManagerFastAPIAdapter,
+)
 from api.utils.mfa_manager import MFAManager
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
@@ -228,7 +231,19 @@ class HTTPProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session, object_class_dao)
 
-    auth_manager = provide(IdentityManager, scope=Scope.REQUEST)
+    @provide(scope=Scope.REQUEST)
+    def get_auth_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        mfa_api: MultifactorAPI,
+        storage: SessionStorage,
+    ) -> IdentityManagerFastAPIAdapter:
+        """Get auth manager."""
+        return IdentityManagerFastAPIAdapter(
+            IdentityManager(session, settings, mfa_api, storage)
+        )
+
     mfa_manager = provide(provides=MFAManager, scope=Scope.REQUEST)
 
 
