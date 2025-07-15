@@ -34,4 +34,4 @@ class NetworkPolicyError(Exception):
 
 
 class NotFoundError(Exception):
-    """Raised when a required resource is not found (e.g., user, MFA config)."""
+    """Raised when a required resource is not found user, MFA config."""
