@@ -342,7 +342,7 @@ class SearchRequest(BaseRequest):
     ) -> Select:
         """Get attributes to load."""
         if self.entity_type_name:
-            query = query.options(joinedload(Directory.entity_type))
+            query = query.options(selectinload(Directory.entity_type))
 
         if self.all_attrs:
             return query.options(selectinload(Directory.attributes))
