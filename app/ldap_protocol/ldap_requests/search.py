@@ -369,7 +369,6 @@ class SearchRequest(BaseRequest):
                 .joinedload(Group.directory),
                 joinedload(Directory.entity_type),
             )
-            .distinct(Directory.id)
         )  # fmt: skip
 
         query = self._mutate_query_with_attributes_to_load(query)
