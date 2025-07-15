@@ -2,7 +2,6 @@
 
 from ipaddress import IPv4Address, IPv6Address
 
-from fastapi import Response
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +19,6 @@ from api.exceptions.auth import (
 from api.exceptions.mfa import MFARequiredError
 from config import Settings
 from extra.setup_dev import setup_enviroment
-from ldap_protocol.identity.session_mixin import SessionKeyMixin
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
@@ -43,7 +41,7 @@ from models import Directory, Group, MFAFlags, User
 from security import get_password_hash
 
 
-class IdentityManager(SessionKeyMixin):
+class IdentityManager:
     """Authentication manager."""
 
     def __init__(
@@ -68,10 +66,8 @@ class IdentityManager(SessionKeyMixin):
     async def login(
         self,
         form: OAuth2Form,
-        response: Response,
         ip: IPv4Address | IPv6Address,
-        user_agent: str,
-    ) -> None:
+    ) -> User:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
@@ -83,7 +79,7 @@ class IdentityManager(SessionKeyMixin):
         :raises IdentityManager.ForbiddenError:
             if user not in group, disabled, expired, or failed policy
         :raises IdentityManager.MFARequiredError: if MFA is required
-        :return: None
+        :return: User
         """
         user = await authenticate_user(
             self._session,
@@ -134,16 +130,7 @@ class IdentityManager(SessionKeyMixin):
                 )
             if request_2fa:
                 raise MFARequiredError("Requires MFA connect")
-
-        await self.create_and_set_session_key(
-            user,
-            self._session,
-            self._settings,
-            response,
-            self._storage,
-            ip,
-            user_agent,
-        )
+        return user
 
     async def reset_password(
         self,
