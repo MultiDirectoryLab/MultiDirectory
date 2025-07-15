@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Iterable
 
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, exists, or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -203,9 +203,13 @@ class EntityTypeDAO:
         await self.__session.execute(
             delete(EntityType).where(
                 EntityType.name.in_(entity_type_names),
-                ~exists().where(EntityType.id == Directory.entity_type_id),
+                EntityType.is_system.is_(False),
+                EntityType.id.not_in(
+                    select(Directory.entity_type_id)
+                    .where(Directory.entity_type_id.isnot(None))
+                ),
             )
-        )
+        )  # fmt: skip
 
     async def attach_entity_type_to_directories(self) -> None:
         """Find all Directories without an Entity Type and attach it to them.
