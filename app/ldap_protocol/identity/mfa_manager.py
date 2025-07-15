@@ -1,14 +1,10 @@
-"""MFAManager: Class for encapsulating MFA business logic.
-
-Copyright (c) 2024 MultiFactor
-License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
-"""
+"""MFAManager: Class for encapsulating MFA business logic."""
 
 import operator
 import traceback
 from ipaddress import IPv4Address, IPv6Address
 
-from fastapi import HTTPException, Request, Response, status
+from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
@@ -23,17 +19,16 @@ from api.auth.schema import (
     MFAGetResponse,
     OAuth2Form,
 )
-from api.auth.utils import create_and_set_session_key
-from api.utils.exceptions.mfa import (
+from api.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
     MFAError,
     MFATokenError,
     MissingMFACredentialsError,
     NetworkPolicyError,
-    NotFoundError,
 )
 from config import Settings
+from ldap_protocol.identity.session_mixin import SessionKeyMixin
 from ldap_protocol.multifactor import (
     Creds,
     MFA_HTTP_Creds,
@@ -45,7 +40,7 @@ from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User as DBUser
 
 
-class MFAManager:
+class MFAManager(SessionKeyMixin):
     """MFA manager."""
 
     def __init__(
@@ -145,7 +140,7 @@ class MFAManager:
 
         :param access_token: str
         :param mfa_creds: MFA_HTTP_Creds
-        :param ip: str
+        :param ip: IPv4Address | IPv6Address
         :param user_agent: str
         :return: RedirectResponse.
         """
@@ -168,7 +163,7 @@ class MFAManager:
             raise MFATokenError()
 
         response = RedirectResponse("/", 302)
-        await create_and_set_session_key(
+        await self.create_and_set_session_key(
             user,
             self._session,
             self._settings,
@@ -219,7 +214,7 @@ class MFAManager:
             )
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                await create_and_set_session_key(
+                await self.create_and_set_session_key(
                     user,
                     self._session,
                     self._settings,
@@ -232,7 +227,7 @@ class MFAManager:
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
         except self._mfa_api.MFAMissconfiguredError:
-            await create_and_set_session_key(
+            await self.create_and_set_session_key(
                 user,
                 self._session,
                 self._settings,
@@ -244,7 +239,7 @@ class MFAManager:
             return MFAChallengeResponse(status="bypass", message="")
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                await create_and_set_session_key(
+                await self.create_and_set_session_key(
                     user,
                     self._session,
                     self._settings,
@@ -257,113 +252,3 @@ class MFAManager:
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
         return MFAChallengeResponse(status="pending", message=redirect_url)
-
-
-class MFAManagerFastAPIAdapter:
-    """Adapter for using MFAManager with FastAPI."""
-
-    def __init__(self, mfa_manager: "MFAManager"):
-        """Initialize the adapter with a domain MFAManager instance.
-
-        :param mfa_manager: MFAManager instance (domain logic)
-        """
-        self._manager = mfa_manager
-
-    async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
-        """Create or update MFA keys.
-
-        :param mfa: MFACreateRequest
-        :return: bool
-        """
-        return await self._manager.setup_mfa(mfa)
-
-    async def remove_mfa(self, scope: str) -> None:
-        """Delete MFA keys by scope.
-
-        :param scope: str
-        :return: None
-        """
-        await self._manager.remove_mfa(scope)
-
-    async def get_mfa(
-        self,
-        mfa_creds: MFA_HTTP_Creds,
-        mfa_creds_ldap: MFA_LDAP_Creds,
-    ) -> MFAGetResponse:
-        """Get MFA keys for http and ldap.
-
-        :param mfa_creds: MFA_HTTP_Creds
-        :param mfa_creds_ldap: MFA_LDAP_Creds
-        :return: MFAGetResponse
-        """
-        return await self._manager.get_mfa(mfa_creds, mfa_creds_ldap)
-
-    async def callback_mfa(
-        self,
-        access_token: str,
-        mfa_creds: MFA_HTTP_Creds,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
-    ) -> RedirectResponse:
-        """Process MFA callback and return redirect.
-
-        :param access_token: str
-        :param mfa_creds: MFA_HTTP_Creds
-        :param ip: IP address
-        :param user_agent: str
-        :return: RedirectResponse
-        :raises HTTPException: 404 if not found
-        """
-        try:
-            return await self._manager.callback_mfa(
-                access_token, mfa_creds, ip, user_agent
-            )
-        except MFATokenError:
-            from fastapi.responses import RedirectResponse
-
-            return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
-        except NotFoundError as e:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from e
-
-    async def two_factor_protocol(
-        self,
-        form: OAuth2Form,
-        request: Request,
-        response: Response,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
-    ) -> MFAChallengeResponse:
-        """Initiate two-factor protocol with application.
-
-        :param form: OAuth2Form
-        :param request: FastAPI Request
-        :param response: FastAPI Response
-        :param ip: IP address
-        :param user_agent: str
-        :return: MFAChallengeResponse
-        :raises HTTPException: 422 if invalid credentials or not found
-        :raises HTTPException: 403 if forbidden
-            (missing API credentials, network policy violation, etc.)
-        :raises HTTPException: 406 if MFA error
-        """
-        try:
-            return await self._manager.two_factor_protocol(
-                form, request, response, ip, user_agent
-            )
-        except InvalidCredentialsError as exc:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-            )
-        except (
-            MissingMFACredentialsError,
-            NetworkPolicyError,
-            ForbiddenError,
-        ):
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
-        except NotFoundError:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
-        except MFAError as exc:
-            raise HTTPException(
-                status.HTTP_406_NOT_ACCEPTABLE,
-                detail=str(exc),
-            )

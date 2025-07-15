@@ -40,11 +40,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
-from api.utils.identity_manager import (
-    IdentityManager,
-    IdentityManagerFastAPIAdapter,
-)
-from api.utils.mfa_manager import MFAManager, MFAManagerFastAPIAdapter
+from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from extra.dev_data import ENTITY_TYPE_DATAS
@@ -56,6 +52,7 @@ from ldap_protocol.dns import (
     StubDNSManager,
     get_dns_manager_settings,
 )
+from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
@@ -314,7 +311,7 @@ class TestProvider(Provider):
         )
 
     identity_fastapi_adapter = provide(
-        IdentityManagerFastAPIAdapter,
+        IdentityFastAPIAdapter,
         scope=Scope.REQUEST,
     )
 
@@ -330,9 +327,9 @@ class TestProvider(Provider):
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
-    ) -> MFAManagerFastAPIAdapter:
+    ) -> MFAFastAPIAdapter:
         """Get MFA manager for tests."""
-        return MFAManagerFastAPIAdapter(
+        return MFAFastAPIAdapter(
             MFAManager(session, settings, storage, mfa_api)
         )
 
