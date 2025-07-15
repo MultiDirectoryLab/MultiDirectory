@@ -245,6 +245,7 @@ class Directory(Base):
         uselist=False,
         foreign_keys=[entity_type_id],
         lazy="raise",
+        overlaps="directories",
     )
 
     @property
