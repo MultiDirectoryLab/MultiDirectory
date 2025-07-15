@@ -86,7 +86,7 @@ class MainProvider(Provider):
             yield session
             await session.commit()
 
-    @provide(scope=Scope.APP)
+    @provide(scope=Scope.SESSION)
     async def get_krb_class(
         self,
         session_maker: async_sessionmaker[AsyncSession],
@@ -249,19 +249,8 @@ class HTTPProvider(Provider):
         IdentityManager,
         scope=Scope.REQUEST,
     )
-
-    @provide(scope=Scope.REQUEST)
-    def get_mfa_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        storage: SessionStorage,
-        mfa_api: MultifactorAPI,
-    ) -> MFAFastAPIAdapter:
-        """Get MFA manager."""
-        return MFAFastAPIAdapter(
-            MFAManager(session, settings, storage, mfa_api)
-        )
+    mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
+    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(Provider):
