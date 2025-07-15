@@ -18,7 +18,9 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Identity,
     Index,
+    Integer,
     LargeBinary,
     String,
     UniqueConstraint,
@@ -175,16 +177,30 @@ class EntityType(Base):
             postgresql_ops={"name": "gin_trgm_ops"},
         ),
     )
+    id: Mapped[int] = mapped_column(
+        Integer(),
+        Identity(start=1, always=True),
+        ForeignKey("Directory.entity_type_id", ondelete="SET NULL"),
+        primary_key=True,
+    )
     name: Mapped[str] = mapped_column(
         String(255),
-        ForeignKey("Directory.entity_type_name", ondelete="CASCADE"),
-        primary_key=True,
+        nullable=False,
+        unique=True,
+        index=True,
     )
     object_class_names: Mapped[list[str]] = mapped_column(
         postgresql.ARRAY(String),
         index=True,
     )
     is_system: Mapped[bool] = mapped_column(nullable=False)
+    directories: Mapped[list[Directory]] = relationship(
+        "Directory",
+        passive_deletes=True,
+        lazy="raise",
+        uselist=True,
+        foreign_keys="Directory.entity_type_id",
+    )
 
     @property
     def object_class_names_set(self) -> set[str]:
@@ -217,19 +233,17 @@ class Directory(Base):
         backref=backref("directories", cascade="all,delete", viewonly=True),
         uselist=False,
     )
-
-    entitytypename: Mapped[str | None] = synonym("entity_type_name")
-    entity_type_name: Mapped[str | None] = mapped_column(
-        String(255),
-        ForeignKey("EntityTypes.name", ondelete="SET NULL"),
+    entity_type_id: Mapped[int | None] = mapped_column(
+        "entity_type_id",
+        ForeignKey("EntityTypes.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
     )
+
     entity_type: Mapped[EntityType | None] = relationship(
         EntityType,
-        remote_side=EntityType.name,
-        foreign_keys=[entity_type_name],
         uselist=False,
+        foreign_keys=[entity_type_id],
         lazy="raise",
     )
 
@@ -349,7 +363,6 @@ class Directory(Base):
     )
 
     search_fields = {
-        "entitytypename": "entityTypeName",
         "name": "name",
         "objectguid": "objectGUID",
         "objectsid": "objectSid",
