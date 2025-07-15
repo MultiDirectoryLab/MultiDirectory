@@ -9,22 +9,13 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Depends, Form, HTTPException, Request, Response, status
+from fastapi import Depends, Form, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from api.auth import get_current_user
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from api.utils import MFAManager
-from api.utils.exceptions import (
-    ForbiddenError,
-    InvalidCredentialsError,
-    MFAError,
-    MFATokenError,
-    MissingMFACredentialsError,
-    NetworkPolicyError,
-    NotFoundError,
-)
+from api.utils import MFAManagerFastAPIAdapter
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 from .schema import (
@@ -48,13 +39,13 @@ mfa_router = APIRouter(
 )
 async def setup_mfa(
     mfa: MFACreateRequest,
-    mfa_manager: FromDishka[MFAManager],
+    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
 
     \f
     :param MFACreateRequest mfa: MuliFactor credentials
-    :param FromDishka[MFAManager] mfa_manager: mfa manager
+    :param FromDishka[MFAManagerFastAPIAdapter] mfa_manager: mfa manager
     :return bool: status
     """
     return await mfa_manager.setup_mfa(mfa)
@@ -66,7 +57,7 @@ async def setup_mfa(
 )
 async def remove_mfa(
     scope: Literal["ldap", "http"],
-    mfa_manager: FromDishka[MFAManager],
+    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
 ) -> None:
     """Remove mfa credentials."""
     await mfa_manager.remove_mfa(scope)
@@ -76,7 +67,7 @@ async def remove_mfa(
 async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
-    mfa_manager: FromDishka[MFAManager],
+    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
 ) -> MFAGetResponse:
     """Get MFA creds.
 
@@ -95,7 +86,7 @@ async def callback_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
-    mfa_manager: FromDishka[MFAManager],
+    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
 ) -> RedirectResponse:
     """Disassemble mfa token and send redirect.
 
@@ -108,16 +99,12 @@ async def callback_mfa(
     :raises HTTPException: if mfa not set up
     :return RedirectResponse: on bypass or success
     """
-    try:
-        return await mfa_manager.callback_mfa(
-            access_token, mfa_creds, ip, user_agent
-        )
-    except MFATokenError:
-        return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-        ) from e
+    return await mfa_manager.callback_mfa(
+        access_token,
+        mfa_creds,
+        ip,
+        user_agent,
+    )
 
 
 @mfa_router.post("/connect", response_model=MFAChallengeResponse)
@@ -127,7 +114,7 @@ async def two_factor_protocol(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
-    mfa_manager: FromDishka[MFAManager],
+    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
 ) -> MFAChallengeResponse:
     """Initiate two factor protocol with app.
 
@@ -144,22 +131,6 @@ async def two_factor_protocol(
     :return MFAChallengeResponse:
         {'status': 'pending', 'message': https://example.com}.
     """
-    try:
-        return await mfa_manager.two_factor_protocol(
-            form,
-            request,
-            response,
-            ip,
-            user_agent,
-        )
-    except InvalidCredentialsError as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        )
-    except (MissingMFACredentialsError, NetworkPolicyError, ForbiddenError):
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-    except NotFoundError:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
-    except MFAError as exc:
-        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=str(exc))
+    return await mfa_manager.two_factor_protocol(
+        form, request, response, ip, user_agent
+    )

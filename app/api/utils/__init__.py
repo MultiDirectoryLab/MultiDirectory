@@ -5,10 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from .auth_manager import IdentityManager, IdentityManagerFastAPIAdapter
-from .mfa_manager import MFAManager
+from .mfa_manager import MFAManager, MFAManagerFastAPIAdapter
 
 __all__ = [
     "IdentityManager",
     "IdentityManagerFastAPIAdapter",
     "MFAManager",
+    "MFAManagerFastAPIAdapter",
 ]

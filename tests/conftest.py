@@ -45,7 +45,7 @@ from api.utils.auth_manager import (
     IdentityManager,
     IdentityManagerFastAPIAdapter,
 )
-from api.utils.mfa_manager import MFAManager
+from api.utils.mfa_manager import MFAManager, MFAManagerFastAPIAdapter
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from ioc import MFACredsProvider, SessionStorageClient
@@ -326,7 +326,18 @@ class TestProvider(Provider):
             IdentityManager(session, settings, mfa_api, storage)
         )
 
-    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
+    @provide(scope=Scope.REQUEST)
+    def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManagerFastAPIAdapter:
+        """Get MFA manager for tests."""
+        return MFAManagerFastAPIAdapter(
+            MFAManager(session, settings, storage, mfa_api)
+        )
 
 
 @dataclass
