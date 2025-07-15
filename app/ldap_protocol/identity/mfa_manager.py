@@ -177,7 +177,7 @@ class MFAManager(SessionKeyCreatorMixin):
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[MFAChallengeResponse, User | None]:
+    ) -> tuple[MFAChallengeResponse, User | None, str]:
         """Initiate two-factor protocol with application.
 
         :param form: OAuth2Form
