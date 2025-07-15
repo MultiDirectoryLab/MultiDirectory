@@ -80,12 +80,23 @@ class MFAFastAPIAdapter:
         :raises HTTPException: 404 if not found
         """
         try:
-            return await self._manager.callback_mfa(
+            user = await self._manager.callback_mfa(
                 access_token,
                 mfa_creds,
                 ip,
                 user_agent,
             )
+            response = RedirectResponse("/", 302)
+            await self._manager.create_and_set_session_key(
+                user,
+                self._manager._session,
+                self._manager._settings,
+                response,
+                self._manager._storage,
+                ip,
+                user_agent,
+            )
+            return response
         except MFATokenError:
             return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
 
@@ -114,13 +125,22 @@ class MFAFastAPIAdapter:
         :raises HTTPException: 406 if MFA error
         """
         try:
-            return await self._manager.two_factor_protocol(
-                form,
-                request,
-                response,
-                ip,
-                user_agent,
+            result, user = await self._manager.two_factor_protocol(
+                form=form,
+                url=request.url_for("callback_mfa"),
+                ip=ip,
             )
+            if user is not None:
+                await self._manager.create_and_set_session_key(
+                    user,
+                    self._manager._session,
+                    self._manager._settings,
+                    response,
+                    self._manager._storage,
+                    ip,
+                    user_agent,
+                )
+            return result
         except InvalidCredentialsError as exc:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
