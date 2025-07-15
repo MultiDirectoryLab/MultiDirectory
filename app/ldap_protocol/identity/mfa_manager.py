@@ -4,13 +4,12 @@ import operator
 import traceback
 from ipaddress import IPv4Address, IPv6Address
 
-from fastapi import Request, Response
-from fastapi.responses import RedirectResponse
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
 from loguru import logger
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.datastructures import URL
 
 from api.auth.oauth2 import ALGORITHM, authenticate_user
 from api.auth.schema import (
@@ -37,7 +36,7 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
-from models import CatalogueSetting, User as DBUser
+from models import CatalogueSetting, User
 
 
 class MFAManager(SessionKeyMixin):
@@ -134,16 +133,14 @@ class MFAManager(SessionKeyMixin):
         self,
         access_token: str,
         mfa_creds: MFA_HTTP_Creds,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
-    ) -> RedirectResponse:
+    ) -> User:
         """Process MFA callback and return redirect.
 
         :param access_token: str
         :param mfa_creds: MFA_HTTP_Creds
         :param ip: IPv4Address | IPv6Address
         :param user_agent: str
-        :return: RedirectResponse.
+        :return: User.
         """
         if not mfa_creds or not mfa_creds.secret:
             raise ForbiddenError("MFA credentials missing")
@@ -159,38 +156,25 @@ class MFAManager(SessionKeyMixin):
             raise MFATokenError()
 
         user_id: int = int(payload.get("uid"))
-        user = await self._session.get(DBUser, user_id)
+        user = await self._session.get(User, user_id)
         if user_id is None or not user:
             raise MFATokenError()
 
-        response = RedirectResponse("/", 302)
-        await self.create_and_set_session_key(
-            user,
-            self._session,
-            self._settings,
-            response,
-            self._storage,
-            ip,
-            user_agent,
-        )
-        return response
+        return user
 
     async def two_factor_protocol(
         self,
         form: OAuth2Form,
-        request: Request,
-        response: Response,
+        url: URL,
         ip: IPv4Address | IPv6Address,
-        user_agent: str,
-    ) -> MFAChallengeResponse:
+    ) -> tuple[MFAChallengeResponse, User | None]:
         """Initiate two-factor protocol with application.
 
         :param form: OAuth2Form
-        :param request: FastAPI Request
-        :param response: FastAPI Response
+        :param callback_url: str (URL for MFA callback)
         :param ip: str
         :param user_agent: str
-        :return: MFAChallengeResponse.
+        :return: tuple[MFAChallengeResponse, user or None].
         :raises ForbiddenError: if credentials invalid or policy not passed
         :raises MFAError: for MFA-specific errors
         """
@@ -204,11 +188,10 @@ class MFAManager(SessionKeyMixin):
         if not user:
             raise InvalidCredentialsError()
         network_policy = await get_user_network_policy(ip, user, self._session)
-
         if network_policy is None:
             raise NetworkPolicyError()
+
         try:
-            url = request.url_for("callback_mfa")
             if self._settings.USE_CORE_TLS:
                 url = url.replace(scheme="https")
             redirect_url = await self._mfa_api.get_create_mfa(
@@ -218,44 +201,20 @@ class MFAManager(SessionKeyMixin):
             )
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                await self.create_and_set_session_key(
-                    user,
-                    self._session,
-                    self._settings,
-                    response,
-                    self._storage,
-                    ip,
-                    user_agent,
-                )
-                return MFAChallengeResponse(status="bypass", message="")
+                return MFAChallengeResponse(status="bypass", message=""), user
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            await self.create_and_set_session_key(
-                user,
-                self._session,
-                self._settings,
-                response,
-                self._storage,
-                ip,
-                user_agent,
-            )
-            return MFAChallengeResponse(status="bypass", message="")
+            return MFAChallengeResponse(status="bypass", message=""), user
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                await self.create_and_set_session_key(
-                    user,
-                    self._session,
-                    self._settings,
-                    response,
-                    self._storage,
-                    ip,
-                    user_agent,
-                )
-                return MFAChallengeResponse(status="bypass", message="")
+                return MFAChallengeResponse(status="bypass", message=""), user
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
-        return MFAChallengeResponse(status="pending", message=redirect_url)
+        return MFAChallengeResponse(
+            status="pending",
+            message=redirect_url,
+        ), None
