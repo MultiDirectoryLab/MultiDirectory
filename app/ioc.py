@@ -19,7 +19,7 @@ from api.utils.auth_manager import (
     IdentityManager,
     IdentityManagerFastAPIAdapter,
 )
-from api.utils.mfa_manager import MFAManager
+from api.utils.mfa_manager import MFAManager, MFAManagerFastAPIAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -78,7 +78,7 @@ class MainProvider(Provider):
             yield session
             await session.commit()
 
-    @provide(scope=Scope.SESSION)
+    @provide(scope=Scope.APP)
     async def get_krb_class(
         self,
         session_maker: async_sessionmaker[AsyncSession],
@@ -244,7 +244,18 @@ class HTTPProvider(Provider):
             IdentityManager(session, settings, mfa_api, storage)
         )
 
-    mfa_manager = provide(provides=MFAManager, scope=Scope.REQUEST)
+    @provide(scope=Scope.REQUEST)
+    def get_mfa_manager(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        storage: SessionStorage,
+        mfa_api: MultifactorAPI,
+    ) -> MFAManagerFastAPIAdapter:
+        """Get MFA manager."""
+        return MFAManagerFastAPIAdapter(
+            MFAManager(session, settings, storage, mfa_api)
+        )
 
 
 class LDAPServerProvider(Provider):
