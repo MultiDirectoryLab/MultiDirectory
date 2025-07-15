@@ -321,6 +321,10 @@ class SearchRequest(BaseRequest):
         return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
+    def entity_type_name(self) -> bool:
+        return "entitytypename" in self.requested_attrs or self.all_attrs
+
+    @cached_property
     def member(self) -> bool:
         return "member" in self.requested_attrs or self.all_attrs
 
@@ -605,7 +609,7 @@ class SearchRequest(BaseRequest):
                     attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
 
-            if "entitytypename" in self.requested_attrs or self.all_attrs:
+            if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
 
             yield SearchResultEntry(
