@@ -4,6 +4,7 @@ from ipaddress import IPv4Address, IPv6Address
 
 from fastapi import HTTPException, Response, status
 
+from api.auth.adapters.session_mixin import SessionKeyMixin
 from api.auth.schema import OAuth2Form, SetupRequest
 from api.exceptions.auth import (
     AlreadyConfiguredError,
@@ -17,7 +18,7 @@ from ldap_protocol.identity import IdentityManager
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 
 
-class IdentityFastAPIAdapter:
+class IdentityFastAPIAdapter(SessionKeyMixin):
     """Adapter for using IdentityManager with FastAPI."""
 
     def __init__(self, identity_manager: "IdentityManager"):
@@ -47,11 +48,18 @@ class IdentityFastAPIAdapter:
         :return: None
         """
         try:
-            await self._manager.login(
+            user = await self._manager.login(
                 form=form,
-                response=response,
                 ip=ip,
-                user_agent=user_agent,
+            )
+            await self.create_and_set_session_key(
+                user,
+                self._manager._session,
+                self._manager._settings,
+                response,
+                self._manager._storage,
+                ip,
+                user_agent,
             )
         except UnauthorizedError as exc:
             raise HTTPException(

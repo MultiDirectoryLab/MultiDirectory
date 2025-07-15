@@ -5,6 +5,7 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 
+from api.auth.adapters.session_mixin import SessionKeyMixin
 from api.auth.schema import (
     MFAChallengeResponse,
     MFACreateRequest,
@@ -24,7 +25,7 @@ from ldap_protocol.identity import MFAManager
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 
-class MFAFastAPIAdapter:
+class MFAFastAPIAdapter(SessionKeyMixin):
     """Adapter for using MFAManager with FastAPI."""
 
     def __init__(self, mfa_manager: "MFAManager"):
@@ -83,11 +84,9 @@ class MFAFastAPIAdapter:
             user = await self._manager.callback_mfa(
                 access_token,
                 mfa_creds,
-                ip,
-                user_agent,
             )
             response = RedirectResponse("/", 302)
-            await self._manager.create_and_set_session_key(
+            await self.create_and_set_session_key(
                 user,
                 self._manager._session,
                 self._manager._settings,
@@ -131,7 +130,7 @@ class MFAFastAPIAdapter:
                 ip=ip,
             )
             if user is not None:
-                await self._manager.create_and_set_session_key(
+                await self.create_and_set_session_key(
                     user,
                     self._manager._session,
                     self._manager._settings,

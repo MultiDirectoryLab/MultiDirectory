@@ -27,7 +27,6 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
-from ldap_protocol.identity.session_mixin import SessionKeyMixin
 from ldap_protocol.multifactor import (
     Creds,
     MFA_HTTP_Creds,
@@ -39,7 +38,7 @@ from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User
 
 
-class MFAManager(SessionKeyMixin):
+class MFAManager:
     """MFA manager."""
 
     def __init__(
@@ -119,6 +118,7 @@ class MFAManager(SessionKeyMixin):
         """
         if not mfa_creds:
             mfa_creds = MFA_HTTP_Creds(Creds(None, None))
+
         if not mfa_creds_ldap:
             mfa_creds_ldap = MFA_LDAP_Creds(Creds(None, None))
 
@@ -187,6 +187,7 @@ class MFAManager(SessionKeyMixin):
         )
         if not user:
             raise InvalidCredentialsError()
+
         network_policy = await get_user_network_policy(ip, user, self._session)
         if network_policy is None:
             raise NetworkPolicyError()
