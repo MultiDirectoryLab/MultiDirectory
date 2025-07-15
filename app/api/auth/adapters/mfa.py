@@ -81,12 +81,14 @@ class MFAFastAPIAdapter:
         """
         try:
             return await self._manager.callback_mfa(
-                access_token, mfa_creds, ip, user_agent
+                access_token,
+                mfa_creds,
+                ip,
+                user_agent,
             )
         except MFATokenError:
-            from fastapi.responses import RedirectResponse
-
             return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
+
         except NotFoundError as e:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from e
 
@@ -113,20 +115,28 @@ class MFAFastAPIAdapter:
         """
         try:
             return await self._manager.two_factor_protocol(
-                form, request, response, ip, user_agent
+                form,
+                request,
+                response,
+                ip,
+                user_agent,
             )
         except InvalidCredentialsError as exc:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=str(exc),
             )
+
         except (
             MissingMFACredentialsError,
             NetworkPolicyError,
             ForbiddenError,
         ):
             raise HTTPException(status.HTTP_403_FORBIDDEN)
+
         except NotFoundError:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
+
         except MFAError as exc:
             raise HTTPException(
                 status.HTTP_406_NOT_ACCEPTABLE,

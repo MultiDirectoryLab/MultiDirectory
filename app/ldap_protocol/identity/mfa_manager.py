@@ -196,7 +196,9 @@ class MFAManager(SessionKeyMixin):
         if not self._mfa_api.is_initialized:
             raise MissingMFACredentialsError()
         user = await authenticate_user(
-            self._session, form.username, form.password
+            self._session,
+            form.username,
+            form.password,
         )
         if not user:
             raise InvalidCredentialsError()
