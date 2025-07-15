@@ -365,6 +365,11 @@ class SearchRequest(BaseRequest):
             .join(Directory.user, isouter=True)
             .join(Directory.group, isouter=True)
             .join(Directory.entity_type, isouter=True)
+            .options(
+                selectinload(Directory.groups).joinedload(Group.directory),
+                joinedload(Directory.entity_type),
+            )
+            .distinct(Directory.id)
         )  # fmt: skip
 
         query = self._mutate_query_with_attributes_to_load(query)
@@ -599,6 +604,9 @@ class SearchRequest(BaseRequest):
                 elif attr == "objectguid":
                     attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
+
+            if "entitytypename" in self.requested_attrs or self.all_attrs:
+                attrs["entityTypeName"].append(directory.entity_type.name)
 
             yield SearchResultEntry(
                 object_name=distinguished_name,
