@@ -122,6 +122,7 @@ class MFAManager(SessionKeyMixin):
             mfa_creds = MFA_HTTP_Creds(Creds(None, None))
         if not mfa_creds_ldap:
             mfa_creds_ldap = MFA_LDAP_Creds(Creds(None, None))
+
         return MFAGetResponse(
             mfa_key=mfa_creds.key,
             mfa_secret=mfa_creds.secret,
@@ -203,6 +204,7 @@ class MFAManager(SessionKeyMixin):
         if not user:
             raise InvalidCredentialsError()
         network_policy = await get_user_network_policy(ip, user, self._session)
+
         if network_policy is None:
             raise NetworkPolicyError()
         try:
@@ -228,6 +230,7 @@ class MFAManager(SessionKeyMixin):
                 return MFAChallengeResponse(status="bypass", message="")
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
+
         except self._mfa_api.MFAMissconfiguredError:
             await self.create_and_set_session_key(
                 user,
@@ -239,6 +242,7 @@ class MFAManager(SessionKeyMixin):
                 user_agent,
             )
             return MFAChallengeResponse(status="bypass", message="")
+
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
                 await self.create_and_set_session_key(
@@ -253,4 +257,5 @@ class MFAManager(SessionKeyMixin):
                 return MFAChallengeResponse(status="bypass", message="")
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
+
         return MFAChallengeResponse(status="pending", message=redirect_url)
