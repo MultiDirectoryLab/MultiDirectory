@@ -90,10 +90,13 @@ class IdentityFastAPIAdapter:
             await self._manager.reset_password(identity, new_password, kadmin)
         except PasswordPolicyError as exc:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.args[0]
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=exc.args[0],
             )
+
         except UserNotFoundError:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
+
         except KRBAPIError as exc:
             raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(exc))
 
