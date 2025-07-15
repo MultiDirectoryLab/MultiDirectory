@@ -90,8 +90,8 @@ def upgrade() -> None:
 
     async def _create_entity_types(connection) -> None:
         session = AsyncSession(bind=connection)
-        base_dn_list = await get_base_directories(session)
-        if not base_dn_list:
+
+        if not await get_base_directories(session):
             return
 
         await session.begin()
@@ -116,8 +116,8 @@ def upgrade() -> None:
 
     async def _append_object_class_to_user_dirs(connection) -> None:
         session = AsyncSession(bind=connection)
-        base_dn_list = await get_base_directories(session)
-        if not base_dn_list:
+
+        if not await get_base_directories(session):
             return
 
         session.begin()
@@ -153,9 +153,10 @@ def upgrade() -> None:
 
     async def _attach_entity_type_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)
-        base_dn_list = await get_base_directories(session)
-        if not base_dn_list:
+
+        if not await get_base_directories(session):
             return
+
         session.begin()
         attribute_type_dao = AttributeTypeDAO(session)
         object_class_dao = ObjectClassDAO(
