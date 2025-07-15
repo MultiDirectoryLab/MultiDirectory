@@ -14,8 +14,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from api.auth import get_current_user
+from api.auth.adapters import MFAFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from api.utils import MFAManagerFastAPIAdapter
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 from .schema import (
@@ -39,13 +39,13 @@ mfa_router = APIRouter(
 )
 async def setup_mfa(
     mfa: MFACreateRequest,
-    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
+    mfa_manager: FromDishka[MFAFastAPIAdapter],
 ) -> bool:
     """Set mfa credentials, rewrites if exists.
 
     \f
     :param MFACreateRequest mfa: MuliFactor credentials
-    :param FromDishka[MFAManagerFastAPIAdapter] mfa_manager: mfa manager
+    :param FromDishka[MFAFastAPIAdapter] mfa_manager: mfa manager
     :return bool: status
     """
     return await mfa_manager.setup_mfa(mfa)
@@ -57,7 +57,7 @@ async def setup_mfa(
 )
 async def remove_mfa(
     scope: Literal["ldap", "http"],
-    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
+    mfa_manager: FromDishka[MFAFastAPIAdapter],
 ) -> None:
     """Remove mfa credentials."""
     await mfa_manager.remove_mfa(scope)
@@ -67,7 +67,7 @@ async def remove_mfa(
 async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
-    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
+    mfa_manager: FromDishka[MFAFastAPIAdapter],
 ) -> MFAGetResponse:
     """Get MFA creds.
 
@@ -86,7 +86,7 @@ async def callback_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
-    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
+    mfa_manager: FromDishka[MFAFastAPIAdapter],
 ) -> RedirectResponse:
     """Disassemble mfa token and send redirect.
 
@@ -114,7 +114,7 @@ async def two_factor_protocol(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
-    mfa_manager: FromDishka[MFAManagerFastAPIAdapter],
+    mfa_manager: FromDishka[MFAFastAPIAdapter],
 ) -> MFAChallengeResponse:
     """Initiate two factor protocol with app.
 

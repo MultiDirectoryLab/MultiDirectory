@@ -17,11 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
-from api.utils.identity_manager import (
-    IdentityManager,
-    IdentityManagerFastAPIAdapter,
-)
-from api.utils.mfa_manager import MFAManager, MFAManagerFastAPIAdapter
+from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -31,6 +27,7 @@ from ldap_protocol.dns import (
     get_dns_manager_settings,
     resolve_dns_server_ip,
 )
+from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -245,7 +242,7 @@ class HTTPProvider(Provider):
         return EntityTypeDAO(session)
 
     identity_fastapi_adapter = provide(
-        IdentityManagerFastAPIAdapter,
+        IdentityFastAPIAdapter,
         scope=Scope.REQUEST,
     )
     identity_manager = provide(
@@ -260,9 +257,9 @@ class HTTPProvider(Provider):
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
-    ) -> MFAManagerFastAPIAdapter:
+    ) -> MFAFastAPIAdapter:
         """Get MFA manager."""
-        return MFAManagerFastAPIAdapter(
+        return MFAFastAPIAdapter(
             MFAManager(session, settings, storage, mfa_api)
         )
 

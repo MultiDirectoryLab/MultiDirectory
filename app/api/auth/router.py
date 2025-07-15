@@ -11,8 +11,8 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, Response, status
 
+from api.auth.adapters import IdentityFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from api.utils import IdentityManagerFastAPIAdapter
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.session_storage import SessionStorage
@@ -29,7 +29,7 @@ async def login(
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
-    auth_manager: FromDishka[IdentityManagerFastAPIAdapter],
+    auth_manager: FromDishka[IdentityFastAPIAdapter],
 ) -> None:
     """Create session to cookies and storage.
 
@@ -42,7 +42,7 @@ async def login(
     :param Response response: FastAPI response
     :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
     :param Annotated[str, Depends user_agent: client user agent
-    :param FromDishka[IdentityManagerFastAPIAdapter] auth_manager: auth manager
+    :param FromDishka[IdentityFastAPIAdapter] auth_manager: auth manager
     :raises HTTPException: 401 if incorrect username or password
     :raises HTTPException: 403 if user not part of domain admins
     :raises HTTPException: 403 if user account is disabled
@@ -97,14 +97,14 @@ async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
     kadmin: FromDishka[AbstractKadmin],
-    auth_manager: FromDishka[IdentityManagerFastAPIAdapter],
+    auth_manager: FromDishka[IdentityFastAPIAdapter],
 ) -> None:
     """Reset user's (entry) password.
 
     :param identity: user identity (userPrincipalName, saMAccountName or DN)
     :param new_password: new password
     :param kadmin: kadmin api
-    :param auth_manager: IdentityManagerFastAPIAdapter
+    :param auth_manager: IdentityFastAPIAdapter
     :raises HTTPException: 404 if user not found
     :raises HTTPException: 422 if password is invalid
     :raises HTTPException: 424 if kerberos password update failed
@@ -115,11 +115,11 @@ async def password_reset(
 
 @auth_router.get("/setup")
 async def check_setup(
-    auth_manager: FromDishka[IdentityManagerFastAPIAdapter],
+    auth_manager: FromDishka[IdentityFastAPIAdapter],
 ) -> bool:
     """Check if initial setup is required.
 
-    :param auth_manager: IdentityManagerFastAPIAdapter
+    :param auth_manager: IdentityFastAPIAdapter
     :return: bool
     """
     return await auth_manager.check_setup_needed()
@@ -132,12 +132,12 @@ async def check_setup(
 )
 async def first_setup(
     request: SetupRequest,
-    auth_manager: FromDishka[IdentityManagerFastAPIAdapter],
+    auth_manager: FromDishka[IdentityFastAPIAdapter],
 ) -> None:
     """Perform initial structure and policy setup.
 
     :param request: SetupRequest
-    :param auth_manager: IdentityManagerFastAPIAdapter
+    :param auth_manager: IdentityFastAPIAdapter
     :raises HTTPException: 423 if setup already performed
     :return: None
     """
