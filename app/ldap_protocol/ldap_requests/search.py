@@ -364,11 +364,7 @@ class SearchRequest(BaseRequest):
             select(Directory)
             .join(Directory.user, isouter=True)
             .join(Directory.group, isouter=True)
-            .options(
-                selectinload(Directory.groups)
-                .joinedload(Group.directory),
-                joinedload(Directory.entity_type),
-            )
+            .join(Directory.entity_type, isouter=True)
         )  # fmt: skip
 
         query = self._mutate_query_with_attributes_to_load(query)
