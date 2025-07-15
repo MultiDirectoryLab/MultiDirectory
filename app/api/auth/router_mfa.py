@@ -132,5 +132,9 @@ async def two_factor_protocol(
         {'status': 'pending', 'message': https://example.com}.
     """
     return await mfa_manager.two_factor_protocol(
-        form, request, response, ip, user_agent
+        form,
+        request,
+        response,
+        ip,
+        user_agent,
     )

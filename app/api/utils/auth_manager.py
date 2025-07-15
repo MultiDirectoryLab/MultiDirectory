@@ -14,15 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth.oauth2 import authenticate_user
 from api.auth.schema import OAuth2Form, SetupRequest
 from api.auth.utils import create_and_set_session_key
-from api.utils.exceptions import (
+from api.utils.exceptions.auth import (
     AlreadyConfiguredError,
     ForbiddenError,
     LoginFailedError,
-    MFARequiredError,
     PasswordPolicyError,
     UnauthorizedError,
     UserNotFoundError,
 )
+from api.utils.exceptions.mfa import MFARequiredError
 from config import Settings
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -131,7 +131,9 @@ class IdentityManager:
             request_2fa = True
             if network_policy.mfa_status == MFAFlags.WHITELIST:
                 request_2fa = await check_mfa_group(
-                    network_policy, user, self._session
+                    network_policy,
+                    user,
+                    self._session,
                 )
             if request_2fa:
                 raise MFARequiredError("Requires MFA connect")
@@ -312,11 +314,13 @@ class IdentityManager:
                 )
                 if errors:
                     raise ForbiddenError(errors)
+
                 await default_pwd_policy.create_policy_settings(self._session)
                 domain_query = select(Directory).filter(
                     Directory.parent_id.is_(None)
                 )
                 domain = (await self._session.scalars(domain_query)).one()
+
                 await create_access_policy(
                     name="Root Access Policy",
                     can_add=True,
@@ -361,7 +365,11 @@ class IdentityManagerFastAPIAdapter:
         self._manager = identity_manager
 
     async def login(
-        self, form: OAuth2Form, response: Response, ip, user_agent: str
+        self,
+        form: OAuth2Form,
+        response: Response,
+        ip,
+        user_agent: str,
     ) -> None:
         """Log in a user and set session cookies.
 
@@ -392,11 +400,15 @@ class IdentityManagerFastAPIAdapter:
             raise HTTPException(status.HTTP_403_FORBIDDEN)
         except MFARequiredError as exc:
             raise HTTPException(
-                status.HTTP_426_UPGRADE_REQUIRED, detail=str(exc)
+                status.HTTP_426_UPGRADE_REQUIRED,
+                detail=str(exc),
             )
 
     async def reset_password(
-        self, identity: str, new_password: str, kadmin: AbstractKadmin
+        self,
+        identity: str,
+        new_password: str,
+        kadmin: AbstractKadmin,
     ) -> None:
         """Reset a user's password and update Kerberos principal.
 
