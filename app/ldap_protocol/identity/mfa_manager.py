@@ -134,7 +134,7 @@ class MFAManager(SessionKeyCreatorMixin):
         self,
         access_token: str,
         mfa_creds: MFA_HTTP_Creds,
-        ip: str,
+        ip: IPv4Address | IPv6Address,
         user_agent: str,
     ) -> tuple[User, str]:
         """Process MFA callback and return redirect.
@@ -143,7 +143,7 @@ class MFAManager(SessionKeyCreatorMixin):
         :param mfa_creds: MFA_HTTP_Creds
         :param ip: IPv4Address | IPv6Address
         :param user_agent: str
-        :return: User.
+        :return: tuple[User, str].
         """
         if not mfa_creds or not mfa_creds.secret:
             raise ForbiddenError("MFA credentials missing")

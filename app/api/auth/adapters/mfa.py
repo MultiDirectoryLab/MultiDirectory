@@ -82,7 +82,10 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         """
         try:
             user, key = await self._manager.callback_mfa(
-                access_token, mfa_creds, ip, user_agent
+                access_token,
+                mfa_creds,
+                ip,
+                user_agent,
             )
             response = RedirectResponse("/", 302)
             await self.set_session_cookie(
