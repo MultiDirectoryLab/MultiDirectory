@@ -369,7 +369,7 @@ class IdentityManagerFastAPIAdapter:
         self,
         form: OAuth2Form,
         response: Response,
-        ip,
+        ip: IPv4Address | IPv6Address,
         user_agent: str,
     ) -> None:
         """Log in a user and set session cookies.
