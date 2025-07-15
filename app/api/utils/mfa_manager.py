@@ -364,5 +364,6 @@ class MFAManagerFastAPIAdapter:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
         except MFAError as exc:
             raise HTTPException(
-                status.HTTP_406_NOT_ACCEPTABLE, detail=str(exc)
+                status.HTTP_406_NOT_ACCEPTABLE,
+                detail=str(exc),
             )

@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import FallbackAsyncAdaptedQueuePool
 
-from api.utils.auth_manager import (
+from api.utils.identity_manager import (
     IdentityManager,
     IdentityManagerFastAPIAdapter,
 )
@@ -244,18 +244,14 @@ class HTTPProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session)
 
-    @provide(scope=Scope.REQUEST)
-    def get_auth_manager(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-        mfa_api: MultifactorAPI,
-        storage: SessionStorage,
-    ) -> IdentityManagerFastAPIAdapter:
-        """Get auth manager."""
-        return IdentityManagerFastAPIAdapter(
-            IdentityManager(session, settings, mfa_api, storage)
-        )
+    identity_fastapi_adapter = provide(
+        IdentityManagerFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    identity_manager = provide(
+        IdentityManager,
+        scope=Scope.REQUEST,
+    )
 
     @provide(scope=Scope.REQUEST)
     def get_mfa_manager(
