@@ -27,6 +27,7 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
+from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
 from ldap_protocol.multifactor import (
     Creds,
     MFA_HTTP_Creds,
@@ -38,7 +39,7 @@ from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User
 
 
-class MFAManager:
+class MFAManager(SessionKeyCreatorMixin):
     """MFA manager."""
 
     def __init__(
@@ -133,7 +134,9 @@ class MFAManager:
         self,
         access_token: str,
         mfa_creds: MFA_HTTP_Creds,
-    ) -> User:
+        ip: str,
+        user_agent: str,
+    ) -> tuple[User, str]:
         """Process MFA callback and return redirect.
 
         :param access_token: str
@@ -159,14 +162,21 @@ class MFAManager:
         user = await self._session.get(User, user_id)
         if user_id is None or not user:
             raise MFATokenError()
-
-        return user
+        key = await self.create_session_key(
+            user,
+            self._storage,
+            self._settings,
+            ip,
+            user_agent,
+        )
+        return user, key
 
     async def two_factor_protocol(
         self,
         form: OAuth2Form,
         url: URL,
         ip: IPv4Address | IPv6Address,
+        user_agent: str,
     ) -> tuple[MFAChallengeResponse, User | None]:
         """Initiate two-factor protocol with application.
 
@@ -215,7 +225,19 @@ class MFAManager:
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
-        return MFAChallengeResponse(
-            status="pending",
-            message=redirect_url,
-        ), None
+        key = await self.create_session_key(
+            user,
+            self._storage,
+            self._settings,
+            ip,
+            user_agent,
+        )
+
+        return (
+            MFAChallengeResponse(
+                status="pending",
+                message=redirect_url,
+            ),
+            None,
+            key,
+        )

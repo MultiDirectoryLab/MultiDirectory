@@ -5,7 +5,7 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 
-from api.auth.adapters.session_mixin import SessionKeyMixin
+from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.auth.schema import (
     MFAChallengeResponse,
     MFACreateRequest,
@@ -25,7 +25,7 @@ from ldap_protocol.identity import MFAManager
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 
-class MFAFastAPIAdapter(SessionKeyMixin):
+class MFAFastAPIAdapter(ResponseCookieMixin):
     """Adapter for using MFAManager with FastAPI."""
 
     def __init__(self, mfa_manager: "MFAManager"):
@@ -81,19 +81,17 @@ class MFAFastAPIAdapter(SessionKeyMixin):
         :raises HTTPException: 404 if not found
         """
         try:
-            user = await self._manager.callback_mfa(
-                access_token,
-                mfa_creds,
+            user, key = await self._manager.callback_mfa(
+                access_token, mfa_creds, ip, user_agent
             )
             response = RedirectResponse("/", 302)
-            await self.create_and_set_session_key(
+            await self.set_session_cookie(
                 user,
                 self._manager._session,
                 self._manager._settings,
                 response,
                 self._manager._storage,
-                ip,
-                user_agent,
+                key,
             )
             return response
         except MFATokenError:
@@ -124,20 +122,20 @@ class MFAFastAPIAdapter(SessionKeyMixin):
         :raises HTTPException: 406 if MFA error
         """
         try:
-            result, user = await self._manager.two_factor_protocol(
+            result, user, key = await self._manager.two_factor_protocol(
                 form=form,
                 url=request.url_for("callback_mfa"),
                 ip=ip,
+                user_agent=user_agent,
             )
             if user is not None:
-                await self.create_and_set_session_key(
+                await self.set_session_cookie(
                     user,
                     self._manager._session,
                     self._manager._settings,
                     response,
                     self._manager._storage,
-                    ip,
-                    user_agent,
+                    key,
                 )
             return result
         except InvalidCredentialsError as exc:
