@@ -15,9 +15,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from extra.dev_data import ENTITY_TYPE_DATAS
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
@@ -338,6 +342,20 @@ async def first_setup(
             ],
         },
     ]
+
+    attribute_type_dao = AttributeTypeDAO(session)
+    object_class_dao = ObjectClassDAO(
+        session,
+        attribute_type_dao=attribute_type_dao,
+    )
+    entity_type_dao = EntityTypeDAO(session, object_class_dao=object_class_dao)
+    for entity_type_data in ENTITY_TYPE_DATAS:
+        await entity_type_dao.create_one(
+            name=entity_type_data["name"],  # type: ignore
+            object_class_names=entity_type_data["object_class_names"],
+            is_system=True,
+        )
+    await session.flush()
 
     async with session.begin_nested():
         try:
