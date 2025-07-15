@@ -9,21 +9,12 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Body, Depends, Response, status
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.utils import IdentityManagerFastAPIAdapter
-from api.utils.exceptions import (
-    AlreadyConfiguredError,
-    LoginFailedError,
-    MFARequiredError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
-)
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
-from ldap_protocol.kerberos.base import KRBAPIError
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
@@ -60,23 +51,12 @@ async def login(
     :raises HTTPException: 403 if user not part of network policy
     :return None: None
     """
-    try:
-        await auth_manager.login(
-            form=form,
-            response=response,
-            ip=ip,
-            user_agent=user_agent,
-        )
-    except UnauthorizedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(exc),
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except LoginFailedError:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-    except MFARequiredError as exc:
-        raise HTTPException(status.HTTP_426_UPGRADE_REQUIRED, detail=str(exc))
+    await auth_manager.login(
+        form=form,
+        response=response,
+        ip=ip,
+        user_agent=user_agent,
+    )
 
 
 @auth_router.get("/me")
@@ -130,18 +110,7 @@ async def password_reset(
     :raises HTTPException: 424 if kerberos password update failed
     :return: None
     """
-    try:
-        await auth_manager.reset_password(identity, new_password, kadmin)
-    except PasswordPolicyError as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.args[0]
-        )
-    except UserNotFoundError:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-        )
-    except KRBAPIError as exc:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(exc))
+    await auth_manager.reset_password(identity, new_password, kadmin)
 
 
 @auth_router.get("/setup")
@@ -172,7 +141,4 @@ async def first_setup(
     :raises HTTPException: 423 if setup already performed
     :return: None
     """
-    try:
-        await auth_manager.perform_first_setup(request)
-    except AlreadyConfiguredError as exc:
-        raise HTTPException(status.HTTP_423_LOCKED, detail=str(exc))
+    await auth_manager.perform_first_setup(request)

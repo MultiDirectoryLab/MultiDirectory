@@ -24,7 +24,7 @@ from api.auth.schema import (
     OAuth2Form,
 )
 from api.auth.utils import create_and_set_session_key
-from api.utils.exceptions import (
+from api.utils.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
     MFAError,
