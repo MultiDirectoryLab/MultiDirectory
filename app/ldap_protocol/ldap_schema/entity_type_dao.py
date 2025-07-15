@@ -165,7 +165,8 @@ class EntityTypeDAO:
 
         result = await self.__session.execute(
             select(Directory)
-            .where(Directory.entity_type_name == entity_type.name)
+            .join(Directory.entity_type)
+            .where(EntityType.name == entity_type.name)
             .options(selectinload(Directory.attributes))
         )  # fmt: skip
 
@@ -199,17 +200,15 @@ class EntityTypeDAO:
         :param list[str] entity_type_names: Entity Type names.
         :return None.
         """
-        await self.__session.execute(
-            delete(EntityType)
-            .where(
-                EntityType.name.in_(entity_type_names),
-                EntityType.is_system.is_(False),
-                EntityType.name.notin_(
-                    select(Directory.entity_type_name)
-                    .where(Directory.entity_type_name.isnot(None))
-                ),
-            ),
-        )  # fmt: skip
+        entity_types = await self.__session.scalars(
+            select(EntityType)
+            .where(EntityType.name.in_(entity_type_names))
+            .options(selectinload(EntityType.directories))
+        )
+        for entity_type in entity_types:
+            if entity_type.directories:
+                continue
+            await self.__session.delete(entity_type)
 
     async def attach_entity_type_to_directories(self) -> None:
         """Find all Directories without an Entity Type and attach it to them.
@@ -218,7 +217,7 @@ class EntityTypeDAO:
         """
         result = await self.__session.execute(
             select(Directory)
-            .where(Directory.entity_type_name.is_(None))
+            .where(Directory.entity_type_id.is_(None))
             .options(
                 selectinload(Directory.attributes),
                 selectinload(Directory.entity_type),
