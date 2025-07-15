@@ -31,7 +31,9 @@ def upgrade() -> None:
     )
 
     op.drop_constraint(
-        "Directory_entity_type_name_fkey", "Directory", type_="foreignkey"
+        "Directory_entity_type_name_fkey",
+        "Directory",
+        type_="foreignkey",
     )
     op.drop_index(
         op.f("ix_Directory_entity_type_name"),
