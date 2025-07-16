@@ -9,8 +9,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from fastapi import Response
 
-from ldap_protocol.session_storage import SessionStorage
-
 
 class ResponseCookieMixin:
     """Provides a method to set a session key as a cookie in a response."""
@@ -18,7 +16,7 @@ class ResponseCookieMixin:
     async def set_session_cookie(
         self,
         response: Response,
-        storage: SessionStorage,
+        key_ttl: int,
         key: str,
     ) -> None:
         """Create a session key and set it as a cookie in the response.
@@ -35,5 +33,5 @@ class ResponseCookieMixin:
             key="id",
             value=key,
             httponly=True,
-            expires=storage.key_ttl,
+            expires=key_ttl,
         )

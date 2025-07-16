@@ -349,3 +349,8 @@ class IdentityManager(SessionKeyCreatorMixin):
                 )
             else:
                 get_base_directories.cache_clear()
+
+    @property
+    def key_ttl(self) -> int:
+        """Return session key time-to-live (TTL) in seconds."""
+        return self.storage.key_ttl
