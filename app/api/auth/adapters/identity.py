@@ -48,17 +48,14 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         :return: None
         """
         try:
-            user, key = await self._manager.login(
+            key = await self._manager.login(
                 form=form,
                 ip=ip,
                 user_agent=user_agent,
             )
             await self.set_session_cookie(
-                user,
-                self._manager._session,
-                self._manager._settings,
                 response,
-                self._manager._storage,
+                self._manager.storage,
                 key,
             )
         except UnauthorizedError as exc:
@@ -85,8 +82,8 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
     ) -> None:
         """Reset a user's password and update Kerberos principal.
 
-        :param identity:
-            User identity (userPrincipalName, sAMAccountName, or DN)
+        :param identity: User identity
+            (userPrincipalName, sAMAccountName, or DN)
         :param new_password: New password string
         :param kadmin: Kerberos kadmin client
         :raises HTTPException: 404 if user not found

@@ -1,16 +1,15 @@
 """Mixin for setting session key cookies in HTTP responses.
 
+Provides a method to set a session key as a cookie in a FastAPI response,
+and updates the user's last logon time.
+
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from fastapi import Response
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import set_last_logon_user
-from models import User
 
 
 class ResponseCookieMixin:
@@ -18,9 +17,6 @@ class ResponseCookieMixin:
 
     async def set_session_cookie(
         self,
-        user: User,
-        session: AsyncSession,
-        settings: Settings,
         response: Response,
         storage: SessionStorage,
         key: str,
@@ -35,8 +31,6 @@ class ResponseCookieMixin:
         :param Settings settings: app settings
         :param Response response: fastapi response object
         """
-        await set_last_logon_user(user, session, settings.TIMEZONE)
-
         response.set_cookie(
             key="id",
             value=key,
