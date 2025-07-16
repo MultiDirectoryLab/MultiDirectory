@@ -12,12 +12,6 @@ from .auth import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from .kerberos import (
-    KerberosConflictError,
-    KerberosDependencyError,
-    KerberosNotFoundError,
-    KerberosUnavailableError,
-)
 from .mfa import (
     InvalidCredentialsError,
     MFAError,
@@ -42,8 +36,4 @@ __all__ = [
     "InvalidCredentialsError",
     "NetworkPolicyError",
     "NotFoundError",
-    "KerberosConflictError",
-    "KerberosDependencyError",
-    "KerberosNotFoundError",
-    "KerberosUnavailableError",
 ]

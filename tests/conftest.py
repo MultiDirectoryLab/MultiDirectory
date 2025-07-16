@@ -55,7 +55,7 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.kerberos_service import KerberosService
+from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO

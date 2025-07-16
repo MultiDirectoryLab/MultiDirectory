@@ -7,14 +7,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.exceptions import KerberosConflictError
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos.exceptions import KerberosConflictError
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.queries import get_filter_from_path
 from models import AccessPolicy, Directory
+
+from .base import AbstractKadmin
 
 
 class LDAPStructureManager:
@@ -80,6 +81,7 @@ class LDAPStructureManager:
                 ),
             )
             await self._session.flush()
+
             if not all(result.result_code == 0 for result in results):
                 await self._session.rollback()
                 raise KerberosConflictError(

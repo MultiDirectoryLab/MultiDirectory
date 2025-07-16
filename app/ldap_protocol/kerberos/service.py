@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Callable
+from typing import Any, AsyncIterator
 
 import backoff
 from dishka import AsyncContainer
@@ -12,29 +12,30 @@ from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.oauth2 import authenticate_user
-from api.exceptions import (
+from config import Settings
+from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.kerberos.exceptions import (
     KerberosDependencyError,
     KerberosNotFoundError,
     KerberosUnavailableError,
-)
-from api.main.schema import KerberosSetupRequest
-from config import Settings
-from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.kerberos import (
-    AbstractKadmin,
-    KerberosState,
-    KRBAPIError,
-    get_krb_server_state,
-    set_state,
 )
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
-from .ann import AddRequests, KDCContext, KerberosAdminDnGroup, LdapRootInfo
+from .auth_helpers import authenticate_user
+from .base import AbstractKadmin, KerberosState, KRBAPIError
 from .ldap_structure import LDAPStructureManager
+from .schemas import (
+    AddRequests,
+    KDCContext,
+    KerberosAdminDnGroup,
+    KerberosSetupRequest,
+    LdapRootInfo,
+    TaskStruct,
+)
 from .template_render import TemplateRenderer
+from .utils import get_krb_server_state, set_state
 
 
 class KerberosService:
@@ -110,15 +111,15 @@ class KerberosService:
 
         :param str base_dn: Base DN.
         :return KerberosAdminDnGroup:
-            NamedTuple с DN для krbadmin, services_container, krbadmin_group.
+            dataclass с DN для krbadmin, services_container, krbadmin_group.
         """
         krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
         services_container = f"ou=services,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
         return KerberosAdminDnGroup(
-            krbadmin,
-            services_container,
-            krbgroup,
+            krbadmin_dn=krbadmin,
+            services_container_dn=services_container,
+            krbadmin_group_dn=krbgroup,
         )
 
     def _build_add_requests(
@@ -134,7 +135,7 @@ class KerberosService:
         :param str mail: Email for krbadmin.
         :param SecretStr krbadmin_password: Password for krbadmin.
         :return AddRequests:
-            NamedTuple of AddRequest for group, services, and user.
+            dataclass of AddRequest for group, services, and user.
         """
         group = AddRequest.from_dict(
             dns.krbadmin_group_dn,
@@ -188,8 +189,8 @@ class KerberosService:
         data: KerberosSetupRequest,
         user: UserSchema,
         request: Request,
-    ) -> tuple:
-        """Set up KDC, generate configs, and return (func, args, kwargs).
+    ) -> TaskStruct:
+        """Set up KDC, generate configs, and return TaskStruct.
 
         Args:
             data (KerberosSetupRequest): KDC setup request data.
@@ -205,15 +206,15 @@ class KerberosService:
         """
         try:
             context = await self._get_kdc_context()
-            context["ldap_uri"] = self._settings.KRB5_LDAP_URI
+            context.ldap_uri = self._settings.KRB5_LDAP_URI
             krb5_config = await self._template_render.render_krb5(context)
             kdc_config = await self._template_render.render_kdc(context)
             await self._authenticate_admin(user, data)
             await self._kadmin.setup(
-                domain=context["domain"],
+                domain=context.domain,
                 admin_dn=await get_dn_by_id(user.directory_id, self._session),
-                services_dn=context["services_container"],
-                krbadmin_dn=context["krbadmin"],
+                services_dn=context.services_container,
+                krbadmin_dn=context.krbadmin,
                 krbadmin_password=data.krbadmin_password.get_secret_value(),
                 admin_password=data.admin_password.get_secret_value(),
                 stash_password=data.stash_password.get_secret_value(),
@@ -223,9 +224,9 @@ class KerberosService:
             )
         except KRBAPIError as err:
             await self._ldap_manager.rollback_kerberos_structure(
-                context["krbadmin"],
-                context["services_container"],
-                context["krbgroup"],
+                context.krbadmin,
+                context.services_container,
+                context.krbgroup,
             )
             await self._kadmin.reset_setup()
             raise KerberosDependencyError(str(err))
@@ -238,7 +239,7 @@ class KerberosService:
         """Build and return context for KDC setup/config rendering.
 
         :raises Exception: If base DN cannot be retrieved.
-        :return KDCContext: Typed dict with all required KDC context fields.
+        :return KDCContext: dataclass with all required KDC context fields.
         """
         base_dn_info = await self._get_base_dn()
         krbadmin = f"cn=krbadmin,ou=users,{base_dn_info.base_dn}"
@@ -277,7 +278,7 @@ class KerberosService:
         request: Request,
         user: UserSchema,
         data: KerberosSetupRequest,
-    ) -> tuple[Callable, tuple[str, str], dict]:
+    ) -> TaskStruct:
         """Schedule background task for principal creation after KDC setup.
 
         :param Request request: FastAPI request (for DI container).
@@ -298,8 +299,8 @@ class KerberosService:
             user.user_principal_name.split("@")[0],
             data.admin_password.get_secret_value(),
         )
-        kwargs = {}
-        return func, args, kwargs
+        kwargs: dict[str, Any] = {}
+        return TaskStruct(func=func, args=args, kwargs=kwargs)
 
     async def add_principal(self, primary: str, instance: str) -> None:
         """Create principal in Kerberos with given name.
@@ -312,7 +313,7 @@ class KerberosService:
         try:
             principal_name = f"{primary}/{instance}"
             await self._kadmin.add_principal(principal_name, None)
-        except Exception as exc:
+        except KRBAPIError as exc:
             raise KerberosDependencyError(
                 f"Error adding principal: {exc}"
             ) from exc
@@ -375,8 +376,8 @@ class KerberosService:
     async def ktadd(
         self,
         names: list[str],
-    ) -> tuple[bytes, tuple[Callable, tuple[str, str], dict]]:
-        """Generate keytab and return (aiter_bytes, (func, args, kwargs)).
+    ) -> tuple[AsyncIterator[bytes], TaskStruct]:
+        """Generate keytab and return (aiter_bytes, TaskStruct).
 
         :param list[str] names: List of principal names.
         :raises KerberosNotFoundError: If principal not found.
@@ -388,9 +389,9 @@ class KerberosService:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
         func = response.aclose
-        args = ()
-        kwargs = {}
-        return aiter_bytes, (func, args, kwargs)
+        args: tuple[Any] = ()
+        kwargs: dict[str, Any] = {}
+        return aiter_bytes, TaskStruct(func=func, args=args, kwargs=kwargs)
 
     async def get_status(self) -> KerberosState:
         """Get Kerberos server state (db + actual server).

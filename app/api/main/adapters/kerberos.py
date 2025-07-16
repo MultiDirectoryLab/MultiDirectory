@@ -1,18 +1,18 @@
 """FastAPI adapter for KerberosService."""
 
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Request, Response, status
 from pydantic import SecretStr
 from starlette.background import BackgroundTask
 
-from api.exceptions import (
+from api.main.schema import KerberosSetupRequest
+from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.kerberos.exceptions import (
+    KerberosConflictError,
     KerberosDependencyError,
     KerberosNotFoundError,
     KerberosUnavailableError,
 )
-from api.exceptions.kerberos import KerberosConflictError
-from api.main.schema import KerberosSetupRequest
-from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.kerberos_service import KerberosService
+from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 
 
@@ -53,19 +53,24 @@ class KerberosFastAPIAdapter:
         data: KerberosSetupRequest,
         user: UserSchema,
         request: Request,
-    ) -> BackgroundTask:
+    ) -> Response:
         """Set up KDC, generate configs, and schedule background task.
 
         :raises HTTPException: 500 if dependency/auth error
         :return: BackgroundTask (background task scheduled)
         """
         try:
-            func, args, kwargs = await self._service.setup_kdc(
+            task_struct = await self._service.setup_kdc(
                 data,
                 user,
                 request,
             )
-            return BackgroundTask(func, *args, **kwargs)
+            task = BackgroundTask(
+                task_struct.func,
+                *task_struct.args,
+                **task_struct.kwargs,
+            )
+            return Response(background=task)
         except KerberosDependencyError as exc:
             raise HTTPException(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -132,10 +137,12 @@ class KerberosFastAPIAdapter:
         :return: StreamingResponse
         """
         try:
-            aiter_bytes, (func, args, kwargs) = await self._service.ktadd(
-                names
+            aiter_bytes, task_struct = await self._service.ktadd(names)
+            return aiter_bytes, BackgroundTask(
+                task_struct.func,
+                *task_struct.args,
+                **task_struct.kwargs,
             )
-            return aiter_bytes, BackgroundTask(func, *args, **kwargs)
 
         except KerberosNotFoundError as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))

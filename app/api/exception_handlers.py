@@ -67,7 +67,7 @@ async def handle_not_implemented_error(
 
 
 async def handle_kerberos_dependency_error(
-    request: Request,
+    request: Request,  # noqa: ARG001
     exc: Exception,
 ) -> NoReturn:
     """Handle Kerberos Dependency error."""

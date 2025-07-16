@@ -43,7 +43,6 @@ from api.exception_handlers import (
     handle_kerberos_dependency_error,
     handle_not_implemented_error,
 )
-from api.exceptions import KerberosDependencyError
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
@@ -58,6 +57,7 @@ from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
 )
+from ldap_protocol.kerberos.exceptions import KerberosDependencyError
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler
 
