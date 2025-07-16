@@ -89,7 +89,7 @@ class PaginationResult[S: Base]:
         session: AsyncSession,
     ) -> "PaginationResult[S]":
         """Get paginator."""
-        if query._order_by_clause is None or len(query._order_by_clause) == 0:
+        if query._order_by_clause is None or len(query._order_by_clause) == 0:  # noqa SLF001
             raise ValueError("Select query must have an order_by clause.")
 
         metadata = PaginationMetadata(
