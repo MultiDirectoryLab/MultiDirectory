@@ -43,7 +43,7 @@ from api.exception_handlers import (
     handle_kerberos_dependency_error,
     handle_not_implemented_error,
 )
-from api.utils.exceptions import KerberosDependencyError
+from api.exceptions import KerberosDependencyError
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (

@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.utils.exceptions import KerberosConflictError
+from api.exceptions import KerberosConflictError
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests import AddRequest

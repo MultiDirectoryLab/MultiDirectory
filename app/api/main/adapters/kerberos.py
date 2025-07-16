@@ -4,12 +4,12 @@ from fastapi import HTTPException, Request, status
 from pydantic import SecretStr
 from starlette.background import BackgroundTask
 
-from api.main.schema import KerberosSetupRequest
-from api.utils.exceptions import (
+from api.exceptions import (
     KerberosDependencyError,
     KerberosNotFoundError,
     KerberosUnavailableError,
 )
+from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos_service import KerberosService
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -55,7 +55,7 @@ class KerberosFastAPIAdapter:
     ) -> BackgroundTask:
         """Set up KDC, generate configs, and schedule background task.
 
-        :raises HTTPException: 424 if dependency/auth error
+        :raises HTTPException: 500 if dependency/auth error
         :return: BackgroundTask (background task scheduled)
         """
         try:
@@ -67,7 +67,8 @@ class KerberosFastAPIAdapter:
             return BackgroundTask(func, *args, **kwargs)
         except KerberosDependencyError as exc:
             raise HTTPException(
-                status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(exc),
             )
 
     async def add_principal(

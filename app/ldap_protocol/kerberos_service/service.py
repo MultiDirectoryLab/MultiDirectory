@@ -13,12 +13,12 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.oauth2 import authenticate_user
-from api.main.schema import KerberosSetupRequest
-from api.utils.exceptions import (
+from api.exceptions import (
     KerberosDependencyError,
     KerberosNotFoundError,
     KerberosUnavailableError,
 )
+from api.main.schema import KerberosSetupRequest
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import (

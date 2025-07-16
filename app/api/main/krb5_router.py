@@ -16,8 +16,8 @@ from fastapi.routing import APIRouter
 from pydantic import SecretStr
 
 from api.auth import get_current_user
+from api.exceptions import KerberosNotFoundError
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.utils.exceptions import KerberosNotFoundError
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
