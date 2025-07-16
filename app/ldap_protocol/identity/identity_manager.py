@@ -63,6 +63,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         self._settings = settings
         self._mfa_api = mfa_api
         self._storage = storage
+        self.key_ttl = self._storage.key_ttl
 
     async def login(
         self,
@@ -348,8 +349,3 @@ class IdentityManager(SessionKeyCreatorMixin):
                 )
             else:
                 get_base_directories.cache_clear()
-
-    @property
-    def key_ttl(self) -> int:
-        """Return session key time-to-live (TTL) in seconds."""
-        return self._storage.key_ttl
