@@ -60,6 +60,7 @@ class MFAManager(SessionKeyCreatorMixin):
         self._settings = settings
         self._storage = storage
         self._mfa_api = mfa_api
+        self.key_ttl = self._storage.key_ttl
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -256,8 +257,3 @@ class MFAManager(SessionKeyCreatorMixin):
             ),
             key,
         )
-
-    @property
-    def key_ttl(self) -> int:
-        """Return session key time-to-live (TTL) in seconds."""
-        return self._storage.key_ttl
