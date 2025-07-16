@@ -321,6 +321,10 @@ class SearchRequest(BaseRequest):
         return "memberof" in self.requested_attrs or self.all_attrs
 
     @cached_property
+    def entity_type_name(self) -> bool:
+        return "entitytypename" in self.requested_attrs or self.all_attrs
+
+    @cached_property
     def member(self) -> bool:
         return "member" in self.requested_attrs or self.all_attrs
 
@@ -337,6 +341,9 @@ class SearchRequest(BaseRequest):
         query: Select,
     ) -> Select:
         """Get attributes to load."""
+        if self.entity_type_name:
+            query = query.options(selectinload(Directory.entity_type))
+
         if self.all_attrs:
             return query.options(selectinload(Directory.attributes))
 
@@ -599,6 +606,9 @@ class SearchRequest(BaseRequest):
                 elif attr == "objectguid":
                     attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
+
+            if self.entity_type_name:
+                attrs["entityTypeName"].append(directory.entity_type.name)
 
             yield SearchResultEntry(
                 object_name=distinguished_name,

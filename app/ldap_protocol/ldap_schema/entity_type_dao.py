@@ -165,7 +165,8 @@ class EntityTypeDAO:
 
         result = await self.__session.execute(
             select(Directory)
-            .where(Directory.entity_type_name == entity_type.name)
+            .join(Directory.entity_type)
+            .where(EntityType.name == entity_type.name)
             .options(selectinload(Directory.attributes))
         )  # fmt: skip
 
@@ -200,15 +201,14 @@ class EntityTypeDAO:
         :return None.
         """
         await self.__session.execute(
-            delete(EntityType)
-            .where(
+            delete(EntityType).where(
                 EntityType.name.in_(entity_type_names),
                 EntityType.is_system.is_(False),
-                EntityType.name.notin_(
-                    select(Directory.entity_type_name)
-                    .where(Directory.entity_type_name.isnot(None))
+                EntityType.id.not_in(
+                    select(Directory.entity_type_id)
+                    .where(Directory.entity_type_id.isnot(None))
                 ),
-            ),
+            )
         )  # fmt: skip
 
     async def attach_entity_type_to_directories(self) -> None:
@@ -218,7 +218,7 @@ class EntityTypeDAO:
         """
         result = await self.__session.execute(
             select(Directory)
-            .where(Directory.entity_type_name.is_(None))
+            .where(Directory.entity_type_id.is_(None))
             .options(
                 selectinload(Directory.attributes),
                 selectinload(Directory.entity_type),

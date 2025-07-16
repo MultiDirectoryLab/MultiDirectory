@@ -15,7 +15,7 @@ from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
-from models import Attribute, Directory, Group, User
+from models import Attribute, Directory, EntityType, Group, User
 
 from .asn1parser import ASN1Row, TagNumbers
 from .objects import LDAPMatchingRule
@@ -171,6 +171,8 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
         return _from_filter(Directory, item, attr, right)
     elif attr in MEMBERS_ATTRS:  # NOTE: without oid
         return _ldap_filter_by_attribute(None, left, right)
+    elif attr == "entitytypename":
+        return func.lower(EntityType.name) == right
     else:
         if is_substring:
             cond = Attribute.value.ilike(_get_substring(right))
@@ -237,6 +239,8 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
         return _from_str_filter(Directory, is_substring, item)
     elif item.attr in MEMBERS_ATTRS:
         return _api_filter(item)
+    elif item.attr == "entitytypename":
+        return func.lower(EntityType.name) == item.val
     else:
         if is_substring:
             cond = Attribute.value.ilike(item.val.replace("*", "%"))

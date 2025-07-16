@@ -317,7 +317,7 @@ async def test_api_search_by_entity_type_name(
             "time_limit": 10,
             "types_only": True,
             "filter": f"(entitytypename={entity_type_name})",
-            "attributes": [],
+            "attributes": ["*"],
             "page_number": 1,
         },
     )

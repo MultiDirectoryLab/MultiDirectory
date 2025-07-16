@@ -12,10 +12,12 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extra.alembic_utils import temporary_stub_entity_type_name
 from extra.dev_data import ENTITY_TYPE_DATAS
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
+from ldap_protocol.utils.queries import get_base_directories
 from models import Attribute, Directory, User
 
 # revision identifiers, used by Alembic.
@@ -25,6 +27,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_entity_type_name
 def upgrade() -> None:
     """Upgrade database schema and data, creating Entity Types."""
     op.create_table(
@@ -87,6 +90,10 @@ def upgrade() -> None:
 
     async def _create_entity_types(connection) -> None:
         session = AsyncSession(bind=connection)
+
+        if not await get_base_directories(session):
+            return
+
         await session.begin()
         attribute_type_dao = AttributeTypeDAO(session)
         object_class_dao = ObjectClassDAO(
@@ -107,10 +114,12 @@ def upgrade() -> None:
 
         await session.commit()
 
-    op.run_async(_create_entity_types)
-
     async def _append_object_class_to_user_dirs(connection) -> None:
         session = AsyncSession(bind=connection)
+
+        if not await get_base_directories(session):
+            return
+
         session.begin()
 
         query = (
@@ -142,10 +151,12 @@ def upgrade() -> None:
 
         await session.commit()
 
-    op.run_async(_append_object_class_to_user_dirs)
-
     async def _attach_entity_type_to_directories(connection) -> None:
         session = AsyncSession(bind=connection)
+
+        if not await get_base_directories(session):
+            return
+
         session.begin()
         attribute_type_dao = AttributeTypeDAO(session)
         object_class_dao = ObjectClassDAO(
@@ -161,6 +172,8 @@ def upgrade() -> None:
 
         await session.commit()
 
+    op.run_async(_create_entity_types)
+    op.run_async(_append_object_class_to_user_dirs)
     op.run_async(_attach_entity_type_to_directories)
 
 

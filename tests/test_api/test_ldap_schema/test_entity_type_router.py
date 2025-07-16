@@ -198,3 +198,20 @@ async def test_delete_bulk_entries(
             f"/schema/entity_type/{entity_type_name}",
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_delete_entry_with_directory(http_client: AsyncClient) -> None:
+    """Test deleting entry with directory."""
+    entity_type_name = "User"
+    response = await http_client.post(
+        "/schema/entity_type/delete",
+        json={"entity_type_names": [entity_type_name]},
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await http_client.get(
+        f"/schema/entity_type/{entity_type_name}",
+    )
+    assert response.status_code == status.HTTP_200_OK
