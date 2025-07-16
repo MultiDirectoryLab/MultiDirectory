@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated
+from typing import Annotated, Any, AsyncGenerator
 
 from annotated_types import Len
 from dishka import FromDishka
@@ -108,7 +108,9 @@ async def ktadd(
 
     if isinstance(aiter_bytes, bytes):
 
-        async def _bytes_to_async_iter(data: bytes):
+        async def _bytes_to_async_iter(
+            data: bytes,
+        ) -> AsyncGenerator[bytes, Any]:
             yield data
 
         aiter_bytes = _bytes_to_async_iter(aiter_bytes)

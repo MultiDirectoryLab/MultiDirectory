@@ -8,6 +8,7 @@ from starlette.background import BackgroundTask
 
 from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.kerberos.base import KerberosState
 from ldap_protocol.kerberos.exceptions import (
     KerberosConflictError,
     KerberosDependencyError,
@@ -15,7 +16,6 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosUnavailableError,
 )
 from ldap_protocol.kerberos.service import KerberosService
-from ldap_protocol.kerberos.state import KerberosState
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 
 
