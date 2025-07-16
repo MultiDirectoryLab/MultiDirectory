@@ -77,7 +77,7 @@ class ASN1Row(Generic[T]):
         """Create row from tag."""
         return cls(tag.cls, tag.nr, value)
 
-    def _handle_extensible_match(self) -> str:
+    def handle_extensible_match(self) -> str:
         """Handle extensible match filters."""
         oid = attribute = value = None
         dn_attributes = False
@@ -120,7 +120,7 @@ class ASN1Row(Generic[T]):
 
         return f"({match})"
 
-    def _handle_substring(self) -> str:
+    def handle_substring(self) -> str:
         """Process and format substring operations for LDAP."""
         value = (
             self.value.decode(errors="replace")
@@ -175,7 +175,7 @@ class ASN1Row(Generic[T]):
                 return f"({self.serialize(value)}=*)"
 
             elif obj.tag_id == TagNumbers.EXTENSIBLE_MATCH:
-                return obj._handle_extensible_match()
+                return obj.handle_extensible_match()
 
             else:
                 operator_map: dict[int, str] = {
@@ -198,7 +198,7 @@ class ASN1Row(Generic[T]):
                     val = value[1]
                     if operator == "*=":
                         operator = "="
-                        substrings = val.value[0]._handle_substring()
+                        substrings = val.value[0].handle_substring()
                         value_str = substrings
                     else:
                         value_str = self.serialize(val)
@@ -278,7 +278,7 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
 
 def _validate_oid(oid: str) -> str:
     """Validate ldap oid with regex."""
-    if not Encoder._re_oid.match(oid):
+    if not Encoder._re_oid.match(oid):  # noqa SLF001
         raise ValueError("Invalid LDAPOID")
     return oid
 
