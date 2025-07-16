@@ -212,16 +212,24 @@ class MFAManager(SessionKeyCreatorMixin):
             )
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                return MFAChallengeResponse(status="bypass", message=""), user
+                return (
+                    MFAChallengeResponse(status="bypass", message=""),
+                    user,
+                    "",
+                )
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            return MFAChallengeResponse(status="bypass", message=""), user
+            return MFAChallengeResponse(status="bypass", message=""), user, ""
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                return MFAChallengeResponse(status="bypass", message=""), user
+                return (
+                    MFAChallengeResponse(status="bypass", message=""),
+                    user,
+                    "",
+                )
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
