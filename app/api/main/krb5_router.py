@@ -105,6 +105,14 @@ async def ktadd(
         aiter_bytes, bg_task = await kerberos_adapter.ktadd(names)
     except KerberosNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    if isinstance(aiter_bytes, bytes):
+
+        async def _bytes_to_async_iter(data: bytes):
+            yield data
+
+        aiter_bytes = _bytes_to_async_iter(aiter_bytes)
+
     return StreamingResponse(
         aiter_bytes,
         media_type="application/txt",

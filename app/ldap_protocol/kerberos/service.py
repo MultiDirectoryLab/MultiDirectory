@@ -389,7 +389,7 @@ class KerberosService:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
         func = response.aclose
-        args: tuple[Any] = ()
+        args: tuple[Any] = tuple()
         kwargs: dict[str, Any] = {}
         return aiter_bytes, TaskStruct(func=func, args=args, kwargs=kwargs)
 

@@ -1,5 +1,7 @@
 """FastAPI adapter for KerberosService."""
 
+from typing import AsyncIterator
+
 from fastapi import HTTPException, Request, Response, status
 from pydantic import SecretStr
 from starlette.background import BackgroundTask
@@ -13,6 +15,7 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosUnavailableError,
 )
 from ldap_protocol.kerberos.service import KerberosService
+from ldap_protocol.kerberos.state import KerberosState
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 
 
@@ -130,7 +133,7 @@ class KerberosFastAPIAdapter:
     async def ktadd(
         self,
         names: list[str],
-    ) -> tuple[bytes, BackgroundTask]:
+    ) -> tuple[AsyncIterator[bytes], BackgroundTask]:
         """Generate keytab and return as streaming response.
 
         :raises HTTPException: 404 if principal not found
@@ -147,14 +150,14 @@ class KerberosFastAPIAdapter:
         except KerberosNotFoundError as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
 
-    async def get_status(self) -> str:
+    async def get_status(self) -> KerberosState:
         """Get Kerberos server state.
 
         :raises HTTPException: 503 if server unavailable
-        :return: str (KerberosState)
+        :return: KerberosState
         """
         try:
             state = await self._service.get_status()
-            return state.value
+            return state  # Return the KerberosState object itself
         except KerberosUnavailableError as exc:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc))
