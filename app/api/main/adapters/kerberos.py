@@ -9,6 +9,7 @@ from api.exceptions import (
     KerberosNotFoundError,
     KerberosUnavailableError,
 )
+from api.exceptions.kerberos import KerberosConflictError
 from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos_service import KerberosService
@@ -44,8 +45,8 @@ class KerberosFastAPIAdapter:
                 ldap_session,
                 entity_type_dao,
             )
-        except KerberosDependencyError as exc:
-            raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
+        except KerberosConflictError:
+            raise HTTPException(status.HTTP_409_CONFLICT)
 
     async def setup_kdc(
         self,
