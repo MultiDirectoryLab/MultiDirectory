@@ -24,10 +24,9 @@ class ResponseCookieMixin:
         Update the user's last logon time and set the appropriate cookies
         in the response.
 
-        :param User user: db user
-        :param AsyncSession session: db session
-        :param Settings settings: app settings
         :param Response response: fastapi response object
+        :param int key_ttl: session key time-to-live
+        :param str key: session key
         """
         response.set_cookie(
             key="id",
