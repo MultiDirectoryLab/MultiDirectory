@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
-from api.utils import KerberosService
+from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -28,6 +28,7 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
+from ldap_protocol.kerberos_service import KerberosService
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -241,6 +242,10 @@ class HTTPProvider(Provider):
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
 
     kerberos_service = provide(KerberosService, scope=Scope.REQUEST)
+    kerberos_fastapi_adapter = provide(
+        KerberosFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
 
 
 class LDAPServerProvider(Provider):

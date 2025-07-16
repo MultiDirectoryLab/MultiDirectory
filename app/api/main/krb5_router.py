@@ -16,13 +16,8 @@ from fastapi.routing import APIRouter
 from pydantic import SecretStr
 
 from api.auth import get_current_user
-from api.utils import KerberosService
-from api.utils.exceptions import (
-    KerberosConflictError,
-    KerberosDependencyError,
-    KerberosNotFoundError,
-    KerberosUnavailableError,
-)
+from api.main.adapters.kerberos import KerberosFastAPIAdapter
+from api.utils.exceptions import KerberosNotFoundError
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -49,7 +44,7 @@ async def setup_krb_catalogue(
     krbadmin_password: Annotated[SecretStr, Body()],
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     entity_type_dao: FromDishka[EntityTypeDAO],
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Generate tree for kdc/kadmin.
 
@@ -58,12 +53,12 @@ async def setup_krb_catalogue(
     :param Annotated[SecretStr, Body krbadmin_password: pw
     :raises HTTPException: on conflict
     """
-    try:
-        await kerberos_service.setup_krb_catalogue(
-            mail, krbadmin_password, ldap_session, entity_type_dao
-        )
-    except KerberosConflictError:
-        raise HTTPException(status.HTTP_409_CONFLICT)
+    await kerberos_adapter.setup_krb_catalogue(
+        mail,
+        krbadmin_password,
+        ldap_session,
+        entity_type_dao,
+    )
 
 
 @krb5_router.post("/setup", response_class=Response)
@@ -71,7 +66,7 @@ async def setup_kdc(
     data: KerberosSetupRequest,
     user: Annotated[UserSchema, Depends(get_current_user)],
     request: Request,
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> Response:
     """Set up KDC server.
 
@@ -86,13 +81,7 @@ async def setup_kdc(
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[LDAPSession, Depends ldap_session: ldap session
     """
-    try:
-        task = await kerberos_service.setup_kdc(data, user, request)
-    except KerberosDependencyError as exc:
-        raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
-        )
-
+    task = await kerberos_adapter.setup_kdc(data, user, request)
     return Response(background=task)
 
 
@@ -106,7 +95,7 @@ LIMITED_LIST = Annotated[
 @krb5_router.post("/ktadd", dependencies=[Depends(get_current_user)])
 async def ktadd(
     names: Annotated[LIMITED_LIST, Body()],
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 
@@ -114,7 +103,7 @@ async def ktadd(
     :return bytes: file
     """
     try:
-        aiter_bytes, bg_task = await kerberos_service.ktadd(names)
+        aiter_bytes, bg_task = await kerberos_adapter.ktadd(names)
     except KerberosNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
     return StreamingResponse(
@@ -127,7 +116,7 @@ async def ktadd(
 
 @krb5_router.get("/status", dependencies=[Depends(get_current_user)])
 async def get_krb_status(
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> KerberosState:
     """Get server status.
 
@@ -135,17 +124,14 @@ async def get_krb_status(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :return KerberosState: state
     """
-    try:
-        return await kerberos_service.get_status()
-    except KerberosUnavailableError:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+    return await kerberos_adapter.get_status()
 
 
 @krb5_router.post("/principal/add", dependencies=[Depends(get_current_user)])
 async def add_principal(
     primary: Annotated[LIMITED_STR, Body()],
     instance: Annotated[LIMITED_STR, Body()],
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Create principal in kerberos with given name.
 
@@ -154,10 +140,7 @@ async def add_principal(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request.
     """
-    try:
-        await kerberos_service.add_principal(primary, instance)
-    except KerberosDependencyError as exc:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
+    await kerberos_adapter.add_principal(primary, instance)
 
 
 @krb5_router.patch(
@@ -167,7 +150,7 @@ async def add_principal(
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
     principal_new_name: Annotated[LIMITED_STR, Body()],
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Rename principal in kerberos with given name.
 
@@ -177,12 +160,10 @@ async def rename_principal(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request.
     """
-    try:
-        await kerberos_service.rename_principal(
-            principal_name, principal_new_name
-        )
-    except KerberosDependencyError as exc:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
+    await kerberos_adapter.rename_principal(
+        principal_name,
+        principal_new_name,
+    )
 
 
 @krb5_router.patch(
@@ -192,7 +173,7 @@ async def rename_principal(
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
     new_password: Annotated[LIMITED_STR, Body()],
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Reset principal password in kerberos with given name.
 
@@ -202,10 +183,7 @@ async def reset_principal_pw(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request.
     """
-    try:
-        await kerberos_service.reset_principal_pw(principal_name, new_password)
-    except KerberosDependencyError as exc:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
+    await kerberos_adapter.reset_principal_pw(principal_name, new_password)
 
 
 @krb5_router.delete(
@@ -214,7 +192,7 @@ async def reset_principal_pw(
 )
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],
-    kerberos_service: FromDishka[KerberosService],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Delete principal in kerberos with given name.
 
@@ -223,7 +201,4 @@ async def delete_principal(
     :param FromDishka[AbstractKadmin] kadmin: _description_
     :raises HTTPException: on failed kamin request
     """
-    try:
-        await kerberos_service.delete_principal(principal_name)
-    except KerberosDependencyError as exc:
-        raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
+    await kerberos_adapter.delete_principal(principal_name)

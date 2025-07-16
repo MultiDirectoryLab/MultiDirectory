@@ -4,14 +4,13 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncIterator
+from typing import Callable
 
 import backoff
 from dishka import AsyncContainer
 from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.background import BackgroundTask
 
 from api.auth.oauth2 import authenticate_user
 from api.main.schema import KerberosSetupRequest
@@ -189,8 +188,8 @@ class KerberosService:
         data: KerberosSetupRequest,
         user: UserSchema,
         request: Request,
-    ) -> BackgroundTask:
-        """Set up KDC, generate configs, and return a background task.
+    ) -> tuple:
+        """Set up KDC, generate configs, and return (func, args, kwargs).
 
         Args:
             data (KerberosSetupRequest): KDC setup request data.
@@ -198,7 +197,7 @@ class KerberosService:
             request (Request): FastAPI request (for DI container).
 
         Returns:
-            BackgroundTask: Task for principal creation.
+            tuple: (func, args, kwargs) for background task.
 
         Raises:
             KerberosDependencyError: On dependency/auth error.
@@ -278,28 +277,29 @@ class KerberosService:
         request: Request,
         user: UserSchema,
         data: KerberosSetupRequest,
-    ) -> BackgroundTask:
+    ) -> tuple[Callable, tuple[str, str], dict]:
         """Schedule background task for principal creation after KDC setup.
 
         :param Request request: FastAPI request (for DI container).
         :param UserSchema user: User for whom principal is created.
         :param KerberosSetupRequest data: Setup request data.
-        :return BackgroundTask: Background task for principal creation.
+        :return: tuple (func, args, kwargs) for background task.
         """
         container: AsyncContainer = request.state.dishka_container
         new_kadmin: AbstractKadmin = await container.get(AbstractKadmin)
-        task = BackgroundTask(
-            backoff.on_exception(
-                backoff.fibo,
-                Exception,
-                max_tries=10,
-                logger=None,
-                raise_on_giveup=False,
-            )(new_kadmin.add_principal),
+        func = backoff.on_exception(
+            backoff.fibo,
+            Exception,
+            max_tries=10,
+            logger=None,
+            raise_on_giveup=False,
+        )(new_kadmin.add_principal)
+        args = (
             user.user_principal_name.split("@")[0],
             data.admin_password.get_secret_value(),
         )
-        return task
+        kwargs = {}
+        return func, args, kwargs
 
     async def add_principal(self, primary: str, instance: str) -> None:
         """Create principal in Kerberos with given name.
@@ -337,7 +337,9 @@ class KerberosService:
             ) from exc
 
     async def reset_principal_pw(
-        self, principal_name: str, new_password: str
+        self,
+        principal_name: str,
+        new_password: str,
     ) -> None:
         """Reset principal password in Kerberos with given name.
 
@@ -373,18 +375,22 @@ class KerberosService:
     async def ktadd(
         self,
         names: list[str],
-    ) -> tuple[AsyncIterator[bytes], BackgroundTask]:
-        """Generate keytab and return (aiter_bytes, background_task).
+    ) -> tuple[bytes, tuple[Callable, tuple[str, str], dict]]:
+        """Generate keytab and return (aiter_bytes, (func, args, kwargs)).
 
         :param list[str] names: List of principal names.
         :raises KerberosNotFoundError: If principal not found.
-        :return tuple: (aiter_bytes, background_task).
+        :return tuple: (aiter_bytes, (func, args, kwargs)).
         """
         try:
             response = await self._kadmin.ktadd(names)
         except KRBAPIError:
             raise KerberosNotFoundError("Principal not found")
-        return response.aiter_bytes(), BackgroundTask(response.aclose)
+        aiter_bytes = response.aiter_bytes()
+        func = response.aclose
+        args = ()
+        kwargs = {}
+        return aiter_bytes, (func, args, kwargs)
 
     async def get_status(self) -> KerberosState:
         """Get Kerberos server state (db + actual server).

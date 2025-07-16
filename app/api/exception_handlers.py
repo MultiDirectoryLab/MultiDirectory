@@ -64,3 +64,11 @@ async def handle_not_implemented_error(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="This feature is supported with selfhosted DNS server.",
     )
+
+
+async def handle_kerberos_dependency_error(
+    request: Request,
+    exc: Exception,
+) -> NoReturn:
+    """Handle Kerberos Dependency error."""
+    raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc))
