@@ -91,7 +91,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
             response = RedirectResponse("/", 302)
             await self.set_session_cookie(
                 response,
-                self._manager.storage,
+                self._manager.key_ttl,
                 key,
             )
             return response
@@ -132,7 +132,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
             if key is not None:
                 await self.set_session_cookie(
                     response,
-                    self._manager.storage,
+                    self._manager.key_ttl,
                     key,
                 )
             return result

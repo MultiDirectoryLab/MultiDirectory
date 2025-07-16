@@ -55,7 +55,7 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
             )
             await self.set_session_cookie(
                 response,
-                self._manager.storage,
+                self._manager.key_ttl,
                 key,
             )
         except UnauthorizedError as exc:
