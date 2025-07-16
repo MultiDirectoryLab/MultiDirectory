@@ -46,7 +46,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
     async def remove_mfa(self, scope: str) -> None:
         """Delete MFA keys by scope.
 
-        :param scope: str
+        :param scope: str ('http' or 'ldap')
         :return: None
         """
         await self._manager.remove_mfa(scope)
@@ -79,9 +79,10 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :param user_agent: str
         :return: RedirectResponse
         :raises HTTPException: 404 if not found
+        :raises HTTPException: 302 redirect if MFA token error
         """
         try:
-            user, key = await self._manager.callback_mfa(
+            key = await self._manager.callback_mfa(
                 access_token,
                 mfa_creds,
                 ip,
@@ -89,11 +90,8 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
             )
             response = RedirectResponse("/", 302)
             await self.set_session_cookie(
-                user,
-                self._manager._session,
-                self._manager._settings,
                 response,
-                self._manager._storage,
+                self._manager.storage,
                 key,
             )
             return response
@@ -125,19 +123,16 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 406 if MFA error
         """
         try:
-            result, user, key = await self._manager.two_factor_protocol(
+            result, key = await self._manager.two_factor_protocol(
                 form=form,
                 url=request.url_for("callback_mfa"),
                 ip=ip,
                 user_agent=user_agent,
             )
-            if user is not None:
+            if key is not None:
                 await self.set_session_cookie(
-                    user,
-                    self._manager._session,
-                    self._manager._settings,
                     response,
-                    self._manager._storage,
+                    self._manager.storage,
                     key,
                 )
             return result

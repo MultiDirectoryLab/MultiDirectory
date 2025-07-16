@@ -62,26 +62,24 @@ class IdentityManager(SessionKeyCreatorMixin):
         self._session = session
         self._settings = settings
         self._mfa_api = mfa_api
-        self._storage = storage
+        self.storage = storage
 
     async def login(
         self,
         form: OAuth2Form,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[User, str]:
+    ) -> str:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
-        :param response: FastAPI response
         :param ip: Client IP
         :param user_agent: Client User-Agent
-        :raises
-            IdentityManager.UnauthorizedError: if incorrect username/password
-        :raises IdentityManager.ForbiddenError:
+        :raises UnauthorizedError: if incorrect username or password
+        :raises LoginFailedError:
             if user not in group, disabled, expired, or failed policy
-        :raises IdentityManager.MFARequiredError: if MFA is required
-        :return: User
+        :raises MFARequiredError: if MFA is required
+        :return: session key (str)
         """
         user = await authenticate_user(
             self._session,
@@ -101,12 +99,15 @@ class IdentityManager(SessionKeyCreatorMixin):
         is_part_of_admin_group = (
             await self._session.scalars(select(query))
         ).one()
+
         if not is_part_of_admin_group:
             raise LoginFailedError("User not part of domain admins")
 
         uac_check = await get_check_uac(self._session, user.directory_id)
+
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             raise LoginFailedError("User account is disabled")
+
         if user.is_expired():
             raise LoginFailedError("User account is expired")
 
@@ -132,14 +133,14 @@ class IdentityManager(SessionKeyCreatorMixin):
             if request_2fa:
                 raise MFARequiredError("Requires MFA connect")
 
-        key = await self.create_session_key(
+        return await self.create_session_key(
             user,
-            self._storage,
+            self.storage,
             self._settings,
             ip,
             user_agent,
+            self._session,
         )
-        return user, key
 
     async def reset_password(
         self,
@@ -152,8 +153,9 @@ class IdentityManager(SessionKeyCreatorMixin):
         :param identity: str
         :param new_password: str
         :param kadmin: Kerberos kadmin client
-        :raises IdentityManager.ForbiddenError:
-            if user not found, policy not passed, or Kerberos error
+        :raises UserNotFoundError: if user not found
+        :raises PasswordPolicyError: if password does not meet policy
+        :raises KRBAPIError: if Kerberos password update failed
         :return: None.
         """
         user = await get_user(self._session, identity)
@@ -185,7 +187,7 @@ class IdentityManager(SessionKeyCreatorMixin):
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
 
-        :return: bool.
+        :return: bool (True if setup is required, False otherwise)
         """
         query = select(exists(Directory).where(Directory.parent_id.is_(None)))
         retval = await self._session.scalars(query)
@@ -194,8 +196,9 @@ class IdentityManager(SessionKeyCreatorMixin):
     async def perform_first_setup(self, request: SetupRequest) -> None:
         """Perform the initial setup of structure and policies.
 
-        :param request: Any (expected object with setup parameters)
-        :raises IdentityManager.ForbiddenError: if setup already performed
+        :param request: SetupRequest with setup parameters
+        :raises AlreadyConfiguredError: if setup already performed
+        :raises ForbiddenError: if password policy not passed
         :return: None.
         """
         setup_already_performed = await self._session.scalar(

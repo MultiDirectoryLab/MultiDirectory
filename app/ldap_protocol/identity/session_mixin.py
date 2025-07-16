@@ -6,8 +6,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from config import Settings
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.utils.queries import set_last_logon_user
 from models import User
 
 
@@ -21,6 +24,7 @@ class SessionKeyCreatorMixin:
         settings: Settings,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
+        session: AsyncSession,
     ) -> str:
         """Create a session key for the user.
 
@@ -31,7 +35,7 @@ class SessionKeyCreatorMixin:
         :param user_agent: client user agent
         :return: session key (str)
         """
-        return await storage.create_session(
+        key = await storage.create_session(
             user.id,
             settings,
             extra_data={
@@ -39,3 +43,6 @@ class SessionKeyCreatorMixin:
                 "user_agent": storage.get_user_agent_hash(user_agent),
             },
         )
+
+        await set_last_logon_user(user, session, settings.TIMEZONE)
+        return key
