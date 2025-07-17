@@ -11,7 +11,7 @@ from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import Field, field_serializer
+from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -22,7 +22,7 @@ from sqlalchemy.sql.expression import Select
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.filter_interpreter import cast_filter2sql
+from ldap_protocol.filter_interpreter import FilterInterpreter
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -101,6 +101,10 @@ class SearchRequest(BaseRequest):
     attributes: list[str]
 
     page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
+
+    _filter_interpreter: FilterInterpreter = PrivateAttr(
+        default_factory=FilterInterpreter
+    )
 
     class Config:
         """Allow class to use property."""
@@ -237,7 +241,7 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sa session
         :return UnaryExpression: condition
         """
-        return cast_filter2sql(self.filter)
+        return self._filter_interpreter.cast_filter2sql(self.filter)
 
     async def handle(
         self,
