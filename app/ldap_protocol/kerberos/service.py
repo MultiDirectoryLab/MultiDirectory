@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any, AsyncIterator
+from typing import AsyncIterator
 
 import backoff
 from dishka import AsyncContainer
@@ -389,9 +389,7 @@ class KerberosService:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
         func = response.aclose
-        args: tuple[Any] = tuple()
-        kwargs: dict[str, Any] = {}
-        return aiter_bytes, TaskStruct(func=func, args=args, kwargs=kwargs)
+        return aiter_bytes, TaskStruct(func=func, args=tuple(), kwargs={})
 
     async def get_status(self) -> KerberosState:
         """Get Kerberos server state (db + actual server).

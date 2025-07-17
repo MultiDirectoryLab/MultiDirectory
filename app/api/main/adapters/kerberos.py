@@ -1,13 +1,12 @@
 """FastAPI adapter for KerberosService."""
 
-from typing import Any, AsyncGenerator, AsyncIterator
+from typing import Any, AsyncGenerator
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import SecretStr
 from starlette.background import BackgroundTask
 
-from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos.base import KerberosState
 from ldap_protocol.kerberos.exceptions import (
@@ -17,6 +16,7 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosNotFoundError,
     KerberosUnavailableError,
 )
+from ldap_protocol.kerberos.schemas import KerberosSetupRequest
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 
@@ -138,7 +138,7 @@ class KerberosFastAPIAdapter:
     async def ktadd(
         self,
         names: list[str],
-    ) -> tuple[AsyncIterator[bytes], BackgroundTask]:
+    ) -> StreamingResponse:
         """Generate keytab and return as streaming response.
 
         :raises HTTPException: 404 if principal not found
