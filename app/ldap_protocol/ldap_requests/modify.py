@@ -5,11 +5,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from datetime import datetime, timedelta, timezone
-from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import BaseModel
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +24,7 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.objects import Changes, Operation
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -50,26 +49,6 @@ from models import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
-
-
-class Operation(IntEnum):
-    """Changes enum for modify request."""
-
-    ADD = 0
-    DELETE = 1
-    REPLACE = 2
-
-
-class Changes(BaseModel):
-    """Changes for mod request."""
-
-    operation: Operation
-    modification: PartialAttribute
-
-    def get_name(self) -> str:
-        """Get mod name."""
-        return self.modification.type.lower()
-
 
 MODIFY_EXCEPTION_STACK = (
     ValueError,
