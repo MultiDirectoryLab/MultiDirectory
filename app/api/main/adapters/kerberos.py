@@ -1,15 +1,7 @@
 """FastAPI adapter for KerberosService."""
 
 import functools
-from typing import (
-    Any,
-    AsyncGenerator,
-    Awaitable,
-    Callable,
-    ParamSpec,
-    TypeVar,
-    cast,
-)
+from typing import Any, Awaitable, Callable, ParamSpec, TypeVar, cast
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
@@ -189,18 +181,9 @@ class KerberosFastAPIAdapter:
             *task_struct.args,
             **task_struct.kwargs,
         )
-        if isinstance(aiter_bytes, bytes):
 
-            async def _bytes_to_async_iter(
-                data: bytes,
-            ) -> AsyncGenerator[bytes, Any]:
-                yield data
-
-            aiter_bytes_iter = _bytes_to_async_iter(aiter_bytes)
-        else:
-            aiter_bytes_iter = aiter_bytes
         return StreamingResponse(
-            aiter_bytes_iter,
+            aiter_bytes,
             media_type="application/txt",
             headers={
                 "Content-Disposition": 'attachment; filename="krb5.keytab"'
