@@ -32,7 +32,6 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.objects import DerefAliases, Scope
-from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -295,7 +294,7 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session), user)  # type: ignore
+        query = self.build_query(await get_base_directories(session))  # type: ignore
 
         try:
             cond = self.cast_filter()
@@ -364,7 +363,6 @@ class SearchRequest(BaseRequest):
     def build_query(
         self,
         base_directories: list[Directory],
-        user: UserSchema,
     ) -> Select:
         """Build tree query."""
         query = (
@@ -375,7 +373,6 @@ class SearchRequest(BaseRequest):
         )  # fmt: skip
 
         query = self._mutate_query_with_attributes_to_load(query)
-        query = mutate_ap(query, user)
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):

@@ -20,7 +20,6 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_path_filter,
@@ -111,12 +110,11 @@ class ModifyDNRequest(BaseRequest):
             select(Directory)
             .options(
                 selectinload(Directory.parent),
-                selectinload(Directory.access_policies),
             )
             .filter(get_filter_from_path(self.entry))
         )
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        directory = await session.scalar(query)
 
         if not directory:
             yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
@@ -124,14 +122,6 @@ class ModifyDNRequest(BaseRequest):
 
         if directory.is_domain:
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
-            return
-
-        if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "modify"),
-        ):
-            yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
             return
 
         dn, name = self.newrdn.split("=")
@@ -144,32 +134,19 @@ class ModifyDNRequest(BaseRequest):
                 created_at=directory.created_at,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
-                access_policies=directory.access_policies,
             )
             session.add(new_directory)
             new_directory.create_path(directory.parent, dn)
 
         else:
-            new_sup_query = (
-                select(Directory)
-                .options(selectinload(Directory.access_policies))
-                .filter(get_filter_from_path(self.new_superior))
+            new_sup_query = select(Directory).filter(
+                get_filter_from_path(self.new_superior)
             )
-
-            new_sup_query = mutate_ap(new_sup_query, ldap_session.user)
 
             new_parent_dir = await session.scalar(new_sup_query)
 
             if not new_parent_dir:
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
-                return
-
-            if not await session.scalar(
-                mutate_ap(query, ldap_session.user, "add"),
-            ):
-                yield ModifyDNResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-                )
                 return
 
             new_directory = Directory(
@@ -178,7 +155,6 @@ class ModifyDNRequest(BaseRequest):
                 parent=new_parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
-                access_policies=new_parent_dir.access_policies,
             )
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)

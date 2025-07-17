@@ -43,7 +43,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :param str name: any name: dn, email or upn
     :return User | None: user from db
     """
-    policies = selectinload(User.groups).selectinload(Group.access_policies)
+    policies = selectinload(User.groups).selectinload(Group.roles)
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
@@ -251,10 +251,8 @@ async def create_group(
     """
     base_dn_list = await get_base_directories(session)
 
-    query = (
-        select(Directory)
-        .options(selectinload(Directory.access_policies))
-        .filter(get_filter_from_path("cn=groups," + base_dn_list[0].path_dn))
+    query = select(Directory).filter(
+        get_filter_from_path("cn=groups," + base_dn_list[0].path_dn)
     )
 
     parent = (await session.scalars(query)).one()
@@ -264,7 +262,6 @@ async def create_group(
         name=name,
         parent=parent,
     )
-    dir_.access_policies.extend(parent.access_policies)
 
     group = Group(directory=dir_)
     dir_.create_path(parent)

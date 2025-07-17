@@ -21,7 +21,6 @@ from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -374,31 +373,6 @@ async def first_setup(
                 .filter(Directory.parent_id.is_(None))
             )  # fmt:skip
             domain = (await session.scalars(domain_query)).one()
-
-            await create_access_policy(
-                name="Root Access Policy",
-                can_add=True,
-                can_modify=True,
-                can_read=True,
-                can_delete=True,
-                grant_dn=domain.path_dn,
-                groups=["cn=domain admins,cn=groups," + domain.path_dn],
-                session=session,
-            )
-
-            await create_access_policy(
-                name="ReadOnly Access Policy",
-                can_add=False,
-                can_modify=False,
-                can_read=True,
-                can_delete=False,
-                grant_dn=domain.path_dn,
-                groups=[
-                    "cn=readonly domain controllers,cn=groups,"
-                    + domain.path_dn,
-                ],
-                session=session,
-            )
 
             await session.commit()
 

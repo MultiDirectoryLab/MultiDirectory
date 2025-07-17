@@ -12,13 +12,12 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from extra.alembic_utils import temporary_stub_entity_type_name
-from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,
     get_search_path,
 )
-from models import AccessPolicy, Directory
+from models import Directory
 
 # revision identifiers, used by Alembic.
 revision = "fafc3d0b11ec"
@@ -56,24 +55,6 @@ def upgrade() -> None:
         except (IntegrityError, DBAPIError):
             pass
 
-        ro_access_policy_q = select(
-            exists(AccessPolicy)
-            .where(AccessPolicy.name == "ReadOnly Access Policy")
-        )  # fmt: skip
-        ro_access_policy = (await session.scalars(ro_access_policy_q)).one()
-
-        if not ro_access_policy:
-            await create_access_policy(
-                name="ReadOnly Access Policy",
-                can_add=False,
-                can_modify=False,
-                can_read=True,
-                can_delete=False,
-                grant_dn=base_dn_list[0].path_dn,
-                groups=[dir_.path_dn],
-                session=session,
-            )
-
         await session.commit()
         await session.close()
 
@@ -95,11 +76,6 @@ def downgrade() -> None:
             "cn=readonly domain controllers,cn=groups,"
             + base_dn_list[0].path_dn
         )
-
-        await session.execute(
-            delete(AccessPolicy)
-            .where(AccessPolicy.name == "ReadOnly Access Policy")
-        )  # fmt: skip
 
         await session.execute(
             delete(Directory)

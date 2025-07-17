@@ -11,7 +11,6 @@ from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -23,7 +22,6 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
@@ -129,22 +127,10 @@ class AddRequest(BaseRequest):
         parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(",")[0].split("=")
 
-        query = (
-            select(Directory)
-            .options(selectinload(Directory.access_policies))
-            .filter(parent_path)
-        )
-
-        parent = await session.scalar(mutate_ap(query, ldap_session.user))
+        parent = await session.scalar((select(Directory).filter(parent_path)))
 
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
-            return
-
-        if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "add"),
-        ):
-            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         if self.password is not None:
@@ -167,7 +153,6 @@ class AddRequest(BaseRequest):
                 object_class="",
                 name=name,
                 parent=parent,
-                access_policies=parent.access_policies,
             )
 
             new_dir.create_path(parent, new_dn)

@@ -18,7 +18,6 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
-from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
@@ -71,18 +70,10 @@ class DeleteRequest(BaseRequest):
             .filter(get_filter_from_path(self.entry))
         )
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        directory = await session.scalar(query)
 
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
-            return
-
-        if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "del"),
-        ):
-            yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
             return
 
         if directory.is_domain:
