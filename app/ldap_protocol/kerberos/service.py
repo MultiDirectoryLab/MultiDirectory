@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncGenerator, AsyncIterator
+from typing import AsyncIterator
 
 import backoff
 from dishka import AsyncContainer
@@ -376,7 +376,7 @@ class KerberosService:
     async def ktadd(
         self,
         names: list[str],
-    ) -> tuple[AsyncGenerator[bytes], TaskStruct]:
+    ) -> tuple[AsyncIterator[bytes], TaskStruct]:
         """Generate keytab and return (aiter_bytes, TaskStruct).
 
         :param list[str] names: List of principal names.
