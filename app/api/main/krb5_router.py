@@ -33,6 +33,7 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.const import EmailStr
 from ldap_protocol.utils.queries import (
     get_base_directories,
@@ -64,6 +65,7 @@ async def setup_krb_catalogue(
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     kadmin: FromDishka[AbstractKadmin],
     entity_type_dao: FromDishka[EntityTypeDAO],
+    role_dao: FromDishka[RoleDAO],
 ) -> None:
     """Generate tree for kdc/kadmin.
 
@@ -139,6 +141,8 @@ async def setup_krb_catalogue(
         if not all(result.result_code == 0 for result in results):
             await session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT)
+
+        await role_dao.create_kerberos_system_role(base_dn=base_dn)
 
         await session.commit()
 
