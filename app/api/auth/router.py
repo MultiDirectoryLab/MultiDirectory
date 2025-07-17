@@ -29,6 +29,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
@@ -244,6 +245,7 @@ async def first_setup(
     request: SetupRequest,
     session: FromDishka[AsyncSession],
     entity_type_dao: FromDishka[EntityTypeDAO],
+    role_dao: FromDishka[RoleDAO],
 ) -> None:
     """Perform initial setup."""
     setup_already_performed = await session.scalar(
@@ -373,6 +375,9 @@ async def first_setup(
                 .filter(Directory.parent_id.is_(None))
             )  # fmt:skip
             domain = (await session.scalars(domain_query)).one()
+
+            await role_dao.create_domain_admins_role(domain.path_dn)
+            await role_dao.create_read_only_role(domain.path_dn)
 
             await session.commit()
 
