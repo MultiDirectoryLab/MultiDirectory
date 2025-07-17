@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from pydantic import BaseModel, SecretStr
+from pydantic import SecretStr
 
 from ldap_protocol.ldap_requests import AddRequest
 
@@ -25,9 +25,9 @@ class KerberosAdminDnGroup:
 class AddRequests:
     """AddRequests for Kerberos admin structure: group, services, krb_user."""
 
-    group: "AddRequest"
-    services: "AddRequest"
-    krb_user: "AddRequest"
+    group: AddRequest
+    services: AddRequest
+    krb_user: AddRequest
 
 
 @dataclass
@@ -59,7 +59,8 @@ class TaskStruct:
     kwargs: dict[str, Any]
 
 
-class KerberosSetupRequest(BaseModel):
+@dataclass
+class KerberosSetupRequest:
     """Kerberos setup data."""
 
     krbadmin_password: SecretStr

@@ -1,8 +1,9 @@
 """FastAPI adapter for KerberosService."""
 
-from typing import AsyncIterator
+from typing import Any, AsyncGenerator, AsyncIterator
 
 from fastapi import HTTPException, Request, Response, status
+from fastapi.responses import StreamingResponse
 from pydantic import SecretStr
 from starlette.background import BackgroundTask
 
@@ -10,6 +11,7 @@ from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos.base import KerberosState
 from ldap_protocol.kerberos.exceptions import (
+    KerberosBaseDnNotFoundError,
     KerberosConflictError,
     KerberosDependencyError,
     KerberosNotFoundError,
@@ -39,6 +41,7 @@ class KerberosFastAPIAdapter:
         """Create Kerberos structure in the LDAP directory.
 
         :raises HTTPException: 409 if structure creation conflict
+        :raises HTTPException: 503 if base DN not found
         :return: None
         """
         try:
@@ -50,6 +53,8 @@ class KerberosFastAPIAdapter:
             )
         except KerberosConflictError:
             raise HTTPException(status.HTTP_409_CONFLICT)
+        except KerberosBaseDnNotFoundError:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
 
     async def setup_kdc(
         self,
@@ -141,10 +146,28 @@ class KerberosFastAPIAdapter:
         """
         try:
             aiter_bytes, task_struct = await self._service.ktadd(names)
-            return aiter_bytes, BackgroundTask(
+            task = BackgroundTask(
                 task_struct.func,
                 *task_struct.args,
                 **task_struct.kwargs,
+            )
+
+            if isinstance(aiter_bytes, bytes):
+
+                async def _bytes_to_async_iter(
+                    data: bytes,
+                ) -> AsyncGenerator[bytes, Any]:
+                    yield data
+
+                aiter_bytes = _bytes_to_async_iter(aiter_bytes)
+
+            return StreamingResponse(
+                aiter_bytes,
+                media_type="application/txt",
+                headers={
+                    "Content-Disposition": 'attachment; filename="krb5.keytab"'
+                },
+                background=task,
             )
 
         except KerberosNotFoundError as exc:

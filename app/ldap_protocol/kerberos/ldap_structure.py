@@ -112,18 +112,18 @@ class LDAPStructureManager:
         :param str krbgroup: DN for Kerberos group.
         :return None.
         """
-        direstories_query = select(Directory).where(
+        directories_query = select(Directory).where(
             or_(
                 get_filter_from_path(krbadmin),
                 get_filter_from_path(services_container),
                 get_filter_from_path(krbgroup),
             )
         )
-        direstories = await self._session.scalars(direstories_query)
-        if direstories:
+        directories = await self._session.scalars(directories_query)
+        if directories:
             await self._session.execute(
                 delete(Directory).where(
-                    Directory.id.in_([dir_.id for dir_ in direstories])
+                    Directory.id.in_([dir_.id for dir_ in directories])
                 )
             )
         await self._session.execute(

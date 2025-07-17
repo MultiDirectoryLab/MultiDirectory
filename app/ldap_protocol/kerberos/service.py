@@ -14,7 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.identity.identity_manager import IdentityManager
 from ldap_protocol.kerberos.exceptions import (
+    KerberosBaseDnNotFoundError,
     KerberosDependencyError,
     KerberosNotFoundError,
     KerberosUnavailableError,
@@ -23,7 +25,6 @@ from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
-from .auth_helpers import authenticate_user
 from .base import AbstractKadmin, KerberosState, KRBAPIError
 from .ldap_structure import LDAPStructureManager
 from .schemas import (
@@ -31,7 +32,6 @@ from .schemas import (
     KDCContext,
     KerberosAdminDnGroup,
     KerberosSetupRequest,
-    LdapRootInfo,
     TaskStruct,
 )
 from .template_render import TemplateRenderer
@@ -80,8 +80,8 @@ class KerberosService:
             KerberosConflictError: On structure creation conflict.
 
         """
-        base_dn_info = await self._get_base_dn()
-        dns = self._build_kerberos_admin_dns(base_dn_info.base_dn)
+        base_dn, _ = await self._get_base_dn()
+        dns = self._build_kerberos_admin_dns(base_dn)
         add_requests = self._build_add_requests(
             dns,
             mail,
@@ -98,20 +98,21 @@ class KerberosService:
             dns.krbadmin_group_dn,
         )
 
-    async def _get_base_dn(self) -> LdapRootInfo:
+    async def _get_base_dn(self) -> tuple[str, str]:
         """Get LDAP root DN and domain."""
         base_dn_list = await get_base_directories(self._session)
-        return LdapRootInfo(
-            base_dn=base_dn_list[0].path_dn,
-            domain=base_dn_list[0].name,
-        )
+        if not base_dn_list:
+            raise KerberosBaseDnNotFoundError(
+                "No base DN found in the LDAP directory."
+            )
+        return base_dn_list[0].path_dn, base_dn_list[0].name
 
     def _build_kerberos_admin_dns(self, base_dn: str) -> KerberosAdminDnGroup:
         """Build DN strings for Kerberos admin, services, and group.
 
         :param str base_dn: Base DN.
         :return KerberosAdminDnGroup:
-            dataclass с DN для krbadmin, services_container, krbadmin_group.
+            dataclass with DN for krbadmin, services_container, krbadmin_group.
         """
         krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
         services_container = f"ou=services,{base_dn}"
@@ -241,13 +242,13 @@ class KerberosService:
         :raises Exception: If base DN cannot be retrieved.
         :return KDCContext: dataclass with all required KDC context fields.
         """
-        base_dn_info = await self._get_base_dn()
-        krbadmin = f"cn=krbadmin,ou=users,{base_dn_info.base_dn}"
-        krbgroup = f"cn=krbadmin,cn=groups,{base_dn_info.base_dn}"
-        services_container = f"ou=services,{base_dn_info.base_dn}"
+        base_dn, domain = await self._get_base_dn()
+        krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
+        krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
+        services_container = f"ou=services,{base_dn}"
         return KDCContext(
-            base_dn=base_dn_info.base_dn,
-            domain=base_dn_info.domain,
+            base_dn=base_dn,
+            domain=domain,
             krbadmin=krbadmin,
             krbgroup=krbgroup,
             services_container=services_container,
@@ -266,7 +267,7 @@ class KerberosService:
         :raises KerberosDependencyError: If authentication fails.
         :return None: None.
         """
-        if not await authenticate_user(
+        if not await IdentityManager.authenticate_user(
             self._session,
             user.user_principal_name,
             data.admin_password.get_secret_value(),
@@ -299,8 +300,7 @@ class KerberosService:
             user.user_principal_name.split("@")[0],
             data.admin_password.get_secret_value(),
         )
-        kwargs: dict[str, Any] = {}
-        return TaskStruct(func=func, args=args, kwargs=kwargs)
+        return TaskStruct(func=func, args=args, kwargs={})
 
     async def add_principal(self, primary: str, instance: str) -> None:
         """Create principal in Kerberos with given name.

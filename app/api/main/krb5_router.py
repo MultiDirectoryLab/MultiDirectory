@@ -4,12 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Annotated, Any, AsyncGenerator
+from typing import Annotated
 
 from annotated_types import Len
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Body, HTTPException, Request, Response, status
+from fastapi import Body, Request, Response
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
@@ -19,7 +19,6 @@ from api.auth import get_current_user
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
-from ldap_protocol.kerberos.exceptions import KerberosNotFoundError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.const import EmailStr
 
@@ -101,26 +100,7 @@ async def ktadd(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :return bytes: file
     """
-    try:
-        aiter_bytes, bg_task = await kerberos_adapter.ktadd(names)
-    except KerberosNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
-
-    if isinstance(aiter_bytes, bytes):
-
-        async def _bytes_to_async_iter(
-            data: bytes,
-        ) -> AsyncGenerator[bytes, Any]:
-            yield data
-
-        aiter_bytes = _bytes_to_async_iter(aiter_bytes)
-
-    return StreamingResponse(
-        aiter_bytes,
-        media_type="application/txt",
-        headers={"Content-Disposition": 'attachment; filename="krb5.keytab"'},
-        background=bg_task,
-    )
+    return await kerberos_adapter.ktadd(names)
 
 
 @krb5_router.get("/status", dependencies=[Depends(get_current_user)])

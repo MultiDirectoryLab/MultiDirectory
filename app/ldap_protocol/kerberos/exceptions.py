@@ -19,3 +19,7 @@ class KerberosDependencyError(KerberosError):
 
 class KerberosUnavailableError(KerberosError):
     """Raised when the service is unavailable."""
+
+
+class KerberosBaseDnNotFoundError(KerberosError):
+    """Raised when no base DN is found in the LDAP directory."""
