@@ -42,6 +42,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
@@ -168,6 +169,14 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings, http_client=http_client)
 
+    @provide(scope=Scope.REQUEST)
+    async def get_role_dao(
+        self,
+        session: AsyncSession,
+    ) -> RoleDAO:
+        """Get Role DAO."""
+        return RoleDAO(session)
+
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
@@ -209,6 +218,14 @@ class HTTPProvider(Provider):
     async def get_session(self) -> LDAPSession:
         """Create ldap session."""
         return LDAPSession()
+
+    @provide(provides=RoleDAO)
+    async def get_role_dao(
+        self,
+        session: AsyncSession,
+    ) -> RoleDAO:
+        """Get Role DAO."""
+        return RoleDAO(session)
 
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
