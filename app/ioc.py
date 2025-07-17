@@ -36,6 +36,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
@@ -188,6 +189,14 @@ class MainProvider(Provider):
         """Get Entity Type DAO."""
         return EntityTypeDAO(session, object_class_dao)
 
+    @provide(scope=Scope.REQUEST)
+    async def get_role_dao(
+        self,
+        session: AsyncSession,
+    ) -> RoleDAO:
+        """Get Role DAO."""
+        return RoleDAO(session)
+
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
@@ -254,6 +263,14 @@ class HTTPProvider(Provider):
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session, object_class_dao)
+
+    @provide(provides=RoleDAO)
+    async def get_role_dao(
+        self,
+        session: AsyncSession,
+    ) -> RoleDAO:
+        """Get Role DAO."""
+        return RoleDAO(session)
 
 
 class LDAPServerProvider(Provider):
