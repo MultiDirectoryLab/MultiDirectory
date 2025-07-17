@@ -1,6 +1,7 @@
 """FastAPI adapter for KerberosService."""
 
-from typing import Any, AsyncGenerator
+import functools
+from typing import Any, AsyncGenerator, Awaitable, Callable, ParamSpec, TypeVar
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
@@ -20,6 +21,9 @@ from ldap_protocol.kerberos.schemas import KerberosSetupRequest
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
 
 class KerberosFastAPIAdapter:
     """Adapter for using KerberosService with FastAPI and background tasks."""
@@ -31,6 +35,42 @@ class KerberosFastAPIAdapter:
         """
         self._service = service
 
+    @staticmethod
+    def _kerberos_error_handler(
+        func: Callable[P, Awaitable[R]],
+    ) -> Callable[P, Awaitable[R]]:
+        """Kerberos exception-to-HTTP mapping decorator.
+
+        :param func: Async method to wrap.
+        :return: Wrapped async method with Kerberos exception handling.
+        """
+
+        @functools.wraps(func)
+        async def wrapper(self: Any, *args: P.args, **kwargs: P.kwargs) -> R:
+            try:
+                return await func(self, *args, **kwargs)
+            except KerberosDependencyError as exc:
+                raise HTTPException(
+                    status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc)
+                )
+
+            except KerberosNotFoundError as exc:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+            except KerberosConflictError:
+                raise HTTPException(status.HTTP_409_CONFLICT)
+
+            except KerberosUnavailableError:
+                raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+
+            except KerberosBaseDnNotFoundError as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+                )
+
+        return wrapper
+
+    @_kerberos_error_handler
     async def setup_krb_catalogue(
         self,
         mail: str,
@@ -40,22 +80,17 @@ class KerberosFastAPIAdapter:
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
-        :raises HTTPException: 409 if structure creation conflict
-        :raises HTTPException: 503 if base DN not found
+        :raises HTTPException: on Kerberos errors
         :return: None
         """
-        try:
-            await self._service.setup_krb_catalogue(
-                mail,
-                krbadmin_password,
-                ldap_session,
-                entity_type_dao,
-            )
-        except KerberosConflictError:
-            raise HTTPException(status.HTTP_409_CONFLICT)
-        except KerberosBaseDnNotFoundError:
-            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+        return await self._service.setup_krb_catalogue(
+            mail,
+            krbadmin_password,
+            ldap_session,
+            entity_type_dao,
+        )
 
+    @_kerberos_error_handler
     async def setup_kdc(
         self,
         data: KerberosSetupRequest,
@@ -64,27 +99,18 @@ class KerberosFastAPIAdapter:
     ) -> Response:
         """Set up KDC, generate configs, and schedule background task.
 
-        :raises HTTPException: 500 if dependency/auth error
+        :raises HTTPException: on Kerberos errors
         :return: BackgroundTask (background task scheduled)
         """
-        try:
-            task_struct = await self._service.setup_kdc(
-                data,
-                user,
-                request,
-            )
-            task = BackgroundTask(
-                task_struct.func,
-                *task_struct.args,
-                **task_struct.kwargs,
-            )
-            return Response(background=task)
-        except KerberosDependencyError as exc:
-            raise HTTPException(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(exc),
-            )
+        task_struct = await self._service.setup_kdc(data, user, request)
+        task = BackgroundTask(
+            task_struct.func,
+            *task_struct.args,
+            **task_struct.kwargs,
+        )
+        return Response(background=task)
 
+    @_kerberos_error_handler
     async def add_principal(
         self,
         primary: str,
@@ -92,11 +118,12 @@ class KerberosFastAPIAdapter:
     ) -> None:
         """Create principal in Kerberos with given name.
 
-        :raises HTTPException: 424 if kadmin request failed
+        :raises HTTPException: on Kerberos errors
         :return: None
         """
-        await self._service.add_principal(primary, instance)
+        return await self._service.add_principal(primary, instance)
 
+    @_kerberos_error_handler
     async def rename_principal(
         self,
         principal_name: str,
@@ -104,14 +131,14 @@ class KerberosFastAPIAdapter:
     ) -> None:
         """Rename principal in Kerberos.
 
-        :raises HTTPException: 424 if kadmin request failed
+        :raises HTTPException: on Kerberos errors
         :return: None
         """
-        await self._service.rename_principal(
-            principal_name,
-            principal_new_name,
+        return await self._service.rename_principal(
+            principal_name, principal_new_name
         )
 
+    @_kerberos_error_handler
     async def reset_principal_pw(
         self,
         principal_name: str,
@@ -119,68 +146,65 @@ class KerberosFastAPIAdapter:
     ) -> None:
         """Reset principal password in Kerberos.
 
-        :raises HTTPException: 424 if kadmin request failed
+        :raises HTTPException: on Kerberos errors
         :return: None
         """
-        await self._service.reset_principal_pw(principal_name, new_password)
+        return await self._service.reset_principal_pw(
+            principal_name, new_password
+        )
 
+    @_kerberos_error_handler
     async def delete_principal(
         self,
         principal_name: str,
     ) -> None:
         """Delete principal in Kerberos.
 
-        :raises HTTPException: 424 if kadmin request failed
+        :raises HTTPException: on Kerberos errors
         :return: None
         """
-        await self._service.delete_principal(principal_name)
+        return await self._service.delete_principal(principal_name)
 
+    @_kerberos_error_handler
     async def ktadd(
         self,
         names: list[str],
     ) -> StreamingResponse:
         """Generate keytab and return as streaming response.
 
-        :raises HTTPException: 404 if principal not found
+        :raises HTTPException: on Kerberos errors
         :return: StreamingResponse
         """
-        try:
-            aiter_bytes, task_struct = await self._service.ktadd(names)
-            task = BackgroundTask(
-                task_struct.func,
-                *task_struct.args,
-                **task_struct.kwargs,
-            )
+        aiter_bytes, task_struct = await self._service.ktadd(names)
+        task = BackgroundTask(
+            task_struct.func,
+            *task_struct.args,
+            **task_struct.kwargs,
+        )
+        if isinstance(aiter_bytes, bytes):
 
-            if isinstance(aiter_bytes, bytes):
+            async def _bytes_to_async_iter(
+                data: bytes,
+            ) -> AsyncGenerator[bytes, Any]:
+                yield data
 
-                async def _bytes_to_async_iter(
-                    data: bytes,
-                ) -> AsyncGenerator[bytes, Any]:
-                    yield data
+            aiter_bytes_iter = _bytes_to_async_iter(aiter_bytes)
+        else:
+            aiter_bytes_iter = aiter_bytes
+        return StreamingResponse(
+            aiter_bytes_iter,
+            media_type="application/txt",
+            headers={
+                "Content-Disposition": 'attachment; filename="krb5.keytab"'
+            },
+            background=task,
+        )
 
-                aiter_bytes = _bytes_to_async_iter(aiter_bytes)
-
-            return StreamingResponse(
-                aiter_bytes,
-                media_type="application/txt",
-                headers={
-                    "Content-Disposition": 'attachment; filename="krb5.keytab"'
-                },
-                background=task,
-            )
-
-        except KerberosNotFoundError as exc:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
-
+    @_kerberos_error_handler
     async def get_status(self) -> KerberosState:
         """Get Kerberos server state.
 
-        :raises HTTPException: 503 if server unavailable
+        :raises HTTPException: on Kerberos errors
         :return: KerberosState
         """
-        try:
-            state = await self._service.get_status()
-            return state
-        except KerberosUnavailableError as exc:
-            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc))
+        return await self._service.get_status()

@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.identity.identity_manager import IdentityManager
+from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos.exceptions import (
     KerberosBaseDnNotFoundError,
     KerberosDependencyError,
@@ -267,7 +267,7 @@ class KerberosService:
         :raises KerberosDependencyError: If authentication fails.
         :return None: None.
         """
-        if not await IdentityManager.authenticate_user(
+        if not await authenticate_user(
             self._session,
             user.user_principal_name,
             data.admin_password.get_secret_value(),

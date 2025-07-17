@@ -19,6 +19,7 @@ from api.exceptions.mfa import MFARequiredError
 from config import Settings
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
+from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
@@ -38,7 +39,7 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import Directory, Group, MFAFlags, User
-from security import get_password_hash, verify_password
+from security import get_password_hash
 
 
 class IdentityManager(SessionKeyCreatorMixin):
@@ -81,7 +82,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         :raises MFARequiredError: if MFA is required
         :return: session key (str)
         """
-        user = await IdentityManager.authenticate_user(
+        user = await authenticate_user(
             self._session,
             form.username,
             form.password,
@@ -349,27 +350,3 @@ class IdentityManager(SessionKeyCreatorMixin):
                 )
             else:
                 get_base_directories.cache_clear()
-
-    @classmethod
-    async def authenticate_user(
-        cls,
-        session: AsyncSession,
-        username: str,
-        password: str,
-    ) -> User | None:
-        """Retrieve a user from the database and verify the password.
-
-        :param session: SQLAlchemy AsyncSession
-        :param username: Username (DN, UPN, sAMAccountName, etc.)
-        :param password: User password
-        :return: User if found and password matches, otherwise None
-        """
-        user = await get_user(session, username)
-
-        if not user or not user.password or not password:
-            return None
-
-        if not verify_password(password, user.password):
-            return None
-
-        return user
