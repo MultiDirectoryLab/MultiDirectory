@@ -7,6 +7,12 @@ Create Date: 2025-07-17 09:16:20.056149
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.utils.queries import get_base_directories
+from models import Directory, Group
 
 # revision identifiers, used by Alembic.
 revision = "05ddc0bd562a"
@@ -91,6 +97,33 @@ def upgrade() -> None:
     op.drop_table("GroupAccessPolicyMemberships")
     op.drop_table("AccessPolicyMemberships")
     op.drop_table("AccessPolicies")
+
+    async def _create_system_roles(connection):
+        session = AsyncSession(connection)
+        await session.begin()
+
+        base_dn_list = await get_base_directories(session)
+        if not base_dn_list:
+            return
+
+        role_dao = RoleDAO(session)
+        await role_dao.create_domain_admins_role(base_dn_list[0].path_dn)
+        await role_dao.create_read_only_role(base_dn_list[0].path_dn)
+
+        krb_group_query = (
+            select(Group)
+            .join(Group.directory)
+            .where(Directory.name == "krbadmin")
+        )
+
+        krb_group = (await session.scalars(krb_group_query)).first()
+
+        if krb_group:
+            await role_dao.create_kerberos_system_role(base_dn_list[0].path_dn)
+
+        await session.commit()
+
+    op.run_async(_create_system_roles)
 
 
 def downgrade() -> None:
