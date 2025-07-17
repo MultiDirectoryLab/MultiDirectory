@@ -8,7 +8,7 @@ from pydantic import SecretStr
 from starlette.background import BackgroundTask
 
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.kerberos.base import KerberosState
+from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.kerberos.exceptions import (
     KerberosBaseDnNotFoundError,
     KerberosConflictError,
@@ -181,6 +181,6 @@ class KerberosFastAPIAdapter:
         """
         try:
             state = await self._service.get_status()
-            return state  # Return the KerberosState object itself
+            return state
         except KerberosUnavailableError as exc:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc))
