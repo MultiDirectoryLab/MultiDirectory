@@ -357,3 +357,18 @@ async def get_principal_directory(
         .where(Directory.name == principal_name)
         .options(selectinload(Directory.attributes)),
     )
+
+
+async def get_all_users(
+    session: AsyncSession,
+) -> list[User]:
+    """Get all users with directory from the database.
+
+    :param AsyncSession session: db session.
+    :return: List of User objects.
+    """
+    query = select(User).options(
+        joinedload(User.directory),
+    )
+    result = await session.scalars(query)
+    return list(result.all())
