@@ -1,7 +1,15 @@
 """FastAPI adapter for KerberosService."""
 
 import functools
-from typing import Any, AsyncGenerator, Awaitable, Callable, ParamSpec, TypeVar
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    ParamSpec,
+    TypeVar,
+    cast,
+)
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
@@ -68,7 +76,7 @@ class KerberosFastAPIAdapter:
                     status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
                 )
 
-        return wrapper
+        return cast("Callable[P, Awaitable[R]]", wrapper)
 
     @_kerberos_error_handler
     async def setup_krb_catalogue(
