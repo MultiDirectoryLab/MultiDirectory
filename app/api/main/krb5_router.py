@@ -19,10 +19,10 @@ from api.auth import get_current_user
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
+from ldap_protocol.kerberos.schemas import KerberosSetupRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.const import EmailStr
 
-from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
 
 krb5_router = APIRouter(
