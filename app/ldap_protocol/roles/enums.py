@@ -10,11 +10,11 @@ from enum import IntEnum
 class AceType(IntEnum):
     """ACE types."""
 
-    RIGHT_CREATE_CHILD = 0
-    RIGHT_READ_PROP = 1
-    RIGHT_WRITE_PROP = 2
-    RIGHT_DELETE_PROP = 3
-    RIGHT_PASSWORD_MODIFY = 4
+    CREATE_CHILD = 0
+    READ = 1
+    WRITE = 2
+    DELETE = 3
+    PASSWORD_MODIFY = 4
 
 
 class RoleScope(IntEnum):
