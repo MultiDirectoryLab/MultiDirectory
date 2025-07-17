@@ -142,7 +142,7 @@ async def setup_krb_catalogue(
             await session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT)
 
-        await role_dao.create_kerberos_system_role(base_dn=base_dn)
+        await role_dao.create_kerberos_system_role(base_dn=services_container)
 
         await session.commit()
 
