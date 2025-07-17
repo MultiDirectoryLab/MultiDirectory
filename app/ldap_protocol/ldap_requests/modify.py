@@ -26,7 +26,6 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -165,7 +164,6 @@ class ModifyRequest(BaseRequest):
 
         policy = await PasswordPolicySchema.get_policy_settings(session)
         query = self._get_dir_query()
-        query = mutate_ap(query, ldap_session.user)
 
         directory = await session.scalar(query)
 
@@ -181,10 +179,7 @@ class ModifyRequest(BaseRequest):
             ldap_session.user.directory_id,
         )
 
-        mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
-        can_modify = bool(await session.scalar(mutate_ap_q))
-
-        if not can_modify and not password_change_requested:
+        if not password_change_requested:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
