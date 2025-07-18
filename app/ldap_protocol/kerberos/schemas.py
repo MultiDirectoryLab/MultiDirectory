@@ -43,14 +43,6 @@ class KDCContext:
 
 
 @dataclass
-class LdapRootInfo:
-    """LDAP root DN and domain info."""
-
-    base_dn: str
-    domain: str
-
-
-@dataclass
 class TaskStruct:
     """Structure for background task: function, args, kwargs."""
 
