@@ -40,6 +40,7 @@ from api.exception_handlers import (
     handle_dns_error,
     handle_instance_cant_modify_error,
     handle_instance_not_found_error,
+    handle_kerberos_dependency_error,
     handle_not_implemented_error,
 )
 from config import Settings
@@ -56,6 +57,7 @@ from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
 )
+from ldap_protocol.kerberos.exceptions import KerberosDependencyError
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler
 
@@ -129,6 +131,10 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.add_exception_handler(
         DNSNotImplementedError,
         handle_not_implemented_error,
+    )
+    app.add_exception_handler(
+        KerberosDependencyError,
+        handle_kerberos_dependency_error,
     )
 
     return app

@@ -6,7 +6,6 @@ from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.oauth2 import authenticate_user
 from api.auth.schema import OAuth2Form, SetupRequest
 from api.exceptions.auth import (
     AlreadyConfiguredError,
@@ -20,6 +19,7 @@ from api.exceptions.mfa import MFARequiredError
 from config import Settings
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
+from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
