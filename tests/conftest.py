@@ -63,7 +63,7 @@ from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
-from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
@@ -207,6 +207,14 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
         cache=False,
     )
+
+    @provide(scope=Scope.REQUEST, provides=RoleDAO, cache=False)
+    def get_role_dao(
+        self,
+        session: AsyncSession,
+    ) -> RoleDAO:
+        """Get Role DAO."""
+        return RoleDAO(session)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -471,17 +479,9 @@ async def setup_session(session: AsyncSession, setup_entity: None) -> None:
     )  # fmt: skip
 
     domain = domain_ex.one()
+    role_dao = RoleDAO(session)
+    await role_dao.create_domain_admins_role(domain.path_dn)
 
-    await create_access_policy(
-        name="Root Access Policy",
-        can_add=True,
-        can_modify=True,
-        can_read=True,
-        can_delete=True,
-        grant_dn=domain.path_dn,
-        groups=["cn=domain admins,cn=groups," + domain.path_dn],
-        session=session,
-    )
     session.add(
         AttributeType(
             oid="1.2.3.4.5.6.7.8",
@@ -553,6 +553,14 @@ async def entity_type_dao(
         )
         yield EntityTypeDAO(session, object_class_dao)
 
+@pytest_asyncio.fixture(scope="function")
+async def role_dao(
+    container: AsyncContainer,
+) -> AsyncIterator[RoleDAO]:
+    """Get session and aquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield RoleDAO(session)
 
 @pytest.fixture(scope="session", autouse=True)
 def _server(
