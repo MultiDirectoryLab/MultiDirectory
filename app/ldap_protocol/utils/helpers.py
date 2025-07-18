@@ -324,3 +324,12 @@ def profile_async(func: Callable) -> Callable:
         return result
 
     return wrapper
+
+
+def get_depth_by_dn(dn: str) -> int:
+    """Get depth by DN.
+
+    :param str dn: distinguished name
+    :return int: depth of the DN
+    """
+    return len(dn.split(","))

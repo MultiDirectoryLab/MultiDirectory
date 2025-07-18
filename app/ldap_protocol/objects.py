@@ -6,6 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum, StrEnum
 
+from pydantic import BaseModel
+
+from ldap_protocol.ldap_responses import PartialAttribute
+
 
 class Scope(IntEnum):
     """Enum for search request.
@@ -48,3 +52,22 @@ class LDAPMatchingRule(StrEnum):
     LDAP_MATCHING_RULE_BIT_OR = "1.2.840.113556.1.4.804"
     LDAP_MATCHING_RULE_TRANSITIVE_EVAL = "1.2.840.113556.1.4.1941"
     LDAP_MATCHING_RULE_DN_WITH_DATA = "1.2.840.113556.1.4.2253"
+
+
+class Operation(IntEnum):
+    """Changes enum for modify request."""
+
+    ADD = 0
+    DELETE = 1
+    REPLACE = 2
+
+
+class Changes(BaseModel):
+    """Changes for modify request."""
+
+    operation: Operation
+    modification: PartialAttribute
+
+    def get_name(self) -> str:
+        """Get mod name."""
+        return self.modification.type.lower()

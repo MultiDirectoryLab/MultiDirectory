@@ -11,8 +11,8 @@ from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import Field, field_serializer
-from sqlalchemy import func, or_
+from pydantic import Field, PrivateAttr, field_serializer
+from sqlalchemy import and_, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
@@ -22,7 +22,7 @@ from sqlalchemy.sql.expression import Select
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.filter_interpreter import cast_filter2sql
+from ldap_protocol.filter_interpreter import FilterInterpreter
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -32,7 +32,8 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.objects import DerefAliases, Scope
-from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.enums import AceType
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -47,6 +48,7 @@ from ldap_protocol.utils.queries import (
     get_search_path,
 )
 from models import (
+    AccessControlEntry,
     Attribute,
     AttributeType,
     Directory,
@@ -102,6 +104,10 @@ class SearchRequest(BaseRequest):
     attributes: list[str]
 
     page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
+
+    _filter_interpreter: FilterInterpreter = PrivateAttr(
+        default_factory=FilterInterpreter
+    )
 
     class Config:
         """Allow class to use property."""
@@ -238,7 +244,7 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sa session
         :return UnaryExpression: condition
         """
-        return cast_filter2sql(self.filter)
+        return self._filter_interpreter.cast_filter2sql(self.filter)
 
     async def handle(
         self,
@@ -295,7 +301,13 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session), user)  # type: ignore
+        if not user:
+            yield SearchResultDone(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
+        query = self.build_query(await get_base_directories(session), user)
 
         try:
             cond = self.cast_filter()
@@ -307,7 +319,7 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self.paginate_query(query, session)
 
-        async for response in self.tree_view(query, session):
+        async for response in self.tree_view(query, session, user):
             yield response
 
         yield SearchResultDone(
@@ -372,10 +384,19 @@ class SearchRequest(BaseRequest):
             .join(Directory.user, isouter=True)
             .join(Directory.group, isouter=True)
             .join(Directory.entity_type, isouter=True)
+            .options(
+                selectinload(Directory.access_control_entries),
+                with_loader_criteria(
+                    AccessControlEntry,
+                    and_(
+                        AccessControlEntry.role_id.in_(user.role_ids),
+                        AccessControlEntry.ace_type == AceType.READ.value,
+                    )
+                )
+            )
         )  # fmt: skip
 
         query = self._mutate_query_with_attributes_to_load(query)
-        query = mutate_ap(query, user)
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):
@@ -521,6 +542,7 @@ class SearchRequest(BaseRequest):
         self,
         query: Select,
         session: AsyncSession,
+        user: UserSchema,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
@@ -528,6 +550,32 @@ class SearchRequest(BaseRequest):
         async for directory in directories:
             attrs = defaultdict(list)
             obj_classes = []
+
+            logger.critical("\n\n\n START ACCESS CONTROL \n\n\n")
+
+            can_read, forbidden_attributes, allowed_attributes = (
+                AccessManager.check_search_access(
+                    directory=directory,
+                    user_dn=user.dn,
+                )
+            )
+
+            logger.critical(
+                f"Access control result: {can_read}, {forbidden_attributes},"
+                f"{allowed_attributes}"
+            )
+
+            logger.critical("\n\n\n END ACCESS CONTROL \n\n\n")
+
+            if not can_read:
+                continue
+
+            if not AccessManager.check_search_filter_attrs(
+                self._filter_interpreter.attributes,
+                forbidden_attributes,
+                allowed_attributes,
+            ):
+                continue
 
             for attr in directory.attributes:
                 if isinstance(attr.value, str):
@@ -609,6 +657,16 @@ class SearchRequest(BaseRequest):
 
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
+
+            attrs_to_keep = set(attrs.keys())
+
+            if forbidden_attributes:
+                attrs_to_keep -= forbidden_attributes
+
+            if allowed_attributes:
+                attrs_to_keep &= allowed_attributes
+
+            attrs = {attr: attrs[attr] for attr in attrs_to_keep}  # type: ignore
 
             yield SearchResultEntry(
                 object_name=distinguished_name,

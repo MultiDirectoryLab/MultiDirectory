@@ -41,8 +41,8 @@ class UserSchema:
     directory_id: int
     dn: str
 
-    access_policies_ids: list[int]
     account_exp: datetime | None
+    role_ids: list[int]
 
     @classmethod
     async def from_db(
@@ -60,12 +60,10 @@ class UserSchema:
             display_name=user.display_name,
             directory_id=user.directory_id,
             dn=user.directory.path_dn,
-            access_policies_ids=[
-                policy.id
-                for group in user.groups
-                for policy in group.access_policies
-            ],
             account_exp=user.account_exp,
+            role_ids=[
+                role.id for group in user.groups for role in group.roles
+            ],
         )
 
 

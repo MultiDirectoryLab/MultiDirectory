@@ -19,7 +19,8 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.roles.enums import AceType, RoleScope
+from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group, User
 from tests.conftest import TestCreds
@@ -241,12 +242,13 @@ async def test_add_bvalue_attr(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_add_access_control(
-    session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
+    role_dao: RoleDAO,
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
+    base_dn = "dc=md,dc=test"
 
     async def try_add() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
@@ -280,28 +282,36 @@ async def test_ldap_add_access_control(
 
     assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    await create_access_policy(
-        name="DOMAIN Read Access Policy",
-        can_add=False,
-        can_modify=False,
-        can_read=True,
-        can_delete=False,
-        grant_dn="dc=md,dc=test",
-        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
-        session=session,
+    add_role = await role_dao.create_role(
+        role_name="Add Role",
+        creator_upn=None,
+        is_system=False,
+        groups_dn=["cn=domain users,cn=groups," + base_dn],
     )
 
     assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    await create_access_policy(
-        name="DOMAIN Add Access Policy",
-        can_add=True,
-        can_modify=False,
-        can_read=True,
-        can_delete=False,
-        grant_dn="dc=md,dc=test",
-        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
-        session=session,
+    add_ace = AccessControlEntrySchema(
+        ace_type=AceType.CREATE_CHILD,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=base_dn,
+        attribute_type_id=None,
+        entity_type_id=None,
+        is_allow=True,
+    )
+
+    read_ace = AccessControlEntrySchema(
+        ace_type=AceType.READ,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=base_dn,
+        attribute_type_id=None,
+        entity_type_id=None,
+        is_allow=True,
+    )
+
+    await role_dao.add_access_control_entries(
+        role_id=add_role.id,
+        access_control_entries=[add_ace, read_ace],
     )
 
     assert await try_add() == LDAPCodes.SUCCESS

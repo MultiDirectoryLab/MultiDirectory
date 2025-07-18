@@ -33,14 +33,14 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.const import EmailStr
 from ldap_protocol.utils.queries import (
     get_base_directories,
     get_dn_by_id,
     get_filter_from_path,
 )
-from models import AccessPolicy, Directory
+from models import Directory
 
 from .schema import KerberosSetupRequest
 from .utils import get_ldap_session
@@ -65,6 +65,7 @@ async def setup_krb_catalogue(
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     kadmin: FromDishka[AbstractKadmin],
     entity_type_dao: FromDishka[EntityTypeDAO],
+    role_dao: FromDishka[RoleDAO],
 ) -> None:
     """Generate tree for kdc/kadmin.
 
@@ -141,16 +142,8 @@ async def setup_krb_catalogue(
             await session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT)
 
-        await create_access_policy(
-            name=KERBEROS_POLICY_NAME,
-            can_add=True,
-            can_modify=True,
-            can_read=True,
-            can_delete=True,
-            grant_dn=services_container,
-            groups=[krbgroup],
-            session=session,
-        )
+        await role_dao.create_kerberos_system_role(base_dn=base_dn)
+
         await session.commit()
 
 
@@ -235,10 +228,6 @@ async def setup_kdc(
                 .where(Directory.id.in_([dir_.id for dir_ in direstories]))
             )  # fmt: skip
 
-        await session.execute(
-            delete(AccessPolicy)
-            .where(AccessPolicy.name == KERBEROS_POLICY_NAME)
-        )  # fmt: skip
         await kadmin.reset_setup()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(err))
     else:

@@ -6,27 +6,36 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import func, text, update
+from loguru import logger
+from sqlalchemy import Select, and_, func, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.enums import AceType
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_path_filter,
     validate_entry,
 )
-from models import Attribute, Directory, DirectoryMembership, Group, User
+from models import (
+    AccessControlEntry,
+    Attribute,
+    Directory,
+    DirectoryMembership,
+    Group,
+    User,
+)
 
 from .base import BaseRequest
 
@@ -86,7 +95,23 @@ class ModifyDNRequest(BaseRequest):
             new_superior=None if len(data) < 4 else data[3].value,
         )
 
-    async def handle(
+    def _mutate_query_with_ace_load(
+        self,
+        query: Select,
+        user: UserSchema,
+    ) -> Select:
+        return query.options(
+            selectinload(Directory.access_control_entries),
+            with_loader_criteria(
+                AccessControlEntry,
+                and_(
+                    AccessControlEntry.role_id.in_(user.role_ids),
+                    AccessControlEntry.ace_type == AceType.CREATE_CHILD.value,
+                ),
+            ),
+        )
+
+    async def handle(  # noqa: C901
         self,
         ldap_session: LDAPSession,
         session: AsyncSession,
@@ -107,16 +132,32 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        if not ldap_session.user.role_ids:
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
         query = (
             select(Directory)
             .options(
                 selectinload(Directory.parent),
-                selectinload(Directory.access_policies),
+                selectinload(Directory.access_control_entries),
+                with_loader_criteria(
+                    AccessControlEntry,
+                    and_(
+                        AccessControlEntry.role_id.in_(
+                            ldap_session.user.role_ids
+                        ),
+                        AccessControlEntry.ace_type == AceType.DELETE.value,
+                        AccessControlEntry.attribute_type_id.is_(None),
+                    ),
+                ),
             )
             .filter(get_filter_from_path(self.entry))
         )
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        directory = await session.scalar(query)
 
         if not directory:
             yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
@@ -126,15 +167,24 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "modify"),
-        ):
+        can_delete = AccessManager.check_entity_level_access(
+            aces=directory.access_control_entries,
+            entity_type_id=directory.entity_type_id,
+        )
+
+        if not can_delete:
             yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
             )
             return
 
         dn, name = self.newrdn.split("=")
+
+        logger.critical(
+            f"entry: {self.entry}, newrdn: {self.newrdn}, "
+            f"deleteoldrdn: {self.deleteoldrdn}, "
+            f"new_superior: {self.new_superior}"
+        )
 
         if self.new_superior is None:
             new_directory = Directory(
@@ -144,19 +194,44 @@ class ModifyDNRequest(BaseRequest):
                 created_at=directory.created_at,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
-                access_policies=directory.access_policies,
             )
+
+            parent_query = select(Directory).filter(
+                Directory.id == directory.parent_id
+            )
+            parent_query = self._mutate_query_with_ace_load(
+                parent_query, ldap_session.user
+            )
+
+            parent_dir = await session.scalar(parent_query)
+            if parent_dir:
+                can_add = AccessManager.check_entity_level_access(
+                    aces=parent_dir.access_control_entries,
+                    entity_type_id=directory.entity_type_id,
+                )
+                if not can_add:
+                    yield ModifyDNResponse(
+                        result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                    )
+                    return
+
             session.add(new_directory)
             new_directory.create_path(directory.parent, dn)
+            if directory.parent:
+                await AccessManager.inherit_parent_aces(
+                    parent_directory=directory.parent,
+                    directory=new_directory,
+                    session=session,
+                )
 
         else:
-            new_sup_query = (
-                select(Directory)
-                .options(selectinload(Directory.access_policies))
-                .filter(get_filter_from_path(self.new_superior))
+            new_sup_query = select(Directory).filter(
+                get_filter_from_path(self.new_superior)
             )
-
-            new_sup_query = mutate_ap(new_sup_query, ldap_session.user)
+            new_sup_query = self._mutate_query_with_ace_load(
+                new_sup_query,
+                ldap_session.user,
+            )
 
             new_parent_dir = await session.scalar(new_sup_query)
 
@@ -164,11 +239,14 @@ class ModifyDNRequest(BaseRequest):
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
 
-            if not await session.scalar(
-                mutate_ap(query, ldap_session.user, "add"),
-            ):
+            can_add = AccessManager.check_entity_level_access(
+                aces=new_parent_dir.access_control_entries,
+                entity_type_id=directory.entity_type_id,
+            )
+
+            if not can_add:
                 yield ModifyDNResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
                 )
                 return
 
@@ -178,10 +256,15 @@ class ModifyDNRequest(BaseRequest):
                 parent=new_parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
-                access_policies=new_parent_dir.access_policies,
             )
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
+
+            await AccessManager.inherit_parent_aces(
+                parent_directory=new_parent_dir,
+                directory=new_directory,
+                session=session,
+            )
 
         try:
             session.add(new_directory)
@@ -252,6 +335,27 @@ class ModifyDNRequest(BaseRequest):
                 update_query,
                 execution_options={"synchronize_session": "fetch"},
             )
+
+            explicit_aces_query = (
+                select(AccessControlEntry)
+                .options(
+                    selectinload(AccessControlEntry.directories),
+                )
+                .where(
+                    AccessControlEntry.directories.any(
+                        Directory.id == directory.id
+                    ),
+                    AccessControlEntry.depth == directory.depth,
+                )
+            )
+
+            explicit_aces = (await session.scalars(explicit_aces_query)).all()
+
+            for ace in explicit_aces:
+                ace.directories.append(new_directory)
+                ace.path = new_directory.path_dn
+                ace.depth = new_directory.depth
+
             await session.flush()
 
             # NOTE: update relationship, don't delete row

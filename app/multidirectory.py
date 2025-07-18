@@ -23,7 +23,6 @@ from loguru import logger
 from sqlalchemy import exc as sa_exc
 
 from api import (
-    access_policy_router,
     auth_router,
     dns_router,
     entry_router,
@@ -102,7 +101,6 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(krb5_router)
     app.include_router(dns_router)
     app.include_router(session_router)
-    app.include_router(access_policy_router)
     app.include_router(ldap_schema_router)
     app.add_middleware(
         CORSMiddleware,
