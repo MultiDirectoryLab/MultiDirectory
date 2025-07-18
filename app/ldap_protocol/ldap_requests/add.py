@@ -7,10 +7,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from loguru import logger
 from pydantic import Field, SecretStr
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -23,6 +25,8 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.enums import AceType
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -39,7 +43,7 @@ from ldap_protocol.utils.queries import (
     get_search_path,
     validate_entry,
 )
-from models import Attribute, Directory, Group, User
+from models import AccessControlEntry, Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -105,6 +109,10 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        if not ldap_session.user.role_ids:
+            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
+            return
+
         root_dn = get_search_path(self.entry)
 
         exists_q = select(
@@ -127,10 +135,60 @@ class AddRequest(BaseRequest):
         parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(",")[0].split("=")
 
-        parent = await session.scalar((select(Directory).filter(parent_path)))
+        parent = await session.scalar(
+            select(Directory)
+            .options(
+                selectinload(Directory.access_control_entries),
+                with_loader_criteria(
+                    AccessControlEntry,
+                    and_(
+                        AccessControlEntry.role_id.in_(
+                            ldap_session.user.role_ids
+                        ),
+                        AccessControlEntry.ace_type
+                        == AceType.CREATE_CHILD.value,
+                    ),
+                ),
+            )
+            .filter(parent_path)
+        )
 
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        logger.critical(
+            f"attributes: {self.attributes_dict}, "
+            f"attr_names: {self.attr_names}, "
+            f"entry: {self.entry}, "
+            f"new_dn: {new_dn}, name: {name}, "
+            f"parent: {parent}, base_dn: {base_dn}"
+        )
+
+        object_class_names = set(
+            self.attributes_dict.get("objectClass", [])
+            + self.attributes_dict.get("objectclass", [])
+        )
+
+        entity_type = (
+            await entity_type_dao.get_entity_type_by_object_class_names(
+                object_class_names=object_class_names,  # type: ignore
+            )
+        )
+
+        logger.critical(f"entity_type: {entity_type}")
+
+        can_add = AccessManager.check_entity_level_access(
+            aces=parent.access_control_entries,
+            entity_type_id=entity_type.id if entity_type else None,
+        )
+
+        if not can_add:
+            logger.critical(
+                f"User {ldap_session.user} cannot add {entity_type} "
+                f"to {parent} with aces: {parent.access_control_entries}"
+            )
+            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         if self.password is not None:
@@ -339,6 +397,16 @@ class AddRequest(BaseRequest):
                 directory=new_dir,
                 is_system_entity_type=False,
             )
+            await AccessManager.inherit_parent_aces(
+                parent_directory=parent,
+                directory=new_dir,
+                session=session,
+            )
+            if is_user:
+                await AccessManager.add_pwd_modify_ace_for_new_user(
+                    new_user_dir=new_dir,
+                    session=session,
+                )
             await session.flush()
         except IntegrityError:
             await session.rollback()
