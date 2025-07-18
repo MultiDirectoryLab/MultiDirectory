@@ -150,7 +150,7 @@ class ModifyDNRequest(BaseRequest):
                             ldap_session.user.role_ids
                         ),
                         AccessControlEntry.ace_type == AceType.DELETE.value,
-                        AccessControlEntry.attribute_type.is_(None),
+                        AccessControlEntry.attribute_type_id.is_(None),
                     ),
                 ),
             )
