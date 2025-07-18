@@ -553,6 +553,7 @@ async def entity_type_dao(
         )
         yield EntityTypeDAO(session, object_class_dao)
 
+
 @pytest_asyncio.fixture(scope="function")
 async def role_dao(
     container: AsyncContainer,
@@ -561,6 +562,7 @@ async def role_dao(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield RoleDAO(session)
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _server(
