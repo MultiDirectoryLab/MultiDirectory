@@ -6,9 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import defaultload
+from sqlalchemy.orm import defaultload, selectinload, with_loader_criteria
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -18,6 +18,8 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.enums import AceType
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
@@ -26,7 +28,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory
+from models import AccessControlEntry, Directory
 
 from .base import BaseRequest
 
@@ -61,11 +63,28 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        if not ldap_session.user.role_ids:
+            yield DeleteResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
         query = (
             select(Directory)
             .options(
                 defaultload(Directory.user),
                 defaultload(Directory.attributes),
+                selectinload(Directory.access_control_entries),
+                with_loader_criteria(
+                    AccessControlEntry,
+                    and_(
+                        AccessControlEntry.role_id.in_(
+                            ldap_session.user.role_ids
+                        ),
+                        AccessControlEntry.ace_type == AceType.DELETE.value,
+                        AccessControlEntry.attribute_type_id.is_(None),
+                    ),
+                ),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -78,6 +97,17 @@ class DeleteRequest(BaseRequest):
 
         if directory.is_domain:
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
+            return
+
+        can_delete = AccessManager.check_entity_level_access(
+            aces=directory.access_control_entries,
+            entity_type_id=directory.entity_type_id,
+        )
+
+        if not can_delete:
+            yield DeleteResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
             return
 
         for base_directory in await get_base_directories(session):
