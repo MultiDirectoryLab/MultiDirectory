@@ -155,13 +155,7 @@ def downgrade() -> None:
             "can_delete", sa.BOOLEAN(), autoincrement=False, nullable=False
         ),
         sa.PrimaryKeyConstraint("id", name="AccessPolicies_pkey"),
-        sa.UniqueConstraint(
-            "name",
-            name="AccessPolicies_name_key",
-            postgresql_include=[],
-            postgresql_nulls_not_distinct=False,
-        ),
-        postgresql_ignore_search_path=False,
+        sa.UniqueConstraint("name"),
     )
     op.create_table(
         "AccessPolicyMemberships",
@@ -214,9 +208,12 @@ def downgrade() -> None:
             "group_id",
             "policy_id",
             name=op.f("group_policy_uc"),
-            postgresql_include=[],
-            postgresql_nulls_not_distinct=False,
         ),
+    )
+    op.create_unique_constraint(
+        "group_policy_uc",
+        "GroupAccessPolicyMemberships",
+        ["group_id", "policy_id"],
     )
     op.drop_table("GroupRoleMemberships")
     op.drop_table("AccessControlEntryDirectoryMemberships")
