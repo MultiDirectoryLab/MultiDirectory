@@ -24,7 +24,7 @@ class AccessManager:
         cls,
         directory: Directory,
         user_dn: str,
-    ) -> tuple[bool, set | None, set | None]:
+    ) -> tuple[bool, set, set]:
         """Check if search access is allowed based on access control entries.
 
         :param aces: List of access control entries.
@@ -54,9 +54,7 @@ class AccessManager:
             return False, set(), set()
 
         for ace in aces:
-
             if not ace.is_allow and ace.attribute_type_id is None:
-
                 if allowed_attributes:  # type: ignore
                     return True, set(), allowed_attributes
                 else:
@@ -258,7 +256,7 @@ class AccessManager:
             ace.directories.append(directory)
 
     @staticmethod
-    async def add_pwd_modify_access_for_new_user(
+    async def add_pwd_modify_ace_for_new_user(
         new_user_dir: Directory,
         session: AsyncSession,
     ) -> None:
