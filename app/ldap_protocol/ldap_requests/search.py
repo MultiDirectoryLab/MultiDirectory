@@ -12,7 +12,7 @@ from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload, with_loader_criteria
@@ -32,6 +32,8 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.objects import DerefAliases, Scope
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.enums import AceType
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -46,6 +48,7 @@ from ldap_protocol.utils.queries import (
     get_search_path,
 )
 from models import (
+    AccessControlEntry,
     Attribute,
     AttributeType,
     Directory,
@@ -298,7 +301,13 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session))  # type: ignore
+        if not user:
+            yield SearchResultDone(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
+        query = self.build_query(await get_base_directories(session), user)  # type: ignore
 
         try:
             cond = self.cast_filter()
@@ -313,7 +322,7 @@ class SearchRequest(BaseRequest):
         if self.size_limit != 0:
             query = query.limit(self.size_limit)
 
-        async for response in self.tree_view(query, session):
+        async for response in self.tree_view(query, session, user):
             yield response
 
         yield SearchResultDone(
@@ -373,12 +382,23 @@ class SearchRequest(BaseRequest):
     def build_query(
         self,
         base_directories: list[Directory],
+        user: UserSchema,
     ) -> Select:
         """Build tree query."""
         query = (
             select(Directory)
             .join(Directory.user, isouter=True)
-            .options(selectinload(Directory.group))
+            .options(
+                selectinload(Directory.group),
+                selectinload(Directory.access_control_entries),
+                with_loader_criteria(
+                    AccessControlEntry,
+                    and_(
+                        AccessControlEntry.role_id.in_(user.role_ids),
+                        AccessControlEntry.ace_type == AceType.READ.value,
+                    )
+                )
+            )
         )
 
         query = self._mutate_query_with_attributes_to_load(query)
@@ -526,6 +546,7 @@ class SearchRequest(BaseRequest):
         self,
         query: Select,
         session: AsyncSession,
+        user: UserSchema,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
@@ -533,6 +554,32 @@ class SearchRequest(BaseRequest):
         async for directory in directories:
             attrs = defaultdict(list)
             obj_classes = []
+
+            logger.critical("\n\n\n START ACCESS CONTROL \n\n\n")
+
+            can_read, forbidden_attributes, allowed_attributes = (
+                AccessManager.check_search_access(
+                    directory=directory,
+                    user_dn=user.dn,
+                )
+            )
+
+            logger.critical(
+                f"Access control result: {can_read}, {forbidden_attributes},"
+                f"{allowed_attributes}"
+            )
+
+            logger.critical("\n\n\n END ACCESS CONTROL \n\n\n")
+
+            if not can_read:
+                continue
+
+            if not AccessManager.check_search_filter_attrs(
+                self._filter_interpreter.attributes,
+                forbidden_attributes,
+                allowed_attributes,
+            ):
+                continue
 
             for attr in directory.attributes:
                 if isinstance(attr.value, str):
@@ -614,6 +661,16 @@ class SearchRequest(BaseRequest):
 
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
+
+            attrs_to_keep = set(attrs.keys())
+
+            if forbidden_attributes:
+                attrs_to_keep -= forbidden_attributes
+
+            if allowed_attributes:
+                attrs_to_keep &= allowed_attributes
+
+            attrs = {attr: attrs[attr] for attr in attrs_to_keep}  # type: ignore
 
             yield SearchResultEntry(
                 object_name=distinguished_name,
