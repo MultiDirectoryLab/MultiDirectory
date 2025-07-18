@@ -450,7 +450,7 @@ class RoleDAO:
             groups_dn=[group_dn],
         )
 
-        aces = self._get_full_access_aces(base_dn)
+        aces = self._get_full_access_aces("ou=services," + base_dn)
         await self.add_access_control_entries(
             role_id=role.id,
             access_control_entries=aces,
