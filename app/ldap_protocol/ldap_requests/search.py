@@ -307,7 +307,7 @@ class SearchRequest(BaseRequest):
             )
             return
 
-        query = self.build_query(await get_base_directories(session), user)  # type: ignore
+        query = self.build_query(await get_base_directories(session), user)
 
         try:
             cond = self.cast_filter()
