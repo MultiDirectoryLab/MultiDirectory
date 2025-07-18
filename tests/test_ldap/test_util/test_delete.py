@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.roles.enums import AceType, RoleScope
+from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from models import Directory
 from tests.conftest import TestCreds
 
@@ -85,12 +86,13 @@ async def test_ldap_delete(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_delete_w_access_control(
-    session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
+    role_dao: RoleDAO,
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
+    base_dn = "dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
@@ -139,30 +141,27 @@ async def test_ldap_delete_w_access_control(
 
         return await proc.wait()
 
-    assert await try_delete() == LDAPCodes.NO_SUCH_OBJECT
-
-    await create_access_policy(
-        name="TEST Read Access Policy",
-        can_add=False,
-        can_modify=False,
-        can_read=True,
-        can_delete=False,
-        grant_dn=dn,
-        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
-        session=session,
-    )
-
     assert await try_delete() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    await create_access_policy(
-        name="TEST Del Access Policy",
-        can_add=False,
-        can_modify=False,
-        can_read=True,
-        can_delete=True,
-        grant_dn=dn,
-        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
-        session=session,
+    delete_role = await role_dao.create_role(
+        role_name="Delete Role",
+        creator_upn=None,
+        is_system=False,
+        groups_dn=["cn=domain users,cn=groups," + base_dn],
+    )
+
+    delete_ace = AccessControlEntrySchema(
+        ace_type=AceType.DELETE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=None,
+        entity_type_id=None,
+        is_allow=True,
+    )
+
+    await role_dao.add_access_control_entries(
+        role_id=delete_role.id,
+        access_control_entries=[delete_ace],
     )
 
     assert await try_delete() == LDAPCodes.SUCCESS
