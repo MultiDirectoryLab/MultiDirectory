@@ -11,11 +11,11 @@ from loguru import logger
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
 
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import (
     AbstractKadmin,
     KRBAPIError,
@@ -29,6 +29,8 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.enums import AceType
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -45,7 +47,7 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
-from models import Attribute, Directory, Group, User
+from models import AccessControlEntry, Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -141,14 +143,26 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        if not ldap_session.user.role_ids:
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
         policy = await PasswordPolicySchema.get_policy_settings(session)
-        query = self._get_dir_query()
+        query = self._get_dir_query(ldap_session.user)
 
         directory = await session.scalar(query)
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
+
+        can_modify = AccessManager.check_modify_access(
+            changes=self.changes,
+            aces=directory.access_control_entries,
+            entity_type_id=directory.entity_type_id,
+        )
 
         names = {change.get_name() for change in self.changes}
 
@@ -158,7 +172,9 @@ class ModifyRequest(BaseRequest):
             ldap_session.user.directory_id,
         )
 
-        if not password_change_requested:
+        logger.critical(f"Can modify access: {can_modify}")
+
+        if not can_modify and not password_change_requested:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
@@ -236,13 +252,25 @@ class ModifyRequest(BaseRequest):
             case _:
                 raise err
 
-    def _get_dir_query(self) -> Select:
+    def _get_dir_query(self, user: UserSchema) -> Select:
         return (
             select(Directory)
             .options(
                 selectinload(Directory.attributes),
                 selectinload(Directory.groups),
                 joinedload(Directory.group).selectinload(Group.members),
+                selectinload(Directory.access_control_entries).joinedload(
+                    AccessControlEntry.attribute_type,
+                ),
+                with_loader_criteria(
+                    AccessControlEntry,
+                    and_(
+                        AccessControlEntry.role_id.in_(user.role_ids),
+                        AccessControlEntry.ace_type.in_(
+                            [AceType.DELETE, AceType.WRITE]
+                        ),
+                    ),
+                ),
             )
             .filter(get_filter_from_path(self.object))
         )
