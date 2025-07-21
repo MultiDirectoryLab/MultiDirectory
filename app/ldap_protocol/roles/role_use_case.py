@@ -195,7 +195,7 @@ class RoleUseCase:
         aces = self._get_full_access_aces(base_dn)
 
         all_users = await get_all_users(self._role_dao._session)
-        for user in all_users:
+        async for user in all_users:
             aces.append(
                 self._create_password_modify_ace(user.directory.path_dn)
             )

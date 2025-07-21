@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
@@ -361,7 +361,7 @@ async def get_principal_directory(
 
 async def get_all_users(
     session: AsyncSession,
-) -> list[User]:
+) -> AsyncScalarResult[User]:
     """Get all users with directory from the database.
 
     :param AsyncSession session: db session.
@@ -370,5 +370,4 @@ async def get_all_users(
     query = select(User).options(
         joinedload(User.directory),
     )
-    result = await session.scalars(query)
-    return list(result.all())
+    return await session.stream_scalars(query)
