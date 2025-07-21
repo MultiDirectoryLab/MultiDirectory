@@ -116,6 +116,7 @@ class ModifyDNRequest(BaseRequest):
         ldap_session: LDAPSession,
         session: AsyncSession,
         entity_type_dao: EntityTypeDAO,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:
@@ -167,7 +168,7 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        can_delete = AccessManager.check_entity_level_access(
+        can_delete = access_manager.check_entity_level_access(
             aces=directory.access_control_entries,
             entity_type_id=directory.entity_type_id,
         )
@@ -205,7 +206,7 @@ class ModifyDNRequest(BaseRequest):
 
             parent_dir = await session.scalar(parent_query)
             if parent_dir:
-                can_add = AccessManager.check_entity_level_access(
+                can_add = access_manager.check_entity_level_access(
                     aces=parent_dir.access_control_entries,
                     entity_type_id=directory.entity_type_id,
                 )
@@ -218,7 +219,7 @@ class ModifyDNRequest(BaseRequest):
             session.add(new_directory)
             new_directory.create_path(directory.parent, dn)
             if directory.parent:
-                await AccessManager.inherit_parent_aces(
+                await access_manager.inherit_parent_aces(
                     parent_directory=directory.parent,
                     directory=new_directory,
                     session=session,
@@ -239,7 +240,7 @@ class ModifyDNRequest(BaseRequest):
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
 
-            can_add = AccessManager.check_entity_level_access(
+            can_add = access_manager.check_entity_level_access(
                 aces=new_parent_dir.access_control_entries,
                 entity_type_id=directory.entity_type_id,
             )
@@ -260,7 +261,7 @@ class ModifyDNRequest(BaseRequest):
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
 
-            await AccessManager.inherit_parent_aces(
+            await access_manager.inherit_parent_aces(
                 parent_directory=new_parent_dir,
                 directory=new_directory,
                 session=session,

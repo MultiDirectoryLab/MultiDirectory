@@ -53,6 +53,7 @@ class DeleteRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         session_storage: SessionStorage,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
         if not ldap_session.user:
@@ -99,7 +100,7 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        can_delete = AccessManager.check_entity_level_access(
+        can_delete = access_manager.check_entity_level_access(
             aces=directory.access_control_entries,
             entity_type_id=directory.entity_type_id,
         )

@@ -251,6 +251,7 @@ class SearchRequest(BaseRequest):
         session: AsyncSession,
         ldap_session: LDAPSession,
         settings: Settings,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry,
         None,
@@ -264,6 +265,7 @@ class SearchRequest(BaseRequest):
             ldap_session.user,
             session,
             settings,
+            access_manager,
         ):
             yield response
 
@@ -272,6 +274,7 @@ class SearchRequest(BaseRequest):
         user: UserSchema | None,
         session: AsyncSession,
         settings: Settings,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
@@ -322,7 +325,9 @@ class SearchRequest(BaseRequest):
         if self.size_limit != 0:
             query = query.limit(self.size_limit)
 
-        async for response in self.tree_view(query, session, user):
+        async for response in self.tree_view(
+            query, session, user, access_manager
+        ):
             yield response
 
         yield SearchResultDone(
@@ -547,6 +552,7 @@ class SearchRequest(BaseRequest):
         query: Select,
         session: AsyncSession,
         user: UserSchema,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
@@ -558,7 +564,7 @@ class SearchRequest(BaseRequest):
             logger.critical("\n\n\n START ACCESS CONTROL \n\n\n")
 
             can_read, forbidden_attributes, allowed_attributes = (
-                AccessManager.check_search_access(
+                access_manager.check_search_access(
                     directory=directory,
                     user_dn=user.dn,
                 )
@@ -574,7 +580,7 @@ class SearchRequest(BaseRequest):
             if not can_read:
                 continue
 
-            if not AccessManager.check_search_filter_attrs(
+            if not access_manager.check_search_filter_attrs(
                 self._filter_interpreter.attributes,
                 forbidden_attributes,
                 allowed_attributes,

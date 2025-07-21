@@ -99,6 +99,7 @@ class AddRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
@@ -178,7 +179,7 @@ class AddRequest(BaseRequest):
 
         logger.critical(f"entity_type: {entity_type}")
 
-        can_add = AccessManager.check_entity_level_access(
+        can_add = access_manager.check_entity_level_access(
             aces=parent.access_control_entries,
             entity_type_id=entity_type.id if entity_type else None,
         )
@@ -397,13 +398,13 @@ class AddRequest(BaseRequest):
                 directory=new_dir,
                 is_system_entity_type=False,
             )
-            await AccessManager.inherit_parent_aces(
+            await access_manager.inherit_parent_aces(
                 parent_directory=parent,
                 directory=new_dir,
                 session=session,
             )
             if is_user:
-                await AccessManager.add_pwd_modify_ace_for_new_user(
+                await access_manager.add_pwd_modify_ace_for_new_user(
                     new_user_dir=new_dir,
                     session=session,
                 )

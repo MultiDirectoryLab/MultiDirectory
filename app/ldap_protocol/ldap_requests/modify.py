@@ -131,6 +131,7 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         entity_type_dao: EntityTypeDAO,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
@@ -158,7 +159,7 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        can_modify = AccessManager.check_modify_access(
+        can_modify = access_manager.check_modify_access(
             changes=self.changes,
             aces=directory.access_control_entries,
             entity_type_id=directory.entity_type_id,
