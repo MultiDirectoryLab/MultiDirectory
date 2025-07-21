@@ -96,11 +96,12 @@ class ModifyDNRequest(BaseRequest):
             new_superior=None if len(data) < 4 else data[3].value,
         )
 
-    def _mutate_query_with_ace_load(
+    def _mutate_query_with_create_ace_load(
         self,
         query: Select,
         user: UserSchema,
     ) -> Select:
+        """Mutate query to load access control entries for create operation."""
         return query.options(
             selectinload(Directory.access_control_entries),
             with_loader_criteria(
@@ -108,6 +109,24 @@ class ModifyDNRequest(BaseRequest):
                 and_(
                     AccessControlEntry.role_id.in_(user.role_ids),
                     AccessControlEntry.ace_type == AceType.CREATE_CHILD.value,
+                ),
+            ),
+        )
+
+    def _mutate_query_with_delete_ace_load(
+        self,
+        user_role_ids: list[int],
+        query: Select,
+    ) -> Select:
+        """Mutate query to load access control entries for delete operation."""
+        return query.options(
+            selectinload(Directory.access_control_entries),
+            with_loader_criteria(
+                AccessControlEntry,
+                and_(
+                    AccessControlEntry.role_id.in_(user_role_ids),
+                    AccessControlEntry.ace_type == AceType.DELETE.value,
+                    AccessControlEntry.attribute_type_id.is_(None),
                 ),
             ),
         )
@@ -145,19 +164,12 @@ class ModifyDNRequest(BaseRequest):
             select(Directory)
             .options(
                 selectinload(Directory.parent),
-                selectinload(Directory.access_control_entries),
-                with_loader_criteria(
-                    AccessControlEntry,
-                    and_(
-                        AccessControlEntry.role_id.in_(
-                            ldap_session.user.role_ids
-                        ),
-                        AccessControlEntry.ace_type == AceType.DELETE.value,
-                        AccessControlEntry.attribute_type_id.is_(None),
-                    ),
-                ),
             )
             .filter(get_filter_from_path(self.entry))
+        )
+
+        query = self._mutate_query_with_delete_ace_load(
+            ldap_session.user.role_ids, query
         )
 
         directory = await session.scalar(query)
@@ -202,7 +214,7 @@ class ModifyDNRequest(BaseRequest):
             parent_query = select(Directory).filter(
                 Directory.id == directory.parent_id
             )
-            parent_query = self._mutate_query_with_ace_load(
+            parent_query = self._mutate_query_with_create_ace_load(
                 parent_query, ldap_session.user
             )
 
@@ -230,7 +242,7 @@ class ModifyDNRequest(BaseRequest):
             new_sup_query = select(Directory).filter(
                 get_filter_from_path(self.new_superior)
             )
-            new_sup_query = self._mutate_query_with_ace_load(
+            new_sup_query = self._mutate_query_with_create_ace_load(
                 new_sup_query,
                 ldap_session.user,
             )

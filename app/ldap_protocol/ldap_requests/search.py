@@ -387,6 +387,23 @@ class SearchRequest(BaseRequest):
             ),
         )
 
+    def _mutate_query_with_ace_load(
+        self,
+        user_role_ids: list[int],
+        query: Select,
+    ) -> Select:
+        """Mutate query to load access control entries."""
+        return query.options(
+            selectinload(Directory.access_control_entries),
+            with_loader_criteria(
+                AccessControlEntry,
+                and_(
+                    AccessControlEntry.role_id.in_(user_role_ids),
+                    AccessControlEntry.ace_type == AceType.READ.value,
+                ),
+            ),
+        )
+
     def build_query(
         self,
         base_directories: list[Directory],
@@ -396,20 +413,15 @@ class SearchRequest(BaseRequest):
         query = (
             select(Directory)
             .join(Directory.user, isouter=True)
+            .join(Directory.group, isouter=True)
+            .join(Directory.entity_type, isouter=True)
             .options(
                 selectinload(Directory.group),
-                selectinload(Directory.access_control_entries),
-                with_loader_criteria(
-                    AccessControlEntry,
-                    and_(
-                        AccessControlEntry.role_id.in_(user.role_ids),
-                        AccessControlEntry.ace_type == AceType.READ.value,
-                    )
-                )
             )
-        )
+        )  # fmt: skip
 
         query = self._mutate_query_with_attributes_to_load(query)
+        query = self._mutate_query_with_ace_load(user.role_ids, query)
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):

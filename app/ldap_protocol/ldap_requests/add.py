@@ -9,7 +9,7 @@ from typing import AsyncGenerator, ClassVar
 import httpx
 from loguru import logger
 from pydantic import Field, SecretStr
-from sqlalchemy import and_, select
+from sqlalchemy import Select, and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, with_loader_criteria
@@ -94,6 +94,21 @@ class AddRequest(BaseRequest):
         ]
         return cls(entry=entry.value, attributes=attributes)  # type: ignore
 
+    def _mutate_query_with_ace_load(
+        self, user_role_ids: list[int], query: Select
+    ) -> Select:
+        """Mutate query to load access control entries."""
+        return query.options(
+            selectinload(Directory.access_control_entries),
+            with_loader_criteria(
+                AccessControlEntry,
+                and_(
+                    AccessControlEntry.role_id.in_(user_role_ids),
+                    AccessControlEntry.ace_type == AceType.CREATE_CHILD.value,
+                ),
+            ),
+        )
+
     async def handle(  # noqa: C901
         self,
         session: AsyncSession,
@@ -138,24 +153,13 @@ class AddRequest(BaseRequest):
         parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(",")[0].split("=")
 
-        parent = await session.scalar(
-            select(Directory)
-            .options(
-                selectinload(Directory.access_control_entries),
-                with_loader_criteria(
-                    AccessControlEntry,
-                    and_(
-                        AccessControlEntry.role_id.in_(
-                            ldap_session.user.role_ids
-                        ),
-                        AccessControlEntry.ace_type
-                        == AceType.CREATE_CHILD.value,
-                    ),
-                ),
-            )
-            .filter(parent_path)
+        parent_query = select(Directory).filter(parent_path)
+
+        parent_query = self._mutate_query_with_ace_load(
+            ldap_session.user.role_ids, parent_query
         )
 
+        parent = await session.scalar(parent_query)
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return

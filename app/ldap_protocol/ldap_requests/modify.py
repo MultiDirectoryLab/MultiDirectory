@@ -253,28 +253,38 @@ class ModifyRequest(BaseRequest):
             case _:
                 raise err
 
+    def _mutate_query_with_ace_load(
+        self,
+        user_role_ids: list[int],
+        query: Select,
+    ) -> Select:
+        """Mutate query to load access control entries."""
+        return query.options(
+            selectinload(Directory.access_control_entries).joinedload(
+                AccessControlEntry.attribute_type
+            ),
+            with_loader_criteria(
+                AccessControlEntry,
+                and_(
+                    AccessControlEntry.role_id.in_(user_role_ids),
+                    AccessControlEntry.ace_type.in_(
+                        [AceType.DELETE, AceType.WRITE]
+                    ),
+                ),
+            ),
+        )
+
     def _get_dir_query(self, user: UserSchema) -> Select:
-        return (
+        query = (
             select(Directory)
             .options(
                 selectinload(Directory.attributes),
                 selectinload(Directory.groups),
                 joinedload(Directory.group).selectinload(Group.members),
-                selectinload(Directory.access_control_entries).joinedload(
-                    AccessControlEntry.attribute_type,
-                ),
-                with_loader_criteria(
-                    AccessControlEntry,
-                    and_(
-                        AccessControlEntry.role_id.in_(user.role_ids),
-                        AccessControlEntry.ace_type.in_(
-                            [AceType.DELETE, AceType.WRITE]
-                        ),
-                    ),
-                ),
             )
             .filter(get_filter_from_path(self.object))
         )
+        return self._mutate_query_with_ace_load(user.role_ids, query)
 
     def _check_password_change_requested(
         self,

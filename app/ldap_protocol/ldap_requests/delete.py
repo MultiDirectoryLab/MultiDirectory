@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import and_, delete, select
+from sqlalchemy import Select, and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload, selectinload, with_loader_criteria
 
@@ -47,6 +47,22 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
+    def _mutate_query_with_ace_load(
+        self, user_role_ids: list[int], query: Select
+    ) -> Select:
+        """Mutate query to load access control entries."""
+        return query.options(
+            selectinload(Directory.access_control_entries),
+            with_loader_criteria(
+                AccessControlEntry,
+                and_(
+                    AccessControlEntry.role_id.in_(user_role_ids),
+                    AccessControlEntry.ace_type == AceType.DELETE.value,
+                    AccessControlEntry.attribute_type_id.is_(None),
+                ),
+            ),
+        )
+
     async def handle(
         self,
         session: AsyncSession,
@@ -75,19 +91,12 @@ class DeleteRequest(BaseRequest):
             .options(
                 defaultload(Directory.user),
                 defaultload(Directory.attributes),
-                selectinload(Directory.access_control_entries),
-                with_loader_criteria(
-                    AccessControlEntry,
-                    and_(
-                        AccessControlEntry.role_id.in_(
-                            ldap_session.user.role_ids
-                        ),
-                        AccessControlEntry.ace_type == AceType.DELETE.value,
-                        AccessControlEntry.attribute_type_id.is_(None),
-                    ),
-                ),
             )
             .filter(get_filter_from_path(self.entry))
+        )
+
+        query = self._mutate_query_with_ace_load(
+            ldap_session.user.role_ids, query
         )
 
         directory = await session.scalar(query)
