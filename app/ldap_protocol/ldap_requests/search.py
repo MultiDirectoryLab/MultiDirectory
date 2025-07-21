@@ -22,7 +22,10 @@ from sqlalchemy.sql.expression import Select
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.filter_interpreter import FilterInterpreter
+from ldap_protocol.filter_interpreter import (
+    FilterInterpreterProtocol,
+    LDAPFilterInterpreter,
+)
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -105,8 +108,8 @@ class SearchRequest(BaseRequest):
 
     page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
 
-    _filter_interpreter: FilterInterpreter = PrivateAttr(
-        default_factory=FilterInterpreter
+    _filter_interpreter: FilterInterpreterProtocol = PrivateAttr(
+        default_factory=LDAPFilterInterpreter
     )
 
     class Config:
@@ -244,7 +247,7 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sa session
         :return UnaryExpression: condition
         """
-        return self._filter_interpreter.cast_filter2sql(self.filter)
+        return self._filter_interpreter.cast_to_sql(self.filter)
 
     async def handle(
         self,
