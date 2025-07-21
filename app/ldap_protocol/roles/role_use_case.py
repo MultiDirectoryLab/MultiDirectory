@@ -33,30 +33,32 @@ class RoleUseCase:
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
+        directory_filter = Directory.id == parent_directory.id
+
+        subtree_inheritance = and_(
+            AccessControlEntry.depth != Directory.depth,
+            AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
+        )
+
+        explicit_inheritance = and_(
+            AccessControlEntry.depth == Directory.depth,
+            AccessControlEntry.scope.in_(
+                [
+                    RoleScope.SINGLE_LEVEL,
+                    RoleScope.WHOLE_SUBTREE,
+                ]
+            ),
+        )
+
+        inheritance_conditions = or_(subtree_inheritance, explicit_inheritance)
+
         query = (
             select(AccessControlEntry)
             .join(AccessControlEntry.directories)
             .options(
                 selectinload(AccessControlEntry.directories),
             )
-            .where(
-                Directory.id == parent_directory.id,
-                or_(
-                    and_(
-                        AccessControlEntry.depth != Directory.depth,
-                        AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
-                    ),
-                    and_(
-                        AccessControlEntry.depth == Directory.depth,
-                        AccessControlEntry.scope.in_(
-                            [
-                                RoleScope.SINGLE_LEVEL,
-                                RoleScope.WHOLE_SUBTREE,
-                            ]
-                        ),
-                    ),
-                ),
-            )
+            .where(directory_filter, inheritance_conditions)
         )
 
         aces = (await self._role_dao._session.execute(query)).scalars().all()
