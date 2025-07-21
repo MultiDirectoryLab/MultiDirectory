@@ -11,7 +11,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
-from api.auth.oauth2 import ALGORITHM, authenticate_user
+from api.auth.oauth2 import ALGORITHM
 from api.auth.schema import (
     MFAChallengeResponse,
     MFACreateRequest,
@@ -28,6 +28,7 @@ from api.exceptions.mfa import (
 )
 from config import Settings
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
+from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.multifactor import (
     Creds,
     MFA_HTTP_Creds,

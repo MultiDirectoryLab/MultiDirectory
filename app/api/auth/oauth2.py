@@ -18,9 +18,7 @@ from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import get_user
 from models import Group, User
-from security import verify_password
 
 ALGORITHM = "HS256"
 
@@ -31,25 +29,6 @@ _CREDENTIALS_EXCEPTION = HTTPException(
 )
 
 
-async def authenticate_user(
-    session: AsyncSession,
-    username: str,
-    password: str,
-) -> User | None:
-    """Get user and verify password.
-
-    :param AsyncSession session: sa session
-    :param str username: any str
-    :param str password: any str
-    :return User | None: User model (pydantic)
-    """
-    user = await get_user(session, username)
-
-    if not user or not user.password or not password:
-        return None
-    if not verify_password(password, user.password):
-        return None
-    return user
 
 
 @inject

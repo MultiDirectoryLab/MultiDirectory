@@ -12,7 +12,7 @@ from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.oauth2 import authenticate_user
+from ldap_protocol.identity.utils import authenticate_user
 from models import CatalogueSetting
 from tests.conftest import TestCreds
 
