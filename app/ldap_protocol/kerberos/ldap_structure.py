@@ -18,11 +18,11 @@ from models import AccessPolicy, Directory
 from .base import AbstractKadmin
 
 
-class LDAPStructureManager:
+class KRBLDAPStructureManager:
     """Manager for Kerberos-related LDAP structure operations."""
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize LDAPStructureManager with a database session.
+        """Initialize KRBLDAPStructureManager with a database session.
 
         :param AsyncSession session: SQLAlchemy async session.
         :return None.

@@ -9,7 +9,7 @@ import jinja2
 from .schemas import KDCContext
 
 
-class TemplateRenderer:
+class KRBTemplateRenderer:
     """Renderer for Kerberos configuration templates.
 
     Handles asynchronous rendering of krb5 and kdc configuration files
@@ -17,7 +17,7 @@ class TemplateRenderer:
     """
 
     def __init__(self, templates: jinja2.Environment) -> None:
-        """Initialize TemplateRenderer with Jinja2 templates.
+        """Initialize KRBTemplateRenderer with Jinja2 templates.
 
         :param templates: Jinja2 environment or template loader.
         """
