@@ -264,10 +264,10 @@ class AccessManager:
         """
         result_aces_list = []
         self_read_ace = AccessControlEntry(
-            ace_type=AceType.READ.value,
+            ace_type=AceType.READ,
             depth=directory.depth,
             path=directory.path_dn,
-            scope=RoleScope.SELF.value,
+            scope=RoleScope.SELF,
             is_allow=True,
             entity_type_id=None,
             attribute_type_id=None,

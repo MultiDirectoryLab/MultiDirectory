@@ -104,7 +104,7 @@ class AddRequest(BaseRequest):
                 AccessControlEntry,
                 and_(
                     AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type == AceType.CREATE_CHILD.value,
+                    AccessControlEntry.ace_type == AceType.CREATE_CHILD,
                 ),
             ),
         )

@@ -44,15 +44,14 @@ class RoleUseCase:
                 or_(
                     and_(
                         AccessControlEntry.depth != Directory.depth,
-                        AccessControlEntry.scope
-                        == RoleScope.WHOLE_SUBTREE.value,
+                        AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
                     ),
                     and_(
                         AccessControlEntry.depth == Directory.depth,
                         AccessControlEntry.scope.in_(
                             [
-                                RoleScope.SINGLE_LEVEL.value,
-                                RoleScope.WHOLE_SUBTREE.value,
+                                RoleScope.SINGLE_LEVEL,
+                                RoleScope.WHOLE_SUBTREE,
                             ]
                         ),
                     ),
@@ -83,7 +82,7 @@ class RoleUseCase:
             .where(
                 Directory.id == dir_id,
                 AccessControlEntry.role_id.in_(user_role_ids),
-                AccessControlEntry.ace_type == AceType.PASSWORD_MODIFY.value,
+                AccessControlEntry.ace_type == AceType.PASSWORD_MODIFY,
             )
             .order_by(
                 AccessControlEntry.depth.asc(),
@@ -113,10 +112,10 @@ class RoleUseCase:
             return
 
         new_pwd_ace = AccessControlEntry(
-            ace_type=AceType.PASSWORD_MODIFY.value,
+            ace_type=AceType.PASSWORD_MODIFY,
             depth=new_user_dir.depth,
             path=new_user_dir.path_dn,
-            scope=RoleScope.SELF.value,
+            scope=RoleScope.SELF,
             is_allow=True,
             entity_type_id=None,
             attribute_type_id=None,

@@ -108,7 +108,7 @@ class ModifyDNRequest(BaseRequest):
                 AccessControlEntry,
                 and_(
                     AccessControlEntry.role_id.in_(user.role_ids),
-                    AccessControlEntry.ace_type == AceType.CREATE_CHILD.value,
+                    AccessControlEntry.ace_type == AceType.CREATE_CHILD,
                 ),
             ),
         )
@@ -125,7 +125,7 @@ class ModifyDNRequest(BaseRequest):
                 AccessControlEntry,
                 and_(
                     AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type == AceType.DELETE.value,
+                    AccessControlEntry.ace_type == AceType.DELETE,
                     AccessControlEntry.attribute_type_id.is_(None),
                 ),
             ),
