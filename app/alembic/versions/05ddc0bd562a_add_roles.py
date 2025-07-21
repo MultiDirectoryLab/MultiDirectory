@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from models import Directory, Group
 
@@ -107,8 +108,9 @@ def upgrade() -> None:
             return
 
         role_dao = RoleDAO(session)
-        await role_dao.create_domain_admins_role(base_dn_list[0].path_dn)
-        await role_dao.create_read_only_role(base_dn_list[0].path_dn)
+        role_use_case = RoleUseCase(role_dao)
+        await role_use_case.create_domain_admins_role(base_dn_list[0].path_dn)
+        await role_use_case.create_read_only_role(base_dn_list[0].path_dn)
 
         krb_group_query = (
             select(Group)
@@ -121,7 +123,9 @@ def upgrade() -> None:
             await session.scalars(select(krb_group_query))
         ).one()
         if krb_group_exists:
-            await role_dao.create_kerberos_system_role(base_dn_list[0].path_dn)
+            await role_use_case.create_kerberos_system_role(
+                base_dn_list[0].path_dn
+            )
 
         await session.commit()
 
