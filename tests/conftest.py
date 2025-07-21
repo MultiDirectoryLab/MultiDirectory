@@ -210,14 +210,6 @@ class TestProvider(Provider):
         cache=False,
     )
 
-    @provide(scope=Scope.REQUEST, provides=RoleDAO, cache=False)
-    def get_role_dao(
-        self,
-        session: AsyncSession,
-    ) -> RoleDAO:
-        """Get Role DAO."""
-        return RoleDAO(session)
-
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
@@ -324,6 +316,7 @@ class TestProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
+    role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
