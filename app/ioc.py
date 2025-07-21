@@ -42,6 +42,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
@@ -226,6 +227,8 @@ class HTTPProvider(Provider):
     ) -> RoleDAO:
         """Get Role DAO."""
         return RoleDAO(session)
+
+    access_manager = provide(AccessManager, scope=Scope.REQUEST)
 
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
