@@ -26,9 +26,9 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
 from .base import AbstractKadmin, KerberosState, KRBAPIError
-from .ldap_structure import LDAPStructureManager
+from .ldap_structure import KRBLDAPStructureManager
 from .schemas import AddRequests, KDCContext, KerberosAdminDnGroup, TaskStruct
-from .template_render import TemplateRenderer
+from .template_render import KRBTemplateRenderer
 from .utils import get_krb_server_state, set_state
 
 
@@ -40,6 +40,8 @@ class KerberosService:
         session: AsyncSession,
         settings: Settings,
         kadmin: AbstractKadmin,
+        krb_template_render: KRBTemplateRenderer,
+        krb_ldap_manager: KRBLDAPStructureManager,
     ) -> None:
         """Initialize KerberosService dependencies.
 
@@ -47,13 +49,17 @@ class KerberosService:
             session (AsyncSession): SQLAlchemy async session.
             settings (Settings): App settings.
             kadmin (AbstractKadmin): Kerberos admin interface.
+            krb_template_render (KRBTemplateRenderer):
+                Template renderer for Kerberos (IoC-injected).
+            krb_ldap_manager (KRBLDAPStructureManager):
+                LDAP structure manager for Kerberos (IoC-injected).
 
         """
         self._session = session
         self._settings = settings
         self._kadmin = kadmin
-        self._template_render = TemplateRenderer(settings.TEMPLATES)
-        self._ldap_manager = LDAPStructureManager(session)
+        self._template_render = krb_template_render
+        self._ldap_manager = krb_ldap_manager
 
     async def setup_krb_catalogue(
         self,

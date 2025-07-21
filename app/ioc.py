@@ -28,7 +28,9 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
+from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
+from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -246,6 +248,16 @@ class HTTPProvider(Provider):
         KerberosFastAPIAdapter,
         scope=Scope.REQUEST,
     )
+
+    @provide(scope=Scope.REQUEST)
+    def get_krb_template_render(
+        self,
+        settings: Settings,
+    ) -> KRBTemplateRenderer:
+        """Provide KRBTemplateRenderer with settings.TEMPLATES."""
+        return KRBTemplateRenderer(settings.TEMPLATES)
+
+    krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(Provider):
