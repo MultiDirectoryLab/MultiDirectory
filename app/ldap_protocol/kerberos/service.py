@@ -232,7 +232,11 @@ class KerberosService:
         else:
             await set_state(self._session, KerberosState.READY)
             await self._session.commit()
-            return await self._schedule_principal_task(request, user, admin_password)
+            return await self._schedule_principal_task(
+                request,
+                user,
+                admin_password,
+            )
 
     async def _get_kdc_context(self) -> KDCContext:
         """Build and return context for KDC setup/config rendering.
