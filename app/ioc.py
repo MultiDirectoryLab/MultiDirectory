@@ -171,14 +171,6 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings, http_client=http_client)
 
-    @provide(scope=Scope.REQUEST)
-    async def get_role_dao(
-        self,
-        session: AsyncSession,
-    ) -> RoleDAO:
-        """Get Role DAO."""
-        return RoleDAO(session)
-
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
@@ -206,6 +198,7 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
+    role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
@@ -222,14 +215,7 @@ class HTTPProvider(Provider):
         """Create ldap session."""
         return LDAPSession()
 
-    @provide(provides=RoleDAO)
-    async def get_role_dao(
-        self,
-        session: AsyncSession,
-    ) -> RoleDAO:
-        """Get Role DAO."""
-        return RoleDAO(session)
-
+    role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
