@@ -6,14 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal
 
-from loguru import logger
-from sqlalchemy import and_, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from ldap_protocol.objects import Changes, Operation
-from ldap_protocol.roles.enums import AceType, RoleConstants, RoleScope
-from models import AccessControlEntry, Directory, Role
+from ldap_protocol.roles.enums import AceType, RoleScope
+from models import AccessControlEntry, Directory
 
 
 class AccessManager:
@@ -215,78 +210,6 @@ class AccessManager:
                 return True
 
         return False
-
-    @staticmethod
-    async def inherit_parent_aces(
-        parent_directory: Directory,
-        directory: Directory,
-        session: AsyncSession,
-    ) -> None:
-        query = (
-            select(AccessControlEntry)
-            .join(AccessControlEntry.directories)
-            .options(
-                selectinload(AccessControlEntry.directories),
-            )
-            .where(
-                Directory.id == parent_directory.id,
-                or_(
-                    and_(
-                        AccessControlEntry.depth != Directory.depth,
-                        AccessControlEntry.scope
-                        == RoleScope.WHOLE_SUBTREE.value,
-                    ),
-                    and_(
-                        AccessControlEntry.depth == Directory.depth,
-                        AccessControlEntry.scope.in_(
-                            [
-                                RoleScope.SINGLE_LEVEL.value,
-                                RoleScope.WHOLE_SUBTREE.value,
-                            ]
-                        ),
-                    ),
-                ),
-            )
-        )
-
-        aces = (await session.execute(query)).scalars().all()
-        logger.critical(f"parent aces: {aces}")
-
-        for ace in aces:
-            ace.directories.append(directory)
-
-    @staticmethod
-    async def add_pwd_modify_ace_for_new_user(
-        new_user_dir: Directory,
-        session: AsyncSession,
-    ) -> None:
-        """Add password modify access to the Domain Admins Role.
-
-        :param new_user_dir: Directory object for the new user.
-        :param session: Database session.
-        """
-        domain_admins_role = await session.scalar(
-            select(Role)
-            .where(Role.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
-            .options(selectinload(Role.access_control_entries))
-        )
-        if not domain_admins_role:
-            logger.error("Domain Admins Role not found.")
-            return
-
-        new_pwd_ace = AccessControlEntry(
-            ace_type=AceType.PASSWORD_MODIFY.value,
-            depth=new_user_dir.depth,
-            path=new_user_dir.path_dn,
-            scope=RoleScope.SELF.value,
-            is_allow=True,
-            entity_type_id=None,
-            attribute_type_id=None,
-            directories=[new_user_dir],
-        )
-
-        session.add(new_pwd_ace)
-        domain_admins_role.access_control_entries.append(new_pwd_ace)
 
     @classmethod
     def _get_effective_aces(
