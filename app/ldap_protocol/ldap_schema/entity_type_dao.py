@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Iterable
 
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -133,13 +133,17 @@ class EntityTypeDAO:
         :param Iterable[str] object_class_names: object class names.
         :return EntityType | None: Instance of Entity Type or None.
         """
+        list_object_class_names = [name.lower() for name in object_class_names]
         result = await self.__session.execute(
-            select(EntityType)
-            .where(
-                EntityType.object_class_names.contains(object_class_names),
-                EntityType.object_class_names.contained_by(object_class_names)
+            select(EntityType).where(
+                func.array_lowercase(EntityType.object_class_names).op("@>")(
+                    list_object_class_names
+                ),
+                func.array_lowercase(EntityType.object_class_names).op("<@")(
+                    list_object_class_names
+                ),
             )
-        )  # fmt: skip
+        )
 
         return result.scalars().first()
 
