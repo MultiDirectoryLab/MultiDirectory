@@ -26,7 +26,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
 from security import get_password_hash, verify_password
@@ -51,7 +51,7 @@ class BaseExtendedValue(ABC, BaseModel):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
-        role_dao: RoleDAO,
+        role_use_case: RoleUseCase,
     ) -> BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
@@ -105,7 +105,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
         _: AsyncSession,
         kadmin: AbstractKadmin,  # noqa: ARG002
         settings: Settings,  # noqa: ARG002
-        role_dao: RoleDAO,  # noqa: ARG002
+        role_use_case: RoleUseCase,  # noqa: ARG002
     ) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
@@ -136,7 +136,7 @@ class StartTLSRequestValue(BaseExtendedValue):
         session: AsyncSession,  # noqa: ARG002
         kadmin: AbstractKadmin,  # noqa: ARG002
         settings: Settings,
-        role_dao: RoleDAO,  # noqa: ARG002
+        role_use_case: RoleUseCase,  # noqa: ARG002
     ) -> StartTLSResponse:
         """Update password of current or selected user."""
         if settings.USE_CORE_TLS:
@@ -191,7 +191,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
-        role_dao: RoleDAO,
+        role_use_case: RoleUseCase,
     ) -> PasswdModifyResponse:
         """Update password of current or selected user."""
         if not settings.USE_CORE_TLS:
@@ -227,7 +227,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             errors.append("Minimum age violation")
 
         if ldap_session.user and self.user_identity:
-            pwd_ace = await role_dao.get_password_ace(
+            pwd_ace = await role_use_case.get_password_ace(
                 dir_id=user.directory_id,
                 user_role_ids=ldap_session.user.role_ids,
             )
@@ -302,7 +302,7 @@ class ExtendedRequest(BaseRequest):
         session: AsyncSession,
         kadmin: AbstractKadmin,
         settings: Settings,
-        role_dao: RoleDAO,
+        role_use_case: RoleUseCase,
     ) -> AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
         try:
@@ -311,7 +311,7 @@ class ExtendedRequest(BaseRequest):
                 session,
                 kadmin,
                 settings,
-                role_dao,
+                role_use_case,
             )
         except PermissionError as err:
             logger.critical(err)

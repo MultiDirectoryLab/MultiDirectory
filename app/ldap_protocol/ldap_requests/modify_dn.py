@@ -23,6 +23,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.enums import AceType
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_path_filter,
@@ -117,6 +118,7 @@ class ModifyDNRequest(BaseRequest):
         session: AsyncSession,
         entity_type_dao: EntityTypeDAO,
         access_manager: AccessManager,
+        role_use_case: RoleUseCase,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:
@@ -219,10 +221,9 @@ class ModifyDNRequest(BaseRequest):
             session.add(new_directory)
             new_directory.create_path(directory.parent, dn)
             if directory.parent:
-                await access_manager.inherit_parent_aces(
+                await role_use_case.inherit_parent_aces(
                     parent_directory=directory.parent,
                     directory=new_directory,
-                    session=session,
                 )
 
         else:
@@ -261,10 +262,9 @@ class ModifyDNRequest(BaseRequest):
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
 
-            await access_manager.inherit_parent_aces(
+            await role_use_case.inherit_parent_aces(
                 parent_directory=new_parent_dir,
                 directory=new_directory,
-                session=session,
             )
 
         try:

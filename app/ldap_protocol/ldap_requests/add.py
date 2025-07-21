@@ -27,6 +27,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.enums import AceType
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -100,6 +101,7 @@ class AddRequest(BaseRequest):
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
         access_manager: AccessManager,
+        role_use_case: RoleUseCase,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
@@ -398,15 +400,13 @@ class AddRequest(BaseRequest):
                 directory=new_dir,
                 is_system_entity_type=False,
             )
-            await access_manager.inherit_parent_aces(
+            await role_use_case.inherit_parent_aces(
                 parent_directory=parent,
                 directory=new_dir,
-                session=session,
             )
             if is_user:
-                await access_manager.add_pwd_modify_ace_for_new_user(
+                await role_use_case.add_pwd_modify_ace_for_new_user(
                     new_user_dir=new_dir,
-                    session=session,
                 )
             await session.flush()
         except IntegrityError:
