@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from pydantic import SecretStr
@@ -47,8 +47,8 @@ class TaskStruct:
     """Structure for background task: function, args, kwargs."""
 
     func: Callable[..., Any]
-    args: tuple[Any, ...]
-    kwargs: dict[str, Any]
+    args: tuple[Any, ...] = field(default_factory=tuple)
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

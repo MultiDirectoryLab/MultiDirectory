@@ -300,7 +300,7 @@ class KerberosService:
             user.user_principal_name.split("@")[0],
             data.admin_password.get_secret_value(),
         )
-        return TaskStruct(func=func, args=args, kwargs={})
+        return TaskStruct(func=func, args=args)
 
     async def add_principal(self, primary: str, instance: str) -> None:
         """Create principal in Kerberos with given name.
@@ -389,7 +389,7 @@ class KerberosService:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
         func = response.aclose
-        return aiter_bytes, TaskStruct(func=func, args=tuple(), kwargs={})
+        return aiter_bytes, TaskStruct(func=func)
 
     async def get_status(self) -> KerberosState:
         """Get Kerberos server state (db + actual server).

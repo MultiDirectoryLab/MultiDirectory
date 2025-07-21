@@ -1,15 +1,6 @@
 """FastAPI adapter for KerberosService."""
 
-import functools
-from typing import (
-    Any,
-    AsyncGenerator,
-    Awaitable,
-    Callable,
-    ParamSpec,
-    TypeVar,
-    cast,
-)
+from typing import Any, AsyncGenerator, Awaitable, Callable, ParamSpec, TypeVar
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
@@ -43,42 +34,34 @@ class KerberosFastAPIAdapter:
         """
         self._service = service
 
-    @staticmethod
-    def _kerberos_error_handler(
+    async def _sc(
+        self,
         func: Callable[P, Awaitable[R]],
-    ) -> Callable[P, Awaitable[R]]:
-        """Kerberos exception-to-HTTP mapping decorator.
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> R:
+        """Convert Kerberos exceptions to HTTPException.
 
-        :param func: Async method to wrap.
-        :return: Wrapped async method with Kerberos exception handling.
+        :raises HTTPException: on Kerberos errors
+        :return: Result of the function call.
         """
+        try:
+            return await func(*args, **kwargs)
+        except KerberosDependencyError as exc:
+            raise HTTPException(
+                status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc)
+            )
+        except KerberosNotFoundError as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
+        except KerberosConflictError:
+            raise HTTPException(status.HTTP_409_CONFLICT)
+        except KerberosUnavailableError:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
+        except KerberosBaseDnNotFoundError as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+            )
 
-        @functools.wraps(func)
-        async def wrapper(self: Any, *args: P.args, **kwargs: P.kwargs) -> R:
-            try:
-                return await func(self, *args, **kwargs)
-            except KerberosDependencyError as exc:
-                raise HTTPException(
-                    status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc)
-                )
-
-            except KerberosNotFoundError as exc:
-                raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
-
-            except KerberosConflictError:
-                raise HTTPException(status.HTTP_409_CONFLICT)
-
-            except KerberosUnavailableError:
-                raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
-
-            except KerberosBaseDnNotFoundError as exc:
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
-                )
-
-        return cast("Callable[P, Awaitable[R]]", wrapper)
-
-    @_kerberos_error_handler
     async def setup_krb_catalogue(
         self,
         mail: str,
@@ -91,14 +74,14 @@ class KerberosFastAPIAdapter:
         :raises HTTPException: on Kerberos errors
         :return: None
         """
-        return await self._service.setup_krb_catalogue(
+        return await self._sc(
+            self._service.setup_krb_catalogue,
             mail,
             krbadmin_password,
             ldap_session,
             entity_type_dao,
         )
 
-    @_kerberos_error_handler
     async def setup_kdc(
         self,
         data: KerberosSetupRequest,
@@ -110,7 +93,12 @@ class KerberosFastAPIAdapter:
         :raises HTTPException: on Kerberos errors
         :return: BackgroundTask (background task scheduled)
         """
-        task_struct = await self._service.setup_kdc(data, user, request)
+        task_struct = await self._sc(
+            self._service.setup_kdc,
+            data,
+            user,
+            request,
+        )
         task = BackgroundTask(
             task_struct.func,
             *task_struct.args,
@@ -118,7 +106,6 @@ class KerberosFastAPIAdapter:
         )
         return Response(background=task)
 
-    @_kerberos_error_handler
     async def add_principal(
         self,
         primary: str,
@@ -129,9 +116,8 @@ class KerberosFastAPIAdapter:
         :raises HTTPException: on Kerberos errors
         :return: None
         """
-        return await self._service.add_principal(primary, instance)
+        return await self._sc(self._service.add_principal, primary, instance)
 
-    @_kerberos_error_handler
     async def rename_principal(
         self,
         principal_name: str,
@@ -142,11 +128,12 @@ class KerberosFastAPIAdapter:
         :raises HTTPException: on Kerberos errors
         :return: None
         """
-        return await self._service.rename_principal(
-            principal_name, principal_new_name
+        return await self._sc(
+            self._service.rename_principal,
+            principal_name,
+            principal_new_name,
         )
 
-    @_kerberos_error_handler
     async def reset_principal_pw(
         self,
         principal_name: str,
@@ -157,11 +144,12 @@ class KerberosFastAPIAdapter:
         :raises HTTPException: on Kerberos errors
         :return: None
         """
-        return await self._service.reset_principal_pw(
-            principal_name, new_password
+        return await self._sc(
+            self._service.reset_principal_pw,
+            principal_name,
+            new_password,
         )
 
-    @_kerberos_error_handler
     async def delete_principal(
         self,
         principal_name: str,
@@ -171,9 +159,8 @@ class KerberosFastAPIAdapter:
         :raises HTTPException: on Kerberos errors
         :return: None
         """
-        return await self._service.delete_principal(principal_name)
+        return await self._sc(self._service.delete_principal, principal_name)
 
-    @_kerberos_error_handler
     async def ktadd(
         self,
         names: list[str],
@@ -183,7 +170,10 @@ class KerberosFastAPIAdapter:
         :raises HTTPException: on Kerberos errors
         :return: StreamingResponse
         """
-        aiter_bytes, task_struct = await self._service.ktadd(names)
+        aiter_bytes, task_struct = await self._sc(
+            self._service.ktadd,
+            names,
+        )
         task = BackgroundTask(
             task_struct.func,
             *task_struct.args,
@@ -207,11 +197,10 @@ class KerberosFastAPIAdapter:
             background=task,
         )
 
-    @_kerberos_error_handler
     async def get_status(self) -> KerberosState:
         """Get Kerberos server state.
 
         :raises HTTPException: on Kerberos errors
         :return: KerberosState
         """
-        return await self._service.get_status()
+        return await self._sc(self._service.get_status)
