@@ -114,11 +114,13 @@ def upgrade() -> None:
             select(Group)
             .join(Group.directory)
             .where(Directory.name == "krbadmin")
+            .exists()
         )
 
-        krb_group = (await session.scalars(krb_group_query)).first()
-
-        if krb_group:
+        krb_group_exists = (
+            await session.scalars(select(krb_group_query))
+        ).one()
+        if krb_group_exists:
             await role_dao.create_kerberos_system_role(base_dn_list[0].path_dn)
 
         await session.commit()
