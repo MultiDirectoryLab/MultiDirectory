@@ -18,6 +18,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.policies.network_policy import is_user_group_valid
+from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.enums import AceType, RoleScope
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
@@ -238,6 +239,7 @@ async def test_bvalue_in_search_request(
     session: AsyncSession,
     ldap_bound_session: LDAPSession,
     settings: Settings,
+    access_manager: AccessManager,
 ) -> None:
     """Test SearchRequest with bytes data."""
     request = SearchRequest(
@@ -252,7 +254,7 @@ async def test_bvalue_in_search_request(
     )
 
     result: SearchResultEntry = await anext(
-        request.handle(session, ldap_bound_session, settings)  # type: ignore
+        request.handle(session, ldap_bound_session, settings, access_manager)  # type: ignore
     )
 
     assert result

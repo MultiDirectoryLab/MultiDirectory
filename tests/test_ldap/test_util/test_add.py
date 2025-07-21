@@ -19,6 +19,7 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.enums import AceType, RoleScope
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_search_path
@@ -226,6 +227,7 @@ async def test_add_bvalue_attr(
     ldap_bound_session: LDAPSession,
     kadmin: AbstractKadmin,
     entity_type_dao: EntityTypeDAO,
+    access_manager: AccessManager,
 ) -> None:
     """Test AddRequest with bytes data."""
     request = AddRequest(
@@ -234,7 +236,13 @@ async def test_add_bvalue_attr(
         password=None,
     )
     result = await anext(
-        request.handle(session, ldap_bound_session, kadmin, entity_type_dao)
+        request.handle(
+            session,
+            ldap_bound_session,
+            kadmin,
+            entity_type_dao,
+            access_manager,
+        )
     )
     assert result.result_code == LDAPCodes.SUCCESS
 

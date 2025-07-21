@@ -63,6 +63,7 @@ from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
@@ -322,6 +323,8 @@ class TestProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
+    access_manager = provide(AccessManager, scope=Scope.REQUEST)
+
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
         scope=Scope.REQUEST,
@@ -562,6 +565,12 @@ async def role_dao(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield RoleDAO(session)
+
+
+@pytest.fixture
+def access_manager() -> AccessManager:
+    """Get access manager."""
+    return AccessManager()
 
 
 @pytest.fixture(scope="session", autouse=True)
