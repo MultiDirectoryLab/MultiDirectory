@@ -17,9 +17,9 @@ from pydantic import SecretStr
 
 from api.auth import get_current_user
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
+from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
-from ldap_protocol.kerberos.schemas import KerberosSetupRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.const import EmailStr
 

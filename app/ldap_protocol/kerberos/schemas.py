@@ -7,8 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from pydantic import SecretStr
-
 from ldap_protocol.ldap_requests import AddRequest
 
 
@@ -49,12 +47,3 @@ class TaskStruct:
     func: Callable[..., Any]
     args: tuple[Any, ...] = field(default_factory=tuple)
     kwargs: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class KerberosSetupRequest:
-    """Kerberos setup data."""
-
-    krbadmin_password: SecretStr
-    admin_password: SecretStr
-    stash_password: SecretStr

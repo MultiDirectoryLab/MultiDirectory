@@ -27,13 +27,7 @@ from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
 from .base import AbstractKadmin, KerberosState, KRBAPIError
 from .ldap_structure import LDAPStructureManager
-from .schemas import (
-    AddRequests,
-    KDCContext,
-    KerberosAdminDnGroup,
-    KerberosSetupRequest,
-    TaskStruct,
-)
+from .schemas import AddRequests, KDCContext, KerberosAdminDnGroup, TaskStruct
 from .template_render import TemplateRenderer
 from .utils import get_krb_server_state, set_state
 
@@ -187,14 +181,18 @@ class KerberosService:
 
     async def setup_kdc(
         self,
-        data: KerberosSetupRequest,
+        krbadmin_password: str,
+        admin_password: str,
+        stash_password: str,
         user: UserSchema,
         request: Request,
     ) -> TaskStruct:
         """Set up KDC, generate configs, and return TaskStruct.
 
         Args:
-            data (KerberosSetupRequest): KDC setup request data.
+            krbadmin_password (str): Password for krbadmin.
+            admin_password (str): Password for admin.
+            stash_password (str): Stash password.
             user (UserSchema): Current user.
             request (Request): FastAPI request (for DI container).
 
@@ -210,15 +208,15 @@ class KerberosService:
             context.ldap_uri = self._settings.KRB5_LDAP_URI
             krb5_config = await self._template_render.render_krb5(context)
             kdc_config = await self._template_render.render_kdc(context)
-            await self._authenticate_admin(user, data)
+            await self._authenticate_admin(user, admin_password)
             await self._kadmin.setup(
                 domain=context.domain,
                 admin_dn=await get_dn_by_id(user.directory_id, self._session),
                 services_dn=context.services_container,
                 krbadmin_dn=context.krbadmin,
-                krbadmin_password=data.krbadmin_password.get_secret_value(),
-                admin_password=data.admin_password.get_secret_value(),
-                stash_password=data.stash_password.get_secret_value(),
+                krbadmin_password=krbadmin_password,
+                admin_password=admin_password,
+                stash_password=stash_password,
                 krb5_config=krb5_config,
                 kdc_config=kdc_config,
                 ldap_keytab_path=self._settings.KRB5_LDAP_KEYTAB,
@@ -234,7 +232,7 @@ class KerberosService:
         else:
             await set_state(self._session, KerberosState.READY)
             await self._session.commit()
-            return await self._schedule_principal_task(request, user, data)
+            return await self._schedule_principal_task(request, user, admin_password)
 
     async def _get_kdc_context(self) -> KDCContext:
         """Build and return context for KDC setup/config rendering.
@@ -258,19 +256,19 @@ class KerberosService:
     async def _authenticate_admin(
         self,
         user: UserSchema,
-        data: KerberosSetupRequest,
+        password: str,
     ) -> None:
         """Authenticate admin user for KDC setup.
 
         :param UserSchema user: User performing the setup.
-        :param KerberosSetupRequest data: Setup request data.
+        :param str password: Password for admin.
         :raises KerberosDependencyError: If authentication fails.
         :return None: None.
         """
         if not await authenticate_user(
             self._session,
             user.user_principal_name,
-            data.admin_password.get_secret_value(),
+            password,
         ):
             raise KerberosDependencyError("Incorrect password")
 
@@ -278,13 +276,13 @@ class KerberosService:
         self,
         request: Request,
         user: UserSchema,
-        data: KerberosSetupRequest,
+        password: str,
     ) -> TaskStruct:
         """Schedule background task for principal creation after KDC setup.
 
         :param Request request: FastAPI request (for DI container).
         :param UserSchema user: User for whom principal is created.
-        :param KerberosSetupRequest data: Setup request data.
+        :param str password: Password for admin.
         :return: tuple (func, args, kwargs) for background task.
         """
         container: AsyncContainer = request.state.dishka_container
@@ -298,7 +296,7 @@ class KerberosService:
         )(new_kadmin.add_principal)
         args = (
             user.user_principal_name.split("@")[0],
-            data.admin_password.get_secret_value(),
+            password,
         )
         return TaskStruct(func=func, args=args)
 

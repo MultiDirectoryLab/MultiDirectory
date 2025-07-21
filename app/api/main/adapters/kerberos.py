@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import SecretStr
 from starlette.background import BackgroundTask
 
+from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.kerberos.exceptions import (
@@ -16,7 +17,6 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosNotFoundError,
     KerberosUnavailableError,
 )
-from ldap_protocol.kerberos.schemas import KerberosSetupRequest
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 
@@ -95,7 +95,9 @@ class KerberosFastAPIAdapter:
         """
         task_struct = await self._sc(
             self._service.setup_kdc,
-            data,
+            data.krbadmin_password.get_secret_value(),
+            data.admin_password.get_secret_value(),
+            data.stash_password.get_secret_value(),
             user,
             request,
         )
