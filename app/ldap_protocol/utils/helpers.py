@@ -144,6 +144,7 @@ from typing import Callable
 from zoneinfo import ZoneInfo
 
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.compiler import DDLCompiler
 from sqlalchemy.sql.expression import ClauseElement, Executable, Visitable
@@ -353,3 +354,16 @@ def pg_explain(element: explain, compiler: DDLCompiler, **kw: dict) -> str:
     text += compiler.process(element.statement, **kw)
 
     return text
+
+
+async def explain_query(
+    query: Visitable,
+    session: AsyncSession,
+) -> None:
+    """Get explain query."""
+    logger.debug(
+        "\n".join(
+            row[0]
+            for row in await session.execute(explain(query, analyze=True))
+        )
+    )
