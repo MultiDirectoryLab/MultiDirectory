@@ -408,10 +408,6 @@ class AddRequest(BaseRequest):
                 parent_directory=parent,
                 directory=new_dir,
             )
-            if is_user:
-                await role_use_case.add_pwd_modify_ace_for_new_user(
-                    new_user_dir=new_dir,
-                )
             await session.flush()
         except IntegrityError:
             await session.rollback()

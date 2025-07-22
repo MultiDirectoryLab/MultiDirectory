@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from loguru import logger
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -111,38 +110,6 @@ class RoleUseCase:
         return bool(
             (await self._role_dao._session.scalars(select(query))).one()
         )
-
-    async def add_pwd_modify_ace_for_new_user(
-        self,
-        new_user_dir: Directory,
-    ) -> None:
-        """Add password modify access to the Domain Admins Role.
-
-        :param new_user_dir: Directory object for the new user.
-        :param session: Database session.
-        """
-        domain_admins_role = await self._role_dao._session.scalar(
-            select(Role)
-            .where(Role.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
-            .options(selectinload(Role.access_control_entries))
-        )
-        if not domain_admins_role:
-            logger.error("Domain Admins Role not found.")
-            return
-
-        new_pwd_ace = AccessControlEntry(
-            ace_type=AceType.PASSWORD_MODIFY,
-            depth=new_user_dir.depth,
-            path=new_user_dir.path_dn,
-            scope=RoleScope.SELF,
-            is_allow=True,
-            entity_type_id=None,
-            attribute_type_id=None,
-            directories=[new_user_dir],
-        )
-
-        self._role_dao._session.add(new_pwd_ace)
-        domain_admins_role.access_control_entries.append(new_pwd_ace)
 
     async def create_domain_admins_role(self, base_dn: str) -> Role:
         """Create a Domain Admins role with full access."""
