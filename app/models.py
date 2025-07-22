@@ -25,6 +25,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     asc,
+    desc,
     func,
     text,
 )
@@ -465,7 +466,7 @@ class Directory(Base):
         secondaryjoin="AccessControlEntryDirectoryMembership.access_control_entry_id == AccessControlEntry.id",  # noqa: E501
         back_populates="directories",
         order_by=(
-            asc(AccessControlEntry.depth),
+            desc(AccessControlEntry.depth),
             asc(AccessControlEntry.is_allow),
         ),
     )
