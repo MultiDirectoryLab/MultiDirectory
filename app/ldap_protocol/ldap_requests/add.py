@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
-from loguru import logger
 from pydantic import Field, SecretStr
 from sqlalchemy import Select, and_, select
 from sqlalchemy.exc import IntegrityError
@@ -170,14 +169,6 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        logger.critical(
-            f"attributes: {self.attributes_dict}, "
-            f"attr_names: {self.attr_names}, "
-            f"entry: {self.entry}, "
-            f"new_dn: {new_dn}, name: {name}, "
-            f"parent: {parent}, base_dn: {base_dn}"
-        )
-
         object_class_names = set(
             self.attributes_dict.get("objectClass", [])
             + self.attributes_dict.get("objectclass", [])
@@ -189,18 +180,12 @@ class AddRequest(BaseRequest):
             )
         )
 
-        logger.critical(f"entity_type: {entity_type}")
-
         can_add = access_manager.check_entity_level_access(
             aces=parent.access_control_entries,
             entity_type_id=entity_type.id if entity_type else None,
         )
 
         if not can_add:
-            logger.critical(
-                f"User {ldap_session.user} cannot add {entity_type} "
-                f"to {parent} with aces: {parent.access_control_entries}"
-            )
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 

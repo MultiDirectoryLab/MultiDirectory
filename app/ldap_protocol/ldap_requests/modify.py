@@ -179,8 +179,6 @@ class ModifyRequest(BaseRequest):
             ldap_session.user.directory_id,
         )
 
-        logger.critical(f"Can modify access: {can_modify}")
-
         if not can_modify and not password_change_requested:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,

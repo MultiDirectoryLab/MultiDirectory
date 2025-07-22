@@ -576,21 +576,12 @@ class SearchRequest(BaseRequest):
             attrs = defaultdict(list)
             obj_classes = []
 
-            logger.critical("\n\n\n START ACCESS CONTROL \n\n\n")
-
             can_read, forbidden_attributes, allowed_attributes = (
                 access_manager.check_search_access(
                     directory=directory,
                     user_dn=user.dn,
                 )
             )
-
-            logger.critical(
-                f"Access control result: {can_read}, {forbidden_attributes},"
-                f"{allowed_attributes}"
-            )
-
-            logger.critical("\n\n\n END ACCESS CONTROL \n\n\n")
 
             if not can_read:
                 continue

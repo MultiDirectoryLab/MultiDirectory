@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from loguru import logger
 from sqlalchemy import Select, and_, func, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -194,12 +193,6 @@ class ModifyDNRequest(BaseRequest):
             return
 
         dn, name = self.newrdn.split("=")
-
-        logger.critical(
-            f"entry: {self.entry}, newrdn: {self.newrdn}, "
-            f"deleteoldrdn: {self.deleteoldrdn}, "
-            f"new_superior: {self.new_superior}"
-        )
 
         if self.new_superior is None:
             new_directory = Directory(
