@@ -13,7 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -97,16 +97,21 @@ class ModifyDNRequest(BaseRequest):
 
     def _mutate_query_with_create_ace_load(
         self,
+        user_role_ids: list[int],
         query: Select,
-        user: UserSchema,
     ) -> Select:
-        """Mutate query to load access control entries for create operation."""
+        """Mutate query to load access control entries for create operation.
+
+        :param user_role_ids: list of user role ids
+        :param query: SQLAlchemy query to mutate
+        :return: mutated query with access control entries loaded
+        """
         return query.options(
             selectinload(Directory.access_control_entries),
             with_loader_criteria(
                 AccessControlEntry,
                 and_(
-                    AccessControlEntry.role_id.in_(user.role_ids),
+                    AccessControlEntry.role_id.in_(user_role_ids),
                     AccessControlEntry.ace_type == AceType.CREATE_CHILD,
                 ),
             ),
@@ -117,7 +122,12 @@ class ModifyDNRequest(BaseRequest):
         user_role_ids: list[int],
         query: Select,
     ) -> Select:
-        """Mutate query to load access control entries for delete operation."""
+        """Mutate query to load access control entries for delete operation.
+
+        :param user_role_ids: list of user role ids
+        :param query: SQLAlchemy query to mutate
+        :return: mutated query with access control entries loaded
+        """
         return query.options(
             selectinload(Directory.access_control_entries),
             with_loader_criteria(
@@ -208,7 +218,7 @@ class ModifyDNRequest(BaseRequest):
                 Directory.id == directory.parent_id
             )
             parent_query = self._mutate_query_with_create_ace_load(
-                parent_query, ldap_session.user
+                ldap_session.user.role_ids, parent_query,
             )
 
             parent_dir = await session.scalar(parent_query)
@@ -236,8 +246,8 @@ class ModifyDNRequest(BaseRequest):
                 get_filter_from_path(self.new_superior)
             )
             new_sup_query = self._mutate_query_with_create_ace_load(
+                ldap_session.user.role_ids,
                 new_sup_query,
-                ldap_session.user,
             )
 
             new_parent_dir = await session.scalar(new_sup_query)

@@ -91,6 +91,10 @@ class RoleDAO:
     ) -> Role:
         """Create a new role.
 
+        :param role_name: Name of the role to create.
+        :param creator_upn: UPN of the user who created the role.
+        :param is_system: Whether the role is a system role.
+        :param groups_dn: List of group DNs associated with the role.
         :return: The created Role object.
         """
         groups: list[Group] = await get_groups(

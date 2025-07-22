@@ -30,8 +30,11 @@ class RoleUseCase:
 
     _role_dao: RoleDAO
 
-    def __init__(self, role_dao: RoleDAO):
-        """Initialize RoleUseCase with a database session."""
+    def __init__(self, role_dao: RoleDAO) -> None:
+        """Initialize RoleUseCase with a database session.
+
+        :param role_dao: RoleDAO instance for database operations.
+        """
         self._role_dao = role_dao
 
     async def inherit_parent_aces(
@@ -86,7 +89,6 @@ class RoleUseCase:
 
         :param dir_id: Directory ID to filter access control entries.
         :param user_role_ids: List of user role IDs.
-        :param ace_types: List of AceType to filter access control entries.
         :return: List of AccessControlEntry objects.
         """
         query = (
@@ -110,6 +112,11 @@ class RoleUseCase:
         self,
         user_role_ids: list[int],
     ) -> bool:
+        """Check if the user has the Domain Admins role.
+
+        :param user_role_ids: List of user role IDs.
+        :return: True if the user has the Domain Admins role, False otherwise.
+        """
         query = (
             select(Role)
             .where(
@@ -125,7 +132,11 @@ class RoleUseCase:
         )
 
     async def create_domain_admins_role(self, base_dn: str) -> Role:
-        """Create a Domain Admins role with full access."""
+        """Create a Domain Admins role with full access.
+
+        :param base_dn: Base DN for the role.
+        :return: The created Role object.
+        """
         group_dn = RoleConstants.DOMAIN_ADMINS_GROUP_CN + base_dn
         domain_admins_role = await self._role_dao.create_role(
             role_name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
@@ -143,7 +154,11 @@ class RoleUseCase:
         return domain_admins_role
 
     async def create_read_only_role(self, base_dn: str) -> Role:
-        """Create a Read Only role."""
+        """Create a Read Only role.
+
+        :param base_dn: Base DN for the role.
+        :return: The created Role object.
+        """
         group_dn = RoleConstants.READONLY_GROUP_CN + base_dn
         role = await self._role_dao.create_role(
             role_name=RoleConstants.READ_ONLY_ROLE_NAME,
@@ -170,7 +185,11 @@ class RoleUseCase:
         return role
 
     async def create_kerberos_system_role(self, base_dn: str) -> Role:
-        """Create a Kerberos system role with full access."""
+        """Create a Kerberos system role with full access.
+
+        :param base_dn: Base DN for the role.
+        :return: The created Role object.
+        """
         group_dn = RoleConstants.KERBEROS_GROUP_CN + base_dn
         role = await self._role_dao.create_role(
             role_name=RoleConstants.KERBEROS_ROLE_NAME,
@@ -191,7 +210,11 @@ class RoleUseCase:
         self,
         base_dn: str,
     ) -> list[AccessControlEntrySchema]:
-        """Get a full access ACE."""
+        """Get a full access ACE.
+
+        :param base_dn: Base DN for the role.
+        :return: List of AccessControlEntrySchema objects with full access.
+        """
         return [
             AccessControlEntrySchema(
                 ace_type=AceType.READ,

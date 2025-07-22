@@ -21,7 +21,8 @@ class AccessManager:
     ) -> tuple[bool, set, set]:
         """Check if search access is allowed based on access control entries.
 
-        :param aces: List of access control entries.
+        :param directory: Directory object to check access for.
+        :param user_dn: Distinguished Name of the user.
         :return: Tuple containing a boolean indicating if access is allowed,
             a set of forbidden attributes, and a set of allowed attributes.
         """
@@ -105,6 +106,7 @@ class AccessManager:
 
         :param changes: List of changes to be made.
         :param aces: List of access control entries.
+        :param entity_type_id: ID of the entity type.
         :return: True if the modify is allowed, False otherwise.
         """
         filtered_aces = cls._filter_aces_by_entity_type(
@@ -156,8 +158,8 @@ class AccessManager:
 
         :param attr_name: Name of the attribute to be modified.
         :param aces: List of access control entries.
-        :param entity_type_id: ID of the entity type.
         :param ace_type: Type of access control entry (write or delete).
+        :return: True if access is allowed, False otherwise.
         """
         for ace in aces:
             if (
@@ -258,6 +260,7 @@ class AccessManager:
     ) -> list[AccessControlEntry]:
         """Extend user self-read ACEs to include all attributes.
 
+        :param directory: Directory object.
         :param aces: List of access control entries.
         :return: Updated list of access control entries.
         """

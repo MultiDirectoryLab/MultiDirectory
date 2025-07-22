@@ -392,7 +392,12 @@ class SearchRequest(BaseRequest):
         user_role_ids: list[int],
         query: Select,
     ) -> Select:
-        """Mutate query to load access control entries."""
+        """Mutate query to load access control entries.
+
+        :param user_role_ids: list of user role ids
+        :param query: SQLAlchemy query to mutate
+        :return: mutated query with access control entries loaded
+        """
         return query.options(
             selectinload(Directory.access_control_entries),
             with_loader_criteria(
