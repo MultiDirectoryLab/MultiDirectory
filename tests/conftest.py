@@ -554,6 +554,16 @@ async def entity_type_dao(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def attribute_type_dao(
+    container: AsyncContainer,
+) -> AsyncIterator[AttributeTypeDAO]:
+    """Get session and aquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield AttributeTypeDAO(session)
+
+
+@pytest_asyncio.fixture(scope="function")
 async def role_dao(container: AsyncContainer) -> AsyncIterator[RoleDAO]:
     """Get session and aquire after completion."""
     async with container(scope=Scope.APP) as container:
