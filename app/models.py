@@ -211,6 +211,24 @@ class EntityType(Base):
         return f"{directory.name}_entity_type_{directory.id}"
 
 
+class AceType(enum.StrEnum):
+    """ACE types."""
+
+    CREATE_CHILD = "CREATE_CHILD"
+    READ = "READ"
+    WRITE = "WRITE"
+    DELETE = "DELETE"
+    PASSWORD_MODIFY = "PASSWORD_MODIFY"  # noqa: S105
+
+
+class RoleScope(enum.StrEnum):
+    """Scope of the role."""
+
+    SELF = "SELF"
+    SINGLE_LEVEL = "SINGLE_LEVEL"
+    WHOLE_SUBTREE = "WHOLE_SUBTREE"
+
+
 class AccessControlEntry(Base):
     """Access Control Entry (ACE) model."""
 
@@ -223,16 +241,16 @@ class AccessControlEntry(Base):
         nullable=False,
     )
 
-    ace_type: Mapped[int] = mapped_column(
-        postgresql.SMALLINT,
+    ace_type: Mapped[AceType] = mapped_column(
+        Enum(AceType),
         nullable=False,
         index=True,
     )
 
     depth: Mapped[int]
 
-    scope: Mapped[int] = mapped_column(
-        postgresql.SMALLINT,
+    scope: Mapped[RoleScope] = mapped_column(
+        Enum(RoleScope),
         nullable=False,
         index=True,
     )
