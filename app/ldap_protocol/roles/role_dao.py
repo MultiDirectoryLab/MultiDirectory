@@ -31,15 +31,6 @@ class AccessControlEntrySchema(BaseModel):
     is_allow: bool = True
 
 
-class RoleBaseSchema(BaseModel):
-    """Schema for a role."""
-
-    name: str
-    creator_upn: str | None
-    is_system: bool
-    groups_path_dn: list[str]
-
-
 class RoleDAO:
     """Role DAO."""
 
