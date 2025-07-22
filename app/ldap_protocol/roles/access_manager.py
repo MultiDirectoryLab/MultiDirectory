@@ -82,7 +82,7 @@ class AccessManager:
         :param allowed_attributes: Set of allowed attributes.
         :return: True if the filter attributes are allowed, False otherwise.
         """
-        if not filter_attrs:
+        if not filter_attrs or filter_attrs == {"objectclass"}:
             return True
 
         if forbidden_attributes and not filter_attrs.isdisjoint(
