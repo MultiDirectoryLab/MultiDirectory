@@ -4,7 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from pydantic import BaseModel
+from dataclasses import dataclass
+
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -20,7 +21,8 @@ from ldap_protocol.utils.queries import (
 from models import AccessControlEntry, Directory, Group, Role
 
 
-class AccessControlEntrySchema(BaseModel):
+@dataclass
+class AccessControlEntrySchema:
     """Base schema Access Control Entry."""
 
     ace_type: AceType
