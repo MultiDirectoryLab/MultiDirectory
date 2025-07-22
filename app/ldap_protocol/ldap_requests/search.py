@@ -36,7 +36,6 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import DerefAliases, Scope
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -52,6 +51,7 @@ from ldap_protocol.utils.queries import (
 )
 from models import (
     AccessControlEntry,
+    AceType,
     Attribute,
     AttributeType,
     Directory,

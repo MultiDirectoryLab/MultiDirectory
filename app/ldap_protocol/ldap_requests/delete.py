@@ -19,7 +19,6 @@ from ldap_protocol.ldap_responses import (
     DeleteResponse,
 )
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
@@ -28,7 +27,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import AccessControlEntry, Directory
+from models import AccessControlEntry, AceType, Directory
 
 from .base import BaseRequest
 

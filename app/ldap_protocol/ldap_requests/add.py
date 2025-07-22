@@ -26,7 +26,6 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
@@ -44,7 +43,14 @@ from ldap_protocol.utils.queries import (
     get_search_path,
     validate_entry,
 )
-from models import AccessControlEntry, Attribute, Directory, Group, User
+from models import (
+    AccessControlEntry,
+    AceType,
+    Attribute,
+    Directory,
+    Group,
+    User,
+)
 from security import get_password_hash
 
 from .base import BaseRequest

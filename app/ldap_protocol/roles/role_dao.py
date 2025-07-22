@@ -10,7 +10,6 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from ldap_protocol.roles.enums import AceType, RoleScope
 from ldap_protocol.utils.const import GRANT_DN_STRING
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import (
@@ -18,7 +17,14 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import AccessControlEntry, Directory, Group, Role
+from models import (
+    AccessControlEntry,
+    AceType,
+    Directory,
+    Group,
+    Role,
+    RoleScope,
+)
 
 
 @dataclass

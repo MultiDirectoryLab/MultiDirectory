@@ -30,7 +30,6 @@ from ldap_protocol.policies.password_policy import (
     post_save_password_actions,
 )
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -47,7 +46,14 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
-from models import AccessControlEntry, Attribute, Directory, Group, User
+from models import (
+    AccessControlEntry,
+    AceType,
+    Attribute,
+    Directory,
+    Group,
+    User,
+)
 from security import get_password_hash
 
 from .base import BaseRequest

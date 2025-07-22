@@ -22,7 +22,6 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
@@ -31,6 +30,7 @@ from ldap_protocol.utils.queries import (
 )
 from models import (
     AccessControlEntry,
+    AceType,
     Attribute,
     Directory,
     DirectoryMembership,
