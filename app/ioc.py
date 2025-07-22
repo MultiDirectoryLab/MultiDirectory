@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
+from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -24,7 +26,11 @@ from ldap_protocol.dns import (
     get_dns_manager_settings,
     resolve_dns_server_ip,
 )
+from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
+from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
+from ldap_protocol.kerberos.service import KerberosService
+from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -162,32 +168,6 @@ class MainProvider(Provider):
         """Get DNSManager class."""
         yield dns_manager_class(settings=settings, http_client=http_client)
 
-    @provide(scope=Scope.REQUEST)
-    async def get_attribute_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
-
-    @provide(scope=Scope.REQUEST)
-    async def get_object_class_dao(
-        self,
-        attribute_type_dao: AttributeTypeDAO,
-        session: AsyncSession,
-    ) -> ObjectClassDAO:
-        """Get Object Class DAO."""
-        return ObjectClassDAO(session, attribute_type_dao)
-
-    @provide(scope=Scope.REQUEST)
-    async def get_entity_type_dao(
-        self,
-        object_class_dao: ObjectClassDAO,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session, object_class_dao)
-
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
         self,
@@ -226,34 +206,58 @@ class HTTPProvider(Provider):
         """Create ldap session."""
         return LDAPSession()
 
-    @provide(provides=AttributeTypeDAO)
-    def get_attribute_type_dao(
+    @provide(scope=Scope.REQUEST)
+    async def get_attribute_type_dao(
         self,
         session: AsyncSession,
     ) -> AttributeTypeDAO:
         """Get Attribute Type DAO."""
         return AttributeTypeDAO(session)
 
-    @provide(provides=ObjectClassDAO)
-    def get_object_class_dao(
+    @provide(scope=Scope.REQUEST)
+    async def get_object_class_dao(
         self,
         attribute_type_dao: AttributeTypeDAO,
         session: AsyncSession,
     ) -> ObjectClassDAO:
         """Get Object Class DAO."""
-        return ObjectClassDAO(
-            attribute_type_dao=attribute_type_dao,
-            session=session,
-        )
+        return ObjectClassDAO(session, attribute_type_dao)
 
-    @provide(provides=EntityTypeDAO)
-    def get_entity_type_dao(
+    @provide(scope=Scope.REQUEST)
+    async def get_entity_type_dao(
         self,
         object_class_dao: ObjectClassDAO,
         session: AsyncSession,
     ) -> EntityTypeDAO:
         """Get Entity Type DAO."""
         return EntityTypeDAO(session, object_class_dao)
+
+    identity_fastapi_adapter = provide(
+        IdentityFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    identity_manager = provide(
+        IdentityManager,
+        scope=Scope.REQUEST,
+    )
+    mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
+    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
+
+    kerberos_service = provide(KerberosService, scope=Scope.REQUEST)
+    kerberos_fastapi_adapter = provide(
+        KerberosFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+
+    @provide(scope=Scope.REQUEST)
+    def get_krb_template_render(
+        self,
+        settings: Settings,
+    ) -> KRBTemplateRenderer:
+        """Provide KRBTemplateRenderer with settings.TEMPLATES."""
+        return KRBTemplateRenderer(settings.TEMPLATES)
+
+    krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(Provider):
@@ -317,7 +321,7 @@ class MFAProvider(Provider):
         credentials: MFA_HTTP_Creds,
         client: MFAHTTPClient,
         settings: Settings,
-    ) -> MultifactorAPI | None:
+    ) -> MultifactorAPI:
         """Get api from DI.
 
         :param httpx.AsyncClient client: httpx client
@@ -325,7 +329,7 @@ class MFAProvider(Provider):
         :return MultifactorAPI: mfa integration
         """
         if not credentials or not credentials.key or not credentials.secret:
-            return None
+            return MultifactorAPI("", "", client, settings)
         return MultifactorAPI(
             credentials.key,
             credentials.secret,

@@ -40,6 +40,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
+from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from extra.dev_data import ENTITY_TYPE_DATAS
@@ -51,7 +53,11 @@ from ldap_protocol.dns import (
     StubDNSManager,
     get_dns_manager_settings,
 )
+from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
+from ldap_protocol.kerberos.service import KerberosService
+from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -196,14 +202,11 @@ class TestProvider(Provider):
             session=session,
         )
 
-    @provide(scope=Scope.REQUEST, provides=EntityTypeDAO, cache=False)
-    def get_entity_type_dao(
-        self,
-        object_class_dao: ObjectClassDAO,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session, object_class_dao)
+    get_entity_type_dao = provide(
+        EntityTypeDAO,
+        scope=Scope.REQUEST,
+        cache=False,
+    )
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -310,6 +313,35 @@ class TestProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    identity_fastapi_adapter = provide(
+        IdentityFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+
+    identity_manager = provide(
+        IdentityManager,
+        scope=Scope.REQUEST,
+    )
+
+    mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
+    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
+
+    kerberos_service = provide(KerberosService, scope=Scope.REQUEST)
+    kerberos_fastapi_adapter = provide(
+        KerberosFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+
+    @provide(scope=Scope.REQUEST)
+    def get_krb_template_render(
+        self,
+        settings: Settings,
+    ) -> KRBTemplateRenderer:
+        """Provide KRBTemplateRenderer with settings.TEMPLATES."""
+        return KRBTemplateRenderer(settings.TEMPLATES)
+
+    krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
 
 
 @dataclass

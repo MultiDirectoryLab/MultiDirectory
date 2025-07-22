@@ -138,6 +138,7 @@ select = [
     # "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
     # "RUF",  # Ruff-specific rules TODO uncomment, ruff fix and fix error
     "RUF100", # Ruff100-specific rule TODO delete that and uncomment "RUF"-rule in line up.
+    "SLF001",  # flake8-self: checks for access to private/protected attributes via self 
 ]
 
 # Gradually remove all values marked 'TODO' and fix errors.
