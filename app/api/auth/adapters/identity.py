@@ -1,4 +1,8 @@
-"""FastAPI adapter for IdentityManager."""
+"""FastAPI adapter for IdentityManager.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from ipaddress import IPv4Address, IPv6Address
 

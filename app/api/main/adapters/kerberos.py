@@ -1,4 +1,8 @@
-"""FastAPI adapter for KerberosService."""
+"""FastAPI adapter for KerberosService.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from typing import Any, AsyncGenerator, Awaitable, Callable, ParamSpec, TypeVar
 
@@ -27,7 +31,7 @@ R = TypeVar("R")
 class KerberosFastAPIAdapter:
     """Adapter for using KerberosService with FastAPI and background tasks."""
 
-    def __init__(self, service: "KerberosService"):
+    def __init__(self, service: KerberosService):
         """Initialize the adapter with a KerberosService instance.
 
         :param service: KerberosService instance (domain logic)

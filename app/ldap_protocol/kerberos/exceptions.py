@@ -1,4 +1,8 @@
-"""Common business exceptions for all service classes in the project."""
+"""Common business exceptions for all service classes in the project.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 
 class KerberosError(Exception):

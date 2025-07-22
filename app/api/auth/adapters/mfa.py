@@ -1,4 +1,8 @@
-"""FastAPI adapter for MFAManager."""
+"""FastAPI adapter for MFAManager.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 from ipaddress import IPv4Address, IPv6Address
 
