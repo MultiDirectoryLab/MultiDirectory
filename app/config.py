@@ -164,7 +164,6 @@ class Settings(BaseModel):
             str(self.POSTGRES_URI),
             poolclass=NullPool,
             future=True,
-            pool_pre_ping=True,
         )
 
     @classmethod
