@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -188,17 +188,13 @@ class RoleDAO:
 
         elif scope == RoleScope.SINGLE_LEVEL:
             query = select(Directory).filter(
-                or_(
-                    and_(
-                        func.cardinality(Directory.path)
-                        == len(search_path) + 1,
-                        get_path_filter(
-                            column=Directory.path[0 : len(search_path)],
-                            path=search_path,
-                        ),
+                and_(
+                    func.cardinality(Directory.path) == len(search_path) + 1,
+                    get_path_filter(
+                        column=Directory.path[0 : len(search_path)],
+                        path=search_path,
                     ),
-                    get_path_filter(path=search_path),
-                )
+                ),
             )
             return list((await self._session.scalars(query)).all())
 
