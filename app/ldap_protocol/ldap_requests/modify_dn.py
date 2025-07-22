@@ -218,7 +218,8 @@ class ModifyDNRequest(BaseRequest):
                 Directory.id == directory.parent_id
             )
             parent_query = self._mutate_query_with_create_ace_load(
-                ldap_session.user.role_ids, parent_query,
+                ldap_session.user.role_ids,
+                parent_query,
             )
 
             parent_dir = await session.scalar(parent_query)
