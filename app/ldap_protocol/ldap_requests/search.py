@@ -679,15 +679,16 @@ class SearchRequest(BaseRequest):
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
 
-            attrs_to_keep = set(attrs.keys())
-
-            if forbidden_attributes:
-                attrs_to_keep -= forbidden_attributes
-
-            if allowed_attributes:
-                attrs_to_keep &= allowed_attributes
-
-            attrs = {attr: attrs[attr] for attr in attrs_to_keep}  # type: ignore
+            for attr_name in list(attrs):
+                attr_name_lower = attr_name.lower()
+                if (
+                    forbidden_attributes
+                    and attr_name_lower in forbidden_attributes
+                ) or (
+                    allowed_attributes
+                    and attr_name_lower not in allowed_attributes
+                ):
+                    del attrs[attr_name]
 
             yield SearchResultEntry(
                 object_name=distinguished_name,
