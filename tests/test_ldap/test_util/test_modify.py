@@ -15,10 +15,9 @@ from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.roles.enums import AceType, RoleScope
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group
+from models import AceType, Directory, Group, RoleScope
 from tests.conftest import TestCreds
 
 

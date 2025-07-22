@@ -20,11 +20,10 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType, RoleScope
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group, User
+from models import AceType, Directory, Group, RoleScope, User
 from tests.conftest import TestCreds
 
 

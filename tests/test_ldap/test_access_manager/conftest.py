@@ -6,8 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from unittest.mock import Mock
 
-from ldap_protocol.roles.enums import AceType
-from models import AccessControlEntry
+from models import AccessControlEntry, AceType
 
 
 def create_mock_ace(

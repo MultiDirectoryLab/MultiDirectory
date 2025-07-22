@@ -9,8 +9,7 @@ import pytest
 from ldap_protocol.ldap_responses import PartialAttribute
 from ldap_protocol.objects import Changes, Operation
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType
-from models import AccessControlEntry
+from models import AccessControlEntry, AceType
 
 from .conftest import create_mock_ace
 

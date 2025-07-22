@@ -19,10 +19,9 @@ from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.policies.network_policy import is_user_group_valid
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.enums import AceType, RoleScope
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
-from models import User
+from models import AceType, RoleScope, User
 from tests.conftest import TestCreds
 
 

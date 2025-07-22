@@ -16,10 +16,9 @@ from sqlalchemy.orm import joinedload
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
-from ldap_protocol.roles.enums import AceType, RoleScope
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group, Role
+from models import AceType, Directory, Group, Role, RoleScope
 
 
 async def apply_user_account_control(
