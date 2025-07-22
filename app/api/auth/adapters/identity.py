@@ -15,6 +15,7 @@ from api.exceptions.auth import (
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
+    UserLockedError,
     UserNotFoundError,
 )
 from api.exceptions.mfa import MFARequiredError
@@ -61,6 +62,12 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
                 response,
                 self._manager.key_ttl,
                 key,
+            )
+        except UserLockedError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is locked",
+                headers={"WWW-Authenticate": "Bearer"},
             )
         except UnauthorizedError as exc:
             raise HTTPException(

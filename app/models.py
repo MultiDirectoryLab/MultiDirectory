@@ -478,6 +478,22 @@ class User(Base):
         DateTime(timezone=True),
     )
 
+    failed_auth_attempts: Mapped[int] = mapped_column(
+        "failedAuthAttempts",
+        default=0,
+        nullable=False,
+    )
+    last_failed_auth: Mapped[datetime | None] = mapped_column(
+        "lastFailedAuth",
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    lockout_until: Mapped[datetime | None] = mapped_column(
+        "lockoutUntil",
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     search_fields = {
         "mail": "mail",
         "samaccountname": "sAMAccountName",

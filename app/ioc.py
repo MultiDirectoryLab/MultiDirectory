@@ -42,6 +42,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.policies.lockout_policy import AuthLockoutService
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
@@ -194,6 +195,8 @@ class MainProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    auth_lockout_service = provide(AuthLockoutService, scope=Scope.REQUEST)
 
 
 class HTTPProvider(Provider):

@@ -31,3 +31,7 @@ class PasswordPolicyError(IdentityError):
 
 class UserNotFoundError(IdentityError):
     """Raised when a user is not found in the system."""
+
+
+class UserLockedError(IdentityError):
+    """Raised when a user is locked out due to too many failed attempts."""

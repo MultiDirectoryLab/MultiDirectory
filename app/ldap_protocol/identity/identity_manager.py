@@ -17,16 +17,17 @@ from api.exceptions.auth import (
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
+    UserLockedError,
     UserNotFoundError,
 )
 from api.exceptions.mfa import MFARequiredError
 from config import Settings
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
-from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.policies.lockout_policy import AuthLockoutService
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -43,7 +44,7 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import Directory, Group, MFAFlags, User
-from security import get_password_hash
+from security import get_password_hash, verify_password
 
 
 class IdentityManager(SessionKeyCreatorMixin):
@@ -55,6 +56,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         settings: Settings,
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
+        lockout: AuthLockoutService,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -62,11 +64,13 @@ class IdentityManager(SessionKeyCreatorMixin):
         :param settings: Settings
         :param mfa_api: MultifactorAPI
         :param storage: SessionStorage.
+        :param lockout: AuthLockoutService
         """
         self._session = session
         self._settings = settings
         self._mfa_api = mfa_api
         self._storage = storage
+        self._lockout = lockout
         self.key_ttl = self._storage.key_ttl
 
     async def login(
@@ -86,13 +90,19 @@ class IdentityManager(SessionKeyCreatorMixin):
         :raises MFARequiredError: if MFA is required
         :return: session key (str)
         """
-        user = await authenticate_user(
-            self._session,
-            form.username,
-            form.password,
-        )
-        if not user:
+        user = await get_user(self._session, form.username, self._settings)
+        if user:
+            await self._lockout.unlock_expired(user, self._session)
+            if self._lockout.is_locked(user):
+                raise UserLockedError("Account is locked")
+        else:
             raise UnauthorizedError("Incorrect username or password")
+
+        if not verify_password(form.password, user.password):
+            await self._lockout.check_and_update_on_fail(user, self._session)
+            raise UnauthorizedError("Incorrect username or password")
+
+        await self._lockout.reset_on_success(user, self._session)
 
         query = (
             select(Group)

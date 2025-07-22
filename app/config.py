@@ -68,6 +68,10 @@ class Settings(BaseModel):
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
 
+    AUTH_MAX_FAILED_ATTEMPTS: int = 6
+    AUTH_FAILED_ATTEMPTS_RESET_SEC: int = 60
+    AUTH_LOCKOUT_DURATION_SEC: int = 600
+
     @computed_field  # type: ignore
     @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa

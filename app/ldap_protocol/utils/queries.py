@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
+from config import Settings
+from ldap_protocol.policies.lockout_policy import AuthLockoutService
 from models import Attribute, Directory, Group, User
 
 from .const import EMAIL_RE, GRANT_DN_STRING
@@ -24,6 +26,14 @@ from .helpers import (
     dn_is_base_directory,
     validate_entry,
 )
+
+
+class UserNotFound(Exception):
+    pass
+
+
+class UserLocked(Exception):
+    pass
 
 
 @cache
@@ -36,12 +46,20 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
     return list(result.scalars().all())
 
 
-async def get_user(session: AsyncSession, name: str) -> User | None:
-    """Get user with username.
+async def get_user(
+    session: AsyncSession,
+    name: str,
+    settings: Settings | None = None,
+) -> User:
+    """Get user by username or identifier.
 
-    :param AsyncSession session: sqlalchemy session
-    :param str name: any name: dn, email or upn
-    :return User | None: user from db
+    :param AsyncSession session: SQLAlchemy session
+    :param str name: any identifier: DN, email, or UPN
+    :param Settings | None settings:
+        enables centralized lockout check if provided
+    :raises UserNotFound: if user does not exist
+    :raises UserLocked: if user is locked
+    :return User: user from the database
     """
     policies = selectinload(User.groups).selectinload(Group.access_policies)
 
@@ -51,14 +69,23 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         else:
             cond = User.sam_accout_name.ilike(name)
 
-        return await session.scalar(select(User).where(cond).options(policies))
+        user = await session.scalar(select(User).where(cond).options(policies))
+    else:
+        user = await session.scalar(
+            select(User)
+            .join(User.directory)
+            .options(policies)
+            .where(get_filter_from_path(name)),
+        )
 
-    return await session.scalar(
-        select(User)
-        .join(User.directory)
-        .options(policies)
-        .where(get_filter_from_path(name)),
-    )
+    if not user:
+        raise UserNotFound()
+    if settings is not None:
+        lockout = AuthLockoutService(settings)
+        await lockout.unlock_expired(user, session)
+        if lockout.is_locked(user):
+            raise UserLocked()
+    return user
 
 
 async def get_directories(
