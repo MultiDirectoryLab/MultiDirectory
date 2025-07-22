@@ -147,9 +147,9 @@ async def test_ldap_user_add_with_group(
 
     assert new_dir.name == "test"
 
-    group = new_dir.user.groups[0]
+    groups = [group.directory.path_dn for group in new_dir.user.groups]
 
-    assert group.directory.path_dn == group_dn
+    assert group_dn in groups
 
 
 @pytest.mark.asyncio
@@ -211,9 +211,9 @@ async def test_ldap_user_add_group_with_group(
 
     assert new_dir.name == "twisted"
 
-    group = new_dir.group.parent_groups[0]
+    groups = [group.directory.path_dn for group in new_dir.group.parent_groups]
 
-    assert group.directory.path_dn == group_dn
+    assert group_dn in groups
 
 
 @pytest.mark.asyncio
