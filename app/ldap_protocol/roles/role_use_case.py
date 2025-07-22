@@ -10,7 +10,6 @@ from sqlalchemy.orm import selectinload
 
 from ldap_protocol.roles.enums import AceType, RoleConstants, RoleScope
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
-from ldap_protocol.utils.queries import get_all_users
 from models import AccessControlEntry, Directory, Role
 
 
@@ -95,6 +94,24 @@ class RoleUseCase:
         result = await self._role_dao._session.scalar(query)
         return result
 
+    async def contains_domain_admins_role(
+        self,
+        user_role_ids: list[int],
+    ) -> bool:
+        query = (
+            select(Role)
+            .where(
+                Role.id.in_(user_role_ids),
+                Role.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+            )
+            .limit(1)
+            .exists()
+        )
+
+        return bool(
+            (await self._role_dao._session.scalars(select(query))).one()
+        )
+
     async def add_pwd_modify_ace_for_new_user(
         self,
         new_user_dir: Directory,
@@ -137,7 +154,7 @@ class RoleUseCase:
             groups_dn=[group_dn],
         )
 
-        aces = await self._build_domain_admins_aces(base_dn)
+        aces = self._get_full_access_aces(base_dn)
         await self._role_dao.add_access_control_entries(
             role_id=domain_admins_role.id,
             access_control_entries=aces,
@@ -190,19 +207,6 @@ class RoleUseCase:
 
         return role
 
-    async def _build_domain_admins_aces(
-        self, base_dn: str
-    ) -> list[AccessControlEntrySchema]:
-        aces = self._get_full_access_aces(base_dn)
-
-        all_users = await get_all_users(self._role_dao._session)
-        async for user in all_users:
-            aces.append(
-                self._create_password_modify_ace(user.directory.path_dn)
-            )
-
-        return aces
-
     def _get_full_access_aces(
         self,
         base_dn: str,
@@ -242,16 +246,3 @@ class RoleUseCase:
                 is_allow=True,
             ),
         ]
-
-    def _create_password_modify_ace(
-        self,
-        user_path_dn: str,
-    ) -> AccessControlEntrySchema:
-        return AccessControlEntrySchema(
-            ace_type=AceType.PASSWORD_MODIFY,
-            scope=RoleScope.SELF,
-            base_dn=user_path_dn,
-            attribute_type_id=None,
-            entity_type_id=None,
-            is_allow=True,
-        )

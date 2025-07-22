@@ -232,7 +232,12 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 user_role_ids=ldap_session.user.role_ids,
             )
 
-            if not pwd_ace or not pwd_ace.is_allow:
+            if not pwd_ace:
+                if not await role_use_case.contains_domain_admins_role(
+                    ldap_session.user.role_ids
+                ):
+                    raise PermissionError("No password modify access")
+            elif not pwd_ace.is_allow:
                 raise PermissionError("No password modify access")
 
         if not errors and (
