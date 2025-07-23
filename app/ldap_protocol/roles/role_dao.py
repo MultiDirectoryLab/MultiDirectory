@@ -69,6 +69,27 @@ class RoleDAO:
         result = await self._session.execute(query)
         return result.scalars().first()
 
+    async def get_role_by_name(self, role_name: str) -> Role | None:
+        """Get a role by its name.
+
+        :param role_name: Name of the role to retrieve.
+        :return: Role object if found, None otherwise.
+        """
+        query = (
+            select(Role)
+            .options(
+                selectinload(Role.groups),
+                selectinload(Role.access_control_entries).options(
+                    joinedload(AccessControlEntry.attribute_type),
+                    joinedload(AccessControlEntry.entity_type),
+                    joinedload(AccessControlEntry.role),
+                ),
+            )
+            .where(Role.name == role_name)
+        )
+        result = await self._session.execute(query)
+        return result.scalars().first()
+
     async def get_all_roles(self) -> list[Role]:
         """Get all roles.
 
