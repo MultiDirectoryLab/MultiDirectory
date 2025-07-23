@@ -31,7 +31,6 @@ from dishka import (
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from multidirectory import _create_basic_app
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -69,7 +68,7 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
-from models import AttributeType, Directory
+from models import AttributeType
 
 
 class TestProvider(Provider):
@@ -471,15 +470,9 @@ async def setup_session(session: AsyncSession, setup_entity: None) -> None:
     """Get session and aquire after completion."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
-    domain_ex = await session.scalars(
-        select(Directory)
-        .filter(Directory.parent_id.is_(None)),
-    )  # fmt: skip
-
-    domain = domain_ex.one()
     role_dao = RoleDAO(session)
     role_use_case = RoleUseCase(role_dao)
-    await role_use_case.create_domain_admins_role(domain.path_dn)
+    await role_use_case.create_domain_admins_role()
 
     session.add(
         AttributeType(
