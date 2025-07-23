@@ -6,13 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from __future__ import annotations
 
-import enum
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
+from enums import AceType, MFAFlags, RoleScope
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
@@ -210,24 +210,6 @@ class EntityType(Base):
     def generate_entity_type_name(cls, directory: Directory) -> str:
         """Generate entity type name based on Directory."""
         return f"{directory.name}_entity_type_{directory.id}"
-
-
-class AceType(enum.StrEnum):
-    """ACE types."""
-
-    CREATE_CHILD = "CREATE_CHILD"
-    READ = "READ"
-    WRITE = "WRITE"
-    DELETE = "DELETE"
-    PASSWORD_MODIFY = "PASSWORD_MODIFY"  # noqa: S105
-
-
-class RoleScope(enum.StrEnum):
-    """Scope of the role."""
-
-    SELF = "SELF"
-    SINGLE_LEVEL = "SINGLE_LEVEL"
-    WHOLE_SUBTREE = "WHOLE_SUBTREE"
 
 
 class AccessControlEntry(Base):
@@ -979,14 +961,6 @@ class ObjectClass(Base):
     def __repr__(self) -> str:
         """ObjectClass oid and name."""
         return f"ObjectClass({self.oid}:{self.name})"
-
-
-class MFAFlags(int, enum.Enum):
-    """Two-Factor auth action."""
-
-    DISABLED = 0
-    ENABLED = 1
-    WHITELIST = 2
 
 
 class NetworkPolicy(Base):
