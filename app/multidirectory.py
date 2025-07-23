@@ -9,7 +9,7 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import AsyncIterator, Callable
+from typing import AsyncIterator, Callable, Coroutine
 
 import uvicorn
 import uvloop
@@ -56,7 +56,7 @@ from ldap_protocol.exceptions import (
     InstanceNotFoundError,
 )
 from ldap_protocol.server import PoolClientHandler
-from schedule import scheduler
+from schedule import scheduler_factory
 
 
 async def proc_time_header_middleware(
@@ -192,31 +192,14 @@ def create_prod_app(
     return app
 
 
-create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
-
-
-def ldap(settings: Settings) -> None:
+def run_server(
+    factory: Callable[[Settings], Coroutine],
+    settings: Settings,
+) -> None:
     """Run server."""
 
-    async def _servers(settings: Settings) -> None:
-        servers = []
-
-        for setting in (settings, settings.get_copy_4_tls()):
-            container = make_async_container(
-                LDAPServerProvider(),
-                MainProvider(),
-                MFAProvider(),
-                MFACredsProvider(),
-                context={Settings: setting},
-            )
-
-            settings = await container.get(Settings)
-            servers.append(PoolClientHandler(settings, container).start())
-
-        await asyncio.gather(*servers)
-
     def _run() -> None:
-        uvloop.run(_servers(settings), debug=settings.DEBUG)
+        uvloop.run(factory(settings), debug=settings.DEBUG)
 
     try:
         import py_hot_reload
@@ -227,6 +210,30 @@ def ldap(settings: Settings) -> None:
             py_hot_reload.run_with_reloader(_run)
         else:
             _run()
+
+
+async def ldap_factory(settings: Settings) -> None:
+    """Run LDAP server factory."""
+    servers = []
+
+    for setting in (settings, settings.get_copy_4_tls()):
+        container = make_async_container(
+            LDAPServerProvider(),
+            MainProvider(),
+            MFAProvider(),
+            MFACredsProvider(),
+            context={Settings: setting},
+        )
+
+        settings = await container.get(Settings)
+        servers.append(PoolClientHandler(settings, container).start())
+
+    await asyncio.gather(*servers)
+
+
+ldap = partial(run_server, factory=ldap_factory)
+scheduler = partial(run_server, factory=scheduler_factory)
+create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 
 
 if __name__ == "__main__":
@@ -252,7 +259,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ldap:
-        ldap(settings)
+        ldap(settings=settings)
 
     elif args.shadow:
         uvicorn.run(
@@ -274,7 +281,7 @@ if __name__ == "__main__":
             factory=True,
         )
     elif args.scheduler:
-        scheduler(settings)
+        scheduler(settings=settings)
     elif args.certs_dumper:
         dump_acme_cert()
     elif args.migrate:
