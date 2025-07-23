@@ -9,6 +9,7 @@ import tempfile
 from collections import defaultdict
 
 import pytest
+from enums import AceType, RoleScope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
@@ -23,7 +24,7 @@ from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_search_path
-from models import AceType, Directory, Group, RoleScope, User
+from models import Directory, Group, User
 from tests.conftest import TestCreds
 
 

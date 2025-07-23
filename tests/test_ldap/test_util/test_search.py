@@ -8,6 +8,7 @@ import asyncio
 from ipaddress import IPv4Address
 
 import pytest
+from enums import AceType, RoleScope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,7 +22,7 @@ from ldap_protocol.policies.network_policy import is_user_group_valid
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
-from models import AceType, RoleScope, User
+from models import User
 from tests.conftest import TestCreds
 
 

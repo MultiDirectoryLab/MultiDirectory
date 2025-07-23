@@ -8,13 +8,14 @@ import asyncio
 import tempfile
 
 import pytest
+from enums import AceType, RoleScope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
-from models import AceType, Directory, RoleScope
+from models import Directory
 from tests.conftest import TestCreds
 
 

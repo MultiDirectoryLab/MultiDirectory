@@ -6,7 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from unittest.mock import Mock
 
-from models import AccessControlEntry, AceType
+from enums import AceType
+
+from models import AccessControlEntry
 
 
 def create_mock_ace(

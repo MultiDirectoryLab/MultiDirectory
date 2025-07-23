@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Any, TypedDict
 
 import pytest
+from enums import AceType, RoleScope
 from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -18,7 +19,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import AceType, Directory, Group, Role, RoleScope
+from models import Directory, Group, Role
 
 
 async def apply_user_account_control(
