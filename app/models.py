@@ -1064,7 +1064,7 @@ class Role(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
-    creator_upn: Mapped[str] = mapped_column(
+    creator_upn: Mapped[str | None] = mapped_column(
         nullable=True,
         unique=False,
     )
