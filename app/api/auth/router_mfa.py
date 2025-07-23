@@ -15,8 +15,11 @@ from fastapi.routing import APIRouter
 
 from api.auth import get_current_user
 from api.auth.adapters import MFAFastAPIAdapter
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
+from ldap_protocol.utils.helpers import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 
 from .schema import (
     MFAChallengeResponse,
