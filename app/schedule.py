@@ -3,7 +3,6 @@
 import asyncio
 from typing import Callable, Coroutine
 
-import uvloop
 from dishka import AsyncContainer, Scope, make_async_container
 from loguru import logger
 
@@ -49,31 +48,16 @@ async def _schedule(
         await asyncio.sleep(wait)
 
 
-def scheduler(settings: Settings) -> None:
-    """Sript entrypoint."""
+async def scheduler_factory(settings: Settings) -> None:
+    """Run scheduler tasks."""
+    container = make_async_container(
+        MainProvider(),
+        context={Settings: settings},
+    )
 
-    async def runner(settings: Settings) -> None:
-        container = make_async_container(
-            MainProvider(),
-            context={Settings: settings},
-        )
-
-        async with asyncio.TaskGroup() as tg:
-            for task, timeout in _TASKS:
-                tg.create_task(_schedule(task, timeout, container))
-
-    def _run() -> None:
-        uvloop.run(runner(settings))
-
-    try:
-        import py_hot_reload
-    except ImportError:
-        _run()
-    else:
-        if settings.DEBUG:
-            py_hot_reload.run_with_reloader(_run)
-        else:
-            _run()
+    async with asyncio.TaskGroup() as tg:
+        for task, timeout in _TASKS:
+            tg.create_task(_schedule(task, timeout, container))
 
 
-__all__ = ["scheduler"]
+__all__ = ["scheduler_factory"]
