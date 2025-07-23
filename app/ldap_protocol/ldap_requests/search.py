@@ -399,7 +399,9 @@ class SearchRequest(BaseRequest):
         :return: mutated query with access control entries loaded
         """
         return query.options(
-            selectinload(Directory.access_control_entries),
+            selectinload(Directory.access_control_entries).joinedload(
+                AccessControlEntry.attribute_type
+            ),
             with_loader_criteria(
                 AccessControlEntry,
                 and_(
