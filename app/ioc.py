@@ -198,6 +198,9 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
+    attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
@@ -214,10 +217,6 @@ class HTTPProvider(Provider):
     async def get_session(self) -> LDAPSession:
         """Create ldap session."""
         return LDAPSession()
-
-    role_dao = provide(RoleDAO, scope=Scope.REQUEST)
-    access_manager = provide(AccessManager, scope=Scope.REQUEST)
-    role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
