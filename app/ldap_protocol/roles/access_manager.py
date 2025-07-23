@@ -130,7 +130,9 @@ class AccessManager:
                     return False
             elif change.operation == Operation.ADD:
                 if not cls._check_modify_access(
-                    attr_name, aces, AceType.WRITE
+                    attr_name,
+                    filtered_aces,
+                    AceType.WRITE,
                 ):
                     return False
             else:

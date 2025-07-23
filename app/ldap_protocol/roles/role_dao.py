@@ -160,7 +160,7 @@ class RoleDAO:
             raise ValueError("No valid groups provided for the role.")
 
         role.name = role_name
-        role.creator_upn = creator_upn  # type: ignore
+        role.creator_upn = creator_upn
         role.is_system = is_system
         role.groups.clear()
         role.groups.extend(groups)

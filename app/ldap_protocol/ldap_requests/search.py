@@ -329,8 +329,11 @@ class SearchRequest(BaseRequest):
             query = query.limit(self.size_limit)
 
         async for response in self.tree_view(
-            query, session, user, access_manager
-        ):
+            query,
+            session,
+            user,
+            access_manager
+        ):  # fmt: skip
             yield response
 
         yield SearchResultDone(
