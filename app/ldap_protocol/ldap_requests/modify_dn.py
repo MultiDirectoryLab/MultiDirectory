@@ -21,6 +21,7 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
@@ -78,7 +79,7 @@ class ModifyDNRequest(BaseRequest):
         >>> cn = main2, ou = users, dc = multifactor, dc = dev
     """
 
-    PROTOCOL_OP: ClassVar[int] = 12
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY_DN
 
     entry: str
     newrdn: str

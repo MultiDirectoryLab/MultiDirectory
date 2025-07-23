@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
+from enum import IntEnum, unique
 from typing import Annotated, ClassVar
 
 import annotated_types
@@ -24,6 +25,23 @@ type_map = {
     LDAPCodes: Numbers.Enumerated,
     LDAPOID: Numbers.OctetString,
 }
+
+
+@unique
+class ProtocolResponse(IntEnum):
+    """Enum for LDAP resposnes."""
+
+    BIND = 1
+    SEARCH_RESULT_ENTRY = 4
+    SEARCH_RESULT_DONE = 5
+    MODIFY = 7
+    ADD = 9
+    DELETE = 11
+    MODIFY_DN = 13
+    COMPARE = 15
+    EXTENDED = 24
+    INTERMEDIATE = 25
+    SEARCH_RESULT_REFERENCE = 19
 
 
 class LDAPResult(BaseModel):
@@ -74,7 +92,7 @@ class BindResponse(LDAPResult, BaseResponse):
         serverSaslCreds    [7] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = 1
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.BIND
     server_sasl_creds: bytes | None = Field(None, alias="serverSaslCreds")
 
     def to_asn1(self, enc: Encoder) -> None:
@@ -137,7 +155,7 @@ class SearchResultEntry(BaseResponse):
     SearchResultDone ::= [APPLICATION 5] LDAPResult
     """
 
-    PROTOCOL_OP: ClassVar[int] = 4
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_ENTRY
 
     object_name: str
     partial_attributes: list[PartialAttribute]
@@ -163,7 +181,7 @@ class SearchResultEntry(BaseResponse):
 class SearchResultDone(LDAPResult, BaseResponse):
     """LDAP result."""
 
-    PROTOCOL_OP: ClassVar[int] = 5
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_DONE
     # API fields
     total_pages: int = 0
     total_objects: int = 0
@@ -189,7 +207,7 @@ INVALID_ACCESS_RESPONSE = {
 class SearchResultReference(BaseResponse):
     """List of uris."""
 
-    PROTOCOL_OP: ClassVar[int] = 19
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_REFERENCE
 
     values: list[AnyUrl]
 
@@ -197,25 +215,25 @@ class SearchResultReference(BaseResponse):
 class ModifyResponse(LDAPResult, BaseResponse):
     """Modify response."""
 
-    PROTOCOL_OP: ClassVar[int] = 7
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.MODIFY
 
 
 class AddResponse(LDAPResult, BaseResponse):
     """Modify response."""
 
-    PROTOCOL_OP: ClassVar[int] = 9
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.ADD
 
 
 class DeleteResponse(LDAPResult, BaseResponse):
     """Delete response."""
 
-    PROTOCOL_OP: ClassVar[int] = 11
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.DELETE
 
 
 class ModifyDNResponse(LDAPResult, BaseResponse):
     """Delete response."""
 
-    PROTOCOL_OP: ClassVar[int] = 13
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.MODIFY_DN
 
 
 class BaseExtendedResponseValue(ABC, BaseEncoder):
@@ -235,7 +253,7 @@ class ExtendedResponse(LDAPResult, BaseResponse):
         responseValue    [11] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = 24
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.EXTENDED
     response_name: LDAPOID
     response_value: SerializeAsAny[BaseExtendedResponseValue] | None
 

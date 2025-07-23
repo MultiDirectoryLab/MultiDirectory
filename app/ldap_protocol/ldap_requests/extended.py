@@ -9,7 +9,7 @@ from typing import AsyncGenerator, ClassVar
 
 from asn1 import Decoder
 from loguru import logger
-from pydantic import BaseModel, SecretStr, SerializeAsAny
+from pydantic import BaseModel, SecretStr, SerializeAsAny, field_validator
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
 )
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
@@ -38,6 +39,14 @@ class BaseExtendedValue(ABC, BaseModel):
     """Base extended request body."""
 
     REQUEST_ID: ClassVar[LDAPOID]
+
+    @classmethod
+    @field_validator("REQUEST_ID")
+    def validate_oid(cls, v: str) -> str:
+        """Validate oid."""
+        if not LDAPOID.has_value(v):
+            raise ValueError(f"Invalid OID: {v}")
+        return v
 
     @classmethod
     @abstractmethod
@@ -91,7 +100,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
     RFC 4532;
     """
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.3"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.WHOAMI
     base: int = 123
 
     @classmethod
@@ -128,7 +137,7 @@ class StartTLSResponse(BaseExtendedResponseValue):
 class StartTLSRequestValue(BaseExtendedValue):
     """Start tls request."""
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.1466.20037"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.START_TLS
 
     async def handle(
         self,
@@ -180,7 +189,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         newPasswd       [2]  OCTET STRING OPTIONAL }
     """
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.1"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.PASSWORD_MODIFY
     user_identity: str | None = None
     old_password: SecretStr
     new_password: SecretStr
@@ -297,7 +306,7 @@ class ExtendedRequest(BaseRequest):
         requestValue     [1] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = 23
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.EXTENDED
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 
