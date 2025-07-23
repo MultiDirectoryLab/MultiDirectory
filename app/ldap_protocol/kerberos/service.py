@@ -24,7 +24,6 @@ from ldap_protocol.kerberos.exceptions import (
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
 from .base import AbstractKadmin, KerberosState, KRBAPIError
@@ -70,7 +69,6 @@ class KerberosService:
         ldap_session: LDAPSession,
         entity_type_dao: EntityTypeDAO,
         access_manager: AccessManager,
-        role_use_case: RoleUseCase,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -80,7 +78,6 @@ class KerberosService:
             ldap_session (LDAPSession): LDAP session.
             entity_type_dao (EntityTypeDAO): DAO for entity types.
             access_manager (AccessManager): Access control manager.
-            role_use_case (RoleUseCase): Role use case for managing roles.
 
         Raises:
             KerberosConflictError: On structure creation conflict.
@@ -101,8 +98,6 @@ class KerberosService:
             self._kadmin,
             entity_type_dao,
             access_manager,
-            role_use_case,
-            base_dn,
         )
 
     async def _get_base_dn(self) -> tuple[str, str]:
@@ -199,7 +194,6 @@ class KerberosService:
         stash_password: str,
         user: UserSchema,
         request: Request,
-        role_use_case: RoleUseCase,
     ) -> TaskStruct:
         """Set up KDC, generate configs, and return TaskStruct.
 
@@ -209,7 +203,6 @@ class KerberosService:
             stash_password (str): Stash password.
             user (UserSchema): Current user.
             request (Request): FastAPI request (for DI container).
-            role_use_case (RoleUseCase): Role use case for managing roles.
 
         Returns:
             tuple: (func, args, kwargs) for background task.
@@ -241,7 +234,6 @@ class KerberosService:
                 context.krbadmin,
                 context.services_container,
                 context.krbgroup,
-                role_use_case,
             )
             await self._kadmin.reset_setup()
             raise KerberosDependencyError(str(err))
