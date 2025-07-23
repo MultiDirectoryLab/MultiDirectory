@@ -45,6 +45,8 @@ async def setup_krb_catalogue(
     krbadmin_password: Annotated[SecretStr, Body()],
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
     entity_type_dao: FromDishka[EntityTypeDAO],
+    role_use_case: FromDishka[RoleUseCase],
+    access_manager: FromDishka[AccessManager],
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Generate tree for kdc/kadmin.
@@ -59,6 +61,8 @@ async def setup_krb_catalogue(
         krbadmin_password,
         ldap_session,
         entity_type_dao,
+        access_manager,
+        role_use_case,
     )
 
 
@@ -68,6 +72,7 @@ async def setup_kdc(
     user: Annotated[UserSchema, Depends(get_current_user)],
     request: Request,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
+    role_use_case: FromDishka[RoleUseCase],
 ) -> Response:
     """Set up KDC server.
 
@@ -82,7 +87,7 @@ async def setup_kdc(
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[LDAPSession, Depends ldap_session: ldap session
     """
-    return await kerberos_adapter.setup_kdc(data, user, request)
+    return await kerberos_adapter.setup_kdc(data, user, request, role_use_case)
 
 
 LIMITED_STR = Annotated[str, Len(min_length=1, max_length=8100)]

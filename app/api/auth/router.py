@@ -15,6 +15,7 @@ from api.auth.adapters import IdentityFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
@@ -133,6 +134,7 @@ async def check_setup(
 async def first_setup(
     request: SetupRequest,
     auth_manager: FromDishka[IdentityFastAPIAdapter],
+    role_use_case: FromDishka[RoleUseCase],
 ) -> None:
     """Perform initial structure and policy setup.
 
@@ -141,4 +143,4 @@ async def first_setup(
     :raises HTTPException: 423 if setup already performed
     :return: None
     """
-    await auth_manager.perform_first_setup(request)
+    await auth_manager.perform_first_setup(request, role_use_case)

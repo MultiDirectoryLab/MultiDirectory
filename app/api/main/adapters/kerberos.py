@@ -23,6 +23,8 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.role_use_case import RoleUseCase
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -72,6 +74,8 @@ class KerberosFastAPIAdapter:
         krbadmin_password: SecretStr,
         ldap_session: LDAPSession,
         entity_type_dao: EntityTypeDAO,
+        access_manager: AccessManager,
+        role_use_case: RoleUseCase,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -84,6 +88,8 @@ class KerberosFastAPIAdapter:
             krbadmin_password,
             ldap_session,
             entity_type_dao,
+            access_manager,
+            role_use_case,
         )
 
     async def setup_kdc(
@@ -91,6 +97,7 @@ class KerberosFastAPIAdapter:
         data: KerberosSetupRequest,
         user: UserSchema,
         request: Request,
+        role_use_case: RoleUseCase,
     ) -> Response:
         """Set up KDC, generate configs, and schedule background task.
 
@@ -104,6 +111,7 @@ class KerberosFastAPIAdapter:
             data.stash_password.get_secret_value(),
             user,
             request,
+            role_use_case,
         )
         task = BackgroundTask(
             task_struct.func,

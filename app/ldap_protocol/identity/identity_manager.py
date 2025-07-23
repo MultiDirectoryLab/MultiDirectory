@@ -28,7 +28,6 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -37,6 +36,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
@@ -203,7 +203,9 @@ class IdentityManager(SessionKeyCreatorMixin):
         retval = await self._session.scalars(query)
         return retval.one()
 
-    async def perform_first_setup(self, request: SetupRequest) -> None:
+    async def perform_first_setup(
+        self, request: SetupRequest, role_use_case: RoleUseCase
+    ) -> None:
         """Perform the initial setup of structure and policies.
 
         :param request: SetupRequest with setup parameters
@@ -334,29 +336,8 @@ class IdentityManager(SessionKeyCreatorMixin):
                 )
                 domain = (await self._session.scalars(domain_query)).one()
 
-                await create_access_policy(
-                    name="Root Access Policy",
-                    can_add=True,
-                    can_modify=True,
-                    can_read=True,
-                    can_delete=True,
-                    grant_dn=domain.path_dn,
-                    groups=["cn=domain admins,cn=groups," + domain.path_dn],
-                    session=self._session,
-                )
-                await create_access_policy(
-                    name="ReadOnly Access Policy",
-                    can_add=False,
-                    can_modify=False,
-                    can_read=True,
-                    can_delete=False,
-                    grant_dn=domain.path_dn,
-                    groups=[
-                        "cn=readonly domain controllers,cn=groups,"
-                        + domain.path_dn,
-                    ],
-                    session=self._session,
-                )
+                await role_use_case.create_domain_admins_role(domain.path_dn)
+                await role_use_case.create_read_only_role(domain.path_dn)
                 await self._session.commit()
             except IntegrityError:
                 await self._session.rollback()
