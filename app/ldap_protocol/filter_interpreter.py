@@ -61,6 +61,13 @@ class FilterInterpreterProtocol(Protocol):
         """Cast filter expression to SQLAlchemy conditions."""
         ...
 
+    @abstractmethod
+    def _cast_item(
+        self, item: ASN1Row | Filter
+    ) -> UnaryExpression | ColumnElement:
+        """Cast a single item to SQLAlchemy condition."""
+        ...
+
     def _get_filter_function(
         self, column: str
     ) -> Callable[..., UnaryExpression]:
@@ -224,17 +231,44 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
         col = getattr(model, item.attr)
 
         if is_substring:
-            return col.ilike(item.val.replace("*", "%"))
-        op_method = {"=": eq, ">=": ge, "<=": le, "~=": ne}[item.comp]
-        col = col if item.attr == "objectguid" else func.lower(col)
-        return op_method(col, item.val)
+            return col.ilike(self._get_substring(right))
+        op_method = {3: eq, 5: ge, 6: le, 8: ne}[item.tag_id]
+        if attr == "objectguid":
+            col = col
+            value = str(uuid.UUID(bytes_le=right.value))
+        else:
+            col = func.lower(col)
+            value = right.value.lower()
+        return op_method(col, value)
 
-    def _api_filter(self, item: Filter) -> UnaryExpression:
-        """Retrieve query conditions based on the specified LDAP attribute."""
-        filter_func = self._get_filter_function(item.attr)
-        return filter_func(item.val)
 
-    def _cast_filt_item(self, item: Filter) -> UnaryExpression | ColumnElement:
+class StringFilterInterpreter(FilterInterpreterProtocol):
+    """String filter interpreter for SQLAlchemy."""
+
+    def __init__(self) -> None:
+        """Initialize the interpreter."""
+        self.attributes = set()
+
+    def cast_to_sql(self, expr: Filter) -> UnaryExpression | ColumnElement:
+        """Cast ldap filter to sa query."""
+        if expr.type == "group":
+            conditions = []
+            for item in expr.filters:
+                if expr.type == "group":
+                    conditions.append(self.cast_to_sql(item))
+                    continue
+
+                conditions.append(self._cast_item(item))
+
+            return {  # type: ignore
+                "&": and_,
+                "|": or_,
+                "!": not_,
+            }[expr.comp](*conditions)
+
+        return self._cast_item(expr)
+
+    def _cast_item(self, item: Filter) -> UnaryExpression | ColumnElement:
         if item.val == "*":
             if item.attr in User.search_fields:
                 return not_(eq(getattr(User, item.attr), None))
