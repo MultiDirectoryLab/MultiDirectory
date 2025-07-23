@@ -11,6 +11,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.utils.queries import get_base_directories
 from models import AccessControlEntry, AceType, Directory, Role
 
 
@@ -132,13 +133,19 @@ class RoleUseCase:
             (await self._role_dao._session.scalars(select(query))).one()  # noqa: SLF001
         )
 
-    async def create_domain_admins_role(self, base_dn: str) -> Role:
+    async def create_domain_admins_role(self) -> None:
         """Create a Domain Admins role with full access.
 
         :param base_dn: Base DN for the role.
         :return: The created Role object.
         """
-        group_dn = RoleConstants.DOMAIN_ADMINS_GROUP_CN + base_dn
+        base_dn_list = await get_base_directories(self._role_dao._session)  # noqa: SLF001
+        if not base_dn_list:
+            return
+
+        group_dn = (
+            RoleConstants.DOMAIN_ADMINS_GROUP_CN + base_dn_list[0].path_dn
+        )
         domain_admins_role = await self._role_dao.create_role(
             role_name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
             creator_upn=None,
@@ -146,21 +153,19 @@ class RoleUseCase:
             groups_dn=[group_dn],
         )
 
-        aces = self._get_full_access_aces(base_dn)
+        aces = self._get_full_access_aces(base_dn_list[0].path_dn)
         await self._role_dao.add_access_control_entries(
             role_id=domain_admins_role.id,
             access_control_entries=aces,
         )
 
-        return domain_admins_role
+    async def create_read_only_role(self) -> None:
+        """Create a Read Only role."""
+        base_dn_list = await get_base_directories(self._role_dao._session)  # noqa: SLF001
+        if not base_dn_list:
+            return
 
-    async def create_read_only_role(self, base_dn: str) -> Role:
-        """Create a Read Only role.
-
-        :param base_dn: Base DN for the role.
-        :return: The created Role object.
-        """
-        group_dn = RoleConstants.READONLY_GROUP_CN + base_dn
+        group_dn = RoleConstants.READONLY_GROUP_CN + base_dn_list[0].path_dn
         role = await self._role_dao.create_role(
             role_name=RoleConstants.READ_ONLY_ROLE_NAME,
             creator_upn=None,
@@ -172,7 +177,7 @@ class RoleUseCase:
             AccessControlEntrySchema(
                 ace_type=AceType.READ,
                 scope=RoleScope.WHOLE_SUBTREE,
-                base_dn=base_dn,
+                base_dn=base_dn_list[0].path_dn,
                 attribute_type_id=None,
                 entity_type_id=None,
                 is_allow=True,
@@ -183,15 +188,16 @@ class RoleUseCase:
             access_control_entries=aces,
         )
 
-        return role
-
-    async def create_kerberos_system_role(self, base_dn: str) -> Role:
+    async def create_kerberos_system_role(self) -> None:
         """Create a Kerberos system role with full access.
 
-        :param base_dn: Base DN for the role.
         :return: The created Role object.
         """
-        group_dn = RoleConstants.KERBEROS_GROUP_CN + base_dn
+        base_dn_list = await get_base_directories(self._role_dao._session)  # noqa: SLF001
+        if not base_dn_list:
+            return
+
+        group_dn = RoleConstants.KERBEROS_GROUP_CN + base_dn_list[0].path_dn
         role = await self._role_dao.create_role(
             role_name=RoleConstants.KERBEROS_ROLE_NAME,
             creator_upn=None,
@@ -199,13 +205,13 @@ class RoleUseCase:
             groups_dn=[group_dn],
         )
 
-        aces = self._get_full_access_aces("ou=services," + base_dn)
+        aces = self._get_full_access_aces(
+            "ou=services," + base_dn_list[0].path_dn
+        )
         await self._role_dao.add_access_control_entries(
             role_id=role.id,
             access_control_entries=aces,
         )
-
-        return role
 
     async def delete_kerberos_system_role(self) -> None:
         """Delete the Kerberos system role."""

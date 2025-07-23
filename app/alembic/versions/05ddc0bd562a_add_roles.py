@@ -126,8 +126,8 @@ def upgrade() -> None:
 
         role_dao = RoleDAO(session)
         role_use_case = RoleUseCase(role_dao)
-        await role_use_case.create_domain_admins_role(base_dn_list[0].path_dn)
-        await role_use_case.create_read_only_role(base_dn_list[0].path_dn)
+        await role_use_case.create_domain_admins_role()
+        await role_use_case.create_read_only_role()
 
         krb_group_query = (
             select(Group)
@@ -140,9 +140,7 @@ def upgrade() -> None:
             await session.scalars(select(krb_group_query))
         ).one()
         if krb_group_exists:
-            await role_use_case.create_kerberos_system_role(
-                base_dn_list[0].path_dn
-            )
+            await role_use_case.create_kerberos_system_role()
 
         await session.commit()
 
