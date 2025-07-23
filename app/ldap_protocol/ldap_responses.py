@@ -11,6 +11,7 @@ from asn1 import Classes, Encoder, Numbers
 from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny
 
 from ldap_protocol.asn1parser import LDAPOID
+from ldap_protocol.objects import ProtocolResponse
 
 from .ldap_codes import LDAPCodes
 from .objects import PartialAttribute, ProtocolResponse
