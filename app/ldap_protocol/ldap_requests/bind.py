@@ -28,6 +28,7 @@ from ldap_protocol.ldap_requests.bind_methods import (
 )
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
@@ -49,7 +50,7 @@ from .base import BaseRequest
 class BindRequest(BaseRequest):
     """Bind request fields mapping."""
 
-    PROTOCOL_OP: ClassVar[int] = 0x0
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.BIND
 
     version: int
     name: str

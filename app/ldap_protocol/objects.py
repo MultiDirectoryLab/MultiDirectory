@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import IntEnum, StrEnum
+from enum import IntEnum, StrEnum, unique
 
 from pydantic import BaseModel
 
@@ -12,15 +12,7 @@ from ldap_protocol.ldap_responses import PartialAttribute
 
 
 class Scope(IntEnum):
-    """Enum for search request.
-
-    ```
-    BASE_OBJECT = 0
-    SINGLE_LEVEL = 1
-    WHOLE_SUBTREE = 2
-    SUBORDINATE_SUBTREE = 3
-    ```
-    """
+    """Enum for search request."""
 
     BASE_OBJECT = 0
     SINGLE_LEVEL = 1
@@ -29,15 +21,7 @@ class Scope(IntEnum):
 
 
 class DerefAliases(IntEnum):
-    """Enum for search request.
-
-    ```
-    NEVER_DEREF_ALIASES = 0
-    DEREF_IN_SEARCHING = 1
-    DEREF_FINDING_BASE_OBJ = 2
-    DEREF_ALWAYS = 3
-    ```
-    """
+    """Enum for search request."""
 
     NEVER_DEREF_ALIASES = 0
     DEREF_IN_SEARCHING = 1
@@ -71,3 +55,35 @@ class Changes(BaseModel):
     def get_name(self) -> str:
         """Get mod name."""
         return self.modification.type.lower()
+
+
+class ProtocolRequests(IntEnum):
+    """Enum for LDAP requests."""
+
+    BIND = 0
+    UNBIND = 2
+    SEARCH = 3
+    MODIFY = 6
+    ADD = 8
+    DELETE = 10
+    MODIFY_DN = 12
+    COMPARE = 14
+    ABANDON = 16
+    EXTENDED = 23
+
+
+@unique
+class ProtocolResponse(IntEnum):
+    """Enum for LDAP resposnes."""
+
+    BIND = 1
+    SEARCH_RESULT_ENTRY = 4
+    SEARCH_RESULT_DONE = 5
+    MODIFY = 7
+    ADD = 9
+    DELETE = 11
+    MODIFY_DN = 13
+    COMPARE = 15
+    EXTENDED = 24
+    INTERMEDIATE = 25
+    SEARCH_RESULT_REFERENCE = 19

@@ -35,7 +35,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
-from ldap_protocol.objects import DerefAliases, Scope
+from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
@@ -94,7 +94,7 @@ class SearchRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = 3
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.SEARCH
 
     base_object: str = Field("", description="Any `DistinguishedName`")
     scope: Scope
