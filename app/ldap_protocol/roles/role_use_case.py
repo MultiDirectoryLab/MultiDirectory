@@ -75,7 +75,7 @@ class RoleUseCase:
             .where(directory_filter, inheritance_conditions)
         )
 
-        aces = (await self._role_dao._session.execute(query)).scalars().all()
+        aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
 
         for ace in aces:
             ace.directories.append(directory)
@@ -105,7 +105,7 @@ class RoleUseCase:
             )
             .limit(1)
         )
-        result = await self._role_dao._session.scalar(query)
+        result = await self._role_dao._session.scalar(query)  # noqa: SLF001
         return result
 
     async def contains_domain_admins_role(
@@ -128,7 +128,7 @@ class RoleUseCase:
         )
 
         return bool(
-            (await self._role_dao._session.scalars(select(query))).one()
+            (await self._role_dao._session.scalars(select(query))).one()  # noqa: SLF001
         )
 
     async def create_domain_admins_role(self, base_dn: str) -> Role:
@@ -205,6 +205,14 @@ class RoleUseCase:
         )
 
         return role
+
+    async def delete_kerberos_system_role(self) -> None:
+        """Delete the Kerberos system role."""
+        role = await self._role_dao.get_role_by_name(
+            RoleConstants.KERBEROS_ROLE_NAME
+        )
+        if role:
+            await self._role_dao.delete_role(role.id)
 
     def _get_full_access_aces(
         self,
