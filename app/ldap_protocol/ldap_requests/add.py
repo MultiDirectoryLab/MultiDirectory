@@ -9,10 +9,9 @@ from typing import AsyncGenerator, ClassVar
 import httpx
 from enums import AceType
 from pydantic import Field, SecretStr
-from sqlalchemy import Select, and_, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -43,7 +42,7 @@ from ldap_protocol.utils.queries import (
     get_search_path,
     validate_entry,
 )
-from models import AccessControlEntry, Attribute, Directory, Group, User
+from models import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -93,26 +92,6 @@ class AddRequest(BaseRequest):
         ]
         return cls(entry=entry.value, attributes=attributes)  # type: ignore
 
-    def _mutate_query_with_ace_load(
-        self, user_role_ids: list[int], query: Select
-    ) -> Select:
-        """Mutate query to load access control entries.
-
-        :param user_role_ids: list of user role ids
-        :param query: SQLAlchemy query to mutate
-        :return: mutated query with access control entries loaded
-        """
-        return query.options(
-            selectinload(Directory.access_control_entries),
-            with_loader_criteria(
-                AccessControlEntry,
-                and_(
-                    AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type == AceType.CREATE_CHILD,
-                ),
-            ),
-        )
-
     async def handle(  # noqa: C901
         self,
         session: AsyncSession,
@@ -159,8 +138,10 @@ class AddRequest(BaseRequest):
 
         parent_query = select(Directory).filter(parent_path)
 
-        parent_query = self._mutate_query_with_ace_load(
-            ldap_session.user.role_ids, parent_query
+        parent_query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=parent_query,
+            ace_types=[AceType.CREATE_CHILD],
         )
 
         parent = await session.scalar(parent_query)

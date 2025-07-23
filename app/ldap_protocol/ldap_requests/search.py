@@ -13,7 +13,7 @@ from typing import Any, AsyncGenerator, ClassVar
 from enums import AceType
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
-from sqlalchemy import and_, func, or_
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload, with_loader_criteria
@@ -51,7 +51,6 @@ from ldap_protocol.utils.queries import (
     get_search_path,
 )
 from models import (
-    AccessControlEntry,
     Attribute,
     AttributeType,
     Directory,
@@ -313,7 +312,9 @@ class SearchRequest(BaseRequest):
             )
             return
 
-        query = self.build_query(await get_base_directories(session), user)
+        query = self.build_query(
+            await get_base_directories(session), user, access_manager
+        )
 
         try:
             cond = self.cast_filter()
@@ -390,34 +391,11 @@ class SearchRequest(BaseRequest):
             ),
         )
 
-    def _mutate_query_with_ace_load(
-        self,
-        user_role_ids: list[int],
-        query: Select,
-    ) -> Select:
-        """Mutate query to load access control entries.
-
-        :param user_role_ids: list of user role ids
-        :param query: SQLAlchemy query to mutate
-        :return: mutated query with access control entries loaded
-        """
-        return query.options(
-            selectinload(Directory.access_control_entries).joinedload(
-                AccessControlEntry.attribute_type
-            ),
-            with_loader_criteria(
-                AccessControlEntry,
-                and_(
-                    AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type == AceType.READ,
-                ),
-            ),
-        )
-
     def build_query(
         self,
         base_directories: list[Directory],
         user: UserSchema,
+        access_manager: AccessManager,
     ) -> Select:
         """Build tree query."""
         query = (
@@ -431,7 +409,12 @@ class SearchRequest(BaseRequest):
         )  # fmt: skip
 
         query = self._mutate_query_with_attributes_to_load(query)
-        query = self._mutate_query_with_ace_load(user.role_ids, query)
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=user.role_ids,
+            query=query,
+            ace_types=[AceType.READ],
+            load_attribute_type=True,
+        )
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):

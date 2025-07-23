@@ -7,6 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Literal
 
 from enums import AceType, RoleScope
+from sqlalchemy import Select, and_
+from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from ldap_protocol.objects import Changes, Operation
 from models import AccessControlEntry, Directory
@@ -290,3 +292,53 @@ class AccessManager:
             result_aces_list.append(ace)
 
         return result_aces_list
+
+    @staticmethod
+    def mutate_query_with_ace_load(
+        user_role_ids: list[int],
+        query: Select,
+        ace_types: list[AceType],
+        load_attribute_type: bool = False,
+        require_attribute_type_null: bool = False,
+    ) -> Select:
+        """Mutate query to load access control entries.
+
+        :param user_role_ids: list of user role ids
+        :param query: SQLAlchemy query to mutate
+        :param ace_types: single AceType or list of AceTypes to filter by
+        :param load_attribute_type: whether to joinedload attribute_type
+        :param require_attribute_type_null: whether to filter by
+            null attribute_type_id
+        :return: mutated query with access control entries loaded
+        """
+        selectin_loader = selectinload(Directory.access_control_entries)
+        if load_attribute_type:
+            selectin_loader = selectin_loader.joinedload(
+                AccessControlEntry.attribute_type
+            )
+
+        criteria_conditions = [
+            AccessControlEntry.role_id.in_(user_role_ids),
+        ]
+
+        if len(ace_types) == 1:
+            criteria_conditions.append(
+                AccessControlEntry.ace_type == ace_types[0]  # type: ignore
+            )
+        else:
+            criteria_conditions.append(
+                AccessControlEntry.ace_type.in_(ace_types)
+            )
+
+        if require_attribute_type_null:
+            criteria_conditions.append(
+                AccessControlEntry.attribute_type_id.is_(None)
+            )
+
+        return query.options(
+            selectin_loader,
+            with_loader_criteria(
+                AccessControlEntry,
+                and_(*criteria_conditions),
+            ),
+        )

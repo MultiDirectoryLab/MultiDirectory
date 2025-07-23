@@ -12,11 +12,11 @@ from loguru import logger
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
+from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
     AbstractKadmin,
     KRBAPIError,
@@ -47,7 +47,7 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
-from models import AccessControlEntry, Attribute, Directory, Group, User
+from models import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
@@ -151,7 +151,13 @@ class ModifyRequest(BaseRequest):
             return
 
         policy = await PasswordPolicySchema.get_policy_settings(session)
-        query = self._get_dir_query(ldap_session.user)
+        query = self._get_dir_query()
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=query,
+            ace_types=[AceType.WRITE, AceType.DELETE],
+            load_attribute_type=True,
+        )
 
         directory = await session.scalar(query)
 
@@ -251,34 +257,8 @@ class ModifyRequest(BaseRequest):
             case _:
                 raise err
 
-    def _mutate_query_with_ace_load(
-        self,
-        user_role_ids: list[int],
-        query: Select,
-    ) -> Select:
-        """Mutate query to load access control entries.
-
-        :param user_role_ids: list of user role ids
-        :param query: SQLAlchemy query to mutate
-        :return: mutated query with access control entries loaded
-        """
-        return query.options(
-            selectinload(Directory.access_control_entries).joinedload(
-                AccessControlEntry.attribute_type
-            ),
-            with_loader_criteria(
-                AccessControlEntry,
-                and_(
-                    AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type.in_(
-                        [AceType.DELETE, AceType.WRITE]
-                    ),
-                ),
-            ),
-        )
-
-    def _get_dir_query(self, user: UserSchema) -> Select:
-        query = (
+    def _get_dir_query(self) -> Select:
+        return (
             select(Directory)
             .options(
                 selectinload(Directory.attributes),
@@ -287,7 +267,6 @@ class ModifyRequest(BaseRequest):
             )
             .filter(get_filter_from_path(self.object))
         )
-        return self._mutate_query_with_ace_load(user.role_ids, query)
 
     def _check_password_change_requested(
         self,

@@ -7,9 +7,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from enums import AceType
-from sqlalchemy import Select, and_, delete, select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import defaultload, selectinload, with_loader_criteria
+from sqlalchemy.orm import defaultload
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -28,7 +28,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import AccessControlEntry, Directory
+from models import Directory
 
 from .base import BaseRequest
 
@@ -46,27 +46,6 @@ class DeleteRequest(BaseRequest):
     @classmethod
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
-
-    def _mutate_query_with_ace_load(
-        self, user_role_ids: list[int], query: Select
-    ) -> Select:
-        """Mutate query to load access control entries.
-
-        :param user_role_ids: list of user role ids
-        :param query: SQLAlchemy query to mutate
-        :return: mutated query with access control entries loaded
-        """
-        return query.options(
-            selectinload(Directory.access_control_entries),
-            with_loader_criteria(
-                AccessControlEntry,
-                and_(
-                    AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type == AceType.DELETE,
-                    AccessControlEntry.attribute_type_id.is_(None),
-                ),
-            ),
-        )
 
     async def handle(
         self,
@@ -100,8 +79,11 @@ class DeleteRequest(BaseRequest):
             .filter(get_filter_from_path(self.entry))
         )
 
-        query = self._mutate_query_with_ace_load(
-            ldap_session.user.role_ids, query
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=query,
+            ace_types=[AceType.DELETE],
+            require_attribute_type_null=True,
         )
 
         directory = await session.scalar(query)
