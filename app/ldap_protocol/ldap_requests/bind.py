@@ -230,7 +230,7 @@ class BindRequest(BaseRequest):
 class UnbindRequest(BaseRequest):
     """Remove user from ldap_session."""
 
-    PROTOCOL_OP: ClassVar[int] = 2
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.UNBIND
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
