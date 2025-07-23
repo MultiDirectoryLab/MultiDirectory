@@ -334,13 +334,8 @@ class IdentityManager(SessionKeyCreatorMixin):
                     raise ForbiddenError(errors)
 
                 await default_pwd_policy.create_policy_settings(self._session)
-                domain_query = select(Directory).filter(
-                    Directory.parent_id.is_(None)
-                )
-                domain = (await self._session.scalars(domain_query)).one()
-
-                await role_use_case.create_domain_admins_role(domain.path_dn)
-                await role_use_case.create_read_only_role(domain.path_dn)
+                await role_use_case.create_domain_admins_role()
+                await role_use_case.create_read_only_role()
                 await self._session.commit()
             except IntegrityError:
                 await self._session.rollback()
