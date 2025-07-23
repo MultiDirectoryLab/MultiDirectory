@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from enums import AceType
 from pydantic import Field, SecretStr
 from sqlalchemy import Select, and_, select
 from sqlalchemy.exc import IntegrityError
@@ -42,14 +43,7 @@ from ldap_protocol.utils.queries import (
     get_search_path,
     validate_entry,
 )
-from models import (
-    AccessControlEntry,
-    AceType,
-    Attribute,
-    Directory,
-    Group,
-    User,
-)
+from models import AccessControlEntry, Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest

@@ -8,6 +8,7 @@ import sys
 from ipaddress import IPv4Address, IPv4Network, summarize_address_range
 from typing import ClassVar, Self
 
+from enums import MFAFlags
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -19,7 +20,6 @@ from pydantic import (
 )
 
 from ldap_protocol.utils.helpers import validate_entry
-from models import MFAFlags
 
 
 class IPRange(BaseModel):

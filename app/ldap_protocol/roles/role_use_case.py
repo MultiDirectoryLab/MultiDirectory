@@ -6,11 +6,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import StrEnum
 
+from enums import RoleScope
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
-from models import AccessControlEntry, AceType, Directory, Role, RoleScope
+from models import AccessControlEntry, AceType, Directory, Role
 
 
 class RoleConstants(StrEnum):

@@ -8,6 +8,7 @@ import contextlib
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from enums import MFAFlags
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,7 +41,7 @@ from ldap_protocol.utils.queries import (
     check_kerberos_group,
     set_last_logon_user,
 )
-from models import MFAFlags, NetworkPolicy, User
+from models import NetworkPolicy, User
 
 from .base import BaseRequest
 

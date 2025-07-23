@@ -6,8 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal
 
+from enums import AceType, RoleScope
+
 from ldap_protocol.objects import Changes, Operation
-from models import AccessControlEntry, AceType, Directory, RoleScope
+from models import AccessControlEntry, Directory
 
 
 class AccessManager:

@@ -10,6 +10,7 @@ from functools import cached_property
 from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
+from enums import AceType
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import and_, func, or_
@@ -51,7 +52,6 @@ from ldap_protocol.utils.queries import (
 )
 from models import (
     AccessControlEntry,
-    AceType,
     Attribute,
     AttributeType,
     Directory,

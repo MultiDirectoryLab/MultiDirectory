@@ -9,6 +9,7 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
+from enums import MFAFlags
 from fastapi import APIRouter, Body, HTTPException, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +21,6 @@ from ldap_protocol.policies.password_policy import (
     post_save_password_actions,
 )
 from ldap_protocol.utils.queries import get_user
-from models import MFAFlags
 from security import get_password_hash
 
 shadow_router = APIRouter(route_class=DishkaRoute)

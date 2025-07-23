@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
+from enums import AceType
 from sqlalchemy import Select, and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload, selectinload, with_loader_criteria
@@ -27,7 +28,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import AccessControlEntry, AceType, Directory
+from models import AccessControlEntry, Directory
 
 from .base import BaseRequest
 

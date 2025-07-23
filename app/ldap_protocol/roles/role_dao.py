@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
+from enums import AceType, RoleScope
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -17,14 +18,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import (
-    AccessControlEntry,
-    AceType,
-    Directory,
-    Group,
-    Role,
-    RoleScope,
-)
+from models import AccessControlEntry, Directory, Group, Role
 
 
 @dataclass
