@@ -205,7 +205,9 @@ class IdentityManager(SessionKeyCreatorMixin):
         return retval.one()
 
     async def perform_first_setup(
-        self, request: SetupRequest, role_use_case: RoleUseCase
+        self,
+        request: SetupRequest,
+        role_use_case: RoleUseCase,
     ) -> None:
         """Perform the initial setup of structure and policies.
 

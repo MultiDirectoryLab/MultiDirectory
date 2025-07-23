@@ -118,7 +118,9 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         return await self._manager.check_setup_needed()
 
     async def perform_first_setup(
-        self, request: SetupRequest, role_use_case: RoleUseCase
+        self,
+        request: SetupRequest,
+        role_use_case: RoleUseCase,
     ) -> None:
         """Perform initial structure and policy setup.
 
