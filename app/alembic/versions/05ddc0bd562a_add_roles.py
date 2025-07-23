@@ -75,16 +75,18 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_AccessControlEntries_ace_type"),
+        op.f("ix_ace_type_hash"),
         "AccessControlEntries",
         ["ace_type"],
         unique=False,
+        postgresql_using="hash",
     )
     op.create_index(
-        op.f("ix_AccessControlEntries_scope"),
+        op.f("ix_ace_scope_hash"),
         "AccessControlEntries",
         ["scope"],
         unique=False,
+        postgresql_using="hash",
     )
     op.create_table(
         "AccessControlEntryDirectoryMemberships",
@@ -239,12 +241,14 @@ def downgrade() -> None:
     op.drop_table("GroupRoleMemberships")
     op.drop_table("AccessControlEntryDirectoryMemberships")
     op.drop_index(
-        op.f("ix_AccessControlEntries_scope"),
+        op.f("ix_ace_type_hash"),
         table_name="AccessControlEntries",
     )
     op.drop_index(
-        op.f("ix_AccessControlEntries_ace_type"),
+        op.f("ix_ace_scope_hash"),
         table_name="AccessControlEntries",
     )
     op.drop_table("AccessControlEntries")
     op.drop_table("Roles")
+    op.execute(sa.text("DROP TYPE acetype"))
+    op.execute(sa.text("DROP TYPE rolescope"))
