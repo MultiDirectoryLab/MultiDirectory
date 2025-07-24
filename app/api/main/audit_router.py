@@ -6,13 +6,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.routing import APIRouter
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth import get_current_user
 from models import AuditDestination, AuditPolicy
 
 from .schema import (
@@ -24,7 +23,7 @@ from .schema import (
 audit_router = APIRouter(
     prefix="/audit",
     tags=["Audit policy"],
-    dependencies=[Depends(get_current_user)],
+    # dependencies=[Depends(get_current_user)],
     route_class=DishkaRoute,
 )
 
@@ -73,7 +72,7 @@ async def update_audit_policy(
             "Entry already exists",
         )
 
-    return policy
+    return AuditPolicySchema.model_validate(selected_policy.__dict__)
 
 
 @audit_router.get("/destinations")
