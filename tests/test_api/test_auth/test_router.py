@@ -13,12 +13,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from enums import AceType, RoleScope
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group
+from models import Directory, Group, Role
 
 
 async def apply_user_account_control(
@@ -101,7 +102,9 @@ async def test_first_setup_and_oauth(
     result = await session.scalars(
         select(Directory)
         .options(
-            joinedload(Directory.group).selectinload(Group.access_policies),
+            joinedload(Directory.group)
+            .selectinload(Group.roles)
+            .selectinload(Role.access_control_entries),
         )
         .filter(
             Directory.path
@@ -113,13 +116,21 @@ async def test_first_setup_and_oauth(
     )
     group_dir = result.one()
     assert group_dir.group
-    assert group_dir.group.access_policies
-    read_only_policy = group_dir.group.access_policies[0]
-
-    assert read_only_policy.can_read
-    assert not read_only_policy.can_modify
-    assert not read_only_policy.can_delete
-    assert not read_only_policy.can_add
+    assert group_dir.group.roles
+    assert len(group_dir.group.roles) == 1
+    assert group_dir.group.roles[0].name == "Read Only Role"
+    assert group_dir.group.roles[0].is_system is True
+    assert group_dir.group.roles[0].access_control_entries
+    assert len(group_dir.group.roles[0].access_control_entries) == 1
+    assert group_dir.group.roles[0].access_control_entries[0].is_allow is True
+    assert (
+        group_dir.group.roles[0].access_control_entries[0].ace_type
+        == AceType.READ
+    )
+    assert (
+        group_dir.group.roles[0].access_control_entries[0].scope
+        == RoleScope.WHOLE_SUBTREE
+    )
 
 
 class AuthSetupRequestDataType(TypedDict):

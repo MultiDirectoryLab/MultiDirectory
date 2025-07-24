@@ -12,6 +12,7 @@ from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -40,7 +41,7 @@ from ldap_protocol.utils.queries import (
     check_kerberos_group,
     set_last_logon_user,
 )
-from models import MFAFlags, NetworkPolicy, User
+from models import NetworkPolicy, User
 
 from .base import BaseRequest
 

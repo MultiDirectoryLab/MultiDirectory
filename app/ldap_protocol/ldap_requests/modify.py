@@ -5,17 +5,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from datetime import datetime, timedelta, timezone
-from enum import IntEnum
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import BaseModel
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
+from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
@@ -26,11 +25,12 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.objects import Changes, Operation
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -51,26 +51,6 @@ from models import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
-
-
-class Operation(IntEnum):
-    """Changes enum for modify request."""
-
-    ADD = 0
-    DELETE = 1
-    REPLACE = 2
-
-
-class Changes(BaseModel):
-    """Changes for mod request."""
-
-    operation: Operation
-    modification: PartialAttribute
-
-    def get_name(self) -> str:
-        """Get mod name."""
-        return self.modification.type.lower()
-
 
 MODIFY_EXCEPTION_STACK = (
     ValueError,
@@ -151,6 +131,7 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         entity_type_dao: EntityTypeDAO,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ldap_session.user:
@@ -163,15 +144,32 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        if not ldap_session.user.role_ids:
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
         policy = await PasswordPolicySchema.get_policy_settings(session)
         query = self._get_dir_query()
-        query = mutate_ap(query, ldap_session.user)
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=query,
+            ace_types=[AceType.WRITE, AceType.DELETE],
+            load_attribute_type=True,
+        )
 
         directory = await session.scalar(query)
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
+
+        can_modify = access_manager.check_modify_access(
+            changes=self.changes,
+            aces=directory.access_control_entries,
+            entity_type_id=directory.entity_type_id,
+        )
 
         names = {change.get_name() for change in self.changes}
 
@@ -180,9 +178,6 @@ class ModifyRequest(BaseRequest):
             directory,
             ldap_session.user.directory_id,
         )
-
-        mutate_ap_q = mutate_ap(query, ldap_session.user, "modify")
-        can_modify = bool(await session.scalar(mutate_ap_q))
 
         if not can_modify and not password_change_requested:
             yield ModifyResponse(

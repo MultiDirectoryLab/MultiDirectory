@@ -13,12 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from config import Settings
+from enums import AceType, RoleScope
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_responses import SearchResultEntry
-from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import is_user_group_valid
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
 from models import User
 from tests.conftest import TestCreds
@@ -237,6 +239,7 @@ async def test_bvalue_in_search_request(
     session: AsyncSession,
     ldap_bound_session: LDAPSession,
     settings: Settings,
+    access_manager: AccessManager,
 ) -> None:
     """Test SearchRequest with bytes data."""
     request = SearchRequest(
@@ -251,7 +254,7 @@ async def test_bvalue_in_search_request(
     )
 
     result: SearchResultEntry = await anext(
-        request.handle(session, ldap_bound_session, settings)  # type: ignore
+        request.handle(session, ldap_bound_session, settings, access_manager)  # type: ignore
     )
 
     assert result
@@ -268,10 +271,12 @@ async def test_ldap_search_access_control_denied(
     settings: Settings,
     creds: TestCreds,
     session: AsyncSession,
+    role_dao: RoleDAO,
 ) -> None:
     """Test ldapsearch on server.
 
-    Default user can read himself and parent containers.
+    Default user can read himself.
+    User with access control entry can read groups.
     """
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -298,22 +303,31 @@ async def test_ldap_search_access_control_denied(
 
     assert result == 0
     assert dn_list == [
-        "dn: dc=md,dc=test",
-        "dn: ou=users,dc=md,dc=test",
         "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
     ]
 
-    await create_access_policy(
-        name="Groups Read Access Policy",
-        can_add=False,
-        can_modify=False,
-        can_read=True,
-        can_delete=False,
-        grant_dn="cn=groups,dc=md,dc=test",
-        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
-        session=session,
-    )
     await session.commit()
+
+    group_read_role = await role_dao.create_role(
+        role_name="Groups Read Role",
+        creator_upn=None,
+        is_system=False,
+        groups_dn=["cn=domain users,cn=groups,dc=md,dc=test"],
+    )
+
+    group_read_ace = AccessControlEntrySchema(
+        ace_type=AceType.READ,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn="cn=groups,dc=md,dc=test",
+        attribute_type_id=None,
+        entity_type_id=None,
+        is_allow=True,
+    )
+
+    await role_dao.add_access_control_entries(
+        role_id=group_read_role.id,
+        access_control_entries=[group_read_ace],
+    )
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -341,8 +355,6 @@ async def test_ldap_search_access_control_denied(
     assert result == 0
     assert sorted(dn_list) == sorted(
         [
-            "dn: dc=md,dc=test",
-            "dn: ou=users,dc=md,dc=test",
             "dn: cn=groups,dc=md,dc=test",
             "dn: cn=domain admins,cn=groups,dc=md,dc=test",
             "dn: cn=developers,cn=groups,dc=md,dc=test",

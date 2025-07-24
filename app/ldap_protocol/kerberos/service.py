@@ -75,6 +75,7 @@ class KerberosService:
             krbadmin_password (SecretStr): Password for krbadmin.
             ldap_session (LDAPSession): LDAP session.
             entity_type_dao (EntityTypeDAO): DAO for entity types.
+            access_manager (AccessManager): Access control manager.
 
         Raises:
             KerberosConflictError: On structure creation conflict.
@@ -94,8 +95,6 @@ class KerberosService:
             ldap_session,
             self._kadmin,
             entity_type_dao,
-            dns.services_container_dn,
-            dns.krbadmin_group_dn,
         )
 
     async def _get_base_dn(self) -> tuple[str, str]:

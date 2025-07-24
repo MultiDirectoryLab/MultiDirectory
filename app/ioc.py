@@ -42,6 +42,9 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
@@ -198,6 +201,9 @@ class MainProvider(Provider):
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+    access_manager = provide(AccessManager, scope=Scope.REQUEST)
+    role_dao = provide(RoleDAO, scope=Scope.REQUEST)
+    role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
 
 class HTTPProvider(Provider):

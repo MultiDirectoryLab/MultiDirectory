@@ -8,11 +8,15 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
 from dishka import AsyncContainer
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from ldap_protocol.dns import DNSManagerState, DNSZoneParam, DNSZoneType
-from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
+from ldap_protocol.filter_interpreter import (
+    Filter,
+    FilterInterpreterProtocol,
+    StringFilterInterpreter,
+)
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 
@@ -22,10 +26,16 @@ class SearchRequest(LDAPSearchRequest):
 
     filter: str = Field(..., examples=["(objectClass=*)"])  # type: ignore
 
+    _filter_interpreter: FilterInterpreterProtocol = PrivateAttr(
+        default_factory=StringFilterInterpreter
+    )
+
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
-        return cast_str_filter2sql(Filter.parse(filter_).simplify())
+        return self._filter_interpreter.cast_to_sql(
+            Filter.parse(filter_).simplify()
+        )
 
     @final
     async def handle_api(  # type: ignore
@@ -48,27 +58,6 @@ class KerberosSetupRequest(BaseModel):
     krbadmin_password: SecretStr
     admin_password: SecretStr
     stash_password: SecretStr
-
-
-class _PolicyFields:
-    name: str
-    can_read: bool
-    can_add: bool
-    can_modify: bool
-    directories: list[str]
-    groups: list[str]
-
-
-class _MaterialFields:
-    id: int
-
-
-class AccessPolicySchema(_PolicyFields, BaseModel):
-    """AP Schema w/o id."""
-
-
-class MaterialAccessPolicySchema(_PolicyFields, _MaterialFields, BaseModel):
-    """AP Schema with id."""
 
 
 class DNSServiceSetupRequest(BaseModel):

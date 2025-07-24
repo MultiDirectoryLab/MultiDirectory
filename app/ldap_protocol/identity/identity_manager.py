@@ -21,6 +21,7 @@ from api.exceptions.auth import (
 )
 from api.exceptions.mfa import MFARequiredError
 from config import Settings
+from enums import MFAFlags
 from extra.dev_data import ENTITY_TYPE_DATAS
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
@@ -28,7 +29,6 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -37,6 +37,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
@@ -44,7 +45,7 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_base_directories, get_user
-from models import Directory, Group, MFAFlags, User
+from models import Directory, Group, User
 from security import get_password_hash
 
 
@@ -58,6 +59,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
+        role_use_case: RoleUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -65,12 +67,15 @@ class IdentityManager(SessionKeyCreatorMixin):
         :param settings: Settings
         :param mfa_api: MultifactorAPI
         :param storage: SessionStorage.
+        :param entity_type_dao: EntityTypeDAO
+        :param role_use_case: RoleUseCase
         """
         self._session = session
         self._settings = settings
         self._mfa_api = mfa_api
         self._storage = storage
         self._entity_type_dao = entity_type_dao
+        self._role_use_case = role_use_case
         self.key_ttl = self._storage.key_ttl
 
     async def login(
@@ -329,34 +334,8 @@ class IdentityManager(SessionKeyCreatorMixin):
                     raise ForbiddenError(errors)
 
                 await default_pwd_policy.create_policy_settings(self._session)
-                domain_query = select(Directory).filter(
-                    Directory.parent_id.is_(None)
-                )
-                domain = (await self._session.scalars(domain_query)).one()
-
-                await create_access_policy(
-                    name="Root Access Policy",
-                    can_add=True,
-                    can_modify=True,
-                    can_read=True,
-                    can_delete=True,
-                    grant_dn=domain.path_dn,
-                    groups=["cn=domain admins,cn=groups," + domain.path_dn],
-                    session=self._session,
-                )
-                await create_access_policy(
-                    name="ReadOnly Access Policy",
-                    can_add=False,
-                    can_modify=False,
-                    can_read=True,
-                    can_delete=False,
-                    grant_dn=domain.path_dn,
-                    groups=[
-                        "cn=readonly domain controllers,cn=groups,"
-                        + domain.path_dn,
-                    ],
-                    session=self._session,
-                )
+                await self._role_use_case.create_domain_admins_role()
+                await self._role_use_case.create_read_only_role()
                 await self._session.commit()
             except IntegrityError:
                 await self._session.rollback()

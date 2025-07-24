@@ -11,7 +11,7 @@ from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import Field, field_serializer
+from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -20,9 +20,13 @@ from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import Settings
+from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.filter_interpreter import cast_filter2sql
+from ldap_protocol.filter_interpreter import (
+    FilterInterpreterProtocol,
+    LDAPFilterInterpreter,
+)
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -32,7 +36,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultReference,
 )
 from ldap_protocol.objects import DerefAliases, Scope
-from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -102,6 +106,10 @@ class SearchRequest(BaseRequest):
     attributes: list[str]
 
     page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
+
+    _filter_interpreter: FilterInterpreterProtocol = PrivateAttr(
+        default_factory=LDAPFilterInterpreter
+    )
 
     class Config:
         """Allow class to use property."""
@@ -238,13 +246,14 @@ class SearchRequest(BaseRequest):
         :param AsyncSession session: sa session
         :return UnaryExpression: condition
         """
-        return cast_filter2sql(self.filter)
+        return self._filter_interpreter.cast_to_sql(self.filter)
 
     async def handle(
         self,
         session: AsyncSession,
         ldap_session: LDAPSession,
         settings: Settings,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry,
         None,
@@ -258,6 +267,7 @@ class SearchRequest(BaseRequest):
             ldap_session.user,
             session,
             settings,
+            access_manager,
         ):
             yield response
 
@@ -266,6 +276,7 @@ class SearchRequest(BaseRequest):
         user: UserSchema | None,
         session: AsyncSession,
         settings: Settings,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
@@ -295,7 +306,15 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.SUCCESS)
             return
 
-        query = self.build_query(await get_base_directories(session), user)  # type: ignore
+        if not user:
+            yield SearchResultDone(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
+        query = self.build_query(
+            await get_base_directories(session), user, access_manager
+        )
 
         try:
             cond = self.cast_filter()
@@ -310,7 +329,12 @@ class SearchRequest(BaseRequest):
         if self.size_limit != 0:
             query = query.limit(self.size_limit)
 
-        async for response in self.tree_view(query, session):
+        async for response in self.tree_view(
+            query,
+            session,
+            user,
+            access_manager,
+        ):
             yield response
 
         yield SearchResultDone(
@@ -371,6 +395,7 @@ class SearchRequest(BaseRequest):
         self,
         base_directories: list[Directory],
         user: UserSchema,
+        access_manager: AccessManager,
     ) -> Select:
         """Build tree query."""
         query = (
@@ -380,7 +405,12 @@ class SearchRequest(BaseRequest):
         )
 
         query = self._mutate_query_with_attributes_to_load(query)
-        query = mutate_ap(query, user)
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=user.role_ids,
+            query=query,
+            ace_types=[AceType.READ],
+            load_attribute_type=True,
+        )
 
         for base_directory in base_directories:
             if dn_is_base_directory(base_directory, self.base_object):
@@ -525,6 +555,8 @@ class SearchRequest(BaseRequest):
         self,
         query: Select,
         session: AsyncSession,
+        user: UserSchema,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
@@ -532,6 +564,23 @@ class SearchRequest(BaseRequest):
         async for directory in directories:
             attrs = defaultdict(list)
             obj_classes = []
+
+            can_read, forbidden_attributes, allowed_attributes = (
+                access_manager.check_search_access(
+                    directory=directory,
+                    user_dn=user.dn,
+                )
+            )
+
+            if not can_read:
+                continue
+
+            if not access_manager.check_search_filter_attrs(
+                self._filter_interpreter.attributes,
+                forbidden_attributes,
+                allowed_attributes,
+            ):
+                continue
 
             for attr in directory.attributes:
                 if isinstance(attr.value, str):
@@ -613,6 +662,17 @@ class SearchRequest(BaseRequest):
 
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
+
+            for attr_name in list(attrs):
+                attr_name_lower = attr_name.lower()
+                if (
+                    forbidden_attributes
+                    and attr_name_lower in forbidden_attributes
+                ) or (
+                    allowed_attributes
+                    and attr_name_lower not in allowed_attributes
+                ):
+                    del attrs[attr_name]
 
             yield SearchResultEntry(
                 object_name=distinguished_name,

@@ -13,6 +13,7 @@ from fastapi import APIRouter, Body, HTTPException, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from enums import MFAFlags
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.policies.password_policy import (
@@ -20,7 +21,6 @@ from ldap_protocol.policies.password_policy import (
     post_save_password_actions,
 )
 from ldap_protocol.utils.queries import get_user
-from models import MFAFlags
 from security import get_password_hash
 
 shadow_router = APIRouter(route_class=DishkaRoute)

@@ -69,7 +69,7 @@ async def get_current_user(
         select(User)
         .filter_by(id=user_id)
         .options(joinedload(User.directory))
-        .options(selectinload(User.groups).selectinload(Group.access_policies))
+        .options(selectinload(User.groups).selectinload(Group.roles))
     )
 
     if user is None:

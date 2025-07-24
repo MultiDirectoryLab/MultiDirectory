@@ -9,7 +9,6 @@ from .auth.router_mfa import mfa_router
 from .auth.router_pwd_policy import pwd_router
 from .auth.session_router import session_router
 from .ldap_schema.entity_type_router import ldap_schema_router
-from .main.ap_router import access_policy_router
 from .main.dns_router import dns_router
 from .main.krb5_router import krb5_router
 from .main.router import entry_router
@@ -22,7 +21,6 @@ __all__ = [
     "network_router",
     "mfa_router",
     "pwd_router",
-    "access_policy_router",
     "ldap_schema_router",
     "dns_router",
     "krb5_router",

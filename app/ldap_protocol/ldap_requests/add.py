@@ -11,8 +11,8 @@ from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
+from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -23,8 +23,9 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import mutate_ap
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -97,6 +98,8 @@ class AddRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
+        access_manager: AccessManager,
+        role_use_case: RoleUseCase,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
         if not ldap_session.user:
@@ -105,6 +108,10 @@ class AddRequest(BaseRequest):
 
         if not validate_entry(self.entry.lower()):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
+            return
+
+        if not ldap_session.user.role_ids:
+            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         root_dn = get_search_path(self.entry)
@@ -129,21 +136,36 @@ class AddRequest(BaseRequest):
         parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(",")[0].split("=")
 
-        query = (
-            select(Directory)
-            .options(selectinload(Directory.access_policies))
-            .filter(parent_path)
+        parent_query = select(Directory).filter(parent_path)
+
+        parent_query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=parent_query,
+            ace_types=[AceType.CREATE_CHILD],
         )
 
-        parent = await session.scalar(mutate_ap(query, ldap_session.user))
-
+        parent = await session.scalar(parent_query)
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "add"),
-        ):
+        object_class_names = set(
+            self.attributes_dict.get("objectClass", [])
+            + self.attributes_dict.get("objectclass", [])
+        )
+
+        entity_type = (
+            await entity_type_dao.get_entity_type_by_object_class_names(
+                object_class_names=object_class_names,  # type: ignore
+            )
+        )
+
+        can_add = access_manager.check_entity_level_access(
+            aces=parent.access_control_entries,
+            entity_type_id=entity_type.id if entity_type else None,
+        )
+
+        if not can_add:
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
@@ -167,7 +189,6 @@ class AddRequest(BaseRequest):
                 object_class="",
                 name=name,
                 parent=parent,
-                access_policies=parent.access_policies,
             )
 
             new_dir.create_path(parent, new_dn)
@@ -353,6 +374,10 @@ class AddRequest(BaseRequest):
             await entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
+            )
+            await role_use_case.inherit_parent_aces(
+                parent_directory=parent,
+                directory=new_dir,
             )
             await session.flush()
         except IntegrityError:

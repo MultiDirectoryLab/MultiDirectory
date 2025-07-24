@@ -11,9 +11,10 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos.exceptions import KerberosConflictError
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_filter_from_path
-from models import AccessPolicy, Directory
+from models import Directory
 
 from .base import AbstractKadmin
 
@@ -21,13 +22,21 @@ from .base import AbstractKadmin
 class KRBLDAPStructureManager:
     """Manager for Kerberos-related LDAP structure operations."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        role_use_case: RoleUseCase,
+        access_manager: AccessManager,
+    ) -> None:
         """Initialize KRBLDAPStructureManager with a database session.
 
         :param AsyncSession session: SQLAlchemy async session.
+        :param RoleUseCase role_use_case: Role use case for managing roles.
         :return None.
         """
         self._session = session
+        self._role_use_case = role_use_case
+        self._access_manager = access_manager
 
     async def create_kerberos_structure(
         self,
@@ -37,8 +46,6 @@ class KRBLDAPStructureManager:
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
-        services_container: str,
-        krbgroup: str,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -61,6 +68,8 @@ class KRBLDAPStructureManager:
                         ldap_session,
                         kadmin,
                         entity_type_dao,
+                        self._access_manager,
+                        self._role_use_case,
                     )
                 ),
                 await anext(
@@ -69,6 +78,8 @@ class KRBLDAPStructureManager:
                         ldap_session,
                         kadmin,
                         entity_type_dao,
+                        self._access_manager,
+                        self._role_use_case,
                     )
                 ),
                 await anext(
@@ -77,6 +88,8 @@ class KRBLDAPStructureManager:
                         ldap_session,
                         kadmin,
                         entity_type_dao,
+                        self._access_manager,
+                        self._role_use_case,
                     )
                 ),
             )
@@ -87,16 +100,7 @@ class KRBLDAPStructureManager:
                 raise KerberosConflictError(
                     "Error creating Kerberos structure in directory"
                 )
-            await create_access_policy(
-                name="Kerberos Access Policy",
-                can_add=True,
-                can_modify=True,
-                can_read=True,
-                can_delete=True,
-                grant_dn=services_container,
-                groups=[krbgroup],
-                session=self._session,
-            )
+            await self._role_use_case.create_kerberos_system_role()
             await self._session.commit()
 
     async def rollback_kerberos_structure(
@@ -126,8 +130,4 @@ class KRBLDAPStructureManager:
                     Directory.id.in_([dir_.id for dir_ in directories])
                 )
             )
-        await self._session.execute(
-            delete(AccessPolicy).where(
-                AccessPolicy.name == "Kerberos Access Policy"
-            )
-        )
+        await self._role_use_case.delete_kerberos_system_role()

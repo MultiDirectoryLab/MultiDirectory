@@ -14,8 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
+from enums import AceType, RoleScope
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
 from tests.conftest import TestCreds
@@ -521,9 +522,11 @@ async def test_ldap_modify_with_ap(
     session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
+    role_dao: RoleDAO,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "ou=users,dc=md,dc=test"
+    base_dn = "dc=md,dc=test"
     search_path = get_search_path(dn)
 
     query = (
@@ -580,28 +583,41 @@ async def test_ldap_modify_with_ap(
 
     assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    await create_access_policy(
-        name="TEST read Access Policy",
-        can_add=False,
-        can_modify=False,
-        can_read=True,
-        can_delete=False,
-        grant_dn=dn,
-        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
-        session=session,
+    modify_role = await role_dao.create_role(
+        role_name="Modify Role",
+        creator_upn=None,
+        is_system=False,
+        groups_dn=["cn=domain users,cn=groups," + base_dn],
+    )
+
+    modify_ace = AccessControlEntrySchema(
+        ace_type=AceType.WRITE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=None,
+        entity_type_id=None,
+        is_allow=True,
+    )
+
+    await role_dao.add_access_control_entries(
+        role_id=modify_role.id,
+        access_control_entries=[modify_ace],
     )
 
     assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    await create_access_policy(
-        name="TEST modify Access Policy",
-        can_add=False,
-        can_modify=True,
-        can_read=True,
-        can_delete=False,
-        grant_dn=dn,
-        groups=["cn=domain users,cn=groups,dc=md,dc=test"],
-        session=session,
+    delete_ace = AccessControlEntrySchema(
+        ace_type=AceType.DELETE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=None,
+        entity_type_id=None,
+        is_allow=True,
+    )
+
+    await role_dao.add_access_control_entries(
+        role_id=modify_role.id,
+        access_control_entries=[delete_ace],
     )
 
     assert await try_modify() == LDAPCodes.SUCCESS

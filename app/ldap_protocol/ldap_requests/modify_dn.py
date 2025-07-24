@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -20,13 +21,21 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_path_filter,
     validate_entry,
 )
-from models import Attribute, Directory, DirectoryMembership, Group, User
+from models import (
+    AccessControlEntry,
+    Attribute,
+    Directory,
+    DirectoryMembership,
+    Group,
+    User,
+)
 
 from .base import BaseRequest
 
@@ -86,11 +95,13 @@ class ModifyDNRequest(BaseRequest):
             new_superior=None if len(data) < 4 else data[3].value,
         )
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         ldap_session: LDAPSession,
         session: AsyncSession,
         entity_type_dao: EntityTypeDAO,
+        access_manager: AccessManager,
+        role_use_case: RoleUseCase,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
         """Handle message with current user."""
         if not ldap_session.user:
@@ -107,16 +118,28 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
+        if not ldap_session.user.role_ids:
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
+            return
+
         query = (
             select(Directory)
             .options(
                 selectinload(Directory.parent),
-                selectinload(Directory.access_policies),
             )
             .filter(get_filter_from_path(self.entry))
         )
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=query,
+            ace_types=[AceType.DELETE],
+            require_attribute_type_null=True,
+        )
+
+        directory = await session.scalar(query)
 
         if not directory:
             yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
@@ -126,11 +149,14 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "modify"),
-        ):
+        can_delete = access_manager.check_entity_level_access(
+            aces=directory.access_control_entries,
+            entity_type_id=directory.entity_type_id,
+        )
+
+        if not can_delete:
             yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
             )
             return
 
@@ -144,19 +170,48 @@ class ModifyDNRequest(BaseRequest):
                 created_at=directory.created_at,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
-                access_policies=directory.access_policies,
             )
+
+            parent_query = select(Directory).filter(
+                Directory.id == directory.parent_id
+            )
+            parent_query = access_manager.mutate_query_with_ace_load(
+                user_role_ids=ldap_session.user.role_ids,
+                query=parent_query,
+                ace_types=[AceType.CREATE_CHILD],
+                require_attribute_type_null=True,
+            )
+
+            parent_dir = await session.scalar(parent_query)
+            if parent_dir:
+                can_add = access_manager.check_entity_level_access(
+                    aces=parent_dir.access_control_entries,
+                    entity_type_id=directory.entity_type_id,
+                )
+                if not can_add:
+                    yield ModifyDNResponse(
+                        result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                    )
+                    return
+
             session.add(new_directory)
             new_directory.create_path(directory.parent, dn)
+            if directory.parent:
+                await role_use_case.inherit_parent_aces(
+                    parent_directory=directory.parent,
+                    directory=new_directory,
+                )
 
         else:
-            new_sup_query = (
-                select(Directory)
-                .options(selectinload(Directory.access_policies))
-                .filter(get_filter_from_path(self.new_superior))
+            new_sup_query = select(Directory).filter(
+                get_filter_from_path(self.new_superior)
             )
-
-            new_sup_query = mutate_ap(new_sup_query, ldap_session.user)
+            new_sup_query = access_manager.mutate_query_with_ace_load(
+                user_role_ids=ldap_session.user.role_ids,
+                query=new_sup_query,
+                ace_types=[AceType.CREATE_CHILD],
+                require_attribute_type_null=True,
+            )
 
             new_parent_dir = await session.scalar(new_sup_query)
 
@@ -164,11 +219,14 @@ class ModifyDNRequest(BaseRequest):
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
 
-            if not await session.scalar(
-                mutate_ap(query, ldap_session.user, "add"),
-            ):
+            can_add = access_manager.check_entity_level_access(
+                aces=new_parent_dir.access_control_entries,
+                entity_type_id=directory.entity_type_id,
+            )
+
+            if not can_add:
                 yield ModifyDNResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
                 )
                 return
 
@@ -178,10 +236,14 @@ class ModifyDNRequest(BaseRequest):
                 parent=new_parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
-                access_policies=new_parent_dir.access_policies,
             )
             session.add(new_directory)
             new_directory.create_path(new_parent_dir, dn=dn)
+
+            await role_use_case.inherit_parent_aces(
+                parent_directory=new_parent_dir,
+                directory=new_directory,
+            )
 
         try:
             session.add(new_directory)
@@ -252,6 +314,27 @@ class ModifyDNRequest(BaseRequest):
                 update_query,
                 execution_options={"synchronize_session": "fetch"},
             )
+
+            explicit_aces_query = (
+                select(AccessControlEntry)
+                .options(
+                    selectinload(AccessControlEntry.directories),
+                )
+                .where(
+                    AccessControlEntry.directories.any(
+                        Directory.id == directory.id
+                    ),
+                    AccessControlEntry.depth == directory.depth,
+                )
+            )
+
+            explicit_aces = (await session.scalars(explicit_aces_query)).all()
+
+            for ace in explicit_aces:
+                ace.directories.append(new_directory)
+                ace.path = new_directory.path_dn
+                ace.depth = new_directory.depth
+
             await session.flush()
 
             # NOTE: update relationship, don't delete row

@@ -10,6 +10,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
+from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
@@ -18,7 +19,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
-from ldap_protocol.policies.access_policy import mutate_ap
+from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
@@ -52,6 +53,7 @@ class DeleteRequest(BaseRequest):
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         session_storage: SessionStorage,
+        access_manager: AccessManager,
     ) -> AsyncGenerator[DeleteResponse, None]:
         """Delete request handler."""
         if not ldap_session.user:
@@ -60,6 +62,12 @@ class DeleteRequest(BaseRequest):
 
         if not validate_entry(self.entry.lower()):
             yield DeleteResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
+            return
+
+        if not ldap_session.user.role_ids:
+            yield DeleteResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+            )
             return
 
         query = (
@@ -71,22 +79,32 @@ class DeleteRequest(BaseRequest):
             .filter(get_filter_from_path(self.entry))
         )
 
-        directory = await session.scalar(mutate_ap(query, ldap_session.user))
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=query,
+            ace_types=[AceType.DELETE],
+            require_attribute_type_null=True,
+        )
+
+        directory = await session.scalar(query)
 
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        if not await session.scalar(
-            mutate_ap(query, ldap_session.user, "del"),
-        ):
+        if directory.is_domain:
+            yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
+            return
+
+        can_delete = access_manager.check_entity_level_access(
+            aces=directory.access_control_entries,
+            entity_type_id=directory.entity_type_id,
+        )
+
+        if not can_delete:
             yield DeleteResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
-            return
-
-        if directory.is_domain:
-            yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
         for base_directory in await get_base_directories(session):

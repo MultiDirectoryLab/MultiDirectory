@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from __future__ import annotations
 
-import enum
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -24,6 +23,8 @@ from sqlalchemy import (
     LargeBinary,
     String,
     UniqueConstraint,
+    asc,
+    desc,
     func,
     text,
 )
@@ -42,6 +43,8 @@ from sqlalchemy.orm import (
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
+
+from enums import AceType, MFAFlags, RoleScope
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
@@ -132,35 +135,32 @@ class PolicyMFAMembership(Base):
     )
 
 
-class AccessPolicyMembership(Base):
-    """Directory - policy m2m relationship."""
+class AccessControlEntryDirectoryMembership(Base):
+    """Access Control Entry - Directory m2m relationship."""
 
-    __tablename__ = "AccessPolicyMemberships"
-    dir_id: Mapped[int] = mapped_column(
+    __tablename__ = "AccessControlEntryDirectoryMemberships"
+
+    access_control_entry_id: Mapped[int] = mapped_column(
+        ForeignKey("AccessControlEntries.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    directory_id: Mapped[int] = mapped_column(
         ForeignKey("Directory.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
 
 
-class GroupAccessPolicyMembership(Base):
-    """Directory - policy m2m relationship."""
+class GroupRoleMembership(Base):
+    """Group - role m2m relationship."""
 
-    __tablename__ = "GroupAccessPolicyMemberships"
-
-    __table_args__ = (
-        UniqueConstraint("group_id", "policy_id", name="group_policy_uc"),
-    )
+    __tablename__ = "GroupRoleMemberships"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("Groups.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    policy_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessPolicies.id", ondelete="CASCADE"),
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey("Roles.id", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -211,6 +211,103 @@ class EntityType(Base):
     def generate_entity_type_name(cls, directory: Directory) -> str:
         """Generate entity type name based on Directory."""
         return f"{directory.name}_entity_type_{directory.id}"
+
+
+class AccessControlEntry(Base):
+    """Access Control Entry (ACE) model."""
+
+    __tablename__ = "AccessControlEntries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    role_id: Mapped[int] = mapped_column(
+        "roleId",
+        ForeignKey("Roles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    ace_type: Mapped[AceType] = mapped_column(
+        Enum(AceType),
+        nullable=False,
+        index=True,
+    )
+
+    depth: Mapped[int]
+
+    scope: Mapped[RoleScope] = mapped_column(
+        Enum(RoleScope),
+        nullable=False,
+        index=True,
+    )
+
+    path: Mapped[str] = mapped_column(
+        nullable=False,
+        unique=False,
+    )
+
+    attribute_type_id: Mapped[int | None] = mapped_column(
+        "attributeTypeId",
+        ForeignKey("AttributeTypes.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+
+    entity_type_id: Mapped[int | None] = mapped_column(
+        "entityTypeId",
+        ForeignKey("EntityTypes.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+
+    is_allow: Mapped[nbool]
+
+    role: Mapped[Role] = relationship(
+        "Role",
+        back_populates="access_control_entries",
+        uselist=False,
+        lazy="raise",
+    )
+
+    attribute_type: Mapped[AttributeType] = relationship(
+        "AttributeType",
+        uselist=False,
+        lazy="raise",
+    )
+
+    entity_type: Mapped[EntityType] = relationship(
+        "EntityType",
+        uselist=False,
+        lazy="raise",
+    )
+
+    directories: Mapped[list[Directory]] = relationship(
+        "Directory",
+        secondary=AccessControlEntryDirectoryMembership.__table__,
+        order_by="Directory.depth",
+        back_populates="access_control_entries",
+        lazy="raise",
+    )
+
+    @property
+    def attribute_type_name(self) -> str | None:
+        """Get attribute type name."""
+        return (
+            self.attribute_type.name.lower() if self.attribute_type else None
+        )
+
+    @property
+    def entity_type_name(self) -> str | None:
+        """Get entity type name."""
+        return self.entity_type.name if self.entity_type else None
+
+    def __repr__(self) -> str:
+        """Representation of AccessControlEntry."""
+        return (
+            f"<AccessControlEntry id={self.id} "
+            f"role_id={self.role_id} "
+            f"attribute_type_id={self.attribute_type_id} "
+            f"entity_type_id={self.entity_type_id} "
+            f"is_allow={self.is_allow}>"
+            f" (type={self.ace_type}, "
+            f"depth={self.depth})"
+        )
 
 
 class Directory(Base):
@@ -345,13 +442,16 @@ class Directory(Base):
         overlaps="group,directory",
         lazy="raise",
     )
-    access_policies: Mapped[list[AccessPolicy]] = relationship(
-        "AccessPolicy",
-        secondary=AccessPolicyMembership.__table__,
-        primaryjoin="Directory.id == AccessPolicyMembership.dir_id",
-        secondaryjoin="AccessPolicyMembership.policy_id == AccessPolicy.id",
+    access_control_entries: Mapped[list[AccessControlEntry]] = relationship(
+        "AccessControlEntry",
+        secondary=AccessControlEntryDirectoryMembership.__table__,
+        primaryjoin="Directory.id == AccessControlEntryDirectoryMembership.directory_id",  # noqa: E501
+        secondaryjoin="AccessControlEntryDirectoryMembership.access_control_entry_id == AccessControlEntry.id",  # noqa: E501
         back_populates="directories",
-        lazy="raise",
+        order_by=(
+            desc(AccessControlEntry.depth),
+            asc(AccessControlEntry.is_allow),
+        ),
     )
 
     __table_args__ = (
@@ -598,14 +698,13 @@ class Group(Base):
         overlaps="directory,group,members,parent_groups,groups",
     )
 
-    access_policies: Mapped[list[AccessPolicy]] = relationship(
-        "AccessPolicy",
-        secondary=GroupAccessPolicyMembership.__table__,
-        primaryjoin="Group.id == GroupAccessPolicyMembership.group_id",
-        secondaryjoin=(
-            "GroupAccessPolicyMembership.policy_id == AccessPolicy.id"
-        ),
+    roles: Mapped[list[Role]] = relationship(
+        "Role",
+        secondary=GroupRoleMembership.__table__,
+        primaryjoin="Group.id == GroupRoleMembership.group_id",
+        secondaryjoin="GroupRoleMembership.role_id == Role.id",
         back_populates="groups",
+        lazy="raise",
     )
 
     def __str__(self) -> str:
@@ -865,14 +964,6 @@ class ObjectClass(Base):
         return f"ObjectClass({self.oid}:{self.name})"
 
 
-class MFAFlags(int, enum.Enum):
-    """Two-Factor auth action."""
-
-    DISABLED = 0
-    ENABLED = 1
-    WHITELIST = 2
-
-
 class NetworkPolicy(Base):
     """Network policy data."""
 
@@ -966,28 +1057,42 @@ class PasswordPolicy(Base):
     password_must_meet_complexity_requirements: Mapped[tbool]
 
 
-class AccessPolicy(Base):
-    """Access policy."""
+class Role(Base):
+    """Role."""
 
-    __tablename__ = "AccessPolicies"
+    __tablename__ = "Roles"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
-    can_read: Mapped[nbool]
-    can_add: Mapped[nbool]
-    can_modify: Mapped[nbool]
-    can_delete: Mapped[nbool]
+    creator_upn: Mapped[str | None] = mapped_column(
+        nullable=True,
+        unique=False,
+    )
 
-    directories: Mapped[list[Directory]] = relationship(
-        "Directory",
-        secondary=AccessPolicyMembership.__table__,
-        order_by="Directory.depth",
-        back_populates="access_policies",
+    is_system: Mapped[nbool]
+
+    created_at: Mapped[datetime] = mapped_column(
+        "whenCreated",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
 
     groups: Mapped[list[Group]] = relationship(
         "Group",
-        secondary=GroupAccessPolicyMembership.__table__,
-        back_populates="access_policies",
+        secondary=GroupRoleMembership.__table__,
+        primaryjoin="GroupRoleMembership.role_id == Role.id",
+        secondaryjoin="Group.id == GroupRoleMembership.group_id",
+        back_populates="roles",
+        lazy="raise",
+        passive_deletes=True,
+    )
+
+    access_control_entries: Mapped[list[AccessControlEntry]] = relationship(
+        "AccessControlEntry",
+        cascade="all",
+        lazy="raise",
+        back_populates="role",
+        passive_deletes=True,
     )
