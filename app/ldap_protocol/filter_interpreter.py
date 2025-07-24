@@ -35,17 +35,15 @@ MEMBERS_ATTRS = {
 def _get_filter_condition(
     attr: str,
     condition: BinaryExpression | None = None,
-) -> BinaryExpression:
-    subq = (
-        select(Attribute.directory_id)
-        .where(func.lower(Attribute.name) == attr.lower())
-        .correlate(None)
-    )
+) -> ColumnElement:
+    if condition is None:
+        f = Directory.attributes.any(Attribute.name.ilike(attr))
+    else:
+        f = Directory.attributes.any(
+            and_(Attribute.name.ilike(attr), condition)
+        )
 
-    if condition is not None:
-        subq = subq.where(condition)
-
-    return Directory.id.in_(subq)
+    return f
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
@@ -192,7 +190,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
     elif attr in MEMBERS_ATTRS:  # NOTE: without oid
         return _ldap_filter_by_attribute(None, left, right)
     elif attr == "entitytypename":
-        return func.lower(EntityType.name) == right
+        return func.lower(EntityType.name) == right.lower()
     else:
         if is_substring:
             cond = Attribute.value.ilike(_get_substring(right))
@@ -260,7 +258,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
     elif item.attr in MEMBERS_ATTRS:
         return _api_filter(item)
     elif item.attr == "entitytypename":
-        return func.lower(EntityType.name) == item.val
+        return func.lower(EntityType.name) == item.val.lower()
     else:
         if is_substring:
             cond = Attribute.value.ilike(item.val.replace("*", "%"))
