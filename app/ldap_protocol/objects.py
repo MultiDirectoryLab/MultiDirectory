@@ -73,23 +73,6 @@ class ProtocolRequests(IntEnum):
 
 
 @unique
-class ProtocolResponse(IntEnum):
-    """Enum for LDAP resposnes."""
-
-    BIND = 1
-    SEARCH_RESULT_ENTRY = 4
-    SEARCH_RESULT_DONE = 5
-    MODIFY = 7
-    ADD = 9
-    DELETE = 11
-    MODIFY_DN = 13
-    COMPARE = 15
-    EXTENDED = 24
-    INTERMEDIATE = 25
-    SEARCH_RESULT_REFERENCE = 19
-
-
-@unique
 class OperationEvent(IntEnum):
     """Enum for operation events. Includes all LDAP requests."""
 
