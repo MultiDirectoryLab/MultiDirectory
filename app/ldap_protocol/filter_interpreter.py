@@ -32,6 +32,7 @@ MEMBERS_ATTRS = {
     f"memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:",
 }
 
+
 class FilterInterpreterProtocol(Protocol):
     """Protocol for filter interpreters."""
 

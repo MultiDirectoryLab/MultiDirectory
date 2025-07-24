@@ -201,10 +201,8 @@ class MainProvider(Provider):
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+    access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
-    attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
-    object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
-    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
 

@@ -21,8 +21,8 @@ from api.exceptions.auth import (
 )
 from api.exceptions.mfa import MFARequiredError
 from config import Settings
-from extra.dev_data import ENTITY_TYPE_DATAS
 from enums import MFAFlags
+from extra.dev_data import ENTITY_TYPE_DATAS
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
 from ldap_protocol.identity.utils import authenticate_user
