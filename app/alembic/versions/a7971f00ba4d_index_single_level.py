@@ -34,7 +34,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Dg."""
+    """Remove indexes for Directory depth field and Attributes table."""
     op.drop_index(
         op.f("idx_Directory_depth_hash"),
         table_name="Directory",
