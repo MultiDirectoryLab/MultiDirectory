@@ -529,10 +529,6 @@ class SearchRequest(BaseRequest):
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
 
-        from ldap_protocol.utils.helpers import explain_query
-
-        await explain_query(query, session)
-
         async for directory in directories:
             attrs = defaultdict(list)
             obj_classes = []
