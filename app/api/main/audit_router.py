@@ -6,12 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.auth import get_current_user
 from models import AuditDestination, AuditPolicy
 
 from .schema import (
@@ -23,7 +24,7 @@ from .schema import (
 audit_router = APIRouter(
     prefix="/audit",
     tags=["Audit policy"],
-    # dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user)],
     route_class=DishkaRoute,
 )
 
@@ -115,15 +116,16 @@ async def add_audit_destination(
     return AuditDestinationSchema.model_validate(new_destination.__dict__)
 
 
-@audit_router.put("/destination")
+@audit_router.put("/destination/{destination_id}")
 async def update_audit_destination(
-    model: AuditDestinationSchema,
+    destination_id: int,
+    model: AuditDestinationSchemaRequest,
     session: FromDishka[AsyncSession],
 ) -> AuditDestinationSchema:
     """Update audit destination."""
     selected_destination = await session.get(
         AuditDestination,
-        model.id,
+        destination_id,
         with_for_update=True,
     )
 
@@ -145,7 +147,7 @@ async def update_audit_destination(
             "Entry already exists",
         )
 
-    return model
+    return AuditDestinationSchema.model_validate(selected_destination.__dict__)
 
 
 @audit_router.delete("/destination/{destination_id}")
