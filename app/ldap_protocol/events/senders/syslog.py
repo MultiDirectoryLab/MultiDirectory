@@ -1,4 +1,4 @@
-"""Send events.
+"""Syslog sender.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -7,46 +7,19 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import socket
 import uuid
-from abc import ABC, abstractmethod
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 from loguru import logger
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from audit_models import AuditLog
-from config import Settings
-from ioc import AuditLogger, EventAsyncSession
-from models import (
-    AuditDestination,
-    AuditDestinationProtocolType,
-    AuditDestinationServiceType,
-)
+from ldap_protocol.events.models import AuditLog
+from models import AuditDestinationProtocolType, AuditDestinationServiceType
+
+from .base import AuditDestinationSenderABC
 
 
-class SendersABC(ABC):
-    """Senders abstract base class."""
-
-    _destination: AuditDestination
-    DEFAULT_APP_NAME: str = "MultiDirectory"
-
-    def __init__(self, destination: AuditDestination) -> None:
-        """Initialize SendersABC."""
-        self._destination = destination
-
-    @abstractmethod
-    async def send(self, event: AuditLog) -> None:
-        """Send event."""
-
-    @property
-    @abstractmethod
-    def service_name(self) -> AuditDestinationServiceType:
-        """Get service name."""
-
-
-class SyslogSender(SendersABC):
+class SyslogSender(AuditDestinationSenderABC):
     """Syslog sender."""
 
     service_name: AuditDestinationServiceType = (
@@ -232,117 +205,3 @@ class SyslogSender(SendersABC):
                 f"Error during syslog {self._destination.name} send: {e}"
             )
             raise
-
-
-senders: dict[AuditDestinationServiceType, type[SendersABC]] = {
-    AuditDestinationServiceType.SYSLOG: SyslogSender,
-}
-
-
-def should_skip_event_retry(event: AuditLog, settings: Settings) -> bool:
-    """Check if event should be skipped."""
-    if not event.first_failed_at:
-        return False
-
-    if event.retry_count > 3:
-        return True
-
-    first_failed_utc = event.first_failed_at.astimezone(timezone.utc)
-    time_passed = datetime.now(tz=timezone.utc) - first_failed_utc
-
-    match event.retry_count:
-        case 1:
-            return time_passed < timedelta(
-                minutes=settings.AUDIT_FIRST_RETRY_TIME
-            )
-        case 2:
-            return time_passed < timedelta(
-                minutes=settings.AUDIT_SECOND_RETRY_TIME
-            )
-        case 3:
-            return time_passed < timedelta(
-                minutes=settings.AUDIT_THIRD_RETRY_TIME
-            )
-        case _:
-            return False
-
-
-async def send_events(
-    session: AsyncSession,
-    event_session: EventAsyncSession,
-    settings: Settings,
-    audit_logger: AuditLogger,
-) -> None:
-    """Send events."""
-    destinations = await session.scalars(
-        select(AuditDestination)
-        .filter_by(is_enabled=True)
-    )  # fmt: skip
-
-    active_destination_ids = [destination.id for destination in destinations]
-
-    if not destinations:
-        return
-    events = (
-        await event_session.scalars(
-            select(AuditLog)
-            .with_for_update(skip_locked=True)
-            .limit(100)
-            .order_by(AuditLog.id.asc())
-        )
-    ).all()  # fmt: skip
-
-    for server in destinations:
-        sender = senders[server.service_type](server)
-
-        for event in events:
-            if event.server_delivery_status.get(server.id, False):
-                continue
-
-            if should_skip_event_retry(event, settings):
-                continue
-
-            try:
-                await sender.send(event)
-                event.server_delivery_status[server.id] = True
-            except Exception as error:
-                logger.error(f"Sending error: {error}")
-
-                event.server_delivery_status[server.id] = False
-
-                if event.first_failed_at is None:
-                    event.first_failed_at = datetime.now(tz=timezone.utc)
-
-                event.retry_count += 1
-            finally:
-                for server_id in event.server_delivery_status:
-                    if server_id not in active_destination_ids:
-                        del event.server_delivery_status[server_id]
-
-    await event_session.flush()
-
-    for event in events:
-        to_delete = False
-
-        if event.first_failed_at:
-            first_failed_utc = event.first_failed_at.astimezone(timezone.utc)
-            time_passed = datetime.now(tz=timezone.utc) - first_failed_utc
-
-            if (
-                time_passed
-                > timedelta(minutes=settings.AUDIT_THIRD_RETRY_TIME)
-                or event.retry_count > 3
-            ):
-                audit_logger.info(f"{event.id} {event.content}\n")
-                to_delete = True
-
-        if (
-            all(list(event.server_delivery_status.values()))
-            and event.server_delivery_status
-        ):
-            to_delete = True
-
-        if to_delete:
-            await event_session.delete(event)
-
-    await event_session.commit()

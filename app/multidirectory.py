@@ -42,7 +42,6 @@ from api.exception_handlers import (
     handle_instance_not_found_error,
 )
 from config import Settings
-from event_handler import EventHandler
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
     EventHandlerProvider,
@@ -53,12 +52,16 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dns import DNSConnectionError
+from ldap_protocol.events import (
+    AuditEventHanlderService,
+    AuditEventSenderManager,
+)
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
 )
 from ldap_protocol.server import PoolClientHandler
-from schedule import EVENTS_TASKS, MAINTENCE_TASKS, _schedule
+from schedule import scheduler
 
 
 async def proc_time_header_middleware(
@@ -204,29 +207,17 @@ async def ldap_factory(settings: Settings) -> None:
     await asyncio.gather(*servers)
 
 
-async def maintence_scheduler_factory(settings: Settings) -> None:
+async def events_sender_factory(settings: Settings) -> None:
     """Script entrypoint for maintence scheduler."""
-    container = make_async_container(
-        MainProvider(),
-        context={Settings: settings},
-    )
-
-    async with asyncio.TaskGroup() as tg:
-        for task, timeout in MAINTENCE_TASKS:
-            tg.create_task(_schedule(task, timeout, container))
-
-
-async def events_scheduler_factory(settings: Settings) -> None:
-    """Script entrypoint for maintence scheduler."""
-    container = make_async_container(
+    main_container = make_async_container(
         MainProvider(),
         EventHandlerProvider(),
         context={Settings: settings},
     )
 
-    async with asyncio.TaskGroup() as tg:
-        for task, timeout in EVENTS_TASKS:
-            tg.create_task(_schedule(task, timeout, container))
+    await asyncio.gather(
+        AuditEventSenderManager(main_container, settings).run()
+    )
 
 
 async def event_handler_factory(settings: Settings) -> None:
@@ -237,13 +228,14 @@ async def event_handler_factory(settings: Settings) -> None:
         context={Settings: settings},
     )
 
-    await asyncio.gather(EventHandler(settings, main_container).start())
+    await asyncio.gather(
+        AuditEventHanlderService(main_container, settings).run()
+    )
 
 
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 ldap_server = partial(run_server, factory=ldap_factory)
-maintence_scheduler = partial(run_server, factory=maintence_scheduler_factory)
-events_scheduler = partial(run_server, factory=events_scheduler_factory)
+events_scheduler = partial(run_server, factory=events_sender_factory)
 event_handler = partial(run_server, factory=event_handler_factory)
 
 if __name__ == "__main__":
@@ -293,7 +285,7 @@ if __name__ == "__main__":
             factory=True,
         )
     elif args.scheduler:
-        maintence_scheduler(settings=settings)
+        scheduler(settings)
     elif args.event_sender:
         events_scheduler(settings=settings)
     elif args.certs_dumper:

@@ -7,27 +7,28 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 from typing import Callable, Coroutine
 
-from dishka import AsyncContainer, Scope
+import uvloop
+from dishka import AsyncContainer, Scope, make_async_container
 from loguru import logger
 
+from config import Settings
 from extra.scripts.check_ldap_principal import check_ldap_principal
 from extra.scripts.need_to_proc_events import check_events_to_process
 from extra.scripts.principal_block_user_sync import principal_block_sync
-from extra.scripts.send_events import send_events
 from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_krb5_config import update_krb5_config
+from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
 
 type task_type = Callable[..., Coroutine]
 
-MAINTENCE_TASKS: set[tuple[task_type, float]] = {
+_TASKS: set[tuple[task_type, float]] = {
     (disable_accounts, 600.0),
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
     (update_krb5_config, -1.0),
     (check_events_to_process, 300.0),
 }
-EVENTS_TASKS: set[tuple[task_type, float]] = {(send_events, 60)}
 
 
 async def _schedule(
@@ -54,4 +55,31 @@ async def _schedule(
         await asyncio.sleep(wait)
 
 
-__all__ = ["_schedule", "MAINTENCE_TASKS", "EVENTS_TASKS"]
+def scheduler(settings: Settings) -> None:
+    """Sript entrypoint."""
+
+    async def runner(settings: Settings) -> None:
+        container = make_async_container(
+            MainProvider(),
+            context={Settings: settings},
+        )
+
+        async with asyncio.TaskGroup() as tg:
+            for task, timeout in _TASKS:
+                tg.create_task(_schedule(task, timeout, container))
+
+    def _run() -> None:
+        uvloop.run(runner(settings))
+
+    try:
+        import py_hot_reload
+    except ImportError:
+        _run()
+    else:
+        if settings.DEBUG:
+            py_hot_reload.run_with_reloader(_run)
+        else:
+            _run()
+
+
+__all__ = ["scheduler"]

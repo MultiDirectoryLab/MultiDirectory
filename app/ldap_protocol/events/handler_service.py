@@ -17,10 +17,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
-from audit_models import AuditLog
 from config import Settings
 from ioc import EventAsyncSession
 from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.events.models import AuditLog
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.audit_policy import AuditEvent, RedisAuditDAO
@@ -42,13 +42,13 @@ operations: dict[str, Callable] = {
 }
 
 
-class EventHandler:
+class AuditEventHanlderService:
     """Handle incoming audit events and process them according to policies."""
 
     def __init__(
         self,
-        settings: Settings,
         container: AsyncContainer,
+        settings: Settings,
     ) -> None:
         """Initialize event handler with settings and DI container."""
         self.container = container
@@ -376,12 +376,9 @@ class EventHandler:
             except Exception as exc:
                 logger.exception(f"Error reading stream: {exc}")
 
-    async def start(self) -> None:
+    async def run(self) -> None:
         """Start event handler main processing loop."""
         try:
             await self.consume_stream()
         finally:
             await self.container.close()
-
-
-__all__ = ["EventHandler"]

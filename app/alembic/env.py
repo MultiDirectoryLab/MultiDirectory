@@ -6,8 +6,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from audit_models import Base as AuditBase
 from config import Settings
+from ldap_protocol.events.models import Base as AuditBase
 from models import Base as MainBase
 
 # this is the Alembic Config object, which provides
