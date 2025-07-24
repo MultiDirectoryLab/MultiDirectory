@@ -28,6 +28,7 @@ from ldap_protocol.ldap_requests.bind_methods import (
 )
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
@@ -49,7 +50,7 @@ from .base import BaseRequest
 class BindRequest(BaseRequest):
     """Bind request fields mapping."""
 
-    PROTOCOL_OP: ClassVar[int] = 0x0
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.BIND
 
     version: int
     name: str
@@ -229,7 +230,7 @@ class BindRequest(BaseRequest):
 class UnbindRequest(BaseRequest):
     """Remove user from ldap_session."""
 
-    PROTOCOL_OP: ClassVar[int] = 2
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.UNBIND
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003

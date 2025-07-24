@@ -12,15 +12,7 @@ from ldap_protocol.ldap_responses import PartialAttribute
 
 
 class Scope(IntEnum):
-    """Enum for search request.
-
-    ```
-    BASE_OBJECT = 0
-    SINGLE_LEVEL = 1
-    WHOLE_SUBTREE = 2
-    SUBORDINATE_SUBTREE = 3
-    ```
-    """
+    """Enum for search request."""
 
     BASE_OBJECT = 0
     SINGLE_LEVEL = 1
@@ -29,15 +21,7 @@ class Scope(IntEnum):
 
 
 class DerefAliases(IntEnum):
-    """Enum for search request.
-
-    ```
-    NEVER_DEREF_ALIASES = 0
-    DEREF_IN_SEARCHING = 1
-    DEREF_FINDING_BASE_OBJ = 2
-    DEREF_ALWAYS = 3
-    ```
-    """
+    """Enum for search request."""
 
     NEVER_DEREF_ALIASES = 0
     DEREF_IN_SEARCHING = 1
@@ -71,3 +55,18 @@ class Changes(BaseModel):
     def get_name(self) -> str:
         """Get mod name."""
         return self.modification.type.lower()
+
+
+class ProtocolRequests(IntEnum):
+    """Enum for LDAP requests."""
+
+    BIND = 0
+    UNBIND = 2
+    SEARCH = 3
+    MODIFY = 6
+    ADD = 8
+    DELETE = 10
+    MODIFY_DN = 12
+    COMPARE = 14
+    ABANDON = 16
+    EXTENDED = 23
