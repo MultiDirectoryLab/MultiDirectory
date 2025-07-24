@@ -195,9 +195,9 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
-    object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
 
 
 class HTTPProvider(Provider):
