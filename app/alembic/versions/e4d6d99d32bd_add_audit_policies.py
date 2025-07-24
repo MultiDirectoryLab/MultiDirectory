@@ -89,6 +89,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["audit_policy_id"],
             ["AuditPolicies.id"],
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
     )
