@@ -28,6 +28,7 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.policies.audit_policies import AuditDAO
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -61,6 +62,7 @@ class IdentityManager:
         entity_type_dao: EntityTypeDAO,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
+        audit_dao: AuditDAO,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -79,6 +81,7 @@ class IdentityManager:
         self._role_use_case = role_use_case
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
+        self._audit_dao = audit_dao
 
     async def login(
         self,
@@ -336,6 +339,7 @@ class IdentityManager:
                 await default_pwd_policy.create_policy_settings(self._session)
                 await self._role_use_case.create_domain_admins_role()
                 await self._role_use_case.create_read_only_role()
+                await self._audit_dao.create_policies()
                 await self._session.commit()
             except IntegrityError:
                 await self._session.rollback()
