@@ -117,3 +117,23 @@ class ProtocolResponse(IntEnum):
     EXTENDED = 24
     INTERMEDIATE = 25
     SEARCH_RESULT_REFERENCE = 19
+
+
+@unique
+class OperationEvent(IntEnum):
+    """Enum for operation events. Includes all LDAP requests."""
+
+    BIND = ProtocolRequests.BIND.value
+    UNBIND = ProtocolRequests.UNBIND.value
+    SEARCH = ProtocolRequests.SEARCH.value
+    MODIFY = ProtocolRequests.MODIFY.value
+    ADD = ProtocolRequests.ADD.value
+    DELETE = ProtocolRequests.DELETE.value
+    MODIFY_DN = ProtocolRequests.MODIFY_DN.value
+    COMPARE = ProtocolRequests.COMPARE.value
+    ABANDON = ProtocolRequests.ABANDON.value
+    EXTENDED = ProtocolRequests.EXTENDED.value
+    CHANGE_PASSWORD = 40
+    AFTER_2FA = 41
+    KERBEROS_AUTH = 42
+    CHANGE_PASSWORD_KERBEROS = 43
