@@ -11,7 +11,6 @@ from asn1 import Classes, Encoder, Numbers
 from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny
 
 from ldap_protocol.asn1parser import LDAPOID
-from ldap_protocol.objects import ProtocolResponse
 
 from .ldap_codes import LDAPCodes
 from .objects import PartialAttribute, ProtocolResponse
@@ -218,8 +217,3 @@ class ExtendedResponse(LDAPResult, BaseResponse):
 
         if self.response_value and (value := self.response_value.get_value()):
             enc.write(value, type_map[type(value)])
-
-
-# 15: 'compare Response'
-# 19: 'Search Result Reference'
-# 25: 'intermediate Response'
