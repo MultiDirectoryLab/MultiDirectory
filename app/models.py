@@ -44,7 +44,14 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from enums import AceType, MFAFlags, RoleScope
+from enums import (
+    AceType,
+    AuditDestinationProtocolType,
+    AuditDestinationServiceType,
+    AuditSeverity,
+    MFAFlags,
+    RoleScope,
+)
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
@@ -1098,19 +1105,6 @@ class Role(Base):
     )
 
 
-class AuditSeverity(enum.IntEnum):
-    """Audit policy severity."""
-
-    EMERGENCY = 0
-    ALERT = 1
-    CRITICAL = 2
-    ERROR = 3
-    WARNING = 4
-    NOTICE = 5
-    INFO = 6
-    DEBUG = 7
-
-
 class AuditPolicy(Base):
     """Audit policy."""
 
@@ -1163,19 +1157,6 @@ class AuditPolicyTrigger(Base):
         back_populates="triggers",
         lazy="selectin",
     )
-
-
-class AuditDestinationProtocolType(enum.StrEnum):
-    """Audit destination protocol type."""
-
-    UDP = "udp"
-    TCP = "tcp"
-
-
-class AuditDestinationServiceType(enum.StrEnum):
-    """Audit destination type."""
-
-    SYSLOG = "syslog"
 
 
 class AuditDestination(Base):
