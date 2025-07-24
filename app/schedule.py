@@ -38,8 +38,8 @@ async def _schedule(
     logger.info("Registered: {}", task.__name__)
     while True:
         async with container(scope=Scope.REQUEST) as ctnr:
-            handler = await resolve_deps(func=task, container=ctnr)
-            await handler()
+            kwargs = await resolve_deps(func=task, container=ctnr)
+            await task(**kwargs)
 
         # NOTE: one-time tasks
         if wait < 0.0:
