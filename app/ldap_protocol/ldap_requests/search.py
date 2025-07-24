@@ -10,7 +10,6 @@ from functools import cached_property
 from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
-from enums import AceType
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_
@@ -21,6 +20,7 @@ from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import Settings
+from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.filter_interpreter import (

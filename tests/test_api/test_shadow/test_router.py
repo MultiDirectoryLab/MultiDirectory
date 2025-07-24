@@ -5,12 +5,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest
-from enums import MFAFlags
 from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from enums import MFAFlags
 from models import NetworkPolicy
 
 from .conftest import ProxyRequestModel

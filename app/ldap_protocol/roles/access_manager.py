@@ -6,10 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal
 
-from enums import AceType, RoleScope
 from sqlalchemy import Select, and_
 from sqlalchemy.orm import selectinload, with_loader_criteria
 
+from enums import AceType, RoleScope
 from ldap_protocol.objects import Changes, Operation
 from models import AccessControlEntry, Directory
 
@@ -220,7 +220,9 @@ class AccessManager:
 
     @classmethod
     def _get_effective_aces(
-        cls, directory: Directory, user_dn: str
+        cls,
+        directory: Directory,
+        user_dn: str,
     ) -> list[AccessControlEntry]:
         """Get effective access control entries for a directory.
 

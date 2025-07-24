@@ -8,11 +8,11 @@ import contextlib
 from typing import AsyncGenerator, ClassVar
 
 import httpx
-from enums import MFAFlags
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError

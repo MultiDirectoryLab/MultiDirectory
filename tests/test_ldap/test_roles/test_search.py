@@ -8,9 +8,9 @@ import asyncio
 
 import pytest
 import pytest_asyncio
-from enums import AceType, RoleScope
 
 from config import Settings
+from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO

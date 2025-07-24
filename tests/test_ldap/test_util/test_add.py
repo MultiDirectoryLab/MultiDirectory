@@ -9,12 +9,12 @@ import tempfile
 from collections import defaultdict
 
 import pytest
-from enums import AceType, RoleScope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
 
 from config import Settings
+from enums import AceType, RoleScope
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes

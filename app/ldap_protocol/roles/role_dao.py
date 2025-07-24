@@ -6,11 +6,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
-from enums import AceType, RoleScope
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
+from enums import AceType, RoleScope
 from ldap_protocol.utils.const import GRANT_DN_STRING
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import (

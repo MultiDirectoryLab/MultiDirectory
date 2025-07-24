@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
 from typing import Annotated, ClassVar, Literal
 
-from enums import AceType, MFAFlags, RoleScope
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
@@ -44,6 +43,8 @@ from sqlalchemy.orm import (
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
+
+from enums import AceType, MFAFlags, RoleScope
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]

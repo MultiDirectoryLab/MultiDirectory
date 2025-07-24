@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from unittest.mock import Mock
 
 from enums import AceType
-
 from models import AccessControlEntry
 
 
