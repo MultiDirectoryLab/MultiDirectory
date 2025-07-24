@@ -46,27 +46,27 @@ class AccessManager:
         :return: Tuple containing a boolean indicating if access is allowed,
             a set of forbidden attributes, and a set of allowed attributes.
         """
-        forbidden_attributes = set()
-        allowed_attributes = set()
+        forbidden_attributes: set[str] = set()
+        allowed_attributes: set[str] = set()
 
         if not aces:
             return False, set(), set()
 
         for ace in aces:
             if not ace.is_allow and ace.attribute_type_id is None:
-                if allowed_attributes:  # type: ignore
+                if allowed_attributes:
                     return True, set(), allowed_attributes
                 else:
                     return False, set(), set()
 
             elif not ace.is_allow and ace.attribute_type_id is not None:
-                forbidden_attributes.add(ace.attribute_type_name)
+                forbidden_attributes.add(ace.attribute_type_name)  # type: ignore
 
             elif ace.is_allow and ace.attribute_type_id is None:
-                return True, forbidden_attributes, set()  # type: ignore
+                return True, forbidden_attributes, set()
 
             else:
-                allowed_attributes.add(ace.attribute_type_name)
+                allowed_attributes.add(ace.attribute_type_name)  # type: ignore
 
         if not allowed_attributes:
             return False, set(), set()

@@ -244,13 +244,13 @@ class AccessControlEntry(Base):
         unique=False,
     )
 
-    attribute_type_id: Mapped[int] = mapped_column(
+    attribute_type_id: Mapped[int | None] = mapped_column(
         "attributeTypeId",
         ForeignKey("AttributeTypes.id", ondelete="CASCADE"),
         nullable=True,
     )
 
-    entity_type_id: Mapped[int] = mapped_column(
+    entity_type_id: Mapped[int | None] = mapped_column(
         "entityTypeId",
         ForeignKey("EntityTypes.id", ondelete="CASCADE"),
         nullable=True,
