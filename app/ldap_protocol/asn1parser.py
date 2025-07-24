@@ -6,11 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from contextlib import suppress
 from dataclasses import dataclass
-from enum import IntEnum
-from typing import Annotated, Generic, TypeVar
+from enum import IntEnum, StrEnum
+from typing import Generic, TypeVar
 
 from asn1 import Classes, Decoder, Encoder, Numbers, Tag, Types
-from pydantic import AfterValidator
 
 
 class TagNumbers(IntEnum):
@@ -276,11 +275,15 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
     return out
 
 
-def _validate_oid(oid: str) -> str:
-    """Validate ldap oid with regex."""
-    if not Encoder._re_oid.match(oid):  # noqa SLF001
-        raise ValueError("Invalid LDAPOID")
-    return oid
+class LDAPOID(StrEnum):
+    """Enum for LDAP OIDs."""
 
+    PASSWORD_MODIFY = "1.3.6.1.4.1.4203.1.11.1"  # noqa
+    WHOAMI = "1.3.6.1.4.1.4203.1.11.3"
+    START_TLS = "1.3.6.1.4.1.1466.20037"
+    PAGED_RESULTS = "1.2.840.113556.1.4.319"
 
-LDAPOID = Annotated[str, AfterValidator(_validate_oid)]
+    @classmethod
+    def has_value(cls, value: str) -> bool:
+        """Check if value is a valid LDAPOID."""
+        return Encoder._re_oid.match(value) is not None  # noqa: SLF001

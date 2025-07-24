@@ -19,6 +19,7 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
 )
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
@@ -39,7 +40,7 @@ class DeleteRequest(BaseRequest):
     DelRequest ::= [APPLICATION 10] LDAPDN
     """
 
-    PROTOCOL_OP: ClassVar[int] = 10
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.DELETE
 
     entry: str
 
