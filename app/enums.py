@@ -20,9 +20,9 @@ class AceType(IntEnum):
 class RoleScope(IntEnum):
     """Scope of the role."""
 
-    BASE_OBJECT = 1
-    SINGLE_LEVEL = 2
-    WHOLE_SUBTREE = 3
+    BASE_OBJECT = 0
+    SINGLE_LEVEL = 1
+    WHOLE_SUBTREE = 2
 
 
 class MFAFlags(int, Enum):
