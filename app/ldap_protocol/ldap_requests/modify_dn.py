@@ -6,11 +6,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import Select, and_, func, text, update
+from sqlalchemy import func, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload, with_loader_criteria
+from sqlalchemy.orm import selectinload
 
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
@@ -95,51 +95,6 @@ class ModifyDNRequest(BaseRequest):
             new_superior=None if len(data) < 4 else data[3].value,
         )
 
-    def _mutate_query_with_create_ace_load(
-        self,
-        user_role_ids: list[int],
-        query: Select,
-    ) -> Select:
-        """Mutate query to load access control entries for create operation.
-
-        :param user_role_ids: list of user role ids
-        :param query: SQLAlchemy query to mutate
-        :return: mutated query with access control entries loaded
-        """
-        return query.options(
-            selectinload(Directory.access_control_entries),
-            with_loader_criteria(
-                AccessControlEntry,
-                and_(
-                    AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type == AceType.CREATE_CHILD,
-                ),
-            ),
-        )
-
-    def _mutate_query_with_delete_ace_load(
-        self,
-        user_role_ids: list[int],
-        query: Select,
-    ) -> Select:
-        """Mutate query to load access control entries for delete operation.
-
-        :param user_role_ids: list of user role ids
-        :param query: SQLAlchemy query to mutate
-        :return: mutated query with access control entries loaded
-        """
-        return query.options(
-            selectinload(Directory.access_control_entries),
-            with_loader_criteria(
-                AccessControlEntry,
-                and_(
-                    AccessControlEntry.role_id.in_(user_role_ids),
-                    AccessControlEntry.ace_type == AceType.DELETE,
-                    AccessControlEntry.attribute_type_id.is_(None),
-                ),
-            ),
-        )
-
     async def handle(  # noqa: C901
         self,
         ldap_session: LDAPSession,
@@ -177,8 +132,11 @@ class ModifyDNRequest(BaseRequest):
             .filter(get_filter_from_path(self.entry))
         )
 
-        query = self._mutate_query_with_delete_ace_load(
-            ldap_session.user.role_ids, query
+        query = access_manager.mutate_query_with_ace_load(
+            user_role_ids=ldap_session.user.role_ids,
+            query=query,
+            ace_types=[AceType.DELETE],
+            require_attribute_type_null=True,
         )
 
         directory = await session.scalar(query)
@@ -217,9 +175,11 @@ class ModifyDNRequest(BaseRequest):
             parent_query = select(Directory).filter(
                 Directory.id == directory.parent_id
             )
-            parent_query = self._mutate_query_with_create_ace_load(
-                ldap_session.user.role_ids,
-                parent_query,
+            parent_query = access_manager.mutate_query_with_ace_load(
+                user_role_ids=ldap_session.user.role_ids,
+                query=parent_query,
+                ace_types=[AceType.CREATE_CHILD],
+                require_attribute_type_null=True,
             )
 
             parent_dir = await session.scalar(parent_query)
@@ -246,9 +206,11 @@ class ModifyDNRequest(BaseRequest):
             new_sup_query = select(Directory).filter(
                 get_filter_from_path(self.new_superior)
             )
-            new_sup_query = self._mutate_query_with_create_ace_load(
-                ldap_session.user.role_ids,
-                new_sup_query,
+            new_sup_query = access_manager.mutate_query_with_ace_load(
+                user_role_ids=ldap_session.user.role_ids,
+                query=new_sup_query,
+                ace_types=[AceType.CREATE_CHILD],
+                require_attribute_type_null=True,
             )
 
             new_parent_dir = await session.scalar(new_sup_query)
