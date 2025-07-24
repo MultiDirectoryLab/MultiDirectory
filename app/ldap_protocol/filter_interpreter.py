@@ -26,28 +26,11 @@ from .asn1parser import ASN1Row, TagNumbers
 from .objects import LDAPMatchingRule
 from .utils.cte import find_members_recursive_cte, get_filter_from_path
 
-def _get_filter_condition(
-    attr: str,
-    condition: BinaryExpression | None = None,
-) -> ColumnElement:
-    if condition is None:
-        f = Directory.attributes.any(Attribute.name.ilike(attr))
-    else:
-        f = Directory.attributes.any(
-            and_(Attribute.name.ilike(attr), condition)
-        )
-
-    return f
-
-class FilterInterpreter:
-    """Filter interpreter."""
-
 MEMBERS_ATTRS = {
     "member",
     "memberof",
     f"memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:",
 }
-
 
 class FilterInterpreterProtocol(Protocol):
     """Protocol for filter interpreters."""
@@ -67,6 +50,20 @@ class FilterInterpreterProtocol(Protocol):
     ) -> UnaryExpression | ColumnElement:
         """Cast a single item to SQLAlchemy condition."""
         ...
+
+    def _get_filter_condition(
+        self,
+        attr: str,
+        condition: BinaryExpression | None = None,
+    ) -> ColumnElement:
+        if condition is None:
+            f = Directory.attributes.any(Attribute.name.ilike(attr))
+        else:
+            f = Directory.attributes.any(
+                and_(Attribute.name.ilike(attr), condition)
+            )
+
+        return f
 
     def _get_filter_function(
         self, column: str
@@ -167,7 +164,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             if attr in Directory.search_fields:
                 return not_(eq(getattr(Directory, attr), None))
 
-        return _get_filter_condition(attr)
+            return self._get_filter_condition(attr)
 
         if (
             len(item.value) == 3
@@ -200,35 +197,44 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
                 else:
                     cond = Attribute.bvalue == right.value
 
-            return Directory.attributes.any(
-                and_(Attribute.name.ilike(attr), cond)
-            )
+            return self._get_filter_condition(attr, cond)
 
-    def cast_filter2sql(
-        self, expr: ASN1Row
-    ) -> UnaryExpression | ColumnElement:
-        """Recursively cast Filter to SQLAlchemy conditions."""
-        if expr.tag_id in range(3):
-            conditions = []
-            for item in expr.value:
-                if item.tag_id in range(3):  # &|!
-                    conditions.append(self.cast_filter2sql(item))
-                    continue
+    def _ldap_filter_by_attribute(
+        self,
+        oid: ASN1Row | None,
+        attr: ASN1Row,
+        search_value: ASN1Row,
+    ) -> UnaryExpression:
+        """Retrieve query conditions based on the specified LDAP attribute."""
+        if oid is None:
+            attribute = attr.value.lower()
+        else:
+            attribute = f"{attr.value.decode('utf-8').lower()}:{oid.value}:"
 
-                conditions.append(self._cast_item(item))
+        self.attributes.add(attribute)
 
-            return [and_, or_, not_][expr.tag_id](*conditions)  # type: ignore
+        value = search_value.value
+        filter_func = self._get_filter_function(attribute)
+        return filter_func(value)
 
-        return self._cast_item(expr)
+    def _get_substring(self, right: ASN1Row) -> str:  # RFC 4511
+        expr = right.value[0]
+        value = expr.value
+        if isinstance(value, bytes):
+            with suppress(UnicodeDecodeError):
+                value = value.decode()
+        index = expr.tag_id
+        return [f"{value}%", f"%{value}%", f"%{value}"][index]
 
-    def _from_str_filter(
+    def _from_filter(
         self,
         model: type,
         item: ASN1Row,
         attr: str,
         right: ASN1Row,
     ) -> UnaryExpression:
-        col = getattr(model, item.attr)
+        is_substring = item.tag_id == TagNumbers.SUBSTRING
+        col = getattr(model, attr)
 
         if is_substring:
             return col.ilike(self._get_substring(right))
@@ -276,7 +282,7 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             if item.attr in Directory.search_fields:
                 return not_(eq(getattr(Directory, item.attr), None))
 
-        return _get_filter_condition(item.attr)
+            return self._get_filter_condition(item.attr)
 
         is_substring = item.val.startswith("*") or item.val.endswith("*")
 
@@ -284,7 +290,7 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             return self._from_str_filter(User, is_substring, item)
         elif item.attr in Directory.search_fields:
             return self._from_str_filter(Directory, is_substring, item)
-        elif item.attr in self.MEMBERS_ATTRS:
+        elif item.attr in MEMBERS_ATTRS:
             return self._api_filter(item)
         elif item.attr == "entitytypename":
             return func.lower(EntityType.name) == item.val.lower()
@@ -294,25 +300,23 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             else:
                 cond = Attribute.value.ilike(item.val)
 
-        return _get_filter_condition(item.attr, cond)
+            return self._get_filter_condition(item.attr, cond)
 
-    def cast_str_filter2sql(
-        self, expr: Filter
-    ) -> UnaryExpression | ColumnElement:
-        """Cast ldap filter to sa query."""
-        if expr.type == "group":
-            conditions = []
-            for item in expr.filters:
-                if expr.type == "group":
-                    conditions.append(self.cast_str_filter2sql(item))
-                    continue
+    def _from_str_filter(
+        self,
+        model: type,
+        is_substring: bool,
+        item: Filter,
+    ) -> UnaryExpression:
+        col = getattr(model, item.attr)
 
-                conditions.append(self._cast_filt_item(item))
+        if is_substring:
+            return col.ilike(item.val.replace("*", "%"))
+        op_method = {"=": eq, ">=": ge, "<=": le, "~=": ne}[item.comp]
+        col = col if item.attr == "objectguid" else func.lower(col)
+        return op_method(col, item.val)
 
-            return {  # type: ignore
-                "&": and_,
-                "|": or_,
-                "!": not_,
-            }[expr.comp](*conditions)
-
-        return self._cast_filt_item(expr)
+    def _api_filter(self, item: Filter) -> UnaryExpression:
+        """Retrieve query conditions based on the specified LDAP attribute."""
+        filter_func = self._get_filter_function(item.attr)
+        return filter_func(item.val)
