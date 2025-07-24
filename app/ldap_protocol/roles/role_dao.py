@@ -194,7 +194,7 @@ class RoleDAO:
         :param scope: Scope of the role.
         """
         search_path = get_search_path(base_dn)
-        if scope == RoleScope.SELF:
+        if scope == RoleScope.BASE_OBJECT:
             path_filter = get_path_filter(path=search_path)
             directory = await self._session.scalar(
                 select(Directory).where(path_filter)

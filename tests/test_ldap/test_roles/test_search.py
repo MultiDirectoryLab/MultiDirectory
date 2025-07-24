@@ -50,7 +50,7 @@ async def test_role_search_2(
     """
     ace = AccessControlEntrySchema(
         ace_type=AceType.READ,
-        scope=RoleScope.SELF,
+        scope=RoleScope.BASE_OBJECT,
         base_dn="cn=groups,dc=md,dc=test",
         attribute_type_id=None,
         entity_type_id=None,
@@ -227,7 +227,7 @@ async def test_role_search_6(
 
     ace = AccessControlEntrySchema(
         ace_type=AceType.READ,
-        scope=RoleScope.SELF,
+        scope=RoleScope.BASE_OBJECT,
         base_dn="cn=user0,ou=users,dc=md,dc=test",
         attribute_type_id=posix_email_attr.id,
         entity_type_id=user_entity_type.id,
@@ -279,7 +279,7 @@ async def test_role_search_7(
     aces = [
         AccessControlEntrySchema(
             ace_type=AceType.READ,
-            scope=RoleScope.SELF,
+            scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
             attribute_type_id=None,
             entity_type_id=user_entity_type.id,
@@ -287,7 +287,7 @@ async def test_role_search_7(
         ),
         AccessControlEntrySchema(
             ace_type=AceType.READ,
-            scope=RoleScope.SELF,
+            scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
             attribute_type_id=description_attr.id,
             entity_type_id=user_entity_type.id,
@@ -348,7 +348,7 @@ async def test_role_search_8(
         ),
         AccessControlEntrySchema(
             ace_type=AceType.READ,
-            scope=RoleScope.SELF,
+            scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
             attribute_type_id=description_attr.id,
             entity_type_id=user_entity_type.id,
@@ -412,7 +412,7 @@ async def test_role_search_9(
         ),
         AccessControlEntrySchema(
             ace_type=AceType.READ,
-            scope=RoleScope.SELF,
+            scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
             attribute_type_id=description_attr.id,
             entity_type_id=user_entity_type.id,

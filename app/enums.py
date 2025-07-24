@@ -20,7 +20,7 @@ class AceType(IntEnum):
 class RoleScope(IntEnum):
     """Scope of the role."""
 
-    SELF = 1
+    BASE_OBJECT = 1
     SINGLE_LEVEL = 2
     WHOLE_SUBTREE = 3
 

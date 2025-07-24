@@ -58,7 +58,12 @@ def upgrade() -> None:
         sa.Column("depth", sa.Integer(), nullable=False),
         sa.Column(
             "scope",
-            sa.Enum("SELF", "SINGLE_LEVEL", "WHOLE_SUBTREE", name="rolescope"),
+            sa.Enum(
+                "BASE_OBJECT",
+                "SINGLE_LEVEL",
+                "WHOLE_SUBTREE",
+                name="rolescope",
+            ),
             nullable=False,
         ),
         sa.Column("path", sa.String(), nullable=False),

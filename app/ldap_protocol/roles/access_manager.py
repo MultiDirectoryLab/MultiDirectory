@@ -277,7 +277,7 @@ class AccessManager:
             ace_type=AceType.READ,
             depth=directory.depth,
             path=directory.path_dn,
-            scope=RoleScope.SELF,
+            scope=RoleScope.BASE_OBJECT,
             is_allow=True,
             entity_type_id=None,
             attribute_type_id=None,
