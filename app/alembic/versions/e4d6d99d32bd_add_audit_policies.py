@@ -16,7 +16,7 @@ from ldap_protocol.utils.queries import get_base_directories
 
 # revision identifiers, used by Alembic.
 revision = "e4d6d99d32bd"
-down_revision = "a7971f00ba4d"
+down_revision = "05ddc0bd562a"
 branch_labels = None
 depends_on = None
 
