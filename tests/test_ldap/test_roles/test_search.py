@@ -4,10 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import asyncio
-
 import pytest
-import pytest_asyncio
 
 from config import Settings
 from enums import AceType, RoleScope
@@ -17,75 +14,9 @@ from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from models import Role
 from tests.conftest import TestCreds
 
+from .conftest import perform_ldap_search_and_validate
+
 BASE_DN = "dc=md,dc=test"
-
-
-@pytest_asyncio.fixture(scope="function")
-async def custom_role(role_dao: RoleDAO) -> Role:
-    """Fixture to create a custom role for testing."""
-    return await role_dao.create_role(
-        role_name="Custom Role",
-        creator_upn=None,
-        is_system=False,
-        groups_dn=["cn=domain users,cn=groups,dc=md,dc=test"],
-    )
-
-
-async def run_ldap_search(
-    settings: Settings,
-    creds: TestCreds,
-    search_base: str = "dc=md,dc=test",
-) -> tuple[int, list[str]]:
-    """Run ldapsearch command and return the result."""
-    proc = await asyncio.create_subprocess_exec(
-        "ldapsearch",
-        "-vvv",
-        "-x",
-        "-H",
-        f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D",
-        "user_non_admin",
-        "-w",
-        creds.pw,
-        "-b",
-        search_base,
-        "objectclass=*",
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
-    raw_data, _ = await proc.communicate()
-    data = raw_data.decode().split("\n")
-    result = await proc.wait()
-
-    return result, data
-
-
-async def perform_ldap_search_and_validate(
-    settings: Settings,
-    creds: TestCreds,
-    search_base: str,
-    expected_dn: list[str],
-    expected_attrs_present: list[str],
-    expected_attrs_absent: list[str],
-) -> None:
-    """Perform LDAP search and validate results."""
-    result, data = await run_ldap_search(
-        settings,
-        creds,
-        search_base=search_base,
-    )
-
-    dn_list = [d for d in data if d.startswith("dn:")]
-
-    assert result == 0
-    assert sorted(dn_list) == sorted(expected_dn)
-
-    for expected in expected_attrs_present:
-        assert expected in data
-
-    for unexpected in expected_attrs_absent:
-        assert unexpected not in data
 
 
 @pytest.mark.asyncio
