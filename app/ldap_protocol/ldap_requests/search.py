@@ -307,6 +307,9 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self.paginate_query(query, session)
 
+        if self.size_limit != 0:
+            query = query.limit(self.size_limit)
+
         async for response in self.tree_view(query, session):
             yield response
 
@@ -342,7 +345,10 @@ class SearchRequest(BaseRequest):
     ) -> Select:
         """Get attributes to load."""
         if self.entity_type_name:
-            query = query.options(selectinload(Directory.entity_type))
+            query = (
+                query.join(Directory.entity_type)
+                .options(selectinload(Directory.entity_type))
+            )  # fmt: skip
 
         if self.all_attrs:
             return query.options(selectinload(Directory.attributes))
@@ -369,12 +375,9 @@ class SearchRequest(BaseRequest):
         """Build tree query."""
         query = (
             select(Directory)
-            .options(
-                selectinload(Directory.entity_type),
-                selectinload(Directory.user),
-                selectinload(Directory.group),
-            )
-        )  # fmt: skip
+            .join(Directory.user, isouter=True)
+            .options(selectinload(Directory.group))
+        )
 
         query = self._mutate_query_with_attributes_to_load(query)
         query = mutate_ap(query, user)
@@ -525,6 +528,10 @@ class SearchRequest(BaseRequest):
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
         directories = await session.stream_scalars(query)
+
+        from ldap_protocol.utils.helpers import explain_query
+
+        await explain_query(query, session)
 
         async for directory in directories:
             attrs = defaultdict(list)
