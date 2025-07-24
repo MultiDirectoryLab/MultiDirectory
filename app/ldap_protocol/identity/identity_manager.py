@@ -21,10 +21,12 @@ from api.exceptions.auth import (
 )
 from api.exceptions.mfa import MFARequiredError
 from config import Settings
+from extra.dev_data import ENTITY_TYPE_DATAS
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
 from ldap_protocol.policies.network_policy import (
@@ -55,6 +57,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         settings: Settings,
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
+        entity_type_dao: EntityTypeDAO,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -67,6 +70,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         self._settings = settings
         self._mfa_api = mfa_api
         self._storage = storage
+        self._entity_type_dao = entity_type_dao
         self.key_ttl = self._storage.key_ttl
 
     async def login(
@@ -213,6 +217,13 @@ class IdentityManager(SessionKeyCreatorMixin):
         )  # fmt: skip
         if setup_already_performed:
             raise AlreadyConfiguredError("Setup already performed")
+
+        for entity_type_data in ENTITY_TYPE_DATAS:
+            await self._entity_type_dao.create_one(
+                name=entity_type_data["name"],  # type: ignore
+                object_class_names=entity_type_data["object_class_names"],
+                is_system=True,
+            )
         data = [
             {
                 "name": "groups",
