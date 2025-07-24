@@ -276,6 +276,7 @@ async def test_ldap_search_access_control_denied(
     """Test ldapsearch on server.
 
     Default user can read himself.
+    User with access control entry can read groups.
     """
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
