@@ -401,12 +401,8 @@ class SearchRequest(BaseRequest):
         query = (
             select(Directory)
             .join(Directory.user, isouter=True)
-            .join(Directory.group, isouter=True)
-            .join(Directory.entity_type, isouter=True)
-            .options(
-                selectinload(Directory.group),
-            )
-        )  # fmt: skip
+            .options(selectinload(Directory.group))
+        )
 
         query = self._mutate_query_with_attributes_to_load(query)
         query = access_manager.mutate_query_with_ace_load(
