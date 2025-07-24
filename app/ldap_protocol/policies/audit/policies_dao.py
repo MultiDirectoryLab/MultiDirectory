@@ -1,4 +1,4 @@
-"""Audit policies module.
+"""Audit policies dao module.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -12,7 +12,7 @@ from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import AuditPolicy, AuditPolicyTrigger, AuditSeverity
 
 
-class AuditDAO:
+class AuditPoliciesDAO:
     """Audit DAO for managing audit policies."""
 
     def __init__(self, session: AsyncSession) -> None:

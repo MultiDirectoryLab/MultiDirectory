@@ -54,7 +54,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
-from ldap_protocol.policies.audit_policies import AuditDAO
+from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -199,7 +199,7 @@ class MainProvider(Provider):
         yield SessionStorageClient(client)
         await client.aclose()
 
-    audit_dao = provide(AuditDAO, scope=Scope.REQUEST)
+    audit_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.APP)
     async def get_session_storage(
