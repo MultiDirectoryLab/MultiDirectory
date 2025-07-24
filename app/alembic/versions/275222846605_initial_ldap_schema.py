@@ -400,8 +400,6 @@ def downgrade() -> None:
         postgresql_using="gin",
         postgresql_ops={"name": "gin_trgm_ops"},
     )
-    op.execute(sa.text("DROP EXTENSION IF EXISTS pg_trgm"))
-
     op.drop_constraint(
         "object_class_must_attribute_type_uc",
         "ObjectClassAttributeTypeMustMemberships",

@@ -1,4 +1,4 @@
-"""DI Provider MiltiDirecory module.
+"""DI Provider MultiDirecory module.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -195,6 +195,10 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
+    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+    object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+
 
 class HTTPProvider(Provider):
     """HTTP LDAP session."""
@@ -205,32 +209,6 @@ class HTTPProvider(Provider):
     async def get_session(self) -> LDAPSession:
         """Create ldap session."""
         return LDAPSession()
-
-    @provide(scope=Scope.REQUEST)
-    async def get_attribute_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
-
-    @provide(scope=Scope.REQUEST)
-    async def get_object_class_dao(
-        self,
-        attribute_type_dao: AttributeTypeDAO,
-        session: AsyncSession,
-    ) -> ObjectClassDAO:
-        """Get Object Class DAO."""
-        return ObjectClassDAO(session, attribute_type_dao)
-
-    @provide(scope=Scope.REQUEST)
-    async def get_entity_type_dao(
-        self,
-        object_class_dao: ObjectClassDAO,
-        session: AsyncSession,
-    ) -> EntityTypeDAO:
-        """Get Entity Type DAO."""
-        return EntityTypeDAO(session, object_class_dao)
 
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,

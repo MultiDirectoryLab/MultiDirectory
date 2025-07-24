@@ -282,7 +282,7 @@ class Directory(Base):
         onupdate=func.now(),
         nullable=True,
     )
-    depth: Mapped[int]
+    depth: Mapped[int] = mapped_column(index=True)
 
     object_sid: Mapped[str] = mapped_column("objectSid")
     objectsid: Mapped[str] = synonym("object_sid")

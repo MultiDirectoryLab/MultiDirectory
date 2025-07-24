@@ -13,7 +13,11 @@ from typing import Callable
 
 from ldap_filter import Filter
 from sqlalchemy import and_, func, not_, or_, select
-from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
+from sqlalchemy.sql.elements import (
+    BinaryExpression,
+    ColumnElement,
+    UnaryExpression,
+)
 
 from models import Attribute, Directory, EntityType, Group, User
 
@@ -26,6 +30,20 @@ MEMBERS_ATTRS = {
     "memberof",
     f"memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:",
 }
+
+
+def _get_filter_condition(
+    attr: str,
+    condition: BinaryExpression | None = None,
+) -> ColumnElement:
+    if condition is None:
+        f = Directory.attributes.any(Attribute.name.ilike(attr))
+    else:
+        f = Directory.attributes.any(
+            and_(Attribute.name.ilike(attr), condition)
+        )
+
+    return f
 
 
 def _get_substring(right: ASN1Row) -> str:  # RFC 4511
@@ -151,7 +169,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
         if attr in Directory.search_fields:
             return not_(eq(getattr(Directory, attr), None))
 
-        return Directory.attributes.any(Attribute.name.ilike(item.value))
+        return _get_filter_condition(attr)
 
     if (
         len(item.value) == 3
@@ -172,7 +190,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
     elif attr in MEMBERS_ATTRS:  # NOTE: without oid
         return _ldap_filter_by_attribute(None, left, right)
     elif attr == "entitytypename":
-        return func.lower(EntityType.name) == right
+        return func.lower(EntityType.name) == right.lower()
     else:
         if is_substring:
             cond = Attribute.value.ilike(_get_substring(right))
@@ -182,7 +200,7 @@ def _cast_item(item: ASN1Row) -> UnaryExpression | ColumnElement:
             else:
                 cond = Attribute.bvalue == right.value
 
-        return Directory.attributes.any(and_(Attribute.name.ilike(attr), cond))
+        return _get_filter_condition(attr, cond)
 
 
 def cast_filter2sql(expr: ASN1Row) -> UnaryExpression | ColumnElement:
@@ -229,7 +247,7 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
         if item.attr in Directory.search_fields:
             return not_(eq(getattr(Directory, item.attr), None))
 
-        return Directory.attributes.any(Attribute.name.ilike(item.attr))
+        return _get_filter_condition(item.attr)
 
     is_substring = item.val.startswith("*") or item.val.endswith("*")
 
@@ -240,16 +258,14 @@ def _cast_filt_item(item: Filter) -> UnaryExpression | ColumnElement:
     elif item.attr in MEMBERS_ATTRS:
         return _api_filter(item)
     elif item.attr == "entitytypename":
-        return func.lower(EntityType.name) == item.val
+        return func.lower(EntityType.name) == item.val.lower()
     else:
         if is_substring:
             cond = Attribute.value.ilike(item.val.replace("*", "%"))
         else:
             cond = Attribute.value.ilike(item.val)
 
-        return Directory.attributes.any(
-            and_(Attribute.name.ilike(item.attr), cond),
-        )
+        return _get_filter_condition(item.attr, cond)
 
 
 def cast_str_filter2sql(expr: Filter) -> UnaryExpression | ColumnElement:

@@ -15,6 +15,7 @@ downloads/
 .idea/
 .DS_Store
 .vscode/
+.zed/
 eggs/
 .eggs/
 lib/

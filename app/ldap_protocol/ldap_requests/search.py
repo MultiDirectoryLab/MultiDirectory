@@ -15,7 +15,7 @@ from pydantic import Field, field_serializer
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
+from sqlalchemy.orm import selectinload, with_loader_criteria
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -307,6 +307,9 @@ class SearchRequest(BaseRequest):
 
         query, pages_total, count = await self.paginate_query(query, session)
 
+        if self.size_limit != 0:
+            query = query.limit(self.size_limit)
+
         async for response in self.tree_view(query, session):
             yield response
 
@@ -342,7 +345,10 @@ class SearchRequest(BaseRequest):
     ) -> Select:
         """Get attributes to load."""
         if self.entity_type_name:
-            query = query.options(selectinload(Directory.entity_type))
+            query = (
+                query.join(Directory.entity_type)
+                .options(selectinload(Directory.entity_type))
+            )  # fmt: skip
 
         if self.all_attrs:
             return query.options(selectinload(Directory.attributes))
@@ -370,9 +376,8 @@ class SearchRequest(BaseRequest):
         query = (
             select(Directory)
             .join(Directory.user, isouter=True)
-            .join(Directory.group, isouter=True)
-            .join(Directory.entity_type, isouter=True)
-        )  # fmt: skip
+            .options(selectinload(Directory.group))
+        )
 
         query = self._mutate_query_with_attributes_to_load(query)
         query = mutate_ap(query, user)
@@ -402,9 +407,9 @@ class SearchRequest(BaseRequest):
 
         elif self.scope == Scope.SINGLE_LEVEL:
             query = query.filter(
-                func.cardinality(Directory.path) == len(search_path) + 1,
+                Directory.depth == len(search_path) + 1,
                 get_path_filter(
-                    column=Directory.path[0 : len(search_path)],
+                    column=Directory.path[1 : len(search_path)],
                     path=search_path,
                 ),
             )
@@ -419,7 +424,7 @@ class SearchRequest(BaseRequest):
 
         if self.member:
             query = query.options(
-                joinedload(Directory.group).selectinload(Group.members)
+                selectinload(Directory.group).selectinload(Group.members)
             )
 
         if self.member_of or self.token_groups:
@@ -448,8 +453,7 @@ class SearchRequest(BaseRequest):
         count = (await session.scalars(count_q)).one()
 
         start = (self.page_number - 1) * self.size_limit
-        end = start + self.size_limit
-        query = query.offset(start).limit(end)
+        query = query.offset(start).limit(self.size_limit)
 
         return query, int(ceil(count / float(self.size_limit))), count
 

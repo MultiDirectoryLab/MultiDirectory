@@ -144,6 +144,10 @@ from typing import Callable
 from zoneinfo import ZoneInfo
 
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.compiler import DDLCompiler
+from sqlalchemy.sql.expression import ClauseElement, Executable, Visitable
 
 from models import Directory
 
@@ -324,3 +328,42 @@ def profile_async(func: Callable) -> Callable:
         return result
 
     return wrapper
+
+
+class explain(Executable, ClauseElement):  # noqa: N801
+    """EXPLAIN statement for PostgreSQL."""
+
+    inherit_cache = False
+
+    def __init__(
+        self,
+        stmt: Visitable,
+        analyze: bool = False,
+    ) -> None:
+        """Initialize EXPLAIN statement."""
+        self.statement = stmt
+        self.analyze = analyze
+
+
+@compiles(explain, "postgresql")
+def pg_explain(element: explain, compiler: DDLCompiler, **kw: dict) -> str:
+    """Compile EXPLAIN statement for PostgreSQL."""
+    text = "EXPLAIN "
+    if element.analyze:
+        text += "ANALYZE "
+    text += compiler.process(element.statement, **kw)
+
+    return text
+
+
+async def explain_query(
+    query: Visitable,
+    session: AsyncSession,
+) -> None:
+    """Get explain query."""
+    logger.debug(
+        "\n".join(
+            row[0]
+            for row in await session.execute(explain(query, analyze=True))
+        )
+    )
