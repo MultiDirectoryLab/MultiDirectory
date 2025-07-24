@@ -333,8 +333,8 @@ class SearchRequest(BaseRequest):
             query,
             session,
             user,
-            access_manager
-        ):  # fmt: skip
+            access_manager,
+        ):
             yield response
 
         yield SearchResultDone(
