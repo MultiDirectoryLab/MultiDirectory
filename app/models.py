@@ -1207,3 +1207,102 @@ class Role(Base):
         back_populates="role",
         passive_deletes=True,
     )
+
+
+class AuditSeverity(enum.IntEnum):
+    """Audit policy severity."""
+
+    EMERGENCY = 0
+    ALERT = 1
+    CRITICAL = 2
+    ERROR = 3
+    WARNING = 4
+    NOTICE = 5
+    INFO = 6
+    DEBUG = 7
+
+
+class AuditPolicy(Base):
+    """Audit policy."""
+
+    __tablename__ = "AuditPolicies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+
+    is_enabled: Mapped[bool] = mapped_column(
+        nullable=False, server_default=expression.false()
+    )
+    severity: Mapped[AuditSeverity] = mapped_column(
+        Enum(AuditSeverity),
+        nullable=False,
+    )
+
+    triggers: Mapped[list[AuditPolicyTrigger]] = relationship(
+        "AuditPolicyTrigger",
+        back_populates="audit_policy",
+        cascade="all",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+
+class AuditPolicyTrigger(Base):
+    """Audit policy triggers."""
+
+    __tablename__ = "AuditPolicyTriggers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    is_ldap: Mapped[tbool]
+    is_http: Mapped[tbool]
+    operation_code: Mapped[int]
+    object_class: Mapped[str]
+    additional_info: Mapped[dict] = mapped_column(
+        postgresql.JSON, nullable=True
+    )
+    operation_success: Mapped[nbool]
+
+    audit_policy_id: Mapped[int] = mapped_column(
+        "audit_policy_id",
+        ForeignKey("AuditPolicies.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    audit_policy: Mapped[AuditPolicy] = relationship(
+        "AuditPolicy",
+        uselist=False,
+        back_populates="triggers",
+        lazy="selectin",
+    )
+
+
+class AuditDestinationProtocolType(enum.StrEnum):
+    """Audit destination protocol type."""
+
+    UDP = "udp"
+    TCP = "tcp"
+
+
+class AuditDestinationServiceType(enum.StrEnum):
+    """Audit destination type."""
+
+    SYSLOG = "syslog"
+
+
+class AuditDestination(Base):
+    """Audit destinations."""
+
+    __tablename__ = "AuditDestinations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    service_type: Mapped[AuditDestinationServiceType] = mapped_column(
+        Enum(AuditDestinationServiceType), nullable=False
+    )
+    is_enabled: Mapped[tbool]
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    port: Mapped[int] = mapped_column(nullable=False)
+    protocol: Mapped[AuditDestinationProtocolType] = mapped_column(
+        Enum(AuditDestinationProtocolType),
+        nullable=False,
+    )
