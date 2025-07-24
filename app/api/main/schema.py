@@ -8,14 +8,18 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
 from dishka import AsyncContainer
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, field_serializer
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from ldap_protocol.dns import DNSManagerState
 from ldap_protocol.filter_interpreter import Filter, cast_str_filter2sql
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
-from models import AuditDestinationProtocolType, AuditDestinationServiceType
+from models import (
+    AuditDestinationProtocolType,
+    AuditDestinationServiceType,
+    AuditSeverity,
+)
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -114,7 +118,12 @@ class AuditPolicySchema(BaseModel):
 
     id: int
     name: str
+    severity: AuditSeverity
     is_enabled: bool
+
+    @field_serializer("severity")
+    def serialize_severity(self, severity: AuditSeverity) -> str:
+        return severity.name.lower()
 
 
 class AuditDestinationSchemaRequest(BaseModel):
@@ -125,8 +134,6 @@ class AuditDestinationSchemaRequest(BaseModel):
     is_enabled: bool
     host: str
     port: int
-    username: str | None
-    password: str | None
     protocol: AuditDestinationProtocolType
 
     class Config:  # noqa: D106
