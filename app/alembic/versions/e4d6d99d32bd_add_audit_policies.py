@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.policies.audit_policies import AuditDAO
+from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.utils.queries import get_base_directories
 
 # revision identifiers, used by Alembic.
@@ -30,7 +30,7 @@ def upgrade() -> None:
         if not await get_base_directories(session):
             return
 
-        audit_dao = AuditDAO(session)
+        audit_dao = AuditPoliciesDAO(session)
         await audit_dao.create_policies()
         await session.commit()
 
