@@ -1,7 +1,7 @@
 """Add roles.
 
 Revision ID: 05ddc0bd562a
-Revises: 35d1542d2505
+Revises: a7971f00ba4d
 Create Date: 2025-07-17 09:16:20.056149
 """
 
@@ -17,7 +17,7 @@ from models import Directory, Group
 
 # revision identifiers, used by Alembic.
 revision = "05ddc0bd562a"
-down_revision = "35d1542d2505"
+down_revision = "a7971f00ba4d"
 branch_labels = None
 depends_on = None
 
