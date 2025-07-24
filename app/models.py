@@ -42,7 +42,15 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from enums import AceType, KindType, MFAFlags, RoleScope
+from enums import (
+    AceType,
+    AuditDestinationProtocolType,
+    AuditDestinationServiceType,
+    AuditSeverity,
+    KindType,
+    MFAFlags,
+    RoleScope,
+)
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 
@@ -1209,19 +1217,6 @@ class Role(Base):
     )
 
 
-class AuditSeverity(enum.IntEnum):
-    """Audit policy severity."""
-
-    EMERGENCY = 0
-    ALERT = 1
-    CRITICAL = 2
-    ERROR = 3
-    WARNING = 4
-    NOTICE = 5
-    INFO = 6
-    DEBUG = 7
-
-
 class AuditPolicy(Base):
     """Audit policy."""
 
@@ -1231,7 +1226,8 @@ class AuditPolicy(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
     is_enabled: Mapped[bool] = mapped_column(
-        nullable=False, server_default=expression.false()
+        nullable=False,
+        server_default=expression.false(),
     )
     severity: Mapped[AuditSeverity] = mapped_column(
         Enum(AuditSeverity),
@@ -1258,7 +1254,8 @@ class AuditPolicyTrigger(Base):
     operation_code: Mapped[int]
     object_class: Mapped[str]
     additional_info: Mapped[dict] = mapped_column(
-        postgresql.JSON, nullable=True
+        postgresql.JSON,
+        nullable=True,
     )
     operation_success: Mapped[nbool]
 
@@ -1276,19 +1273,6 @@ class AuditPolicyTrigger(Base):
     )
 
 
-class AuditDestinationProtocolType(enum.StrEnum):
-    """Audit destination protocol type."""
-
-    UDP = "udp"
-    TCP = "tcp"
-
-
-class AuditDestinationServiceType(enum.StrEnum):
-    """Audit destination type."""
-
-    SYSLOG = "syslog"
-
-
 class AuditDestination(Base):
     """Audit destinations."""
 
@@ -1297,7 +1281,8 @@ class AuditDestination(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     service_type: Mapped[AuditDestinationServiceType] = mapped_column(
-        Enum(AuditDestinationServiceType), nullable=False
+        Enum(AuditDestinationServiceType),
+        nullable=False,
     )
     is_enabled: Mapped[tbool]
     host: Mapped[str] = mapped_column(String(255), nullable=False)
