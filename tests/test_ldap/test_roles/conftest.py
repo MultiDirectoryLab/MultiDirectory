@@ -57,6 +57,7 @@ async def run_ldap_search(
 
     return result, data
 
+
 async def run_ldap_modify(
     settings: Settings,
     creds: TestCreds,
@@ -93,6 +94,7 @@ async def run_ldap_modify(
         )
 
         return await proc.wait()
+
 
 async def perform_ldap_search_and_validate(
     settings: Settings,

@@ -102,7 +102,7 @@ async def test_multiple_access(
             "userAccountControl: 512",
             "userPrincipalName: user1",
         ],
-        expected_attrs_absent=["posixEmail: user1@mail.com"]
+        expected_attrs_absent=["posixEmail: user1@mail.com"],
     )
 
     user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
@@ -129,7 +129,7 @@ async def test_multiple_access(
         creds=creds,
         dn=user_dn,
         attribute="posixEmail",
-        value="modme@student.of.life.edu"
+        value="modme@student.of.life.edu",
     )
     assert result == 0
     session.expire_all()
@@ -148,6 +148,6 @@ async def test_multiple_access(
         creds=creds,
         dn=user_dn,
         attribute="userPrincipalName",
-        value="v"
+        value="v",
     )
     assert result == 50  # Expecting an error due to write access not allowed
