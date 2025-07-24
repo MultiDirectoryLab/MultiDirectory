@@ -20,7 +20,6 @@ from api.exceptions.auth import (
 from api.exceptions.mfa import MFARequiredError
 from ldap_protocol.identity import IdentityManager
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
-from ldap_protocol.roles.role_use_case import RoleUseCase
 
 
 class IdentityFastAPIAdapter(ResponseCookieMixin):
@@ -120,7 +119,6 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
     async def perform_first_setup(
         self,
         request: SetupRequest,
-        role_use_case: RoleUseCase,
     ) -> None:
         """Perform initial structure and policy setup.
 
@@ -129,6 +127,6 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         :return: None
         """
         try:
-            await self._manager.perform_first_setup(request, role_use_case)
+            await self._manager.perform_first_setup(request)
         except AlreadyConfiguredError as exc:
             raise HTTPException(status.HTTP_423_LOCKED, detail=str(exc))

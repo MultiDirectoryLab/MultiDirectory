@@ -59,6 +59,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
+        role_use_case: RoleUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -66,12 +67,15 @@ class IdentityManager(SessionKeyCreatorMixin):
         :param settings: Settings
         :param mfa_api: MultifactorAPI
         :param storage: SessionStorage.
+        :param entity_type_dao: EntityTypeDAO
+        :param role_use_case: RoleUseCase
         """
         self._session = session
         self._settings = settings
         self._mfa_api = mfa_api
         self._storage = storage
         self._entity_type_dao = entity_type_dao
+        self._role_use_case = role_use_case
         self.key_ttl = self._storage.key_ttl
 
     async def login(
@@ -204,11 +208,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         retval = await self._session.scalars(query)
         return retval.one()
 
-    async def perform_first_setup(
-        self,
-        request: SetupRequest,
-        role_use_case: RoleUseCase,
-    ) -> None:
+    async def perform_first_setup(self, request: SetupRequest) -> None:
         """Perform the initial setup of structure and policies.
 
         :param request: SetupRequest with setup parameters
@@ -334,8 +334,8 @@ class IdentityManager(SessionKeyCreatorMixin):
                     raise ForbiddenError(errors)
 
                 await default_pwd_policy.create_policy_settings(self._session)
-                await role_use_case.create_domain_admins_role()
-                await role_use_case.create_read_only_role()
+                await self._role_use_case.create_domain_admins_role()
+                await self._role_use_case.create_read_only_role()
                 await self._session.commit()
             except IntegrityError:
                 await self._session.rollback()

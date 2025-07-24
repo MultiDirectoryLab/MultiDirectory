@@ -23,7 +23,6 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
 from .base import AbstractKadmin, KerberosState, KRBAPIError
@@ -68,7 +67,6 @@ class KerberosService:
         krbadmin_password: SecretStr,
         ldap_session: LDAPSession,
         entity_type_dao: EntityTypeDAO,
-        access_manager: AccessManager,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -97,7 +95,6 @@ class KerberosService:
             ldap_session,
             self._kadmin,
             entity_type_dao,
-            access_manager,
         )
 
     async def _get_base_dn(self) -> tuple[str, str]:

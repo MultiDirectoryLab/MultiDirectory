@@ -26,6 +26,7 @@ class KRBLDAPStructureManager:
         self,
         session: AsyncSession,
         role_use_case: RoleUseCase,
+        access_manager: AccessManager,
     ) -> None:
         """Initialize KRBLDAPStructureManager with a database session.
 
@@ -35,6 +36,7 @@ class KRBLDAPStructureManager:
         """
         self._session = session
         self._role_use_case = role_use_case
+        self._access_manager = access_manager
 
     async def create_kerberos_structure(
         self,
@@ -44,7 +46,6 @@ class KRBLDAPStructureManager:
         ldap_session: LDAPSession,
         kadmin: AbstractKadmin,
         entity_type_dao: EntityTypeDAO,
-        access_manager: AccessManager,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -67,7 +68,7 @@ class KRBLDAPStructureManager:
                         ldap_session,
                         kadmin,
                         entity_type_dao,
-                        access_manager,
+                        self._access_manager,
                         self._role_use_case,
                     )
                 ),
@@ -77,7 +78,7 @@ class KRBLDAPStructureManager:
                         ldap_session,
                         kadmin,
                         entity_type_dao,
-                        access_manager,
+                        self._access_manager,
                         self._role_use_case,
                     )
                 ),
@@ -87,7 +88,7 @@ class KRBLDAPStructureManager:
                         ldap_session,
                         kadmin,
                         entity_type_dao,
-                        access_manager,
+                        self._access_manager,
                         self._role_use_case,
                     )
                 ),

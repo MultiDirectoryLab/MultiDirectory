@@ -23,7 +23,6 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.access_manager import AccessManager
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -73,7 +72,6 @@ class KerberosFastAPIAdapter:
         krbadmin_password: SecretStr,
         ldap_session: LDAPSession,
         entity_type_dao: EntityTypeDAO,
-        access_manager: AccessManager,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -86,7 +84,6 @@ class KerberosFastAPIAdapter:
             krbadmin_password,
             ldap_session,
             entity_type_dao,
-            access_manager,
         )
 
     async def setup_kdc(
