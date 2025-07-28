@@ -495,7 +495,7 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def setup_entity(session: AsyncSession) -> None:
+async def setup_session(session: AsyncSession) -> None:
     """Get session and aquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
     object_class_dao = ObjectClassDAO(
@@ -509,12 +509,11 @@ async def setup_entity(session: AsyncSession) -> None:
             object_class_names=entity_type_data["object_class_names"],
             is_system=True,
         )
-    await session.commit()
 
+    await session.flush()
 
-@pytest_asyncio.fixture(scope="function")
-async def setup_session(session: AsyncSession, setup_entity: None) -> None:
-    """Get session and aquire after completion."""
+    audit_policy_dao = AuditPoliciesDAO(session)
+    await audit_policy_dao.create_policies()
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
     role_dao = RoleDAO(session)
