@@ -102,7 +102,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
 
     async def handle(
         self,
-        ctx: LDAPExtendedRequestContext
+        ctx: LDAPExtendedRequestContext,
     ) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
