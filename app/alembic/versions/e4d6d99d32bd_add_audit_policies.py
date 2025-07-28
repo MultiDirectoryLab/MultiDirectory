@@ -90,6 +90,7 @@ def upgrade() -> None:
             ["audit_policy_id"],
             ["AuditPolicies.id"],
             ondelete="CASCADE",
+            onupdate="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
     )
