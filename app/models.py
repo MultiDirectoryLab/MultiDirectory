@@ -1015,7 +1015,7 @@ class AuditPolicyTrigger(Base):
 
     audit_policy_id: Mapped[int] = mapped_column(
         "audit_policy_id",
-        ForeignKey("AuditPolicies.id", ondelete="CASCADE"),
+        ForeignKey("AuditPolicies.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
     )
 
