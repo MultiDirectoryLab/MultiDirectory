@@ -1,7 +1,7 @@
-"""Utility functions for handling requests in FastAPI.
+"""Auth utils.
 
-Copyright (c) 2025 MultiFactor
-License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
 from ipaddress import IPv4Address, IPv6Address, ip_address
