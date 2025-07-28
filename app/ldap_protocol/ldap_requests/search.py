@@ -22,7 +22,7 @@ from sqlalchemy.sql.expression import Select
 from config import Settings
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.filter_interpreter import (
     FilterInterpreterProtocol,
     LDAPFilterInterpreter,
@@ -60,6 +60,7 @@ from models import (
 )
 
 from .base import BaseRequest
+from .contexts import LDAPSearchRequestContext
 
 _attrs = ["tokengroups", "memberof", "member"]
 _attrs.extend(User.search_fields.keys())
@@ -250,10 +251,7 @@ class SearchRequest(BaseRequest):
 
     async def handle(
         self,
-        session: AsyncSession,
-        ldap_session: LDAPSession,
-        settings: Settings,
-        access_manager: AccessManager,
+        ctx: LDAPSearchRequestContext,
     ) -> AsyncGenerator[
         SearchResultDone | SearchResultReference | SearchResultEntry,
         None,
@@ -263,20 +261,12 @@ class SearchRequest(BaseRequest):
         Provides following responses:
         Entry -> Reference (optional) -> Done
         """
-        async for response in self.get_result(
-            ldap_session.user,
-            session,
-            settings,
-            access_manager,
-        ):
+        async for response in self.get_result(ctx):
             yield response
 
     async def get_result(
         self,
-        user: UserSchema | None,
-        session: AsyncSession,
-        settings: Settings,
-        access_manager: AccessManager,
+        ctx: LDAPSearchRequestContext,
     ) -> AsyncGenerator[SearchResultEntry | SearchResultDone, None]:
         """Create response.
 
@@ -286,6 +276,7 @@ class SearchRequest(BaseRequest):
         """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
         is_schema = self.base_object.lower() == "cn=schema"
+        user = ctx.ldap_session.user
 
         if not (is_root_dse or is_schema) and user is None:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
@@ -293,9 +284,9 @@ class SearchRequest(BaseRequest):
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
             if is_schema:
-                yield await self._get_subschema(session)
+                yield await self._get_subschema(ctx.session)
             elif is_root_dse:
-                attrs = await self.get_root_dse(session, settings)
+                attrs = await self.get_root_dse(ctx.session, ctx.settings)
                 yield SearchResultEntry(
                     object_name="",
                     partial_attributes=[
@@ -313,7 +304,7 @@ class SearchRequest(BaseRequest):
             return
 
         query = self.build_query(
-            await get_base_directories(session), user, access_manager
+            await get_base_directories(ctx.session), user, ctx.access_manager
         )
 
         try:
@@ -324,16 +315,19 @@ class SearchRequest(BaseRequest):
             yield SearchResultDone(result_code=LDAPCodes.PROTOCOL_ERROR)
             return
 
-        query, pages_total, count = await self.paginate_query(query, session)
+        query, pages_total, count = await self.paginate_query(
+            query,
+            ctx.session,
+        )
 
         if self.size_limit != 0:
             query = query.limit(self.size_limit)
 
         async for response in self.tree_view(
             query,
-            session,
+            ctx.session,
             user,
-            access_manager,
+            ctx.access_manager,
         ):
             yield response
 

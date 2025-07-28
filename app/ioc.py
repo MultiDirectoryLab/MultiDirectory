@@ -31,6 +31,16 @@ from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
+from ldap_protocol.ldap_requests.contexts import (
+    LDAPAddRequestContext,
+    LDAPBindRequestContext,
+    LDAPDeleteRequestContext,
+    LDAPExtendedRequestContext,
+    LDAPModifyDNRequestContext,
+    LDAPModifyRequestContext,
+    LDAPSearchRequestContext,
+    LDAPUnbindRequestContext,
+)
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -204,6 +214,39 @@ class MainProvider(Provider):
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
+
+    add_request_context = provide(
+        LDAPAddRequestContext,
+        scope=Scope.REQUEST,
+    )
+    bind_request_context = provide(
+        LDAPBindRequestContext,
+        scope=Scope.REQUEST,
+    )
+    delete_request_context = provide(
+        LDAPDeleteRequestContext,
+        scope=Scope.REQUEST,
+    )
+    extended_request_context = provide(
+        LDAPExtendedRequestContext,
+        scope=Scope.REQUEST,
+    )
+    modify_request_context = provide(
+        LDAPModifyRequestContext,
+        scope=Scope.REQUEST,
+    )
+    modify_dn_request_context = provide(
+        LDAPModifyDNRequestContext,
+        scope=Scope.REQUEST,
+    )
+    search_request_context = provide(
+        LDAPSearchRequestContext,
+        scope=Scope.REQUEST,
+    )
+    unbind_request_context = provide(
+        LDAPUnbindRequestContext,
+        scope=Scope.REQUEST,
+    )
 
 
 class HTTPProvider(Provider):

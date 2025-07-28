@@ -22,7 +22,7 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosUnavailableError,
 )
 from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 
 from .base import AbstractKadmin, KerberosState, KRBAPIError
@@ -66,21 +66,20 @@ class KerberosService:
         mail: str,
         krbadmin_password: SecretStr,
         ldap_session: LDAPSession,
-        entity_type_dao: EntityTypeDAO,
+        ctx: LDAPAddRequestContext,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
         Args:
             mail (str): Email for krbadmin.
             krbadmin_password (SecretStr): Password for krbadmin.
-            ldap_session (LDAPSession): LDAP session.
-            entity_type_dao (EntityTypeDAO): DAO for entity types.
-            access_manager (AccessManager): Access control manager.
+            ctx (LDAPAddRequestContext): context for add request.
 
         Raises:
             KerberosConflictError: On structure creation conflict.
 
         """
+        ctx.ldap_session = ldap_session
         base_dn, _ = await self._get_base_dn()
         dns = self._build_kerberos_admin_dns(base_dn)
         add_requests = self._build_add_requests(
@@ -92,9 +91,7 @@ class KerberosService:
             add_requests.group,
             add_requests.services,
             add_requests.krb_user,
-            ldap_session,
-            self._kadmin,
-            entity_type_dao,
+            ctx,
         )
 
     async def _get_base_dn(self) -> tuple[str, str]:

@@ -11,11 +11,10 @@ import httpx
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.bind_methods import (
     AbstractLDAPAuth,
@@ -27,7 +26,7 @@ from ldap_protocol.ldap_requests.bind_methods import (
     sasl_mechanism_map,
 )
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
-from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
@@ -45,6 +44,7 @@ from ldap_protocol.utils.queries import (
 from models import NetworkPolicy, User
 
 from .base import BaseRequest
+from .contexts import LDAPBindRequestContext, LDAPUnbindRequestContext
 
 
 class BindRequest(BaseRequest):
@@ -132,11 +132,7 @@ class BindRequest(BaseRequest):
 
     async def handle(
         self,
-        session: AsyncSession,
-        ldap_session: LDAPSession,
-        kadmin: AbstractKadmin,
-        settings: Settings,
-        mfa: LDAPMultiFactorAPI,
+        ctx: LDAPBindRequestContext,
     ) -> AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
@@ -147,39 +143,48 @@ class BindRequest(BaseRequest):
             isinstance(self.authentication_choice, SaslGSSAPIAuthentication)
             and (
                 response := await self.authentication_choice.step(
-                    session,
-                    ldap_session,
-                    settings,
+                    ctx.session,
+                    ctx.ldap_session,
+                    ctx.settings,
                 )
             )
         ):  # fmt: skip
             yield response
             return
 
-        user = await self.authentication_choice.get_user(session, self.name)
+        user = await self.authentication_choice.get_user(
+            ctx.session,
+            self.name,
+        )
 
         if not user or not self.authentication_choice.is_valid(user):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        uac_check = await get_check_uac(session, user.directory_id)
+        uac_check = await get_check_uac(ctx.session, user.directory_id)
 
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
 
-        if not await self.is_user_group_valid(user, ldap_session, session):
+        if not await self.is_user_group_valid(
+            user,
+            ctx.ldap_session,
+            ctx.session,
+        ):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        policy_pwd = await PasswordPolicySchema.get_policy_settings(session)
+        policy_pwd = await PasswordPolicySchema.get_policy_settings(
+            ctx.session,
+        )
         p_last_set = await policy_pwd.get_pwd_last_set(
-            session=session,
+            session=ctx.session,
             directory_id=user.directory_id,
         )
         pwd_expired = policy_pwd.validate_max_age(p_last_set)
 
-        is_krb_user = await check_kerberos_group(user, session)
+        is_krb_user = await check_kerberos_group(user, ctx.session)
 
         required_pwd_change = (
             p_last_set == "0" or pwd_expired
@@ -194,17 +199,17 @@ class BindRequest(BaseRequest):
             return
 
         if (
-            (policy := getattr(ldap_session, "policy", None))
+            (policy := getattr(ctx.ldap_session, "policy", None))
             and policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
-            and mfa is not None
+            and ctx.mfa is not None
         ):
             request_2fa = True
             if policy.mfa_status == MFAFlags.WHITELIST:
-                request_2fa = await check_mfa_group(policy, user, session)
+                request_2fa = await check_mfa_group(policy, user, ctx.session)
 
             if request_2fa:
                 mfa_status = await self.check_mfa(
-                    mfa,
+                    ctx.mfa,
                     user.user_principal_name,
                     self.authentication_choice.otpassword,
                     policy,
@@ -215,14 +220,14 @@ class BindRequest(BaseRequest):
                     return
 
         with contextlib.suppress(KRBAPIError, httpx.TimeoutException):
-            await kadmin.add_principal(
+            await ctx.kadmin.add_principal(
                 user.get_upn_prefix(),
                 self.authentication_choice.password.get_secret_value(),
                 0.1,
             )
 
-        await ldap_session.set_user(user)
-        await set_last_logon_user(user, session, settings.TIMEZONE)
+        await ctx.ldap_session.set_user(user)
+        await set_last_logon_user(user, ctx.session, ctx.settings.TIMEZONE)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
@@ -239,9 +244,9 @@ class UnbindRequest(BaseRequest):
 
     async def handle(
         self,
-        ldap_session: LDAPSession,
+        ctx: LDAPUnbindRequestContext,
     ) -> AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
-        await ldap_session.delete_user()
+        await ctx.ldap_session.delete_user()
         return  # declare empty async generator and exit
         yield  # type: ignore
