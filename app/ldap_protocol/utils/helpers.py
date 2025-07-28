@@ -312,6 +312,9 @@ def create_user_name(directory_id: int) -> str:
     return blake2b(str(directory_id).encode(), digest_size=8).hexdigest()
 
 
+get_class_name = attrgetter("__class__.__name__")
+
+
 def profile_async(func: Callable) -> Callable:
     """Decorate to profile async functions."""
 
@@ -373,6 +376,3 @@ async def explain_query(
             for row in await session.execute(explain(query, analyze=True))
         )
     )
-
-
-get_class_name = attrgetter("__class__.__name__")
