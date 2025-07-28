@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Query, status
+from fastapi import HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
@@ -124,14 +124,20 @@ async def modify_one_entity_type(
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    entity_type = await entity_type_dao.get_one_by_name(entity_type_name)
+    try:
+        entity_type = await entity_type_dao.get_one_by_name(entity_type_name)
 
-    await entity_type_dao.modify_one(
-        entity_type=entity_type,
-        new_statement=request_data,
-        object_class_dao=object_class_dao,
-    )
-    await session.commit()
+        await entity_type_dao.modify_one(
+            entity_type=entity_type,
+            new_statement=request_data,
+            object_class_dao=object_class_dao,
+        )
+        await session.commit()
+    except entity_type_dao.EntityTypeCantModifyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(error),
+        )
 
 
 @ldap_schema_router.post(

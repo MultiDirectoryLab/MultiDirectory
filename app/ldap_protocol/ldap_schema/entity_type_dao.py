@@ -4,15 +4,18 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Iterable
+from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, or_, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.exceptions import InstanceNotFoundError
+from ldap_protocol.exceptions import (
+    InstanceCantModifyError,
+    InstanceNotFoundError,
+)
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
@@ -50,6 +53,7 @@ class EntityTypeDAO:
     __session: AsyncSession
     __object_class_dao: ObjectClassDAO
     EntityTypeNotFoundError = InstanceNotFoundError
+    EntityTypeCantModifyError = InstanceCantModifyError
 
     def __init__(
         self,
@@ -160,6 +164,8 @@ class EntityTypeDAO:
             new_statement.object_class_names
         )
 
+        await self._is_entity_type_unique(entity_type, new_statement)
+
         entity_type.name = new_statement.name
         entity_type.object_class_names = new_statement.object_class_names
 
@@ -190,6 +196,44 @@ class EntityTypeDAO:
                         name="objectClass",
                     )
                 )
+
+    async def _is_entity_type_unique(
+        self,
+        modified_entity_type: EntityType,
+        new_statement: EntityTypeUpdateSchema,
+    ) -> Literal[True]:
+        """Check if all EntityType has unique name and object class names.
+
+        :param EntityType modified_entity_type: EntityType to check.
+        :param EntityTypeUpdateSchema new_statement: params to update.
+        :raise EntityTypeCantModifyError: If there is EntityType with
+        same name or object class names.
+        :return bool.
+        """
+        exist_entity_type = await self.__session.scalar(
+            select(EntityType).where(
+                EntityType.id != modified_entity_type.id,
+                or_(
+                    EntityType.name == new_statement.name,
+                    and_(
+                        EntityType.object_class_names.contains(
+                            new_statement.object_class_names
+                        ),
+                        EntityType.object_class_names.contained_by(
+                            new_statement.object_class_names
+                        ),
+                    ),
+                ),
+            )
+        )
+        if exist_entity_type:
+            raise self.EntityTypeCantModifyError(
+                f"There is EntityType {exist_entity_type.name} "
+                "with object class names "
+                f"{', '.join(exist_entity_type.object_class_names)}."
+            )
+
+        return True
 
     async def delete_all_by_names(
         self,
