@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 
-from api.audit import audit_router
+from api.audit.destination_router import audit_router
 from ldap_protocol.policies.audit.schemas import (
     AuditPolicySchema,
     AuditPolicySchemaRequest,
@@ -23,7 +23,7 @@ async def get_audit_policies(
     return await audit_adapter.get_policies()
 
 
-@audit_router.put("/policies/{policy_id}")
+@audit_router.put("/policy/{policy_id}")
 async def update_audit_policy(
     policy_id: int,
     policy_data: AuditPolicySchemaRequest,
