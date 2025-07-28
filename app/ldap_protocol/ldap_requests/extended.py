@@ -9,7 +9,7 @@ from typing import AsyncGenerator, ClassVar
 
 from asn1 import Decoder
 from loguru import logger
-from pydantic import BaseModel, SecretStr, SerializeAsAny, field_validator
+from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,13 +40,12 @@ class BaseExtendedValue(ABC, BaseModel):
 
     REQUEST_ID: ClassVar[LDAPOID]
 
-    @classmethod
-    @field_validator("REQUEST_ID")
-    def validate_oid(cls, v: str) -> str:
-        """Validate oid."""
-        if not LDAPOID.has_value(v):
-            raise ValueError(f"Invalid OID: {v}")
-        return v
+    def __init_subclass__(cls, **kwargs: dict) -> None:
+        """Check if OID is valid."""
+        super().__init_subclass__(**kwargs)  # type: ignore
+
+        if not LDAPOID.has_value(cls.REQUEST_ID):
+            raise ValueError(f"Invalid OID: {cls.REQUEST_ID}")
 
     @classmethod
     @abstractmethod
