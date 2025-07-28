@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
@@ -23,6 +22,10 @@ from ldap_protocol.ldap_requests.bind import (
     SaslGSSAPIAuthentication,
     SimpleAuthentication,
     UnbindRequest,
+)
+from ldap_protocol.ldap_requests.contexts import (
+    LDAPBindRequestContext,
+    LDAPUnbindRequestContext,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import Attribute, Directory, User
@@ -34,11 +37,9 @@ from tests.conftest import MutePolicyBindRequest, TestCreds
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_bind_ok_and_unbind(
-    session: AsyncSession,
-    ldap_session: LDAPSession,
-    settings: Settings,
-    kadmin: AbstractKadmin,
     creds: TestCreds,
+    ctx_bind: LDAPBindRequestContext,
+    ctx_unbind: LDAPUnbindRequestContext,
 ) -> None:
     """Test ok bind."""
     bind = MutePolicyBindRequest(
@@ -47,22 +48,16 @@ async def test_bind_ok_and_unbind(
         AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
-    result = await anext(
-        bind.handle(
-            session,
-            ldap_session,
-            kadmin,
-            settings,
-            None,  # type: ignore
-        ),
-    )
+    result = await anext(bind.handle(ctx_bind))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
-    assert ldap_session.user
-    assert ldap_session.user.sam_accout_name == creds.un
+    assert ctx_bind.ldap_session.user
+    assert ctx_bind.ldap_session.user.sam_accout_name == creds.un
+
+    ctx_unbind.ldap_session = ctx_bind.ldap_session
 
     with pytest.raises(StopAsyncIteration):
-        await anext(UnbindRequest().handle(ldap_session))
-    assert ldap_session.user is None
+        await anext(UnbindRequest().handle(ctx_unbind))
+    assert ctx_bind.ldap_session.user is None
 
 
 @pytest.mark.asyncio
@@ -291,13 +286,13 @@ async def test_anonymous_bind(
 
 
 @pytest.mark.asyncio
-async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
+async def test_anonymous_unbind(ctx_unbind: LDAPUnbindRequestContext) -> None:
     """Test anonymous call."""
-    ldap_session.delete_user = AsyncMock()  # type: ignore
+    ctx_unbind.ldap_session.delete_user = AsyncMock()  # type: ignore
     with pytest.raises(StopAsyncIteration):
-        await anext(UnbindRequest().handle(ldap_session))
-    assert ldap_session.user is None
-    ldap_session.delete_user.assert_called()
+        await anext(UnbindRequest().handle(ctx_unbind))
+    assert ctx_unbind.ldap_session.user is None
+    ctx_unbind.ldap_session.delete_user.assert_called()
 
 
 @pytest.mark.asyncio
