@@ -192,7 +192,7 @@ def create_prod_app(
     return app
 
 
-def run_server(
+def run_entrypoint(
     factory: Callable[[Settings], Coroutine],
     settings: Settings,
 ) -> None:
@@ -231,8 +231,8 @@ async def ldap_factory(settings: Settings) -> None:
     await asyncio.gather(*servers)
 
 
-ldap = partial(run_server, factory=ldap_factory)
-scheduler = partial(run_server, factory=scheduler_factory)
+ldap = partial(run_entrypoint, factory=ldap_factory)
+scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 
 
