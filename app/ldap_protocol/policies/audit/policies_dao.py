@@ -27,7 +27,15 @@ class AuditPoliciesDAO:
         return list((await self._session.scalars(select(AuditPolicy))).all())
 
     async def get_policy_by_id(self, policy_id: int) -> AuditPolicy:
-        """Get an audit policy by its ID."""
+        """Get an audit policy by its ID.
+
+        Args:
+            policy_id (int): The ID of the audit policy to retrieve.
+
+        Raises:
+            AuditNotFoundError: If the policy with the given ID does not exist.
+
+        """
         policy = await self._session.get(AuditPolicy, policy_id)
         if not policy:
             raise AuditNotFoundError(f"Policy with id {policy_id} not found.")
@@ -40,7 +48,18 @@ class AuditPoliciesDAO:
         name: str,
         is_enabled: bool,
     ) -> None:
-        """Update an existing audit policy."""
+        """Update an existing audit policy.
+
+        Args:
+            existing_policy (AuditPolicy): The existing policy to update.
+            policy_id (int): The ID of the policy to update.
+            name (str): The new name for the policy.
+            is_enabled (bool): The new enabled status for the policy.
+
+        Raises:
+            IntegrityError: If the policy already exists with the same name.
+
+        """
         existing_policy.id = policy_id
         existing_policy.name = name
         existing_policy.is_enabled = is_enabled
