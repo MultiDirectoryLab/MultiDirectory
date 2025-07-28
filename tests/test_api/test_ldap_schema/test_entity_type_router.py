@@ -8,6 +8,7 @@ from .test_entity_type_router_datasets import (
     test_create_one_entity_type_dataset,
     test_delete_bulk_entity_types_dataset,
     test_get_list_entity_types_with_pagination_dataset,
+    test_modify_entity_type_with_duplicates_dataset,
     test_modify_one_entity_type_dataset,
 )
 
@@ -117,6 +118,47 @@ async def test_get_list_entity_types_with_pagination(
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     assert len(response.json().get("items")) == page_size
+
+
+@pytest.mark.parametrize(
+    "dataset",
+    test_modify_entity_type_with_duplicates_dataset,
+)
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_modify_entity_type_with_duplicate_data(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test modifying an entity type with duplicate data."""
+    for object_class_data in dataset["object_classes"]:
+        response = await http_client.post(
+            "/schema/object_class",
+            json=object_class_data,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    for entity_type in dataset["entity_types"]:
+        response = await http_client.post(
+            "/schema/entity_type",
+            json=entity_type,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    new_statements = dataset["new_statements"]
+    update_entity, update_data = new_statements["duplicate_object_class_names"]
+    response = await http_client.patch(
+        f"/schema/entity_type/{update_entity}",
+        json=update_data,
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    update_entity, update_data = new_statements["duplicate_name"]
+    response = await http_client.patch(
+        f"/schema/entity_type/{update_entity}",
+        json=update_data,
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.parametrize(
