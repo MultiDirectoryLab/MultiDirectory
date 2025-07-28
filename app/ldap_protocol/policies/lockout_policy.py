@@ -125,13 +125,12 @@ class AuthLockoutService:
                 )
                 return
 
-            attrs_to_delete = [
-                attr
-                for attr in user.directory.attributes
-                if attr.name in ["nsAccountLock", "shadowExpire"]
-            ]
-            for attr in attrs_to_delete:
-                await session.delete(attr)
+            await session.execute(
+                delete(Attribute).where(
+                    Attribute.directory_id == user.directory.id,
+                    Attribute.name.in_(["nsAccountLock", "shadowExpire"]),
+                )
+            )
 
         user.failed_auth_attempts = 0
         user.last_failed_auth = None

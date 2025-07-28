@@ -42,7 +42,7 @@ async def get_user(
     session: AsyncSession,
     name: str,
     settings: Settings | None = None,
-) -> User:
+) -> User | None:
     """Get user by username or identifier.
 
     :param AsyncSession session: SQLAlchemy session

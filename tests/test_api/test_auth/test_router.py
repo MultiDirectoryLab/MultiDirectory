@@ -442,10 +442,9 @@ async def test_lock_and_unlock_user(
 async def test_temporary_lockout_and_unlock(
     http_client: AsyncClient,
     creds: TestCreds,
-    session: AsyncSession,
     settings: Settings,
-):
-    """Пользователь блокируется после N неудачных попыток и разблокируется после истечения времени."""
+) -> None:
+    """User is locked after failed attempts and unlocked after time expires."""
     settings.AUTH_MAX_FAILED_ATTEMPTS = 3
     settings.AUTH_LOCKOUT_DURATION_SEC = 2
     settings.AUTH_FAILED_ATTEMPTS_RESET_SEC = 100
