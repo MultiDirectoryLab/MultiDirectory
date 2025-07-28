@@ -58,15 +58,9 @@ class KRBLDAPStructureManager:
         async with self._session.begin_nested():
             ctx.session = self._session
             results = (
-                await anext(
-                    services.handle(ctx)
-                ),
-                await anext(
-                    group.handle(ctx)
-                ),
-                await anext(
-                    krb_user.handle(ctx)
-                ),
+                await anext(services.handle(ctx)),
+                await anext(group.handle(ctx)),
+                await anext(krb_user.handle(ctx)),
             )
             await self._session.flush()
 
