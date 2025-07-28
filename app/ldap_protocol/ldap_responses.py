@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from enum import IntEnum, unique
 from typing import Annotated, ClassVar
 
 import annotated_types
@@ -15,6 +14,7 @@ from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny, field_validator
 from ldap_protocol.asn1parser import LDAPOID
 
 from .ldap_codes import LDAPCodes
+from .objects import ProtocolResponse
 
 type_map = {
     bool: Numbers.Boolean,
@@ -25,23 +25,6 @@ type_map = {
     LDAPCodes: Numbers.Enumerated,
     LDAPOID: Numbers.OctetString,
 }
-
-
-@unique
-class ProtocolResponse(IntEnum):
-    """Enum for LDAP resposnes."""
-
-    BIND = 1
-    SEARCH_RESULT_ENTRY = 4
-    SEARCH_RESULT_DONE = 5
-    MODIFY = 7
-    ADD = 9
-    DELETE = 11
-    MODIFY_DN = 13
-    COMPARE = 15
-    EXTENDED = 24
-    INTERMEDIATE = 25
-    SEARCH_RESULT_REFERENCE = 19
 
 
 class LDAPResult(BaseModel):

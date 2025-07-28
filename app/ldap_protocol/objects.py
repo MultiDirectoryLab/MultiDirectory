@@ -4,11 +4,13 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import IntEnum, StrEnum
+from enum import IntEnum, StrEnum, unique
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from ldap_protocol.ldap_responses import PartialAttribute
+if TYPE_CHECKING:
+    from ldap_protocol.ldap_responses import PartialAttribute
 
 
 class Scope(IntEnum):
@@ -50,7 +52,7 @@ class Changes(BaseModel):
     """Changes for modify request."""
 
     operation: Operation
-    modification: PartialAttribute
+    modification: "PartialAttribute"
 
     def get_name(self) -> str:
         """Get mod name."""
@@ -70,3 +72,20 @@ class ProtocolRequests(IntEnum):
     COMPARE = 14
     ABANDON = 16
     EXTENDED = 23
+
+
+@unique
+class ProtocolResponse(IntEnum):
+    """Enum for LDAP resposnes."""
+
+    BIND = 1
+    SEARCH_RESULT_ENTRY = 4
+    SEARCH_RESULT_DONE = 5
+    MODIFY = 7
+    ADD = 9
+    DELETE = 11
+    MODIFY_DN = 13
+    COMPARE = 15
+    EXTENDED = 24
+    INTERMEDIATE = 25
+    SEARCH_RESULT_REFERENCE = 19
