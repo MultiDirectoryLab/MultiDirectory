@@ -12,13 +12,10 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, Response, status
 
 from api.auth.adapters import IdentityFastAPIAdapter
+from api.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.helpers import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
 
 from .oauth2 import get_current_user
 from .schema import OAuth2Form, SetupRequest
