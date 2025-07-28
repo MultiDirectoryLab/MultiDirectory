@@ -56,7 +56,6 @@ class KRBLDAPStructureManager:
         :return None.
         """
         async with self._session.begin_nested():
-            ctx.session = self._session
             results = (
                 await anext(services.handle(ctx)),
                 await anext(group.handle(ctx)),
