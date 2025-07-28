@@ -91,10 +91,11 @@ class AuthLockoutService:
         await session.commit()
 
     def is_locked(self, user: User) -> bool:
-        if user.directory and hasattr(user.directory, "attributes"):
-            for attr in user.directory.attributes:
-                if attr.name == "nsAccountLock" and attr.value == "true":
-                    return True
+        if not user.directory or not user.directory.attributes:
+            return False
+        for attr in user.directory.attributes:
+            if attr.name == "nsAccountLock" and attr.value == "true":
+                return True
         return False
 
     async def unlock_expired(self, user: User, session: AsyncSession) -> None:
