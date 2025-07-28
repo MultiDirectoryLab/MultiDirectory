@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import asyncio
 from ipaddress import IPv4Address, IPv6Address
 
 from sqlalchemy import exists, select
@@ -17,7 +18,6 @@ from api.exceptions.auth import (
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
-    UserLockedError,
     UserNotFoundError,
 )
 from api.exceptions.mfa import MFARequiredError
@@ -91,15 +91,10 @@ class IdentityManager(SessionKeyCreatorMixin):
         :return: session key (str)
         """
         user = await get_user(self._session, form.username, self._settings)
-        if user:
-            await self._lockout.unlock_expired(user, self._session)
-            if self._lockout.is_locked(user):
-                raise UserLockedError("Account is locked")
-        else:
-            raise UnauthorizedError("Incorrect username or password")
 
         if not verify_password(form.password, user.password):
             await self._lockout.check_and_update_on_fail(user, self._session)
+            await asyncio.sleep(self._settings.AUTH_FAIL_DELAY_SEC)
             raise UnauthorizedError("Incorrect username or password")
 
         await self._lockout.reset_on_success(user, self._session)

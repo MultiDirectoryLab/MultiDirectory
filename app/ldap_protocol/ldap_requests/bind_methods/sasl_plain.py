@@ -8,6 +8,7 @@ from typing import ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.utils.queries import get_user
 from models import User
@@ -54,6 +55,11 @@ class SaslPLAINAuthentication(SaslAuthentication):
             password=password,
         )
 
-    async def get_user(self, session: AsyncSession, _: str) -> User:
+    async def get_user(
+        self,
+        session: AsyncSession,
+        username: str,
+        settings: Settings,
+    ) -> User:
         """Get user."""
-        return await get_user(session, self.username)  # type: ignore
+        return await get_user(session, username, settings)

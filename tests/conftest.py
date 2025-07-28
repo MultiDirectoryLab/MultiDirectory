@@ -64,6 +64,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.access_policy import create_access_policy
+from ldap_protocol.policies.lockout_policy import AuthLockoutService
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.utils.queries import get_user
@@ -342,6 +343,7 @@ class TestProvider(Provider):
         return KRBTemplateRenderer(settings.TEMPLATES)
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
+    auth_lockout_service = provide(AuthLockoutService, scope=Scope.REQUEST)
 
 
 @dataclass

@@ -31,6 +31,7 @@ from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
+from ldap_protocol.policies.utils import add_lock_and_expire_attributes
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -40,7 +41,6 @@ from ldap_protocol.utils.helpers import (
     is_dn_in_base_directory,
 )
 from ldap_protocol.utils.queries import (
-    add_lock_and_expire_attributes,
     get_base_directories,
     get_directories,
     get_filter_from_path,

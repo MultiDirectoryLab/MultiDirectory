@@ -10,8 +10,8 @@ from sqlalchemy.sql import func, select
 
 from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.policies.utils import add_lock_and_expire_attributes
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from ldap_protocol.utils.queries import add_lock_and_expire_attributes
 from models import Attribute, User
 
 

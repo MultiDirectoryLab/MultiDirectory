@@ -71,6 +71,7 @@ class Settings(BaseModel):
     AUTH_MAX_FAILED_ATTEMPTS: int = 6
     AUTH_FAILED_ATTEMPTS_RESET_SEC: int = 60
     AUTH_LOCKOUT_DURATION_SEC: int = 600
+    AUTH_FAIL_DELAY_SEC: int = 5
 
     @computed_field  # type: ignore
     @cached_property

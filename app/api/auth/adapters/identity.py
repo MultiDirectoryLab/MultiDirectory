@@ -65,7 +65,7 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
             )
         except UserLockedError:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is locked",
                 headers={"WWW-Authenticate": "Bearer"},
             )

@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import time
 from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
@@ -15,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
+from api.exceptions.auth import UserLockedError
 from config import Settings
 from ldap_protocol.policies.lockout_policy import AuthLockoutService
 from models import Attribute, Directory, Group, User
@@ -26,14 +26,6 @@ from .helpers import (
     dn_is_base_directory,
     validate_entry,
 )
-
-
-class UserNotFound(Exception):
-    pass
-
-
-class UserLocked(Exception):
-    pass
 
 
 @cache
@@ -61,7 +53,10 @@ async def get_user(
     :raises UserLocked: if user is locked
     :return User: user from the database
     """
-    policies = selectinload(User.groups).selectinload(Group.access_policies)
+    policies = [
+        selectinload(User.groups).selectinload(Group.access_policies),
+        selectinload(User.directory).selectinload(Directory.attributes),
+    ]
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
@@ -69,22 +64,22 @@ async def get_user(
         else:
             cond = User.sam_accout_name.ilike(name)
 
-        user = await session.scalar(select(User).where(cond).options(policies))
+        user = await session.scalar(
+            select(User).where(cond).options(*policies)
+        )
     else:
         user = await session.scalar(
             select(User)
             .join(User.directory)
-            .options(policies)
+            .options(*policies)
             .where(get_filter_from_path(name)),
         )
 
-    if not user:
-        raise UserNotFound()
-    if settings is not None:
+    if settings is not None and user is not None:
         lockout = AuthLockoutService(settings)
         await lockout.unlock_expired(user, session)
         if lockout.is_locked(user):
-            raise UserLocked()
+            raise UserLockedError("Account is locked")
     return user
 
 
@@ -341,35 +336,6 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
         .exists(),
     )
     return (await session.scalars(query)).one()
-
-
-async def add_lock_and_expire_attributes(
-    session: AsyncSession,
-    directory: Directory,
-    tz: ZoneInfo,
-) -> None:
-    """Add `nsAccountLock` and `shadowExpire` attributes to the directory.
-
-    :param AsyncSession session: db
-    :param Directory directory: directory
-    :param ZoneInfo tz: timezone info
-    """
-    now_with_tz = datetime.now(tz=tz)
-    absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
-    session.add_all(
-        [
-            Attribute(
-                name="nsAccountLock",
-                value="true",
-                directory=directory,
-            ),
-            Attribute(
-                name="shadowExpire",
-                value=str(absolute_date),
-                directory=directory,
-            ),
-        ]
-    )
 
 
 async def get_principal_directory(

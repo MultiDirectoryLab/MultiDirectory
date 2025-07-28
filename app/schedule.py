@@ -11,6 +11,7 @@ from config import Settings
 from extra.scripts.check_ldap_principal import check_ldap_principal
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
+from extra.scripts.unlock_expired_users import unlock_expired_users
 from extra.scripts.update_krb5_config import update_krb5_config
 from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
@@ -22,6 +23,7 @@ _TASKS: set[tuple[task_type, float]] = {
     (principal_block_sync, 60.0),
     (check_ldap_principal, -1.0),
     (update_krb5_config, -1.0),
+    (unlock_expired_users, 60.0),
 }
 
 

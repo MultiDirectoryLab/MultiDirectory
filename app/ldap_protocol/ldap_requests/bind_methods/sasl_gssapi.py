@@ -262,6 +262,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         self,
         session: AsyncSession,
         username: str,  # NOTE: unused argument
+        settings: Settings,
     ) -> User | None:
         """Get user.
 
@@ -273,4 +274,4 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             return None
 
         username = str(ctx.initiator_name).split("@")[0]
-        return await get_user(session, username)
+        return await get_user(session, username, settings)

@@ -15,7 +15,7 @@ from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
 revision = "bf435bbd95ff"
-down_revision = "196f0d327c6a"
+down_revision = "52803ca42e35"
 branch_labels = None
 depends_on = None
 

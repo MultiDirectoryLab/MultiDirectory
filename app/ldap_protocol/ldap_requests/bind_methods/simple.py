@@ -8,6 +8,7 @@ from typing import ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from ldap_protocol.utils.queries import get_user
 from models import User
 from security import verify_password
@@ -38,6 +39,11 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         return not self.password
 
-    async def get_user(self, session: AsyncSession, username: str) -> User:
+    async def get_user(
+        self,
+        session: AsyncSession,
+        username: str,
+        settings: Settings,
+    ) -> User:
         """Get user."""
-        return await get_user(session, username)  # type: ignore
+        return await get_user(session, username, settings)

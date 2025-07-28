@@ -154,7 +154,11 @@ class BindRequest(BaseRequest):
             yield response
             return
 
-        user = await self.authentication_choice.get_user(session, self.name)
+        user = await self.authentication_choice.get_user(
+            session,
+            self.name,
+            settings,
+        )
 
         if not user or not self.authentication_choice.is_valid(user):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)

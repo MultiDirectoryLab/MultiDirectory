@@ -11,14 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import select
 
 from config import Settings
+from ldap_protocol.policies.utils import add_lock_and_expire_attributes
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
 )
-from ldap_protocol.utils.queries import (
-    add_lock_and_expire_attributes,
-    get_principal_directory,
-)
+from ldap_protocol.utils.queries import get_principal_directory
 from models import Attribute, Directory, User
 
 

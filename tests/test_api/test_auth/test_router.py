@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import time
 from typing import Any, TypedDict
 
 import pytest
@@ -13,12 +14,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
+from tests.conftest import TestCreds
 
 
 async def apply_user_account_control(
@@ -432,3 +435,43 @@ async def test_lock_and_unlock_user(
     assert "nsAccountLock" not in attrs
     assert "shadowExpire" not in attrs
     assert not await storage.get_user_sessions(dir_.user.id)  # type: ignore
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_temporary_lockout_and_unlock(
+    http_client: AsyncClient,
+    creds: TestCreds,
+    session: AsyncSession,
+    settings: Settings,
+):
+    """Пользователь блокируется после N неудачных попыток и разблокируется после истечения времени."""
+    settings.AUTH_MAX_FAILED_ATTEMPTS = 3
+    settings.AUTH_LOCKOUT_DURATION_SEC = 2
+    settings.AUTH_FAILED_ATTEMPTS_RESET_SEC = 100
+    settings.AUTH_FAIL_DELAY_SEC = 1
+
+    for _ in range(3):
+        resp = await http_client.post(
+            "auth/", data={"username": creds.un, "password": "wrong"}
+        )
+        assert resp.status_code == 401
+
+    resp = await http_client.post(
+        "auth/", data={"username": creds.un, "password": creds.pw}
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_auth_fail_delay(http_client, creds, settings: Settings):
+    """Проверка, что при ошибке аутентификации есть задержка."""
+    settings.AUTH_FAIL_DELAY_SEC = 2
+    start = time.monotonic()
+    resp = await http_client.post(
+        "auth/", data={"username": creds.un, "password": "wrong"}
+    )
+    elapsed = time.monotonic() - start
+    assert resp.status_code == 401
+    assert elapsed >= 1.8

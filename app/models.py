@@ -488,11 +488,6 @@ class User(Base):
         DateTime(timezone=True),
         nullable=True,
     )
-    lockout_until: Mapped[datetime | None] = mapped_column(
-        "lockoutUntil",
-        DateTime(timezone=True),
-        nullable=True,
-    )
 
     search_fields = {
         "mail": "mail",
