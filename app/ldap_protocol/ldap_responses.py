@@ -5,16 +5,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import Annotated, ClassVar
+from typing import ClassVar
 
-import annotated_types
 from asn1 import Classes, Encoder, Numbers
-from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny, field_validator
+from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny
 
 from ldap_protocol.asn1parser import LDAPOID
 
 from .ldap_codes import LDAPCodes
-from .objects import ProtocolResponse
+from .objects import PartialAttribute, ProtocolResponse
 
 type_map = {
     bool: Numbers.Boolean,
@@ -90,36 +89,6 @@ class BindResponse(LDAPResult, BaseResponse):
                 cls=Classes.Context,
                 nr=7,
             )
-
-
-class PartialAttribute(BaseModel):
-    """Partial attribite structure. Description in rfc2251 4.1.6."""
-
-    type: Annotated[str, annotated_types.Len(max_length=8100)]
-    vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
-
-    @property
-    def l_name(self) -> str:
-        """Get lower case name."""
-        return self.type.lower()
-
-    @field_validator("type", mode="before")
-    @classmethod
-    def validate_type(cls, v: str | bytes | int) -> str:
-        return str(v)
-
-    @field_validator("vals", mode="before")
-    @classmethod
-    def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:
-        return [v if isinstance(v, bytes) else str(v) for v in vals]
-
-    class Config:
-        """Allow class to use property."""
-
-        arbitrary_types_allowed = True
-        json_encoders = {
-            bytes: lambda value: value.hex(),
-        }
 
 
 class SearchResultEntry(BaseResponse):

@@ -5,12 +5,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from enum import IntEnum, StrEnum, unique
-from typing import TYPE_CHECKING
+from typing import Annotated
 
-from pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from ldap_protocol.ldap_responses import PartialAttribute
+import annotated_types
+from pydantic import BaseModel, field_validator
 
 
 class Scope(IntEnum):
@@ -48,11 +46,41 @@ class Operation(IntEnum):
     REPLACE = 2
 
 
+class PartialAttribute(BaseModel):
+    """Partial attribite structure. Description in rfc2251 4.1.6."""
+
+    type: Annotated[str, annotated_types.Len(max_length=8100)]
+    vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
+
+    @property
+    def l_name(self) -> str:
+        """Get lower case name."""
+        return self.type.lower()
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def validate_type(cls, v: str | bytes | int) -> str:
+        return str(v)
+
+    @field_validator("vals", mode="before")
+    @classmethod
+    def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:
+        return [v if isinstance(v, bytes) else str(v) for v in vals]
+
+    class Config:
+        """Allow class to use property."""
+
+        arbitrary_types_allowed = True
+        json_encoders = {
+            bytes: lambda value: value.hex(),
+        }
+
+
 class Changes(BaseModel):
     """Changes for modify request."""
 
     operation: Operation
-    modification: "PartialAttribute"
+    modification: PartialAttribute
 
     def get_name(self) -> str:
         """Get mod name."""
