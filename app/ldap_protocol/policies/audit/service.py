@@ -75,7 +75,7 @@ class AuditService:
 
     async def create_destination(
         self,
-        destination: AuditDestinationSchema,
+        destination: AuditDestinationSchemaRequest,
     ) -> AuditDestinationSchema:
         """Create a new audit destination.
 
