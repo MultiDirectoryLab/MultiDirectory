@@ -215,6 +215,10 @@ class MainProvider(Provider):
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
+
+class LDAPContextProvider(Provider):
+    """Context provider."""
+
     add_request_context = provide(
         LDAPAddRequestContext,
         scope=Scope.REQUEST,
@@ -249,7 +253,7 @@ class MainProvider(Provider):
     )
 
 
-class HTTPProvider(Provider):
+class HTTPProvider(LDAPContextProvider):
     """HTTP LDAP session."""
 
     scope = Scope.REQUEST
@@ -287,7 +291,7 @@ class HTTPProvider(Provider):
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
 
 
-class LDAPServerProvider(Provider):
+class LDAPServerProvider(LDAPContextProvider):
     """Provider with session scope."""
 
     scope = Scope.SESSION
