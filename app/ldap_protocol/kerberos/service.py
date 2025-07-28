@@ -73,6 +73,7 @@ class KerberosService:
         Args:
             mail (str): Email for krbadmin.
             krbadmin_password (SecretStr): Password for krbadmin.
+            ldap_session (LDAPSession): ldap session.
             ctx (LDAPAddRequestContext): context for add request.
 
         Raises:
