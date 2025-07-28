@@ -6,11 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import asdict
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import AuditPolicy, AuditPolicyTrigger
 
 from .dataclasses import AuditPolicyDTO, AuditPolicyTriggerDTO
+from .exception import AuditNotFoundError
 
 
 class AuditPoliciesDAO:
@@ -19,6 +21,30 @@ class AuditPoliciesDAO:
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Audit DAO with a database session."""
         self._session = session
+
+    async def get_policies(self) -> list[AuditPolicy]:
+        """Get all audit policies."""
+        return list((await self._session.scalars(select(AuditPolicy))).all())
+
+    async def get_policy_by_id(self, policy_id: int) -> AuditPolicy:
+        """Get an audit policy by its ID."""
+        policy = await self._session.get(AuditPolicy, policy_id)
+        if not policy:
+            raise AuditNotFoundError(f"Policy with id {policy_id} not found.")
+        return policy
+
+    async def update_policy(
+        self,
+        existing_policy: AuditPolicy,
+        policy_id: int,
+        name: str,
+        is_enabled: bool,
+    ) -> None:
+        """Update an existing audit policy."""
+        existing_policy.id = policy_id
+        existing_policy.name = name
+        existing_policy.is_enabled = is_enabled
+        await self._session.flush()
 
     async def create_policy(
         self,
