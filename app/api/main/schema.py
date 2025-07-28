@@ -113,6 +113,15 @@ class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
     ttl: int | None = Field(None)
 
 
+class AuditPolicySchemaRequest(BaseModel):
+    """Audit policy schema."""
+
+    id: int
+    name: str
+    severity: str
+    is_enabled: bool
+
+
 class AuditPolicySchema(BaseModel):
     """Audit policy schema."""
 

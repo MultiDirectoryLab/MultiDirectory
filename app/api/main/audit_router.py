@@ -19,6 +19,7 @@ from .schema import (
     AuditDestinationSchema,
     AuditDestinationSchemaRequest,
     AuditPolicySchema,
+    AuditPolicySchemaRequest,
 )
 
 audit_router = APIRouter(
@@ -40,9 +41,10 @@ async def get_audit_policies(
     ]
 
 
-@audit_router.put("/policy")
+@audit_router.put("/policy/{policy_id}")
 async def update_audit_policy(
-    policy: AuditPolicySchema,
+    policy_id: int,
+    policy: AuditPolicySchemaRequest,
     session: FromDishka[AsyncSession],
 ) -> AuditPolicySchema:
     """Update audit policy.
@@ -54,7 +56,7 @@ async def update_audit_policy(
     """
     selected_policy = await session.get(
         AuditPolicy,
-        policy.id,
+        policy_id,
         with_for_update=True,
     )
 
