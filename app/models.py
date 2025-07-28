@@ -1239,7 +1239,7 @@ class AuditPolicy(Base):
         back_populates="audit_policy",
         cascade="all",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="raise",
     )
 
 
@@ -1269,7 +1269,7 @@ class AuditPolicyTrigger(Base):
         "AuditPolicy",
         uselist=False,
         back_populates="triggers",
-        lazy="selectin",
+        lazy="raise",
     )
 
 
