@@ -199,7 +199,7 @@ class MainProvider(Provider):
         yield SessionStorageClient(client)
         await client.aclose()
 
-    audit_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
+    audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.APP)
     async def get_session_storage(
