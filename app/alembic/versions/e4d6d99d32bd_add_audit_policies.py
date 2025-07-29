@@ -11,6 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.utils.queries import get_base_directories
 
@@ -29,9 +30,9 @@ def upgrade() -> None:
 
         if not await get_base_directories(session):
             return
-
         audit_dao = AuditPoliciesDAO(session)
-        await audit_dao.create_policies()
+        use_case = AuditUseCase(audit_dao)
+        await use_case.create_policies()
         await session.commit()
 
     op.create_table(
