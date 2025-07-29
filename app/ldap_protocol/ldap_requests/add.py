@@ -10,22 +10,18 @@ import httpx
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     AddResponse,
     PartialAttribute,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
-from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -46,6 +42,7 @@ from models import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
+from .contexts import LDAPAddRequestContext
 
 
 class AddRequest(BaseRequest):
@@ -64,7 +61,7 @@ class AddRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = 8
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
 
     entry: str = Field(..., description="Any `DistinguishedName`")
     attributes: list[PartialAttribute]
@@ -78,6 +75,16 @@ class AddRequest(BaseRequest):
     @property
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
         return {attr.type: attr.vals for attr in self.attributes}
+
+    @property
+    def object_class_names(self) -> set[str]:
+        return {
+            str(name)
+            for name in (
+                self.attributes_dict.get("objectClass", [])
+                + self.attributes_dict.get("objectclass", [])
+            )
+        }
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
@@ -94,15 +101,10 @@ class AddRequest(BaseRequest):
 
     async def handle(  # noqa: C901
         self,
-        session: AsyncSession,
-        ldap_session: LDAPSession,
-        kadmin: AbstractKadmin,
-        entity_type_dao: EntityTypeDAO,
-        access_manager: AccessManager,
-        role_use_case: RoleUseCase,
+        ctx: LDAPAddRequestContext,
     ) -> AsyncGenerator[AddResponse, None]:
         """Add request handler."""
-        if not ldap_session.user:
+        if not ctx.ldap_session.user:
             yield AddResponse(**INVALID_ACCESS_RESPONSE)
             return
 
@@ -110,7 +112,7 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        if not ldap_session.user.role_ids:
+        if not ctx.ldap_session.user.role_ids:
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
@@ -121,11 +123,11 @@ class AddRequest(BaseRequest):
             .filter(get_path_filter(root_dn)).exists()
         )  # fmt: skip
 
-        if await session.scalar(exists_q) is True:
+        if await ctx.session.scalar(exists_q) is True:
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
-        for base_directory in await get_base_directories(session):
+        for base_directory in await get_base_directories(ctx.session):
             if is_dn_in_base_directory(base_directory, self.entry):
                 base_dn = base_directory
                 break
@@ -138,29 +140,24 @@ class AddRequest(BaseRequest):
 
         parent_query = select(Directory).filter(parent_path)
 
-        parent_query = access_manager.mutate_query_with_ace_load(
-            user_role_ids=ldap_session.user.role_ids,
+        parent_query = ctx.access_manager.mutate_query_with_ace_load(
+            user_role_ids=ctx.ldap_session.user.role_ids,
             query=parent_query,
             ace_types=[AceType.CREATE_CHILD],
         )
 
-        parent = await session.scalar(parent_query)
+        parent = await ctx.session.scalar(parent_query)
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        object_class_names = set(
-            self.attributes_dict.get("objectClass", [])
-            + self.attributes_dict.get("objectclass", [])
-        )
-
         entity_type = (
-            await entity_type_dao.get_entity_type_by_object_class_names(
-                object_class_names=object_class_names,  # type: ignore
+            await ctx.entity_type_dao.get_entity_type_by_object_class_names(
+                object_class_names=self.object_class_names,
             )
         )
 
-        can_add = access_manager.check_entity_level_access(
+        can_add = ctx.access_manager.check_entity_level_access(
             aces=parent.access_control_entries,
             entity_type_id=entity_type.id if entity_type else None,
         )
@@ -170,7 +167,9 @@ class AddRequest(BaseRequest):
             return
 
         if self.password is not None:
-            validator = await PasswordPolicySchema.get_policy_settings(session)
+            validator = await PasswordPolicySchema.get_policy_settings(
+                ctx.session,
+            )
             raw_password = self.password.get_secret_value()
             errors = await validator.validate_password_with_policy(
                 password=raw_password,
@@ -192,14 +191,14 @@ class AddRequest(BaseRequest):
             )
 
             new_dir.create_path(parent, new_dn)
-            session.add(new_dir)
+            ctx.session.add(new_dir)
 
-            await session.flush()
+            await ctx.session.flush()
 
             new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
-            await session.flush()
+            await ctx.session.flush()
         except IntegrityError:
-            await session.rollback()
+            await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
             return
 
@@ -258,7 +257,7 @@ class AddRequest(BaseRequest):
                         ),
                     )
 
-        parent_groups = await get_groups(group_attributes, session)
+        parent_groups = await get_groups(group_attributes, ctx.session)
         is_group = "group" in self.attributes_dict.get("objectClass", [])
         is_user = (
             "sAMAccountName" in user_attributes
@@ -268,7 +267,7 @@ class AddRequest(BaseRequest):
 
         if is_user:
             parent_groups.append(
-                (await get_group("domain users", session)).group,
+                (await get_group("domain users", ctx.session)).group,
             )
 
             sam_accout_name = user_attributes.get(
@@ -363,25 +362,25 @@ class AddRequest(BaseRequest):
 
         try:
             items_to_add.extend(attributes)
-            session.add_all(items_to_add)
-            await session.flush()
+            ctx.session.add_all(items_to_add)
+            await ctx.session.flush()
 
-            await session.refresh(
+            await ctx.session.refresh(
                 instance=new_dir,
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await entity_type_dao.attach_entity_type_to_directory(
+            await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
             )
-            await role_use_case.inherit_parent_aces(
+            await ctx.role_use_case.inherit_parent_aces(
                 parent_directory=parent,
                 directory=new_dir,
             )
-            await session.flush()
+            await ctx.session.flush()
         except IntegrityError:
-            await session.rollback()
+            await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
         else:
             try:
@@ -393,15 +392,18 @@ class AddRequest(BaseRequest):
                         if self.password
                         else None
                     )
-                    await kadmin.add_principal(user.get_upn_prefix(), pw)
+                    await ctx.kadmin.add_principal(user.get_upn_prefix(), pw)
                 if is_computer:
-                    await kadmin.add_principal(
+                    await ctx.kadmin.add_principal(
                         f"{new_dir.host_principal}.{base_dn.name}",
                         None,
                     )
-                    await kadmin.add_principal(new_dir.host_principal, None)
+                    await ctx.kadmin.add_principal(
+                        new_dir.host_principal,
+                        None,
+                    )
             except KRBAPIError:
-                await session.rollback()
+                await ctx.session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
                     errorMessage="KerberosError",

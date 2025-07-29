@@ -22,7 +22,7 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosUnavailableError,
 )
 from ldap_protocol.kerberos.service import KerberosService
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -71,7 +71,7 @@ class KerberosFastAPIAdapter:
         mail: str,
         krbadmin_password: SecretStr,
         ldap_session: LDAPSession,
-        entity_type_dao: EntityTypeDAO,
+        ctx: LDAPAddRequestContext,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -83,7 +83,7 @@ class KerberosFastAPIAdapter:
             mail,
             krbadmin_password,
             ldap_session,
-            entity_type_dao,
+            ctx,
         )
 
     async def setup_kdc(

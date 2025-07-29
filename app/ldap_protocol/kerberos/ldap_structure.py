@@ -7,16 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos.exceptions import KerberosConflictError
 from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_filter_from_path
 from models import Directory
-
-from .base import AbstractKadmin
 
 
 class KRBLDAPStructureManager:
@@ -43,9 +40,7 @@ class KRBLDAPStructureManager:
         group: AddRequest,
         services: AddRequest,
         krb_user: AddRequest,
-        ldap_session: LDAPSession,
-        kadmin: AbstractKadmin,
-        entity_type_dao: EntityTypeDAO,
+        ctx: LDAPAddRequestContext,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -62,36 +57,9 @@ class KRBLDAPStructureManager:
         """
         async with self._session.begin_nested():
             results = (
-                await anext(
-                    services.handle(
-                        self._session,
-                        ldap_session,
-                        kadmin,
-                        entity_type_dao,
-                        self._access_manager,
-                        self._role_use_case,
-                    )
-                ),
-                await anext(
-                    group.handle(
-                        self._session,
-                        ldap_session,
-                        kadmin,
-                        entity_type_dao,
-                        self._access_manager,
-                        self._role_use_case,
-                    )
-                ),
-                await anext(
-                    krb_user.handle(
-                        self._session,
-                        ldap_session,
-                        kadmin,
-                        entity_type_dao,
-                        self._access_manager,
-                        self._role_use_case,
-                    )
-                ),
+                await anext(services.handle(ctx)),
+                await anext(group.handle(ctx)),
+                await anext(krb_user.handle(ctx)),
             )
             await self._session.flush()
 

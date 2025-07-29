@@ -16,13 +16,10 @@ from sqlalchemy.orm import selectinload, subqueryload
 from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
-from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group, User
 from tests.conftest import TestCreds
@@ -224,29 +221,17 @@ async def test_ldap_user_add_group_with_group(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("entity_type_dao")
 async def test_add_bvalue_attr(
-    session: AsyncSession,
     ldap_bound_session: LDAPSession,
-    kadmin: AbstractKadmin,
-    entity_type_dao: EntityTypeDAO,
-    access_manager: AccessManager,
-    role_use_case: RoleUseCase,
+    ctx_add: LDAPAddRequestContext,
 ) -> None:
     """Test AddRequest with bytes data."""
+    ctx_add.ldap_session = ldap_bound_session
     request = AddRequest(
         entry="cn=test123,dc=md,dc=test",
         attributes=[{"type": "objectClass", "vals": [b"container"]}],
         password=None,
     )
-    result = await anext(
-        request.handle(
-            session,
-            ldap_bound_session,
-            kadmin,
-            entity_type_dao,
-            access_manager,
-            role_use_case,
-        )
-    )
+    result = await anext(request.handle(ctx_add))
     assert result.result_code == LDAPCodes.SUCCESS
 
 

@@ -5,15 +5,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import Annotated, ClassVar
+from typing import ClassVar
 
-import annotated_types
 from asn1 import Classes, Encoder, Numbers
-from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny, field_validator
+from pydantic import AnyUrl, BaseModel, Field, SerializeAsAny
 
 from ldap_protocol.asn1parser import LDAPOID
 
 from .ldap_codes import LDAPCodes
+from .objects import PartialAttribute, ProtocolResponse
 
 type_map = {
     bool: Numbers.Boolean,
@@ -74,7 +74,7 @@ class BindResponse(LDAPResult, BaseResponse):
         serverSaslCreds    [7] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = 1
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.BIND
     server_sasl_creds: bytes | None = Field(None, alias="serverSaslCreds")
 
     def to_asn1(self, enc: Encoder) -> None:
@@ -89,36 +89,6 @@ class BindResponse(LDAPResult, BaseResponse):
                 cls=Classes.Context,
                 nr=7,
             )
-
-
-class PartialAttribute(BaseModel):
-    """Partial attribite structure. Description in rfc2251 4.1.6."""
-
-    type: Annotated[str, annotated_types.Len(max_length=8100)]
-    vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
-
-    @property
-    def l_name(self) -> str:
-        """Get lower case name."""
-        return self.type.lower()
-
-    @field_validator("type", mode="before")
-    @classmethod
-    def validate_type(cls, v: str | bytes | int) -> str:
-        return str(v)
-
-    @field_validator("vals", mode="before")
-    @classmethod
-    def validate_vals(cls, vals: list[str | int | bytes]) -> list[str | bytes]:
-        return [v if isinstance(v, bytes) else str(v) for v in vals]
-
-    class Config:
-        """Allow class to use property."""
-
-        arbitrary_types_allowed = True
-        json_encoders = {
-            bytes: lambda value: value.hex(),
-        }
 
 
 class SearchResultEntry(BaseResponse):
@@ -137,7 +107,7 @@ class SearchResultEntry(BaseResponse):
     SearchResultDone ::= [APPLICATION 5] LDAPResult
     """
 
-    PROTOCOL_OP: ClassVar[int] = 4
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_ENTRY
 
     object_name: str
     partial_attributes: list[PartialAttribute]
@@ -163,7 +133,7 @@ class SearchResultEntry(BaseResponse):
 class SearchResultDone(LDAPResult, BaseResponse):
     """LDAP result."""
 
-    PROTOCOL_OP: ClassVar[int] = 5
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_DONE
     # API fields
     total_pages: int = 0
     total_objects: int = 0
@@ -189,7 +159,7 @@ INVALID_ACCESS_RESPONSE = {
 class SearchResultReference(BaseResponse):
     """List of uris."""
 
-    PROTOCOL_OP: ClassVar[int] = 19
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.SEARCH_RESULT_REFERENCE
 
     values: list[AnyUrl]
 
@@ -197,25 +167,25 @@ class SearchResultReference(BaseResponse):
 class ModifyResponse(LDAPResult, BaseResponse):
     """Modify response."""
 
-    PROTOCOL_OP: ClassVar[int] = 7
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.MODIFY
 
 
 class AddResponse(LDAPResult, BaseResponse):
     """Modify response."""
 
-    PROTOCOL_OP: ClassVar[int] = 9
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.ADD
 
 
 class DeleteResponse(LDAPResult, BaseResponse):
     """Delete response."""
 
-    PROTOCOL_OP: ClassVar[int] = 11
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.DELETE
 
 
 class ModifyDNResponse(LDAPResult, BaseResponse):
     """Delete response."""
 
-    PROTOCOL_OP: ClassVar[int] = 13
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.MODIFY_DN
 
 
 class BaseExtendedResponseValue(ABC, BaseEncoder):
@@ -235,7 +205,7 @@ class ExtendedResponse(LDAPResult, BaseResponse):
         responseValue    [11] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = 24
+    PROTOCOL_OP: ClassVar[int] = ProtocolResponse.EXTENDED
     response_name: LDAPOID
     response_value: SerializeAsAny[BaseExtendedResponseValue] | None
 
