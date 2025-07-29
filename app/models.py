@@ -1143,7 +1143,11 @@ class AuditPolicyTrigger(Base):
             "is_ldap",
             "is_http",
         ),
-        Index("idx_audit_policy_id_fk", "audit_policy_id"),
+        Index(
+            "idx_audit_policy_id_fk",
+            "audit_policy_id",
+            postgresql_using="hash",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
