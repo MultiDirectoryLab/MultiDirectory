@@ -28,7 +28,7 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -62,7 +62,7 @@ class IdentityManager:
         entity_type_dao: EntityTypeDAO,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
-        audit_dao: AuditPoliciesDAO,
+        audit_dao: AuditUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
