@@ -127,7 +127,7 @@ def upgrade() -> None:
         "idx_audit_policy_id_fk",
         "AuditPolicyTriggers",
         ["audit_policy_id"],
-        postgresql_using="btree",
+        postgresql_using="hash",
     )
     op.run_async(_create_audit_policies)
 
