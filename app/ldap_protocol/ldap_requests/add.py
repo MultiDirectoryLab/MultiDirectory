@@ -76,6 +76,16 @@ class AddRequest(BaseRequest):
     def attributes_dict(self) -> dict[str, list[str | bytes]]:
         return {attr.type: attr.vals for attr in self.attributes}
 
+    @property
+    def object_class_names(self) -> set[str]:
+        return {
+            str(name)
+            for name in (
+                self.attributes_dict.get("objectClass", [])
+                + self.attributes_dict.get("objectclass", [])
+            )
+        }
+
     @classmethod
     def from_data(cls, data: ASN1Row) -> "AddRequest":
         """Deserialize."""
@@ -141,14 +151,9 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        object_class_names = set(
-            self.attributes_dict.get("objectClass", [])
-            + self.attributes_dict.get("objectclass", [])
-        )
-
         entity_type = (
             await ctx.entity_type_dao.get_entity_type_by_object_class_names(
-                object_class_names=object_class_names,  # type: ignore
+                object_class_names=self.object_class_names,
             )
         )
 
