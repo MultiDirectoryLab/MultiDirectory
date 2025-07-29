@@ -42,14 +42,11 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from enums import (
-    AceType,
+from enums import AceType, KindType, MFAFlags, RoleScope
+from ldap_protocol.policies.audit.enums import (
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
-    KindType,
-    MFAFlags,
-    RoleScope,
 )
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
