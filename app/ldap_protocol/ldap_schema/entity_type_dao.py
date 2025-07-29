@@ -135,7 +135,8 @@ class EntityTypeDAO:
         """
         list_object_class_names = [name.lower() for name in object_class_names]
         result = await self.__session.execute(
-            select(EntityType).where(
+            select(EntityType)
+            .where(
                 func.array_lowercase(EntityType.object_class_names).op("@>")(
                     list_object_class_names
                 ),
@@ -143,7 +144,7 @@ class EntityTypeDAO:
                     list_object_class_names
                 ),
             )
-        )
+        )  # fmt: skip
 
         return result.scalars().first()
 
