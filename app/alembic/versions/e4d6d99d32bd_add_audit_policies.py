@@ -138,9 +138,6 @@ def downgrade() -> None:
     op.drop_table("AuditPolicies")
     op.drop_table("AuditDestinations")
 
-    op.drop_index("idx_trigger_search", table_name="AuditPolicyTriggers")
-    op.drop_index("idx_audit_policy_id_fk", table_name="AuditPolicyTriggers")
-
     op.execute(sa.text("DROP TYPE auditseverity"))
     op.execute(sa.text("DROP TYPE auditdestinationservicetype"))
     op.execute(sa.text("DROP TYPE auditdestinationprotocoltype"))
