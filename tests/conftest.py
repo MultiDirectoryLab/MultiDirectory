@@ -72,6 +72,7 @@ from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -359,6 +360,7 @@ class TestProvider(Provider):
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
     audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
+    audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
 
     add_request_context = provide(
         LDAPAddRequestContext,
