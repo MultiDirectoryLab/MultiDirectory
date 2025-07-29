@@ -62,7 +62,7 @@ class IdentityManager:
         entity_type_dao: EntityTypeDAO,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
-        audit_dao: AuditUseCase,
+        audit_use_case: AuditUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -81,7 +81,7 @@ class IdentityManager:
         self._role_use_case = role_use_case
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
-        self._audit_dao = audit_dao
+        self._audit_use_case = audit_use_case
 
     async def login(
         self,
@@ -339,7 +339,7 @@ class IdentityManager:
                 await default_pwd_policy.create_policy_settings(self._session)
                 await self._role_use_case.create_domain_admins_role()
                 await self._role_use_case.create_read_only_role()
-                await self._audit_dao.create_policies()
+                await self._audit_use_case.create_policies()
                 await self._session.commit()
             except IntegrityError:
                 await self._session.rollback()
