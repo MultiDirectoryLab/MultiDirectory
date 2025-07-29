@@ -117,6 +117,18 @@ def upgrade() -> None:
             nullable=False,
         ),
     )
+    op.create_index(
+        "idx_trigger_search",
+        "AuditPolicyTriggers",
+        ["operation_code", "operation_success", "is_ldap", "is_http"],
+        postgresql_using="btree",
+    )
+    op.create_index(
+        "idx_audit_policy_id_fk",
+        "AuditPolicyTriggers",
+        ["audit_policy_id"],
+        postgresql_using="btree",
+    )
     op.run_async(_create_audit_policies)
 
 
@@ -126,4 +138,9 @@ def downgrade() -> None:
     op.drop_table("AuditPolicies")
     op.drop_table("AuditDestinations")
 
+    op.drop_index("idx_trigger_search", table_name="AuditPolicyTriggers")
+    op.drop_index("idx_audit_policy_id_fk", table_name="AuditPolicyTriggers")
+
     op.execute(sa.text("DROP TYPE auditseverity"))
+    op.execute(sa.text("DROP TYPE auditdestinationservicetype"))
+    op.execute(sa.text("DROP TYPE auditdestinationprotocoltype"))

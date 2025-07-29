@@ -1248,6 +1248,17 @@ class AuditPolicyTrigger(Base):
 
     __tablename__ = "AuditPolicyTriggers"
 
+    __table_args__ = (
+        Index(
+            "idx_trigger_search",
+            "operation_code",
+            "operation_success",
+            "is_ldap",
+            "is_http",
+        ),
+        Index("idx_audit_policy_id_fk", "audit_policy_id"),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True)
     is_ldap: Mapped[tbool]
     is_http: Mapped[tbool]
