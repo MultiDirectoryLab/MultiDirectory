@@ -358,7 +358,7 @@ class TestProvider(Provider):
         return KRBTemplateRenderer(settings.TEMPLATES)
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
-    audit_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
+    audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
 
     add_request_context = provide(
         LDAPAddRequestContext,
