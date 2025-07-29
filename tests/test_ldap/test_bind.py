@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_requests.bind import (
     BindRequest,
     BindResponse,
@@ -23,6 +22,10 @@ from ldap_protocol.ldap_requests.bind import (
     SaslGSSAPIAuthentication,
     SimpleAuthentication,
     UnbindRequest,
+)
+from ldap_protocol.ldap_requests.contexts import (
+    LDAPBindRequestContext,
+    LDAPUnbindRequestContext,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import Attribute, Directory, User
@@ -34,11 +37,9 @@ from tests.conftest import MutePolicyBindRequest, TestCreds
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_bind_ok_and_unbind(
-    session: AsyncSession,
-    ldap_session: LDAPSession,
-    settings: Settings,
-    kadmin: AbstractKadmin,
     creds: TestCreds,
+    ctx_bind: LDAPBindRequestContext,
+    ctx_unbind: LDAPUnbindRequestContext,
 ) -> None:
     """Test ok bind."""
     bind = MutePolicyBindRequest(
@@ -47,22 +48,16 @@ async def test_bind_ok_and_unbind(
         AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
-    result = await anext(
-        bind.handle(
-            session,
-            ldap_session,
-            kadmin,
-            settings,
-            None,  # type: ignore
-        ),
-    )
+    result = await anext(bind.handle(ctx_bind))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
-    assert ldap_session.user
-    assert ldap_session.user.sam_accout_name == creds.un
+    assert ctx_bind.ldap_session.user
+    assert ctx_bind.ldap_session.user.sam_accout_name == creds.un
+
+    ctx_unbind.ldap_session = ctx_bind.ldap_session
 
     with pytest.raises(StopAsyncIteration):
-        await anext(UnbindRequest().handle(ldap_session))
-    assert ldap_session.user is None
+        await anext(UnbindRequest().handle(ctx_unbind))
+    assert ctx_bind.ldap_session.user is None
 
 
 @pytest.mark.asyncio
@@ -95,8 +90,8 @@ async def test_gssapi_bind_in_progress(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(bind.handle, container)
+        result = await anext(bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
             serverSaslCreds=b"response_ticket",
@@ -118,9 +113,9 @@ async def test_gssapi_bind_missing_credentials(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(bind.handle, container)
+        kwargs = await resolve_deps(bind.handle, container)
         with pytest.raises(gssapi.exceptions.MissingCredentialsError):
-            await anext(handler())  # type: ignore
+            await anext(bind.handle(**kwargs))
 
 
 @pytest.mark.asyncio
@@ -181,8 +176,8 @@ async def test_gssapi_bind_ok(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(first_bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(first_bind.handle, container)
+        result = await anext(first_bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
             serverSaslCreds=b"server_ticket",
@@ -190,15 +185,15 @@ async def test_gssapi_bind_ok(
 
         mock_security_context.complete = True
 
-        handler = await resolve_deps(second_bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(second_bind.handle, container)
+        result = await anext(second_bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
             serverSaslCreds=b"\x01\x00\x04\x00",
         )
 
-        handler = await resolve_deps(third_bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(third_bind.handle, container)
+        result = await anext(third_bind.handle(**kwargs))
         assert result == BindResponse(
             result_code=LDAPCodes.SUCCESS,
         )
@@ -252,8 +247,8 @@ async def test_bind_invalid_password_or_user(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(bind.handle, container)
+        result = await anext(bind.handle(**kwargs))
 
     assert result == bad_response
     assert ldap_session.user is None
@@ -264,9 +259,8 @@ async def test_bind_invalid_password_or_user(
         AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
-    # async with container(scope=Scope.REQUEST) as container:
-    handler = await resolve_deps(bind.handle, container)
-    result = await anext(handler())  # type: ignore
+    kwargs = await resolve_deps(bind.handle, container)
+    result = await anext(bind.handle(**kwargs))
 
     assert result == bad_response
     assert ldap_session.user is None
@@ -285,20 +279,20 @@ async def test_anonymous_bind(
         AuthenticationChoice=SimpleAuthentication(password=""),
     )
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(bind.handle, container)
+        result = await anext(bind.handle(**kwargs))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ldap_session.user is None
 
 
 @pytest.mark.asyncio
-async def test_anonymous_unbind(ldap_session: LDAPSession) -> None:
+async def test_anonymous_unbind(ctx_unbind: LDAPUnbindRequestContext) -> None:
     """Test anonymous call."""
-    ldap_session.delete_user = AsyncMock()  # type: ignore
+    ctx_unbind.ldap_session.delete_user = AsyncMock()  # type: ignore
     with pytest.raises(StopAsyncIteration):
-        await anext(UnbindRequest().handle(ldap_session))
-    assert ldap_session.user is None
-    ldap_session.delete_user.assert_called()
+        await anext(UnbindRequest().handle(ctx_unbind))
+    assert ctx_unbind.ldap_session.user is None
+    ctx_unbind.ldap_session.delete_user.assert_called()
 
 
 @pytest.mark.asyncio
@@ -376,8 +370,8 @@ async def test_bind_disabled_user(
     )
 
     async with container(scope=Scope.REQUEST) as container:
-        handler = await resolve_deps(bind.handle, container)
-        result = await anext(handler())  # type: ignore
+        kwargs = await resolve_deps(bind.handle, container)
+        result = await anext(bind.handle(**kwargs))
 
     assert result == bad_response
     assert ldap_session.user is None

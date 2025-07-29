@@ -8,6 +8,7 @@ import asyncio
 from typing import AsyncGenerator, ClassVar
 
 from ldap_protocol.asn1parser import ASN1Row
+from ldap_protocol.objects import ProtocolRequests
 
 from .base import BaseRequest
 
@@ -15,7 +16,7 @@ from .base import BaseRequest
 class AbandonRequest(BaseRequest):
     """Abandon protocol."""
 
-    PROTOCOL_OP: ClassVar[int] = 16
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ABANDON
     message_id: int
 
     @classmethod

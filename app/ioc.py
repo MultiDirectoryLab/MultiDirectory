@@ -31,6 +31,16 @@ from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
+from ldap_protocol.ldap_requests.contexts import (
+    LDAPAddRequestContext,
+    LDAPBindRequestContext,
+    LDAPDeleteRequestContext,
+    LDAPExtendedRequestContext,
+    LDAPModifyDNRequestContext,
+    LDAPModifyRequestContext,
+    LDAPSearchRequestContext,
+    LDAPUnbindRequestContext,
+)
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -206,7 +216,44 @@ class MainProvider(Provider):
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
 
-class HTTPProvider(Provider):
+class LDAPContextProvider(Provider):
+    """Context provider."""
+
+    add_request_context = provide(
+        LDAPAddRequestContext,
+        scope=Scope.REQUEST,
+    )
+    bind_request_context = provide(
+        LDAPBindRequestContext,
+        scope=Scope.REQUEST,
+    )
+    delete_request_context = provide(
+        LDAPDeleteRequestContext,
+        scope=Scope.REQUEST,
+    )
+    extended_request_context = provide(
+        LDAPExtendedRequestContext,
+        scope=Scope.REQUEST,
+    )
+    modify_request_context = provide(
+        LDAPModifyRequestContext,
+        scope=Scope.REQUEST,
+    )
+    modify_dn_request_context = provide(
+        LDAPModifyDNRequestContext,
+        scope=Scope.REQUEST,
+    )
+    search_request_context = provide(
+        LDAPSearchRequestContext,
+        scope=Scope.REQUEST,
+    )
+    unbind_request_context = provide(
+        LDAPUnbindRequestContext,
+        scope=Scope.REQUEST,
+    )
+
+
+class HTTPProvider(LDAPContextProvider):
     """HTTP LDAP session."""
 
     scope = Scope.REQUEST
@@ -244,7 +291,7 @@ class HTTPProvider(Provider):
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
 
 
-class LDAPServerProvider(Provider):
+class LDAPServerProvider(LDAPContextProvider):
     """Provider with session scope."""
 
     scope = Scope.SESSION

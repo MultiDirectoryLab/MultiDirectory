@@ -11,33 +11,38 @@ from asn1 import Decoder
 from loguru import logger
 from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
 )
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
 from security import get_password_hash, verify_password
 
 from .base import BaseRequest
+from .contexts import LDAPExtendedRequestContext
 
 
 class BaseExtendedValue(ABC, BaseModel):
     """Base extended request body."""
 
     REQUEST_ID: ClassVar[LDAPOID]
+
+    def __init_subclass__(cls, **kwargs: dict) -> None:
+        """Check if OID is valid."""
+        super().__init_subclass__(**kwargs)  # type: ignore
+
+        if not LDAPOID.has_value(cls.REQUEST_ID):
+            raise ValueError(f"Invalid OID: {cls.REQUEST_ID}")
 
     @classmethod
     @abstractmethod
@@ -47,11 +52,7 @@ class BaseExtendedValue(ABC, BaseModel):
     @abstractmethod
     async def handle(
         self,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
-        kadmin: AbstractKadmin,
-        settings: Settings,
-        role_use_case: RoleUseCase,
+        ctx: LDAPExtendedRequestContext,
     ) -> BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
@@ -91,7 +92,7 @@ class WhoAmIRequestValue(BaseExtendedValue):
     RFC 4532;
     """
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.3"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.WHOAMI
     base: int = 123
 
     @classmethod
@@ -101,16 +102,12 @@ class WhoAmIRequestValue(BaseExtendedValue):
 
     async def handle(
         self,
-        ldap_session: LDAPSession,
-        _: AsyncSession,
-        kadmin: AbstractKadmin,  # noqa: ARG002
-        settings: Settings,  # noqa: ARG002
-        role_use_case: RoleUseCase,  # noqa: ARG002
+        ctx: LDAPExtendedRequestContext,
     ) -> "WhoAmIResponse":
         """Return user from session."""
         un = (
-            f"u:{ldap_session.user.user_principal_name}"
-            if ldap_session.user
+            f"u:{ctx.ldap_session.user.user_principal_name}"
+            if ctx.ldap_session.user
             else ""
         )
 
@@ -128,18 +125,14 @@ class StartTLSResponse(BaseExtendedResponseValue):
 class StartTLSRequestValue(BaseExtendedValue):
     """Start tls request."""
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.1466.20037"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.START_TLS
 
     async def handle(
         self,
-        ldap_session: LDAPSession,  # noqa: ARG002
-        session: AsyncSession,  # noqa: ARG002
-        kadmin: AbstractKadmin,  # noqa: ARG002
-        settings: Settings,
-        role_use_case: RoleUseCase,  # noqa: ARG002
+        ctx: LDAPExtendedRequestContext,
     ) -> StartTLSResponse:
         """Update password of current or selected user."""
-        if settings.USE_CORE_TLS:
+        if ctx.settings.USE_CORE_TLS:
             return StartTLSResponse()
 
         raise PermissionError("No TLS")
@@ -180,21 +173,17 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         newPasswd       [2]  OCTET STRING OPTIONAL }
     """
 
-    REQUEST_ID: ClassVar[LDAPOID] = "1.3.6.1.4.1.4203.1.11.1"
+    REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.PASSWORD_MODIFY
     user_identity: str | None = None
     old_password: SecretStr
     new_password: SecretStr
 
     async def handle(
         self,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
-        kadmin: AbstractKadmin,
-        settings: Settings,
-        role_use_case: RoleUseCase,
+        ctx: LDAPExtendedRequestContext,
     ) -> PasswdModifyResponse:
         """Update password of current or selected user."""
-        if not settings.USE_CORE_TLS:
+        if not ctx.settings.USE_CORE_TLS:
             raise PermissionError("TLS required")
 
         user: User
@@ -202,16 +191,16 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         new_password = self.new_password.get_secret_value()
 
         if self.user_identity is not None:
-            user = await get_user(session, self.user_identity)  # type: ignore
+            user = await get_user(ctx.session, self.user_identity)  # type: ignore
             if user is None:
                 raise PermissionError("Cannot acquire user by DN")
         else:
-            if not ldap_session.user:
+            if not ctx.ldap_session.user:
                 raise PermissionError("Anonymous user")
 
-            user = await session.get(User, ldap_session.user.id)  # type: ignore
+            user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
-        validator = await PasswordPolicySchema.get_policy_settings(session)
+        validator = await PasswordPolicySchema.get_policy_settings(ctx.session)
 
         errors = await validator.validate_password_with_policy(
             password=new_password,
@@ -219,22 +208,22 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         )
 
         p_last_set = await validator.get_pwd_last_set(
-            session,
+            ctx.session,
             user.directory_id,
         )
 
         if validator.validate_min_age(p_last_set):
             errors.append("Minimum age violation")
 
-        if ldap_session.user and self.user_identity:
-            pwd_ace = await role_use_case.get_password_ace(
+        if ctx.ldap_session.user and self.user_identity:
+            pwd_ace = await ctx.role_use_case.get_password_ace(
                 dir_id=user.directory_id,
-                user_role_ids=ldap_session.user.role_ids,
+                user_role_ids=ctx.ldap_session.user.role_ids,
             )
 
             if not pwd_ace:
-                if not await role_use_case.contains_domain_admins_role(
-                    ldap_session.user.role_ids
+                if not await ctx.role_use_case.contains_domain_admins_role(
+                    ctx.ldap_session.user.role_ids
                 ):
                     raise PermissionError("No password modify access")
             elif not pwd_ace.is_allow:
@@ -245,20 +234,20 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             or verify_password(old_password, user.password)
         ):
             try:
-                await kadmin.create_or_update_principal_pw(
+                await ctx.kadmin.create_or_update_principal_pw(
                     user.get_upn_prefix(),
                     new_password,
                 )
             except KRBAPIError:
-                await session.rollback()
+                await ctx.session.rollback()
                 raise PermissionError("Kadmin Error")
 
             user.password = get_password_hash(new_password)
-            await post_save_password_actions(user, session)
-            await session.execute(
+            await post_save_password_actions(user, ctx.session)
+            await ctx.session.execute(
                 update(Directory).where(Directory.id == user.directory_id),
             )
-            await session.commit()
+            await ctx.session.commit()
 
             return PasswdModifyResponse()
         raise PermissionError("No user provided")
@@ -297,27 +286,17 @@ class ExtendedRequest(BaseRequest):
         requestValue     [1] OCTET STRING OPTIONAL }
     """
 
-    PROTOCOL_OP: ClassVar[int] = 23
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.EXTENDED
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 
     async def handle(
         self,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
-        kadmin: AbstractKadmin,
-        settings: Settings,
-        role_use_case: RoleUseCase,
+        ctx: LDAPExtendedRequestContext,
     ) -> AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
         try:
-            response = await self.request_value.handle(
-                ldap_session,
-                session,
-                kadmin,
-                settings,
-                role_use_case,
-            )
+            response = await self.request_value.handle(ctx)
         except PermissionError as err:
             logger.critical(err)
             yield ExtendedResponse(

@@ -16,7 +16,6 @@ from sqlalchemy.orm import joinedload, selectinload
 from config import Settings
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import (
     AbstractKadmin,
     KRBAPIError,
@@ -24,13 +23,11 @@ from ldap_protocol.kerberos import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.objects import Changes, Operation
+from ldap_protocol.objects import Changes, Operation, ProtocolRequests
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
     post_save_password_actions,
 )
-from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -51,6 +48,7 @@ from models import Attribute, Directory, Group, User
 from security import get_password_hash
 
 from .base import BaseRequest
+from .contexts import LDAPModifyRequestContext
 
 MODIFY_EXCEPTION_STACK = (
     ValueError,
@@ -79,7 +77,7 @@ class ModifyRequest(BaseRequest):
     ```
     """
 
-    PROTOCOL_OP: ClassVar[int] = 6
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY
 
     object: str
     changes: list[Changes]
@@ -125,16 +123,10 @@ class ModifyRequest(BaseRequest):
 
     async def handle(
         self,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
-        session_storage: SessionStorage,
-        kadmin: AbstractKadmin,
-        settings: Settings,
-        entity_type_dao: EntityTypeDAO,
-        access_manager: AccessManager,
+        ctx: LDAPModifyRequestContext,
     ) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
-        if not ldap_session.user:
+        if not ctx.ldap_session.user:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
@@ -144,28 +136,28 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
             return
 
-        if not ldap_session.user.role_ids:
+        if not ctx.ldap_session.user.role_ids:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
             )
             return
 
-        policy = await PasswordPolicySchema.get_policy_settings(session)
+        policy = await PasswordPolicySchema.get_policy_settings(ctx.session)
         query = self._get_dir_query()
-        query = access_manager.mutate_query_with_ace_load(
-            user_role_ids=ldap_session.user.role_ids,
+        query = ctx.access_manager.mutate_query_with_ace_load(
+            user_role_ids=ctx.ldap_session.user.role_ids,
             query=query,
             ace_types=[AceType.WRITE, AceType.DELETE],
             load_attribute_type=True,
         )
 
-        directory = await session.scalar(query)
+        directory = await ctx.session.scalar(query)
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        can_modify = access_manager.check_modify_access(
+        can_modify = ctx.access_manager.check_modify_access(
             changes=self.changes,
             aces=directory.access_control_entries,
             entity_type_id=directory.entity_type_id,
@@ -176,7 +168,7 @@ class ModifyRequest(BaseRequest):
         password_change_requested = self._check_password_change_requested(
             names,
             directory,
-            ldap_session.user.directory_id,
+            ctx.ldap_session.user.directory_id,
         )
 
         if not can_modify and not password_change_requested:
@@ -194,10 +186,10 @@ class ModifyRequest(BaseRequest):
             add_args = (
                 change,
                 directory,
-                session,
-                session_storage,
-                kadmin,
-                settings,
+                ctx.session,
+                ctx.session_storage,
+                ctx.kadmin,
+                ctx.settings,
             )
 
             try:
@@ -205,35 +197,40 @@ class ModifyRequest(BaseRequest):
                     await self._add(*add_args)
 
                 elif change.operation == Operation.DELETE:
-                    await self._delete(change, directory, session)
+                    await self._delete(change, directory, ctx.session)
 
                 elif change.operation == Operation.REPLACE:
-                    async with session.begin_nested():
-                        await self._delete(change, directory, session, True)
-                        await session.flush()
+                    async with ctx.session.begin_nested():
+                        await self._delete(
+                            change,
+                            directory,
+                            ctx.session,
+                            True,
+                        )
+                        await ctx.session.flush()
                         await self._add(*add_args)
 
-                await session.flush()
-                await session.execute(
+                await ctx.session.flush()
+                await ctx.session.execute(
                     update(Directory).where(Directory.id == directory.id),
                 )
             except MODIFY_EXCEPTION_STACK as err:
-                await session.rollback()
+                await ctx.session.rollback()
                 result_code, message = self._match_bad_response(err)
                 yield ModifyResponse(result_code=result_code, message=message)
                 return
 
-            await session.refresh(
+            await ctx.session.refresh(
                 instance=directory,
                 attribute_names=["groups", "attributes"],
             )
 
         if "objectclass" in names:
-            await entity_type_dao.attach_entity_type_to_directory(
+            await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=directory,
                 is_system_entity_type=False,
             )
-        await session.commit()
+        await ctx.session.commit()
         yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:

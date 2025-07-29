@@ -20,7 +20,7 @@ from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.utils.const import EmailStr
 
 from .utils import get_ldap_session
@@ -42,7 +42,7 @@ async def setup_krb_catalogue(
     mail: Annotated[EmailStr, Body()],
     krbadmin_password: Annotated[SecretStr, Body()],
     ldap_session: Annotated[LDAPSession, Depends(get_ldap_session)],
-    entity_type_dao: FromDishka[EntityTypeDAO],
+    ctx: FromDishka[LDAPAddRequestContext],
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Generate tree for kdc/kadmin.
@@ -56,7 +56,7 @@ async def setup_krb_catalogue(
         mail,
         krbadmin_password,
         ldap_session,
-        entity_type_dao,
+        ctx,
     )
 
 

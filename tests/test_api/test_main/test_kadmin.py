@@ -8,12 +8,11 @@ import pytest
 from aioldap3 import LDAPConnection
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin, KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
+from ldap_protocol.ldap_requests.contexts import LDAPBindRequestContext
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
@@ -55,10 +54,7 @@ def _create_test_user_data(
 @pytest.mark.asyncio
 async def test_tree_creation(
     http_client: AsyncClient,
-    ldap_session: LDAPSession,
-    session: AsyncSession,
-    kadmin: AbstractKadmin,
-    settings: Settings,
+    ctx_bind: LDAPBindRequestContext,
 ) -> None:
     """Test tree creation."""
     krbadmin_pw = "Password123"
@@ -97,9 +93,7 @@ async def test_tree_creation(
         AuthenticationChoice=SimpleAuthentication(password=krbadmin_pw),
     )
 
-    result = await anext(
-        bind.handle(session, ldap_session, kadmin, settings, None)  # type: ignore
-    )
+    result = await anext(bind.handle(ctx_bind))
     assert result.result_code == LDAPCodes.SUCCESS
 
 
