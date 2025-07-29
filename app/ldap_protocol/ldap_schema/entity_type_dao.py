@@ -154,17 +154,18 @@ class EntityTypeDAO:
 
     async def modify_one(
         self,
-        entity_type: EntityType,
+        entity_type_name: str,
         new_statement: EntityTypeUpdateSchema,
         object_class_dao: ObjectClassDAO,
     ) -> None:
         """Modify Entity Type.
 
-        :param EntityType entity_type: Entity Type.
+        :param str entity_type_name: entity type name
         :param EntityTypeUpdateSchema new_statement: New statement\
             of Entity Type.
         :return None.
         """
+        entity_type = await self.get_one_by_name(entity_type_name)
         await object_class_dao.is_all_object_classes_exists(
             new_statement.object_class_names
         )
@@ -215,22 +216,25 @@ class EntityTypeDAO:
         same name or object class names.
         :return bool.
         """
-        exist_entity_type = await self.__session.scalar(
-            select(EntityType).where(
-                EntityType.id != modified_entity_type.id,
-                or_(
-                    EntityType.name == new_statement.name,
-                    and_(
-                        EntityType.object_class_names.contains(
-                            new_statement.object_class_names
-                        ),
-                        EntityType.object_class_names.contained_by(
-                            new_statement.object_class_names
-                        ),
-                    ),
-                ),
-            )
+        object_class_names_filter_condition = and_(
+            EntityType.object_class_names.contains(
+                new_statement.object_class_names
+            ),
+            EntityType.object_class_names.contained_by(
+                new_statement.object_class_names
+            ),
         )
+        unique_filter_conditions = (
+            EntityType.name == new_statement.name,
+            object_class_names_filter_condition,
+        )
+        exist_entity_type = await self.__session.scalar(
+            select(EntityType)
+            .where(
+                EntityType.id != modified_entity_type.id,
+                or_(*unique_filter_conditions),
+            )
+        )  # fmt: skip
         if exist_entity_type:
             raise self.EntityTypeCantModifyError(
                 f"There is EntityType {exist_entity_type.name} "
