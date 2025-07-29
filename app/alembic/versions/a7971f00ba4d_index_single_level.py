@@ -44,10 +44,9 @@ def upgrade() -> None:
     )
     op.execute(
         sa.text(
-            """
-            CREATE INDEX lw_object_class_names
-            ON "EntityTypes" USING GIN(array_lowercase("object_class_names"));
-            """,
+            'CREATE INDEX "lw_object_class_names" '
+            'ON "EntityTypes" USING GIN('
+            'array_lowercase("object_class_names"));'
         ),
     )
     op.execute(
