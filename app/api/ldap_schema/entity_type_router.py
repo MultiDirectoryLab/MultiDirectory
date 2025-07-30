@@ -59,7 +59,7 @@ async def create_one_entity_type(
 )
 async def get_one_entity_type(
     entity_type_name: str,
-    ldap_entity_type_adapter: FromDishka[LDAPEntityTypeAdapter],
+    adapter: FromDishka[LDAPEntityTypeAdapter],
 ) -> EntityTypeSchema:
     """Retrieve a one Entity Type.
 
@@ -69,7 +69,7 @@ async def get_one_entity_type(
     instance.
     :return EntityTypeSchema: Entity Type Schema.
     """
-    return await ldap_entity_type_adapter.get_one_entity_type(entity_type_name)
+    return await adapter.get_one_entity_type(entity_type_name)
 
 
 @ldap_schema_router.get(
@@ -78,7 +78,7 @@ async def get_one_entity_type(
     status_code=status.HTTP_200_OK,
 )
 async def get_list_entity_types_with_pagination(
-    ldap_entity_type_adapter: FromDishka[LDAPEntityTypeAdapter],
+    adapter: FromDishka[LDAPEntityTypeAdapter],
     params: Annotated[PaginationParams, Query()],
 ) -> EntityTypePaginationSchema:
     """Retrieve a chunk of Entity Types with pagination.
@@ -90,7 +90,7 @@ async def get_list_entity_types_with_pagination(
     :return EntityTypePaginationSchema: Paginator Schema.
     """
     return (
-        await ldap_entity_type_adapter.get_list_entity_types_with_pagination(
+        await adapter.get_list_entity_types_with_pagination(
             params=params,
         )
     )
@@ -103,7 +103,7 @@ async def get_list_entity_types_with_pagination(
 async def modify_one_entity_type(
     entity_type_name: str,
     request_data: EntityTypeUpdateSchema,
-    ldap_entity_type_adapter: FromDishka[LDAPEntityTypeAdapter],
+    adapter: FromDishka[LDAPEntityTypeAdapter],
     object_class_dao: FromDishka[ObjectClassDAO],
     session: FromDishka[AsyncSession],
 ) -> None:
@@ -118,7 +118,7 @@ async def modify_one_entity_type(
     :param FromDishka[AsyncSession] session: Database session.
     :return None.
     """
-    await ldap_entity_type_adapter.modify_one_entity_type(
+    await adapter.modify_one_entity_type(
         entity_type_name=entity_type_name,
         request_data=request_data,
         session=session,
@@ -132,7 +132,7 @@ async def modify_one_entity_type(
 )
 async def delete_bulk_entity_types(
     entity_type_names: LimitedListType,
-    ldap_entity_type_adapter: FromDishka[LDAPEntityTypeAdapter],
+    adapter: FromDishka[LDAPEntityTypeAdapter],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Delete Entity Types by their names.
@@ -144,7 +144,7 @@ async def delete_bulk_entity_types(
     :param FromDishka[AsyncSession] session: Database session.
     :return None: None
     """
-    await ldap_entity_type_adapter.delete_bulk_entity_types(
+    await adapter.delete_bulk_entity_types(
         entity_type_names=entity_type_names,
         session=session,
     )
