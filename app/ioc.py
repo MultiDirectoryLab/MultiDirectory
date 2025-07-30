@@ -56,8 +56,8 @@ from ldap_protocol.multifactor import (
     get_creds,
 )
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
-from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
