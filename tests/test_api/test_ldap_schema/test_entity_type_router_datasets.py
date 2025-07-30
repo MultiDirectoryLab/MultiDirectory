@@ -57,6 +57,59 @@ test_get_list_entity_types_with_pagination_dataset = [
     },
 ]
 
+test_modify_entity_type_with_duplicates_dataset = [
+    {
+        "object_classes": [
+            {
+                "oid": "1.2.3.4",
+                "name": "testObjectClass1",
+                "superior_name": None,
+                "kind": "STRUCTURAL",
+                "is_system": False,
+                "attribute_type_names_must": [],
+                "attribute_type_names_may": [],
+            },
+            {
+                "oid": "1.2.3.4.5",
+                "name": "testObjectClass2",
+                "superior_name": None,
+                "kind": "ABSTRACT",
+                "is_system": False,
+                "attribute_type_names_must": [],
+                "attribute_type_names_may": [],
+            },
+        ],
+        "entity_types": [
+            {
+                "name": "testEntityType1",
+                "object_class_names": ["testObjectClass1"],
+                "is_system": False,
+            },
+            {
+                "name": "testEntityType2",
+                "object_class_names": ["testObjectClass2"],
+                "is_system": False,
+            },
+        ],
+        "new_statements": {
+            "duplicate_object_class_names": (
+                "testEntityType1",
+                {
+                    "name": "testEntityType1",
+                    "object_class_names": ["testObjectClass2"],
+                },
+            ),
+            "duplicate_name": (
+                "testEntityType1",
+                {
+                    "name": "testEntityType2",
+                    "object_class_names": ["testObjectClass1"],
+                },
+            ),
+        },
+    },
+]
+
 test_modify_one_entity_type_dataset = [
     {
         "object_classes": [

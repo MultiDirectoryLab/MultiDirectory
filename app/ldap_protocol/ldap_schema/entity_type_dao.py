@@ -12,7 +12,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.exceptions import InstanceNotFoundError
+from ldap_protocol.exceptions import (
+    InstanceCantModifyError,
+    InstanceNotFoundError,
+)
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
@@ -50,6 +53,7 @@ class EntityTypeDAO:
     __session: AsyncSession
     __object_class_dao: ObjectClassDAO
     EntityTypeNotFoundError = InstanceNotFoundError
+    EntityTypeCantModifyError = InstanceCantModifyError
 
     def __init__(
         self,
@@ -150,36 +154,44 @@ class EntityTypeDAO:
 
     async def modify_one(
         self,
-        entity_type: EntityType,
+        entity_type_name: str,
         new_statement: EntityTypeUpdateSchema,
         object_class_dao: ObjectClassDAO,
     ) -> None:
         """Modify Entity Type.
 
-        :param EntityType entity_type: Entity Type.
+        :param str entity_type_name: entity type name
         :param EntityTypeUpdateSchema new_statement: New statement\
             of Entity Type.
         :return None.
         """
-        await object_class_dao.is_all_object_classes_exists(
-            new_statement.object_class_names,
-        )
+        try:
+            entity_type = await self.get_one_by_name(entity_type_name)
+            await object_class_dao.is_all_object_classes_exists(
+                new_statement.object_class_names,
+            )
 
-        entity_type.name = new_statement.name
-        entity_type.object_class_names = new_statement.object_class_names
+            entity_type.name = new_statement.name
+            # Sort object_class_names to ensure a consistent order for database operations
+            # and to facilitate duplicate detection.
+            entity_type.object_class_names = sorted(
+                new_statement.object_class_names,
+            )
+            result = await self.__session.execute(
+                select(Directory)
+                .join(Directory.entity_type)
+                .where(EntityType.name == entity_type.name)
+                .options(selectinload(Directory.attributes)),
+            )  # fmt: skip
 
-        result = await self.__session.execute(
-            select(Directory)
-            .join(Directory.entity_type)
-            .where(EntityType.name == entity_type.name)
-            .options(selectinload(Directory.attributes)),
-        )  # fmt: skip
-
-        for directory in result.scalars():
             await self.__session.execute(
                 delete(Attribute)
                 .where(
-                    Attribute.directory == directory,
+                    Attribute.directory_id.in_(
+                        select(Directory.id)
+                        .join(Directory.entity_type)
+                        .where(EntityType.name == entity_type.name),
+                    ),
                     or_(
                         Attribute.name == "objectclass",
                         Attribute.name == "objectClass",
@@ -187,14 +199,24 @@ class EntityTypeDAO:
                 ),
             )  # fmt: skip
 
-            for object_class_name in entity_type.object_class_names:
-                self.__session.add(
-                    Attribute(
-                        directory=directory,
-                        value=object_class_name,
-                        name="objectClass",
-                    ),
-                )
+            for directory in result.scalars():
+                for object_class_name in entity_type.object_class_names:
+                    self.__session.add(
+                        Attribute(
+                            directory=directory,
+                            value=object_class_name,
+                            name="objectClass",
+                        ),
+                    )
+
+            await self.__session.flush()
+        except IntegrityError:
+            # NOTE: Session has autoflush, so we can fall in select requests
+            await self.__session.rollback()
+            raise self.EntityTypeCantModifyError(
+                f"Entity Type with name '{entity_type_name}' and object class "
+                f"names {new_statement.object_class_names} already exists.",
+            )
 
     async def delete_all_by_names(
         self,
