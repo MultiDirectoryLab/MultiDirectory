@@ -1112,7 +1112,8 @@ class AuditPolicy(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
     is_enabled: Mapped[bool] = mapped_column(
-        nullable=False, server_default=expression.false()
+        nullable=False,
+        server_default=expression.false(),
     )
     severity: Mapped[AuditSeverity] = mapped_column(
         Enum(AuditSeverity),
