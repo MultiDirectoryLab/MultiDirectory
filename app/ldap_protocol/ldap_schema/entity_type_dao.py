@@ -4,10 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Iterable, Literal
+from typing import Iterable
 
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, delete, func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -165,84 +165,53 @@ class EntityTypeDAO:
             of Entity Type.
         :return None.
         """
-        entity_type = await self.get_one_by_name(entity_type_name)
-        await object_class_dao.is_all_object_classes_exists(
-            new_statement.object_class_names,
-        )
+        try:
+            entity_type = await self.get_one_by_name(entity_type_name)
+            await object_class_dao.is_all_object_classes_exists(
+                new_statement.object_class_names,
+            )
 
-        await self._is_entity_type_unique(entity_type, new_statement)
+            entity_type.name = new_statement.name
+            entity_type.object_class_names = sorted(
+                new_statement.object_class_names,
+            )
 
-        entity_type.name = new_statement.name
-        entity_type.object_class_names = new_statement.object_class_names
-
-        result = await self.__session.execute(
-            select(Directory)
-            .join(Directory.entity_type)
-            .where(EntityType.name == entity_type.name)
-            .options(selectinload(Directory.attributes)),
-        )  # fmt: skip
-
-        for directory in result.scalars():
-            await self.__session.execute(
-                delete(Attribute)
-                .where(
-                    Attribute.directory == directory,
-                    or_(
-                        Attribute.name == "objectclass",
-                        Attribute.name == "objectClass",
-                    ),
-                ),
+            result = await self.__session.execute(
+                select(Directory)
+                .join(Directory.entity_type)
+                .where(EntityType.name == entity_type.name)
+                .options(selectinload(Directory.attributes)),
             )  # fmt: skip
 
-            for object_class_name in entity_type.object_class_names:
-                self.__session.add(
-                    Attribute(
-                        directory=directory,
-                        value=object_class_name,
-                        name="objectClass",
+            for directory in result.scalars():
+                await self.__session.execute(
+                    delete(Attribute)
+                    .where(
+                        Attribute.directory == directory,
+                        or_(
+                            Attribute.name == "objectclass",
+                            Attribute.name == "objectClass",
+                        ),
                     ),
-                )
+                )  # fmt: skip
 
-    async def _is_entity_type_unique(
-        self,
-        modified_entity_type: EntityType,
-        new_statement: EntityTypeUpdateSchema,
-    ) -> Literal[True]:
-        """Check if all EntityType has unique name and object class names.
+                for object_class_name in entity_type.object_class_names:
+                    self.__session.add(
+                        Attribute(
+                            directory=directory,
+                            value=object_class_name,
+                            name="objectClass",
+                        ),
+                    )
 
-        :param EntityType modified_entity_type: EntityType to check.
-        :param EntityTypeUpdateSchema new_statement: params to update.
-        :raise EntityTypeCantModifyError: If there is EntityType with
-        same name or object class names.
-        :return bool.
-        """
-        object_class_names_filter_condition = and_(
-            EntityType.object_class_names.contains(
-                new_statement.object_class_names
-            ),
-            EntityType.object_class_names.contained_by(
-                new_statement.object_class_names
-            ),
-        )
-        unique_filter_conditions = (
-            EntityType.name == new_statement.name,
-            object_class_names_filter_condition,
-        )
-        exist_entity_type = await self.__session.scalar(
-            select(EntityType)
-            .where(
-                EntityType.id != modified_entity_type.id,
-                or_(*unique_filter_conditions),
-            )
-        )  # fmt: skip
-        if exist_entity_type:
+            await self.__session.flush()
+        except IntegrityError:
+            # NOTE: Session has autoflush, so we can fall in select requests
+            await self.__session.rollback()
             raise self.EntityTypeCantModifyError(
-                f"There is EntityType {exist_entity_type.name} "
-                "with object class names "
-                f"{', '.join(exist_entity_type.object_class_names)}."
+                f"Entity Type with name '{entity_type_name}' and object class "
+                f"names {new_statement.object_class_names} already exists.",
             )
-
-        return True
 
     async def delete_all_by_names(
         self,
