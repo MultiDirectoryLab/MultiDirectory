@@ -100,7 +100,7 @@ class KerberosService:
         base_dn_list = await get_base_directories(self._session)
         if not base_dn_list:
             raise KerberosBaseDnNotFoundError(
-                "No base DN found in the LDAP directory."
+                "No base DN found in the LDAP directory.",
             )
         return base_dn_list[0].path_dn, base_dn_list[0].name
 
@@ -320,7 +320,7 @@ class KerberosService:
             await self._kadmin.add_principal(principal_name, None)
         except KRBAPIError as exc:
             raise KerberosDependencyError(
-                f"Error adding principal: {exc}"
+                f"Error adding principal: {exc}",
             ) from exc
 
     async def rename_principal(
@@ -339,7 +339,7 @@ class KerberosService:
             await self._kadmin.rename_princ(principal_name, principal_new_name)
         except Exception as exc:
             raise KerberosDependencyError(
-                f"Error renaming principal: {exc}"
+                f"Error renaming principal: {exc}",
             ) from exc
 
     async def reset_principal_pw(
@@ -361,7 +361,7 @@ class KerberosService:
             )
         except Exception as exc:
             raise KerberosDependencyError(
-                f"Error resetting principal password: {exc}"
+                f"Error resetting principal password: {exc}",
             ) from exc
 
     async def delete_principal(self, principal_name: str) -> None:
@@ -375,7 +375,7 @@ class KerberosService:
             await self._kadmin.del_principal(principal_name)
         except Exception as exc:
             raise KerberosDependencyError(
-                f"Error deleting principal: {exc}"
+                f"Error deleting principal: {exc}",
             ) from exc
 
     async def ktadd(

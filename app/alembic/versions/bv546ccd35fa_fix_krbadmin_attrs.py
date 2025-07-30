@@ -51,7 +51,7 @@ def upgrade() -> None:
                     name=attr,
                     value=new_value,
                     directory_id=krb_admin_user.id,
-                )
+                ),
             )
 
         krb_admin_group = session.scalar(
@@ -72,7 +72,7 @@ def upgrade() -> None:
                 name="gidNumber",
                 value="800",
                 directory_id=krb_admin_group.id,
-            )
+            ),
         )
 
     session.commit()

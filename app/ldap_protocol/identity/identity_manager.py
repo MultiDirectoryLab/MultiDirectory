@@ -218,7 +218,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         """
         setup_already_performed = await self._session.scalar(
             select(Directory)
-            .filter(Directory.parent_id.is_(None))
+            .filter(Directory.parent_id.is_(None)),
         )  # fmt: skip
         if setup_already_performed:
             raise AlreadyConfiguredError("Setup already performed")
@@ -340,7 +340,7 @@ class IdentityManager(SessionKeyCreatorMixin):
             except IntegrityError:
                 await self._session.rollback()
                 raise AlreadyConfiguredError(
-                    "Setup already performed (locked)"
+                    "Setup already performed (locked)",
                 )
             else:
                 get_base_directories.cache_clear()

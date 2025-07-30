@@ -323,7 +323,8 @@ def profile_async(func: Callable) -> Callable:
         start = time.perf_counter()
         result = await func(*args, **kwargs)
         logger.critical(
-            f"Time {func.__name__} executed: {time.perf_counter() - start:.4f}"
+            f"Time {func.__name__} executed: "
+            f"{time.perf_counter() - start:.4f}",
         )
         return result
 
@@ -374,5 +375,5 @@ async def explain_query(
         "\n".join(
             row[0]
             for row in await session.execute(explain(query, analyze=True))
-        )
+        ),
     )

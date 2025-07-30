@@ -394,7 +394,7 @@ class RedisSessionStorage(SessionStorage):
         return (
             await self._fetch_keys(self._get_user_session_key(uid, "http"))
         ).union(
-            await self._fetch_keys(self._get_user_session_key(uid, "ldap"))
+            await self._fetch_keys(self._get_user_session_key(uid, "ldap")),
         )
 
     async def _get_sessions(self, keys: set[str], id_value: str | int) -> dict:

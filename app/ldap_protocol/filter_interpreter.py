@@ -40,14 +40,16 @@ class FilterInterpreterProtocol(Protocol):
 
     @abstractmethod
     def cast_to_sql(
-        self, expr: ASN1Row | Filter
+        self,
+        expr: ASN1Row | Filter,
     ) -> UnaryExpression | ColumnElement:
         """Cast filter expression to SQLAlchemy conditions."""
         ...
 
     @abstractmethod
     def _cast_item(
-        self, item: ASN1Row | Filter
+        self,
+        item: ASN1Row | Filter,
     ) -> UnaryExpression | ColumnElement:
         """Cast a single item to SQLAlchemy condition."""
         ...
@@ -61,13 +63,14 @@ class FilterInterpreterProtocol(Protocol):
             f = Directory.attributes.any(Attribute.name.ilike(attr))
         else:
             f = Directory.attributes.any(
-                and_(Attribute.name.ilike(attr), condition)
+                and_(Attribute.name.ilike(attr), condition),
             )
 
         return f
 
     def _get_filter_function(
-        self, column: str
+        self,
+        column: str,
     ) -> Callable[..., UnaryExpression]:
         """Retrieve the appropriate filter function based on the attribute."""
         if len(column.split(":")) == 1:

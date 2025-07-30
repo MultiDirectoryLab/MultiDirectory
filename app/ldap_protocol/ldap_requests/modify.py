@@ -138,7 +138,7 @@ class ModifyRequest(BaseRequest):
 
         if not ctx.ldap_session.user.role_ids:
             yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 
@@ -448,7 +448,7 @@ class ModifyRequest(BaseRequest):
                         .filter(
                             Attribute.name == "nsAccountLock",
                             Attribute.directory == directory,
-                        )
+                        ),
                     )  # fmt: skip
 
                     await session.execute(
@@ -535,7 +535,7 @@ class ModifyRequest(BaseRequest):
                     pass
 
                 validator = await PasswordPolicySchema.get_policy_settings(
-                    session
+                    session,
                 )
 
                 p_last_set = await validator.get_pwd_last_set(
@@ -570,7 +570,7 @@ class ModifyRequest(BaseRequest):
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory=directory,
-                    )
+                    ),
                 )
 
         session.add_all(attrs)

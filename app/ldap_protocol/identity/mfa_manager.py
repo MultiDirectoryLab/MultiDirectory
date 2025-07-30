@@ -80,7 +80,7 @@ class MFAManager(SessionKeyCreatorMixin):
                         CatalogueSetting.name == mfa.key_name,
                         CatalogueSetting.name == mfa.secret_name,
                     ),
-                )
+                ),
             )
             await self._session.flush()
             self._session.add_all(
@@ -90,7 +90,7 @@ class MFAManager(SessionKeyCreatorMixin):
                         name=mfa.secret_name,
                         value=mfa.mfa_secret,
                     ),
-                )
+                ),
             )
             await self._session.commit()
         return True
@@ -107,7 +107,7 @@ class MFAManager(SessionKeyCreatorMixin):
             keys = ["mfa_key_ldap", "mfa_secret_ldap"]
         await self._session.execute(
             delete(CatalogueSetting)
-            .filter(CatalogueSetting.name.in_(keys))
+            .filter(CatalogueSetting.name.in_(keys)),
         )  # fmt: skip
 
         await self._session.commit()

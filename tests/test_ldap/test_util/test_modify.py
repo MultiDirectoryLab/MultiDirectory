@@ -71,7 +71,7 @@ async def test_ldap_base_modify(
                 "-\n"
                 "delete: posixEmail\n"
                 "-\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -199,7 +199,7 @@ async def test_ldap_membersip_user_add(
                 "add: memberOf\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
                 "-\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -257,7 +257,7 @@ async def test_ldap_membersip_user_replace(
                 "objectClass: group\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -288,7 +288,7 @@ async def test_ldap_membersip_user_replace(
                 "replace: memberOf\n"
                 "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
                 "-\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -331,7 +331,7 @@ async def test_ldap_membersip_grp_replace(
         .options(
             selectinload(Directory.group)
             .selectinload(Group.parent_groups)
-            .selectinload(Group.directory)
+            .selectinload(Group.directory),
         )
         .filter(Directory.path == get_search_path(dn))
     )
@@ -350,7 +350,7 @@ async def test_ldap_membersip_grp_replace(
                 "cn: twisted\n"
                 "objectClass: group\n"
                 "objectClass: top\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -381,7 +381,7 @@ async def test_ldap_membersip_grp_replace(
                 "replace: memberOf\n"
                 "memberOf: cn=twisted1,cn=groups,dc=md,dc=test\n"
                 "-\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -427,7 +427,7 @@ async def test_ldap_modify_dn(
                 "newrdn: cn=user2\n"
                 "deleteoldrdn: 1\n"
                 "newsuperior: ou=users,dc=md,dc=test\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -454,7 +454,7 @@ async def test_ldap_modify_dn(
         .filter(
             Directory.path == ["dc=test", "dc=md", "ou=users", "cn=user2"],
             Directory.entity_type_id.isnot(None),
-        )
+        ),
     )  # fmt: skip
 
 
@@ -477,7 +477,7 @@ async def test_ldap_modify_password_change(
                 "replace: userPassword\n"
                 f"userPassword: {new_password}\n"
                 "-\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -560,7 +560,7 @@ async def test_ldap_modify_with_ap(
                     "-\n"
                     "delete: posixEmail\n"
                     "-\n"
-                )
+                ),
             )
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(

@@ -45,7 +45,7 @@ async def test_dns_create_record(
     ) == (hostname, ip, record_type, int(ttl))
 
     assert dns_manager.create_record.call_args.kwargs == {  # type: ignore
-        "zone_name": "hello.zone"
+        "zone_name": "hello.zone",
     }
 
     assert response.status_code == status.HTTP_200_OK
@@ -79,7 +79,7 @@ async def test_dns_delete_record(
     ) == (hostname, ip, record_type)
 
     assert dns_manager.delete_record.call_args.kwargs == {  # type: ignore
-        "zone_name": "hello.zone"
+        "zone_name": "hello.zone",
     }
 
     assert response.status_code == status.HTTP_200_OK
@@ -115,7 +115,7 @@ async def test_dns_update_record(
     ) == (hostname, ip, record_type, int(ttl))
 
     assert dns_manager.update_record.call_args.kwargs == {  # type: ignore
-        "zone_name": "hello.zone"
+        "zone_name": "hello.zone",
     }
 
     assert response.status_code == status.HTTP_200_OK
@@ -138,7 +138,7 @@ async def test_dns_get_all_records(http_client: AsyncClient) -> None:
                     "name": "example.com",
                     "value": "127.0.0.1",
                     "ttl": 3600,
-                }
+                },
             ],
         },
     ]

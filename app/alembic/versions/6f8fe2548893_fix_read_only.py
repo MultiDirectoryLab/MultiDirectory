@@ -29,7 +29,7 @@ def upgrade() -> None:
 
     ro_dir = session.scalar(
         select(Directory)
-        .where(Directory.name == "readonly domain controllers")
+        .where(Directory.name == "readonly domain controllers"),
     )  # fmt: skip
 
     if ro_dir:
@@ -38,7 +38,7 @@ def upgrade() -> None:
             .where(
                 Attribute.name == "objectSid",
                 Attribute.directory == ro_dir,
-            )
+            ),
         )  # fmt: skip
         session.execute(
             update(Attribute)

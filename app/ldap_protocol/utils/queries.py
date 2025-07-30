@@ -31,7 +31,7 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
         select(Directory)
-        .filter(Directory.parent_id.is_(None))
+        .filter(Directory.parent_id.is_(None)),
     )  # fmt: skip
     return list(result.scalars().all())
 
@@ -118,7 +118,8 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
 
 
 async def get_group(
-    dn: str | GRANT_DN_STRING, session: AsyncSession
+    dn: str | GRANT_DN_STRING,
+    session: AsyncSession,
 ) -> Directory:
     """Get dir with group by dn.
 
@@ -252,7 +253,7 @@ async def create_group(
     base_dn_list = await get_base_directories(session)
 
     query = select(Directory).filter(
-        get_filter_from_path("cn=groups," + base_dn_list[0].path_dn)
+        get_filter_from_path("cn=groups," + base_dn_list[0].path_dn),
     )
 
     parent = (await session.scalars(query)).one()
@@ -338,7 +339,7 @@ async def add_lock_and_expire_attributes(
                 value=str(absolute_date),
                 directory=directory,
             ),
-        ]
+        ],
     )
 
 

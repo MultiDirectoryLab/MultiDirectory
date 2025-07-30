@@ -334,5 +334,5 @@ async def test_api_search_by_entity_type_name(
                 break
         else:
             pytest.fail(
-                f"Entity type name '{entity_type_name}' not found in attributes"  # noqa: E501
+                f"Entity type name '{entity_type_name}' not found in attributes",  # noqa: E501
             )

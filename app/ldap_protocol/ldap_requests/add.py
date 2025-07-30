@@ -120,7 +120,7 @@ class AddRequest(BaseRequest):
 
         exists_q = select(
             select(Directory)
-            .filter(get_path_filter(root_dn)).exists()
+            .filter(get_path_filter(root_dn)).exists(),
         )  # fmt: skip
 
         if await ctx.session.scalar(exists_q) is True:
@@ -216,7 +216,7 @@ class AddRequest(BaseRequest):
                 name=new_dn,
                 value=name,
                 directory=new_dir,
-            )
+            ),
         )
 
         for attr in self.attributes:

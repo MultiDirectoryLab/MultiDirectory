@@ -226,16 +226,16 @@ class AbstractDNSManager(ABC):
                         "value": case(
                             *settings,
                             else_=CatalogueSetting.value,
-                        )
-                    }
-                )
+                        ),
+                    },
+                ),
             )
         else:
             session.add_all(
                 [
                     CatalogueSetting(name=name, value=value)
                     for name, value in new_settings.items()
-                ]
+                ],
             )
 
     @abstractmethod

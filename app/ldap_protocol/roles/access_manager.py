@@ -90,7 +90,7 @@ class AccessManager:
             return True
 
         if forbidden_attributes and not filter_attrs.isdisjoint(
-            forbidden_attributes
+            forbidden_attributes,
         ):
             return False
 
@@ -316,7 +316,7 @@ class AccessManager:
         selectin_loader = selectinload(Directory.access_control_entries)
         if load_attribute_type:
             selectin_loader = selectin_loader.joinedload(
-                AccessControlEntry.attribute_type
+                AccessControlEntry.attribute_type,
             )
 
         criteria_conditions = [
@@ -325,16 +325,16 @@ class AccessManager:
 
         if len(ace_types) == 1:
             criteria_conditions.append(
-                AccessControlEntry.ace_type == ace_types[0]  # type: ignore
+                AccessControlEntry.ace_type == ace_types[0],  # type: ignore
             )
         else:
             criteria_conditions.append(
-                AccessControlEntry.ace_type.in_(ace_types)
+                AccessControlEntry.ace_type.in_(ace_types),
             )
 
         if require_attribute_type_null:
             criteria_conditions.append(
-                AccessControlEntry.attribute_type_id.is_(None)
+                AccessControlEntry.attribute_type_id.is_(None),
             )
 
         return query.options(

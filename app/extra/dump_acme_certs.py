@@ -19,7 +19,7 @@ def dump_acme_cert(resolver: str = "md-resolver") -> None:
     try read until file contents is generated.
     """
     if os.path.exists("/certs/cert.pem") and os.path.exists(
-        "/certs/privkey.pem"
+        "/certs/privkey.pem",
     ):
         logger.info("Certeficate and key already exists, exiting...")
         return

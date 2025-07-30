@@ -358,7 +358,7 @@ class Directory(Base):
     def object_class_names_set(self) -> set[str]:
         return set(
             self.attributes_dict.get("objectClass", [])
-            + self.attributes_dict.get("objectclass", [])
+            + self.attributes_dict.get("objectclass", []),
         )
 
     object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
@@ -936,11 +936,11 @@ class ObjectClass(Base):
 
         if self.attribute_type_names_must:
             chunks.append(
-                f"MUST ({' $ '.join(self.attribute_type_names_must)} )"
+                f"MUST ({' $ '.join(self.attribute_type_names_must)} )",
             )
         if self.attribute_type_names_may:
             chunks.append(
-                f"MAY ({' $ '.join(self.attribute_type_names_may)} )"
+                f"MAY ({' $ '.join(self.attribute_type_names_may)} )",
             )
         chunks.append(")")
         return " ".join(chunks)

@@ -40,7 +40,7 @@ def upgrade() -> None:
         try:
             group_dir_query = select(
                 exists(Directory)
-                .where(Directory.name == "readonly domain controllers")
+                .where(Directory.name == "readonly domain controllers"),
             )  # fmt: skip
             group_dir = (await session.scalars(group_dir_query)).one()
 
@@ -79,7 +79,7 @@ def downgrade() -> None:
 
         await session.execute(
             delete(Directory)
-            .where(Directory.path == get_search_path(group_dn))
+            .where(Directory.path == get_search_path(group_dn)),
         )  # fmt: skip
 
         await session.commit()
