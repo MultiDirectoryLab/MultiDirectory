@@ -7,14 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import HTTPException, Query, status
+from fastapi import Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.object_class_router import ldap_schema_router
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from ldap_protocol.ldap_schema.entity_type_dao import (
-    EntityTypeDAO,
     EntityTypePaginationSchema,
     EntityTypeSchema,
     EntityTypeUpdateSchema,
