@@ -1155,7 +1155,8 @@ class AuditPolicyTrigger(Base):
     operation_code: Mapped[int]
     object_class: Mapped[str]
     additional_info: Mapped[dict | None] = mapped_column(
-        postgresql.JSON(none_as_null=True), nullable=True
+        postgresql.JSON(none_as_null=True),
+        nullable=True,
     )
     operation_success: Mapped[nbool]
 
@@ -1181,7 +1182,8 @@ class AuditDestination(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     service_type: Mapped[AuditDestinationServiceType] = mapped_column(
-        Enum(AuditDestinationServiceType), nullable=False
+        Enum(AuditDestinationServiceType),
+        nullable=False,
     )
     is_enabled: Mapped[tbool]
     host: Mapped[str] = mapped_column(String(255), nullable=False)
