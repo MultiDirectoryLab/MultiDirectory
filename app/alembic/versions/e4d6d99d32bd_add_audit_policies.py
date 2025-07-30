@@ -122,7 +122,7 @@ def upgrade() -> None:
         "idx_trigger_search",
         "AuditPolicyTriggers",
         ["operation_code", "operation_success", "is_ldap", "is_http"],
-        postgresql_using="btree",
+        postgresql_using="hash",
     )
     op.create_index(
         "idx_audit_policy_id_fk",

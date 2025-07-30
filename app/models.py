@@ -1140,6 +1140,7 @@ class AuditPolicyTrigger(Base):
             "operation_success",
             "is_ldap",
             "is_http",
+            postgresql_using="hash",
         ),
         Index(
             "idx_audit_policy_id_fk",
