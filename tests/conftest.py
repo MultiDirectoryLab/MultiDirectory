@@ -513,7 +513,8 @@ async def setup_session(session: AsyncSession) -> None:
     await session.flush()
 
     audit_policy_dao = AuditPoliciesDAO(session)
-    await audit_policy_dao.create_policies()
+    audit_use_case = AuditUseCase(audit_policy_dao)
+    await audit_use_case.create_policies()
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
     role_dao = RoleDAO(session)
