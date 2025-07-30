@@ -15,9 +15,26 @@ from .enums import AuditSeverity
 class AuditPolicyDTO:
     """Audit policy data transfer object."""
 
-    name: str
+    object_class: str
+    action: str
+    is_success: bool
     severity: AuditSeverity
     is_enabled: bool = False
+
+    @property
+    def name(self) -> str:
+        """Return the name of the audit policy."""
+        status = "ok" if self.is_success else "fail"
+        return f"{self.action}_{self.object_class}_{status}"
+
+    @property
+    def as_db_dict(self) -> dict:
+        """Convert the data transfer object to a dictionary."""
+        return {
+            "name": self.name,
+            "is_enabled": self.is_enabled,
+            "severity": self.severity,
+        }
 
 
 @dataclass
