@@ -120,7 +120,7 @@ class ObjectClassDAO:
         if superior_name and not superior:
             raise self.ObjectClassNotFoundError(
                 f"Superior (parent) Object class {superior_name} not found\
-                    in schema."
+                    in schema.",
             )
 
         attribute_types_may_filtered = [
@@ -131,11 +131,11 @@ class ObjectClassDAO:
 
         attribute_types_must = (
             await self.__attribute_type_dao.get_all_by_names(
-                attribute_type_names_must
+                attribute_type_names_must,
             )
         )
         attribute_types_may = await self.__attribute_type_dao.get_all_by_names(
-            attribute_types_may_filtered
+            attribute_types_may_filtered,
         )
 
         object_class = ObjectClass(
@@ -181,13 +181,13 @@ class ObjectClassDAO:
         )
 
         count_ = await self._count_exists_object_class_by_names(
-            object_class_names
+            object_class_names,
         )
 
         if count_ != len(object_class_names):
             raise self.ObjectClassNotFoundError(
                 f"Not all Object Classes\
-                    with names {object_class_names} found."
+                    with names {object_class_names} found.",
             )
 
         return True
@@ -204,12 +204,12 @@ class ObjectClassDAO:
         """
         object_class = await self.__session.scalar(
             select(ObjectClass)
-            .where(ObjectClass.name == object_class_name)
+            .where(ObjectClass.name == object_class_name),
         )  # fmt: skip
 
         if not object_class:
             raise self.ObjectClassNotFoundError(
-                f"Object Class with name '{object_class_name}' not found."
+                f"Object Class with name '{object_class_name}' not found.",
             )
 
         return object_class
@@ -229,7 +229,7 @@ class ObjectClassDAO:
             .options(
                 selectinload(ObjectClass.attribute_types_must),
                 selectinload(ObjectClass.attribute_types_may),
-            )
+            ),
         )  # fmt: skip
         return list(query.all())
 
@@ -248,13 +248,13 @@ class ObjectClassDAO:
         """
         if object_class.is_system:
             raise self.ObjectClassCantModifyError(
-                "System Object Class cannot be modified."
+                "System Object Class cannot be modified.",
             )
 
         object_class.attribute_types_must.clear()
         object_class.attribute_types_must.extend(
             await self.__attribute_type_dao.get_all_by_names(
-                new_statement.attribute_type_names_must
+                new_statement.attribute_type_names_must,
             ),
         )
 
@@ -266,7 +266,7 @@ class ObjectClassDAO:
         object_class.attribute_types_may.clear()
         object_class.attribute_types_may.extend(
             await self.__attribute_type_dao.get_all_by_names(
-                attribute_types_may_filtered
+                attribute_types_may_filtered,
             ),
         )
 
@@ -286,7 +286,7 @@ class ObjectClassDAO:
                 ObjectClass.is_system.is_(False),
                 ~ObjectClass.name.in_(
                     select(func.unnest(EntityType.object_class_names))
-                    .where(EntityType.object_class_names.isnot(None))
+                    .where(EntityType.object_class_names.isnot(None)),
                 ),
             ),
         )  # fmt: skip

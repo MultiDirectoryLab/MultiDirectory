@@ -92,9 +92,9 @@ class RoleDAO:
         return list(
             (
                 await self._session.scalars(
-                    select(Role).options(selectinload(Role.groups))
+                    select(Role).options(selectinload(Role.groups)),
                 )
-            ).all()
+            ).all(),
         )
 
     async def create_role(
@@ -197,7 +197,7 @@ class RoleDAO:
         if scope == RoleScope.BASE_OBJECT:
             path_filter = get_path_filter(path=search_path)
             directory = await self._session.scalar(
-                select(Directory).where(path_filter)
+                select(Directory).where(path_filter),
             )
             return [directory] if directory else []
 
@@ -221,9 +221,9 @@ class RoleDAO:
             return list(
                 (
                     await self._session.scalars(
-                        select(Directory).where(path_filter)
+                        select(Directory).where(path_filter),
                     )
-                ).all()
+                ).all(),
             )
 
         else:
@@ -274,7 +274,8 @@ class RoleDAO:
 
         for single_ace in new_aces:
             await self._session.refresh(
-                single_ace, attribute_names=["attribute_type", "entity_type"]
+                single_ace,
+                attribute_names=["attribute_type", "entity_type"],
             )
 
         return new_aces

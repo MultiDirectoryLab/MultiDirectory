@@ -46,7 +46,7 @@ def upgrade() -> None:
                 name=rdname,
                 value=directory.name,
                 directory_id=directory.id,
-            )
+            ),
         )
 
     session.add_all(attrs)

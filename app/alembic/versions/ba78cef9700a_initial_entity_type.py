@@ -135,7 +135,7 @@ def upgrade() -> None:
                             Attribute.name == "objectclass",
                         ),
                         Attribute.value == "inetOrgPerson",
-                    )
+                    ),
                 ),
             )
         )  # fmt: skip
@@ -146,7 +146,7 @@ def upgrade() -> None:
                     directory=user.directory,
                     name="objectClass",
                     value="inetOrgPerson",
-                )
+                ),
             )
 
         await session.commit()
@@ -217,6 +217,7 @@ def downgrade() -> None:
     op.drop_column("Directory", "entity_type_name")
 
     op.drop_index(
-        op.f("ix_Entity_Type_object_class_names"), table_name="EntityTypes"
+        op.f("ix_Entity_Type_object_class_names"),
+        table_name="EntityTypes",
     )
     op.drop_table("EntityTypes")

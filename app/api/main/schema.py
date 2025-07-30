@@ -27,14 +27,14 @@ class SearchRequest(LDAPSearchRequest):
     filter: str = Field(..., examples=["(objectClass=*)"])  # type: ignore
 
     _filter_interpreter: FilterInterpreterProtocol = PrivateAttr(
-        default_factory=StringFilterInterpreter
+        default_factory=StringFilterInterpreter,
     )
 
     def cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
         return self._filter_interpreter.cast_to_sql(
-            Filter.parse(filter_).simplify()
+            Filter.parse(filter_).simplify(),
         )
 
     @final

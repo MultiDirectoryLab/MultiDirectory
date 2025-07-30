@@ -53,7 +53,8 @@ class KerberosFastAPIAdapter:
             return await func(*args, **kwargs)
         except KerberosDependencyError as exc:
             raise HTTPException(
-                status.HTTP_424_FAILED_DEPENDENCY, detail=str(exc)
+                status.HTTP_424_FAILED_DEPENDENCY,
+                detail=str(exc),
             )
         except KerberosNotFoundError as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
@@ -63,7 +64,8 @@ class KerberosFastAPIAdapter:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
         except KerberosBaseDnNotFoundError as exc:
             raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
             )
 
     async def setup_krb_catalogue(
@@ -198,7 +200,7 @@ class KerberosFastAPIAdapter:
             aiter_bytes,
             media_type="application/txt",
             headers={
-                "Content-Disposition": 'attachment; filename="krb5.keytab"'
+                "Content-Disposition": 'attachment; filename="krb5.keytab"',
             },
             background=task,
         )

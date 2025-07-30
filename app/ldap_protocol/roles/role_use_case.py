@@ -62,7 +62,7 @@ class RoleUseCase:
                 [
                     RoleScope.SINGLE_LEVEL,
                     RoleScope.WHOLE_SUBTREE,
-                ]
+                ],
             ),
         )
 
@@ -130,7 +130,7 @@ class RoleUseCase:
         )
 
         return bool(
-            (await self._role_dao._session.scalars(select(query))).one()  # noqa: SLF001
+            (await self._role_dao._session.scalars(select(query))).one(),  # noqa: SLF001
         )
 
     async def create_domain_admins_role(self) -> None:
@@ -181,7 +181,7 @@ class RoleUseCase:
                 attribute_type_id=None,
                 entity_type_id=None,
                 is_allow=True,
-            )
+            ),
         ]
         await self._role_dao.add_access_control_entries(
             role_id=role.id,
@@ -206,7 +206,7 @@ class RoleUseCase:
         )
 
         aces = self._get_full_access_aces(
-            "ou=services," + base_dn_list[0].path_dn
+            "ou=services," + base_dn_list[0].path_dn,
         )
         await self._role_dao.add_access_control_entries(
             role_id=role.id,
@@ -216,7 +216,7 @@ class RoleUseCase:
     async def delete_kerberos_system_role(self) -> None:
         """Delete the Kerberos system role."""
         role = await self._role_dao.get_role_by_name(
-            RoleConstants.KERBEROS_ROLE_NAME
+            RoleConstants.KERBEROS_ROLE_NAME,
         )
         if role:
             await self._role_dao.delete_role(role.id)

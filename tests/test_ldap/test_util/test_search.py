@@ -356,5 +356,5 @@ async def test_ldap_search_access_control_denied(
             "dn: cn=developers,cn=groups,dc=md,dc=test",
             "dn: cn=domain users,cn=groups,dc=md,dc=test",
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-        ]
+        ],
     )

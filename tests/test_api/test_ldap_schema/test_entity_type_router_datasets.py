@@ -54,7 +54,7 @@ test_get_list_entity_types_with_pagination_dataset = [
                 "is_system": False,
             },
         ],
-    }
+    },
 ]
 
 test_modify_one_entity_type_dataset = [

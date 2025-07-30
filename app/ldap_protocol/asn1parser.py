@@ -188,7 +188,7 @@ class ASN1Row(Generic[T]):
 
                 if operator is None:
                     raise ValueError(
-                        f"Invalid tag_id ({obj.tag_id}) in context"
+                        f"Invalid tag_id ({obj.tag_id}) in context",
                     )
 
             if isinstance(obj.value, list):

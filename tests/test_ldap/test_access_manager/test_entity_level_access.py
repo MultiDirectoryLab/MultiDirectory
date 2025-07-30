@@ -41,7 +41,7 @@ from .conftest import create_mock_ace
                 create_mock_ace(
                     is_allow=False,
                     entity_type_id=1,
-                )
+                ),
             ],
             1,
             False,

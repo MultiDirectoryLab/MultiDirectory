@@ -24,7 +24,7 @@ from .conftest import create_mock_ace
                 Changes(
                     operation=Operation.DELETE,
                     modification=PartialAttribute(type="cn", vals="value"),
-                )
+                ),
             ],
             1,
             False,
@@ -35,7 +35,7 @@ from .conftest import create_mock_ace
                 Changes(
                     operation=Operation.DELETE,
                     modification=PartialAttribute(type="cn", vals="value"),
-                )
+                ),
             ],
             1,
             False,
@@ -61,7 +61,8 @@ from .conftest import create_mock_ace
                 Changes(
                     operation=Operation.ADD,
                     modification=PartialAttribute(
-                        type="description", vals="v"
+                        type="description",
+                        vals="v",
                     ),
                 ),
             ],
@@ -87,7 +88,8 @@ from .conftest import create_mock_ace
                 Changes(
                     operation=Operation.ADD,
                     modification=PartialAttribute(
-                        type="description", vals="v"
+                        type="description",
+                        vals="v",
                     ),
                 ),
             ],
@@ -119,7 +121,8 @@ from .conftest import create_mock_ace
                 Changes(
                     operation=Operation.ADD,
                     modification=PartialAttribute(
-                        type="description", vals="v"
+                        type="description",
+                        vals="v",
                     ),
                 ),
             ],
@@ -151,7 +154,8 @@ from .conftest import create_mock_ace
                 Changes(
                     operation=Operation.ADD,
                     modification=PartialAttribute(
-                        type="description", vals="v"
+                        type="description",
+                        vals="v",
                     ),
                 ),
             ],
@@ -183,7 +187,8 @@ from .conftest import create_mock_ace
                 Changes(
                     operation=Operation.ADD,
                     modification=PartialAttribute(
-                        type="description", vals="v"
+                        type="description",
+                        vals="v",
                     ),
                 ),
             ],

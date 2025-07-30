@@ -112,7 +112,7 @@ async def test_get_list_entity_types_with_pagination(
     page_number = 1
     page_size = 2
     response = await http_client.get(
-        f"/schema/entity_types?page_number={page_number}&page_size={page_size}"
+        f"/schema/entity_types?page_number={page_number}&page_size={page_size}",
     )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
@@ -158,7 +158,7 @@ async def test_modify_one_entity_type(
     entity_type = response.json()
     assert set(entity_type.get("name")) == set(new_statement.get("name"))
     assert set(entity_type.get("object_class_names")) == set(
-        new_statement.get("object_class_names")
+        new_statement.get("object_class_names"),
     )
 
 

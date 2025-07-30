@@ -44,7 +44,7 @@ async def test_ldap_root_add(
                 "objectClass: organization\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -173,7 +173,7 @@ async def test_ldap_user_add_group_with_group(
                 "objectClass: group\n"
                 "objectClass: top\n"
                 f"memberOf: {group_dn}\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -255,7 +255,7 @@ async def test_ldap_add_access_control(
                     "cn: test\n"
                     "objectClass: organization\n"
                     "objectClass: top\n"
-                )
+                ),
             )
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(

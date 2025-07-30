@@ -20,13 +20,13 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             "CREATE INDEX idx_attributes_name_gin_trgm "
-            'ON "Attributes" USING GIN(name gin_trgm_ops);'
-        )
+            'ON "Attributes" USING GIN(name gin_trgm_ops);',
+        ),
     )
     op.execute(
         sa.text(
             "CREATE INDEX idx_attributes_lw_name_btree "
-            'ON "Attributes" USING BTREE(lower(name));'
+            'ON "Attributes" USING BTREE(lower(name));',
         ),
     )
 

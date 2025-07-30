@@ -130,7 +130,7 @@ async def modify_one_object_class(
     """
     try:
         object_class = await object_class_dao.get_one_by_name(
-            object_class_name
+            object_class_name,
         )
 
         await object_class_dao.modify_one(

@@ -120,12 +120,12 @@ class AttributeTypeDAO:
         """
         attribute_type = await self.__session.scalar(
             select(AttributeType)
-            .where(AttributeType.name == attribute_type_name)
+            .where(AttributeType.name == attribute_type_name),
         )  # fmt: skip
 
         if not attribute_type:
             raise self.AttributeTypeNotFoundError(
-                f"Attribute Type with name '{attribute_type_name}' not found."
+                f"Attribute Type with name '{attribute_type_name}' not found.",
             )
 
         return attribute_type
@@ -163,7 +163,7 @@ class AttributeTypeDAO:
         """
         if attribute_type.is_system:
             raise self.AttributeTypeCantModifyError(
-                "System Attribute Type cannot be modified."
+                "System Attribute Type cannot be modified.",
             )
 
         attribute_type.syntax = new_statement.syntax

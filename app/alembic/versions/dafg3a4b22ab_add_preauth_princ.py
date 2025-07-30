@@ -47,7 +47,7 @@ def upgrade() -> None:
                     name="krbticketflags",
                     value="128",
                     directory_id=attr_principal.directory_id,
-                )
+                ),
             )
 
     # NOTE: Remove duplicate Kerberos state settings and keep the latest one

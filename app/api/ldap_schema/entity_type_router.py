@@ -44,7 +44,7 @@ async def create_one_entity_type(
     :return None.
     """
     await object_class_dao.is_all_object_classes_exists(
-        request_data.object_class_names
+        request_data.object_class_names,
     )
 
     await entity_type_dao.create_one(

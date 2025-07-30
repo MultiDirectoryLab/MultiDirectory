@@ -61,7 +61,7 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     """
     results = await session.execute(
         select(CatalogueSetting)
-        .where(CatalogueSetting.name == KERBEROS_STATE_NAME)
+        .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
     )  # fmt: skip
     kerberos_state = results.scalar_one_or_none()
 
@@ -80,7 +80,7 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
     """Get kerberos server state."""
     state = await session.scalar(
         select(CatalogueSetting)
-        .filter(CatalogueSetting.name == KERBEROS_STATE_NAME)
+        .filter(CatalogueSetting.name == KERBEROS_STATE_NAME),
     )  # fmt: skip
 
     if state is None:
