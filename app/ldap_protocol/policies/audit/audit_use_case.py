@@ -321,24 +321,41 @@ class AuditUseCase:
             ],
         )
 
+    async def _create_organizational_unit_policies(self) -> None:
+        """Create policies for organizational units."""
+        object_class = "organizationalUnit"
+        await self._create_standard_policies(object_class, "ok", True)
+        await self._create_standard_policies(object_class, "fail", False)
+
+    async def _create_user_policies(self) -> None:
+        """Create policies for user operations."""
+        object_class = "user"
+        await self._create_standard_policies(object_class, "ok", True)
+        await self._create_user_specific_policies("ok", True)
+        await self._create_account_status_policies(object_class, "ok", True)
+        await self._create_standard_policies(object_class, "fail", False)
+        await self._create_user_specific_policies("fail", False)
+        await self._create_account_status_policies(object_class, "fail", False)
+
+    async def _create_group_policies(self) -> None:
+        """Create policies for group operations."""
+        object_class = "group"
+        await self._create_standard_policies(object_class, "ok", True)
+        await self._create_group_member_policies("ok", True)
+        await self._create_standard_policies(object_class, "fail", False)
+        await self._create_group_member_policies("fail", False)
+
+    async def _create_computer_policies(self) -> None:
+        """Create policies for computer operations."""
+        object_class = "computer"
+        await self._create_standard_policies(object_class, "ok", True)
+        await self._create_account_status_policies(object_class, "ok", True)
+        await self._create_standard_policies(object_class, "fail", False)
+        await self._create_account_status_policies(object_class, "fail", False)
+
     async def create_policies(self) -> None:
         """Create initial audit policies."""
-        object_classes = {"organizationalUnit", "user", "group", "computer"}
-        status_lines = {"ok": True, "fail": False}
-
-        for object_class in object_classes:
-            for line, is_ok in status_lines.items():
-                await self._create_standard_policies(object_class, line, is_ok)
-
-                if object_class == "user":
-                    await self._create_user_specific_policies(line, is_ok)
-
-                if object_class == "user" or object_class == "computer":
-                    await self._create_account_status_policies(
-                        object_class,
-                        line,
-                        is_ok,
-                    )
-
-                if object_class == "group":
-                    await self._create_group_member_policies(line, is_ok)
+        await self._create_organizational_unit_policies()
+        await self._create_user_policies()
+        await self._create_group_policies()
+        await self._create_computer_policies()
