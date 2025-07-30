@@ -49,7 +49,7 @@ class AuditUseCase:
                         operation_code=operation_code,
                         object_class=object_class,
                         operation_success=is_success,
-                    )
+                    ),
                 ],
             )
 
@@ -79,7 +79,7 @@ class AuditUseCase:
                         "change_attributes": [
                             "userpassword",
                             "unicodepwd",
-                        ]
+                        ],
                     },
                 ),
                 AuditPolicyTriggerDTO(
@@ -230,7 +230,7 @@ class AuditUseCase:
                         "value": UserAccountControlFlag.ACCOUNTDISABLE,
                         "result": False,
                     },
-                )
+                ),
             ],
         )
         await self._audit_dao.create_policy(
@@ -253,7 +253,7 @@ class AuditUseCase:
                         "value": UserAccountControlFlag.ACCOUNTDISABLE,
                         "result": True,
                     },
-                )
+                ),
             ],
         )
 
