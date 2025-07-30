@@ -95,7 +95,7 @@ class LDAPEntityTypeAdapter:
         :return EntityTypePaginationSchema: Paginator Schema.
         """
         pagination_result = await self.entity_type_dao.get_paginator(
-            params=params
+            params=params,
         )
 
         items = [
@@ -118,7 +118,7 @@ class LDAPEntityTypeAdapter:
         :return EntityTypeSchema: Entity Type Schema.
         """
         entity_type = await self.entity_type_dao.get_one_by_name(
-            entity_type_name=entity_type_name
+            entity_type_name=entity_type_name,
         )
         return EntityTypeSchema.model_validate(
             entity_type,
@@ -142,7 +142,7 @@ class LDAPEntityTypeAdapter:
         :return None.
         """
         await object_class_dao.is_all_object_classes_exists(
-            request_data.object_class_names
+            request_data.object_class_names,
         )
 
         await self._sc(

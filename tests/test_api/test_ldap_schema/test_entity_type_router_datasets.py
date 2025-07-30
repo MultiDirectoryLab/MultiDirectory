@@ -107,7 +107,7 @@ test_modify_entity_type_with_duplicates_dataset = [
                 },
             ),
         },
-    }
+    },
 ]
 
 test_modify_one_entity_type_dataset = [
