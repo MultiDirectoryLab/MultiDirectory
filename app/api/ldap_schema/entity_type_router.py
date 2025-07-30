@@ -89,10 +89,8 @@ async def get_list_entity_types_with_pagination(
     :param PaginationParams params: Pagination parameters.
     :return EntityTypePaginationSchema: Paginator Schema.
     """
-    return (
-        await adapter.get_list_entity_types_with_pagination(
-            params=params,
-        )
+    return await adapter.get_list_entity_types_with_pagination(
+        params=params,
     )
 
 
