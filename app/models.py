@@ -1154,7 +1154,7 @@ class AuditPolicyTrigger(Base):
     is_http: Mapped[tbool]
     operation_code: Mapped[int]
     object_class: Mapped[str]
-    additional_info: Mapped[dict] = mapped_column(
+    additional_info: Mapped[dict | None] = mapped_column(
         postgresql.JSON, nullable=True
     )
     operation_success: Mapped[nbool]

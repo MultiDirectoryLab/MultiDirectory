@@ -6,6 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
+from ldap_protocol.objects import OperationEvent
+
 from .enums import AuditSeverity
 
 
@@ -14,8 +16,8 @@ class AuditPolicyDTO:
     """Audit policy data transfer object."""
 
     name: str
-    is_enabled: bool
     severity: AuditSeverity
+    is_enabled: bool = False
 
 
 @dataclass
@@ -24,7 +26,7 @@ class AuditPolicyTriggerDTO:
 
     is_ldap: bool
     is_http: bool
-    operation_code: int
+    operation_code: OperationEvent
     object_class: str
-    additional_info: dict
     operation_success: bool
+    additional_info: dict | None = None
