@@ -30,7 +30,13 @@ class AuditPoliciesDAO:
         triggers = list()
 
         for trigger_dto in triggers_dto:
-            trigger = AuditPolicyTrigger(**asdict(trigger_dto))
+            trigger = AuditPolicyTrigger(
+                **{
+                    key: value
+                    for key, value in asdict(trigger_dto).items()
+                    if value is not None
+                }
+            )
             trigger.audit_policy = policy
             triggers.append(trigger)
 
