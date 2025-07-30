@@ -172,10 +172,11 @@ class EntityTypeDAO:
             )
 
             entity_type.name = new_statement.name
+            # Sort object_class_names to ensure a consistent order for database operations
+            # and to facilitate duplicate detection.
             entity_type.object_class_names = sorted(
                 new_statement.object_class_names,
             )
-
             result = await self.__session.execute(
                 select(Directory)
                 .join(Directory.entity_type)
