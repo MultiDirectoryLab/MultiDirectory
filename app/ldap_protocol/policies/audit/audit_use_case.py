@@ -48,7 +48,7 @@ class AuditUseCase:
                         is_http=True,
                         operation_code=operation_code,
                         object_class=object_class,
-                        operation_success=is_success,
+                        is_operation_success=is_success,
                     ),
                 ],
             )
@@ -74,7 +74,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": [
                             "userpassword",
@@ -87,7 +87,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.EXTENDED,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "oid": LDAPOID.PASSWORD_MODIFY,
                     },
@@ -97,14 +97,14 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.CHANGE_PASSWORD,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                 ),
                 AuditPolicyTriggerDTO(
                     is_ldap=False,
                     is_http=True,
                     operation_code=OperationEvent.CHANGE_PASSWORD_KERBEROS,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                 ),
             ],
         )
@@ -130,21 +130,21 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.BIND,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                 ),
                 AuditPolicyTriggerDTO(
                     is_ldap=False,
                     is_http=True,
                     operation_code=OperationEvent.AFTER_2FA,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                 ),
                 AuditPolicyTriggerDTO(
                     is_ldap=False,
                     is_http=True,
                     operation_code=OperationEvent.KERBEROS_AUTH,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                 ),
             ],
         )
@@ -170,7 +170,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["useraccountcontrol"],
                         "operation": "&",
@@ -183,7 +183,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["pwdlastset"],
                         "operation": "==",
@@ -223,7 +223,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["useraccountcontrol"],
                         "operation": "&",
@@ -246,7 +246,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["useraccountcontrol"],
                         "operation": "&",
@@ -275,7 +275,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["member"],
                         "operation": "<",
@@ -287,7 +287,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class="user",
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["memberof"],
                         "operation": "<",
@@ -309,7 +309,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class=object_class,
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["member"],
                         "operation": ">",
@@ -321,7 +321,7 @@ class AuditUseCase:
                     is_http=True,
                     operation_code=OperationEvent.MODIFY,
                     object_class="user",
-                    operation_success=is_success,
+                    is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["memberof"],
                         "operation": ">",

@@ -1249,7 +1249,7 @@ class AuditPolicyTrigger(Base):
         Index(
             "idx_trigger_search",
             "operation_code",
-            "operation_success",
+            "is_operation_success",
             "is_ldap",
             "is_http",
             postgresql_using="btree",
@@ -1270,7 +1270,7 @@ class AuditPolicyTrigger(Base):
         postgresql.JSON(none_as_null=True),
         nullable=True,
     )
-    operation_success: Mapped[nbool]
+    is_operation_success: Mapped[nbool]
 
     audit_policy_id: Mapped[int] = mapped_column(
         "audit_policy_id",
