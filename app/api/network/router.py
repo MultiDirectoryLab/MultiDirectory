@@ -114,7 +114,7 @@ async def get_list_network_policies(
     """
     groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
     mfa_groups = selectinload(NetworkPolicy.mfa_groups).selectinload(
-        Group.directory
+        Group.directory,
     )
 
     return [

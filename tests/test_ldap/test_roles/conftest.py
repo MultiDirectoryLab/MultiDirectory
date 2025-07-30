@@ -74,7 +74,7 @@ async def run_ldap_modify(
                 f"replace: {attribute}\n"
                 f"{attribute}: {value}\n"
                 "-\n"
-            )
+            ),
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(

@@ -184,7 +184,7 @@ def upgrade() -> None:
                 Attribute.name == "objectclass",
             ),
             Attribute.value == "catalog",
-        )
+        ),
     )
 
     # NOTE: Load attributeTypes into the database
@@ -245,7 +245,7 @@ def upgrade() -> None:
             "( 2.16.840.1.113719.1.301.4.53.1 NAME 'krbPrincContainerRef' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
             "( 2.16.840.1.113730.3.8.15.2.1 NAME 'krbPrincipalAuthInd' EQUALITY caseExactMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
             "( 1.3.6.1.4.1.5322.21.2.4 NAME 'krbAllowedToDelegateTo' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
-        ]
+        ],
     )
     at_raw_definitions_filtered = [
         definition
@@ -254,7 +254,7 @@ def upgrade() -> None:
     ]
     for at_raw_definition in at_raw_definitions_filtered:
         attribute_type = RDParser.create_attribute_type_by_raw(
-            raw_definition=at_raw_definition
+            raw_definition=at_raw_definition,
         )
         session.add(attribute_type)
     session.commit()
@@ -298,7 +298,7 @@ def upgrade() -> None:
 
         for oc_1priority_raw_definition in oc_first_priority_raw_definitions:
             object_class_info = RDParser.get_object_class_info(
-                raw_definition=oc_1priority_raw_definition
+                raw_definition=oc_1priority_raw_definition,
             )
             oc_already_created_oids.add(object_class_info.oid)
 
@@ -319,7 +319,7 @@ def upgrade() -> None:
 
         for oc_raw_definition in oc_raw_definitions_filtered:
             object_class_info = RDParser.get_object_class_info(
-                raw_definition=oc_raw_definition
+                raw_definition=oc_raw_definition,
             )
             if object_class_info.oid in oc_already_created_oids:
                 continue
@@ -377,7 +377,7 @@ def upgrade() -> None:
                 object_class_name=object_class_name,
             )
             attribute_types_may = await attribute_type_dao.get_all_by_names(
-                attribute_type_names=attribute_type_may_names
+                attribute_type_names=attribute_type_may_names,
             )
             object_class.attribute_types_may.extend(attribute_types_may)
 

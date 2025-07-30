@@ -375,7 +375,9 @@ async def test_delete_user_session(
     session_id, _ = session_key.split(".")
 
     await storage.create_ldap_session(
-        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
+        uid,
+        "ldap:1234",
+        data={"id": uid, "ip": ldap_ip},
     )
 
     all_sessions = await storage.get_user_sessions(uid)
@@ -422,7 +424,9 @@ async def test_clear_user_sessions(
 
     for i in range(10):
         await storage.create_ldap_session(
-            uid, f"ldap:{i}", data={"id": uid, "ip": ldap_ip}
+            uid,
+            f"ldap:{i}",
+            data={"id": uid, "ip": ldap_ip},
         )
 
     all_sessions = await storage.get_user_sessions(uid)
@@ -473,7 +477,9 @@ async def test_remove_non_existent_session(
     )
 
     await storage.create_ldap_session(
-        uid, "ldap:1234", data={"id": uid, "ip": ldap_ip}
+        uid,
+        "ldap:1234",
+        data={"id": uid, "ip": ldap_ip},
     )
 
     all_sessions = await storage.get_user_sessions(uid)

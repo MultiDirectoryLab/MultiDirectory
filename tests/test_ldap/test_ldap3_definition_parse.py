@@ -39,7 +39,7 @@ async def test_ldap3_parse_attribute_types(test_dataset: list[str]) -> None:
     """Test parse ldap3 attribute types."""
     for raw_definition in test_dataset:
         attribute_type: AttributeType = RDParser.create_attribute_type_by_raw(
-            raw_definition
+            raw_definition,
         )
 
         assert raw_definition == attribute_type.get_raw_definition()
@@ -66,7 +66,7 @@ async def test_ldap3_parse_object_classes(
     """Test parse ldap3 object classes."""
     for raw_definition in test_dataset:
         object_class_info = RDParser.get_object_class_info(
-            raw_definition=raw_definition
+            raw_definition=raw_definition,
         )
         object_class: ObjectClass = await RDParser.create_object_class_by_info(
             session=session,

@@ -128,5 +128,5 @@ async def test_api_delete_many(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert all(
-        [result.get("resultCode") == LDAPCodes.SUCCESS for result in data]
+        [result.get("resultCode") == LDAPCodes.SUCCESS for result in data],
     )

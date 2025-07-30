@@ -300,7 +300,7 @@ async def test_ldap_kadmin_delete_computer(
             "entry": "cn=ktest,dc=md,dc=test",
             "password": None,
             "attributes": [
-                {"type": "objectClass", "vals": ["computer", "top"]}
+                {"type": "objectClass", "vals": ["computer", "top"]},
             ],
         },
     )

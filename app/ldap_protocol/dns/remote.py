@@ -86,7 +86,7 @@ class RemoteDNSManager(AbstractDNSManager):
                     name=(name.to_text() + f".{self._dns_settings.zone_name}"),
                     value=rdata.to_text(),
                     ttl=ttl,
-                )
+                ),
             )
 
         return [

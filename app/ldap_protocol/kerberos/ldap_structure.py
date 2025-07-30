@@ -66,7 +66,7 @@ class KRBLDAPStructureManager:
             if not all(result.result_code == 0 for result in results):
                 await self._session.rollback()
                 raise KerberosConflictError(
-                    "Error creating Kerberos structure in directory"
+                    "Error creating Kerberos structure in directory",
                 )
             await self._role_use_case.create_kerberos_system_role()
             await self._session.commit()
@@ -89,13 +89,13 @@ class KRBLDAPStructureManager:
                 get_filter_from_path(krbadmin),
                 get_filter_from_path(services_container),
                 get_filter_from_path(krbgroup),
-            )
+            ),
         )
         directories = await self._session.scalars(directories_query)
         if directories:
             await self._session.execute(
                 delete(Directory).where(
-                    Directory.id.in_([dir_.id for dir_ in directories])
-                )
+                    Directory.id.in_([dir_.id for dir_ in directories]),
+                ),
             )
         await self._role_use_case.delete_kerberos_system_role()

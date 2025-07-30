@@ -212,7 +212,9 @@ class BindDNSServerManager:
         )
 
     def _write_zone_data_to_file(
-        self, zone_name: str, zone: dns.zone.Zone
+        self,
+        zone_name: str,
+        zone: dns.zone.Zone,
     ) -> None:
         """Write zone data to file and reload the zone.
 
@@ -525,7 +527,7 @@ class BindDNSServerManager:
                     pattern,
                     named_local,
                     flags=re.MULTILINE | re.VERBOSE | re.DOTALL,
-                )
+                ),
             )
 
             if param.value is None:
@@ -730,7 +732,7 @@ class BindDNSServerManager:
                     name=name.to_text(),
                     value=rdata.to_text(),
                     ttl=ttl,
-                )
+                ),
             )
 
         return [
@@ -767,7 +769,7 @@ class BindDNSServerManager:
                     name=zone_name,
                     type=zone_type,
                     records=zone_records,
-                )
+                ),
             )
 
         return result
@@ -819,7 +821,7 @@ class BindDNSServerManager:
                     zone_name,
                     DNSZoneType.FORWARD,
                     clean_forwarders,
-                )
+                ),
             )
 
         return result

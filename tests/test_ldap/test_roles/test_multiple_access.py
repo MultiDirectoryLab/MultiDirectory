@@ -42,12 +42,12 @@ async def test_multiple_access(
     assert posix_email_attr
 
     user_principal_name = await attribute_type_dao.get_one_by_name(
-        "userPrincipalName"
+        "userPrincipalName",
     )
     assert user_principal_name
 
     user_account_control_attr = await attribute_type_dao.get_one_by_name(
-        "userAccountControl"
+        "userAccountControl",
     )
     assert user_account_control_attr
 

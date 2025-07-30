@@ -39,7 +39,7 @@ class RawDefinitionParser:
     ) -> list[AttributeType]:
         query = await session.execute(
             select(AttributeType)
-            .where(AttributeType.name.in_(names))
+            .where(AttributeType.name.in_(names)),
         )  # fmt: skip
         return list(query.scalars().all())
 
@@ -48,7 +48,7 @@ class RawDefinitionParser:
         raw_definition: str,
     ) -> AttributeType:
         attribute_type_info = RawDefinitionParser._get_attribute_type_info(
-            raw_definition=raw_definition
+            raw_definition=raw_definition,
         )
 
         return AttributeType(
@@ -70,7 +70,7 @@ class RawDefinitionParser:
 
         return await session.scalar(
             select(ObjectClass)
-            .where(ObjectClass.name == object_class_name)
+            .where(ObjectClass.name == object_class_name),
         )  # fmt: skip
 
     @staticmethod
@@ -80,7 +80,7 @@ class RawDefinitionParser:
     ) -> ObjectClass:
         """Create Object Class by ObjectClassInfo."""
         superior_name = RawDefinitionParser._list_to_string(
-            object_class_info.superior
+            object_class_info.superior,
         )
 
         superior_object_class = (
@@ -102,14 +102,14 @@ class RawDefinitionParser:
                 await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.must_contain,
-                )
+                ),
             )
         if object_class_info.may_contain:
             object_class.attribute_types_may.extend(
                 await RawDefinitionParser._get_attribute_types_by_names(
                     session,
                     object_class_info.may_contain,
-                )
+                ),
             )
 
         return object_class

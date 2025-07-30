@@ -84,7 +84,7 @@ async def test_modify_system_object_class(http_client: AsyncClient) -> None:
     page_number = 1
     page_size = 10
     response = await http_client.get(
-        f"/schema/object_classes?page_number={page_number}&page_size={page_size}"
+        f"/schema/object_classes?page_number={page_number}&page_size={page_size}",
     )
     for object_class in response.json()["items"]:
         if object_class["is_system"] is True:
@@ -108,7 +108,7 @@ async def test_get_list_object_classes_with_pagination(
     page_number = 1
     page_size = 25
     response = await http_client.get(
-        f"/schema/object_classes?page_number={page_number}&page_size={page_size}"
+        f"/schema/object_classes?page_number={page_number}&page_size={page_size}",
     )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
@@ -153,10 +153,10 @@ async def test_modify_one_object_class(
     assert isinstance(response.json(), dict)
     object_class = response.json()
     assert set(object_class.get("attribute_type_names_must")) == set(
-        new_statement.get("attribute_type_names_must")
+        new_statement.get("attribute_type_names_must"),
     )
     assert set(object_class.get("attribute_type_names_may")) == set(
-        new_statement.get("attribute_type_names_may")
+        new_statement.get("attribute_type_names_may"),
     )
 
 

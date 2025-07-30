@@ -138,7 +138,8 @@ select = [
     # "DOC",  # pydoclint TODO uncomment, ruff fix and fix error
     # "RUF",  # Ruff-specific rules TODO uncomment, ruff fix and fix error
     "RUF100", # Ruff100-specific rule TODO delete that and uncomment "RUF"-rule in line up.
-    "SLF001",  # flake8-self: checks for access to private/protected attributes via self 
+    "SLF001",  # flake8-self: checks for access to private/protected attributes via self
+    "COM812",  # this is necessary. It checks for commas in the end of the line.
 ]
 
 # Gradually remove all values marked 'TODO' and fix errors.
@@ -159,7 +160,6 @@ ignore = [
     "ASYNC230",
     "S311",  # this is necessary.
     "B904",  # this is necessary.
-    "COM812",  # this is necessary. Cause conflicts when used with the formatter
     "TC001",  # this is necessary.
     "TC002",  # this is necessary.
     "TC003",  # this is necessary.

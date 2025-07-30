@@ -113,7 +113,7 @@ class ModifyDNRequest(BaseRequest):
 
         if not ctx.ldap_session.user.role_ids:
             yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 
@@ -149,7 +149,7 @@ class ModifyDNRequest(BaseRequest):
 
         if not can_delete:
             yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 
@@ -166,7 +166,7 @@ class ModifyDNRequest(BaseRequest):
             )
 
             parent_query = select(Directory).filter(
-                Directory.id == directory.parent_id
+                Directory.id == directory.parent_id,
             )
             parent_query = ctx.access_manager.mutate_query_with_ace_load(
                 user_role_ids=ctx.ldap_session.user.role_ids,
@@ -183,7 +183,7 @@ class ModifyDNRequest(BaseRequest):
                 )
                 if not can_add:
                     yield ModifyDNResponse(
-                        result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                        result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                     )
                     return
 
@@ -197,7 +197,7 @@ class ModifyDNRequest(BaseRequest):
 
         else:
             new_sup_query = select(Directory).filter(
-                get_filter_from_path(self.new_superior)
+                get_filter_from_path(self.new_superior),
             )
             new_sup_query = ctx.access_manager.mutate_query_with_ace_load(
                 user_role_ids=ctx.ldap_session.user.role_ids,
@@ -219,7 +219,7 @@ class ModifyDNRequest(BaseRequest):
 
             if not can_add:
                 yield ModifyDNResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                 )
                 return
 
@@ -315,7 +315,7 @@ class ModifyDNRequest(BaseRequest):
                 )
                 .where(
                     AccessControlEntry.directories.any(
-                        Directory.id == directory.id
+                        Directory.id == directory.id,
                     ),
                     AccessControlEntry.depth == directory.depth,
                 )

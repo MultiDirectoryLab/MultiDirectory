@@ -74,7 +74,7 @@ async def test_modify_system_attribute(http_client: AsyncClient) -> None:
     page_number = 1
     page_size = 10
     response = await http_client.get(
-        f"/schema/attribute_types?page_number={page_number}&page_size={page_size}"
+        f"/schema/attribute_types?page_number={page_number}&page_size={page_size}",
     )
     for attr in response.json()["items"]:
         if attr["is_system"] is True:
@@ -98,7 +98,7 @@ async def test_get_list_attribute_types_with_pagination(
     page_number = 1
     page_size = 50
     response = await http_client.get(
-        f"/schema/attribute_types?page_number={page_number}&page_size={page_size}"
+        f"/schema/attribute_types?page_number={page_number}&page_size={page_size}",
     )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)

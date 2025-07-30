@@ -118,12 +118,12 @@ class EntityTypeDAO:
         """
         entity_type = await self.__session.scalar(
             select(EntityType)
-            .where(EntityType.name == entity_type_name)
+            .where(EntityType.name == entity_type_name),
         )  # fmt: skip
 
         if not entity_type:
             raise self.EntityTypeNotFoundError(
-                f"Entity Type with name '{entity_type_name}' not found."
+                f"Entity Type with name '{entity_type_name}' not found.",
             )
 
         return entity_type
@@ -142,12 +142,12 @@ class EntityTypeDAO:
             select(EntityType)
             .where(
                 func.array_lowercase(EntityType.object_class_names).op("@>")(
-                    list_object_class_names
+                    list_object_class_names,
                 ),
                 func.array_lowercase(EntityType.object_class_names).op("<@")(
-                    list_object_class_names
+                    list_object_class_names,
                 ),
-            )
+            ),
         )  # fmt: skip
 
         return result.scalars().first()
@@ -167,7 +167,7 @@ class EntityTypeDAO:
         """
         entity_type = await self.get_one_by_name(entity_type_name)
         await object_class_dao.is_all_object_classes_exists(
-            new_statement.object_class_names
+            new_statement.object_class_names,
         )
 
         await self._is_entity_type_unique(entity_type, new_statement)
@@ -179,7 +179,7 @@ class EntityTypeDAO:
             select(Directory)
             .join(Directory.entity_type)
             .where(EntityType.name == entity_type.name)
-            .options(selectinload(Directory.attributes))
+            .options(selectinload(Directory.attributes)),
         )  # fmt: skip
 
         for directory in result.scalars():
@@ -189,9 +189,9 @@ class EntityTypeDAO:
                     Attribute.directory == directory,
                     or_(
                         Attribute.name == "objectclass",
-                        Attribute.name == "objectClass"
+                        Attribute.name == "objectClass",
                     ),
-                )
+                ),
             )  # fmt: skip
 
             for object_class_name in entity_type.object_class_names:
@@ -200,7 +200,7 @@ class EntityTypeDAO:
                         directory=directory,
                         value=object_class_name,
                         name="objectClass",
-                    )
+                    ),
                 )
 
     async def _is_entity_type_unique(
@@ -259,9 +259,9 @@ class EntityTypeDAO:
                 EntityType.is_system.is_(False),
                 EntityType.id.not_in(
                     select(Directory.entity_type_id)
-                    .where(Directory.entity_type_id.isnot(None))
+                    .where(Directory.entity_type_id.isnot(None)),
                 ),
-            )
+            ),
         )  # fmt: skip
 
     async def attach_entity_type_to_directories(self) -> None:
@@ -275,7 +275,7 @@ class EntityTypeDAO:
             .options(
                 selectinload(Directory.attributes),
                 selectinload(Directory.entity_type),
-            )
+            ),
         )
 
         for directory in result.scalars():
@@ -301,15 +301,15 @@ class EntityTypeDAO:
         object_class_names = directory.object_class_names_set
 
         await self.__object_class_dao.is_all_object_classes_exists(
-            object_class_names
+            object_class_names,
         )
 
         entity_type = await self.get_entity_type_by_object_class_names(
-            object_class_names
+            object_class_names,
         )
         if not entity_type:
             entity_type_name = EntityType.generate_entity_type_name(
-                directory=directory
+                directory=directory,
             )
             try:
                 await self.create_one(
@@ -324,7 +324,7 @@ class EntityTypeDAO:
                 pass
 
             entity_type = await self.get_entity_type_by_object_class_names(
-                object_class_names
+                object_class_names,
             )
 
         directory.entity_type = entity_type

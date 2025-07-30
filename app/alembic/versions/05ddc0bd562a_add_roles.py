@@ -71,10 +71,14 @@ def upgrade() -> None:
         sa.Column("entityTypeId", sa.Integer(), nullable=True),
         sa.Column("is_allow", sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["attributeTypeId"], ["AttributeTypes.id"], ondelete="CASCADE"
+            ["attributeTypeId"],
+            ["AttributeTypes.id"],
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["entityTypeId"], ["EntityTypes.id"], ondelete="CASCADE"
+            ["entityTypeId"],
+            ["EntityTypes.id"],
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(["roleId"], ["Roles.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -124,7 +128,9 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["directory_id"], ["Directory.id"], ondelete="CASCADE"
+            ["directory_id"],
+            ["Directory.id"],
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("access_control_entry_id", "directory_id"),
     )
@@ -133,7 +139,9 @@ def upgrade() -> None:
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("role_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["group_id"], ["Groups.id"], ondelete="CASCADE"
+            ["group_id"],
+            ["Groups.id"],
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(["role_id"], ["Roles.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("group_id", "role_id"),
@@ -181,25 +189,40 @@ def downgrade() -> None:
             "id",
             sa.INTEGER(),
             server_default=sa.text(
-                "nextval('\"AccessPolicies_id_seq\"'::regclass)"
+                "nextval('\"AccessPolicies_id_seq\"'::regclass)",
             ),
             autoincrement=True,
             nullable=False,
         ),
         sa.Column(
-            "name", sa.VARCHAR(length=255), autoincrement=False, nullable=False
+            "name",
+            sa.VARCHAR(length=255),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.Column(
-            "can_read", sa.BOOLEAN(), autoincrement=False, nullable=False
+            "can_read",
+            sa.BOOLEAN(),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.Column(
-            "can_add", sa.BOOLEAN(), autoincrement=False, nullable=False
+            "can_add",
+            sa.BOOLEAN(),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.Column(
-            "can_modify", sa.BOOLEAN(), autoincrement=False, nullable=False
+            "can_modify",
+            sa.BOOLEAN(),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.Column(
-            "can_delete", sa.BOOLEAN(), autoincrement=False, nullable=False
+            "can_delete",
+            sa.BOOLEAN(),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.PrimaryKeyConstraint("id", name="AccessPolicies_pkey"),
         sa.UniqueConstraint("name"),
@@ -208,7 +231,10 @@ def downgrade() -> None:
         "AccessPolicyMemberships",
         sa.Column("dir_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column(
-            "policy_id", sa.INTEGER(), autoincrement=False, nullable=False
+            "policy_id",
+            sa.INTEGER(),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["dir_id"],
@@ -223,16 +249,24 @@ def downgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint(
-            "dir_id", "policy_id", name=op.f("AccessPolicyMemberships_pkey")
+            "dir_id",
+            "policy_id",
+            name=op.f("AccessPolicyMemberships_pkey"),
         ),
     )
     op.create_table(
         "GroupAccessPolicyMemberships",
         sa.Column(
-            "group_id", sa.INTEGER(), autoincrement=False, nullable=False
+            "group_id",
+            sa.INTEGER(),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.Column(
-            "policy_id", sa.INTEGER(), autoincrement=False, nullable=False
+            "policy_id",
+            sa.INTEGER(),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["group_id"],

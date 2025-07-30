@@ -68,7 +68,7 @@ async def disable_accounts(
 
     users = await session.stream_scalars(
         select(User)
-        .where(User.directory_id.in_(ids))
+        .where(User.directory_id.in_(ids)),
     )  # fmt: skip
 
     async for user in users:

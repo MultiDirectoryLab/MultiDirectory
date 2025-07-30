@@ -217,7 +217,7 @@ async def test_delete_policy(
             raw=["127.100.10.5/32"],
             enabled=True,
             priority=2,
-        )
+        ),
     )
     await session.commit()
 
@@ -276,7 +276,7 @@ async def test_switch_policy(
             raw=["127.100.10.5/32"],
             enabled=True,
             priority=2,
-        )
+        ),
     )
     await session.commit()
 
@@ -398,7 +398,7 @@ async def test_swap(http_client: AsyncClient) -> None:
 
     assert response[0]["priority"] == 1
     assert response[0]["groups"] == [
-        "cn=domain admins,cn=groups,dc=md,dc=test"
+        "cn=domain admins,cn=groups,dc=md,dc=test",
     ]
     assert response[1]["priority"] == 2
     assert response[1]["name"] == "Default open policy"

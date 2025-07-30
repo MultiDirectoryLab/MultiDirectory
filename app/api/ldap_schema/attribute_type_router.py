@@ -78,7 +78,7 @@ async def get_one_attribute_type(
     :return AttributeTypeSchema: Attribute Type Schema.
     """
     attribute_type = await attribute_type_dao.get_one_by_name(
-        attribute_type_name
+        attribute_type_name,
     )
     return AttributeTypeSchema.model_validate(
         attribute_type,
@@ -136,7 +136,7 @@ async def modify_one_attribute_type(
     """
     try:
         attribute_type = await attribute_type_dao.get_one_by_name(
-            attribute_type_name
+            attribute_type_name,
         )
 
         request_data.syntax = _DEFAULT_ATTRIBUTE_TYPE_SYNTAX

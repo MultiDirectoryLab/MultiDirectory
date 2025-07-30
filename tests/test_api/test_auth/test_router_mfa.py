@@ -37,11 +37,11 @@ async def test_set_and_remove_mfa(
 
     assert await session.scalar(
         select(CatalogueSetting)
-        .filter_by(name="mfa_key", value="123")
+        .filter_by(name="mfa_key", value="123"),
     )  # fmt: skip
     assert await session.scalar(
         select(CatalogueSetting)
-        .filter_by(name="mfa_secret", value="123")
+        .filter_by(name="mfa_secret", value="123"),
     )  # fmt: skip
 
     response = await http_client.delete("/multifactor/keys?scope=http")
@@ -50,11 +50,11 @@ async def test_set_and_remove_mfa(
 
     assert not await session.scalar(
         select(CatalogueSetting)
-        .filter_by(name="mfa_key", value="123")
+        .filter_by(name="mfa_key", value="123"),
     )  # fmt: skip
     assert not await session.scalar(
         select(CatalogueSetting)
-        .filter_by(name="mfa_secret", value="123")
+        .filter_by(name="mfa_secret", value="123"),
     )  # fmt: skip
 
 

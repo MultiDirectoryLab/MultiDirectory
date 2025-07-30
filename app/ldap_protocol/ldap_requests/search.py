@@ -109,7 +109,7 @@ class SearchRequest(BaseRequest):
     page_number: int | None = Field(None, ge=1, examples=[1])  # only json API
 
     _filter_interpreter: FilterInterpreterProtocol = PrivateAttr(
-        default_factory=LDAPFilterInterpreter
+        default_factory=LDAPFilterInterpreter,
     )
 
     class Config:
@@ -299,12 +299,14 @@ class SearchRequest(BaseRequest):
 
         if not user:
             yield SearchResultDone(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 
         query = self.build_query(
-            await get_base_directories(ctx.session), user, ctx.access_manager
+            await get_base_directories(ctx.session),
+            user,
+            ctx.access_manager,
         )
 
         try:
@@ -448,12 +450,12 @@ class SearchRequest(BaseRequest):
 
         if self.member:
             query = query.options(
-                selectinload(Directory.group).selectinload(Group.members)
+                selectinload(Directory.group).selectinload(Group.members),
             )
 
         if self.member_of or self.token_groups:
             query = query.options(
-                selectinload(Directory.groups).joinedload(Group.directory)
+                selectinload(Directory.groups).joinedload(Group.directory),
             )
 
         return query
@@ -503,7 +505,7 @@ class SearchRequest(BaseRequest):
                     attrs["accountExpires"].append("0")
                 else:
                     attrs["accountExpires"].append(
-                        str(dt_to_ft(directory.user.account_exp))
+                        str(dt_to_ft(directory.user.account_exp)),
                     )
 
             if (
@@ -515,10 +517,10 @@ class SearchRequest(BaseRequest):
                     attrs["lastLogon"].append("0")
                 else:
                     attrs["lastLogon"].append(
-                        str(get_windows_timestamp(directory.user.last_logon))
+                        str(get_windows_timestamp(directory.user.last_logon)),
                     )
                     attrs["authTimestamp"].append(
-                        directory.user.last_logon.isoformat()
+                        directory.user.last_logon.isoformat(),
                     )
 
         if self.member_of:
@@ -527,7 +529,7 @@ class SearchRequest(BaseRequest):
 
         if self.token_groups and "user" in obj_classes:
             attrs["tokenGroups"].append(
-                str(string_to_sid(directory.object_sid))
+                str(string_to_sid(directory.object_sid)),
             )
 
             group_directories = await get_all_parent_group_directories(
@@ -538,7 +540,7 @@ class SearchRequest(BaseRequest):
             if group_directories is not None:
                 async for directory_ in group_directories:
                     attrs["tokenGroups"].append(
-                        str(string_to_sid(directory_.object_sid))
+                        str(string_to_sid(directory_.object_sid)),
                     )
 
         if self.member and "group" in obj_classes and directory.group:

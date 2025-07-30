@@ -189,7 +189,7 @@ async def get_members_root_group(
 
     directory = await session.scalar(
         select(Directory)
-        .where(Directory.id == root_group_id)
+        .where(Directory.id == root_group_id),
     )  # fmt: skip
 
     if not directory:
@@ -207,7 +207,7 @@ async def get_members_root_group(
         .where(
             or_(
                 *[Directory.id == dir_id for dir_id in dir_ids],
-            )
+            ),
         )
     )  # fmt: skip
 

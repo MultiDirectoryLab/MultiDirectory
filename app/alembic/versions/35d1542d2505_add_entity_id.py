@@ -44,10 +44,14 @@ def upgrade() -> None:
     op.create_primary_key("EntityTypes_pkey", "EntityTypes", ["id"])
 
     op.create_index(
-        op.f("ix_EntityTypes_name"), "EntityTypes", ["name"], unique=True
+        op.f("ix_EntityTypes_name"),
+        "EntityTypes",
+        ["name"],
+        unique=True,
     )
     op.add_column(
-        "Directory", sa.Column("entity_type_id", sa.Integer(), nullable=True)
+        "Directory",
+        sa.Column("entity_type_id", sa.Integer(), nullable=True),
     )
     op.create_index(
         op.f("ix_Directory_entity_type_id"),
@@ -77,7 +81,7 @@ def upgrade() -> None:
                 SET entity_type_id = et.id
                 FROM "EntityTypes" et
                 WHERE d.entity_type_name = et.name
-            """)
+            """),
     )
 
     op.drop_column("Directory", "entity_type_name")
@@ -86,7 +90,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade."""
     op.add_column(
-        "Directory", sa.Column("entity_type_name", sa.String(), nullable=True)
+        "Directory",
+        sa.Column("entity_type_name", sa.String(), nullable=True),
     )
     op.execute(
         text("""
@@ -94,16 +99,19 @@ def downgrade() -> None:
                 SET entity_type_name = et.name
                 FROM "EntityTypes" et
                 WHERE d.entity_type_id = et.id
-            """)
+            """),
     )
     op.drop_constraint(
-        "Directory_entity_type_id_fkey", "Directory", type_="foreignkey"
+        "Directory_entity_type_id_fkey",
+        "Directory",
+        type_="foreignkey",
     )
 
     op.drop_column("Directory", "entity_type_id")
 
     op.drop_index(
-        op.f("ix_EntityTypes_object_class_names"), table_name="EntityTypes"
+        op.f("ix_EntityTypes_object_class_names"),
+        table_name="EntityTypes",
     )
     op.drop_index(op.f("ix_EntityTypes_name"), table_name="EntityTypes")
 

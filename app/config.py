@@ -77,7 +77,7 @@ class Settings(BaseModel):
             f"{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}/"
-            f"{self.POSTGRES_DB}"
+            f"{self.POSTGRES_DB}",
         )
 
     VENDOR_NAME: ClassVar[str] = "MultiFactor"

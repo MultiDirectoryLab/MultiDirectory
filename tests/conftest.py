@@ -530,7 +530,7 @@ async def setup_session(session: AsyncSession, setup_entity: None) -> None:
             single_value=True,
             no_user_modification=False,
             is_system=True,
-        )
+        ),
     )
     session.add(
         AttributeType(
@@ -540,7 +540,7 @@ async def setup_session(session: AsyncSession, setup_entity: None) -> None:
             single_value=True,
             no_user_modification=False,
             is_system=True,
-        )
+        ),
     )
     await session.commit()
 
@@ -649,7 +649,7 @@ async def ldap_client(
 ) -> AsyncIterator[aioldap3.LDAPConnection]:
     """Get LDAP client without credentials."""
     conn = aioldap3.LDAPConnection(
-        aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
+        aioldap3.Server(host=str(settings.HOST), port=settings.PORT),
     )
     await conn.bind(creds.un, creds.pw)
     yield conn
@@ -662,7 +662,7 @@ async def anonymous_ldap_client(
 ) -> AsyncIterator[aioldap3.LDAPConnection]:
     """Get LDAP client without credentials."""
     conn = aioldap3.LDAPConnection(
-        aioldap3.Server(host=str(settings.HOST), port=settings.PORT)
+        aioldap3.Server(host=str(settings.HOST), port=settings.PORT),
     )
     await conn.bind()
     yield conn

@@ -60,7 +60,7 @@ class DeleteRequest(BaseRequest):
 
         if not ctx.ldap_session.user.role_ids:
             yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 
