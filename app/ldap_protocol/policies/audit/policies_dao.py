@@ -4,9 +4,13 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import asdict
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import AuditPolicy, AuditPolicyTrigger
+
+from .dataclasses import AuditPolicyDTO, AuditPolicyTriggerDTO
 
 
 class AuditPoliciesDAO:
@@ -18,12 +22,17 @@ class AuditPoliciesDAO:
 
     async def create_policy(
         self,
-        policy: AuditPolicy,
-        triggers: list[AuditPolicyTrigger],
+        policy_dto: AuditPolicyDTO,
+        triggers_dto: list[AuditPolicyTriggerDTO],
     ) -> None:
         """Create a new audit policy."""
-        for trigger in triggers:
+        policy = AuditPolicy(**asdict(policy_dto))
+        triggers = list()
+
+        for trigger_dto in triggers_dto:
+            trigger = AuditPolicyTrigger(**asdict(trigger_dto))
             trigger.audit_policy = policy
+            triggers.append(trigger)
 
         self._session.add_all([policy, *triggers])
         await self._session.flush()
