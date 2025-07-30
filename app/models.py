@@ -1267,7 +1267,7 @@ class AuditPolicyTrigger(Base):
     operation_code: Mapped[int]
     object_class: Mapped[str]
     additional_info: Mapped[dict | None] = mapped_column(
-        postgresql.JSON,
+        postgresql.JSON(none_as_null=True),
         nullable=True,
     )
     operation_success: Mapped[nbool]
