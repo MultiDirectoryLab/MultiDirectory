@@ -27,8 +27,7 @@ class AuditPolicyDTO:
         status = "ok" if self.is_success else "fail"
         return f"{self.action}_{self.object_class}_{status}"
 
-    @property
-    def as_db_dict(self) -> dict:
+    def as_dict(self) -> dict:
         """Convert the data transfer object to a dictionary."""
         return {
             "name": self.name,

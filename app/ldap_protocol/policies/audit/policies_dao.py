@@ -26,7 +26,7 @@ class AuditPoliciesDAO:
         triggers_dto: list[AuditPolicyTriggerDTO],
     ) -> None:
         """Create a new audit policy."""
-        policy = AuditPolicy(**policy_dto.as_db_dict)
+        policy = AuditPolicy(**policy_dto.as_dict())
         triggers = list()
 
         for trigger_dto in triggers_dto:
