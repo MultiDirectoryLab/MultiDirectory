@@ -44,5 +44,5 @@ class AuditPolicyTriggerDTO:
     is_http: bool
     operation_code: OperationEvent
     object_class: str
-    operation_success: bool
+    is_operation_success: bool
     additional_info: dict | None = None

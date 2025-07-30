@@ -85,7 +85,7 @@ def upgrade() -> None:
             postgresql.JSON(astext_type=sa.Text()),
             nullable=True,
         ),
-        sa.Column("operation_success", sa.Boolean(), nullable=False),
+        sa.Column("is_operation_success", sa.Boolean(), nullable=False),
         sa.Column("audit_policy_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
             ["audit_policy_id"],
@@ -121,7 +121,7 @@ def upgrade() -> None:
     op.create_index(
         "idx_trigger_search",
         "AuditPolicyTriggers",
-        ["operation_code", "operation_success", "is_ldap", "is_http"],
+        ["operation_code", "is_operation_success", "is_ldap", "is_http"],
         postgresql_using="btree",
     )
     op.create_index(
