@@ -183,18 +183,22 @@ class EntityTypeDAO:
                 .options(selectinload(Directory.attributes)),
             )  # fmt: skip
 
-            for directory in result.scalars():
-                await self.__session.execute(
-                    delete(Attribute)
-                    .where(
-                        Attribute.directory == directory,
-                        or_(
-                            Attribute.name == "objectclass",
-                            Attribute.name == "objectClass",
-                        ),
+            await self.__session.execute(
+                delete(Attribute)
+                .where(
+                    Attribute.directory_id.in_(
+                        select(Directory.id)
+                        .join(Directory.entity_type)
+                        .where(EntityType.name == entity_type.name),
                     ),
-                )  # fmt: skip
+                    or_(
+                        Attribute.name == "objectclass",
+                        Attribute.name == "objectClass",
+                    ),
+                ),
+            )  # fmt: skip
 
+            for directory in result.scalars():
                 for object_class_name in entity_type.object_class_names:
                     self.__session.add(
                         Attribute(
