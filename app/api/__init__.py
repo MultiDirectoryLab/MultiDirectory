@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .audit.policy_router import audit_router
+from .audit.router import audit_router
 from .auth.router import auth_router
 from .auth.router_mfa import mfa_router
 from .auth.router_pwd_policy import pwd_router
