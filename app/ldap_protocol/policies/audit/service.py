@@ -101,7 +101,7 @@ class AuditService:
             raise AuditAlreadyExistsError("Audit destination already exists")
 
         return AuditDestinationSchema.model_validate(
-            created_destination.__dict__
+            created_destination.__dict__,
         )
 
     async def update_destination(
@@ -138,11 +138,11 @@ class AuditService:
 
         updated_destination = (
             await self._destination_dao.get_destination_by_id(
-                existing_destination.id
+                existing_destination.id,
             )
         )
         return AuditDestinationSchema.model_validate(
-            updated_destination.__dict__
+            updated_destination.__dict__,
         )
 
     async def delete_destination(
@@ -159,6 +159,6 @@ class AuditService:
 
         """
         destination = await self._destination_dao.get_destination_by_id(
-            destination_id
+            destination_id,
         )
         await self._destination_dao.delete_destination(destination)

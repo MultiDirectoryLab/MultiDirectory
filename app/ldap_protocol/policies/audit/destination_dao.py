@@ -31,14 +31,14 @@ class AuditDestinationDAO:
         destination = await self._session.get(AuditDestination, destination_id)
         if not destination:
             raise AuditNotFoundError(
-                f"Destination with id {destination_id} not found."
+                f"Destination with id {destination_id} not found.",
             )
         return destination
 
     async def get_destinations(self) -> list[AuditDestination]:
         """Get all audit destinations."""
         return list(
-            (await self._session.scalars(select(AuditDestination))).all()
+            (await self._session.scalars(select(AuditDestination))).all(),
         )
 
     async def create_destination(
