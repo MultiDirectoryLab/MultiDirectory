@@ -172,8 +172,11 @@ class EntityTypeDAO:
             )
 
             entity_type.name = new_statement.name
-            # Sort object_class_names to ensure a consistent order for database operations
+
+            # Sort object_class_names to ensure a
+            # consistent order for database operations
             # and to facilitate duplicate detection.
+
             entity_type.object_class_names = sorted(
                 new_statement.object_class_names,
             )
