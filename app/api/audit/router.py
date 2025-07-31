@@ -1,19 +1,47 @@
-"""Audit destinations router.
+"""Audit policies router.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from fastapi import status
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Depends, status
 
-from api.audit import audit_router
+from api.auth import get_current_user
 from ldap_protocol.policies.audit.schemas import (
     AuditDestinationSchema,
     AuditDestinationSchemaRequest,
+    AuditPolicySchema,
+    AuditPolicySchemaRequest,
 )
 
 from .adapter import AuditPoliciesAdapter
+
+audit_router = APIRouter(
+    prefix="/audit",
+    tags=["Audit policy"],
+    dependencies=[Depends(get_current_user)],
+    route_class=DishkaRoute,
+)
+
+
+@audit_router.get("/policies")
+async def get_audit_policies(
+    audit_adapter: FromDishka[AuditPoliciesAdapter],
+) -> list[AuditPolicySchema]:
+    """Get all audit policies."""
+    return await audit_adapter.get_policies()
+
+
+@audit_router.put("/policy/{policy_id}")
+async def update_audit_policy(
+    policy_id: int,
+    policy_data: AuditPolicySchemaRequest,
+    audit_adapter: FromDishka[AuditPoliciesAdapter],
+) -> AuditPolicySchema:
+    """Update an existing audit policy."""
+    return await audit_adapter.update_policy(policy_id, policy_data)
 
 
 @audit_router.get("/destinations")
