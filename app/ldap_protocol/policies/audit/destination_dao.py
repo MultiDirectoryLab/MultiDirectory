@@ -4,15 +4,14 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import asdict
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import (
-    AuditDestination,
-    AuditDestinationProtocolType,
-    AuditDestinationServiceType,
-)
+from models import AuditDestination
 
+from .dataclasses import AuditDestinationDTO
 from .exception import AuditNotFoundError
 
 
@@ -35,54 +34,72 @@ class AuditDestinationDAO:
             )
         return destination
 
-    async def get_destinations(self) -> list[AuditDestination]:
+    async def get_destinations(self) -> list[AuditDestinationDTO]:
         """Get all audit destinations."""
-        return list(
-            (await self._session.scalars(select(AuditDestination))).all(),
-        )
+        return [
+            AuditDestinationDTO(
+                id=destination.id,
+                name=destination.name,
+                service_type=destination.service_type,
+                host=destination.host,
+                port=destination.port,
+                protocol=destination.protocol,
+                is_enabled=destination.is_enabled,
+            )
+            for destination in (
+                await self._session.scalars(select(AuditDestination))
+            ).all()
+        ]
 
     async def create_destination(
         self,
-        name: str,
-        service_type: AuditDestinationServiceType,
-        host: str,
-        port: int,
-        protocol: AuditDestinationProtocolType,
-        is_enabled: bool = False,
-    ) -> AuditDestination:
+        destination_dto: AuditDestinationDTO,
+    ) -> AuditDestinationDTO:
         """Create a new audit destination."""
-        destination = AuditDestination(
-            name=name,
-            service_type=service_type,
-            host=host,
-            port=port,
-            protocol=protocol,
-            is_enabled=is_enabled,
-        )
+        destination = AuditDestination(**asdict(destination_dto))
         self._session.add(destination)
         await self._session.flush()
-        return destination
+        await self._session.refresh(destination)
+        return AuditDestinationDTO(
+            id=destination.id,
+            name=destination.name,
+            service_type=destination.service_type,
+            host=destination.host,
+            port=destination.port,
+            protocol=destination.protocol,
+            is_enabled=destination.is_enabled,
+        )
 
     async def update_destination(
         self,
-        destination: AuditDestination,
-        name: str,
-        service_type: AuditDestinationServiceType,
-        host: str,
-        port: int,
-        protocol: AuditDestinationProtocolType,
-        is_enabled: bool,
-    ) -> None:
+        destination_id: int,
+        destination_dto: AuditDestinationDTO,
+    ) -> AuditDestinationDTO:
         """Update an existing audit destination."""
-        destination.name = name
-        destination.service_type = service_type
-        destination.host = host
-        destination.port = port
-        destination.protocol = protocol
-        destination.is_enabled = is_enabled
-        await self._session.flush()
+        existing_destination = await self.get_destination_by_id(destination_id)
 
-    async def delete_destination(self, destination: AuditDestination) -> None:
+        existing_destination.name = destination_dto.name
+        existing_destination.service_type = destination_dto.service_type
+        existing_destination.host = destination_dto.host
+        existing_destination.port = destination_dto.port
+        existing_destination.protocol = destination_dto.protocol
+        existing_destination.is_enabled = destination_dto.is_enabled
+
+        await self._session.flush()
+        await self._session.refresh(existing_destination)
+
+        return AuditDestinationDTO(
+            id=existing_destination.id,
+            name=existing_destination.name,
+            service_type=existing_destination.service_type,
+            host=existing_destination.host,
+            port=existing_destination.port,
+            protocol=existing_destination.protocol,
+            is_enabled=existing_destination.is_enabled,
+        )
+
+    async def delete_destination(self, destination_id: int) -> None:
         """Delete an audit destination."""
-        await self._session.delete(destination)
+        existing_destination = await self.get_destination_by_id(destination_id)
+        await self._session.delete(existing_destination)
         await self._session.flush()
