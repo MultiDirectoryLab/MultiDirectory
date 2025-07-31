@@ -11,7 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import AuditPolicy, AuditPolicyTrigger
 
-from .dataclasses import AuditPolicyDTO, AuditPolicyTriggerDTO
+from .dataclasses import (
+    AuditPolicyDTO,
+    AuditPolicySetupDTO,
+    AuditPolicyTriggerDTO,
+)
 from .exception import AuditNotFoundError
 
 
@@ -22,9 +26,19 @@ class AuditPoliciesDAO:
         """Initialize Audit DAO with a database session."""
         self._session = session
 
-    async def get_policies(self) -> list[AuditPolicy]:
+    async def get_policies(self) -> list[AuditPolicyDTO]:
         """Get all audit policies."""
-        return list((await self._session.scalars(select(AuditPolicy))).all())
+        return [
+            AuditPolicyDTO(
+                id=policy.id,
+                name=policy.name,
+                is_enabled=policy.is_enabled,
+                severity=policy.severity,
+            )
+            for policy in (
+                await self._session.scalars(select(AuditPolicy))
+            ).all()
+        ]
 
     async def get_policy_by_id(self, policy_id: int) -> AuditPolicy:
         """Get an audit policy by its ID.
@@ -43,32 +57,38 @@ class AuditPoliciesDAO:
 
     async def update_policy(
         self,
-        old_policy: int,
         policy_id: int,
-        name: str,
-        is_enabled: bool,
-    ) -> None:
+        policy_dto: AuditPolicyDTO,
+    ) -> AuditPolicyDTO:
         """Update an existing audit policy.
 
         Args:
-            old_policy (int): The existing policy ID.
             policy_id (int): The ID of the policy to update.
-            name (str): The new name for the policy.
-            is_enabled (bool): The new enabled status for the policy.
+            policy_dto (AuditPolicyDTO): The new policy data.
 
         Raises:
             IntegrityError: If the policy already exists with the same name.
 
         """
-        existing_policy = await self.get_policy_by_id(old_policy)
-        existing_policy.id = policy_id
-        existing_policy.name = name
-        existing_policy.is_enabled = is_enabled
+        existing_policy = await self.get_policy_by_id(policy_id)
+
+        existing_policy.id = policy_dto.id
+        existing_policy.name = policy_dto.name
+        existing_policy.is_enabled = policy_dto.is_enabled
+
         await self._session.flush()
+        await self._session.refresh(existing_policy)
+
+        return AuditPolicyDTO(
+            id=existing_policy.id,
+            name=existing_policy.name,
+            is_enabled=existing_policy.is_enabled,
+            severity=existing_policy.severity,
+        )
 
     async def create_policy(
         self,
-        policy_dto: AuditPolicyDTO,
+        policy_dto: AuditPolicySetupDTO,
         triggers_dto: list[AuditPolicyTriggerDTO],
     ) -> None:
         """Create a new audit policy."""
