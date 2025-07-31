@@ -4,6 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Awaitable, Callable, ParamSpec, TypeVar
+
 from fastapi import HTTPException, status
 
 from ldap_protocol.policies.audit.exception import (
@@ -18,6 +20,9 @@ from ldap_protocol.policies.audit.schemas import (
 )
 from ldap_protocol.policies.audit.service import AuditService
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
 
 class AuditPoliciesAdapter:
     """Adapter for audit policies."""
@@ -25,6 +30,24 @@ class AuditPoliciesAdapter:
     def __init__(self, audit_service: AuditService) -> None:
         """Initialize the adapter with an audit service."""
         self.audit_service = audit_service
+
+    async def _sc(
+        self,
+        func: Callable[P, Awaitable[R]],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> R:
+        """Convert Kerberos exceptions to HTTPException.
+
+        :raises HTTPException: on Kerberos errors
+        :return: Result of the function call.
+        """
+        try:
+            return await func(*args, **kwargs)
+        except AuditNotFoundError as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
+        except AuditAlreadyExistsError:
+            raise HTTPException(status.HTTP_409_CONFLICT)
 
     async def get_policies(self) -> list[AuditPolicySchema]:
         """Get all audit policies."""
@@ -36,21 +59,11 @@ class AuditPoliciesAdapter:
         policy_data: AuditPolicySchemaRequest,
     ) -> AuditPolicySchema:
         """Update an existing audit policy."""
-        try:
-            return await self.audit_service.update_policy(
-                policy_id,
-                policy_data,
-            )
-        except AuditNotFoundError as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(e),
-            )
-        except AuditAlreadyExistsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(e),
-            )
+        return await self._sc(
+            self.audit_service.update_policy,
+            policy_id,
+            policy_data,
+        )
 
     async def get_destinations(self) -> list[AuditDestinationSchema]:
         """Get all audit destinations."""
@@ -61,15 +74,10 @@ class AuditPoliciesAdapter:
         destination_data: AuditDestinationSchemaRequest,
     ) -> AuditDestinationSchema:
         """Create a new audit destination."""
-        try:
-            return await self.audit_service.create_destination(
-                destination_data,
-            )
-        except AuditAlreadyExistsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(e),
-            )
+        return await self._sc(
+            self.audit_service.create_destination,
+            destination_data,
+        )
 
     async def update_destination(
         self,
@@ -77,28 +85,15 @@ class AuditPoliciesAdapter:
         destination_data: AuditDestinationSchemaRequest,
     ) -> AuditDestinationSchema:
         """Update an existing audit destination."""
-        try:
-            return await self.audit_service.update_destination(
-                destination_id,
-                destination_data,
-            )
-        except AuditNotFoundError as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(e),
-            )
-        except AuditAlreadyExistsError as e:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(e),
-            )
+        return await self._sc(
+            self.audit_service.update_destination,
+            destination_id,
+            destination_data,
+        )
 
     async def delete_destination(self, destination_id: int) -> None:
         """Delete an audit destination."""
-        try:
-            await self.audit_service.delete_destination(destination_id)
-        except AuditNotFoundError as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(e),
-            )
+        await self._sc(
+            self.audit_service.delete_destination,
+            destination_id,
+        )
