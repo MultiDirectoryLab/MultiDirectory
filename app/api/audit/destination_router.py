@@ -49,5 +49,6 @@ async def update_audit_destination(
 ) -> AuditDestinationSchema:
     """Update an existing audit destination."""
     return await audit_adapter.update_destination(
-        destination_id, destination_data
+        destination_id,
+        destination_data,
     )
