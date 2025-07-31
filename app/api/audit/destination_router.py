@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
+from fastapi import status
 
 from api.audit import audit_router
 from ldap_protocol.policies.audit.schemas import (
@@ -23,7 +24,7 @@ async def get_audit_destinations(
     return await audit_adapter.get_destinations()
 
 
-@audit_router.post("/destination")
+@audit_router.post("/destination", status_code=status.HTTP_201_CREATED)
 async def create_audit_destination(
     destination_data: AuditDestinationSchemaRequest,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
