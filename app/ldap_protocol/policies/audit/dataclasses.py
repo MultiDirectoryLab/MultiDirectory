@@ -8,11 +8,15 @@ from dataclasses import dataclass
 
 from ldap_protocol.objects import OperationEvent
 
-from .enums import AuditSeverity
+from .enums import (
+    AuditDestinationProtocolType,
+    AuditDestinationServiceType,
+    AuditSeverity,
+)
 
 
 @dataclass
-class AuditPolicyDTO:
+class AuditPolicySetupDTO:
     """Audit policy data transfer object."""
 
     object_class: str
@@ -46,3 +50,26 @@ class AuditPolicyTriggerDTO:
     object_class: str
     is_operation_success: bool
     additional_info: dict | None = None
+
+
+@dataclass
+class AuditDestinationDTO:
+    """Audit destination data transfer object."""
+
+    name: str
+    service_type: AuditDestinationServiceType
+    is_enabled: bool
+    host: str
+    port: int
+    protocol: AuditDestinationProtocolType
+    id: int | None = None
+
+
+@dataclass
+class AuditPolicyDTO:
+    """Audit policy data transfer object."""
+
+    id: int
+    name: str
+    is_enabled: bool
+    severity: AuditSeverity

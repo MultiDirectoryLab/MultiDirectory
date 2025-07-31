@@ -9,7 +9,7 @@ from ldap_protocol.objects import OperationEvent
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import AuditSeverity
 
-from .dataclasses import AuditPolicyDTO, AuditPolicyTriggerDTO
+from .dataclasses import AuditPolicySetupDTO, AuditPolicyTriggerDTO
 from .policies_dao import AuditPoliciesDAO
 
 
@@ -36,7 +36,7 @@ class AuditUseCase:
         }
         for action, operation_code in operations.items():
             await self._audit_dao.create_policy(
-                AuditPolicyDTO(
+                AuditPolicySetupDTO(
                     object_class=object_class,
                     action=action,
                     is_success=is_success,
@@ -60,7 +60,7 @@ class AuditUseCase:
     ) -> None:
         """Create password modify policy."""
         await self._audit_dao.create_policy(
-            AuditPolicyDTO(
+            AuditPolicySetupDTO(
                 object_class=object_class,
                 action="password_modify",
                 is_success=is_success,
@@ -116,7 +116,7 @@ class AuditUseCase:
     ) -> None:
         """Create authentication policy."""
         await self._audit_dao.create_policy(
-            AuditPolicyDTO(
+            AuditPolicySetupDTO(
                 object_class=object_class,
                 action="auth",
                 is_success=is_success,
@@ -156,7 +156,7 @@ class AuditUseCase:
     ) -> None:
         """Create reset password policy."""
         await self._audit_dao.create_policy(
-            AuditPolicyDTO(
+            AuditPolicySetupDTO(
                 object_class=object_class,
                 action="reset_password",
                 is_success=is_success,
@@ -211,7 +211,7 @@ class AuditUseCase:
     ) -> None:
         """Create policies for account status changes."""
         await self._audit_dao.create_policy(
-            AuditPolicyDTO(
+            AuditPolicySetupDTO(
                 object_class=object_class,
                 action="enable",
                 is_success=is_success,
@@ -234,7 +234,7 @@ class AuditUseCase:
             ],
         )
         await self._audit_dao.create_policy(
-            AuditPolicyDTO(
+            AuditPolicySetupDTO(
                 object_class=object_class,
                 action="disable",
                 is_success=is_success,
@@ -263,7 +263,7 @@ class AuditUseCase:
         object_class: str = "group",
     ) -> None:
         await self._audit_dao.create_policy(
-            AuditPolicyDTO(
+            AuditPolicySetupDTO(
                 object_class=object_class,
                 action="add_member",
                 is_success=is_success,
@@ -297,7 +297,7 @@ class AuditUseCase:
             ],
         )
         await self._audit_dao.create_policy(
-            AuditPolicyDTO(
+            AuditPolicySetupDTO(
                 object_class=object_class,
                 action="remove_member",
                 is_success=is_success,

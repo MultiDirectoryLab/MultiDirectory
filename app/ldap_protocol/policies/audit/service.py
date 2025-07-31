@@ -4,8 +4,11 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import asdict
+
 from sqlalchemy.exc import IntegrityError
 
+from .dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from .destination_dao import AuditDestinationDAO
 from .exception import AuditAlreadyExistsError
 from .policies_dao import AuditPoliciesDAO
@@ -32,7 +35,7 @@ class AuditService:
     async def get_policies(self) -> list[AuditPolicySchema]:
         """Get all audit policies."""
         return [
-            AuditPolicySchema.model_validate(policy.__dict__)
+            AuditPolicySchema.model_validate(asdict(policy))
             for policy in await self._policy_dao.get_policies()
         ]
 
@@ -52,23 +55,21 @@ class AuditService:
             AuditAlreadyExistsError: If the policy already exists.
 
         """
+        policy_dto = AuditPolicyDTO(**policy.model_dump())
         try:
-            await self._policy_dao.update_policy(
+            new_policy = await self._policy_dao.update_policy(
                 policy_id,
-                policy.id,
-                policy.name,
-                policy.is_enabled,
+                policy_dto,
             )
         except IntegrityError:
             raise AuditAlreadyExistsError("Audit policy already exists")
 
-        new_policy = await self._policy_dao.get_policy_by_id(policy.id)
-        return AuditPolicySchema.model_validate(new_policy.__dict__)
+        return AuditPolicySchema.model_validate(asdict(new_policy))
 
     async def get_destinations(self) -> list[AuditDestinationSchema]:
         """Get all audit destinations."""
         return [
-            AuditDestinationSchema.model_validate(destination.__dict__)
+            AuditDestinationSchema.model_validate(asdict(destination))
             for destination in await self._destination_dao.get_destinations()
         ]
 
@@ -85,22 +86,18 @@ class AuditService:
             AuditAlreadyExistsError: If the destination already exists.
 
         """
+        destination_dto = AuditDestinationDTO(**destination.model_dump())
         try:
             created_destination = (
                 await self._destination_dao.create_destination(
-                    destination.name,
-                    destination.service_type,
-                    destination.host,
-                    destination.port,
-                    destination.protocol,
-                    destination.is_enabled,
+                    destination_dto,
                 )
             )
         except IntegrityError:
             raise AuditAlreadyExistsError("Audit destination already exists")
 
         return AuditDestinationSchema.model_validate(
-            created_destination.__dict__,
+            asdict(created_destination),
         )
 
     async def update_destination(
@@ -119,29 +116,19 @@ class AuditService:
             AuditAlreadyExistsError: If the destination already exists.
 
         """
-        existing_destination = (
-            await self._destination_dao.get_destination_by_id(destination_id)
-        )
+        destination_dto = AuditDestinationDTO(**destination.model_dump())
         try:
-            await self._destination_dao.update_destination(
-                existing_destination,
-                destination.name,
-                destination.service_type,
-                destination.host,
-                destination.port,
-                destination.protocol,
-                destination.is_enabled,
+            new_destination_dto = (
+                await self._destination_dao.update_destination(
+                    destination_id,
+                    destination_dto,
+                )
             )
         except IntegrityError:
             raise AuditAlreadyExistsError("Audit destination already exists")
 
-        updated_destination = (
-            await self._destination_dao.get_destination_by_id(
-                existing_destination.id,
-            )
-        )
         return AuditDestinationSchema.model_validate(
-            updated_destination.__dict__,
+            asdict(new_destination_dto),
         )
 
     async def delete_destination(
@@ -157,7 +144,4 @@ class AuditService:
             AuditNotFoundError: If the destination with ID does not exist.
 
         """
-        destination = await self._destination_dao.get_destination_by_id(
-            destination_id,
-        )
-        await self._destination_dao.delete_destination(destination)
+        await self._destination_dao.delete_destination(destination_id)
