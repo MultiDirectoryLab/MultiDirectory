@@ -52,10 +52,9 @@ class AuditService:
             AuditAlreadyExistsError: If the policy already exists.
 
         """
-        existing_policy = await self._policy_dao.get_policy_by_id(policy_id)
         try:
             await self._policy_dao.update_policy(
-                existing_policy,
+                policy_id,
                 policy.id,
                 policy.name,
                 policy.is_enabled,

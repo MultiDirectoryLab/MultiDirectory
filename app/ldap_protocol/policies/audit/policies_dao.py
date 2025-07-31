@@ -43,7 +43,7 @@ class AuditPoliciesDAO:
 
     async def update_policy(
         self,
-        existing_policy: AuditPolicy,
+        old_policy: int,
         policy_id: int,
         name: str,
         is_enabled: bool,
@@ -51,7 +51,7 @@ class AuditPoliciesDAO:
         """Update an existing audit policy.
 
         Args:
-            existing_policy (AuditPolicy): The existing policy to update.
+            old_policy (int): The existing policy ID.
             policy_id (int): The ID of the policy to update.
             name (str): The new name for the policy.
             is_enabled (bool): The new enabled status for the policy.
@@ -60,6 +60,7 @@ class AuditPoliciesDAO:
             IntegrityError: If the policy already exists with the same name.
 
         """
+        existing_policy = await self.get_policy_by_id(old_policy)
         existing_policy.id = policy_id
         existing_policy.name = name
         existing_policy.is_enabled = is_enabled
