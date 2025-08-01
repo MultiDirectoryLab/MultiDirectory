@@ -318,6 +318,10 @@ services:
       - dragonflydata:/data
     expose:
       - 6379
+    command: >
+      --dbfilename=dump
+      --dir=/data
+      --snapshot_cron="* * * * *"
     deploy:
       resources:
         limits:
