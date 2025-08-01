@@ -10,9 +10,9 @@ from fastapi import APIRouter, Depends, status
 
 from api.auth import get_current_user
 from ldap_protocol.policies.audit.schemas import (
-    AuditDestinationSchema,
+    AuditDestinationResponse,
     AuditDestinationSchemaRequest,
-    AuditPolicySchema,
+    AuditPolicyResponse,
     AuditPolicySchemaRequest,
 )
 
@@ -29,7 +29,7 @@ audit_router = APIRouter(
 @audit_router.get("/policies")
 async def get_audit_policies(
     audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> list[AuditPolicySchema]:
+) -> list[AuditPolicyResponse]:
     """Get all audit policies."""
     return await audit_adapter.get_policies()
 
@@ -47,7 +47,7 @@ async def update_audit_policy(
 @audit_router.get("/destinations")
 async def get_audit_destinations(
     audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> list[AuditDestinationSchema]:
+) -> list[AuditDestinationResponse]:
     """Get all audit destinations."""
     return await audit_adapter.get_destinations()
 
