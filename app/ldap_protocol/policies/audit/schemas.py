@@ -4,37 +4,30 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from pydantic import BaseModel, Field, field_serializer
+from dataclasses import dataclass
 
-from .enums import (
-    AuditDestinationProtocolType,
-    AuditDestinationServiceType,
-    AuditSeverity,
-)
+from pydantic import BaseModel, Field
+
+from .enums import AuditDestinationProtocolType, AuditDestinationServiceType
 
 
-class _AuditPolicySchema(BaseModel):
-    """Base schema for audit policies."""
+class AuditPolicySchemaRequest(BaseModel):
+    """Audit policy schema request."""
 
     id: int
     name: str
     is_enabled: bool
-
-
-class AuditPolicySchemaRequest(_AuditPolicySchema):
-    """Audit policy schema request."""
-
     severity: str
 
 
-class AuditPolicySchema(_AuditPolicySchema):
+@dataclass
+class AuditPolicySchema:
     """Audit policy schema."""
 
-    severity: AuditSeverity
-
-    @field_serializer("severity")
-    def serialize_severity(self, severity: AuditSeverity) -> str:
-        return severity.name.lower()
+    id: int
+    name: str
+    is_enabled: bool
+    severity: str
 
 
 class AuditDestinationSchemaRequest(BaseModel):
@@ -51,7 +44,14 @@ class AuditDestinationSchemaRequest(BaseModel):
         use_enum_values = True
 
 
-class AuditDestinationSchema(AuditDestinationSchemaRequest):
+@dataclass
+class AuditDestinationSchema:
     """Audit destination schema."""
 
     id: int
+    name: str
+    service_type: str
+    is_enabled: bool
+    host: str
+    port: int
+    protocol: str
