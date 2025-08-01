@@ -54,27 +54,17 @@ class AuditDestinationDAO:
     async def create_destination(
         self,
         destination_dto: AuditDestinationDTO,
-    ) -> AuditDestinationDTO:
+    ) -> None:
         """Create a new audit destination."""
         destination = AuditDestination(**asdict(destination_dto))
         self._session.add(destination)
         await self._session.flush()
-        await self._session.refresh(destination)
-        return AuditDestinationDTO(
-            id=destination.id,
-            name=destination.name,
-            service_type=destination.service_type,
-            host=destination.host,
-            port=destination.port,
-            protocol=destination.protocol,
-            is_enabled=destination.is_enabled,
-        )
 
     async def update_destination(
         self,
         destination_id: int,
         destination_dto: AuditDestinationDTO,
-    ) -> AuditDestinationDTO:
+    ) -> None:
         """Update an existing audit destination."""
         existing_destination = await self.get_destination_by_id(destination_id)
 
@@ -86,17 +76,6 @@ class AuditDestinationDAO:
         existing_destination.is_enabled = destination_dto.is_enabled
 
         await self._session.flush()
-        await self._session.refresh(existing_destination)
-
-        return AuditDestinationDTO(
-            id=existing_destination.id,
-            name=existing_destination.name,
-            service_type=existing_destination.service_type,
-            host=existing_destination.host,
-            port=existing_destination.port,
-            protocol=existing_destination.protocol,
-            is_enabled=existing_destination.is_enabled,
-        )
 
     async def delete_destination(self, destination_id: int) -> None:
         """Delete an audit destination."""
