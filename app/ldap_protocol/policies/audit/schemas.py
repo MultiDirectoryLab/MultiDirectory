@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from pydantic import BaseModel, Field, field_serializer
 
-from models import (
+from .enums import (
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
