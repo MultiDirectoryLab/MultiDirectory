@@ -23,6 +23,7 @@ from loguru import logger
 from sqlalchemy import exc as sa_exc
 
 from api import (
+    audit_router,
     auth_router,
     dns_router,
     entry_router,
@@ -93,6 +94,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
         lifespan=_lifespan,
     )
     origins = [settings.DOMAIN]
+    app.include_router(audit_router)
     app.include_router(auth_router)
     app.include_router(entry_router)
     app.include_router(network_router)

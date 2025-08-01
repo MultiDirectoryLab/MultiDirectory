@@ -217,8 +217,3 @@ class ExtendedResponse(LDAPResult, BaseResponse):
 
         if self.response_value and (value := self.response_value.get_value()):
             enc.write(value, type_map[type(value)])
-
-
-# 15: 'compare Response'
-# 19: 'Search Result Reference'
-# 25: 'intermediate Response'
