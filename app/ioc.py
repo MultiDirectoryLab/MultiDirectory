@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
+from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from config import Settings
@@ -53,7 +54,9 @@ from ldap_protocol.multifactor import (
     get_creds,
 )
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
+from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -197,9 +200,6 @@ class MainProvider(Provider):
         yield SessionStorageClient(client)
         await client.aclose()
 
-    audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
-    audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
-
     @provide(scope=Scope.APP)
     async def get_session_storage(
         self,
@@ -294,6 +294,11 @@ class HTTPProvider(LDAPContextProvider):
         return KRBTemplateRenderer(settings.TEMPLATES)
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
+    audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
+    audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
+    audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
+    audit_service = provide(AuditService, scope=Scope.REQUEST)
+    audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):

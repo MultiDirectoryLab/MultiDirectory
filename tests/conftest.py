@@ -39,6 +39,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api import shadow_router
+from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from config import Settings
@@ -73,7 +74,9 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
+from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -92,6 +95,7 @@ class TestProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.RUNTIME)
     _cached_session: AsyncSession | None = None
     _cached_kadmin: Mock | None = None
+    _cached_audit_service: Mock | None = None
     _cached_dns_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
 
@@ -361,6 +365,31 @@ class TestProvider(Provider):
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
     audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
     audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
+    audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
+
+    @provide(scope=Scope.REQUEST, provides=AuditService)
+    async def get_audit_service(self) -> AsyncIterator[AsyncMock]:
+        """Provide a mock audit service."""
+        audit_service = Mock()
+
+        ok_response = Mock()
+        ok_response.status_code = 200
+
+        audit_service.get_policies = AsyncMock(return_value=[])
+        audit_service.update_policy = AsyncMock(return_value=None)
+        audit_service.get_destinations = AsyncMock(return_value=[])
+        audit_service.create_destination = AsyncMock(return_value=None)
+        audit_service.update_destination = AsyncMock(return_value=None)
+        audit_service.delete_destination = AsyncMock(return_value=None)
+
+        if not self._cached_audit_service:
+            self._cached_audit_service = audit_service
+
+        yield self._cached_audit_service
+
+        self._cached_audit_service = None
+
+    audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
     add_request_context = provide(
         LDAPAddRequestContext,
@@ -437,6 +466,15 @@ async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
         yield await container.get(AbstractKadmin)
 
 
+@pytest_asyncio.fixture
+async def audit_service(
+    container: AsyncContainer,
+) -> AsyncIterator[AuditService]:
+    """Get di audit_service."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(AuditService)
+
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator:
     """Create uvloop event loop."""
@@ -495,7 +533,7 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def setup_entity(session: AsyncSession) -> None:
+async def setup_session(session: AsyncSession) -> None:
     """Get session and aquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
     object_class_dao = ObjectClassDAO(
@@ -509,12 +547,12 @@ async def setup_entity(session: AsyncSession) -> None:
             object_class_names=entity_type_data["object_class_names"],
             is_system=True,
         )
-    await session.commit()
 
+    await session.flush()
 
-@pytest_asyncio.fixture(scope="function")
-async def setup_session(session: AsyncSession, setup_entity: None) -> None:
-    """Get session and aquire after completion."""
+    audit_policy_dao = AuditPoliciesDAO(session)
+    audit_use_case = AuditUseCase(audit_policy_dao)
+    await audit_use_case.create_policies()
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
     role_dao = RoleDAO(session)
