@@ -282,6 +282,7 @@ class ModifyRequest(BaseRequest):
             .options(
                 selectinload(Directory.attributes),
                 selectinload(Directory.groups).selectinload(Group.directory),
+                selectinload(Directory.groups).selectinload(Group.members),
                 joinedload(Directory.group).selectinload(Group.members),
             )
             .filter(get_filter_from_path(self.object))
@@ -304,8 +305,20 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         user: UserSchema,
         groups: list[Group],
+        operation: Operation,
     ) -> None:
         """Check if the request can delete group from directory ."""
+        if operation == Operation.DELETE:
+            for group in groups:
+                if (
+                    group.directory.name == DOMAIN_ADMIN_NAME
+                    and directory.path_dn == user.dn
+                ):
+                    raise ModifyForbiddenError(
+                        "Cannot remove yourself from the group.",
+                    )
+            return
+
         for group in directory.groups:
             if (
                 group.directory.name == DOMAIN_ADMIN_NAME
@@ -326,6 +339,7 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         user: UserSchema,
         members: list[Directory],
+        operation: Operation,
     ) -> None:
         """Check if the request can delete directory member."""
         if directory.name == DOMAIN_ADMIN_NAME:
@@ -336,7 +350,13 @@ class ModifyRequest(BaseRequest):
                 )
 
             modified_members_dns = {member.path_dn for member in members}
-            if user.dn not in modified_members_dns:
+            if (
+                operation == Operation.REPLACE
+                and user.dn not in modified_members_dns
+            ) or (
+                operation == Operation.DELETE
+                and user.dn in modified_members_dns
+            ):
                 raise ModifyForbiddenError(
                     "Cannot remove yourself from the group.",
                 )
@@ -358,6 +378,7 @@ class ModifyRequest(BaseRequest):
                 directory=directory,
                 user=user,
                 groups=groups,
+                operation=change.operation,
             )
 
             if not change.modification.vals:
@@ -378,6 +399,7 @@ class ModifyRequest(BaseRequest):
                 directory=directory,
                 user=user,
                 members=members,
+                operation=change.operation,
             )
 
             if not change.modification.vals:

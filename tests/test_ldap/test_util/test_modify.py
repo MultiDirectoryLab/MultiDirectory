@@ -142,7 +142,12 @@ async def test_ldap_membersip_user_delete(
     assert directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write((f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n-\n"))
+        file.write(
+            (
+                f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n"
+                "memberOf: cn=domain users,cn=groups,dc=md,dc=test\n"
+            ),
+        )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapmodify",
@@ -166,7 +171,7 @@ async def test_ldap_membersip_user_delete(
 
     session.expire_all()
     directory = (await session.scalars(query)).one()
-    assert not directory.groups
+    assert len(directory.groups) == 1
 
 
 @pytest.mark.asyncio
@@ -286,7 +291,7 @@ async def test_ldap_membersip_user_replace(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "replace: memberOf\n"
-                "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )

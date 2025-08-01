@@ -4,18 +4,16 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from ast import Delete
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import defaultload
+from sqlalchemy.orm import defaultload, selectinload
 
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_requests.modify import DOMAIN_ADMIN_NAME
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     DeleteResponse,
@@ -32,7 +30,6 @@ from models import Directory
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
-
 
 DOMAIN_ADMIN_NAME = "domain admins"
 
@@ -79,6 +76,7 @@ class DeleteRequest(BaseRequest):
             .options(
                 defaultload(Directory.user),
                 defaultload(Directory.attributes),
+                selectinload(Directory.groups),
             )
             .filter(get_filter_from_path(self.entry))
         )

@@ -265,7 +265,10 @@ TEST_DATA = [
                     "mail": "user0@mail.com",
                     "display_name": "user0",
                     "password": "password",
-                    "groups": ["domain admins"],
+                    "groups": [
+                        "domain admins",
+                        "domain users",
+                    ],
                 },
                 "attributes": {
                     "objectClass": [
