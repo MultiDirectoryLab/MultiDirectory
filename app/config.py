@@ -61,6 +61,12 @@ class Settings(BaseModel):
 
     HOSTNAME: str | None = None
 
+    EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
+
+    EVENT_STREAM_NAME: str = "EVENT_LOG"
+    EVENT_HANDLER_GROUP: str = "event_handlers"
+    PROCESSED_EVENT_STREAM_NAME: str = "NORMAL_EVENT_LOG"
+
     INSTANCE_DB_POOL_SIZE: int = 30
     INSTANCE_DB_POOL_LIMIT: int = 100
     INSTANCE_DB_POOL_TIMEOUT: int = 5
