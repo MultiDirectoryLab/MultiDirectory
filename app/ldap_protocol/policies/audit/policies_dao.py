@@ -35,9 +35,7 @@ class AuditPoliciesDAO:
                 is_enabled=policy.is_enabled,
                 severity=policy.severity,
             )
-            for policy in (
-                await self._session.scalars(select(AuditPolicy))
-            ).all()
+            for policy in await self._session.scalars(select(AuditPolicy))
         ]
 
     async def get_policy_by_id(self, policy_id: int) -> AuditPolicy:
