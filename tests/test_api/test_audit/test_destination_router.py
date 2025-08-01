@@ -4,61 +4,26 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from unittest.mock import Mock
+
 import pytest
-import pytest_asyncio
 from fastapi import status
 from httpx import AsyncClient
 
+from ldap_protocol.policies.audit.dataclasses import AuditDestinationDTO
 from ldap_protocol.policies.audit.enums import (
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
 )
-from ldap_protocol.policies.audit.schemas import (
-    AuditDestinationSchema,
-    AuditDestinationSchemaRequest,
-)
+from ldap_protocol.policies.audit.schemas import AuditDestinationSchemaRequest
 
 
-def assert_correct_destination(
-    destination: AuditDestinationSchema,
-    model: AuditDestinationSchemaRequest,
+@pytest.mark.asyncio
+async def test_create_audit_destination(
+    http_client: AsyncClient,
+    audit_service: Mock,
 ) -> None:
-    """Assert that the audit destination matches the request model."""
-    assert destination.name == model.name
-    assert destination.service_type == model.service_type
-    assert destination.protocol == model.protocol
-    assert destination.host == model.host
-    assert destination.port == model.port
-    assert destination.is_enabled == model.is_enabled
-
-
-async def get_and_check_destination(
-    http_client: AsyncClient,
-    model: AuditDestinationSchemaRequest,
-) -> AuditDestinationSchema:
-    """Get and check the audit destination."""
-    response = await http_client.get("/audit/destinations")
-    assert response.status_code == status.HTTP_200_OK
-    destinations = response.json()
-    created_destination = next(
-        (
-            AuditDestinationSchema(**d)
-            for d in destinations
-            if d["name"] == model.name
-        ),
-        None,
-    )
-    assert created_destination is not None, "Destination should not be None"
-    assert_correct_destination(created_destination, model)
-
-    return created_destination
-
-
-@pytest_asyncio.fixture(scope="function")
-async def audit_destination(
-    http_client: AsyncClient,
-) -> AuditDestinationSchema:
-    """Fixture to create an audit destination."""
+    """Test create an audit destination."""
     model = AuditDestinationSchemaRequest(
         name="Test Destination",
         service_type=AuditDestinationServiceType.SYSLOG,
@@ -74,20 +39,17 @@ async def audit_destination(
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-
-    return await get_and_check_destination(
-        http_client=http_client,
-        model=model,
-    )
+    result_dto = audit_service.create_destination.call_args.args[0]
+    assert result_dto == AuditDestinationDTO(**model.model_dump())
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
 async def test_update_audit_destination(
     http_client: AsyncClient,
-    audit_destination: AuditDestinationSchema,
+    audit_service: Mock,
 ) -> None:
     """Test create an audit destination."""
+    destination_id = 1
     model = AuditDestinationSchemaRequest(
         name="Test Destination",
         service_type=AuditDestinationServiceType.SYSLOG,
@@ -98,34 +60,29 @@ async def test_update_audit_destination(
     )
 
     response = await http_client.put(
-        f"/audit/destination/{audit_destination.id}",
+        f"/audit/destination/{destination_id}",
         json=model.model_dump(),
     )
 
     assert response.status_code == status.HTTP_200_OK
 
-    await get_and_check_destination(
-        http_client=http_client,
-        model=model,
+    result_destionation_id, result_dto = (
+        audit_service.update_destination.call_args.args
     )
+    assert result_destionation_id == destination_id
+    assert result_dto == AuditDestinationDTO(**model.model_dump())
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
 async def test_delete_audit_destination(
     http_client: AsyncClient,
-    audit_destination: AuditDestinationSchema,
+    audit_service: Mock,
 ) -> None:
     """Test delete an audit destination."""
+    destination_id = 1
     response = await http_client.delete(
-        f"/audit/destination/{audit_destination.id}",
+        f"/audit/destination/{destination_id}",
     )
 
     assert response.status_code == status.HTTP_200_OK
-
-    response = await http_client.get("/audit/destinations")
-    assert response.status_code == status.HTTP_200_OK
-    destinations = response.json()
-    assert not any(d["id"] == audit_destination.id for d in destinations), (
-        "Destination should be deleted"
-    )
+    assert audit_service.delete_destination.call_args.args[0] == destination_id
