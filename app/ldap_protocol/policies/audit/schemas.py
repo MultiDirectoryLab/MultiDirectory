@@ -21,7 +21,7 @@ class AuditPolicySchemaRequest(BaseModel):
 
 
 @dataclass
-class AuditPolicySchema:
+class AuditPolicyResponse:
     """Audit policy schema."""
 
     id: int
@@ -45,7 +45,7 @@ class AuditDestinationSchemaRequest(BaseModel):
 
 
 @dataclass
-class AuditDestinationSchema:
+class AuditDestinationResponse:
     """Audit destination schema."""
 
     id: int

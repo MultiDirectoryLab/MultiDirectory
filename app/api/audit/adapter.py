@@ -17,9 +17,9 @@ from ldap_protocol.policies.audit.exception import (
     AuditNotFoundError,
 )
 from ldap_protocol.policies.audit.schemas import (
-    AuditDestinationSchema,
+    AuditDestinationResponse,
     AuditDestinationSchemaRequest,
-    AuditPolicySchema,
+    AuditPolicyResponse,
     AuditPolicySchemaRequest,
 )
 from ldap_protocol.policies.audit.service import AuditService
@@ -53,10 +53,10 @@ class AuditPoliciesAdapter:
         except AuditAlreadyExistsError:
             raise HTTPException(status.HTTP_409_CONFLICT)
 
-    async def get_policies(self) -> list[AuditPolicySchema]:
+    async def get_policies(self) -> list[AuditPolicyResponse]:
         """Get all audit policies."""
         return [
-            AuditPolicySchema(
+            AuditPolicyResponse(
                 id=policy.id,
                 name=policy.name,
                 is_enabled=policy.is_enabled,
@@ -78,10 +78,10 @@ class AuditPoliciesAdapter:
             policy_dto,
         )
 
-    async def get_destinations(self) -> list[AuditDestinationSchema]:
+    async def get_destinations(self) -> list[AuditDestinationResponse]:
         """Get all audit destinations."""
         return [
-            AuditDestinationSchema(
+            AuditDestinationResponse(
                 id=destination.id,  # type: ignore
                 name=destination.name,
                 service_type=destination.service_type.name.lower(),
