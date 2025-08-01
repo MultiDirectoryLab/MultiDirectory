@@ -1,3 +1,8 @@
+"""Abstract DHCP manager for DHCP server managing.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 from abc import ABC, abstractmethod
 
 import httpx
