@@ -25,10 +25,12 @@ class AbstractDHCPManager(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def delete_subnet(self, subnet: str) -> None: ...
+    async def delete_subnet(self, name: str) -> None: ...
 
     @abstractmethod
-    async def get_subnets(self, subnet: str) -> dict[str, str] | None: ...
+    async def get_subnets(
+        self,
+    ) -> dict[str, str] | list[dict[str, str]] | None: ...
 
     @abstractmethod
     async def update_subnet(
@@ -42,16 +44,12 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def create_lease(
         self,
-        subnet: str,
-        mac_address: str,
-        ip_address: str | None = None,
-        hostname: str | None = None,
-        lease_start: str | None = None,
-        lease_time: int | None = None,
+        mac_address,
+        ip_address=None,
     ) -> None: ...
 
     @abstractmethod
-    async def release_lease(self, subnet: str, mac_address: str) -> None: ...
+    async def release_lease(self, ip_address: str) -> None: ...
 
     @abstractmethod
     async def list_active_leases(
@@ -61,8 +59,9 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def find_lease(
         self,
-        subnet: str,
-        mac_address: str,
+        mac_address: str | None = None,
+        ip_address: str | None = None,
+        hostname: str | None = None,
     ) -> dict[str, str] | None: ...
 
     @abstractmethod
@@ -78,7 +77,6 @@ class AbstractDHCPManager(ABC):
     async def delete_reservation(
         self,
         subnet: str,
-        mac_address: str,
     ) -> None: ...
 
     @abstractmethod
