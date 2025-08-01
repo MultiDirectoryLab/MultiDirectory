@@ -95,6 +95,7 @@ class TestProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.RUNTIME)
     _cached_session: AsyncSession | None = None
     _cached_kadmin: Mock | None = None
+    _cached_audit_service: Mock | None = None
     _cached_dns_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
 
@@ -365,7 +366,29 @@ class TestProvider(Provider):
     audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
     audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
     audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
-    audit_service = provide(AuditService, scope=Scope.REQUEST)
+
+    @provide(scope=Scope.REQUEST, provides=AuditService)
+    async def get_audit_service(self) -> AsyncIterator[AsyncMock]:
+        """Provide a mock audit service."""
+        audit_service = Mock()
+
+        ok_response = Mock()
+        ok_response.status_code = 200
+
+        audit_service.get_policies = AsyncMock(return_value=[])
+        audit_service.update_policy = AsyncMock(return_value=None)
+        audit_service.get_destinations = AsyncMock(return_value=[])
+        audit_service.create_destination = AsyncMock(return_value=None)
+        audit_service.update_destination = AsyncMock(return_value=None)
+        audit_service.delete_destination = AsyncMock(return_value=None)
+
+        if not self._cached_audit_service:
+            self._cached_audit_service = audit_service
+
+        yield self._cached_audit_service
+
+        self._cached_audit_service = None
+
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
     add_request_context = provide(
@@ -441,6 +464,15 @@ async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
     """Get di kadmin."""
     async with container(scope=Scope.APP) as container:
         yield await container.get(AbstractKadmin)
+
+
+@pytest_asyncio.fixture
+async def audit_service(
+    container: AsyncContainer,
+) -> AsyncIterator[AuditService]:
+    """Get di audit_service."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(AuditService)
 
 
 @pytest.fixture(scope="session")
