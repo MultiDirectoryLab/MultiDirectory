@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import asdict
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from fastapi import HTTPException, status
@@ -18,9 +17,7 @@ from ldap_protocol.policies.audit.exception import (
     AuditNotFoundError,
 )
 from ldap_protocol.policies.audit.schemas import (
-    AuditDestinationSchema,
     AuditDestinationSchemaRequest,
-    AuditPolicySchema,
     AuditPolicySchemaRequest,
 )
 from ldap_protocol.policies.audit.service import AuditService
@@ -54,12 +51,9 @@ class AuditPoliciesAdapter:
         except AuditAlreadyExistsError:
             raise HTTPException(status.HTTP_409_CONFLICT)
 
-    async def get_policies(self) -> list[AuditPolicySchema]:
+    async def get_policies(self) -> list[AuditPolicyDTO]:
         """Get all audit policies."""
-        return [
-            AuditPolicySchema.model_validate(asdict(policy))
-            for policy in await self.audit_service.get_policies()
-        ]
+        return await self.audit_service.get_policies()
 
     async def update_policy(
         self,
@@ -74,12 +68,9 @@ class AuditPoliciesAdapter:
             policy_dto,
         )
 
-    async def get_destinations(self) -> list[AuditDestinationSchema]:
+    async def get_destinations(self) -> list[AuditDestinationDTO]:
         """Get all audit destinations."""
-        return [
-            AuditDestinationSchema.model_validate(asdict(destination))
-            for destination in await self.audit_service.get_destinations()
-        ]
+        return await self.audit_service.get_destinations()
 
     async def create_destination(
         self,
