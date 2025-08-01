@@ -59,7 +59,7 @@ class AuditPoliciesDAO:
         self,
         policy_id: int,
         policy_dto: AuditPolicyDTO,
-    ) -> AuditPolicyDTO:
+    ) -> None:
         """Update an existing audit policy.
 
         Args:
@@ -77,14 +77,6 @@ class AuditPoliciesDAO:
         existing_policy.is_enabled = policy_dto.is_enabled
 
         await self._session.flush()
-        await self._session.refresh(existing_policy)
-
-        return AuditPolicyDTO(
-            id=existing_policy.id,
-            name=existing_policy.name,
-            is_enabled=existing_policy.is_enabled,
-            severity=existing_policy.severity,
-        )
 
     async def create_policy(
         self,

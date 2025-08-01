@@ -39,7 +39,7 @@ async def update_audit_policy(
     policy_id: int,
     policy_data: AuditPolicySchemaRequest,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> AuditPolicySchema:
+) -> None:
     """Update an existing audit policy."""
     return await audit_adapter.update_policy(policy_id, policy_data)
 
@@ -56,7 +56,7 @@ async def get_audit_destinations(
 async def create_audit_destination(
     destination_data: AuditDestinationSchemaRequest,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> AuditDestinationSchema:
+) -> None:
     """Create a new audit destination."""
     return await audit_adapter.create_destination(destination_data)
 
@@ -75,7 +75,7 @@ async def update_audit_destination(
     destination_id: int,
     destination_data: AuditDestinationSchemaRequest,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> AuditDestinationSchema:
+) -> None:
     """Update an existing audit destination."""
     return await audit_adapter.update_destination(
         destination_id,

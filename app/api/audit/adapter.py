@@ -4,10 +4,15 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import asdict
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from fastapi import HTTPException, status
 
+from ldap_protocol.policies.audit.dataclasses import (
+    AuditDestinationDTO,
+    AuditPolicyDTO,
+)
 from ldap_protocol.policies.audit.exception import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
@@ -51,44 +56,53 @@ class AuditPoliciesAdapter:
 
     async def get_policies(self) -> list[AuditPolicySchema]:
         """Get all audit policies."""
-        return await self.audit_service.get_policies()
+        return [
+            AuditPolicySchema.model_validate(asdict(policy))
+            for policy in await self.audit_service.get_policies()
+        ]
 
     async def update_policy(
         self,
         policy_id: int,
         policy_data: AuditPolicySchemaRequest,
-    ) -> AuditPolicySchema:
+    ) -> None:
         """Update an existing audit policy."""
+        policy_dto = AuditPolicyDTO(**policy_data.model_dump())
         return await self._sc(
             self.audit_service.update_policy,
             policy_id,
-            policy_data,
+            policy_dto,
         )
 
     async def get_destinations(self) -> list[AuditDestinationSchema]:
         """Get all audit destinations."""
-        return await self.audit_service.get_destinations()
+        return [
+            AuditDestinationSchema.model_validate(asdict(destination))
+            for destination in await self.audit_service.get_destinations()
+        ]
 
     async def create_destination(
         self,
         destination_data: AuditDestinationSchemaRequest,
-    ) -> AuditDestinationSchema:
+    ) -> None:
         """Create a new audit destination."""
+        destination_dto = AuditDestinationDTO(**destination_data.model_dump())
         return await self._sc(
             self.audit_service.create_destination,
-            destination_data,
+            destination_dto,
         )
 
     async def update_destination(
         self,
         destination_id: int,
         destination_data: AuditDestinationSchemaRequest,
-    ) -> AuditDestinationSchema:
+    ) -> None:
         """Update an existing audit destination."""
+        destination_dto = AuditDestinationDTO(**destination_data.model_dump())
         return await self._sc(
             self.audit_service.update_destination,
             destination_id,
-            destination_data,
+            destination_dto,
         )
 
     async def delete_destination(self, destination_id: int) -> None:
