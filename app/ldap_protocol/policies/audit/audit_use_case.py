@@ -10,18 +10,39 @@ from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import AuditSeverity
 
 from .dataclasses import AuditPolicySetupDTO, AuditPolicyTriggerDTO
+from .events.adapter import AuditABCAdapter
 from .policies_dao import AuditPoliciesDAO
 
 
 class AuditUseCase:
     """Audit use case for handling audit policies."""
 
-    def __init__(self, audit_dao: AuditPoliciesDAO) -> None:
+    def __init__(
+        self,
+        audit_dao: AuditPoliciesDAO,
+        audit_adapter: AuditABCAdapter,
+    ) -> None:
         """Initialize AuditUseCase with a DAO instance.
 
         :param audit_dao: DAO instance for database operations.
         """
         self._audit_dao = audit_dao
+        self._audit_adapter = audit_adapter
+
+    async def is_event_processing_enabled(self, request_code: int) -> bool:
+        """Check if event processing is enabled for a specific request code."""
+        if request_code == OperationEvent.SEARCH:
+            return False
+
+        return await self._audit_adapter.get_processing_status()
+
+    async def enable_event_processing(self) -> None:
+        """Enable processing of audit events."""
+        await self._audit_adapter.update_processing_status(True)
+
+    async def disable_event_processing(self) -> None:
+        """Disable processing of audit events."""
+        await self._audit_adapter.update_processing_status(False)
 
     async def _create_standard_policies(
         self,
