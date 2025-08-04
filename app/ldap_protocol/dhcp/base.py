@@ -11,6 +11,7 @@ import httpx
 
 DHCP_MANAGER_STATE_NAME = "DHCPManagerState"
 
+
 class DHCPManagerState(StrEnum):
     """DHCP manager states."""
 
@@ -68,7 +69,8 @@ class AbstractDHCPManager(ABC):
 
     @abstractmethod
     async def list_active_leases(
-        self, subnet: str
+        self,
+        subnet: str,
     ) -> list[dict[str, str]] | None: ...
 
     @abstractmethod
@@ -96,5 +98,6 @@ class AbstractDHCPManager(ABC):
 
     @abstractmethod
     async def get_reservations(
-        self, subnet: str
+        self,
+        subnet: str,
     ) -> list[dict[str, str]] | None: ...
