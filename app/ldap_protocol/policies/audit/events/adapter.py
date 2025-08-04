@@ -22,7 +22,7 @@ class AuditABCAdapter(ABC, Generic[TEvent]):
     @property
     @abstractmethod
     def _client(self) -> Any:
-        """Redis client for audit operations."""
+        """Client for audit operations."""
 
     @abstractmethod
     async def send_event(self, event: AuditEvent) -> None:
