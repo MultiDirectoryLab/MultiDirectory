@@ -57,7 +57,10 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
-from ldap_protocol.policies.audit.events.adapter import AuditRedisAdapter
+from ldap_protocol.policies.audit.events.adapter import (
+    AuditABCAdapter,
+    AuditRedisAdapter,
+)
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
@@ -70,6 +73,8 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
+AuditRawAdapter = NewType("AuditRawAdapter", AuditABCAdapter)
+AuditNormalizedAdapter = NewType("AuditNormalizedAdapter", AuditABCAdapter)
 
 
 class MainProvider(Provider):
@@ -218,17 +223,45 @@ class MainProvider(Provider):
         )
 
     @provide()
-    async def get_audit_redis_adapter(
+    async def get_raw_audit_adapter(
         self,
         settings: Settings,
-    ) -> AsyncIterator[AuditRedisAdapter]:
+    ) -> AsyncIterator[AuditRawAdapter]:
         """Get events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        yield AuditRedisAdapter(client)
+        adapter = AuditRedisAdapter(
+            client,
+            settings.RAW_EVENT_STREAM_NAME,
+            settings.EVENT_HANDLER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+        yield AuditRawAdapter(adapter)
+        await client.aclose()
+
+    @provide()
+    async def get_normalized_audit_adapter(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[AuditNormalizedAdapter]:
+        """Get normalized events redis client."""
+        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        adapter = AuditRedisAdapter(
+            client,
+            settings.NORMALIZED_EVENT_STREAM_NAME,
+            settings.EVENT_SENDER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+        yield AuditNormalizedAdapter(adapter)
         await client.aclose()
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
