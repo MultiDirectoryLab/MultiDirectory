@@ -75,6 +75,11 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
+from ldap_protocol.policies.audit.events.adapter import (
+    AuditNormalizedAdapter,
+    AuditRawAdapter,
+    AuditRedisAdapter,
+)
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
@@ -391,6 +396,48 @@ class TestProvider(Provider):
 
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
+    @provide()
+    async def get_raw_audit_adapter(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[AuditRawAdapter]:
+        """Get events redis client."""
+        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        adapter = AuditRedisAdapter(
+            client,
+            settings.RAW_EVENT_STREAM_NAME,
+            settings.EVENT_HANDLER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+        yield AuditRawAdapter(adapter)
+        await client.aclose()
+
+    @provide()
+    async def get_normalized_audit_adapter(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[AuditNormalizedAdapter]:
+        """Get normalized events redis client."""
+        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        adapter = AuditRedisAdapter(
+            client,
+            settings.NORMALIZED_EVENT_STREAM_NAME,
+            settings.EVENT_SENDER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+        yield AuditNormalizedAdapter(adapter)
+        await client.aclose()
+
     add_request_context = provide(
         LDAPAddRequestContext,
         scope=Scope.REQUEST,
@@ -533,7 +580,19 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def setup_session(session: AsyncSession) -> None:
+async def raw_audit_adapter(
+    container: AsyncContainer,
+) -> AsyncIterator[AuditRawAdapter]:
+    """Get raw audit adapter."""
+    async with container(scope=Scope.APP) as container:
+        yield await container.get(AuditRawAdapter)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def setup_session(
+    session: AsyncSession,
+    raw_audit_adapter: AuditRawAdapter,
+) -> None:
     """Get session and aquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
     object_class_dao = ObjectClassDAO(
@@ -551,7 +610,7 @@ async def setup_session(session: AsyncSession) -> None:
     await session.flush()
 
     audit_policy_dao = AuditPoliciesDAO(session)
-    audit_use_case = AuditUseCase(audit_policy_dao)
+    audit_use_case = AuditUseCase(audit_policy_dao, raw_audit_adapter)
     await audit_use_case.create_policies()
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
