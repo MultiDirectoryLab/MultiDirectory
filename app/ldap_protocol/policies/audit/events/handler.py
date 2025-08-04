@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import itertools
 import operator
 from typing import Callable
 
@@ -20,8 +19,8 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
 
-from .adapter import AuditABCAdapter, AuditNormalizedAdapter, AuditRawAdapter
-from .dataclasses import NormalizedAuditEvent, RawAuditEvent
+from .adapter import AuditNormalizedAdapter, AuditRawAdapter
+from .dataclasses import NormalizedEvent, RawEvent
 from .normalizer import AuditEventNormalizer
 
 operations: dict[str, Callable] = {
@@ -53,7 +52,7 @@ class AuditEventHandler:
     def _check_modify_event(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
+        event: RawEvent,
     ) -> bool:
         """Check if modify event matches trigger conditions."""
         if (
@@ -99,7 +98,7 @@ class AuditEventHandler:
 
         return bool(op(first_value, second_value)) == result
 
-    def _check_bind_event(self, event: RawAuditEvent) -> bool:
+    def _check_bind_event(self, event: RawEvent) -> bool:
         """Verify if bind event is not SASL bind in progress.
 
         SASL_BIND_IN_PROGRESS is a special case where the bind operation
@@ -113,7 +112,7 @@ class AuditEventHandler:
     def _is_match_object_class(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
+        event: RawEvent,
     ) -> bool:
         """Check if event object class matches trigger object class."""
         return (
@@ -124,7 +123,7 @@ class AuditEventHandler:
     def _is_match_ldap_oid(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
+        event: RawEvent,
     ) -> bool:
         """Check if event OID matches trigger OID."""
         if trigger.additional_info is None:
@@ -142,7 +141,7 @@ class AuditEventHandler:
     def is_match_trigger(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
+        event: RawEvent,
     ) -> bool:
         """Determine if event matches trigger conditions."""
         if event.request_code == OperationEvent.CHANGE_PASSWORD:
@@ -179,7 +178,7 @@ class AuditEventHandler:
 
     async def get_event_by_data(
         self,
-        event_data: RawAuditEvent,
+        event_data: RawEvent,
         session: AsyncSession,
     ) -> list[AuditPolicyTrigger]:
         """Find all policy triggers matching event data."""
@@ -219,8 +218,8 @@ class AuditEventHandler:
 
     async def save_events(
         self,
-        events: list[NormalizedAuditEvent],
-        redis_client: AuditABCAdapter,
+        events: list[NormalizedEvent],
+        redis_client: AuditNormalizedAdapter,
     ) -> None:
         """Persist normalized events to stream."""
         for event in events:
@@ -228,22 +227,22 @@ class AuditEventHandler:
 
     async def handle_event(
         self,
-        event_data: RawAuditEvent,
-        event_id: str,
+        event: RawEvent,
         session: AsyncSession,
         raw_adapter: AuditRawAdapter,
         normalized_adapter: AuditNormalizedAdapter,
+        _class: type[NormalizedEvent],
     ) -> None:
         """Process single event through entire pipeline."""
-        logger.debug(f"Event data: {event_data}")
+        logger.debug(f"Event data: {event}")
         try:
-            events = await self.get_event_by_data(event_data, session)
+            events = await self.get_event_by_data(event, session)
 
             if not events:
                 return
 
-            normalize_events = [
-                AuditEventNormalizer(event_data, policy).build()
+            normalize_events: list[NormalizedEvent] = [
+                AuditEventNormalizer(event, policy, _class).build()
                 for policy in events
             ]
 
@@ -253,32 +252,7 @@ class AuditEventHandler:
 
             await self.save_events(normalize_events, normalized_adapter)
         finally:
-            await raw_adapter.delete_event(event_id)
-
-    async def process_events(
-        self,
-        redis_data: list[tuple[str, dict[bytes, bytes]]],
-    ) -> None:
-        """Process flattened events."""
-        events = {
-            event_id: RawAuditEvent.from_redis(event_data)
-            for event_id, event_data in redis_data
-        }
-        async with self.container(scope=Scope.REQUEST) as container:
-            kwargs = await resolve_deps(
-                func=self.handle_event,
-                container=container,
-            )
-            await asyncio.gather(
-                *[
-                    self.handle_event(
-                        event_data,
-                        event_id,
-                        **kwargs,
-                    )
-                    for event_id, event_data in events.items()
-                ],
-            )
+            await raw_adapter.delete_event(event.id)
 
     async def consume_events(self) -> None:
         """Consume events and process them."""
@@ -289,12 +263,18 @@ class AuditEventHandler:
 
         while True:
             try:
-                events = await raw_audit_adapter.read_events()
-                flattened_events = itertools.chain.from_iterable(
-                    event_list for _, event_list in events
-                )
-
-                await self.process_events(list(flattened_events))
+                async with self.container(scope=Scope.REQUEST) as container:
+                    for event in await raw_audit_adapter.read_events():
+                        kwargs = await resolve_deps(
+                            func=self.handle_event,
+                            container=container,
+                        )
+                        asyncio.gather(
+                            self.handle_event(
+                                event,
+                                **kwargs,
+                            ),
+                        )
             except ConnectionError:
                 await asyncio.sleep(1)
             except Exception as exc:
