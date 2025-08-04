@@ -402,7 +402,7 @@ services:
       - ./app:/app
     command: python multidirectory.py --event_handler
     environment:
-      HANDLER_NAME: event_handler-1
+      EVENT_CONSUMER_NAME: event_handler-1
     depends_on:
       migrations:
         condition: service_completed_successfully
