@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import os
+import socket
 import tomllib
 from functools import cached_property
 from typing import ClassVar, Literal
@@ -64,7 +65,9 @@ class Settings(BaseModel):
 
     EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
 
+    EVENT_CONSUMER_NAME: str = socket.gethostname()
     EVENT_HANDLER_GROUP: str = "event_handlers"
+    EVENT_SENDER_GROUP: str = "event_senders"
     RAW_EVENT_STREAM_NAME: str = "RAW_EVENT_LOG"
     NORMALIZED_EVENT_STREAM_NAME: str = "NORMALIZED_EVENT_LOG"
     IS_PROC_EVENT_KEY: str = "IS_PROC_EVENT"
