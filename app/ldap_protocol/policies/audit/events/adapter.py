@@ -118,6 +118,6 @@ class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
     ) -> None:
         """Handle errors occurring during consumer group creation."""
         if "BUSYGROUP" in str(error):
-            logger.critical(f"Consumer group {group_name} already exists.")
+            logger.info(f"Consumer group {group_name} already exists.")
         else:
             raise error
