@@ -13,18 +13,18 @@ from redis.asyncio import Redis
 
 from .dataclasses import AuditEvent, AuditEventRedis
 
-Events = TypeVar("Events", bound=AuditEvent)
+Event = TypeVar("Event", bound=AuditEvent)
 
 
-class AbstractAuditManager(ABC, Generic[Events]):
+class AbstractAuditManager(ABC, Generic[Event]):
     """Abstract base class for audit adapters."""
 
     @abstractmethod
-    async def send_event(self, event: Events) -> None:
+    async def send_event(self, event: Event) -> None:
         """Send audit event to the adapter."""
 
     @abstractmethod
-    async def read_events(self) -> list[Events]:
+    async def read_events(self) -> list[Event]:
         """Read audit events from the adapter."""
 
     @abstractmethod
@@ -54,7 +54,7 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
         group_name: str,
         consumer_name: str,
         is_event_processing_enabled_key: str,
-        _class: type[AuditEventRedis],
+        type_class: type[AuditEventRedis],
     ) -> None:
         """Initialize Redis client for audit event operations."""
         self._client = client
@@ -62,7 +62,7 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
         self._group_name = group_name
         self._consumer_name = consumer_name
         self._is_event_processing_enabled_key = is_event_processing_enabled_key
-        self._class = _class
+        self._class = type_class
 
     async def get_processing_status(self) -> bool:
         data = await self._client.get(self._is_event_processing_enabled_key)
