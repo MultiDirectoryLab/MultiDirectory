@@ -3,6 +3,7 @@
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from pydantic import BaseModel
 
 from .base import AbstractDHCPManager
@@ -41,16 +42,16 @@ class KeaDHCPManager(AbstractDHCPManager):
                                         {
                                             "name": "routers",
                                             "data": default_gateway,
-                                        }
+                                        },
                                     ]
                                     if default_gateway
                                     else [],
-                                }
+                                },
                             ],
                         },
                     ],
                 },
-            )
+            ),
         )
 
         if (
@@ -65,7 +66,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             json=KeaDHCPAPIRequest(
                 command="network4-del",
                 arguments={"name": name},
-            )
+            ),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
@@ -74,7 +75,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def get_subnets(self) -> list[dict[str, str]] | None:
         """Get all subnets."""
         response = await self._http_client.post(
-            json=KeaDHCPAPIRequest(command="network4-list")
+            json=KeaDHCPAPIRequest(command="network4-list"),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
@@ -91,7 +92,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                 json=KeaDHCPAPIRequest(
                     command="network4-get",
                     arguments={"name": shared_network["name"]},
-                )
+                ),
             )
 
             if (
@@ -101,7 +102,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                 continue
 
             result.append(
-                response.json().get("arguments").get("shared-networks")[0]
+                response.json().get("arguments").get("shared-networks")[0],
             )
 
         return result
@@ -131,10 +132,10 @@ class KeaDHCPManager(AbstractDHCPManager):
                         {
                             "hw-address": mac_address,
                             "ip-address": ip_address,
-                        }
-                    ]
+                        },
+                    ],
                 },
-            )
+            ),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
@@ -146,21 +147,22 @@ class KeaDHCPManager(AbstractDHCPManager):
             json=KeaDHCPAPIRequest(
                 command="lease4-del",
                 arguments={"ip-address": ip_address},
-            )
+            ),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
             raise Exception(f"Failed to release lease: {response.text}")
 
     async def list_active_leases(
-        self, subnet: str
+        self,
+        subnet: str,
     ) -> list[dict[str, str]] | None:
         """List active leases for a subnet."""
         response = await self._http_client.post(
             json=KeaDHCPAPIRequest(
                 command="lease4-list",
                 arguments={"subnet": subnet},
-            )
+            ),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
@@ -184,18 +186,18 @@ class KeaDHCPManager(AbstractDHCPManager):
                 json=KeaDHCPAPIRequest(
                     command="lease4-get-by-hw-address",
                     arguments={"hw-address": mac_address},
-                )
+                ),
             )
         elif hostname is not None:
             response = await self._http_client.post(
                 json=KeaDHCPAPIRequest(
                     command="lease4-get-by-hostname",
                     arguments={"hostname": hostname},
-                )
+                ),
             )
         else:
             raise ValueError(
-                "Either mac_address or hostname must be provided."
+                "Either mac_address or hostname must be provided.",
             )
 
         if response.status_code != 200 or response.json().get("result") != 0:
@@ -228,11 +230,11 @@ class KeaDHCPManager(AbstractDHCPManager):
                             "hw-address": mac_address,
                             "ip-address": ip_address,
                             "hostname": hostname,
-                        }
+                        },
                     ],
                     "operation-target": "all",
                 },
-            )
+            ),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
@@ -253,14 +255,15 @@ class KeaDHCPManager(AbstractDHCPManager):
                     "identifier": mac_address,
                     "operation-target": "all",
                 },
-            )
+            ),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
             raise Exception(f"Failed to delete reservation: {response.text}")
 
     async def get_reservations(
-        self, subnet: str
+        self,
+        subnet: str,
     ) -> list[dict[str, str]] | None:
         """Get all reservations for a subnet."""
         response = await self._http_client.post(
@@ -270,7 +273,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                     "subnet-id": subnet,
                     "operation-target": "all",
                 },
-            )
+            ),
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
