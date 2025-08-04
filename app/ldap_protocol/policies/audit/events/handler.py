@@ -43,7 +43,7 @@ operations: dict[str, Callable] = {
 }
 
 
-class AuditEventHandlerService:
+class AuditEventHandler:
     """Handle incoming audit events and process them according to policies."""
 
     def __init__(
