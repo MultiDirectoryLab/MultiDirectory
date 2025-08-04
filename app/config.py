@@ -60,6 +60,7 @@ class Settings(BaseModel):
     SESSION_REKEY_INTERVAL: int = 30 * 60
 
     HOSTNAME: str | None = None
+    SERVICE_NAME: str | None = None
 
     EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
 
