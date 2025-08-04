@@ -56,6 +56,7 @@ from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
 )
+from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler_factory
 
@@ -233,9 +234,22 @@ async def ldap_factory(settings: Settings) -> None:
     await asyncio.gather(*servers)
 
 
+async def event_handler_factory(settings: Settings) -> None:
+    """Run event handler."""
+    main_container = make_async_container(
+        MainProvider(),
+        context={Settings: settings},
+    )
+
+    await asyncio.gather(
+        AuditEventHandler(main_container, settings).run(),
+    )
+
+
 ldap = partial(run_entrypoint, factory=ldap_factory)
 scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
+event_handler = partial(run_entrypoint, factory=event_handler_factory)
 
 
 if __name__ == "__main__":
@@ -247,6 +261,11 @@ if __name__ == "__main__":
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
+    group.add_argument(
+        "--event_handler",
+        action="store_true",
+        help="Run event handler",
+    )
     group.add_argument(
         "--certs_dumper",
         action="store_true",
@@ -284,6 +303,8 @@ if __name__ == "__main__":
         )
     elif args.scheduler:
         scheduler(settings=settings)
+    elif args.event_handler:
+        event_handler(settings=settings)
     elif args.certs_dumper:
         dump_acme_cert()
     elif args.migrate:
