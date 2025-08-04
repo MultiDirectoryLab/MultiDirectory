@@ -306,7 +306,7 @@ class ModifyRequest(BaseRequest):
         groups: list[Group],
         operation: Operation,
     ) -> None:
-        """Check if the request can delete group from directory ."""
+        """Check if the request can delete group from directory."""
         if operation == Operation.REPLACE:
             for group in directory.groups:
                 if (
@@ -538,7 +538,7 @@ class ModifyRequest(BaseRequest):
                 ):
                     if directory.path_dn == current_user.dn:
                         raise ModifyForbiddenError(
-                            "Нельзя выключить собстенную учетную запись.",
+                            "Нельзя выключить собственную учетную запись.",
                         )
 
                     await kadmin.lock_principal(
