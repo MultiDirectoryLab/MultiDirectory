@@ -67,6 +67,7 @@ class Settings(BaseModel):
     EVENT_HANDLER_GROUP: str = "event_handlers"
     RAW_EVENT_STREAM_NAME: str = "RAW_EVENT_LOG"
     NORMALIZED_EVENT_STREAM_NAME: str = "NORMALIZED_EVENT_LOG"
+    IS_PROC_EVENT_KEY: str = "IS_PROC_EVENT"
 
     INSTANCE_DB_POOL_SIZE: int = 30
     INSTANCE_DB_POOL_LIMIT: int = 100
