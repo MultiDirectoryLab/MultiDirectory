@@ -8,17 +8,25 @@ import json
 import socket
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from fastapi import Request
 from loguru import logger
 from pydantic import BaseModel, Field, SecretStr
 from redis.asyncio import Redis
 
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
+from config import Settings
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 
+if TYPE_CHECKING:
+    from config import Settings
+    from ldap_protocol.ldap_requests import BaseRequest
+    from ldap_protocol.ldap_responses import BaseResponse
 
-class AuditEvent(BaseModel):
+
+class RawAuditEvent(BaseModel):
     """Represent audit event with request, response and connection details."""
 
     request: dict[str, Any]
@@ -51,8 +59,8 @@ class AuditEvent(BaseModel):
         return self.responses[-1]["result_code"] == LDAPCodes.SUCCESS
 
     @classmethod
-    def from_redis(cls, redis_data: dict[bytes, bytes]) -> "AuditEvent":
-        """Create AuditEvent instance from Redis dictionary data."""
+    def from_redis(cls, redis_data: dict[bytes, bytes]) -> "RawAuditEvent":
+        """Create RawAuditEvent instance from Redis dictionary data."""
         decoded_data = {
             key.decode(): value.decode() for key, value in redis_data.items()
         }
@@ -111,6 +119,81 @@ class AuditEvent(BaseModel):
         }
 
 
+class RawAuditEventBuilder:
+    """Builder for constructing AuditEvent objects from various request types.
+
+    This class provides factory methods to create standardized audit events
+    from different types of network requests (LDAP, HTTP etc.).
+    """
+
+    @classmethod
+    def from_ldap_request(
+        cls,
+        request: "BaseRequest",
+        responses: list["BaseResponse"],
+        username: str,
+        ip: IPv4Address | IPv6Address,
+        context: dict[str, Any],
+        settings: "Settings",
+        protocol: str,
+    ) -> RawAuditEvent:
+        """Construct an AuditEvent from LDAP request data."""
+        return RawAuditEvent(
+            request=request.model_dump(),
+            responses=[r.model_dump() for r in responses],
+            protocol=protocol,
+            request_code=request.PROTOCOL_OP,
+            context=context,
+            username=username,
+            source_ip=ip,
+            dest_port=settings.PORT,
+            service_name=settings.SERVICE_NAME,
+        )
+
+    @classmethod
+    def from_http_request(
+        cls,
+        request: Request,
+        event_type: OperationEvent,
+        username: str,
+        is_success_request: bool,
+        settings: "Settings",
+        target: str | None = None,
+        error_code: int | None = None,
+        error_message: str | None = None,
+    ) -> RawAuditEvent:
+        """Construct an RawAuditEvent from HTTP request data."""
+        ip = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+
+        context: dict[str, dict[str, str | int]] = {"details": {}}
+
+        if user_agent:
+            context["details"]["user-agent"] = user_agent
+        if event_type == OperationEvent.BIND:
+            context["details"]["auth_choice"] = "API"
+
+        if error_code:
+            context["details"]["error_code"] = error_code
+        if error_message:
+            context["details"]["error_message"] = error_message
+        if target:
+            context["details"]["target"] = target
+
+        return RawAuditEvent(
+            request=dict(),
+            responses=list(),
+            protocol="API",
+            request_code=event_type,
+            context=context,
+            username=username,
+            source_ip=ip,
+            dest_port=settings.HTTP_PORT,
+            http_success_status=is_success_request,
+            service_name=settings.SERVICE_NAME,
+        )
+
+
 class AuditRedisAdapter:
     """Adapter for managing audit events in Redis streams."""
 
@@ -140,7 +223,7 @@ class AuditRedisAdapter:
     async def add_audit_event(
         self,
         stream_name: str,
-        event: "AuditEvent",
+        event: "RawAuditEvent",
     ) -> None:
         """Add audit event to specified Redis stream."""
         await self._client.xadd(stream_name, event.to_redis_message())  # type: ignore
