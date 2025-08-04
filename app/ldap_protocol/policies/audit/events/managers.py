@@ -1,4 +1,4 @@
-"""Audit redis adapter.
+"""Audit managers.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -16,7 +16,7 @@ from .dataclasses import AuditEvent, AuditEventRedis
 Events = TypeVar("Events", bound=AuditEvent)
 
 
-class AuditABCAdapter(ABC, Generic[Events]):
+class AbstractAuditManager(ABC, Generic[Events]):
     """Abstract base class for audit adapters."""
 
     @abstractmethod
@@ -44,7 +44,7 @@ class AuditABCAdapter(ABC, Generic[Events]):
         """Update the processing status of audit events."""
 
 
-class AuditRedisAdapter(AuditABCAdapter[AuditEventRedis]):
+class AuditRedisAdapter(AbstractAuditManager[AuditEventRedis]):
     """Adapter for managing audit events in Redis streams."""
 
     def __init__(
@@ -120,5 +120,8 @@ class AuditRedisAdapter(AuditABCAdapter[AuditEventRedis]):
             raise error
 
 
-AuditRawAdapter = NewType("AuditRawAdapter", AuditABCAdapter)
-AuditNormalizedAdapter = NewType("AuditNormalizedAdapter", AuditABCAdapter)
+AuditRawManager = NewType("AuditRawManager", AbstractAuditManager)
+AuditNormalizedManager = NewType(
+    "AuditNormalizedManager",
+    AbstractAuditManager,
+)
