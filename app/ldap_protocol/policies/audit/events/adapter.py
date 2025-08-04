@@ -47,12 +47,6 @@ class AuditABCAdapter(ABC, Generic[TEvent]):
 class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
     """Adapter for managing audit events in Redis streams."""
 
-    _client: Redis
-    _stream_name: str
-    _group_name: str
-    _consumer_name: str
-    _is_event_processing_enabled_key: str
-
     def __init__(
         self,
         client: Redis,
