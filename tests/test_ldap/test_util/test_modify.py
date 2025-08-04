@@ -9,13 +9,17 @@ import tempfile
 from collections import defaultdict
 
 import pytest
+from fastapi import status
+from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
 from enums import AceType, RoleScope
+from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.objects import Operation
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
@@ -220,6 +224,56 @@ async def test_ldap_membersip_self_delete_admin_domain(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_self_disable(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
+    response = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["514"],
+                    },
+                },
+            ],
+        },
+    )
+
+    kadmin.lock_principal.assert_not_called()  # type: ignore
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR
+
+    response = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_membersip_user_add(
     session: AsyncSession,
@@ -336,7 +390,7 @@ async def test_ldap_membersip_user_replace(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "replace: memberOf\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )

@@ -418,11 +418,6 @@ class ModifyRequest(BaseRequest):
         attrs = []
         name = change.modification.type.lower()
 
-        logger.debug(
-            f"Deleting {name} attribute from {directory.path_dn} "
-            f"for user {user.dn}",
-        )
-
         if name == "memberof":
             await self._delete_memberof(
                 change=change,
