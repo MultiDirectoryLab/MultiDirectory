@@ -241,9 +241,7 @@ async def event_handler_factory(settings: Settings) -> None:
         context={Settings: settings},
     )
 
-    await asyncio.gather(
-        AuditEventHandler(main_container, settings).run(),
-    )
+    await asyncio.gather(AuditEventHandler(main_container).run())
 
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
