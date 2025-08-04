@@ -390,6 +390,23 @@ services:
       - "traefik.http.routers.rc.entrypoints=web"
       - "traefik.http.services.rc.loadbalancer.server.port=8081"
       - "traefik.http.routers.rc.service=rc"
+  
+  event_handler:
+    image: multidirectory
+    container_name: event_handler
+    restart: unless-stopped
+    tty: true
+    env_file:
+      local.env
+    volumes:
+      - ./app:/app
+    command: python multidirectory.py --event_handler
+    environment:
+      HANDLER_NAME: event_handler-1
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
 
 volumes:
   postgres:
