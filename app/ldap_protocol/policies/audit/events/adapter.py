@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, NewType, TypeVar
+from typing import Generic, NewType, TypeVar
 
 from loguru import logger
 from redis.asyncio import Redis
@@ -18,11 +18,6 @@ TEvent = TypeVar("TEvent", bound=RedisEvents, covariant=True)
 
 class AuditABCAdapter(ABC, Generic[TEvent]):
     """Abstract base class for audit adapters."""
-
-    @property
-    @abstractmethod
-    def _client(self) -> Any:
-        """Client for audit operations."""
 
     @abstractmethod
     async def send_event(self, event: AuditEvent) -> None:
@@ -60,14 +55,14 @@ class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
 
     def __init__(
         self,
-        redis: Redis,
+        client: Redis,
         stream_name: str,
         group_name: str,
         consumer_name: str,
         is_event_processing_enabled_key: str,
     ) -> None:
         """Initialize Redis client for audit event operations."""
-        self._client = redis
+        self._client = client
         self._stream_name = stream_name
         self._group_name = group_name
         self._consumer_name = consumer_name
