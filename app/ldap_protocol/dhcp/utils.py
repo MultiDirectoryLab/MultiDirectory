@@ -3,6 +3,7 @@
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +18,7 @@ async def get_dhcp_state(
     """Get or create DHCP manager state."""
     state = await session.scalar(
         select(CatalogueSetting)
-        .filter(CatalogueSetting.name == DHCP_MANAGER_STATE_NAME)
+        .filter(CatalogueSetting.name == DHCP_MANAGER_STATE_NAME),
     )  # fmt: skip
 
     if state is None:
