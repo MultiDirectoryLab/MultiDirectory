@@ -4,27 +4,27 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import itertools
 from abc import ABC, abstractmethod
 from typing import Generic, NewType, TypeVar
 
 from loguru import logger
 from redis.asyncio import Redis
 
-from .dataclasses import AuditEvent
+from .dataclasses import AuditEvent, AuditEventRedis
 
-type RedisEvents = list[list[tuple[str, list[tuple[str, dict[bytes, bytes]]]]]]
-TEvent = TypeVar("TEvent", bound=RedisEvents, covariant=True)
+Events = TypeVar("Events", bound=AuditEvent)
 
 
-class AuditABCAdapter(ABC, Generic[TEvent]):
+class AuditABCAdapter(ABC, Generic[Events]):
     """Abstract base class for audit adapters."""
 
     @abstractmethod
-    async def send_event(self, event: AuditEvent) -> None:
+    async def send_event(self, event: Events) -> None:
         """Send audit event to the adapter."""
 
     @abstractmethod
-    async def read_events(self) -> TEvent:
+    async def read_events(self) -> list[Events]:
         """Read audit events from the adapter."""
 
     @abstractmethod
@@ -44,7 +44,7 @@ class AuditABCAdapter(ABC, Generic[TEvent]):
         """Update the processing status of audit events."""
 
 
-class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
+class AuditRedisAdapter(AuditABCAdapter[AuditEventRedis]):
     """Adapter for managing audit events in Redis streams."""
 
     def __init__(
@@ -54,6 +54,7 @@ class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
         group_name: str,
         consumer_name: str,
         is_event_processing_enabled_key: str,
+        _class: type[AuditEventRedis],
     ) -> None:
         """Initialize Redis client for audit event operations."""
         self._client = client
@@ -61,6 +62,7 @@ class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
         self._group_name = group_name
         self._consumer_name = consumer_name
         self._is_event_processing_enabled_key = is_event_processing_enabled_key
+        self._class = _class
 
     async def get_processing_status(self) -> bool:
         data = await self._client.get(self._is_event_processing_enabled_key)
@@ -74,16 +76,22 @@ class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
         )
 
     async def send_event(self, event: AuditEvent) -> None:
-        await self._client.xadd(self._stream_name, event.to_redis_message())  # type: ignore
+        await self._client.xadd(self._stream_name, event.to_queue())
 
-    async def read_events(self) -> RedisEvents:
-        return await self._client.xreadgroup(
+    async def read_events(self) -> list[AuditEventRedis]:
+        data = await self._client.xreadgroup(
             self._group_name,
             self._consumer_name,
             {self._stream_name: ">"},
             count=10,
             block=5000,
         )
+
+        events = itertools.chain.from_iterable(
+            event_list for _, event_list in data
+        )
+
+        return [self._class.from_queue(event) for event in events]
 
     async def setup_reading(self) -> None:
         try:
