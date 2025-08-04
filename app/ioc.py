@@ -55,6 +55,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.policies.audit.adapter import AuditRedisAdapter
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
@@ -215,6 +216,20 @@ class MainProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    @provide()
+    async def get_audit_redis_adapter(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[AuditRedisAdapter]:
+        """Get events redis client."""
+        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        yield AuditRedisAdapter(client)
+        await client.aclose()
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
