@@ -78,7 +78,7 @@ from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import (
     AuditNormalizedManager,
     AuditRawManager,
-    AuditRedisAdapter,
+    AuditRedisManager,
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
@@ -407,7 +407,7 @@ class TestProvider(Provider):
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        adapter = AuditRedisAdapter(
+        adapter = AuditRedisManager(
             client,
             settings.RAW_EVENT_STREAM_NAME,
             settings.EVENT_HANDLER_GROUP,
@@ -428,7 +428,7 @@ class TestProvider(Provider):
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        adapter = AuditRedisAdapter(
+        adapter = AuditRedisManager(
             client,
             settings.NORMALIZED_EVENT_STREAM_NAME,
             settings.EVENT_SENDER_GROUP,
