@@ -56,7 +56,8 @@ from ldap_protocol.multifactor import (
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.adapter import (
-    AuditABCAdapter,
+    AuditNormalizedAdapter,
+    AuditRawAdapter,
     AuditRedisAdapter,
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
@@ -70,8 +71,6 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
-AuditRawAdapter = NewType("AuditRawAdapter", AuditABCAdapter)
-AuditNormalizedAdapter = NewType("AuditNormalizedAdapter", AuditABCAdapter)
 
 
 class MainProvider(Provider):
