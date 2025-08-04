@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
-from typing import Any
+from typing import Any, Self, TypeVar
 
 from loguru import logger
 from pydantic import SecretStr
@@ -26,14 +26,16 @@ class AuditEvent(ABC):
     It should be extended by specific event types (e.g., LDAP, HTTP).
     """
 
-    @abstractmethod
-    def to_redis_message(self) -> dict[str, str]:
-        """Convert the event to a dictionary suitable for Redis storage."""
+    id: str | None = None
 
     @classmethod
     @abstractmethod
-    def from_redis(cls, redis_data: dict[bytes, bytes]) -> "AuditEvent":
-        """Create an AuditEvent instance from Redis dictionary data."""
+    def from_queue(cls, queue_data: Any) -> Self:
+        """Create an AuditEvent instance from queue data."""
+
+    @abstractmethod
+    def to_queue(self) -> dict[Any, Any]:
+        """Convert the event to a dictionary suitable for queue storage."""
 
     def _default_serializer(self, obj: Any) -> Any:
         """Convert various object types to serializable format."""
@@ -61,8 +63,31 @@ class AuditEvent(ABC):
             return str(value)
 
 
+class AuditEventRedis(AuditEvent):
+    """Abstract base class for audit events stored in Redis."""
+
+    id: str
+
+    @classmethod
+    @abstractmethod
+    def from_redis(cls, redis_data: dict[bytes, bytes]) -> Self:
+        """Create an AuditEvent instance from Redis dictionary data."""
+
+    @abstractmethod
+    def to_redis_message(self) -> dict[str, str]:
+        """Convert the event to a dictionary suitable for Redis storage."""
+
+    def to_queue(self) -> dict[Any, Any]:
+        """Convert the event to a dictionary suitable for queue storage."""
+        return self.to_redis_message()
+
+    @classmethod
+    def from_queue(cls, queue_data: Any) -> Self:
+        return cls.from_redis(queue_data)
+
+
 @dataclass
-class RawAuditEvent(AuditEvent):
+class RawAuditEvent:
     """Represent audit event with request, response and connection details."""
 
     request: dict[str, Any]
@@ -95,8 +120,13 @@ class RawAuditEvent(AuditEvent):
 
         return self.responses[-1]["result_code"] == LDAPCodes.SUCCESS
 
+
+@dataclass
+class RawAuditEventRedis(RawAuditEvent, AuditEventRedis):
+    """Raw audit event model for Redis storage."""
+
     @classmethod
-    def from_redis(cls, redis_data: dict[bytes, bytes]) -> "RawAuditEvent":
+    def from_redis(cls, redis_data: dict[bytes, bytes]) -> Self:
         """Create RawAuditEvent instance from Redis dictionary data."""
         decoded_data = {
             key.decode(): value.decode() for key, value in redis_data.items()
@@ -140,7 +170,7 @@ class RawAuditEvent(AuditEvent):
 
 
 @dataclass
-class NormalizedAuditEvent(AuditEvent):
+class NormalizedAuditEvent:
     """Normalized audit event model."""
 
     username: str
@@ -156,6 +186,12 @@ class NormalizedAuditEvent(AuditEvent):
     details: dict[str, Any]
     service_name: str | None = None
 
+
+class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
+    """Normalized audit event model for Redis storage."""
+
+    id: str
+
     def to_redis_message(self) -> dict[str, str]:
         """Convert the normalized event to a dictionary for Redis storage."""
         return {
@@ -166,7 +202,7 @@ class NormalizedAuditEvent(AuditEvent):
         }
 
     @classmethod
-    def from_redis(cls, data: dict[bytes, bytes]) -> "NormalizedAuditEvent":
+    def from_redis(cls, data: dict[bytes, bytes]) -> Self:
         """Create an instance from Redis dictionary data."""
         decoded = {}
         for key, value in data.items():
@@ -188,3 +224,7 @@ class NormalizedAuditEvent(AuditEvent):
                 val if isinstance(val, bool) else val.lower() == "true"
             )
         return cls(**decoded)
+
+
+RawEvent = TypeVar("RawEvent", bound=RawAuditEventRedis)
+NormalizedEvent = TypeVar("NormalizedEvent", bound=NormalizedAuditEventRedis)
