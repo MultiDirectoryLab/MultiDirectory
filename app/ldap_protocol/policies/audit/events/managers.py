@@ -44,7 +44,7 @@ class AbstractAuditManager(ABC, Generic[Events]):
         """Update the processing status of audit events."""
 
 
-class AuditRedisAdapter(AbstractAuditManager[AuditEventRedis]):
+class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
     """Adapter for managing audit events in Redis streams."""
 
     def __init__(
