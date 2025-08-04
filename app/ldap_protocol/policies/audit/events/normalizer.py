@@ -4,26 +4,30 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Generic
+
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicyTrigger
 
-from .dataclasses import NormalizedAuditEvent, RawAuditEvent
+from .dataclasses import NormalizedEvent, RawEvent
 
 
-class AuditEventNormalizer:
+class AuditEventNormalizer(Generic[RawEvent, NormalizedEvent]):
     """Interactor for normalizing audit events."""
 
-    event_data: RawAuditEvent
+    event_data: RawEvent
     trigger: AuditPolicyTrigger
 
     def __init__(
         self,
-        event_data: RawAuditEvent,
+        event_data: RawEvent,
         trigger: AuditPolicyTrigger,
+        _class: type[NormalizedEvent],
     ) -> None:
         """Initialize normalizer with event data and trigger."""
         self.event_data = event_data
         self.trigger = trigger
+        self._class = _class
 
     def _get_common_fields(self) -> dict:
         """Extract common fields from event data and trigger."""
@@ -103,13 +107,13 @@ class AuditEventNormalizer:
             }
         return {}
 
-    def build(self) -> NormalizedAuditEvent:
+    def build(self) -> NormalizedEvent:
         """Normalize event data и вернуть pydantic-модель."""
         details = self._prepare_details()
         if not self.trigger.is_operation_success:
             details.update(self._extract_error_info())
 
-        return NormalizedAuditEvent(
+        return self._class(
             **self._get_common_fields(),
             details=details,
         )
