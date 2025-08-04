@@ -15,13 +15,12 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ioc import AuditNormalizedAdapter, AuditRawAdapter
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
 
-from .adapter import AuditABCAdapter
+from .adapter import AuditABCAdapter, AuditNormalizedAdapter, AuditRawAdapter
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent
 from .normalizer import AuditEventNormalizer
 
