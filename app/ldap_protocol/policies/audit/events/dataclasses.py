@@ -190,8 +190,6 @@ class NormalizedAuditEvent:
 class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
     """Normalized audit event model for Redis storage."""
 
-    id: str
-
     def to_redis_message(self) -> dict[str, str]:
         """Convert the normalized event to a dictionary for Redis storage."""
         return {
