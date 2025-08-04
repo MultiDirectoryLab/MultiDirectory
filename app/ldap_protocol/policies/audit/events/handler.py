@@ -7,8 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import itertools
 import operator
-import os
-import socket
 from typing import Callable
 
 from dishka import AsyncContainer, Scope
@@ -17,13 +15,13 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defaultload
 
-from config import Settings
+from ioc import AuditNormalizedAdapter, AuditRawAdapter
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
 
-from .adapter import AuditRedisAdapter
+from .adapter import AuditABCAdapter
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent
 from .normalizer import AuditEventNormalizer
 
@@ -49,14 +47,9 @@ class AuditEventHandler:
     def __init__(
         self,
         container: AsyncContainer,
-        settings: Settings,
     ) -> None:
         """Initialize event handler with settings and DI container."""
         self.container = container
-        self.group_name = settings.EVENT_HANDLER_GROUP
-        self.raw_event_stream = settings.RAW_EVENT_STREAM_NAME
-        self.normalized_event_stream = settings.NORMALIZED_EVENT_STREAM_NAME
-        self.consumer_name = os.getenv("HANDLER_NAME", socket.gethostname())
 
     def _check_modify_event(
         self,
@@ -214,21 +207,19 @@ class AuditEventHandler:
     async def save_events(
         self,
         events: list[NormalizedAuditEvent],
-        redis_client: AuditRedisAdapter,
+        redis_client: AuditABCAdapter,
     ) -> None:
         """Persist normalized events to stream."""
         for event in events:
-            await redis_client.add_audit_event(
-                self.normalized_event_stream,
-                event,
-            )
+            await redis_client.send_event(event)
 
     async def handle_event(
         self,
         event_data: RawAuditEvent,
         event_id: str,
         session: AsyncSession,
-        redis_client: AuditRedisAdapter,
+        raw_adapter: AuditRawAdapter,
+        normalized_adapter: AuditNormalizedAdapter,
     ) -> None:
         """Process single event through entire pipeline."""
         logger.debug(f"Event data: {event_data}")
@@ -247,13 +238,9 @@ class AuditEventHandler:
                 f"Normalized events: {[event for event in normalize_events]}",
             )
 
-            await self.save_events(normalize_events, redis_client)
+            await self.save_events(normalize_events, normalized_adapter)
         finally:
-            await redis_client.delete_event(
-                self.raw_event_stream,
-                self.group_name,
-                event_id,
-            )
+            await raw_adapter.delete_event(event_id)
 
     async def process_events(
         self,
@@ -282,21 +269,13 @@ class AuditEventHandler:
 
     async def consume_stream(self) -> None:
         """Continuously read and process events from Redis stream."""
-        redis_client: AuditRedisAdapter = await self.container.get(
-            AuditRedisAdapter,
+        redis_client: AuditRawAdapter = await self.container.get(
+            AuditRawAdapter,
         )
-        await redis_client.create_consumer_group(
-            self.raw_event_stream,
-            self.group_name,
-        )
+        await redis_client.setup_reading()
         while True:
             try:
-                events = await redis_client.read_events(
-                    stream_name=self.raw_event_stream,
-                    group_name=self.group_name,
-                    consumer_name=self.consumer_name,
-                    block=5000,
-                )
+                events = await redis_client.read_events()
                 flattened_events = itertools.chain.from_iterable(
                     event_list for _, event_list in events
                 )
