@@ -3,9 +3,19 @@
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
+
 from abc import ABC, abstractmethod
+from enum import StrEnum
 
 import httpx
+
+DHCP_MANAGER_STATE_NAME = "DHCPManagerState"
+
+class DHCPManagerState(StrEnum):
+    """DHCP manager states."""
+
+    NOT_CONFIGURED = "0"
+    KEA_DHCP = "1"
 
 
 class AbstractDHCPManager(ABC):
