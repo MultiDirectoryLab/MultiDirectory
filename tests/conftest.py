@@ -77,6 +77,10 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
+from ldap_protocol.policies.audit.events.dataclasses import (
+    NormalizedAuditEventRedis,
+    RawAuditEventRedis,
+)
 from ldap_protocol.policies.audit.events.managers import (
     AuditNormalizedManager,
     AuditRawManager,
@@ -420,6 +424,7 @@ class TestProvider(Provider):
             settings.EVENT_HANDLER_GROUP,
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
+            RawAuditEventRedis,
         )
         yield AuditRawManager(adapter)
         await client.aclose()
@@ -441,6 +446,7 @@ class TestProvider(Provider):
             settings.EVENT_SENDER_GROUP,
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
+            NormalizedAuditEventRedis,
         )
         yield AuditNormalizedManager(adapter)
         await client.aclose()
