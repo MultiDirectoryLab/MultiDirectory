@@ -77,9 +77,9 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
-from ldap_protocol.policies.audit.events.adapter import (
-    AuditNormalizedAdapter,
-    AuditRawAdapter,
+from ldap_protocol.policies.audit.events.managers import (
+    AuditNormalizedManager,
+    AuditRawManager,
     AuditRedisAdapter,
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
@@ -407,7 +407,7 @@ class TestProvider(Provider):
     async def get_raw_audit_adapter(
         self,
         settings: Settings,
-    ) -> AsyncIterator[AuditRawAdapter]:
+    ) -> AsyncIterator[AuditRawManager]:
         """Get events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
@@ -421,14 +421,14 @@ class TestProvider(Provider):
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
         )
-        yield AuditRawAdapter(adapter)
+        yield AuditRawManager(adapter)
         await client.aclose()
 
     @provide()
     async def get_normalized_audit_adapter(
         self,
         settings: Settings,
-    ) -> AsyncIterator[AuditNormalizedAdapter]:
+    ) -> AsyncIterator[AuditNormalizedManager]:
         """Get normalized events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
@@ -442,7 +442,7 @@ class TestProvider(Provider):
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
         )
-        yield AuditNormalizedAdapter(adapter)
+        yield AuditNormalizedManager(adapter)
         await client.aclose()
 
     add_request_context = provide(
@@ -591,16 +591,16 @@ async def session(
 @pytest_asyncio.fixture(scope="function")
 async def raw_audit_adapter(
     container: AsyncContainer,
-) -> AsyncIterator[AuditRawAdapter]:
+) -> AsyncIterator[AuditRawManager]:
     """Get raw audit adapter."""
     async with container(scope=Scope.APP) as container:
-        yield await container.get(AuditRawAdapter)
+        yield await container.get(AuditRawManager)
 
 
 @pytest_asyncio.fixture(scope="function")
 async def setup_session(
     session: AsyncSession,
-    raw_audit_adapter: AuditRawAdapter,
+    raw_audit_adapter: AuditRawManager,
 ) -> None:
     """Get session and aquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)

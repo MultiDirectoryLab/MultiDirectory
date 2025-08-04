@@ -19,8 +19,8 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
 
-from .adapter import AuditNormalizedAdapter, AuditRawAdapter
 from .dataclasses import NormalizedEvent, RawEvent
+from .managers import AuditNormalizedManager, AuditRawManager
 from .normalizer import AuditEventNormalizer
 
 operations: dict[str, Callable] = {
@@ -219,18 +219,18 @@ class AuditEventHandler:
     async def save_events(
         self,
         events: list[NormalizedEvent],
-        redis_client: AuditNormalizedAdapter,
+        normalized_manager: AuditNormalizedManager,
     ) -> None:
         """Persist normalized events to stream."""
         for event in events:
-            await redis_client.send_event(event)
+            await normalized_manager.send_event(event)
 
     async def handle_event(
         self,
         event: RawEvent,
         session: AsyncSession,
-        raw_adapter: AuditRawAdapter,
-        normalized_adapter: AuditNormalizedAdapter,
+        raw_adapter: AuditRawManager,
+        normalized_adapter: AuditNormalizedManager,
         _class: type[NormalizedEvent],
     ) -> None:
         """Process single event through entire pipeline."""
@@ -256,8 +256,8 @@ class AuditEventHandler:
 
     async def consume_events(self) -> None:
         """Consume events and process them."""
-        raw_audit_adapter: AuditRawAdapter = await self.container.get(
-            AuditRawAdapter,
+        raw_audit_adapter: AuditRawManager = await self.container.get(
+            AuditRawManager,
         )
         await raw_audit_adapter.setup_reading()
 
