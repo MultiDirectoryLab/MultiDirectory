@@ -119,7 +119,7 @@ class Settings(BaseModel):
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
 
-    DHCP_HOST: str = "kea_dhcp"
+    DHCP_HOST: str = "kea"
 
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
