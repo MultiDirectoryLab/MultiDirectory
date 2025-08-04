@@ -13,7 +13,7 @@ from dishka import AsyncContainer, Scope
 from loguru import logger
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import defaultload
+from sqlalchemy.orm import selectinload
 
 from ioc import AuditNormalizedAdapter, AuditRawAdapter
 from ldap_protocol.dependency import resolve_deps
@@ -101,13 +101,17 @@ class AuditEventHandler:
         return bool(op(first_value, second_value)) == result
 
     def _check_bind_event(self, event: RawAuditEvent) -> bool:
-        """Verify if bind event is not SASL bind in progress."""
-        return (
-            event.responses[-1]["result_code"]
-            != LDAPCodes.SASL_BIND_IN_PROGRESS
-        )
+        """Verify if bind event is not SASL bind in progress.
 
-    def _check_object_class(
+        SASL_BIND_IN_PROGRESS is a special case where the bind operation
+        is not yet completed, and we should not consider it a successful bind.
+        """
+        result_code = event.responses[-1]["result_code"]
+        sasl_bind_in_progress = result_code == LDAPCodes.SASL_BIND_IN_PROGRESS
+
+        return not sasl_bind_in_progress
+
+    def _is_match_object_class(
         self,
         trigger: AuditPolicyTrigger,
         event: RawAuditEvent,
@@ -117,6 +121,24 @@ class AuditEventHandler:
             trigger.object_class
             in event.context["before_attrs"]["objectclass"]
         )
+
+    def _is_match_ldap_oid(
+        self,
+        trigger: AuditPolicyTrigger,
+        event: RawAuditEvent,
+    ) -> bool:
+        """Check if event OID matches trigger OID."""
+        if trigger.additional_info is None:
+            raise ValueError(
+                "Extended operation trigger must have additional_info",
+            )
+
+        if "oid" not in trigger.additional_info:
+            raise ValueError(
+                "Trigger must have additional_info with 'oid'",
+            )
+
+        return trigger.additional_info["oid"] == event.request["request_name"]
 
     def is_match_trigger(
         self,
@@ -146,23 +168,15 @@ class AuditEventHandler:
                 OperationEvent.ADD,
                 OperationEvent.DELETE,
             ]:
-                return self._check_object_class(trigger, event)
+                return self._is_match_object_class(trigger, event)
 
             elif event.request_code == OperationEvent.EXTENDED:
-                if trigger.additional_info is None:
-                    raise ValueError(
-                        "Extended operation trigger must have additional_info",
-                    )
-
-                return (
-                    trigger.additional_info["oid"]
-                    == event.request["request_name"]
-                )
+                return self._is_match_ldap_oid(trigger, event)
 
             return trigger.additional_info is None
 
         else:
-            raise ValueError
+            raise ValueError("Unsupported event")
 
     async def get_event_by_data(
         self,
@@ -176,7 +190,7 @@ class AuditEventHandler:
         operation_code = event_data.request_code
         matched_triggers: list[AuditPolicyTrigger] = []
 
-        triggers = ( await session.scalars(
+        triggers = await session.scalars(
             select(AuditPolicyTrigger)
             .join(AuditPolicyTrigger.audit_policy)
             .where(
@@ -190,8 +204,8 @@ class AuditEventHandler:
                     AuditPolicyTrigger.is_http.is_(is_http),
                 ),
             )
-            .options(defaultload(AuditPolicyTrigger.audit_policy)),
-        )).all()  # fmt: skip
+            .options(selectinload(AuditPolicyTrigger.audit_policy)),
+        )  # fmt: skip
 
         logger.debug(
             f"Suitable triggers: {[trigger.id for trigger in triggers]}",
@@ -267,15 +281,16 @@ class AuditEventHandler:
                 ],
             )
 
-    async def consume_stream(self) -> None:
-        """Continuously read and process events from Redis stream."""
-        redis_client: AuditRawAdapter = await self.container.get(
+    async def consume_events(self) -> None:
+        """Consume events and process them."""
+        raw_audit_adapter: AuditRawAdapter = await self.container.get(
             AuditRawAdapter,
         )
-        await redis_client.setup_reading()
+        await raw_audit_adapter.setup_reading()
+
         while True:
             try:
-                events = await redis_client.read_events()
+                events = await raw_audit_adapter.read_events()
                 flattened_events = itertools.chain.from_iterable(
                     event_list for _, event_list in events
                 )
@@ -289,6 +304,6 @@ class AuditEventHandler:
     async def run(self) -> None:
         """Start event handler main processing loop."""
         try:
-            await self.consume_stream()
+            await self.consume_events()
         finally:
             await self.container.close()
