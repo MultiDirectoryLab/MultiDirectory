@@ -4,91 +4,112 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from abc import ABC, abstractmethod
+from typing import Any, Generic, TypeVar
+
 from loguru import logger
 from redis.asyncio import Redis
 
-from ldap_protocol.objects import OperationEvent
-
 from .dataclasses import AuditEvent
 
+type RedisEvents = list[list[tuple[str, list[tuple[str, dict[bytes, bytes]]]]]]
+TEvent = TypeVar("TEvent", bound=RedisEvents, covariant=True)
 
-class AuditRedisAdapter:
+
+class AuditABCAdapter(ABC, Generic[TEvent]):
+    """Abstract base class for audit adapters."""
+
+    @property
+    @abstractmethod
+    def _client(self) -> Any:
+        """Redis client for audit operations."""
+
+    @abstractmethod
+    async def send_event(self, event: AuditEvent) -> None:
+        """Send audit event to the adapter."""
+
+    @abstractmethod
+    async def read_events(self) -> TEvent:
+        """Read audit events from the adapter."""
+
+    @abstractmethod
+    async def delete_event(self, event_id: str) -> None:
+        """Delete an event from the adapter."""
+
+    @abstractmethod
+    async def setup_reading(self) -> None:
+        """Set up read events from the adapter."""
+
+    @abstractmethod
+    async def get_processing_status(self) -> bool:
+        """Check whether event processing is enabled."""
+
+    @abstractmethod
+    async def update_processing_status(self, status: bool) -> None:
+        """Update the processing status of audit events."""
+
+
+class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
     """Adapter for managing audit events in Redis streams."""
 
     _client: Redis
-    IS_PROC_EVENT_KEY: str = "is_proc_events"
+    _stream_name: str
+    _group_name: str
+    _consumer_name: str
+    _is_event_processing_enabled_key: str
 
-    def __init__(self, redis: Redis) -> None:
-        """Initialize Redis client for audit event operations."""
-        self._client = redis
-
-    async def is_event_processing_enabled(self, request_code: int) -> bool:
-        """Check whether event processing is enabled for request type."""
-        if request_code == OperationEvent.SEARCH:
-            return False
-
-        data = await self._client.get(self.IS_PROC_EVENT_KEY)
-        return data is not None and int(data) == 1
-
-    async def enable_event_processing(self) -> None:
-        """Enable processing of audit events in Redis."""
-        await self._client.set(self.IS_PROC_EVENT_KEY, 1)
-
-    async def disable_event_processing(self) -> None:
-        """Disable processing of audit events in Redis."""
-        await self._client.set(self.IS_PROC_EVENT_KEY, 0)
-
-    async def add_audit_event(
+    def __init__(
         self,
-        stream_name: str,
-        event: AuditEvent,
-    ) -> None:
-        """Add audit event to specified Redis stream."""
-        await self._client.xadd(stream_name, event.to_redis_message())  # type: ignore
-
-    async def create_consumer_group(
-        self,
-        stream_name: str,
-        group_name: str,
-        last_id: str = "0",
-    ) -> None:
-        """Create consumer group for reading events from Redis stream."""
-        try:
-            await self._client.xgroup_create(
-                stream_name,
-                group_name,
-                last_id,
-                mkstream=True,
-            )
-        except Exception as e:
-            self._handle_group_creation_error(e, group_name)
-
-    async def read_events(
-        self,
+        redis: Redis,
         stream_name: str,
         group_name: str,
         consumer_name: str,
-        count: int = 10,
-        block: int | None = None,
-    ) -> list[tuple[str, list[tuple[str, dict[bytes, bytes]]]]]:
-        """Read batch of events from Redis stream using consumer group."""
-        return await self._client.xreadgroup(
-            group_name,
-            consumer_name,
-            {stream_name: ">"},
-            count=count,
-            block=block,
+        is_event_processing_enabled_key: str,
+    ) -> None:
+        """Initialize Redis client for audit event operations."""
+        self._client = redis
+        self._stream_name = stream_name
+        self._group_name = group_name
+        self._consumer_name = consumer_name
+        self._is_event_processing_enabled_key = is_event_processing_enabled_key
+
+    async def get_processing_status(self) -> bool:
+        data = await self._client.get(self._is_event_processing_enabled_key)
+        return data is not None and int(data) == 1
+
+    async def update_processing_status(self, status: bool) -> None:
+        """Update the processing status of audit events."""
+        await self._client.set(
+            self._is_event_processing_enabled_key,
+            int(status),
         )
 
-    async def delete_event(
-        self,
-        stream_name: str,
-        group_name: str,
-        event_id: str,
-    ) -> None:
-        """Remove it from Redis stream."""
-        await self._client.xack(stream_name, group_name, event_id)
-        await self._client.xdel(stream_name, event_id)
+    async def send_event(self, event: AuditEvent) -> None:
+        await self._client.xadd(self._stream_name, event.to_redis_message())  # type: ignore
+
+    async def read_events(self) -> RedisEvents:
+        return await self._client.xreadgroup(
+            self._group_name,
+            self._consumer_name,
+            {self._stream_name: ">"},
+            count=10,
+            block=5000,
+        )
+
+    async def setup_reading(self) -> None:
+        try:
+            await self._client.xgroup_create(
+                self._stream_name,
+                self._group_name,
+                "0",
+                mkstream=True,
+            )
+        except Exception as e:
+            self._handle_group_creation_error(e, self._group_name)
+
+    async def delete_event(self, event_id: str) -> None:
+        await self._client.xack(self._stream_name, self._group_name, event_id)
+        await self._client.xdel(self._stream_name, event_id)
 
     def _handle_group_creation_error(
         self,
