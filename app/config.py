@@ -65,7 +65,7 @@ class Settings(BaseModel):
 
     EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
 
-    EVENT_CONSUMER_NAME: str = socket.gethostname()
+    EVENT_CONSUMER_NAME: str = Field(default_factory=socket.gethostname)
     EVENT_HANDLER_GROUP: str = "event_handlers"
     EVENT_SENDER_GROUP: str = "event_senders"
     RAW_EVENT_STREAM_NAME: str = "RAW_EVENT_LOG"
