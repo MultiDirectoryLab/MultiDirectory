@@ -514,7 +514,7 @@ class ModifyRequest(BaseRequest):
         session_storage: SessionStorage,
         kadmin: AbstractKadmin,
         settings: Settings,
-        user: UserSchema,
+        current_user: UserSchema,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -536,7 +536,7 @@ class ModifyRequest(BaseRequest):
                     )
                     and directory.user
                 ):
-                    if directory.path_dn == user.dn:
+                    if directory.path_dn == current_user.dn:
                         raise ModifyForbiddenError(
                             "Нельзя выключить собстенную учетную запись.",
                         )
