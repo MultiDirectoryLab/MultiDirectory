@@ -130,7 +130,7 @@ async def test_ldap_membersip_user_delete(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user_admin,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(Directory.groups))
@@ -142,12 +142,7 @@ async def test_ldap_membersip_user_delete(
     assert directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write(
-            (
-                f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n"
-                "memberOf: cn=domain users,cn=groups,dc=md,dc=test\n"
-            ),
-        )
+        file.write(f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n-\n")
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapmodify",
@@ -171,12 +166,12 @@ async def test_ldap_membersip_user_delete(
 
     session.expire_all()
     directory = (await session.scalars(query)).one()
-    assert len(directory.groups) == 1
+    assert not directory.groups
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_ldap_membersip_user_delete_admin_domain(
+async def test_ldap_membersip_self_delete_admin_domain(
     session: AsyncSession,
     settings: Settings,
     user: dict,
@@ -195,10 +190,8 @@ async def test_ldap_membersip_user_delete_admin_domain(
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
-            (
-                f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
-            ),
+            f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -223,7 +216,7 @@ async def test_ldap_membersip_user_delete_admin_domain(
 
     session.expire_all()
     directory = (await session.scalars(query)).one()
-    assert len(directory.groups) == 2
+    assert len(directory.groups) == 1
 
 
 @pytest.mark.asyncio
@@ -292,7 +285,7 @@ async def test_ldap_membersip_user_replace(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user_admin,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(Directory.groups))

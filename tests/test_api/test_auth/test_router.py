@@ -304,7 +304,7 @@ async def test_update_password(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_auth_disabled_user(
+async def test_auth_self_disable(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
 ) -> None:
@@ -335,6 +335,56 @@ async def test_auth_disabled_user(
         },
     )
 
+    kadmin.lock_principal.assert_not_called()  # type: ignore
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR
+
+    response = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_auth_disabled_user(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
+    response = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": "cn=user_admin,ou=users,dc=md,dc=test",
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["514"],
+                    },
+                },
+            ],
+        },
+    )
+
     kadmin.lock_principal.assert_called()  # type: ignore
     data = response.json()
 
@@ -344,7 +394,7 @@ async def test_auth_disabled_user(
     response = await http_client.post(
         "auth/",
         data={
-            "username": "user0",
+            "username": "user_admin",
             "password": "password",
         },
     )

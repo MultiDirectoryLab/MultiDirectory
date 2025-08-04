@@ -26,7 +26,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory
+from models import Directory, Group
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
@@ -76,7 +76,7 @@ class DeleteRequest(BaseRequest):
             .options(
                 defaultload(Directory.user),
                 defaultload(Directory.attributes),
-                selectinload(Directory.groups),
+                selectinload(Directory.groups).joinedload(Group.directory),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -152,13 +152,6 @@ class DeleteRequest(BaseRequest):
     ) -> None:
         """Check if the request can delete entry."""
         if directory.path_dn == user.dn:
-            raise DeleteForbiddenError("Cannot delete yourself.")
-
-        for group in directory.groups:
-            if group.directory.name == DOMAIN_ADMIN_NAME:
-                if len(group.members) == 1:
-                    raise DeleteForbiddenError(
-                        "This is the last user in the domain admins group; "
-                        "deleting will result in loss of access.",
-                    )
-                break
+            raise DeleteForbiddenError(
+                "Нельзя удалить собственную учетную запись.",
+            )
