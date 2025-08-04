@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, NewType, TypeVar
 
 from loguru import logger
 from redis.asyncio import Redis
@@ -121,3 +121,7 @@ class AuditRedisAdapter(AuditABCAdapter[RedisEvents]):
             logger.info(f"Consumer group {group_name} already exists.")
         else:
             raise error
+
+
+AuditRawAdapter = NewType("AuditRawAdapter", AuditABCAdapter)
+AuditNormalizedAdapter = NewType("AuditNormalizedAdapter", AuditABCAdapter)
