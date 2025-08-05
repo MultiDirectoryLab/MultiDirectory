@@ -28,7 +28,20 @@ class AuditEventNormalizer:
         self._class = _class
 
     def _enrich_ldap_details(self, details: dict) -> None:
-        """Add LDAP-specific details to event details."""
+        """Add LDAP-specific details to event details.
+
+        This method enriches the details dictionary with information
+        specific to LDAP operations, such as target DN and group differences.
+        It handles modify operations by checking the change attributes
+        and calculating differences in group memberships.
+
+        Example:
+            details = {
+                "target_dn": "cn=example,dc=domain,dc=com",
+                "diff_groups": ["cn=group1,dc=domain,dc=com"],
+            }
+
+        """
         if self.event_data.request_code == OperationEvent.MODIFY:
             details["target_dn"] = self.event_data.request["object"]
 
