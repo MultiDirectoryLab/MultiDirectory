@@ -53,7 +53,7 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
         stream_name: str,
         group_name: str,
         consumer_name: str,
-        is_event_processing_enabled_key: str,
+        process_enabled_key: str,
         type_class: type[AuditEventRedis],
     ) -> None:
         """Initialize Redis client for audit event operations."""
@@ -61,17 +61,17 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
         self._stream_name = stream_name
         self._group_name = group_name
         self._consumer_name = consumer_name
-        self._is_event_processing_enabled_key = is_event_processing_enabled_key
+        self._process_enabled_key = process_enabled_key
         self._class = type_class
 
     async def get_processing_status(self) -> bool:
-        data = await self._client.get(self._is_event_processing_enabled_key)
+        data = await self._client.get(self._process_enabled_key)
         return data is not None and int(data) == 1
 
     async def update_processing_status(self, status: bool) -> None:
         """Update the processing status of audit events."""
         await self._client.set(
-            self._is_event_processing_enabled_key,
+            self._process_enabled_key,
             int(status),
         )
 
