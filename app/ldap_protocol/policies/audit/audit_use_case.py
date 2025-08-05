@@ -19,30 +19,27 @@ class AuditUseCase:
 
     def __init__(
         self,
-        audit_dao: AuditPoliciesDAO,
-        audit_adapter: RawAuditManager,
+        policy_dao: AuditPoliciesDAO,
+        manager: RawAuditManager,
     ) -> None:
-        """Initialize AuditUseCase with a DAO instance.
-
-        :param audit_dao: DAO instance for database operations.
-        """
-        self._audit_dao = audit_dao
-        self._audit_adapter = audit_adapter
+        """Initialize AuditUseCase."""
+        self._policy_dao = policy_dao
+        self._manager = manager
 
     async def check_event_processing_enabled(self, request_code: int) -> bool:
         """Check if event processing is enabled for a specific request code."""
         if request_code == OperationEvent.SEARCH:
             return False
 
-        return await self._audit_adapter.get_processing_status()
+        return await self._manager.get_processing_status()
 
     async def enable_event_processing(self) -> None:
         """Enable processing of audit events."""
-        await self._audit_adapter.update_processing_status(True)
+        await self._manager.update_processing_status(True)
 
     async def disable_event_processing(self) -> None:
         """Disable processing of audit events."""
-        await self._audit_adapter.update_processing_status(False)
+        await self._manager.update_processing_status(False)
 
     async def _create_standard_policies(
         self,
@@ -56,7 +53,7 @@ class AuditUseCase:
             "delete": OperationEvent.DELETE,
         }
         for action, operation_code in operations.items():
-            await self._audit_dao.create_policy(
+            await self._policy_dao.create_policy(
                 AuditPolicySetupDTO(
                     object_class=object_class,
                     action=action,
@@ -80,7 +77,7 @@ class AuditUseCase:
         is_success: bool,
     ) -> None:
         """Create password modify policy."""
-        await self._audit_dao.create_policy(
+        await self._policy_dao.create_policy(
             AuditPolicySetupDTO(
                 object_class=object_class,
                 action="password_modify",
@@ -136,7 +133,7 @@ class AuditUseCase:
         is_success: bool,
     ) -> None:
         """Create authentication policy."""
-        await self._audit_dao.create_policy(
+        await self._policy_dao.create_policy(
             AuditPolicySetupDTO(
                 object_class=object_class,
                 action="auth",
@@ -176,7 +173,7 @@ class AuditUseCase:
         is_success: bool,
     ) -> None:
         """Create reset password policy."""
-        await self._audit_dao.create_policy(
+        await self._policy_dao.create_policy(
             AuditPolicySetupDTO(
                 object_class=object_class,
                 action="reset_password",
@@ -231,7 +228,7 @@ class AuditUseCase:
         is_success: bool,
     ) -> None:
         """Create policies for account status changes."""
-        await self._audit_dao.create_policy(
+        await self._policy_dao.create_policy(
             AuditPolicySetupDTO(
                 object_class=object_class,
                 action="enable",
@@ -254,7 +251,7 @@ class AuditUseCase:
                 ),
             ],
         )
-        await self._audit_dao.create_policy(
+        await self._policy_dao.create_policy(
             AuditPolicySetupDTO(
                 object_class=object_class,
                 action="disable",
@@ -283,7 +280,7 @@ class AuditUseCase:
         is_success: bool,
         object_class: str = "group",
     ) -> None:
-        await self._audit_dao.create_policy(
+        await self._policy_dao.create_policy(
             AuditPolicySetupDTO(
                 object_class=object_class,
                 action="add_member",
@@ -317,7 +314,7 @@ class AuditUseCase:
                 ),
             ],
         )
-        await self._audit_dao.create_policy(
+        await self._policy_dao.create_policy(
             AuditPolicySetupDTO(
                 object_class=object_class,
                 action="remove_member",
