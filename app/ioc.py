@@ -235,6 +235,9 @@ class MainProvider(Provider):
         yield AuditRedisClient(client)
         await client.aclose()
 
+    audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
+    audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
+    audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
     raw_audit_manager = provide(
         RawAuditManager,
         scope=Scope.APP,
@@ -330,9 +333,6 @@ class HTTPProvider(LDAPContextProvider):
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
     session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
-    audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
-    audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
-    audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
     audit_service = provide(AuditService, scope=Scope.REQUEST)
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
