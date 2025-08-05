@@ -21,7 +21,7 @@ from .dataclasses import NormalizedAuditEvent, RawAuditEvent
 from .managers import NormalizedAuditManager, RawAuditManager
 from .normalizer import AuditEventNormalizer
 
-operations: dict[str, Callable] = {
+_OPERATIONS: dict[str, Callable] = {
     "<": operator.lt,
     "<=": operator.le,
     ">": operator.gt,
@@ -97,7 +97,7 @@ class AuditEventHandler:
             raise ValueError
 
         operation = trigger.additional_info["operation"]
-        op = operations[operation]
+        op = _OPERATIONS[operation]
         result = trigger.additional_info["result"]
 
         return bool(op(first_value, second_value)) == result
