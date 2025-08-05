@@ -7,7 +7,7 @@ from .utils import get_dhcp_state
 
 async def get_dhcp_manager_class(
     session: AsyncSession,
-) -> KeaDHCPManager:
+) -> type[AbstractDHCPManager] | None:
     """Get an instance of the DHCP manager."""
     dhcp_state = await get_dhcp_state(session)
     if dhcp_state == DHCPManagerState.KEA_DHCP:
