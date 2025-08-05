@@ -6,25 +6,38 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import itertools
 from abc import ABC, abstractmethod
-from typing import Generic, NewType, TypeVar
+from typing import Generic, TypeVar, get_args
 
 from loguru import logger
 from redis.asyncio import Redis
 
-from .dataclasses import AuditEvent, AuditEventRedis
+from .dataclasses import (
+    NormalizedAuditEvent,
+    NormalizedAuditEventRedis,
+    RawAuditEvent,
+    RawAuditEventRedis,
+)
 
-Event = TypeVar("Event", bound=AuditEvent)
+T = TypeVar("T", bound=NormalizedAuditEvent | RawAuditEvent)
+Event = TypeVar(
+    "Event",
+    bound=NormalizedAuditEventRedis | RawAuditEventRedis,
+)
 
 
-class AbstractAuditManager(ABC, Generic[Event]):
+class AbstractAuditManager(ABC, Generic[T]):
     """Abstract base class for audit adapters."""
 
+    @property
+    def _class(self) -> type[T]:
+        return get_args(self.__orig_class__)[0]  # type: ignore
+
     @abstractmethod
-    async def send_event(self, event: Event) -> None:
+    async def send_event(self, event: T) -> None:
         """Send audit event to the adapter."""
 
     @abstractmethod
-    async def read_events(self) -> list[Event]:
+    async def read_events(self) -> list[T]:
         """Read audit events from the adapter."""
 
     @abstractmethod
@@ -44,7 +57,9 @@ class AbstractAuditManager(ABC, Generic[Event]):
         """Update the processing status of audit events."""
 
 
-class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
+class AuditRedisManager(
+    AbstractAuditManager[Event],
+):
     """Adapter for managing audit events in Redis streams."""
 
     def __init__(
@@ -54,7 +69,6 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
         group_name: str,
         consumer_name: str,
         process_enabled_key: str,
-        type_class: type[AuditEventRedis],
     ) -> None:
         """Initialize Redis client for audit event operations."""
         self._client = client
@@ -62,7 +76,6 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
         self._group_name = group_name
         self._consumer_name = consumer_name
         self._process_enabled_key = process_enabled_key
-        self._class = type_class
 
     async def get_processing_status(self) -> bool:
         data = await self._client.get(self._process_enabled_key)
@@ -75,10 +88,10 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
             int(status),
         )
 
-    async def send_event(self, event: AuditEventRedis) -> None:
+    async def send_event(self, event: Event) -> None:
         await self._client.xadd(self._stream_name, event.to_queue())
 
-    async def read_events(self) -> list[AuditEventRedis]:
+    async def read_events(self) -> list[Event]:
         data = await self._client.xreadgroup(
             self._group_name,
             self._consumer_name,
@@ -91,7 +104,7 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
             event_list for _, event_list in data
         )
 
-        return [self._class.from_queue(event) for event in events]
+        return [self._class.from_queue(event) for event in events]  # type: ignore
 
     async def setup_reading(self) -> None:
         try:
@@ -120,8 +133,5 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
             raise error
 
 
-RawAuditManager = NewType("RawAuditManager", AbstractAuditManager)
-NormalizedAuditManager = NewType(
-    "NormalizedAuditManager",
-    AbstractAuditManager,
-)
+RawAuditManager = AuditRedisManager[RawAuditEventRedis]
+NormalizedAuditManager = AuditRedisManager[NormalizedAuditEventRedis]
