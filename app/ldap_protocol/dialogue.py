@@ -18,6 +18,7 @@ import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.policies.network_policy import build_policy_query
+from ldap_protocol.utils.helpers import ft_now
 from models import NetworkPolicy, User
 
 from .session_storage import SessionStorage
@@ -105,11 +106,20 @@ class LDAPSession:
             "Cannot manually set user, use `set_user()` instead",
         )
 
+    async def _update_pwd_last_set(self, user: User) -> None:
+        """Update pwdLastSet attribute for user."""
+        for attr in user.directory.attributes:
+            if attr.name == "pwdLastSet":
+                if attr.value == "-1":
+                    attr.value = ft_now()
+                break
+
     async def set_user(self, user: User | UserSchema) -> None:
         """Bind user to session concurrently save."""
         async with self._lock:
             if isinstance(user, User):
                 self._user = await UserSchema.from_db(user, self.key)
+                await self._update_pwd_last_set(user)
                 await self.bind_session()
             else:
                 self._user = user
