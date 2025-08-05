@@ -29,7 +29,7 @@ class AuditUseCase:
         self._audit_dao = audit_dao
         self._audit_adapter = audit_adapter
 
-    async def is_event_processing_enabled(self, request_code: int) -> bool:
+    async def check_event_processing_enabled(self, request_code: int) -> bool:
         """Check if event processing is enabled for a specific request code."""
         if request_code == OperationEvent.SEARCH:
             return False
