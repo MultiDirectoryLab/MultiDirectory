@@ -75,7 +75,7 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
             int(status),
         )
 
-    async def send_event(self, event: AuditEvent) -> None:
+    async def send_event(self, event: AuditEventRedis) -> None:
         await self._client.xadd(self._stream_name, event.to_queue())
 
     async def read_events(self) -> list[AuditEventRedis]:
