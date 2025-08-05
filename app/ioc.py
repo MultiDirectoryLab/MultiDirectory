@@ -58,10 +58,13 @@ from ldap_protocol.multifactor import (
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.dataclasses import (
+    NormalizedAuditEvent,
     NormalizedAuditEventRedis,
+    RawAuditEvent,
     RawAuditEventRedis,
 )
 from ldap_protocol.policies.audit.events.managers import (
+    AbstractAuditManager,
     AuditNormalizedManager,
     AuditRawManager,
     AuditRedisManager,
@@ -226,9 +229,30 @@ class MainProvider(Provider):
         )
 
     @provide()
+    def get_raw_audit_event_class(
+        self,
+    ) -> type[RawAuditEvent]:
+        """Get raw audit event class."""
+        return RawAuditEventRedis
+
+    @provide()
+    def get_normalized_audit_event_class(
+        self,
+    ) -> type[NormalizedAuditEvent]:
+        """Get normalized audit event class."""
+        return NormalizedAuditEventRedis
+
+    @provide()
+    async def get_audit_manager(self) -> type[AbstractAuditManager]:
+        """Get audit manager class."""
+        return AuditRedisManager
+
+    @provide()
     async def get_raw_audit_manager(
         self,
         settings: Settings,
+        type_class_manager: type[AbstractAuditManager],
+        type_class: type[RawAuditEvent],
     ) -> AsyncIterator[AuditRawManager]:
         """Get events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
@@ -236,13 +260,13 @@ class MainProvider(Provider):
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        manager = AuditRedisManager(
+        manager = type_class_manager(
             client,
             settings.RAW_EVENT_STREAM_NAME,
             settings.EVENT_HANDLER_GROUP,
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
-            type_class=RawAuditEventRedis,
+            type_class=type_class,  # type: ignore
         )
         yield AuditRawManager(manager)
         await client.aclose()
@@ -251,6 +275,8 @@ class MainProvider(Provider):
     async def get_normalized_audit_manager(
         self,
         settings: Settings,
+        type_class_manager: type[AbstractAuditManager],
+        type_class: type[NormalizedAuditEvent],
     ) -> AsyncIterator[AuditNormalizedManager]:
         """Get normalized events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
@@ -258,13 +284,13 @@ class MainProvider(Provider):
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        manager = AuditRedisManager(
+        manager = type_class_manager(
             client,
             settings.NORMALIZED_EVENT_STREAM_NAME,
             settings.EVENT_SENDER_GROUP,
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
-            type_class=NormalizedAuditEventRedis,
+            type_class=type_class,  # type: ignore
         )
         yield AuditNormalizedManager(manager)
         await client.aclose()

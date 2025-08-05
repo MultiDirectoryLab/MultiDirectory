@@ -19,7 +19,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
 
-from .dataclasses import NormalizedAuditEventRedis, NormalizedEvent, RawEvent
+from .dataclasses import NormalizedAuditEvent, RawAuditEvent
 from .managers import AuditNormalizedManager, AuditRawManager
 from .normalizer import AuditEventNormalizer
 
@@ -52,7 +52,7 @@ class AuditEventHandler:
     def _check_modify_event(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawEvent,
+        event: RawAuditEvent,
     ) -> bool:
         """Check if modify event matches trigger conditions."""
         if (
@@ -98,7 +98,7 @@ class AuditEventHandler:
 
         return bool(op(first_value, second_value)) == result
 
-    def _check_bind_event(self, event: RawEvent) -> bool:
+    def _check_bind_event(self, event: RawAuditEvent) -> bool:
         """Verify if bind event is not SASL bind in progress.
 
         SASL_BIND_IN_PROGRESS is a special case where the bind operation
@@ -112,7 +112,7 @@ class AuditEventHandler:
     def _is_match_object_class(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawEvent,
+        event: RawAuditEvent,
     ) -> bool:
         """Check if event object class matches trigger object class."""
         return (
@@ -123,7 +123,7 @@ class AuditEventHandler:
     def _is_match_ldap_oid(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawEvent,
+        event: RawAuditEvent,
     ) -> bool:
         """Check if event OID matches trigger OID."""
         if trigger.additional_info is None:
@@ -141,7 +141,7 @@ class AuditEventHandler:
     def is_match_trigger(
         self,
         trigger: AuditPolicyTrigger,
-        event: RawEvent,
+        event: RawAuditEvent,
     ) -> bool:
         """Determine if event matches trigger conditions."""
         if event.request_code == OperationEvent.CHANGE_PASSWORD:
@@ -178,7 +178,7 @@ class AuditEventHandler:
 
     async def get_event_by_data(
         self,
-        event_data: RawEvent,
+        event_data: RawAuditEvent,
         session: AsyncSession,
     ) -> list[AuditPolicyTrigger]:
         """Find all policy triggers matching event data."""
@@ -218,7 +218,7 @@ class AuditEventHandler:
 
     async def save_events(
         self,
-        events: list[NormalizedEvent],
+        events: list[NormalizedAuditEvent],
         normalized_audit_manager: AuditNormalizedManager,
     ) -> None:
         """Persist normalized events to stream."""
@@ -227,11 +227,11 @@ class AuditEventHandler:
 
     async def handle_event(
         self,
-        event: RawEvent,
+        event: RawAuditEvent,
         session: AsyncSession,
         raw_audit_manager: AuditRawManager,
         normalized_audit_manager: AuditNormalizedManager,
-        normalized_class: type[NormalizedEvent],
+        normalized_class: type[NormalizedAuditEvent],
     ) -> None:
         """Process single event through entire pipeline."""
         logger.debug(f"Event data: {event}")
@@ -241,7 +241,7 @@ class AuditEventHandler:
             if not events:
                 return
 
-            normalize_events: list[NormalizedEvent] = [
+            normalize_events: list[NormalizedAuditEvent] = [
                 AuditEventNormalizer(event, policy, normalized_class).build()
                 for policy in events
             ]
@@ -252,14 +252,14 @@ class AuditEventHandler:
 
             await self.save_events(normalize_events, normalized_audit_manager)
         finally:
-            await raw_audit_manager.delete_event(event.id)
+            await raw_audit_manager.delete_event(event.id)  # type: ignore
 
     async def consume_events(
         self,
         raw_audit_manager: AuditRawManager,
         normalized_audit_manager: AuditNormalizedManager,
         session: AsyncSession,
-        normalized_class: type[NormalizedEvent],
+        normalized_class: type[NormalizedAuditEvent],
     ) -> None:
         """Consume events and process them."""
         await raw_audit_manager.setup_reading()
@@ -290,7 +290,6 @@ class AuditEventHandler:
                     container=container,
                 )
                 await self.consume_events(
-                    normalized_class=NormalizedAuditEventRedis,
                     **kwargs,
                 )
         finally:
