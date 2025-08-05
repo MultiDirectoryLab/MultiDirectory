@@ -19,7 +19,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
 
-from .dataclasses import NormalizedEvent, RawEvent
+from .dataclasses import NormalizedAuditEventRedis, NormalizedEvent, RawEvent
 from .managers import AuditNormalizedManager, AuditRawManager
 from .normalizer import AuditEventNormalizer
 
@@ -219,19 +219,19 @@ class AuditEventHandler:
     async def save_events(
         self,
         events: list[NormalizedEvent],
-        normalized_manager: AuditNormalizedManager,
+        normalized_audit_manager: AuditNormalizedManager,
     ) -> None:
         """Persist normalized events to stream."""
         for event in events:
-            await normalized_manager.send_event(event)
+            await normalized_audit_manager.send_event(event)
 
     async def handle_event(
         self,
         event: RawEvent,
         session: AsyncSession,
-        raw_adapter: AuditRawManager,
-        normalized_adapter: AuditNormalizedManager,
-        _class: type[NormalizedEvent],
+        raw_audit_manager: AuditRawManager,
+        normalized_audit_manager: AuditNormalizedManager,
+        normalized_class: type[NormalizedEvent],
     ) -> None:
         """Process single event through entire pipeline."""
         logger.debug(f"Event data: {event}")
@@ -242,7 +242,7 @@ class AuditEventHandler:
                 return
 
             normalize_events: list[NormalizedEvent] = [
-                AuditEventNormalizer(event, policy, _class).build()
+                AuditEventNormalizer(event, policy, normalized_class).build()
                 for policy in events
             ]
 
@@ -250,31 +250,32 @@ class AuditEventHandler:
                 f"Normalized events: {[event for event in normalize_events]}",
             )
 
-            await self.save_events(normalize_events, normalized_adapter)
+            await self.save_events(normalize_events, normalized_audit_manager)
         finally:
-            await raw_adapter.delete_event(event.id)
+            await raw_audit_manager.delete_event(event.id)
 
-    async def consume_events(self) -> None:
+    async def consume_events(
+        self,
+        raw_audit_manager: AuditRawManager,
+        normalized_audit_manager: AuditNormalizedManager,
+        session: AsyncSession,
+        normalized_class: type[NormalizedEvent],
+    ) -> None:
         """Consume events and process them."""
-        raw_audit_adapter: AuditRawManager = await self.container.get(
-            AuditRawManager,
-        )
-        await raw_audit_adapter.setup_reading()
+        await raw_audit_manager.setup_reading()
 
         while True:
             try:
-                async with self.container(scope=Scope.REQUEST) as container:
-                    for event in await raw_audit_adapter.read_events():
-                        kwargs = await resolve_deps(
-                            func=self.handle_event,
-                            container=container,
-                        )
-                        asyncio.gather(
-                            self.handle_event(
-                                event,
-                                **kwargs,
-                            ),
-                        )
+                for event in await raw_audit_manager.read_events():
+                    asyncio.gather(
+                        self.handle_event(
+                            event,
+                            raw_audit_manager=raw_audit_manager,
+                            normalized_audit_manager=normalized_audit_manager,
+                            session=session,
+                            normalized_class=normalized_class,
+                        ),
+                    )
             except ConnectionError:
                 await asyncio.sleep(1)
             except Exception as exc:
@@ -283,6 +284,14 @@ class AuditEventHandler:
     async def run(self) -> None:
         """Start event handler main processing loop."""
         try:
-            await self.consume_events()
+            async with self.container(scope=Scope.REQUEST) as container:
+                kwargs = await resolve_deps(
+                    self.consume_events,
+                    container=container,
+                )
+                await self.consume_events(
+                    normalized_class=NormalizedAuditEventRedis,
+                    **kwargs,
+                )
         finally:
             await self.container.close()
