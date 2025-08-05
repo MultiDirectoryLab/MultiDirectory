@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import itertools
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, get_args
+from typing import Generic, NewType, TypeVar, get_args
 
 from loguru import logger
 from redis.asyncio import Redis
@@ -25,6 +25,7 @@ Event = TypeVar(
     "Event",
     bound=NormalizedAuditEventRedis | RawAuditEventRedis,
 )
+AuditRedisClient = NewType("AuditRedisClient", Redis)
 
 
 class AbstractAuditManager(ABC, Generic[T]):
@@ -64,7 +65,7 @@ class AuditRedisManager(AbstractAuditManager[Event]):
 
     def __init__(
         self,
-        client: Redis,
+        client: AuditRedisClient,
         settings: Settings,
     ) -> None:
         """Initialize Redis client for audit event operations."""
