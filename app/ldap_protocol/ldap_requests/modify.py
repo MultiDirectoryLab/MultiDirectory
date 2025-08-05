@@ -171,67 +171,80 @@ class ModifyRequest(BaseRequest):
             ctx.ldap_session.user.directory_id,
         )
 
-        if not can_modify and not password_change_requested:
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
-            return
+        before_attrs = self.get_directory_attrs(directory)
 
-        for change in self.changes:
-            if change.modification.type in Directory.ro_fields:
-                continue
-
-            self._update_password_expiration(change, policy)
-
-            add_args = (
-                change,
-                directory,
-                ctx.session,
-                ctx.session_storage,
-                ctx.kadmin,
-                ctx.settings,
-            )
-
-            try:
-                if change.operation == Operation.ADD:
-                    await self._add(*add_args)
-
-                elif change.operation == Operation.DELETE:
-                    await self._delete(change, directory, ctx.session)
-
-                elif change.operation == Operation.REPLACE:
-                    async with ctx.session.begin_nested():
-                        await self._delete(
-                            change,
-                            directory,
-                            ctx.session,
-                            True,
-                        )
-                        await ctx.session.flush()
-                        await self._add(*add_args)
-
-                await ctx.session.flush()
-                await ctx.session.execute(
-                    update(Directory).where(Directory.id == directory.id),
+        try:
+            if not can_modify and not password_change_requested:
+                yield ModifyResponse(
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                 )
-            except MODIFY_EXCEPTION_STACK as err:
-                await ctx.session.rollback()
-                result_code, message = self._match_bad_response(err)
-                yield ModifyResponse(result_code=result_code, message=message)
                 return
 
-            await ctx.session.refresh(
-                instance=directory,
-                attribute_names=["groups", "attributes"],
-            )
+            for change in self.changes:
+                if change.modification.type in Directory.ro_fields:
+                    continue
 
-        if "objectclass" in names:
-            await ctx.entity_type_dao.attach_entity_type_to_directory(
-                directory=directory,
-                is_system_entity_type=False,
+                self._update_password_expiration(change, policy)
+
+                add_args = (
+                    change,
+                    directory,
+                    ctx.session,
+                    ctx.session_storage,
+                    ctx.kadmin,
+                    ctx.settings,
+                )
+
+                try:
+                    if change.operation == Operation.ADD:
+                        await self._add(*add_args)
+
+                    elif change.operation == Operation.DELETE:
+                        await self._delete(change, directory, ctx.session)
+
+                    elif change.operation == Operation.REPLACE:
+                        async with ctx.session.begin_nested():
+                            await self._delete(
+                                change,
+                                directory,
+                                ctx.session,
+                                True,
+                            )
+                            await ctx.session.flush()
+                            await self._add(*add_args)
+
+                    await ctx.session.flush()
+                    await ctx.session.execute(
+                        update(Directory).where(Directory.id == directory.id),
+                    )
+                except MODIFY_EXCEPTION_STACK as err:
+                    await ctx.session.rollback()
+                    result_code, message = self._match_bad_response(err)
+                    yield ModifyResponse(
+                        result_code=result_code,
+                        message=message,
+                    )
+                    return
+
+                await ctx.session.refresh(
+                    instance=directory,
+                    attribute_names=["groups", "attributes"],
+                )
+
+            if "objectclass" in names:
+                await ctx.entity_type_dao.attach_entity_type_to_directory(
+                    directory=directory,
+                    is_system_entity_type=False,
+                )
+            await ctx.session.commit()
+            yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+        finally:
+            self.set_event_data(
+                {
+                    "after_attrs": self.get_directory_attrs(directory),
+                    "before_attrs": before_attrs,
+                },
             )
-        await ctx.session.commit()
-        yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:
