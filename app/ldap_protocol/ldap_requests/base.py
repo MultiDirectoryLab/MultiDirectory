@@ -4,7 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import asyncio
 from abc import ABC, abstractmethod
+from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncGenerator, Callable, ClassVar, Protocol
 
 from dishka import AsyncContainer
@@ -15,6 +17,10 @@ from config import Settings
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.events.factory import (
+    RawAuditEventBuilderRedis,
+)
 from ldap_protocol.utils.helpers import get_class_name
 from models import Directory
 
@@ -40,6 +46,7 @@ if TYPE_CHECKING:
         async def _handle_api(
             self,
             container: AsyncContainer,
+            ip: IPv4Address | IPv6Address,
         ) -> list[BaseResponse] | BaseResponse: ...
 
 else:
@@ -96,6 +103,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     async def _handle_api(
         self,
         container: AsyncContainer,
+        ip: IPv4Address | IPv6Address,
     ) -> list[BaseResponse]:
         """Hanlde response with api user.
 
@@ -106,6 +114,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         kwargs = await resolve_deps(func=self.handle, container=container)
         ldap_session = await container.get(LDAPSession)
         settings = await container.get(Settings)
+        audit_use_case = await container.get(AuditUseCase)
 
         un = getattr(ldap_session.user, "user_principal_name", "ANONYMOUS")
 
@@ -127,8 +136,27 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
             for response in responses:
                 log_api.info(f"{get_class_name(response)}[{un}]")
 
+        if await audit_use_case.check_event_processing_enabled(
+            self.PROTOCOL_OP,
+        ):
+            event = RawAuditEventBuilderRedis.from_ldap_request(
+                request=self,
+                responses=responses,
+                username=un,
+                ip=ip,
+                protocol="API_LDAP",
+                settings=settings,
+                context=self.get_event_data(),
+            )
+            asyncio.create_task(
+                audit_use_case.manager.send_event(event),
+            )
         return responses
 
-    async def handle_api(self, container: AsyncContainer) -> LDAPResult:
+    async def handle_api(
+        self,
+        container: AsyncContainer,
+        ip: IPv4Address | IPv6Address,
+    ) -> LDAPResult:
         """Get single response."""
-        return (await self._handle_api(container))[0]  # type: ignore
+        return (await self._handle_api(container, ip))[0]  # type: ignore
