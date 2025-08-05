@@ -382,7 +382,7 @@ services:
     image: ghcr.io/joeferner/redis-commander:latest
     restart: always
     environment:
-      - REDIS_HOSTS=sessions:dragonfly:6379:1
+      - REDIS_HOSTS=sessions:dragonfly:6379:1,events:dragonfly:6379:2
     user: redis
     labels:
       - "traefik.enable=true"
@@ -390,6 +390,23 @@ services:
       - "traefik.http.routers.rc.entrypoints=web"
       - "traefik.http.services.rc.loadbalancer.server.port=8081"
       - "traefik.http.routers.rc.service=rc"
+  
+  event_handler:
+    image: multidirectory
+    container_name: event_handler
+    restart: unless-stopped
+    tty: true
+    env_file:
+      local.env
+    volumes:
+      - ./app:/app
+    command: python multidirectory.py --event_handler
+    environment:
+      EVENT_CONSUMER_NAME: event_handler-1
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
 
 volumes:
   postgres:

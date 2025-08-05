@@ -1,6 +1,6 @@
 """Audit log data classes.
 
-Copyright (c) 2024 MultiFactor
+Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 

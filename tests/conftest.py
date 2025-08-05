@@ -45,7 +45,7 @@ from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from extra.dev_data import ENTITY_TYPE_DATAS
-from ioc import MFACredsProvider, SessionStorageClient
+from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -75,6 +75,10 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
+from ldap_protocol.policies.audit.events.managers import (
+    NormalizedAuditManager,
+    RawAuditManager,
+)
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
@@ -391,6 +395,31 @@ class TestProvider(Provider):
 
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
+    @provide(scope=Scope.APP)
+    async def get_audit_redis_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[AuditRedisClient]:
+        """Get audit redis client."""
+        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        yield AuditRedisClient(client)
+
+        with suppress(RuntimeError):
+            await client.aclose()
+
+    raw_audit_manager = provide(
+        RawAuditManager,
+        scope=Scope.APP,
+    )
+    normalized_audit_manager = provide(
+        NormalizedAuditManager,
+        scope=Scope.APP,
+    )
+
     add_request_context = provide(
         LDAPAddRequestContext,
         scope=Scope.REQUEST,
@@ -533,7 +562,19 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def setup_session(session: AsyncSession) -> None:
+async def raw_audit_adapter(
+    container: AsyncContainer,
+) -> AsyncIterator[RawAuditManager]:
+    """Get raw audit adapter."""
+    async with container(scope=Scope.APP) as container:
+        yield await container.get(RawAuditManager)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def setup_session(
+    session: AsyncSession,
+    raw_audit_adapter: RawAuditManager,
+) -> None:
     """Get session and aquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
     object_class_dao = ObjectClassDAO(
@@ -551,7 +592,7 @@ async def setup_session(session: AsyncSession) -> None:
     await session.flush()
 
     audit_policy_dao = AuditPoliciesDAO(session)
-    audit_use_case = AuditUseCase(audit_policy_dao)
+    audit_use_case = AuditUseCase(audit_policy_dao, raw_audit_adapter)
     await audit_use_case.create_policies()
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
