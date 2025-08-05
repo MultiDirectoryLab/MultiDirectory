@@ -16,6 +16,7 @@ from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
 from ldap_protocol.utils.helpers import get_class_name
+from models import Directory
 
 log_api = logger.bind(name="admin")
 
@@ -51,11 +52,46 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
 
     handle: ClassVar[handler]
     from_data: ClassVar[serializer]
+    __event_data: dict = {}
 
     @property
     @abstractmethod
     def PROTOCOL_OP(self) -> int:  # noqa: N802
         """Protocol OP response code."""
+
+    def set_event_data(self, data: dict) -> None:
+        """Set event data."""
+        self.__event_data = data
+
+    def get_event_data(self) -> dict:
+        """Get event data."""
+        return self.__event_data
+
+    def get_directory_attrs(self, directory: Directory) -> dict:
+        """Get directory attrs."""
+        attributes: dict[str, list] = {}
+        obj_classes = []
+        for attr in directory.attributes:
+            attr_name = attr.name.lower()
+            if attr_name == "objectclass":
+                obj_classes.append(attr.value)
+
+            if attr_name not in attributes:
+                attributes[attr_name] = []
+
+            attributes[attr_name].append(attr.value)
+
+        if "group" in obj_classes or "user" in obj_classes:
+            attributes["memberof"] = []
+            for group in directory.groups:
+                attributes["memberof"].append(group.directory.path_dn)
+
+        if "group" in obj_classes and directory.group:
+            attributes["member"] = []
+            for member in directory.group.members:
+                attributes["member"].append(member.path_dn)
+
+        return attributes
 
     async def _handle_api(
         self,

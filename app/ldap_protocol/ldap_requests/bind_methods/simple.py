@@ -20,6 +20,11 @@ class SimpleAuthentication(AbstractLDAPAuth):
 
     METHOD_ID: ClassVar[int] = 0
 
+    @property
+    def method_name(self) -> str:
+        """Get method name."""
+        return "Simple"
+
     def is_valid(self, user: User | None) -> bool:
         """Check if pwd is valid for user.
 
