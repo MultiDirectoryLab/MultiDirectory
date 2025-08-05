@@ -239,13 +239,7 @@ class MainProvider(Provider):
         client: AuditRedisClient,
     ) -> AsyncIterator[RawAuditManager]:
         """Get events redis client."""
-        yield RawAuditManager(
-            client,
-            settings.RAW_EVENT_STREAM_NAME,
-            settings.EVENT_HANDLER_GROUP,
-            settings.EVENT_CONSUMER_NAME,
-            settings.IS_PROC_EVENT_KEY,
-        )
+        yield RawAuditManager(client, settings)
 
     @provide()
     async def get_normalized_audit_manager(
@@ -254,13 +248,7 @@ class MainProvider(Provider):
         client: AuditRedisClient,
     ) -> AsyncIterator[NormalizedAuditManager]:
         """Get normalized events redis client."""
-        yield NormalizedAuditManager(
-            client,
-            settings.NORMALIZED_EVENT_STREAM_NAME,
-            settings.EVENT_SENDER_GROUP,
-            settings.EVENT_CONSUMER_NAME,
-            settings.IS_PROC_EVENT_KEY,
-        )
+        yield NormalizedAuditManager(client, settings)
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
