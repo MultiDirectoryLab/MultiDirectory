@@ -28,6 +28,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     ) -> None:
         """Create a new subnet."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="network4-add",
                 arguments={
@@ -63,6 +64,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def delete_subnet(self, name: str) -> None:
         """Delete a subnet."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="network4-del",
                 arguments={"name": name},
@@ -75,6 +77,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def get_subnets(self) -> list[dict[str, str]] | None:
         """Get all subnets."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(command="network4-list"),
         )
 
@@ -89,6 +92,7 @@ class KeaDHCPManager(AbstractDHCPManager):
 
         for shared_network in data.get("arguments").get("shared-networks"):
             response = await self._http_client.post(
+                "",
                 json=KeaDHCPAPIRequest(
                     command="network4-get",
                     arguments={"name": shared_network["name"]},
@@ -125,6 +129,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     ):
         """Create a new lease."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="lease4-add",
                 arguments={
@@ -144,6 +149,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def release_lease(self, ip_address: str) -> None:
         """Release a lease."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="lease4-del",
                 arguments={"ip-address": ip_address},
@@ -159,6 +165,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     ) -> list[dict[str, str]] | None:
         """List active leases for a subnet."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="lease4-list",
                 arguments={"subnet": subnet},
@@ -183,6 +190,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         """Find a lease by MAC address, IP address, or hostname."""
         if mac_address is not None:
             response = await self._http_client.post(
+                "",
                 json=KeaDHCPAPIRequest(
                     command="lease4-get-by-hw-address",
                     arguments={"hw-address": mac_address},
@@ -190,6 +198,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             )
         elif hostname is not None:
             response = await self._http_client.post(
+                "",
                 json=KeaDHCPAPIRequest(
                     command="lease4-get-by-hostname",
                     arguments={"hostname": hostname},
@@ -222,6 +231,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     ) -> None:
         """Add a reservation for a MAC address."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="reservation-add",
                 arguments={
@@ -247,6 +257,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     ) -> None:
         """Delete a reservation for a MAC address."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="reservation-del",
                 arguments={
@@ -267,6 +278,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     ) -> list[dict[str, str]] | None:
         """Get all reservations for a subnet."""
         response = await self._http_client.post(
+            "",
             json=KeaDHCPAPIRequest(
                 command="reservation-list",
                 arguments={
