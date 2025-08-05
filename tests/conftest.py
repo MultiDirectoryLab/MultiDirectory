@@ -562,7 +562,7 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def raw_audit_adapter(
+async def raw_audit_manager(
     container: AsyncContainer,
 ) -> AsyncIterator[RawAuditManager]:
     """Get raw audit adapter."""
@@ -573,7 +573,7 @@ async def raw_audit_adapter(
 @pytest_asyncio.fixture(scope="function")
 async def setup_session(
     session: AsyncSession,
-    raw_audit_adapter: RawAuditManager,
+    raw_audit_manager: RawAuditManager,
 ) -> None:
     """Get session and aquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
@@ -592,7 +592,12 @@ async def setup_session(
     await session.flush()
 
     audit_policy_dao = AuditPoliciesDAO(session)
-    audit_use_case = AuditUseCase(audit_policy_dao, raw_audit_adapter)
+    audit_destination_dao = AuditDestinationDAO(session)
+    audit_use_case = AuditUseCase(
+        audit_policy_dao,
+        audit_destination_dao,
+        raw_audit_manager,
+    )
     await audit_use_case.create_policies()
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
