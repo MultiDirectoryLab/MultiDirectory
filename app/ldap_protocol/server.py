@@ -26,6 +26,10 @@ from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.events.factory import (
+    RawAuditEventBuilderRedis,
+)
 
 log = logger.bind(name="ldap")
 
@@ -349,6 +353,7 @@ class PoolClientHandler:
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
+        audit_use_case: AuditUseCase = await container.get(AuditUseCase)
         addr = str(ldap_session.ip)
 
         while True:
@@ -363,6 +368,8 @@ class PoolClientHandler:
                         container=request_container,
                     )
                     handler = message.context.handle(**kwargs)
+                    responses = []
+
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
 
@@ -374,6 +381,29 @@ class PoolClientHandler:
 
                         writer.write(data)
                         await writer.drain()
+
+                        responses.append(response.context)
+
+                    if await audit_use_case.check_event_processing_enabled(
+                        message.context.PROTOCOL_OP,
+                    ):
+                        username = getattr(
+                            ldap_session.user,
+                            "user_principal_name",
+                            "ANONYMOUS",
+                        )
+                        event = RawAuditEventBuilderRedis.from_ldap_request(
+                            message.context,
+                            responses=responses,
+                            username=username,
+                            ip=ldap_session.ip,
+                            protocol="TCP_LDAP",
+                            settings=self.settings,
+                            context=message.context.get_event_data(),
+                        )
+                        asyncio.create_task(
+                            audit_use_case.manager.send_event(event),
+                        )
 
                 ldap_session.queue.task_done()
             except Exception as err:
