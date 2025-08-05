@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
-from typing import Any, Self, TypeVar
+from typing import Any, Self
 
 from loguru import logger
 from pydantic import SecretStr
@@ -63,31 +63,8 @@ class AuditEvent(ABC):
             return str(value)
 
 
-class AuditEventRedis(AuditEvent):
-    """Abstract base class for audit events stored in Redis."""
-
-    id: str
-
-    @classmethod
-    @abstractmethod
-    def from_redis(cls, redis_data: dict[bytes, bytes]) -> Self:
-        """Create an AuditEvent instance from Redis dictionary data."""
-
-    @abstractmethod
-    def to_redis_message(self) -> dict[str, str]:
-        """Convert the event to a dictionary suitable for Redis storage."""
-
-    def to_queue(self) -> dict[Any, Any]:
-        """Convert the event to a dictionary suitable for queue storage."""
-        return self.to_redis_message()
-
-    @classmethod
-    def from_queue(cls, queue_data: Any) -> Self:
-        return cls.from_redis(queue_data)
-
-
 @dataclass
-class RawAuditEvent:
+class RawAuditEvent(AuditEvent):
     """Represent audit event with request, response and connection details."""
 
     request: dict[str, Any]
@@ -119,6 +96,29 @@ class RawAuditEvent:
             return True
 
         return self.responses[-1]["result_code"] == LDAPCodes.SUCCESS
+
+
+class AuditEventRedis(AuditEvent):
+    """Abstract base class for audit events stored in Redis."""
+
+    id: str
+
+    @classmethod
+    @abstractmethod
+    def from_redis(cls, redis_data: dict[bytes, bytes]) -> Self:
+        """Create an AuditEvent instance from Redis dictionary data."""
+
+    @abstractmethod
+    def to_redis_message(self) -> dict[str, str]:
+        """Convert the event to a dictionary suitable for Redis storage."""
+
+    def to_queue(self) -> dict[Any, Any]:
+        """Convert the event to a dictionary suitable for queue storage."""
+        return self.to_redis_message()
+
+    @classmethod
+    def from_queue(cls, queue_data: Any) -> Self:
+        return cls.from_redis(queue_data)
 
 
 @dataclass
@@ -170,7 +170,7 @@ class RawAuditEventRedis(RawAuditEvent, AuditEventRedis):
 
 
 @dataclass
-class NormalizedAuditEvent:
+class NormalizedAuditEvent(AuditEvent):
     """Normalized audit event model."""
 
     username: str
@@ -222,7 +222,3 @@ class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
                 val if isinstance(val, bool) else val.lower() == "true"
             )
         return cls(**decoded)
-
-
-RawEvent = TypeVar("RawEvent", bound=RawAuditEventRedis)
-NormalizedEvent = TypeVar("NormalizedEvent", bound=NormalizedAuditEventRedis)
