@@ -18,7 +18,7 @@ from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
-from models import Directory, Group, User
+from models import Group, User
 
 ALGORITHM = "HS256"
 
@@ -68,7 +68,7 @@ async def get_current_user(
     user = await session.scalar(
         select(User)
         .filter_by(id=user_id)
-        .options(joinedload(User.directory).selectinload(Directory.attributes))
+        .options(joinedload(User.directory))
         .options(selectinload(User.groups).selectinload(Group.roles)),
     )
 
