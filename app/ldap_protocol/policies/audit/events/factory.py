@@ -17,7 +17,7 @@ from .dataclasses import RawAuditEvent, RawAuditEventRedis
 T = TypeVar("T", bound=RawAuditEvent)
 
 
-class AuditEventBuilder(Generic[T]):
+class RawAuditEventBuilder(Generic[T]):
     """Builder for constructing AuditEvent objects from various request types.
 
     This class provides factory methods to create standardized audit events
@@ -95,4 +95,4 @@ class AuditEventBuilder(Generic[T]):
         )
 
 
-RawAuditEventBuilderRedis = AuditEventBuilder[RawAuditEventRedis]
+RawAuditEventBuilderRedis = RawAuditEventBuilder[RawAuditEventRedis]
