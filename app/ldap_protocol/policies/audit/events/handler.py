@@ -257,7 +257,7 @@ class AuditEventHandler:
         while True:
             try:
                 for event in await self.raw_audit_manager.read_events():
-                    asyncio.gather(
+                    await asyncio.gather(
                         self.handle_event(event),
                     )
             except ConnectionError:
