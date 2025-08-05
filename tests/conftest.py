@@ -421,7 +421,6 @@ class TestProvider(Provider):
         )
         yield AuditRawManager(manager)
 
-        await client.flushdb()
         with suppress(RuntimeError):
             await client.aclose()
 
