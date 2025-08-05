@@ -73,6 +73,7 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
+AuditRedisClient = NewType("AuditRedisClient", redis.Redis)
 
 
 class MainProvider(Provider):
@@ -220,47 +221,49 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
-    @provide()
-    async def get_raw_audit_manager(
+    @provide(scope=Scope.APP)
+    async def get_audit_redis_client(
         self,
         settings: Settings,
-    ) -> AsyncIterator[RawAuditManager]:
-        """Get events redis client."""
+    ) -> AsyncIterator[AuditRedisClient]:
+        """Get audit redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        manager = RawAuditManager(
+        yield AuditRedisClient(client)
+        await client.aclose()
+
+    @provide()
+    async def get_raw_audit_manager(
+        self,
+        settings: Settings,
+        client: AuditRedisClient,
+    ) -> AsyncIterator[RawAuditManager]:
+        """Get events redis client."""
+        yield RawAuditManager(
             client,
             settings.RAW_EVENT_STREAM_NAME,
             settings.EVENT_HANDLER_GROUP,
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
         )
-        yield manager
-        await client.aclose()
 
     @provide()
     async def get_normalized_audit_manager(
         self,
         settings: Settings,
+        client: AuditRedisClient,
     ) -> AsyncIterator[NormalizedAuditManager]:
         """Get normalized events redis client."""
-        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
-
-        if not await client.ping():
-            raise SystemError("Redis is not available")
-
-        manager = NormalizedAuditManager(
+        yield NormalizedAuditManager(
             client,
             settings.NORMALIZED_EVENT_STREAM_NAME,
             settings.EVENT_SENDER_GROUP,
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
         )
-        yield manager
-        await client.aclose()
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
