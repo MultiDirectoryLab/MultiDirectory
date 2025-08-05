@@ -411,23 +411,14 @@ class TestProvider(Provider):
         with suppress(RuntimeError):
             await client.aclose()
 
-    @provide()
-    async def get_raw_audit_manager(
-        self,
-        settings: Settings,
-        client: AuditRedisClient,
-    ) -> AsyncIterator[RawAuditManager]:
-        """Get events redis client."""
-        yield RawAuditManager(client, settings)
-
-    @provide()
-    async def get_normalized_audit_manager(
-        self,
-        settings: Settings,
-        client: AuditRedisClient,
-    ) -> AsyncIterator[NormalizedAuditManager]:
-        """Get normalized events redis client."""
-        yield NormalizedAuditManager(client, settings)
+    raw_audit_manager = provide(
+        RawAuditManager,
+        scope=Scope.APP,
+    )
+    normalized_audit_manager = provide(
+        NormalizedAuditManager,
+        scope=Scope.APP,
+    )
 
     add_request_context = provide(
         LDAPAddRequestContext,

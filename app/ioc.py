@@ -56,6 +56,7 @@ from ldap_protocol.multifactor import (
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import (
+    AuditRedisClient,
     NormalizedAuditManager,
     RawAuditManager,
 )
@@ -70,7 +71,6 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
-AuditRedisClient = NewType("AuditRedisClient", redis.Redis)
 
 
 class MainProvider(Provider):
@@ -232,23 +232,14 @@ class MainProvider(Provider):
         yield AuditRedisClient(client)
         await client.aclose()
 
-    @provide()
-    async def get_raw_audit_manager(
-        self,
-        settings: Settings,
-        client: AuditRedisClient,
-    ) -> AsyncIterator[RawAuditManager]:
-        """Get events redis client."""
-        yield RawAuditManager(client, settings)
-
-    @provide()
-    async def get_normalized_audit_manager(
-        self,
-        settings: Settings,
-        client: AuditRedisClient,
-    ) -> AsyncIterator[NormalizedAuditManager]:
-        """Get normalized events redis client."""
-        yield NormalizedAuditManager(client, settings)
+    raw_audit_manager = provide(
+        RawAuditManager,
+        scope=Scope.APP,
+    )
+    normalized_audit_manager = provide(
+        NormalizedAuditManager,
+        scope=Scope.APP,
+    )
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
