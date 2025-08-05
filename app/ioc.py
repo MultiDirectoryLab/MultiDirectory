@@ -57,10 +57,6 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
-from ldap_protocol.policies.audit.events.dataclasses import (
-    RawAuditEvent,
-    RawAuditEventRedis,
-)
 from ldap_protocol.policies.audit.events.managers import (
     NormalizedAuditManager,
     RawAuditManager,
@@ -223,13 +219,6 @@ class MainProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
-
-    @provide()
-    def get_raw_audit_event_class(
-        self,
-    ) -> type[RawAuditEvent]:
-        """Get raw audit event class."""
-        return RawAuditEventRedis
 
     @provide()
     async def get_raw_audit_manager(
