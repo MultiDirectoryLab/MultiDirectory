@@ -9,7 +9,13 @@ from ldap_protocol.objects import OperationEvent
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import AuditSeverity
 
-from .dataclasses import AuditPolicySetupDTO, AuditPolicyTriggerDTO
+from .dataclasses import (
+    AuditDestinationDTO,
+    AuditPolicyDTO,
+    AuditPolicySetupDTO,
+    AuditPolicyTriggerDTO,
+)
+from .destination_dao import AuditDestinationDAO
 from .events.managers import RawAuditManager
 from .policies_dao import AuditPoliciesDAO
 
@@ -20,11 +26,37 @@ class AuditUseCase:
     def __init__(
         self,
         policy_dao: AuditPoliciesDAO,
+        destination_dao: AuditDestinationDAO,
         manager: RawAuditManager,
     ) -> None:
         """Initialize AuditUseCase."""
         self._policy_dao = policy_dao
+        self._destination_dao = destination_dao
         self._manager = manager
+
+    async def get_active_destinations(self) -> list[AuditDestinationDTO]:
+        """Get active audit destinations."""
+        return [
+            destination
+            for destination in await self._destination_dao.get_destinations()
+            if destination.is_enabled
+        ]
+
+    async def get_active_policies(self) -> list[AuditPolicyDTO]:
+        """Get active audit policies."""
+        return [
+            policy
+            for policy in await self._policy_dao.get_policies()
+            if policy.is_enabled
+        ]
+
+    async def is_existing_active_policy(self) -> bool:
+        """Check if there are any existing active policies."""
+        return any(await self.get_active_policies())
+
+    async def is_existing_active_destination(self) -> bool:
+        """Check if there are any existing active destinations."""
+        return any(await self.get_active_destinations())
 
     async def check_event_processing_enabled(self, request_code: int) -> bool:
         """Check if event processing is enabled for a specific request code."""
