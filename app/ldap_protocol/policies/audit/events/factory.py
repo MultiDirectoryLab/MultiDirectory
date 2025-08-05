@@ -5,14 +5,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import IPv4Address, IPv6Address
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from config import Settings
-from ldap_protocol.ldap_requests import BaseRequest
-from ldap_protocol.ldap_responses import BaseResponse
 from ldap_protocol.objects import OperationEvent
 
 from .dataclasses import RawAuditEvent, RawAuditEventRedis
+
+if TYPE_CHECKING:
+    from ldap_protocol.ldap_requests import BaseRequest
+    from ldap_protocol.ldap_responses import BaseResponse
 
 T = TypeVar("T", bound=RawAuditEvent)
 
