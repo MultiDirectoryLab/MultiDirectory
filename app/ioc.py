@@ -63,9 +63,9 @@ from ldap_protocol.policies.audit.events.dataclasses import (
 )
 from ldap_protocol.policies.audit.events.managers import (
     AbstractAuditManager,
-    AuditNormalizedManager,
-    AuditRawManager,
     AuditRedisManager,
+    NormalizedAuditManager,
+    RawAuditManager,
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
@@ -250,7 +250,7 @@ class MainProvider(Provider):
         settings: Settings,
         type_class_manager: type[AbstractAuditManager],
         type_class: type[RawAuditEvent],
-    ) -> AsyncIterator[AuditRawManager]:
+    ) -> AsyncIterator[RawAuditManager]:
         """Get events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
@@ -265,7 +265,7 @@ class MainProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             type_class=type_class,  # type: ignore
         )
-        yield AuditRawManager(manager)
+        yield RawAuditManager(manager)
         await client.aclose()
 
     @provide()
@@ -274,7 +274,7 @@ class MainProvider(Provider):
         settings: Settings,
         type_class_manager: type[AbstractAuditManager],
         type_class: type[NormalizedAuditEvent],
-    ) -> AsyncIterator[AuditNormalizedManager]:
+    ) -> AsyncIterator[NormalizedAuditManager]:
         """Get normalized events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
@@ -289,7 +289,7 @@ class MainProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             type_class=type_class,  # type: ignore
         )
-        yield AuditNormalizedManager(manager)
+        yield NormalizedAuditManager(manager)
         await client.aclose()
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)

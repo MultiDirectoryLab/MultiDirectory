@@ -120,8 +120,8 @@ class AuditRedisManager(AbstractAuditManager[AuditEventRedis]):
             raise error
 
 
-AuditRawManager = NewType("AuditRawManager", AbstractAuditManager)
-AuditNormalizedManager = NewType(
-    "AuditNormalizedManager",
+RawAuditManager = NewType("RawAuditManager", AbstractAuditManager)
+NormalizedAuditManager = NewType(
+    "NormalizedAuditManager",
     AbstractAuditManager,
 )

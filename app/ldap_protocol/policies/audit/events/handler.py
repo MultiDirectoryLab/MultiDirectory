@@ -18,7 +18,7 @@ from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
 
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent
-from .managers import AuditNormalizedManager, AuditRawManager
+from .managers import NormalizedAuditManager, RawAuditManager
 from .normalizer import AuditEventNormalizer
 
 operations: dict[str, Callable] = {
@@ -42,8 +42,8 @@ class AuditEventHandler:
 
     def __init__(
         self,
-        raw_audit_manager: AuditRawManager,
-        normalized_audit_manager: AuditNormalizedManager,
+        raw_audit_manager: RawAuditManager,
+        normalized_audit_manager: NormalizedAuditManager,
         session: AsyncSession,
         normalized_class: type[NormalizedAuditEvent],
     ) -> None:
