@@ -12,6 +12,10 @@ import httpx
 DHCP_MANAGER_STATE_NAME = "DHCPManagerState"
 
 
+class DHCPError(Exception):
+    """DHCP manager error."""
+
+
 class DHCPManagerState(StrEnum):
     """DHCP manager states."""
 

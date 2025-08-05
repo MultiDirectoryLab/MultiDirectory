@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from pydantic import BaseModel
 
-from .base import AbstractDHCPManager
+from .base import AbstractDHCPManager, DHCPError
 
 
 class KeaDHCPAPIRequest(BaseModel):
@@ -58,7 +58,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             response.status_code != 200
             or not response.json().get("result") == 0
         ):
-            raise Exception(f"Failed to create subnet: {response.text}")
+            raise DHCPError(f"Failed to create subnet: {response.text}")
 
     async def delete_subnet(self, name: str) -> None:
         """Delete a subnet."""
@@ -70,7 +70,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to delete subnet: {response.text}")
+            raise DHCPError(f"Failed to delete subnet: {response.text}")
 
     async def get_subnets(self) -> list[dict[str, str]] | None:
         """Get all subnets."""
@@ -139,7 +139,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to create lease: {response.text}")
+            raise DHCPError(f"Failed to create lease: {response.text}")
 
     async def release_lease(self, ip_address: str) -> None:
         """Release a lease."""
@@ -151,7 +151,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to release lease: {response.text}")
+            raise DHCPError(f"Failed to release lease: {response.text}")
 
     async def list_active_leases(
         self,
@@ -166,7 +166,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to list active leases: {response.text}")
+            raise DHCPError(f"Failed to list active leases: {response.text}")
 
         result = []
 
@@ -201,7 +201,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to find lease: {response.text}")
+            raise DHCPError(f"Failed to find lease: {response.text}")
 
         return {
             "mac_address": response.json()
@@ -238,7 +238,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to add reservation: {response.text}")
+            raise DHCPError(f"Failed to add reservation: {response.text}")
 
     async def delete_reservation(
         self,
@@ -259,7 +259,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to delete reservation: {response.text}")
+            raise DHCPError(f"Failed to delete reservation: {response.text}")
 
     async def get_reservations(
         self,
@@ -277,6 +277,6 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to get reservations: {response.text}")
+            raise DHCPError(f"Failed to get reservations: {response.text}")
 
         return response.json().get("arguments", {}).get("reservations", [])
