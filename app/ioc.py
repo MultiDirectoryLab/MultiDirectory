@@ -223,7 +223,7 @@ class MainProvider(Provider):
         )
 
     @provide()
-    async def get_raw_audit_adapter(
+    async def get_raw_audit_manager(
         self,
         settings: Settings,
     ) -> AsyncIterator[AuditRawManager]:
@@ -233,7 +233,7 @@ class MainProvider(Provider):
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        adapter = AuditRedisManager(
+        manager = AuditRedisManager(
             client,
             settings.RAW_EVENT_STREAM_NAME,
             settings.EVENT_HANDLER_GROUP,
@@ -241,11 +241,11 @@ class MainProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             type_class=RawAuditEventRedis,
         )
-        yield AuditRawManager(adapter)
+        yield AuditRawManager(manager)
         await client.aclose()
 
     @provide()
-    async def get_normalized_audit_adapter(
+    async def get_normalized_audit_manager(
         self,
         settings: Settings,
     ) -> AsyncIterator[AuditNormalizedManager]:
@@ -255,7 +255,7 @@ class MainProvider(Provider):
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        adapter = AuditRedisManager(
+        manager = AuditRedisManager(
             client,
             settings.NORMALIZED_EVENT_STREAM_NAME,
             settings.EVENT_SENDER_GROUP,
@@ -263,7 +263,7 @@ class MainProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             type_class=NormalizedAuditEventRedis,
         )
-        yield AuditNormalizedManager(adapter)
+        yield AuditNormalizedManager(manager)
         await client.aclose()
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
