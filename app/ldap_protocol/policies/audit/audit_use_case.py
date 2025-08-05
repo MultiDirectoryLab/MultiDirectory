@@ -10,7 +10,7 @@ from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import AuditSeverity
 
 from .dataclasses import AuditPolicySetupDTO, AuditPolicyTriggerDTO
-from .events.managers import AuditRawManager
+from .events.managers import RawAuditManager
 from .policies_dao import AuditPoliciesDAO
 
 
@@ -20,7 +20,7 @@ class AuditUseCase:
     def __init__(
         self,
         audit_dao: AuditPoliciesDAO,
-        audit_adapter: AuditRawManager,
+        audit_adapter: RawAuditManager,
     ) -> None:
         """Initialize AuditUseCase with a DAO instance.
 

@@ -82,9 +82,9 @@ from ldap_protocol.policies.audit.events.dataclasses import (
     RawAuditEventRedis,
 )
 from ldap_protocol.policies.audit.events.managers import (
-    AuditNormalizedManager,
-    AuditRawManager,
     AuditRedisManager,
+    NormalizedAuditManager,
+    RawAuditManager,
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
@@ -411,7 +411,7 @@ class TestProvider(Provider):
     async def get_raw_audit_manager(
         self,
         settings: Settings,
-    ) -> AsyncIterator[AuditRawManager]:
+    ) -> AsyncIterator[RawAuditManager]:
         """Get raw events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
@@ -426,7 +426,7 @@ class TestProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             RawAuditEventRedis,
         )
-        yield AuditRawManager(manager)
+        yield RawAuditManager(manager)
 
         with suppress(RuntimeError):
             await client.aclose()
@@ -435,7 +435,7 @@ class TestProvider(Provider):
     async def get_normalized_audit_manager(
         self,
         settings: Settings,
-    ) -> AsyncIterator[AuditNormalizedManager]:
+    ) -> AsyncIterator[NormalizedAuditManager]:
         """Get normalized events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
@@ -450,7 +450,7 @@ class TestProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             NormalizedAuditEventRedis,
         )
-        yield AuditNormalizedManager(manager)
+        yield NormalizedAuditManager(manager)
         with suppress(RuntimeError):
             await client.aclose()
 
@@ -600,16 +600,16 @@ async def session(
 @pytest_asyncio.fixture(scope="function")
 async def raw_audit_adapter(
     container: AsyncContainer,
-) -> AsyncIterator[AuditRawManager]:
+) -> AsyncIterator[RawAuditManager]:
     """Get raw audit adapter."""
     async with container(scope=Scope.APP) as container:
-        yield await container.get(AuditRawManager)
+        yield await container.get(RawAuditManager)
 
 
 @pytest_asyncio.fixture(scope="function")
 async def setup_session(
     session: AsyncSession,
-    raw_audit_adapter: AuditRawManager,
+    raw_audit_adapter: RawAuditManager,
 ) -> None:
     """Get session and aquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
