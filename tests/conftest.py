@@ -47,7 +47,7 @@ from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from extra.dev_data import ENTITY_TYPE_DATAS
-from ioc import MFACredsProvider, SessionStorageClient
+from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -402,50 +402,39 @@ class TestProvider(Provider):
 
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
-    @provide()
-    async def get_raw_audit_manager(
+    @provide(scope=Scope.APP)
+    async def get_audit_redis_client(
         self,
         settings: Settings,
-    ) -> AsyncIterator[RawAuditManager]:
-        """Get raw events redis client."""
+    ) -> AsyncIterator[AuditRedisClient]:
+        """Get audit redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        manager = RawAuditManager(
-            client,
-            settings.RAW_EVENT_STREAM_NAME,
-            settings.EVENT_HANDLER_GROUP,
-            settings.EVENT_CONSUMER_NAME,
-            settings.IS_PROC_EVENT_KEY,
-        )
-        yield manager
+        yield AuditRedisClient(client)
 
         with suppress(RuntimeError):
             await client.aclose()
+
+    @provide()
+    async def get_raw_audit_manager(
+        self,
+        settings: Settings,
+        client: AuditRedisClient,
+    ) -> AsyncIterator[RawAuditManager]:
+        """Get events redis client."""
+        yield RawAuditManager(client, settings)
 
     @provide()
     async def get_normalized_audit_manager(
         self,
         settings: Settings,
+        client: AuditRedisClient,
     ) -> AsyncIterator[NormalizedAuditManager]:
         """Get normalized events redis client."""
-        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
-
-        if not await client.ping():
-            raise SystemError("Redis is not available")
-
-        manager = NormalizedAuditManager(
-            client,
-            settings.NORMALIZED_EVENT_STREAM_NAME,
-            settings.EVENT_SENDER_GROUP,
-            settings.EVENT_CONSUMER_NAME,
-            settings.IS_PROC_EVENT_KEY,
-        )
-        yield manager
-        with suppress(RuntimeError):
-            await client.aclose()
+        yield NormalizedAuditManager(client, settings)
 
     add_request_context = provide(
         LDAPAddRequestContext,
