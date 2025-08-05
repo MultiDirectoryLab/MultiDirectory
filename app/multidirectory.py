@@ -14,7 +14,7 @@ from typing import AsyncIterator, Callable, Coroutine
 import uvicorn
 import uvloop
 from alembic.config import Config, command
-from dishka import make_async_container
+from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
 from fastapi import FastAPI, Request, Response
@@ -51,6 +51,7 @@ from ioc import (
     MFACredsProvider,
     MFAProvider,
 )
+from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dns import DNSConnectionError, DNSNotImplementedError
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
@@ -241,7 +242,12 @@ async def event_handler_factory(settings: Settings) -> None:
         context={Settings: settings},
     )
 
-    await asyncio.gather(AuditEventHandler(main_container).run())
+    async with main_container(scope=Scope.REQUEST) as container:
+        kwargs = await resolve_deps(
+            AuditEventHandler.__init__,
+            container=container,
+        )
+        await asyncio.gather(AuditEventHandler(**kwargs).run())
 
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
