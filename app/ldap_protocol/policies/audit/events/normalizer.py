@@ -27,29 +27,6 @@ class AuditEventNormalizer:
         self.trigger = trigger
         self._class = _class
 
-    def _get_common_fields(self) -> dict:
-        """Extract common fields from event data and trigger."""
-        protocol = "API" if "API" in self.event_data.protocol else "LDAP"
-        if self.trigger.operation_code in {
-            OperationEvent.KERBEROS_AUTH,
-            OperationEvent.CHANGE_PASSWORD_KERBEROS,
-        }:
-            protocol = "KERBEROS"
-
-        return {
-            "username": self.event_data.username,
-            "source_ip": str(self.event_data.source_ip),
-            "dest_port": self.event_data.dest_port,
-            "timestamp": self.event_data.timestamp,
-            "hostname": self.event_data.hostname,
-            "protocol": protocol,
-            "event_type": self.trigger.audit_policy.name,
-            "severity": self.trigger.audit_policy.severity,
-            "policy_id": self.trigger.audit_policy.id,
-            "operation_success": self.trigger.is_operation_success,
-            "service_name": self.event_data.service_name,
-        }
-
     def _enrich_ldap_details(self, details: dict) -> None:
         """Add LDAP-specific details to event details."""
         if self.event_data.request_code == OperationEvent.MODIFY:
@@ -111,7 +88,24 @@ class AuditEventNormalizer:
         if not self.trigger.is_operation_success:
             details.update(self._extract_error_info())
 
+        protocol = "API" if "API" in self.event_data.protocol else "LDAP"
+        if self.trigger.operation_code in {
+            OperationEvent.KERBEROS_AUTH,
+            OperationEvent.CHANGE_PASSWORD_KERBEROS,
+        }:
+            protocol = "KERBEROS"
+
         return self._class(
-            **self._get_common_fields(),
+            username=self.event_data.username,
+            source_ip=str(self.event_data.source_ip),
+            dest_port=self.event_data.dest_port,
+            timestamp=self.event_data.timestamp,
+            hostname=self.event_data.hostname,
+            protocol=protocol,
+            event_type=self.trigger.audit_policy.name,
+            severity=str(self.trigger.audit_policy.severity),
+            policy_id=self.trigger.audit_policy.id,
+            is_operation_success=self.trigger.is_operation_success,
+            service_name=self.event_data.service_name,
             details=details,
         )
