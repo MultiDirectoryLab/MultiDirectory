@@ -408,17 +408,17 @@ class TestProvider(Provider):
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
     @provide()
-    async def get_raw_audit_adapter(
+    async def get_raw_audit_manager(
         self,
         settings: Settings,
     ) -> AsyncIterator[AuditRawManager]:
-        """Get events redis client."""
+        """Get raw events redis client."""
         client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
 
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        adapter = AuditRedisManager(
+        manager = AuditRedisManager(
             client,
             settings.RAW_EVENT_STREAM_NAME,
             settings.EVENT_HANDLER_GROUP,
@@ -426,11 +426,14 @@ class TestProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             RawAuditEventRedis,
         )
-        yield AuditRawManager(adapter)
-        await client.aclose()
+        yield AuditRawManager(manager)
+
+        await client.flushdb()
+        with suppress(RuntimeError):
+            await client.aclose()
 
     @provide()
-    async def get_normalized_audit_adapter(
+    async def get_normalized_audit_manager(
         self,
         settings: Settings,
     ) -> AsyncIterator[AuditNormalizedManager]:
@@ -440,7 +443,7 @@ class TestProvider(Provider):
         if not await client.ping():
             raise SystemError("Redis is not available")
 
-        adapter = AuditRedisManager(
+        manager = AuditRedisManager(
             client,
             settings.NORMALIZED_EVENT_STREAM_NAME,
             settings.EVENT_SENDER_GROUP,
@@ -448,8 +451,9 @@ class TestProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
             NormalizedAuditEventRedis,
         )
-        yield AuditNormalizedManager(adapter)
-        await client.aclose()
+        yield AuditNormalizedManager(manager)
+        with suppress(RuntimeError):
+            await client.aclose()
 
     add_request_context = provide(
         LDAPAddRequestContext,
