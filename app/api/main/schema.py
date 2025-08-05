@@ -41,9 +41,10 @@ class SearchRequest(LDAPSearchRequest):
     async def handle_api(  # type: ignore
         self,
         container: AsyncContainer,
+        ip: IPv4Address | IPv6Address,
     ) -> list[SearchResultEntry | SearchResultDone]:
         """Get all responses."""
-        return await self._handle_api(container)  # type: ignore
+        return await self._handle_api(container, ip)  # type: ignore
 
 
 class SearchResponse(SearchResultDone):

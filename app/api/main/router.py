@@ -35,9 +35,10 @@ entry_router = APIRouter(
 async def search(
     request: SearchRequest,
     req: Request,
+    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
 ) -> SearchResponse:
     """LDAP SEARCH entry request."""
-    responses = await request.handle_api(req.state.dishka_container)
+    responses = await request.handle_api(req.state.dishka_container, ip)
     metadata: SearchResultDone = responses.pop(-1)  # type: ignore
 
     return SearchResponse(
