@@ -32,7 +32,7 @@ class AuditUseCase:
         """Initialize AuditUseCase."""
         self._policy_dao = policy_dao
         self._destination_dao = destination_dao
-        self._manager = manager
+        self.manager = manager
 
     async def get_active_destinations(self) -> list[AuditDestinationDTO]:
         """Get active audit destinations."""
@@ -63,15 +63,15 @@ class AuditUseCase:
         if request_code == OperationEvent.SEARCH:
             return False
 
-        return await self._manager.get_processing_status()
+        return await self.manager.get_processing_status()
 
     async def enable_event_processing(self) -> None:
         """Enable processing of audit events."""
-        await self._manager.update_processing_status(True)
+        await self.manager.update_processing_status(True)
 
     async def disable_event_processing(self) -> None:
         """Disable processing of audit events."""
-        await self._manager.update_processing_status(False)
+        await self.manager.update_processing_status(False)
 
     async def _create_standard_policies(
         self,
