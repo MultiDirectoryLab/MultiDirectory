@@ -8,13 +8,11 @@ import asyncio
 import operator
 from typing import Callable
 
-from dishka import AsyncContainer, Scope
 from loguru import logger
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
 from models import AuditPolicy, AuditPolicyTrigger
@@ -44,10 +42,16 @@ class AuditEventHandler:
 
     def __init__(
         self,
-        container: AsyncContainer,
+        raw_audit_manager: AuditRawManager,
+        normalized_audit_manager: AuditNormalizedManager,
+        session: AsyncSession,
+        normalized_class: type[NormalizedAuditEvent],
     ) -> None:
-        """Initialize event handler with settings and DI container."""
-        self.container = container
+        """Initialize event handler."""
+        self.raw_audit_manager = raw_audit_manager
+        self.normalized_audit_manager = normalized_audit_manager
+        self.session = session
+        self.normalized_class = normalized_class
 
     def _check_modify_event(
         self,
@@ -179,7 +183,6 @@ class AuditEventHandler:
     async def get_event_by_data(
         self,
         event_data: RawAuditEvent,
-        session: AsyncSession,
     ) -> list[AuditPolicyTrigger]:
         """Find all policy triggers matching event data."""
         is_ldap = event_data.protocol == "TCP_LDAP"
@@ -188,7 +191,7 @@ class AuditEventHandler:
         operation_code = event_data.request_code
         matched_triggers: list[AuditPolicyTrigger] = []
 
-        triggers = await session.scalars(
+        triggers = await self.session.scalars(
             select(AuditPolicyTrigger)
             .join(AuditPolicyTrigger.audit_policy)
             .where(
@@ -216,33 +219,26 @@ class AuditEventHandler:
 
         return matched_triggers
 
-    async def save_events(
-        self,
-        events: list[NormalizedAuditEvent],
-        normalized_audit_manager: AuditNormalizedManager,
-    ) -> None:
+    async def save_events(self, events: list[NormalizedAuditEvent]) -> None:
         """Persist normalized events to stream."""
         for event in events:
-            await normalized_audit_manager.send_event(event)
+            await self.normalized_audit_manager.send_event(event)
 
-    async def handle_event(
-        self,
-        event: RawAuditEvent,
-        session: AsyncSession,
-        raw_audit_manager: AuditRawManager,
-        normalized_audit_manager: AuditNormalizedManager,
-        normalized_class: type[NormalizedAuditEvent],
-    ) -> None:
+    async def handle_event(self, event: RawAuditEvent) -> None:
         """Process single event through entire pipeline."""
         logger.debug(f"Event data: {event}")
         try:
-            events = await self.get_event_by_data(event, session)
+            events = await self.get_event_by_data(event)
 
             if not events:
                 return
 
             normalize_events: list[NormalizedAuditEvent] = [
-                AuditEventNormalizer(event, policy, normalized_class).build()
+                AuditEventNormalizer(
+                    event,
+                    policy,
+                    self.normalized_class,
+                ).build()
                 for policy in events
             ]
 
@@ -250,47 +246,21 @@ class AuditEventHandler:
                 f"Normalized events: {[event for event in normalize_events]}",
             )
 
-            await self.save_events(normalize_events, normalized_audit_manager)
+            await self.save_events(normalize_events)
         finally:
-            await raw_audit_manager.delete_event(event.id)  # type: ignore
+            await self.raw_audit_manager.delete_event(event.id)  # type: ignore
 
-    async def consume_events(
-        self,
-        raw_audit_manager: AuditRawManager,
-        normalized_audit_manager: AuditNormalizedManager,
-        session: AsyncSession,
-        normalized_class: type[NormalizedAuditEvent],
-    ) -> None:
-        """Consume events and process them."""
-        await raw_audit_manager.setup_reading()
+    async def run(self) -> None:
+        """Start event handler main processing loop."""
+        await self.raw_audit_manager.setup_reading()
 
         while True:
             try:
-                for event in await raw_audit_manager.read_events():
+                for event in await self.raw_audit_manager.read_events():
                     asyncio.gather(
-                        self.handle_event(
-                            event,
-                            raw_audit_manager=raw_audit_manager,
-                            normalized_audit_manager=normalized_audit_manager,
-                            session=session,
-                            normalized_class=normalized_class,
-                        ),
+                        self.handle_event(event),
                     )
             except ConnectionError:
                 await asyncio.sleep(1)
             except Exception as exc:
                 logger.exception(f"Error reading stream: {exc}")
-
-    async def run(self) -> None:
-        """Start event handler main processing loop."""
-        try:
-            async with self.container(scope=Scope.REQUEST) as container:
-                kwargs = await resolve_deps(
-                    self.consume_events,
-                    container=container,
-                )
-                await self.consume_events(
-                    **kwargs,
-                )
-        finally:
-            await self.container.close()
