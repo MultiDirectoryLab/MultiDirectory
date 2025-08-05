@@ -222,7 +222,7 @@ class AuditEventHandler:
     async def save_events(self, events: list[NormalizedAuditEvent]) -> None:
         """Persist normalized events to stream."""
         for event in events:
-            await self.normalized_audit_manager.send_event(event)
+            await self.normalized_audit_manager.send_event(event)  # type: ignore
 
     async def handle_event(self, event: RawAuditEvent) -> None:
         """Process single event through entire pipeline."""
