@@ -203,7 +203,7 @@ class AuditEventHandler:
                 ),
             )
             .options(selectinload(AuditPolicyTrigger.audit_policy)),
-        )  # fmt: skip
+        )
 
         logger.debug(
             f"Suitable triggers: {[trigger.id for trigger in triggers]}",
