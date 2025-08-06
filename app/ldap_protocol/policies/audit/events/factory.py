@@ -60,26 +60,9 @@ class RawAuditEventBuilder(Generic[T]):
         username: str,
         is_success_request: bool,
         settings: "Settings",
-        user_agent: str | None = None,
-        target: str | None = None,
-        error_code: int | None = None,
-        error_message: str | None = None,
+        context: dict[str, Any],
     ) -> T:
         """Construct an AuditEvent from HTTP request data."""
-        context: dict[str, dict[str, str | int]] = {"details": {}}
-
-        if user_agent:
-            context["details"]["user-agent"] = user_agent
-        if event_type == OperationEvent.BIND:
-            context["details"]["auth_choice"] = "API"
-
-        if error_code:
-            context["details"]["error_code"] = error_code
-        if error_message:
-            context["details"]["error_message"] = error_message
-        if target:
-            context["details"]["target"] = target
-
         return self._class_event(
             request=dict(),
             responses=list(),

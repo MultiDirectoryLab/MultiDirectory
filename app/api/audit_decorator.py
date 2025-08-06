@@ -86,6 +86,31 @@ def _handle_error(
     return to_process_event, error_code, error_message
 
 
+def _get_context(
+    event_type: OperationEvent,
+    target: str | None,
+    error_code: int | None,
+    error_message: str | None,
+    user_agent: str | None,
+) -> dict[str, dict[str, str | int]]:
+    """Construct context for audit event based on event type and details."""
+    context: dict[str, dict[str, str | int]] = {"details": {}}
+
+    if user_agent:
+        context["details"]["user-agent"] = user_agent
+    if event_type == OperationEvent.BIND:
+        context["details"]["auth_choice"] = "API"
+
+    if error_code is not None:
+        context["details"]["error_code"] = error_code
+    if error_message is not None:
+        context["details"]["error_message"] = error_message
+    if target is not None:
+        context["details"]["target"] = target
+
+    return context
+
+
 def track_audit_event(event_type: OperationEvent) -> Callable:
     """Decorate endpoint to track audit events of specified type."""
 
@@ -140,16 +165,21 @@ def track_audit_event(event_type: OperationEvent) -> Callable:
                 if to_process_event:
                     ip = get_ip_from_request(request)
                     user_agent = get_user_agent_from_request(request)
+                    context = _get_context(
+                        event_type,
+                        target,
+                        error_code,
+                        error_message,
+                        user_agent,
+                    )
+
                     event_log = RawAuditEventBuilderRedis.from_http_request(
                         ip,
-                        user_agent=user_agent,
                         event_type=event_type,
                         username=username,
                         is_success_request=is_success_request,
                         settings=settings,
-                        target=target,
-                        error_code=error_code,
-                        error_message=error_message,
+                        context=context,
                     )
                     asyncio.create_task(
                         audit_use_case.manager.send_event(event=event_log),
