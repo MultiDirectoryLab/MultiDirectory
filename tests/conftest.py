@@ -411,14 +411,35 @@ class TestProvider(Provider):
         with suppress(RuntimeError):
             await client.aclose()
 
-    raw_audit_manager = provide(
-        RawAuditManager,
-        scope=Scope.APP,
-    )
-    normalized_audit_manager = provide(
-        NormalizedAuditManager,
-        scope=Scope.APP,
-    )
+    @provide(scope=Scope.APP)
+    async def get_raw_audit_manager(
+        self,
+        client: AuditRedisClient,
+        settings: Settings,
+    ) -> AsyncIterator[RawAuditManager]:
+        """Get raw audit manager."""
+        yield RawAuditManager(
+            client,
+            settings.RAW_EVENT_STREAM_NAME,
+            settings.EVENT_HANDLER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+
+    @provide(scope=Scope.APP)
+    async def get_normalized_audit_manager(
+        self,
+        client: AuditRedisClient,
+        settings: Settings,
+    ) -> AsyncIterator[NormalizedAuditManager]:
+        """Get raw audit manager."""
+        yield NormalizedAuditManager(
+            client,
+            settings.NORMALIZED_EVENT_STREAM_NAME,
+            settings.EVENT_SENDER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
 
     add_request_context = provide(
         LDAPAddRequestContext,
