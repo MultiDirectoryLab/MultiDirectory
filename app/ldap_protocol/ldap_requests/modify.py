@@ -272,7 +272,7 @@ class ModifyRequest(BaseRequest):
             select(Directory)
             .options(
                 selectinload(Directory.attributes),
-                selectinload(Directory.groups),
+                selectinload(Directory.groups).selectinload(Group.directory),
                 joinedload(Directory.group).selectinload(Group.members),
             )
             .filter(get_filter_from_path(self.object))
