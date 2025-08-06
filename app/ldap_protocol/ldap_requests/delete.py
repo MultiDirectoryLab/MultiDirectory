@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import defaultload
+from sqlalchemy.orm import defaultload, selectinload
 
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
@@ -68,7 +68,7 @@ class DeleteRequest(BaseRequest):
             select(Directory)
             .options(
                 defaultload(Directory.user),
-                defaultload(Directory.groups).defaultload(Group.directory),
+                selectinload(Directory.groups).selectinload(Group.directory),
                 defaultload(Directory.attributes),
             )
             .filter(get_filter_from_path(self.entry))
