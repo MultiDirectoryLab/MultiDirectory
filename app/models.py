@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from __future__ import annotations
 
-from enum import unique
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -18,9 +17,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
-    Identity,
     Index,
-    Integer,
     LargeBinary,
     String,
     UniqueConstraint,
