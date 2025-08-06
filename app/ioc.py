@@ -55,6 +55,10 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
+from ldap_protocol.policies.audit.events.dataclasses import (
+    NormalizedAuditEvent,
+    NormalizedAuditEventRedis,
+)
 from ldap_protocol.policies.audit.events.managers import (
     AuditRedisClient,
     NormalizedAuditManager,
@@ -218,6 +222,13 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
+    @provide()
+    async def get_normalized_audit_event(
+        self,
+    ) -> type[NormalizedAuditEvent]:
+        """Get normalized audit event class."""
+        return NormalizedAuditEventRedis
+
     @provide(scope=Scope.APP)
     async def get_audit_redis_client(
         self,
@@ -232,17 +243,39 @@ class MainProvider(Provider):
         yield AuditRedisClient(client)
         await client.aclose()
 
+    @provide(scope=Scope.APP)
+    async def get_raw_audit_manager(
+        self,
+        client: AuditRedisClient,
+        settings: Settings,
+    ) -> AsyncIterator[RawAuditManager]:
+        """Get raw audit manager."""
+        yield RawAuditManager(
+            client,
+            settings.RAW_EVENT_STREAM_NAME,
+            settings.EVENT_HANDLER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+
+    @provide(scope=Scope.APP)
+    async def get_normalized_audit_manager(
+        self,
+        client: AuditRedisClient,
+        settings: Settings,
+    ) -> AsyncIterator[NormalizedAuditManager]:
+        """Get raw audit manager."""
+        yield NormalizedAuditManager(
+            client,
+            settings.NORMALIZED_EVENT_STREAM_NAME,
+            settings.EVENT_SENDER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+
     audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
     audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
     audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
-    raw_audit_manager = provide(
-        RawAuditManager,
-        scope=Scope.APP,
-    )
-    normalized_audit_manager = provide(
-        NormalizedAuditManager,
-        scope=Scope.APP,
-    )
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
