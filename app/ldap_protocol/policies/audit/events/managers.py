@@ -11,8 +11,6 @@ from typing import Generic, NewType, TypeVar, get_args
 from loguru import logger
 from redis.asyncio import Redis
 
-from config import Settings
-
 from .dataclasses import (
     NormalizedAuditEvent,
     NormalizedAuditEventRedis,
@@ -66,14 +64,17 @@ class AuditRedisManager(AbstractAuditManager[Event]):
     def __init__(
         self,
         client: AuditRedisClient,
-        settings: Settings,
+        stream_name: str,
+        group_name: str,
+        consumer_name: str,
+        process_enabled_key: str,
     ) -> None:
         """Initialize Redis client for audit event operations."""
         self._client = client
-        self._stream_name = settings.RAW_EVENT_STREAM_NAME
-        self._group_name = settings.EVENT_HANDLER_GROUP
-        self._consumer_name = settings.EVENT_CONSUMER_NAME
-        self._process_enabled_key = settings.IS_PROC_EVENT_KEY
+        self._stream_name = stream_name
+        self._group_name = group_name
+        self._consumer_name = consumer_name
+        self._process_enabled_key = process_enabled_key
 
     async def get_processing_status(self) -> bool:
         data = await self._client.get(self._process_enabled_key)
