@@ -26,8 +26,6 @@ class AuditEvent(ABC):
     It should be extended by specific event types (e.g., LDAP, HTTP).
     """
 
-    id: str | None = None
-
     @classmethod
     @abstractmethod
     def from_queue(cls, queue_data: Any) -> Self:
@@ -81,6 +79,7 @@ class RawAuditEvent(AuditEvent):
     hostname: str = field(default_factory=socket.gethostname)
     http_success_status: bool | None = None
     service_name: str | None = None
+    id: str | None = None
 
     @property
     def is_event_successful(self) -> bool:
@@ -101,11 +100,9 @@ class RawAuditEvent(AuditEvent):
 class AuditEventRedis(AuditEvent):
     """Abstract base class for audit events stored in Redis."""
 
-    id: str
-
     @classmethod
     @abstractmethod
-    def from_redis(cls, redis_data: dict[bytes, bytes]) -> Self:
+    def from_redis(cls, redis_data: tuple[bytes, dict[bytes, bytes]]) -> Self:
         """Create an AuditEvent instance from Redis dictionary data."""
 
     @abstractmethod
@@ -126,10 +123,11 @@ class RawAuditEventRedis(RawAuditEvent, AuditEventRedis):
     """Raw audit event model for Redis storage."""
 
     @classmethod
-    def from_redis(cls, redis_data: dict[bytes, bytes]) -> Self:
+    def from_redis(cls, redis_data: tuple[bytes, dict[bytes, bytes]]) -> Self:
         """Create RawAuditEvent instance from Redis dictionary data."""
+        redis_id, data = redis_data
         decoded_data = {
-            key.decode(): value.decode() for key, value in redis_data.items()
+            key.decode(): value.decode() for key, value in data.items()
         }
 
         parsed_data = {}
@@ -154,6 +152,8 @@ class RawAuditEventRedis(RawAuditEvent, AuditEventRedis):
                 if parsed_data["http_success_status"] == "None"
                 else parsed_data["http_success_status"].lower() == "true"
             )
+
+        parsed_data["id"] = redis_id.decode("utf-8")
 
         return cls(**parsed_data)
 
@@ -185,6 +185,7 @@ class NormalizedAuditEvent(AuditEvent):
     is_operation_success: bool
     details: dict[str, Any]
     service_name: str | None = None
+    id: str | None = None
 
 
 class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
@@ -200,8 +201,9 @@ class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
         }
 
     @classmethod
-    def from_redis(cls, data: dict[bytes, bytes]) -> Self:
+    def from_redis(cls, redis_data: tuple[bytes, dict[bytes, bytes]]) -> Self:
         """Create an instance from Redis dictionary data."""
+        redis_id, data = redis_data
         decoded = {}
         for key, value in data.items():
             key_str = key.decode("utf-8")
@@ -221,4 +223,6 @@ class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
             decoded["is_operation_success"] = (
                 val if isinstance(val, bool) else val.lower() == "true"
             )
+        decoded["id"] = redis_id.decode("utf-8")
+
         return cls(**decoded)
