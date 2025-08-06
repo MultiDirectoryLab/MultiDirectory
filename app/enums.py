@@ -33,7 +33,7 @@ class MFAFlags(int, Enum):
     WHITELIST = 2
 
 
-class KindType(Enum):
+class KindType(str, Enum):
     """Object kind types."""
 
     STRUCTURAL = "STRUCTURAL"
