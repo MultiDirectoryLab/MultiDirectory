@@ -31,3 +31,11 @@ class MFAFlags(int, Enum):
     DISABLED = 0
     ENABLED = 1
     WHITELIST = 2
+
+
+class KindType(Enum):
+    """Object kind types."""
+
+    STRUCTURAL = "STRUCTURAL"
+    ABSTRACT = "ABSTRACT"
+    AUXILIARY = "AUXILIARY"

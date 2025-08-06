@@ -11,6 +11,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from enums import KindType
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
@@ -22,7 +23,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import EntityType, KindType, ObjectClass
+from models import EntityType, ObjectClass
 
 
 class ObjectClassSchema(BaseModel):
