@@ -191,22 +191,25 @@ class AuditEventHandler:
         operation_code = event_data.request_code
         matched_triggers: list[AuditPolicyTrigger] = []
 
-        triggers = await self.session.scalars(
-            select(AuditPolicyTrigger)
-            .join(AuditPolicyTrigger.audit_policy)
-            .where(
-                AuditPolicy.is_enabled.is_(True),
-                AuditPolicyTrigger.operation_code == operation_code,
-                AuditPolicyTrigger.is_operation_success.is_(
-                    event_data.is_event_successful,
-                ),
-                or_(
-                    AuditPolicyTrigger.is_ldap.is_(is_ldap),
-                    AuditPolicyTrigger.is_http.is_(is_http),
-                ),
+        #  NOTE: audit_policy not found without .all()
+        triggers = (
+            await self.session.scalars(
+                select(AuditPolicyTrigger)
+                .join(AuditPolicyTrigger.audit_policy, isouter=True)
+                .where(
+                    AuditPolicy.is_enabled.is_(True),
+                    AuditPolicyTrigger.operation_code == operation_code,
+                    AuditPolicyTrigger.is_operation_success.is_(
+                        event_data.is_event_successful,
+                    ),
+                    or_(
+                        AuditPolicyTrigger.is_ldap.is_(is_ldap),
+                        AuditPolicyTrigger.is_http.is_(is_http),
+                    ),
+                )
+                .options(selectinload(AuditPolicyTrigger.audit_policy)),
             )
-            .options(selectinload(AuditPolicyTrigger.audit_policy)),
-        )
+        ).all()
 
         logger.debug(
             f"Suitable triggers: {[trigger.id for trigger in triggers]}",
