@@ -239,6 +239,8 @@ class ModifyRequest(BaseRequest):
             await ctx.session.commit()
             yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
         finally:
+            query = self._get_dir_query()
+            directory = await ctx.session.scalar(query)
             self.set_event_data(
                 {
                     "after_attrs": self.get_directory_attrs(directory),
