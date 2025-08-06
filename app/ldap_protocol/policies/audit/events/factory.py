@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, get_args
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from config import Settings
 from ldap_protocol.objects import OperationEvent
@@ -26,9 +26,9 @@ class RawAuditEventBuilder(Generic[T]):
     from different types of network requests (LDAP, HTTP etc.).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, raw_class: type[T]) -> None:
         """Initialize the builder with the class type of the audit event."""
-        self._class_event = get_args(self.__orig_class__)[0]  # type: ignore
+        self._class_event = raw_class
 
     def from_ldap_request(
         self,
@@ -94,4 +94,4 @@ class RawAuditEventBuilder(Generic[T]):
         )
 
 
-RawAuditEventBuilderRedis = RawAuditEventBuilder[RawAuditEventRedis]()
+RawAuditEventBuilderRedis = RawAuditEventBuilder(RawAuditEventRedis)
