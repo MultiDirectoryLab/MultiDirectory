@@ -100,6 +100,7 @@ async def logout(
 @track_audit_event(OperationEvent.CHANGE_PASSWORD)
 async def password_reset(
     request: Request,  # noqa: ARG001
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # noqa: ARG001
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
     kadmin: FromDishka[AbstractKadmin],
