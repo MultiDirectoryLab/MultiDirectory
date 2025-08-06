@@ -70,6 +70,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
 
     async def callback_mfa(
         self,
+        request: Request,
         access_token: str,
         mfa_creds: MFA_HTTP_Creds,
         ip: IPv4Address | IPv6Address,
@@ -86,12 +87,15 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 302 redirect if MFA token error
         """
         try:
+            request.state.username = ""
+            # TODO: UserDTO.key and UserDTO.username  # noqa
             key = await self._manager.callback_mfa(
                 access_token,
                 mfa_creds,
                 ip,
                 user_agent,
             )
+            request.state.username = key
             response = RedirectResponse("/", 302)
             await self.set_session_cookie(
                 response,

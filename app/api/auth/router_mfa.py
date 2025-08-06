@@ -13,10 +13,12 @@ from fastapi import Depends, Form, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
+from api.audit_decorator import track_audit_event
 from api.auth import get_current_user
 from api.auth.adapters import MFAFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
+from ldap_protocol.objects import OperationEvent
 
 from .schema import (
     MFAChallengeResponse,
@@ -78,7 +80,9 @@ async def get_mfa(
 
 
 @mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
+@track_audit_event(event_type=OperationEvent.AFTER_2FA)
 async def callback_mfa(
+    request: Request,
     access_token: Annotated[
         str,
         Form(alias="accessToken", validation_alias="accessToken"),
@@ -100,6 +104,7 @@ async def callback_mfa(
     :return RedirectResponse: on bypass or success
     """
     return await mfa_manager.callback_mfa(
+        request,
         access_token,
         mfa_creds,
         ip,
