@@ -88,19 +88,18 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         """
         try:
             request.state.username = ""
-            # TODO: UserDTO.key and UserDTO.username  # noqa
-            key = await self._manager.callback_mfa(
+            user_dto = await self._manager.callback_mfa(
                 access_token,
                 mfa_creds,
                 ip,
                 user_agent,
             )
-            request.state.username = key
+            request.state.username = user_dto.username
             response = RedirectResponse("/", 302)
             await self.set_session_cookie(
                 response,
                 self._manager.key_ttl,
-                key,
+                user_dto.key,
             )
             return response
         except MFATokenError:
