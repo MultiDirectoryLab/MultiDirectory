@@ -291,7 +291,7 @@ class ModifyRequest(BaseRequest):
             select(Directory)
             .options(
                 selectinload(Directory.attributes),
-                selectinload(Directory.groups).joinedload(Group.directory),
+                selectinload(Directory.groups).selectinload(Group.directory),
                 selectinload(Directory.groups).selectinload(Group.members),
                 joinedload(Directory.group).selectinload(Group.members),
             )
