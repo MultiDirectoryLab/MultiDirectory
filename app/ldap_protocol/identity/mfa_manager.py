@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
+from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address
 
 from jose import jwt
@@ -42,6 +43,14 @@ from ldap_protocol.multifactor import (
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User
+
+
+@dataclass
+class UserMFADTO:
+    """Data Transfer Object for User MFA credentials."""
+
+    key: str
+    username: str
 
 
 class MFAManager(SessionKeyCreatorMixin):
@@ -142,7 +151,7 @@ class MFAManager(SessionKeyCreatorMixin):
         mfa_creds: MFA_HTTP_Creds,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> str:
+    ) -> UserMFADTO:
         """Process MFA callback and return session key.
 
         :param access_token: str
@@ -171,13 +180,18 @@ class MFAManager(SessionKeyCreatorMixin):
         if user_id is None or not user:
             raise MFATokenError()
 
-        return await self.create_session_key(
+        key = await self.create_session_key(
             user,
             self._storage,
             self._settings,
             ip,
             user_agent,
             self._session,
+        )
+
+        return UserMFADTO(
+            key=key,
+            username=user.user_principal_name,
         )
 
     async def two_factor_protocol(
