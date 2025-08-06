@@ -25,7 +25,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory
+from models import Directory, Group
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
@@ -68,6 +68,7 @@ class DeleteRequest(BaseRequest):
             select(Directory)
             .options(
                 defaultload(Directory.user),
+                defaultload(Directory.groups).defaultload(Group.directory),
                 defaultload(Directory.attributes),
             )
             .filter(get_filter_from_path(self.entry))
