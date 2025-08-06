@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, get_args
 
 from config import Settings
 from ldap_protocol.objects import OperationEvent
@@ -26,14 +26,12 @@ class RawAuditEventBuilder(Generic[T]):
     from different types of network requests (LDAP, HTTP etc.).
     """
 
-    @classmethod
-    def _class(cls) -> type[T]:
-        """Return the class type of the audit event."""
-        return cls.__args__[0]  # type: ignore
+    def __init__(self) -> None:
+        """Initialize the builder with the class type of the audit event."""
+        self._class_event = get_args(self.__orig_class__)[0]  # type: ignore
 
-    @classmethod
     def from_ldap_request(
-        cls,
+        self,
         request: "BaseRequest",
         responses: list["BaseResponse"],
         username: str,
@@ -43,7 +41,7 @@ class RawAuditEventBuilder(Generic[T]):
         protocol: str,
     ) -> T:
         """Construct an AuditEvent from LDAP request data."""
-        return cls._class()(
+        return self._class_event(
             request=request.model_dump(),
             responses=[r.model_dump() for r in responses],
             protocol=protocol,
@@ -55,9 +53,8 @@ class RawAuditEventBuilder(Generic[T]):
             service_name=settings.SERVICE_NAME,
         )
 
-    @classmethod
     def from_http_request(
-        cls,
+        self,
         ip: IPv4Address | IPv6Address,
         event_type: OperationEvent,
         username: str,
@@ -83,7 +80,7 @@ class RawAuditEventBuilder(Generic[T]):
         if target:
             context["details"]["target"] = target
 
-        return cls._class()(
+        return self._class_event(
             request=dict(),
             responses=list(),
             protocol="API",
@@ -97,4 +94,4 @@ class RawAuditEventBuilder(Generic[T]):
         )
 
 
-RawAuditEventBuilderRedis = RawAuditEventBuilder[RawAuditEventRedis]
+RawAuditEventBuilderRedis = RawAuditEventBuilder[RawAuditEventRedis]()
