@@ -355,7 +355,6 @@ class PoolClientHandler:
     ) -> None:
         """Get message from queue and handle it."""
         ldap_session: LDAPSession = await container.get(LDAPSession)
-        audit_use_case: AuditUseCase = await container.get(AuditUseCase)
         addr = str(ldap_session.ip)
 
         while True:
@@ -370,6 +369,9 @@ class PoolClientHandler:
                         container=request_container,
                     )
                     handler = message.context.handle(**kwargs)
+                    audit_use_case: AuditUseCase = await request_container.get(
+                        AuditUseCase,
+                    )
                     responses = []
 
                     async for response in message.create_response(handler):
