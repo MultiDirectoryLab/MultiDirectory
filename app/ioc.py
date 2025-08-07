@@ -9,6 +9,7 @@ from typing import AsyncIterator, NewType
 import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
+from fastapi import Request
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -17,6 +18,7 @@ from sqlalchemy.ext.asyncio import (
 
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.auth.utils import get_ip_from_request
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
@@ -326,11 +328,15 @@ class HTTPProvider(LDAPContextProvider):
     """HTTP LDAP session."""
 
     scope = Scope.REQUEST
+    request = from_context(provides=Request, scope=Scope.REQUEST)
 
     @provide(provides=LDAPSession)
-    async def get_session(self) -> LDAPSession:
+    async def get_session(self, request: Request) -> LDAPSession:
         """Create ldap session."""
-        return LDAPSession()
+        ip = get_ip_from_request(request)
+        session = LDAPSession()
+        session.ip = ip
+        return session
 
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
