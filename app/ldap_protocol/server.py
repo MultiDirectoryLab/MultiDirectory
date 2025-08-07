@@ -89,6 +89,7 @@ class PoolClientHandler:
                 writer,
                 return_addr=True,
             )
+            await ldap_session.start()
             ldap_session.ip = addr
 
             logger.info(f"Connection {addr} opened")
@@ -405,8 +406,10 @@ class PoolClientHandler:
                             settings=self.settings,
                             context=message.context.get_event_data(),
                         )
-                        asyncio.create_task(
-                            audit_use_case.manager.send_event(event),
+
+                        ldap_session.event_task_group.start_soon(
+                            audit_use_case.manager.send_event,
+                            event,
                         )
 
                 ldap_session.queue.task_done()

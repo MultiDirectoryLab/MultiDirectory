@@ -15,6 +15,7 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncIterator, NoReturn
 
 import gssapi
+from anyio import create_task_group
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.policies.network_policy import build_policy_query
@@ -89,10 +90,15 @@ class LDAPSession:
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
         self.id = uuid.uuid4()
         self.storage = storage
+        self._task_group_cm = create_task_group()
 
     def __str__(self) -> str:
         """Session with id."""
         return f"LDAPSession({self.id})"
+
+    async def start(self) -> None:
+        """Start session."""
+        self.event_task_group = await self._task_group_cm.__aenter__()
 
     @property
     def user(self) -> UserSchema | None:
@@ -176,6 +182,8 @@ class LDAPSession:
 
     async def disconnect(self) -> None:
         """Disconnect session."""
+        if self.event_task_group is not None:
+            await self._task_group_cm.__aexit__(None, None, None)
         if self.storage is None or self.user is None:
             return
         await self.storage.delete_user_session(self.key)
