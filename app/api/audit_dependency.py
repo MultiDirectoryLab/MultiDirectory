@@ -147,6 +147,7 @@ async def _track_audit_event(
     response: Response,
     error: Exception | None = None,
 ) -> None:
+    """Track audit event based on request and response."""
     (
         event_type,
         settings,
@@ -204,7 +205,7 @@ async def track_audit_event(
     request: Request,
     response: Response,
 ) -> AsyncIterator[None]:
-    """Process request while tracking audit event."""
+    """Audit dependency for tracking events."""
     try:
         yield
     except Exception as error:
