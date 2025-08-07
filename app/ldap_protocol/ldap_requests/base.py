@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 from abc import ABC, abstractmethod
-from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncGenerator, Callable, ClassVar, Protocol
 
 from dishka import AsyncContainer
@@ -46,7 +45,6 @@ if TYPE_CHECKING:
         async def _handle_api(
             self,
             container: AsyncContainer,
-            ip: IPv4Address | IPv6Address,
         ) -> list[BaseResponse] | BaseResponse: ...
 
 else:
@@ -103,7 +101,6 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     async def _handle_api(
         self,
         container: AsyncContainer,
-        ip: IPv4Address | IPv6Address,
     ) -> list[BaseResponse]:
         """Hanlde response with api user.
 
@@ -117,7 +114,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         audit_use_case = await container.get(AuditUseCase)
 
         un = getattr(ldap_session.user, "user_principal_name", "ANONYMOUS")
-
+        ip = ldap_session.ip
         if settings.DEBUG:
             log_api.info(f"{get_class_name(self)}: {self.model_dump_json()}")
         else:
@@ -156,7 +153,6 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     async def handle_api(
         self,
         container: AsyncContainer,
-        ip: IPv4Address | IPv6Address,
     ) -> LDAPResult:
         """Get single response."""
-        return (await self._handle_api(container, ip))[0]  # type: ignore
+        return (await self._handle_api(container))[0]  # type: ignore
