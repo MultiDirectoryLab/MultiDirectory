@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 
 
 class AceType(IntEnum):
@@ -25,7 +25,7 @@ class RoleScope(IntEnum):
     WHOLE_SUBTREE = 2
 
 
-class MFAFlags(int, Enum):
+class MFAFlags(IntEnum):
     """Two-Factor auth action."""
 
     DISABLED = 0
@@ -33,7 +33,7 @@ class MFAFlags(int, Enum):
     WHITELIST = 2
 
 
-class KindType(str, Enum):
+class KindType(StrEnum):
     """Object kind types."""
 
     STRUCTURAL = "STRUCTURAL"
