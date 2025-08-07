@@ -4,7 +4,6 @@ from functools import wraps
 from typing import Any, Callable
 
 import httpx
-from loguru import logger
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
