@@ -66,9 +66,11 @@ def _handle_error(
         return False, None, None
 
     error_code = response.status_code
-    error_message = (
-        error.detail if isinstance(error, HTTPException) else str(error)
-    )
+
+    if error is not None:
+        error_message = (
+            error.detail if isinstance(error, HTTPException) else str(error)
+        )
 
     if event_type == OperationEvent.KERBEROS_AUTH:
         if error_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
