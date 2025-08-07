@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Any, Callable
 
 import httpx
+from loguru import logger
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -96,7 +97,10 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     """
     subquery = (
         select(Directory.id)
-        .where(Directory.name.ilike(name))
+        .where(
+            Directory.name.ilike(name),
+            Directory.path.contains(["ou=users"]),
+        )
         .scalar_subquery()
     )
     await session.execute(
