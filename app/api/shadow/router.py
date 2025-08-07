@@ -9,11 +9,11 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Body, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.audit_decorator import track_audit_event
+from api.audit_dependency import track_audit_event
 from enums import MFAFlags
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.objects import OperationEvent
@@ -28,16 +28,18 @@ from security import get_password_hash
 shadow_router = APIRouter(route_class=DishkaRoute)
 
 
-@shadow_router.post("/mfa/push")
-@track_audit_event(event_type=OperationEvent.KERBEROS_AUTH)
+@shadow_router.post("/mfa/push", dependencies=[Depends(track_audit_event)])
 async def proxy_request(
-    request: Request,  # noqa: ARG001
+    request: Request,
     principal: Annotated[str, Body(embed=True)],
     ip: Annotated[IPv4Address, Body(embed=True)],
     mfa: FromDishka[LDAPMultiFactorAPI],
     session: FromDishka[AsyncSession],
 ) -> None:
     """Proxy request to mfa."""
+    request.state.event_type = OperationEvent.KERBEROS_AUTH
+    request.state.principal = principal
+
     user = await get_user(session, principal)
 
     if not user:
@@ -80,10 +82,12 @@ async def proxy_request(
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
 
-@shadow_router.post("/sync/password")
-@track_audit_event(event_type=OperationEvent.CHANGE_PASSWORD_KERBEROS)
+@shadow_router.post(
+    "/sync/password",
+    dependencies=[Depends(track_audit_event)],
+)
 async def sync_password(
-    request: Request,  # noqa: ARG001
+    request: Request,
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
     session: FromDishka[AsyncSession],
@@ -101,6 +105,9 @@ async def sync_password(
     :raises HTTPException: 422 if password not valid
     :return None: None
     """
+    request.state.event_type = OperationEvent.CHANGE_PASSWORD_KERBEROS
+    request.state.principal = principal
+
     user = await get_user(session, principal)
 
     if not user:

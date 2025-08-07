@@ -11,24 +11,28 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, Request, Response, status
 
-from api.audit_decorator import track_audit_event
+from api.audit_dependency import track_audit_event
 from api.auth.adapters import IdentityFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.objects import OperationEvent
 from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
 from .schema import OAuth2Form, SetupRequest
 
-auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
+auth_router = APIRouter(
+    prefix="/auth",
+    tags=["Auth"],
+    route_class=DishkaRoute,
+    dependencies=[Depends(track_audit_event)],
+)
 
 
+# @auth_router.post("/", dependencies=[Depends(track_audit_event)])
 @auth_router.post("/")
-@track_audit_event(OperationEvent.BIND)
 async def login(
-    request: Request,  # noqa: ARG001
+    request: Request,
     form: Annotated[OAuth2Form, Depends()],
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
@@ -56,6 +60,7 @@ async def login(
     :return None: None
     """
     await auth_manager.login(
+        request=request,
         form=form,
         response=response,
         ip=ip,
@@ -97,10 +102,9 @@ async def logout(
     status_code=200,
     dependencies=[Depends(get_current_user)],
 )
-@track_audit_event(OperationEvent.CHANGE_PASSWORD)
 async def password_reset(
-    request: Request,  # noqa: ARG001
-    current_user: Annotated[UserSchema, Depends(get_current_user)],  # noqa: ARG001
+    request: Request,
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
     kadmin: FromDishka[AbstractKadmin],
@@ -117,7 +121,13 @@ async def password_reset(
     :raises HTTPException: 424 if kerberos password update failed
     :return: None
     """
-    await auth_manager.reset_password(identity, new_password, kadmin)
+    await auth_manager.reset_password(
+        request,
+        identity,
+        new_password,
+        kadmin,
+        current_user,
+    )
 
 
 @auth_router.get("/setup")

@@ -27,6 +27,7 @@ from api.exceptions.mfa import (
 )
 from ldap_protocol.identity import MFAManager
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
+from ldap_protocol.objects import OperationEvent
 
 
 class MFAFastAPIAdapter(ResponseCookieMixin):
@@ -75,6 +76,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         mfa_creds: MFA_HTTP_Creds,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
+        event_type: OperationEvent = OperationEvent.AFTER_2FA,
     ) -> RedirectResponse:
         """Process MFA callback and return redirect.
 
@@ -86,20 +88,21 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 404 if not found
         :raises HTTPException: 302 redirect if MFA token error
         """
+        request.state.event_type = event_type
+        request.state.username = ""
         try:
-            request.state.username = ""
-            user_dto = await self._manager.callback_mfa(
+            key, username = await self._manager.callback_mfa(
                 access_token,
                 mfa_creds,
                 ip,
                 user_agent,
             )
-            request.state.username = user_dto.username
+            request.state.username = username
             response = RedirectResponse("/", 302)
             await self.set_session_cookie(
                 response,
                 self._manager.key_ttl,
-                user_dto.key,
+                key,
             )
             return response
         except MFATokenError:
