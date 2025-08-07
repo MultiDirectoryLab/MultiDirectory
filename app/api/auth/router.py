@@ -25,12 +25,10 @@ auth_router = APIRouter(
     prefix="/auth",
     tags=["Auth"],
     route_class=DishkaRoute,
-    dependencies=[Depends(track_audit_event)],
 )
 
 
-# @auth_router.post("/", dependencies=[Depends(track_audit_event)])
-@auth_router.post("/")
+@auth_router.post("/", dependencies=[Depends(track_audit_event)])
 async def login(
     request: Request,
     form: Annotated[OAuth2Form, Depends()],
