@@ -407,6 +407,16 @@ services:
       migrations:
         condition: service_completed_successfully
 
+  syslog:
+    image: balabit/syslog-ng:latest
+    container_name: syslog-server      
+    volumes:
+      - ./syslog:/var/log
+      - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
+    privileged: true
+    restart: always
+
+  
 
 volumes:
   postgres:
