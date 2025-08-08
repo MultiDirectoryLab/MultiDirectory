@@ -57,6 +57,7 @@ from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
+from ldap_protocol.session_storage.repository import SessionRepository
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -215,6 +216,7 @@ class MainProvider(Provider):
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
+    session_repository = provide(SessionRepository)
 
 
 class LDAPContextProvider(Provider):
