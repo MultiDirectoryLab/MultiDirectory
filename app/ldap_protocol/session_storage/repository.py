@@ -7,7 +7,7 @@ from typing import Literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.utils.queries import set_last_logon_user
+from ldap_protocol.utils.queries import get_user, set_last_logon_user
 from models import User
 
 from .redis import SessionStorage
@@ -87,3 +87,41 @@ class SessionRepository:
 
         await set_last_logon_user(user, self.session, self.settings.TIMEZONE)
         return key
+
+    async def get_user_sessions(
+        self,
+        upn: str,
+    ) -> dict[str, SessionContentDTO]:
+        """Get user sessions by user ID.
+
+        :param int user_id: user id
+        :return dict[str, SessionContentDTO]: user sessions
+        """
+        user = await get_user(self.session, upn)
+
+        if not user:
+            raise KeyError("User not found.")
+
+        sessions = await self.storage.get_user_sessions(user.id)
+
+        return {k: SessionContentDTO(**v) for k, v in sessions.items()}
+
+    async def clear_user_sessions(self, upn: str) -> None:
+        """Clear user sessions by user ID.
+
+        :param str upn: user principal name
+        :raises KeyError: if user not found
+        """
+        user = await get_user(self.session, upn)
+
+        if not user:
+            raise KeyError("User not found.")
+
+        await self.storage.clear_user_sessions(user.id)
+
+    async def delete_session(self, session_id: str) -> None:
+        """Delete user session by session ID.
+
+        :param str session_id: session id
+        """
+        await self.storage.delete_user_session(session_id)
