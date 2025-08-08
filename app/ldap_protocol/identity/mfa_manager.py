@@ -142,7 +142,7 @@ class MFAManager(SessionKeyCreatorMixin):
         mfa_creds: MFA_HTTP_Creds,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[str, str]:
+    ) -> str:
         """Process MFA callback and return session key.
 
         :param access_token: str
@@ -171,7 +171,7 @@ class MFAManager(SessionKeyCreatorMixin):
         if user_id is None or not user:
             raise MFATokenError()
 
-        key = await self.create_session_key(
+        return await self.create_session_key(
             user,
             self._storage,
             self._settings,
@@ -179,8 +179,6 @@ class MFAManager(SessionKeyCreatorMixin):
             user_agent,
             self._session,
         )
-
-        return key, user.user_principal_name
 
     async def two_factor_protocol(
         self,
