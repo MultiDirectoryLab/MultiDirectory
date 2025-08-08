@@ -71,6 +71,10 @@ from ldap_protocol.policies.audit.events.managers import (
     NormalizedAuditManager,
     RawAuditManager,
 )
+from ldap_protocol.policies.audit.events.sender import (
+    AuditEventSenderManager,
+    AuditLogger,
+)
 from ldap_protocol.policies.audit.monitor import (
     AuditMonitor,
     AuditMonitorUseCase,
@@ -87,7 +91,6 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
-AuditLogger = NewType("AuditLogger", logging.Logger)
 
 
 class MainProvider(Provider):
@@ -458,6 +461,11 @@ class EventSenderProvider(Provider):
         audit_logger.addHandler(handler)
         audit_logger.propagate = False
         return AuditLogger(audit_logger)
+
+    audit_sender_manager = provide(
+        AuditEventSenderManager,
+        scope=Scope.REQUEST,
+    )
 
 
 class MFAProvider(Provider):

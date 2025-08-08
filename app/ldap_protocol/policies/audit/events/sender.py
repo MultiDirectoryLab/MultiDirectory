@@ -5,13 +5,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
+from typing import NewType
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ioc import AuditLogger
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.dataclasses import AuditDestinationDTO
 
@@ -20,6 +21,7 @@ from .managers import NormalizedAuditManager
 from .service_senders import senders
 
 MAX_RETRY_COUNT = 3
+AuditLogger = NewType("AuditLogger", logging.Logger)
 
 
 class AuditEventSenderManager:
