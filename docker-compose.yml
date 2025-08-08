@@ -30,6 +30,8 @@ services:
       target: runtime
     image: multidirectory
     restart: unless-stopped
+    environment:
+      - SERVICE_NAME=ldap_server
     # container_name: multidirectory
     volumes:
       - ./app:/app
@@ -86,6 +88,8 @@ services:
     env_file:
       local.env
     command: python multidirectory.py --http
+    environment:
+      - SERVICE_NAME=multidirectory_api
     tty: true
     labels:
       - "traefik.enable=true"
@@ -307,6 +311,8 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+    environment:
+      - SERVICE_NAME=shadow_api
     volumes:
       - ./app:/app
       - ./certs:/certs
@@ -421,6 +427,8 @@ services:
     env_file:
       local.env
     command: python multidirectory.py --event_sender
+    environment:
+      HANDLER_NAME: event_sender-1
 
   syslog:
     image: balabit/syslog-ng:latest
@@ -430,7 +438,6 @@ services:
       - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
     privileged: true
     restart: always
-
 
 
 volumes:
