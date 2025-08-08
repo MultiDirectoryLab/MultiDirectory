@@ -8,7 +8,6 @@ import asyncio
 import socket
 import uuid
 from copy import deepcopy
-from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 
@@ -182,15 +181,7 @@ class SyslogSender(AuditDestinationSenderABC):
 
     async def send(self, event: NormalizedAuditEvent) -> None:
         """Send event."""
-        structured_data = deepcopy(asdict(event))
-
-        del structured_data["severity"]
-        del structured_data["id"]
-        del structured_data["delivery_status"]
-        del structured_data["first_failed_at"]
-        del structured_data["retry_count"]
-        del structured_data["is_operation_success"]
-        del structured_data["timestamp"]
+        structured_data = deepcopy(event.destination_dict)
 
         syslog_message = self.generate_rfc5424_message(
             event=event,
