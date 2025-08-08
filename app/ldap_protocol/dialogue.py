@@ -182,11 +182,11 @@ class LDAPSession:
 
     async def disconnect(self) -> None:
         """Disconnect session."""
-        if self.event_task_group is not None:
-            await self._task_group_cm.__aexit__(None, None, None)
         if self.storage is None or self.user is None:
             return
         await self.storage.delete_user_session(self.key)
+        if self.event_task_group is not None:
+            await self._task_group_cm.__aexit__(None, None, None)
 
     async def ensure_session_exists(self) -> NoReturn:
         """Ensure session exists in storage.
