@@ -185,7 +185,11 @@ class NormalizedAuditEvent(AuditEvent):
     is_operation_success: bool
     details: dict[str, Any]
     service_name: str | None = None
+
     id: str | None = None
+    first_failed_at: datetime | None = None
+    retry_count: int = 0
+    server_delivery_status: dict[int, bool] = field(default_factory=dict)
 
     @property
     def syslog_message(self) -> str:
