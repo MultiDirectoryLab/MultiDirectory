@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from enums import MFAFlags
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.objects import OperationEvent
+from ldap_protocol.policies.audit.monitor import AuditMonitor
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
@@ -35,6 +37,10 @@ class AuthenticationError(Exception):
 class PasswordPolicyError(Exception):
     """Exception raised for password policy validation errors."""
 
+    def __init__(self, errors: list[str]) -> None:
+        """Initialize PasswordPolicyError with validation errors."""
+        self.errors = errors
+
 
 class ShadowManager:
     """ShadowManager for managing shadow accounts."""
@@ -43,10 +49,65 @@ class ShadowManager:
         self,
         session: AsyncSession,
         mfa_api: LDAPMultiFactorAPI,
+        monitor: AuditMonitor,
     ) -> None:
         """Initialize ShadowManager with an SQLAlchemy session."""
         self._session = session
         self._mfa_api = mfa_api
+        self._monitor = monitor
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept attribute access to add session management."""
+        attr = super().__getattribute__(name)
+
+        if name == "proxy_request":
+
+            async def wrapped_proxy_request(
+                principal: str,
+                ip: IPv4Address,
+            ) -> None:
+                """Wrap the proxy_request method to manage session."""
+                self._monitor.event_type = OperationEvent.KERBEROS_AUTH
+                self._monitor.username = principal
+                self._monitor.ip = ip
+                try:
+                    return await attr(principal, ip)
+                except (
+                    UserNotFoundError,
+                    NetworkPolicyNotFoundError,
+                    AuthenticationError,
+                ) as exc:
+                    self._monitor.set_error_message(exc)
+                    raise exc
+                finally:
+                    await self._monitor.track_audit_event()
+
+            return wrapped_proxy_request
+
+        elif name == "change_password":
+
+            async def wrapped_change_password(
+                principal: str,
+                new_password: str,
+            ) -> None:
+                """Wrap the change_password method to manage session."""
+                self._monitor.event_type = (
+                    OperationEvent.CHANGE_PASSWORD_KERBEROS
+                )
+                self._monitor.username = principal
+                try:
+                    return await attr(principal, new_password)
+                except (
+                    UserNotFoundError,
+                    PasswordPolicyError,
+                ) as exc:
+                    self._monitor.set_error_message(exc)
+                    raise exc
+                finally:
+                    await self._monitor.track_audit_event()
+
+            return wrapped_change_password
+        return attr
 
     async def proxy_request(self, principal: str, ip: IPv4Address) -> None:
         """Proxy a request to the shadow account.
@@ -139,9 +200,7 @@ class ShadowManager:
         errors = await policy.validate_password_with_policy(new_password, user)
 
         if errors:
-            raise PasswordPolicyError(
-                f"Password policy validation failed: {', '.join(errors)}",
-            )
+            raise PasswordPolicyError(errors)
 
         user.password = get_password_hash(new_password)
         await post_save_password_actions(user, self._session)
