@@ -11,8 +11,6 @@ from models import Attribute, CatalogueSetting, Directory
 
 from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 
-USERS_ORG_UNIT_PATH = ["ou=users"]
-
 
 def logger_wraps(is_stub: bool = False) -> Callable:
     """Log kadmin calls.
@@ -98,10 +96,7 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     """
     subquery = (
         select(Directory.id)
-        .where(
-            Directory.name.ilike(name),
-            Directory.path.contains(USERS_ORG_UNIT_PATH),
-        )
+        .where(Directory.name.ilike(name))
         .scalar_subquery()
     )
     await session.execute(
