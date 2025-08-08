@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, AsyncIterator, NoReturn
 
 import gssapi
 from anyio import create_task_group
+from anyio.abc import TaskGroup
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.policies.network_policy import build_policy_query
@@ -77,6 +78,8 @@ class LDAPSession:
     gssapi_authenticated: bool = False
     gssapi_security_context: gssapi.SecurityContext | None = None
     gssapi_security_layer: GSSAPISL
+
+    event_task_group: TaskGroup = None  # type: ignore[assignment]
 
     def __init__(
         self,
