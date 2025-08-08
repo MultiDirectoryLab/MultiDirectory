@@ -30,10 +30,7 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.monitor import (
-    AuditMonitor,
-    AuditMonitorUseCase,
-)
+from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -54,7 +51,7 @@ from models import Directory, Group, User
 from security import get_password_hash
 
 
-class IdentityManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
+class IdentityManager(SessionKeyCreatorMixin):
     """Authentication manager."""
 
     def __init__(
@@ -66,7 +63,7 @@ class IdentityManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
         entity_type_dao: EntityTypeDAO,
         role_use_case: RoleUseCase,
         audit_use_case: AuditUseCase,
-        monitor: AuditMonitor,
+        monitor: AuditMonitorUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -77,7 +74,6 @@ class IdentityManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
         :param entity_type_dao: EntityTypeDAO
         :param role_use_case: RoleUseCase
         """
-        super().__init__(monitor)
         self._session = session
         self._settings = settings
         self._mfa_api = mfa_api
@@ -87,6 +83,20 @@ class IdentityManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
         self.key_ttl = self._storage.key_ttl
         self._audit_use_case = audit_use_case
         self._monitor = monitor
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept attribute access."""
+        attr = super().__getattribute__(name)
+        if not callable(attr):
+            return attr
+
+        if name == "login":
+            return self._monitor.wrap_login(attr)
+        elif name == "reset_password":
+            return self._monitor.wrap_reset_password(attr)
+        elif name == "change_password":
+            return self._monitor.wrap_change_password(attr)
+        return attr
 
     async def login(
         self,

@@ -80,7 +80,10 @@ from ldap_protocol.policies.audit.events.managers import (
     NormalizedAuditManager,
     RawAuditManager,
 )
-from ldap_protocol.policies.audit.monitor import AuditMonitor
+from ldap_protocol.policies.audit.monitor import (
+    AuditMonitor,
+    AuditMonitorUseCase,
+)
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
@@ -292,6 +295,8 @@ class TestProvider(Provider):
         await session.start()
         yield session
         await session.disconnect()
+
+    monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST, provides=MultifactorAPI)
     async def get_mfa_api(self) -> Mock:

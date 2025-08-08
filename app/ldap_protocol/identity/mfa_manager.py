@@ -41,16 +41,13 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from ldap_protocol.policies.audit.monitor import (
-    AuditMonitor,
-    AuditMonitorUseCase,
-)
+from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User
 
 
-class MFAManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
+class MFAManager(SessionKeyCreatorMixin):
     """MFA manager."""
 
     def __init__(
@@ -59,7 +56,7 @@ class MFAManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
-        monitor: AuditMonitor,
+        monitor: AuditMonitorUseCase,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -68,12 +65,24 @@ class MFAManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
         :param storage: SessionStorage
         :param mfa_api: MultifactorAPI
         """
-        super().__init__(monitor)
+        self._monitor = monitor
         self._session = session
         self._settings = settings
         self._storage = storage
         self._mfa_api = mfa_api
         self.key_ttl = self._storage.key_ttl
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept attribute access."""
+        attr = super().__getattribute__(name)
+        if not callable(attr):
+            return attr
+
+        if name == "callback_mfa":
+            return self._monitor.wrap_callback_mfa(attr)
+        elif name == "proxy_request":
+            return self._monitor.wrap_proxy_request(attr)
+        return attr
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
