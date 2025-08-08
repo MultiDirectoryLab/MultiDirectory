@@ -191,8 +191,7 @@ class MFAManager:
         :param form: OAuth2Form
         :param url: URL for MFA callback
         :param ip: IP address
-        :return:
-            tuple[MFAChallengeResponse, str | None] (session key | None)
+        :return: MFAChallengeResponse
         :raises MissingMFACredentialsError: if MFA is not initialized
         :raises InvalidCredentialsError: if credentials are invalid
         :raises NetworkPolicyError: if network policy is not passed
