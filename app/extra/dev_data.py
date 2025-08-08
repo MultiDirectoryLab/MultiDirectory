@@ -265,7 +265,9 @@ TEST_DATA = [
                     "mail": "user0@mail.com",
                     "display_name": "user0",
                     "password": "password",
-                    "groups": ["domain admins"],
+                    "groups": [
+                        "domain admins",
+                    ],
                 },
                 "attributes": {
                     "objectClass": [
@@ -280,6 +282,33 @@ TEST_DATA = [
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["512"],
                     "description": ["123 desc"],
+                },
+            },
+            {
+                "name": "user_admin",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_accout_name": "user_admin",
+                    "user_principal_name": "user_admin",
+                    "mail": "user_admin@mail.com",
+                    "display_name": "user_admin",
+                    "password": "password",
+                    "groups": [
+                        "domain admins",
+                    ],
+                },
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "inetOrgPerson",
+                        "shadowAccount",
+                    ],
+                    "posixEmail": ["abctest@mail.com"],
+                    "attr_with_bvalue": [b"any"],
+                    "userAccountControl": ["512"],
                 },
             },
             {

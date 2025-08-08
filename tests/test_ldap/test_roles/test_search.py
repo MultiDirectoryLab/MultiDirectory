@@ -194,6 +194,7 @@ async def test_role_search_5(
         expected_dn=[
             "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            "dn: cn=user_admin,ou=users,dc=md,dc=test",
             "dn: cn=user0,ou=users,dc=md,dc=test",
         ],
         expected_attrs_present=[

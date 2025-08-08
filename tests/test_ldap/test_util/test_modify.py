@@ -9,13 +9,17 @@ import tempfile
 from collections import defaultdict
 
 import pytest
+from fastapi import status
+from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
 from enums import AceType, RoleScope
+from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.objects import Operation
 from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
@@ -130,7 +134,7 @@ async def test_ldap_membersip_user_delete(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user_admin,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(Directory.groups))
@@ -142,7 +146,7 @@ async def test_ldap_membersip_user_delete(
     assert directory.groups
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write((f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n-\n"))
+        file.write(f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n-\n")
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapmodify",
@@ -167,6 +171,106 @@ async def test_ldap_membersip_user_delete(
     session.expire_all()
     directory = (await session.scalars(query)).one()
     assert not directory.groups
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_membersip_self_delete_admin_domain(
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
+) -> None:
+    """Test ldapmodify on server."""
+    dn = "cn=user0,ou=users,dc=md,dc=test"
+    query = (
+        select(Directory)
+        .options(selectinload(Directory.groups))
+        .filter(Directory.path == get_search_path(dn))
+    )
+
+    directory = (await session.scalars(query)).one()
+
+    assert directory.groups
+
+    with tempfile.NamedTemporaryFile("w") as file:
+        file.write(
+            f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n"
+            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n",
+        )
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            "ldapmodify",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_accout_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        result = await proc.wait()
+
+    assert result == 1
+
+    session.expire_all()
+    directory = (await session.scalars(query)).one()
+    assert len(directory.groups) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_self_disable(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
+    response = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await http_client.patch(
+        "entry/update",
+        json={
+            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userAccountControl",
+                        "vals": ["514"],
+                    },
+                },
+            ],
+        },
+    )
+
+    kadmin.lock_principal.assert_not_called()  # type: ignore
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR
+
+    response = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -235,7 +339,7 @@ async def test_ldap_membersip_user_replace(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user_admin,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(Directory.groups))

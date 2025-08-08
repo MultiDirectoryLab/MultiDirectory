@@ -322,7 +322,7 @@ async def test_auth_disabled_user(
     response = await http_client.patch(
         "entry/update",
         json={
-            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "object": "cn=user_admin,ou=users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -344,7 +344,7 @@ async def test_auth_disabled_user(
     response = await http_client.post(
         "auth/",
         data={
-            "username": "user0",
+            "username": "user_admin",
             "password": "password",
         },
     )

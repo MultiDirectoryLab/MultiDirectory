@@ -7,10 +7,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import defaultload
+from sqlalchemy.orm import defaultload, selectinload
 
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
@@ -25,10 +26,16 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory
+from models import Directory, Group
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
+
+DOMAIN_ADMIN_NAME = "domain admins"
+
+
+class DeleteForbiddenError(Exception):
+    """Delete request is not allowed."""
 
 
 class DeleteRequest(BaseRequest):
@@ -69,6 +76,7 @@ class DeleteRequest(BaseRequest):
             .options(
                 defaultload(Directory.user),
                 defaultload(Directory.attributes),
+                selectinload(Directory.groups).joinedload(Group.directory),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -90,12 +98,12 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        can_delete = ctx.access_manager.check_entity_level_access(
+        has_access_to_delete = ctx.access_manager.check_entity_level_access(
             aces=directory.access_control_entries,
             entity_type_id=directory.entity_type_id,
         )
 
-        if not can_delete:
+        if not has_access_to_delete:
             yield DeleteResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
@@ -108,6 +116,7 @@ class DeleteRequest(BaseRequest):
 
         try:
             if directory.user:
+                await self._can_delete(directory, ctx.ldap_session.user)
                 await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
                 await ctx.session_storage.clear_user_sessions(
                     directory.user.id,
@@ -124,8 +133,25 @@ class DeleteRequest(BaseRequest):
                 errorMessage="KerberosError",
             )
             return
+        except DeleteForbiddenError as err:
+            yield DeleteResponse(
+                result_code=LDAPCodes.OPERATIONS_ERROR,
+                error_message=str(err),
+            )
+            return
 
         await ctx.session.execute(delete(Directory).filter_by(id=directory.id))
         await ctx.session.commit()
 
         yield DeleteResponse(result_code=LDAPCodes.SUCCESS)
+
+    async def _can_delete(
+        self,
+        directory: Directory,
+        user: UserSchema,
+    ) -> None:
+        """Check if the request can delete entry."""
+        if directory.path_dn == user.dn:
+            raise DeleteForbiddenError(
+                "Нельзя удалить собственную учетную запись.",
+            )
