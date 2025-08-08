@@ -449,13 +449,14 @@ class EventSenderProvider(Provider):
     @provide()
     def setup_audit_logging(self, settings: Settings) -> AuditLogger:
         """Create audit logger.."""
-        audit_logger = logger.bind(audit=True)
+        audit_logger = logger.bind(name="audit")
         audit_logger.remove()
         audit_logger.add(
             settings.AUDIT_LOG_FILE,
             rotation="10 MB",
             retention=5,
             format="{message}",
+            filter=lambda record: record["extra"].get("name") == "audit",
             level="CRITICAL",
             enqueue=True,
         )
