@@ -13,7 +13,6 @@ from fastapi import Depends, Form, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from api.audit_dependency import track_audit_event
 from api.auth import get_current_user
 from api.auth.adapters import MFAFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
@@ -82,10 +81,8 @@ async def get_mfa(
     "/create",
     name="callback_mfa",
     include_in_schema=True,
-    dependencies=[Depends(track_audit_event)],
 )
 async def callback_mfa(
-    request: Request,
     access_token: Annotated[
         str,
         Form(alias="accessToken", validation_alias="accessToken"),
@@ -107,7 +104,6 @@ async def callback_mfa(
     :return RedirectResponse: on bypass or success
     """
     return await mfa_manager.callback_mfa(
-        request,
         access_token,
         mfa_creds,
         ip,
