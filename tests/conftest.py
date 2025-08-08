@@ -91,7 +91,6 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from ldap_protocol.shadow_manager import ShadowManager
 from ldap_protocol.utils.queries import get_user
 from models import AttributeType
 
@@ -451,10 +450,6 @@ class TestProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
         )
 
-    shadow_manager = provide(
-        ShadowManager,
-        scope=Scope.REQUEST,
-    )
     shadow_adapter = provide(
         ShadowAdapter,
         scope=Scope.REQUEST,
