@@ -6,20 +6,20 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abc import ABC, abstractmethod
 
+from ldap_protocol.policies.audit.dataclasses import AuditDestinationDTO
 from ldap_protocol.policies.audit.enums import AuditDestinationServiceType
 from ldap_protocol.policies.audit.events.dataclasses import (
     NormalizedAuditEvent,
 )
-from models import AuditDestination
 
 
 class AuditDestinationSenderABC(ABC):
     """Senders abstract base class."""
 
-    _destination: AuditDestination
+    _destination: AuditDestinationDTO
     DEFAULT_APP_NAME: str = "MultiDirectory"
 
-    def __init__(self, destination: AuditDestination) -> None:
+    def __init__(self, destination: AuditDestinationDTO) -> None:
         """Initialize SendersABC."""
         self._destination = destination
 
