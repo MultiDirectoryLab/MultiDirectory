@@ -29,7 +29,7 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from multidirectory import _create_basic_app
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -80,6 +80,7 @@ from ldap_protocol.policies.audit.events.managers import (
     NormalizedAuditManager,
     RawAuditManager,
 )
+from ldap_protocol.policies.audit.monitor import AuditMonitor
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
@@ -451,6 +452,8 @@ class TestProvider(Provider):
         ShadowAdapter,
         scope=Scope.REQUEST,
     )
+    request = from_context(provides=Request, scope=Scope.REQUEST)
+    audit_monitor = provide(AuditMonitor, scope=Scope.REQUEST)
 
     add_request_context = provide(
         LDAPAddRequestContext,
