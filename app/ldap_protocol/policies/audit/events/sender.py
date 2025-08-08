@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 
 from loguru import logger
@@ -126,7 +125,7 @@ class AuditEventSenderManager:
             if time_passed > timedelta(
                 minutes=self._settings.AUDIT_THIRD_RETRY_TIME,
             ) and (event.retry_count > MAX_RETRY_COUNT):
-                self._audit_logger.info(f"{event.id} {asdict(event)}")
+                self._audit_logger.info(f"{event.id} {event.destination_dict}")
                 to_delete = True
 
         if event.delivery_status and all(
