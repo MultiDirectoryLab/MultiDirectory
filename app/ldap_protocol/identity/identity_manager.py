@@ -28,7 +28,9 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.monitor import AuditMonitor
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -63,6 +65,7 @@ class IdentityManager:
         role_use_case: RoleUseCase,
         repository: SessionRepository,
         audit_use_case: AuditUseCase,
+        monitor: AuditMonitor,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -82,6 +85,74 @@ class IdentityManager:
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
         self._audit_use_case = audit_use_case
+        self._monitor = monitor
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept method calls to wrap login and reset_password."""
+        if name not in {"login", "reset_password"}:
+            return super().__getattribute__(name)
+
+        attr = super().__getattribute__(name)
+
+        if not callable(attr):
+            return attr
+
+        if name == "login":
+
+            async def wrapped_login(
+                form: OAuth2Form,
+                ip: IPv4Address | IPv6Address,
+                user_agent: str,
+            ) -> object:
+                self._monitor.event_type = OperationEvent.BIND
+                self._monitor.username = form.username
+                self._monitor._ip = ip  # noqa
+                self._monitor._user_agent = user_agent  # noqa
+                try:
+                    return await attr(
+                        form=form,
+                        ip=ip,
+                        user_agent=user_agent,
+                    )
+                except (UnauthorizedError, LoginFailedError) as exc:
+                    self._monitor.set_error_message(exc)
+                    raise exc
+                except MFARequiredError as exc:
+                    self._monitor.is_proc_enabled = False
+                    raise exc
+                finally:
+                    await self._monitor.track_audit_event()
+
+            return wrapped_login
+
+        else:
+
+            async def wrapped_reset_password(
+                identity: str,
+                new_password: str,
+                kadmin: AbstractKadmin,
+            ) -> None:
+                self._monitor.event_type = OperationEvent.CHANGE_PASSWORD
+                self._monitor.target = identity
+                await self._monitor.set_username()
+                try:
+                    return await attr(
+                        identity=identity,
+                        new_password=new_password,
+                        kadmin=kadmin,
+                    )
+                except (
+                    UserNotFoundError,
+                    PasswordPolicyError,
+                    KRBAPIError,
+                ) as exc:
+                    self._monitor.set_error_message(exc)
+                    raise exc
+
+                finally:
+                    await self._monitor.track_audit_event()
+
+            return wrapped_reset_password
 
     async def login(
         self,

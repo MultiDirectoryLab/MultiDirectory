@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from fastapi import HTTPException, Request, Response, status
+from fastapi import HTTPException, Response, status
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.auth.schema import OAuth2Form, SetupRequest
@@ -18,10 +18,8 @@ from api.exceptions.auth import (
     UserNotFoundError,
 )
 from api.exceptions.mfa import MFARequiredError
-from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityManager
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
-from ldap_protocol.objects import OperationEvent
 
 
 class IdentityFastAPIAdapter(ResponseCookieMixin):
@@ -36,12 +34,10 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
 
     async def login(
         self,
-        request: Request,
         form: OAuth2Form,
         response: Response,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-        event_type: OperationEvent = OperationEvent.BIND,
     ) -> None:
         """Log in a user and set session cookies.
 
@@ -55,8 +51,6 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 426 if MFA is required
         :return: None
         """
-        request.state.event_type = event_type
-        request.state.username = form.username
         try:
             key = await self._manager.login(
                 form=form,
@@ -86,12 +80,9 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
 
     async def reset_password(
         self,
-        request: Request,
         identity: str,
         new_password: str,
         kadmin: AbstractKadmin,
-        current_user: UserSchema,
-        event_type: OperationEvent = OperationEvent.CHANGE_PASSWORD,
     ) -> None:
         """Reset a user's password and update Kerberos principal.
 
@@ -104,9 +95,6 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 424 if Kerberos password update failed
         :return: None
         """
-        request.state.event_type = event_type
-        request.state.current_user = current_user
-        request.state.identity = identity
         try:
             await self._manager.reset_password(identity, new_password, kadmin)
         except PasswordPolicyError as exc:
