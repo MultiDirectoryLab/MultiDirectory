@@ -217,7 +217,7 @@ class MainProvider(Provider):
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
-    session_repository = provide(SessionRepository)
+    session_repository = provide(SessionRepository, scope=Scope.REQUEST)
 
 
 class LDAPContextProvider(Provider):
