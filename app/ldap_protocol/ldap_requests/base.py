@@ -114,7 +114,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         audit_use_case = await container.get(AuditUseCase)
 
         un = getattr(ldap_session.user, "user_principal_name", "ANONYMOUS")
-        ip = ldap_session.ip
+
         if settings.DEBUG:
             log_api.info(f"{get_class_name(self)}: {self.model_dump_json()}")
         else:
@@ -140,7 +140,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
                 request=self,
                 responses=responses,
                 username=un,
-                ip=ip,
+                ip=ldap_session.ip,
                 protocol="API_LDAP",
                 settings=settings,
                 context=self.get_event_data(),
