@@ -24,7 +24,6 @@ from config import Settings
 from enums import MFAFlags
 from extra.dev_data import ENTITY_TYPE_DATAS
 from extra.setup_dev import setup_enviroment
-from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -39,6 +38,7 @@ from ldap_protocol.policies.password_policy import (
 )
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -49,7 +49,7 @@ from models import Directory, Group, User
 from security import get_password_hash
 
 
-class IdentityManager(SessionKeyCreatorMixin):
+class IdentityManager:
     """Authentication manager."""
 
     def __init__(
@@ -60,6 +60,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
         role_use_case: RoleUseCase,
+        repository: SessionRepository,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -77,6 +78,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         self._entity_type_dao = entity_type_dao
         self._role_use_case = role_use_case
         self.key_ttl = self._storage.key_ttl
+        self._repository = repository
 
     async def login(
         self,
@@ -148,13 +150,11 @@ class IdentityManager(SessionKeyCreatorMixin):
             if request_2fa:
                 raise MFARequiredError("Requires MFA connect")
 
-        return await self.create_session_key(
+        return await self._repository.create_session_key(
             user,
-            self._storage,
-            self._settings,
             ip,
             user_agent,
-            self._session,
+            self.key_ttl,
         )
 
     async def reset_password(

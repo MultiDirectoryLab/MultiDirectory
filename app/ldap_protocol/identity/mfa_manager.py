@@ -31,7 +31,6 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
-from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.multifactor import (
     Creds,
@@ -41,10 +40,11 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.session_storage.repository import SessionRepository
 from models import CatalogueSetting, User
 
 
-class MFAManager(SessionKeyCreatorMixin):
+class MFAManager:
     """MFA manager."""
 
     def __init__(
@@ -53,6 +53,7 @@ class MFAManager(SessionKeyCreatorMixin):
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
+        repository: SessionRepository,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -66,6 +67,7 @@ class MFAManager(SessionKeyCreatorMixin):
         self._storage = storage
         self._mfa_api = mfa_api
         self.key_ttl = self._storage.key_ttl
+        self._repository = repository
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -171,13 +173,11 @@ class MFAManager(SessionKeyCreatorMixin):
         if user_id is None or not user:
             raise MFATokenError()
 
-        return await self.create_session_key(
+        return await self._repository.create_session_key(
             user,
-            self._storage,
-            self._settings,
             ip,
             user_agent,
-            self._session,
+            self.key_ttl,
         )
 
     async def two_factor_protocol(
