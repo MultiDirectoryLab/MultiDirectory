@@ -77,11 +77,7 @@ async def get_mfa(
     return await mfa_manager.get_mfa(mfa_creds, mfa_creds_ldap)
 
 
-@mfa_router.post(
-    "/create",
-    name="callback_mfa",
-    include_in_schema=True,
-)
+@mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
 async def callback_mfa(
     access_token: Annotated[
         str,
