@@ -69,6 +69,7 @@ from ldap_protocol.policies.audit.events.managers import (
     NormalizedAuditManager,
     RawAuditManager,
 )
+from ldap_protocol.policies.audit.monitor import AuditMonitor
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
@@ -344,6 +345,10 @@ class HTTPProvider(LDAPContextProvider):
         session.ip = ip
         return session
 
+    audit_monitor = provide(
+        AuditMonitor,
+        scope=Scope.REQUEST,
+    )
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
         scope=Scope.REQUEST,
