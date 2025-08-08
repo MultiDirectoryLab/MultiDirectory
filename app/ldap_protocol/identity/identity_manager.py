@@ -89,13 +89,7 @@ class IdentityManager:
 
     def __getattribute__(self, name: str) -> object:
         """Intercept method calls to wrap login and reset_password."""
-        if name not in {"login", "reset_password"}:
-            return super().__getattribute__(name)
-
         attr = super().__getattribute__(name)
-
-        if not callable(attr):
-            return attr
 
         if name == "login":
 
@@ -149,7 +143,7 @@ class IdentityManager:
 
             return wrapped_change_password
 
-        else:
+        elif name == "reset_password":
 
             async def wrapped_reset_password(
                 identity: str,
@@ -177,6 +171,8 @@ class IdentityManager:
                     await self._monitor.track_audit_event()
 
             return wrapped_reset_password
+
+        return attr
 
     async def login(
         self,
