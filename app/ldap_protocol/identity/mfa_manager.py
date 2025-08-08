@@ -199,11 +199,9 @@ class MFAManager:
         """
         key = await self._repository.create_session_key(
             user,
-            self._storage,
-            self._settings,
             ip,
             user_agent,
-            self._session,
+            self.key_ttl,
         )
         return (
             MFAChallengeResponse(status=status, message=message),
