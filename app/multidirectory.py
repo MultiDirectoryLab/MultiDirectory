@@ -261,11 +261,8 @@ async def event_sender_factory(settings: Settings) -> None:
     )
 
     async with main_container(scope=Scope.REQUEST) as container:
-        kwargs = await resolve_deps(
-            AuditEventSenderManager.__init__,
-            container=container,
-        )
-        await asyncio.gather(AuditEventSenderManager(**kwargs).run())
+        manager = await container.get(AuditEventSenderManager)
+        await asyncio.gather(manager.run())
 
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
