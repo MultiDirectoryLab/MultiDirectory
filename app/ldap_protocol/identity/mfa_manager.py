@@ -66,13 +66,13 @@ class MFAManager:
         :param storage: SessionStorage
         :param mfa_api: MultifactorAPI
         """
-        super().__init__(monitor)
         self._session = session
         self._settings = settings
         self._storage = storage
         self._mfa_api = mfa_api
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
+        self._monitor = monitor
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
