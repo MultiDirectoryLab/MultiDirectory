@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import logging
 from datetime import datetime, timedelta, timezone
 from typing import NewType
 
@@ -21,7 +20,7 @@ from .managers import NormalizedAuditManager
 from .service_senders import senders
 
 MAX_RETRY_COUNT = 3
-AuditLogger = NewType("AuditLogger", logging.Logger)
+AuditLogger = NewType("AuditLogger", type[logger])  # type: ignore
 
 
 class AuditEventSenderManager:
@@ -127,7 +126,9 @@ class AuditEventSenderManager:
             if time_passed > timedelta(
                 minutes=self._settings.AUDIT_THIRD_RETRY_TIME,
             ) and (event.retry_count > MAX_RETRY_COUNT):
-                self._audit_logger.info(f"{event.id} {event.destination_dict}")
+                self._audit_logger.critical(
+                    f"{event.id} {event.destination_dict}",
+                )
                 to_delete = True
 
         if event.delivery_status and all(

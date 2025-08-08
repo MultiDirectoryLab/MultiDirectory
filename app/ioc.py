@@ -4,14 +4,13 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import logging
-from logging.handlers import RotatingFileHandler
 from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
+from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -450,16 +449,16 @@ class EventSenderProvider(Provider):
     @provide()
     def setup_audit_logging(self, settings: Settings) -> AuditLogger:
         """Create audit logger.."""
-        audit_logger = logging.getLogger("audit")
-        audit_logger.setLevel(logging.INFO)
-        handler = RotatingFileHandler(
+        audit_logger = logger.bind(audit=True)
+        audit_logger.remove()
+        audit_logger.add(
             settings.AUDIT_LOG_FILE,
-            maxBytes=10 * 1024 * 1024,
-            backupCount=5,
+            rotation="10 MB",
+            retention=5,
+            format="{message}",
+            level="CRITICAL",
+            enqueue=True,
         )
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        audit_logger.addHandler(handler)
-        audit_logger.propagate = False
         return AuditLogger(audit_logger)
 
     audit_sender_manager = provide(
