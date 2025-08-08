@@ -104,8 +104,8 @@ class IdentityManager(SessionKeyCreatorMixin):
             ) -> object:
                 self._monitor.event_type = OperationEvent.BIND
                 self._monitor.username = form.username
-                self._monitor._ip = ip  # noqa
-                self._monitor._user_agent = user_agent  # noqa
+                self._monitor.ip = ip
+                self._monitor.user_agent = user_agent
                 try:
                     return await attr(
                         form=form,

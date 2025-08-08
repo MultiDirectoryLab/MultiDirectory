@@ -29,8 +29,8 @@ class AuditMonitor:
     target: str | None = None
     error_message: str | None = None
     is_success_operation: bool = True
-    _ip: IPv4Address | IPv6Address | None = None
-    _user_agent: str | None = None
+    ip: IPv4Address | IPv6Address | None = None
+    user_agent: str | None = None
     is_proc_enabled: bool | None = None
 
     def __init__(
@@ -55,8 +55,8 @@ class AuditMonitor:
         user_id = await self._session_storage.get_user_id(
             self._settings,
             session_key,
-            self.user_agent,
-            str(self.ip),
+            self.get_user_agent(),
+            str(self.get_ip()),
         )
 
         user = await self._session.scalar(
@@ -68,19 +68,17 @@ class AuditMonitor:
 
         self.username = user.user_principal_name or user.sam_accout_name
 
-    @property
-    def ip(self) -> IPv4Address | IPv6Address:
+    def get_ip(self) -> IPv4Address | IPv6Address:
         """Get the IP address from the request."""
-        if self._ip is None:
-            self._ip = get_ip_from_request(self._request)
-        return self._ip
+        if self.ip is None:
+            self.ip = get_ip_from_request(self._request)
+        return self.ip
 
-    @property
-    def user_agent(self) -> str:
+    def get_user_agent(self) -> str:
         """Get the User-Agent from the request."""
-        if self._user_agent is None:
-            self._user_agent = get_user_agent_from_request(self._request)
-        return self._user_agent
+        if self.user_agent is None:
+            self.user_agent = get_user_agent_from_request(self._request)
+        return self.user_agent
 
     async def get_proc_enabled(self) -> bool:
         """Check if the event needs to be processed."""
@@ -96,7 +94,7 @@ class AuditMonitor:
 
     def generate_details(self) -> dict[str, dict[str, str]]:
         """Generate details for the audit event."""
-        details = {}
+        details = {"user_agent": self.get_user_agent()}
 
         if self.target:
             details["target"] = self.target
@@ -116,12 +114,12 @@ class AuditMonitor:
         if not await self.get_proc_enabled():
             return
 
-        if not self.username:
+        if self.username is None:
             raise ValueError("Username is not set")
 
         details = self.generate_details()
         event = RawAuditEventBuilderRedis.from_http_request(
-            self.ip,
+            self.get_ip(),
             event_type=self.event_type,
             username=self.username,
             is_success_request=self.is_success_operation,
