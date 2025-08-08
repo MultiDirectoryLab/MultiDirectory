@@ -91,7 +91,7 @@ class AuditEventNormalizer:
             last_response = self.event_data.responses[-1]
             return {
                 "error_code": last_response["result_code"],
-                "error_message": last_response["message"],
+                "error_message": last_response["error_message"],
             }
         return {}
 
