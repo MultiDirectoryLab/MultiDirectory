@@ -77,7 +77,6 @@ from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from ldap_protocol.shadow_manager import ShadowManager
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -355,10 +354,6 @@ class HTTPProvider(LDAPContextProvider):
     )
     identity_manager = provide(
         IdentityManager,
-        scope=Scope.REQUEST,
-    )
-    shadow_manager = provide(
-        ShadowManager,
         scope=Scope.REQUEST,
     )
     shadow_adapter = provide(
