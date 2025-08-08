@@ -163,25 +163,7 @@ class AuditMonitorUseCase:
         """Initialize the use case with a monitor."""
         self._monitor = monitor
 
-    def __getattribute__(self, name: str) -> object:
-        """Intercept attribute access to add session management."""
-        attr = super().__getattribute__(name)
-        if not callable(attr):
-            return attr
-
-        if name == "callback_mfa":
-            return self._wrap_callback_mfa(attr)
-        elif name == "proxy_request":
-            return self._wrap_proxy_request(attr)
-        elif name == "login":
-            return self._wrap_login(attr)
-        elif name == "change_password":
-            return self._wrap_change_password(attr)
-        elif name == "reset_password":
-            return self._wrap_reset_password(attr)
-        return attr
-
-    def _wrap_callback_mfa(
+    def wrap_callback_mfa(
         self,
         attr: _T,
     ) -> _T:
@@ -213,7 +195,7 @@ class AuditMonitorUseCase:
 
         return wrapped_callback_mfa  # type: ignore
 
-    def _wrap_proxy_request(self, attr: _T) -> _T:
+    def wrap_proxy_request(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_proxy_request(
             principal: str,
@@ -237,7 +219,7 @@ class AuditMonitorUseCase:
 
         return wrapped_proxy_request  # type: ignore
 
-    def _wrap_login(self, attr: _T) -> _T:
+    def wrap_login(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_login(
             form: OAuth2Form,
@@ -265,7 +247,7 @@ class AuditMonitorUseCase:
 
         return wrapped_login  # type: ignore
 
-    def _wrap_change_password(self, attr: _T) -> _T:
+    def wrap_change_password(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_change_password(
             principal: str,
@@ -287,7 +269,7 @@ class AuditMonitorUseCase:
 
         return wrapped_change_password  # type: ignore
 
-    def _wrap_reset_password(self, attr: _T) -> _T:
+    def wrap_reset_password(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_reset_password(
             identity: str,
