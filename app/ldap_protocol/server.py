@@ -120,6 +120,8 @@ class PoolClientHandler:
 
                 with suppress(RuntimeError):
                     await ldap_session.queue.join()
+
+                with suppress(RuntimeError):
                     writer.close()
                     await writer.wait_closed()
 
