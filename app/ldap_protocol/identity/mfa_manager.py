@@ -23,6 +23,7 @@ from api.auth.schema import (
     OAuth2Form,
 )
 from api.exceptions.mfa import (
+    AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
     MFAError,
@@ -31,8 +32,9 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
+from enums import MFAFlags
 from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
-from ldap_protocol.identity.utils import authenticate_user
+from ldap_protocol.identity.utils import authenticate_user, get_user
 from ldap_protocol.multifactor import (
     Creds,
     MFA_HTTP_Creds,
@@ -102,6 +104,30 @@ class MFAManager(SessionKeyCreatorMixin):
                     await self._monitor.track_audit_event()
 
             return wrapped_callback_mfa
+
+        if name == "proxy_request":
+
+            async def wrapped_proxy_request(
+                principal: str,
+                ip: IPv4Address,
+            ) -> None:
+                """Wrap the proxy_request method to manage session."""
+                self._monitor.event_type = OperationEvent.KERBEROS_AUTH
+                self._monitor.username = principal
+                self._monitor.ip = ip
+                try:
+                    return await attr(principal, ip)
+                except (
+                    InvalidCredentialsError,
+                    NetworkPolicyError,
+                    AuthenticationError,
+                ) as exc:
+                    self._monitor.set_error_message(exc)
+                    raise exc
+                finally:
+                    await self._monitor.track_audit_event()
+
+            return wrapped_proxy_request
 
         return attr
 
@@ -300,3 +326,67 @@ class MFAManager(SessionKeyCreatorMixin):
             ),
             key,
         )
+
+    async def proxy_request(self, principal: str, ip: IPv4Address) -> None:
+        """Proxy a request to the shadow account.
+
+        Args:
+            principal (str): The user principal name.
+            ip (IPv4Address): The IP address of the request.
+
+        Raises:
+            UserNotFoundError: If the user is not found in the database.
+            NetworkPolicyNotFoundError: If policy is not found for the user.
+            AuthenticationError: If the authentication fails.
+
+        """
+        user = await get_user(self._session, principal)
+
+        if not user:
+            raise InvalidCredentialsError(
+                f"User {principal} not found in the database.",
+            )
+
+        network_policy = await get_user_network_policy(
+            ip,
+            user,
+            self._session,
+        )
+
+        if network_policy is None or not network_policy.is_kerberos:
+            raise NetworkPolicyError(
+                f"Network policy not found for user {principal}.",
+            )
+
+        if not self._mfa_api or network_policy.mfa_status == MFAFlags.DISABLED:
+            return
+        elif network_policy.mfa_status in (
+            MFAFlags.ENABLED,
+            MFAFlags.WHITELIST,
+        ):
+            if (
+                network_policy.mfa_status == MFAFlags.WHITELIST
+                and not network_policy.mfa_groups
+            ):
+                return
+
+            try:
+                if await self._mfa_api.ldap_validate_mfa(
+                    user.user_principal_name,
+                    None,
+                ):
+                    return
+
+            except MultifactorAPI.MFAConnectError:
+                logger.error("MFA connect error")
+                if network_policy.bypass_no_connection:
+                    return
+            except MultifactorAPI.MFAMissconfiguredError:
+                logger.error("MFA missconfigured error")
+                return
+            except MultifactorAPI.MultifactorError:
+                logger.error("MFA service failure")
+                if network_policy.bypass_service_failure:
+                    return
+
+        raise AuthenticationError("Authentication failed.")

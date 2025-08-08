@@ -123,6 +123,30 @@ class IdentityManager(SessionKeyCreatorMixin):
 
             return wrapped_login
 
+        elif name == "change_password":
+
+            async def wrapped_change_password(
+                principal: str,
+                new_password: str,
+            ) -> None:
+                """Wrap the change_password method to manage session."""
+                self._monitor.event_type = (
+                    OperationEvent.CHANGE_PASSWORD_KERBEROS
+                )
+                self._monitor.username = principal
+                try:
+                    return await attr(principal, new_password)
+                except (
+                    UserNotFoundError,
+                    PasswordPolicyError,
+                ) as exc:
+                    self._monitor.set_error_message(exc)
+                    raise exc
+                finally:
+                    await self._monitor.track_audit_event()
+
+            return wrapped_change_password
+
         else:
 
             async def wrapped_reset_password(
@@ -231,11 +255,11 @@ class IdentityManager(SessionKeyCreatorMixin):
             self._session,
         )
 
-    async def reset_password(
+    async def _update_password(
         self,
         identity: str,
         new_password: str,
-        kadmin: AbstractKadmin,
+        kadmin: AbstractKadmin | None = None,
     ) -> None:
         """Change the user's password and update Kerberos.
 
@@ -250,7 +274,9 @@ class IdentityManager(SessionKeyCreatorMixin):
         user = await get_user(self._session, identity)
 
         if not user:
-            raise UserNotFoundError("User not found")
+            raise UserNotFoundError(
+                f"User {identity} not found in the database.",
+            )
 
         policy = await PasswordPolicySchema.get_policy_settings(self._session)
         errors = await policy.validate_password_with_policy(new_password, user)
@@ -258,20 +284,33 @@ class IdentityManager(SessionKeyCreatorMixin):
         if errors:
             raise PasswordPolicyError(errors)
 
+        if kadmin is not None:
+            try:
+                await kadmin.create_or_update_principal_pw(
+                    user.get_upn_prefix(),
+                    new_password,
+                )
+            except KRBAPIError:
+                raise KRBAPIError(
+                    "Failed kerberos password update",
+                )
+
         user.password = get_password_hash(new_password)
-
-        try:
-            await kadmin.create_or_update_principal_pw(
-                user.get_upn_prefix(),
-                new_password,
-            )
-        except KRBAPIError:
-            raise KRBAPIError(
-                "Failed kerberos password update",
-            )
-
         await post_save_password_actions(user, self._session)
         await self._session.commit()
+
+    async def change_password(self, principal: str, new_password: str) -> None:
+        """Synchronize the password for the shadow account."""
+        await self._update_password(principal, new_password)
+
+    async def reset_password(
+        self,
+        identity: str,
+        new_password: str,
+        kadmin: AbstractKadmin,
+    ) -> None:
+        """Change the user's password and update Kerberos."""
+        await self._update_password(identity, new_password, kadmin)
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
