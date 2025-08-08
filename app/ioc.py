@@ -333,12 +333,17 @@ class HTTPProvider(LDAPContextProvider):
     request = from_context(provides=Request, scope=Scope.REQUEST)
 
     @provide(provides=LDAPSession)
-    async def get_session(self, request: Request) -> LDAPSession:
+    async def get_session(
+        self,
+        request: Request,
+    ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         ip = get_ip_from_request(request)
         session = LDAPSession()
+        await session.start()
         session.ip = ip
-        return session
+        yield session
+        await session.disconnect()
 
     audit_monitor = provide(
         AuditMonitor,
@@ -384,9 +389,15 @@ class LDAPServerProvider(LDAPContextProvider):
     scope = Scope.SESSION
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
-    async def get_session(self, storage: SessionStorage) -> LDAPSession:
+    async def get_session(
+        self,
+        storage: SessionStorage,
+    ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        return LDAPSession(storage=storage)
+        session = LDAPSession(storage=storage)
+        await session.start()
+        yield session
+        await session.disconnect()
 
 
 class MFACredsProvider(Provider):
