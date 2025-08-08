@@ -28,6 +28,8 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -61,6 +63,8 @@ class IdentityManager:
         entity_type_dao: EntityTypeDAO,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
+        audit_use_case: AuditUseCase,
+        monitor: AuditMonitorUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -79,6 +83,22 @@ class IdentityManager:
         self._role_use_case = role_use_case
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
+        self._audit_use_case = audit_use_case
+        self._monitor = monitor
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept attribute access."""
+        attr = super().__getattribute__(name)
+        if not callable(attr):
+            return attr
+
+        if name == "login":
+            return self._monitor.wrap_login(attr)
+        elif name == "reset_password":
+            return self._monitor.wrap_reset_password(attr)
+        elif name == "change_password":
+            return self._monitor.wrap_change_password(attr)
+        return attr
 
     async def login(
         self,
@@ -157,11 +177,11 @@ class IdentityManager:
             self.key_ttl,
         )
 
-    async def reset_password(
+    async def _update_password(
         self,
         identity: str,
         new_password: str,
-        kadmin: AbstractKadmin,
+        kadmin: AbstractKadmin | None = None,
     ) -> None:
         """Change the user's password and update Kerberos.
 
@@ -176,7 +196,9 @@ class IdentityManager:
         user = await get_user(self._session, identity)
 
         if not user:
-            raise UserNotFoundError("User not found")
+            raise UserNotFoundError(
+                f"User {identity} not found in the database.",
+            )
 
         policy = await PasswordPolicySchema.get_policy_settings(self._session)
         errors = await policy.validate_password_with_policy(new_password, user)
@@ -184,20 +206,33 @@ class IdentityManager:
         if errors:
             raise PasswordPolicyError(errors)
 
+        if kadmin is not None:
+            try:
+                await kadmin.create_or_update_principal_pw(
+                    user.get_upn_prefix(),
+                    new_password,
+                )
+            except KRBAPIError:
+                raise KRBAPIError(
+                    "Failed kerberos password update",
+                )
+
         user.password = get_password_hash(new_password)
-
-        try:
-            await kadmin.create_or_update_principal_pw(
-                user.get_upn_prefix(),
-                new_password,
-            )
-        except KRBAPIError:
-            raise KRBAPIError(
-                "Failed kerberos password update",
-            )
-
         await post_save_password_actions(user, self._session)
         await self._session.commit()
+
+    async def change_password(self, principal: str, new_password: str) -> None:
+        """Synchronize the password for the shadow account."""
+        await self._update_password(principal, new_password)
+
+    async def reset_password(
+        self,
+        identity: str,
+        new_password: str,
+        kadmin: AbstractKadmin,
+    ) -> None:
+        """Change the user's password and update Kerberos."""
+        await self._update_password(identity, new_password, kadmin)
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
@@ -336,6 +371,7 @@ class IdentityManager:
                 await default_pwd_policy.create_policy_settings(self._session)
                 await self._role_use_case.create_domain_admins_role()
                 await self._role_use_case.create_read_only_role()
+                await self._audit_use_case.create_policies()
                 await self._session.commit()
             except IntegrityError:
                 await self._session.rollback()

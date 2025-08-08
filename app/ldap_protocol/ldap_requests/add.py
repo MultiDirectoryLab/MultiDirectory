@@ -233,6 +233,11 @@ class AddRequest(BaseRequest):
             ):
                 continue
 
+            if attr.type.lower() == "objectclass":
+                self.set_event_data(
+                    {"before_attrs": {"objectclass": attr.vals}},
+                )
+
             for value in attr.vals:
                 if (
                     attr.l_name in user_fields

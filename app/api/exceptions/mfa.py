@@ -39,3 +39,7 @@ class NetworkPolicyError(MFAIdentityError):
 
 class NotFoundError(MFAIdentityError):
     """Raised when a required resource is not found user, MFA config."""
+
+
+class AuthenticationError(MFAIdentityError):
+    """Raised when an authentication attempt fails."""

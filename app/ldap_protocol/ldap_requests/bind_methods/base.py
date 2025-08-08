@@ -80,6 +80,11 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     @property
     @abstractmethod
+    def method_name(self) -> str:
+        """Abstract name auth choice."""
+
+    @property
+    @abstractmethod
     def METHOD_ID(self) -> int:  # noqa: N802
         """Abstract method id."""
 
@@ -101,6 +106,10 @@ class SaslAuthentication(AbstractLDAPAuth):
 
     METHOD_ID: ClassVar[int] = 3
     mechanism: ClassVar[SASLMethod]
+
+    @property
+    def method_name(self) -> str:
+        return f"SASL/{self.mechanism.value}"
 
     @classmethod
     @abstractmethod
