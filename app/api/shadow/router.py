@@ -9,88 +9,28 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Body
 
-from api.audit_dependency import track_audit_event
-from enums import MFAFlags
-from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
-from ldap_protocol.objects import OperationEvent
-from ldap_protocol.policies.network_policy import get_user_network_policy
-from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
-    post_save_password_actions,
-)
-from ldap_protocol.utils.queries import get_user
-from security import get_password_hash
+from .adapter import ShadowAdapter
 
 shadow_router = APIRouter(route_class=DishkaRoute)
 
 
-@shadow_router.post("/mfa/push", dependencies=[Depends(track_audit_event)])
+@shadow_router.post("/mfa/push")
 async def proxy_request(
-    request: Request,
     principal: Annotated[str, Body(embed=True)],
     ip: Annotated[IPv4Address, Body(embed=True)],
-    mfa: FromDishka[LDAPMultiFactorAPI],
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[ShadowAdapter],
 ) -> None:
     """Proxy request to mfa."""
-    request.state.event_type = OperationEvent.KERBEROS_AUTH
-    request.state.principal = principal
-
-    user = await get_user(session, principal)
-
-    if not user:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-    network_policy = await get_user_network_policy(
-        ip,
-        user,
-        session,
-    )
-
-    if network_policy is None or not network_policy.is_kerberos:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    if not mfa or network_policy.mfa_status == MFAFlags.DISABLED:
-        return
-    elif network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
-        if (
-            network_policy.mfa_status == MFAFlags.WHITELIST
-            and not network_policy.mfa_groups
-        ):
-            return
-
-        try:
-            if await mfa.ldap_validate_mfa(user.user_principal_name, None):
-                return
-
-        except MultifactorAPI.MFAConnectError:
-            logger.error("MFA connect error")
-            if network_policy.bypass_no_connection:
-                return
-        except MultifactorAPI.MFAMissconfiguredError:
-            logger.error("MFA missconfigured error")
-            return
-        except MultifactorAPI.MultifactorError:
-            logger.error("MFA service failure")
-            if network_policy.bypass_service_failure:
-                return
-
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    return await adapter.proxy_request(principal, ip)
 
 
-@shadow_router.post(
-    "/sync/password",
-    dependencies=[Depends(track_audit_event)],
-)
-async def sync_password(
-    request: Request,
+@shadow_router.post("/sync/password")
+async def change_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[ShadowAdapter],
 ) -> None:
     """Reset user's (entry) password.
 
@@ -105,22 +45,4 @@ async def sync_password(
     :raises HTTPException: 422 if password not valid
     :return None: None
     """
-    request.state.event_type = OperationEvent.CHANGE_PASSWORD_KERBEROS
-    request.state.principal = principal
-
-    user = await get_user(session, principal)
-
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    policy = await PasswordPolicySchema.get_policy_settings(session)
-    errors = await policy.validate_password_with_policy(new_password, user)
-
-    if errors:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=errors,
-        )
-
-    user.password = get_password_hash(new_password)
-    await post_save_password_actions(user, session)
+    return await adapter.change_password(principal, new_password)

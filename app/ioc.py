@@ -22,6 +22,7 @@ from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.auth.utils import get_ip_from_request
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
+from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -75,6 +76,7 @@ from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
+from ldap_protocol.shadow_manager import ShadowManager
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -348,6 +350,14 @@ class HTTPProvider(LDAPContextProvider):
     )
     identity_manager = provide(
         IdentityManager,
+        scope=Scope.REQUEST,
+    )
+    shadow_manager = provide(
+        ShadowManager,
+        scope=Scope.REQUEST,
+    )
+    shadow_adapter = provide(
+        ShadowAdapter,
         scope=Scope.REQUEST,
     )
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
