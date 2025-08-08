@@ -45,6 +45,7 @@ from api.exception_handlers import (
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
+    EventSenderProvider,
     HTTPProvider,
     LDAPServerProvider,
     MainProvider,
@@ -58,6 +59,7 @@ from ldap_protocol.exceptions import (
     InstanceNotFoundError,
 )
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
+from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler_factory
 
@@ -250,10 +252,27 @@ async def event_handler_factory(settings: Settings) -> None:
         await asyncio.gather(AuditEventHandler(**kwargs).run())
 
 
+async def event_sender_factory(settings: Settings) -> None:
+    """Run event sender."""
+    main_container = make_async_container(
+        MainProvider(),
+        EventSenderProvider(),
+        context={Settings: settings},
+    )
+
+    async with main_container(scope=Scope.REQUEST) as container:
+        kwargs = await resolve_deps(
+            AuditEventSenderManager.__init__,
+            container=container,
+        )
+        await asyncio.gather(AuditEventSenderManager(**kwargs).run())
+
+
 ldap = partial(run_entrypoint, factory=ldap_factory)
 scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 event_handler = partial(run_entrypoint, factory=event_handler_factory)
+event_sender = partial(run_entrypoint, factory=event_sender_factory)
 
 
 if __name__ == "__main__":
@@ -271,6 +290,11 @@ if __name__ == "__main__":
         help="Run event handler",
     )
     group.add_argument(
+        "--event_sender",
+        action="store_true",
+        help="Run event sender",
+    )
+    group.add_argument(
         "--certs_dumper",
         action="store_true",
         help="Dump certs",
@@ -285,6 +309,9 @@ if __name__ == "__main__":
 
     if args.ldap:
         ldap(settings=settings)
+
+    elif args.event_sender:
+        event_sender(settings=settings)
 
     elif args.shadow:
         uvicorn.run(

@@ -407,6 +407,21 @@ services:
       migrations:
         condition: service_completed_successfully
 
+  event_sender:
+    image: multidirectory
+    container_name: event_sender
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./app:/app
+      - ./audit:/audit
+    env_file:
+      local.env
+    command: python multidirectory.py --event_sender
+
   syslog:
     image: balabit/syslog-ng:latest
     container_name: syslog-server      
@@ -416,7 +431,7 @@ services:
     privileged: true
     restart: always
 
-  
+
 
 volumes:
   postgres:
