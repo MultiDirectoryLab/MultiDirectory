@@ -42,22 +42,19 @@ class ShadowAdapter:
         except UserNotFoundError:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
             )
         except NetworkPolicyNotFoundError:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Network policy not found",
             )
         except AuthenticationError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication failed",
             )
-        except PasswordPolicyError:
+        except PasswordPolicyError as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Password policy validation failed",
+                detail=exc.errors,
             )
 
     async def proxy_request(
