@@ -125,8 +125,8 @@ class AuditEventSenderManager:
 
             if time_passed > timedelta(
                 minutes=self._settings.AUDIT_THIRD_RETRY_TIME,
-            ) or (event.retry_count > MAX_RETRY_COUNT):
-                self._audit_logger.info(f"{event.id} {asdict(event)}\n")
+            ) and (event.retry_count > MAX_RETRY_COUNT):
+                self._audit_logger.info(f"{event.id} {asdict(event)}")
                 to_delete = True
 
         if event.delivery_status and all(
@@ -134,9 +134,9 @@ class AuditEventSenderManager:
         ):
             to_delete = True
 
-        if to_delete:
-            await self._normalized_audit_manager.delete_event(event.id)  # type: ignore
-        else:
+        await self._normalized_audit_manager.delete_event(event.id)  # type: ignore
+
+        if not to_delete:
             await self._normalized_audit_manager.send_event(event)  # type: ignore
 
     async def send_event(
@@ -147,6 +147,10 @@ class AuditEventSenderManager:
         active_destination_ids = [dest.id for dest in destinations]
         if not destinations:
             return
+
+        from loguru import logger
+
+        logger.critical(event)
 
         await asyncio.gather(
             *[
