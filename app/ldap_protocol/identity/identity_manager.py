@@ -29,7 +29,7 @@ from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.monitor import AuditMonitor
+from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -64,7 +64,7 @@ class IdentityManager:
         role_use_case: RoleUseCase,
         repository: SessionRepository,
         audit_use_case: AuditUseCase,
-        monitor: AuditMonitor,
+        monitor: AuditMonitorUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -85,6 +85,20 @@ class IdentityManager:
         self._repository = repository
         self._audit_use_case = audit_use_case
         self._monitor = monitor
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept attribute access."""
+        attr = super().__getattribute__(name)
+        if not callable(attr):
+            return attr
+
+        if name == "login":
+            return self._monitor.wrap_login(attr)
+        elif name == "reset_password":
+            return self._monitor.wrap_reset_password(attr)
+        elif name == "change_password":
+            return self._monitor.wrap_change_password(attr)
+        return attr
 
     async def login(
         self,

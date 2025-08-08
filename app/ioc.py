@@ -69,7 +69,10 @@ from ldap_protocol.policies.audit.events.managers import (
     NormalizedAuditManager,
     RawAuditManager,
 )
-from ldap_protocol.policies.audit.monitor import AuditMonitor
+from ldap_protocol.policies.audit.monitor import (
+    AuditMonitor,
+    AuditMonitorUseCase,
+)
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
@@ -335,6 +338,11 @@ class HTTPProvider(LDAPContextProvider):
 
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
+    monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
+    audit_monitor = provide(
+        AuditMonitor,
+        scope=Scope.REQUEST,
+    )
 
     @provide(provides=LDAPSession)
     async def get_session(
@@ -349,10 +357,6 @@ class HTTPProvider(LDAPContextProvider):
         yield session
         await session.disconnect()
 
-    audit_monitor = provide(
-        AuditMonitor,
-        scope=Scope.REQUEST,
-    )
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
         scope=Scope.REQUEST,
