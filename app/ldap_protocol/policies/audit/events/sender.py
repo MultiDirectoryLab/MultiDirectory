@@ -144,12 +144,9 @@ class AuditEventSenderManager:
     ) -> None:
         destinations = await self._audit_use_case.get_active_destinations()
         active_destination_ids = [dest.id for dest in destinations]
+
         if not destinations:
             return
-
-        from loguru import logger
-
-        logger.critical(event)
 
         await asyncio.gather(
             *[
