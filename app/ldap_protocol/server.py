@@ -405,9 +405,8 @@ class PoolClientHandler:
                             context=message.context.get_event_data(),
                         )
 
-                        ldap_session.event_task_group.start_soon(
-                            audit_use_case.manager.send_event,
-                            event,
+                        ldap_session.event_task_group.create_task(
+                            audit_use_case.manager.send_event(event),
                         )
 
                 ldap_session.queue.task_done()
