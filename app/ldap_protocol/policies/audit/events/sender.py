@@ -56,21 +56,19 @@ class AuditEventSenderManager:
         first_failed_utc = event.first_failed_at.astimezone(timezone.utc)
         time_passed = datetime.now(tz=timezone.utc) - first_failed_utc
 
-        match event.retry_count:
-            case 1:
-                return time_passed < timedelta(
-                    minutes=self._settings.AUDIT_FIRST_RETRY_TIME,
-                )
-            case 2:
-                return time_passed < timedelta(
-                    minutes=self._settings.AUDIT_SECOND_RETRY_TIME,
-                )
-            case 3:
-                return time_passed < timedelta(
-                    minutes=self._settings.AUDIT_THIRD_RETRY_TIME,
-                )
-            case _:
-                return False
+        if event.retry_count == 1:
+            return time_passed < timedelta(
+                minutes=self._settings.AUDIT_FIRST_RETRY_TIME,
+            )
+        elif event.retry_count == 2:
+            return time_passed < timedelta(
+                minutes=self._settings.AUDIT_SECOND_RETRY_TIME,
+            )
+        elif event.retry_count == 3:
+            return time_passed < timedelta(
+                minutes=self._settings.AUDIT_THIRD_RETRY_TIME,
+            )
+        return False
 
     async def _send_to_destination(
         self,
