@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from functools import wraps
 from ipaddress import IPv4Address, IPv6Address
 
 from sqlalchemy import exists, select
@@ -91,6 +92,7 @@ class IdentityManager(SessionKeyCreatorMixin):
 
         if name == "login":
 
+            @wraps(attr)
             async def wrapped_login(
                 form: OAuth2Form,
                 ip: IPv4Address | IPv6Address,
@@ -119,6 +121,7 @@ class IdentityManager(SessionKeyCreatorMixin):
 
         elif name == "change_password":
 
+            @wraps(attr)
             async def wrapped_change_password(
                 principal: str,
                 new_password: str,
@@ -143,6 +146,7 @@ class IdentityManager(SessionKeyCreatorMixin):
 
         elif name == "reset_password":
 
+            @wraps(attr)
             async def wrapped_reset_password(
                 identity: str,
                 new_password: str,
