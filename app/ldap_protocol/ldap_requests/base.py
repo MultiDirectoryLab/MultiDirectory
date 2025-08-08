@@ -6,7 +6,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Callable, ClassVar, Protocol
+from typing import (
+    TYPE_CHECKING,
+    AsyncGenerator,
+    AsyncIterator,
+    Callable,
+    ClassVar,
+    Protocol,
+)
 
 from dishka import AsyncContainer
 from loguru import logger
@@ -97,6 +104,44 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
                 attributes["member"].append(member.path_dn)
 
         return attributes
+
+    async def handle_tcp(
+        self,
+        container: AsyncContainer,
+    ) -> AsyncIterator[BaseResponse]:
+        """Hanlde response with tcp."""
+        kwargs = await resolve_deps(func=self.handle, container=container)
+        responses = []
+
+        async for response in self.handle(**kwargs):
+            responses.append(response)
+            yield response
+
+        ldap_session = await container.get(LDAPSession)
+        settings = await container.get(Settings)
+        audit_use_case = await container.get(AuditUseCase)
+
+        if await audit_use_case.check_event_processing_enabled(
+            self.PROTOCOL_OP,
+        ):
+            username = getattr(
+                ldap_session.user,
+                "user_principal_name",
+                "ANONYMOUS",
+            )
+            event = RawAuditEventBuilderRedis.from_ldap_request(
+                self,
+                responses=responses,
+                username=username,
+                ip=ldap_session.ip,
+                protocol="TCP_LDAP",
+                settings=settings,
+                context=self.get_event_data(),
+            )
+
+            ldap_session.event_task_group.create_task(
+                audit_use_case.manager.send_event(event),
+            )
 
     async def _handle_api(
         self,
