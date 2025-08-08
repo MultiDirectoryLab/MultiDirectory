@@ -97,7 +97,7 @@ class SyslogSender(AuditDestinationSenderABC):
         severity_code = event.severity
         facility = self.DEFAULT_FACILITY
         app_name = self.DEFAULT_APP_NAME
-        msg_id = str(event.id)
+        msg_id = str(uuid.uuid4())
         message = event.syslog_message
         hostname = event.hostname
         proc_id = event.service_name
@@ -112,9 +112,11 @@ class SyslogSender(AuditDestinationSenderABC):
         priority = (facility_code << 3) | severity_code
 
         # TIMESTAMP (RFC 5424 section 6.2.3)
-        timestamp = datetime.now(tz=timezone.utc).isoformat(
+        dt = datetime.fromtimestamp(event.timestamp, tz=timezone.utc)
+        timestamp = dt.isoformat(
             timespec="milliseconds",
-        )
+        ).replace("+00:00", "Z")
+
         if "." in timestamp:
             timestamp = timestamp.replace("+00:00", "Z")
 
@@ -141,7 +143,7 @@ class SyslogSender(AuditDestinationSenderABC):
         return (
             f"<{priority}>{self.SYSLOG_VERSION} {timestamp} "
             f"{hostname} {app_name} {proc_id} {msg_id} "
-            f"{sd_str}{message}"
+            f"{sd_str} {message}"
         )
 
     def _escape_message(self, msg: str) -> str:
@@ -181,12 +183,14 @@ class SyslogSender(AuditDestinationSenderABC):
     async def send(self, event: NormalizedAuditEvent) -> None:
         """Send event."""
         structured_data = deepcopy(asdict(event))
-        event_time = structured_data["timestamp"]
-        dt = datetime.fromtimestamp(event_time, tz=timezone.utc)
-        structured_data["iso_time"] = dt.isoformat(
-            timespec="milliseconds",
-        ).replace("+00:00", "Z")
+
         del structured_data["severity"]
+        del structured_data["id"]
+        del structured_data["delivery_status"]
+        del structured_data["first_failed_at"]
+        del structured_data["retry_count"]
+        del structured_data["is_operation_success"]
+        del structured_data["timestamp"]
 
         syslog_message = self.generate_rfc5424_message(
             event=event,
