@@ -94,7 +94,13 @@ class AuditMonitor:
 
     def generate_details(self) -> dict[str, dict[str, str]]:
         """Generate details for the audit event."""
-        details = {"user_agent": self.get_user_agent()}
+        details = {}
+
+        if self.event_type not in {
+            OperationEvent.CHANGE_PASSWORD_KERBEROS,
+            OperationEvent.KERBEROS_AUTH,
+        }:
+            details["user_agent"] = self.get_user_agent()
 
         if self.target:
             details["target"] = self.target
