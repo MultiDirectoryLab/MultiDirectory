@@ -195,6 +195,21 @@ class NormalizedAuditEvent(AuditEvent):
     def syslog_message(self) -> str:
         return f"User {self.username} {self.event_type}"
 
+    @property
+    def destination_dict(self) -> dict[str, Any]:
+        """Return a dictionary with clear destination details."""
+        return {
+            "username": self.username,
+            "source_ip": self.source_ip,
+            "dest_port": self.dest_port,
+            "hostname": self.hostname,
+            "protocol": self.protocol,
+            "event_type": self.event_type,
+            "policy_id": self.policy_id,
+            "details": self.details,
+            "service_name": self.service_name,
+        }
+
 
 class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
     """Normalized audit event model for Redis storage."""
