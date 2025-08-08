@@ -191,7 +191,7 @@ class AuditEventHandler:
         operation_code = event_data.request_code
         matched_triggers: list[AuditPolicyTrigger] = []
 
-        triggers = await self.session.scalars(
+        result = await self.session.execute(
             select(AuditPolicyTrigger)
             .join(AuditPolicyTrigger.audit_policy, isouter=True)
             .where(
@@ -207,12 +207,12 @@ class AuditEventHandler:
             )
             .options(selectinload(AuditPolicyTrigger.audit_policy)),
         )
-
+        triggers = result.scalars().all()
         logger.debug(
             f"Suitable triggers: {[trigger.id for trigger in triggers]}",
         )
 
-        for trigger in triggers.all():
+        for trigger in triggers:
             if self.is_match_trigger(trigger, event_data):
                 logger.debug(f"Matched policy: {trigger.audit_policy.name}")
                 matched_triggers.append(trigger)
