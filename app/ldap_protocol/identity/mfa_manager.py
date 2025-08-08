@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
+from functools import wraps
 from ipaddress import IPv4Address, IPv6Address
 
 from jose import jwt
@@ -80,6 +81,7 @@ class MFAManager:
         attr = super().__getattribute__(name)
         if name == "callback_mfa":
 
+            @wraps(attr)
             async def wrapped_callback_mfa(
                 access_token: str,
                 mfa_creds: MFA_HTTP_Creds,
@@ -109,6 +111,7 @@ class MFAManager:
 
         if name == "proxy_request":
 
+            @wraps(attr)
             async def wrapped_proxy_request(
                 principal: str,
                 ip: IPv4Address,
