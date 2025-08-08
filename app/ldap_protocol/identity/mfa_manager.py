@@ -41,7 +41,10 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from ldap_protocol.policies.audit import AuditMonitor, AuditMonitorUseCase
+from ldap_protocol.policies.audit.monitor import (
+    AuditMonitor,
+    AuditMonitorUseCase,
+)
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User
