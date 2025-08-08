@@ -10,6 +10,7 @@ import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
+from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -68,6 +69,10 @@ from ldap_protocol.policies.audit.events.managers import (
     AuditRedisClient,
     NormalizedAuditManager,
     RawAuditManager,
+)
+from ldap_protocol.policies.audit.events.sender import (
+    AuditEventSenderManager,
+    AuditLogger,
 )
 from ldap_protocol.policies.audit.monitor import (
     AuditMonitor,
@@ -434,6 +439,33 @@ class MFACredsProvider(Provider):
         :return MFA_LDAP_Creds: optional creds
         """
         return await get_creds(session, "mfa_key_ldap", "mfa_secret_ldap")
+
+
+class EventSenderProvider(Provider):
+    """Event sender provider."""
+
+    scope = Scope.REQUEST
+
+    @provide()
+    def setup_audit_logging(self, settings: Settings) -> AuditLogger:
+        """Create audit logger.."""
+        audit_logger = logger.bind(name="audit")
+        audit_logger.remove()
+        audit_logger.add(
+            settings.AUDIT_LOG_FILE,
+            rotation="10 MB",
+            retention=5,
+            format="{message}",
+            filter=lambda record: record["extra"].get("name") == "audit",
+            level="CRITICAL",
+            enqueue=True,
+        )
+        return AuditLogger(audit_logger)
+
+    audit_sender_manager = provide(
+        AuditEventSenderManager,
+        scope=Scope.REQUEST,
+    )
 
 
 class MFAProvider(Provider):
