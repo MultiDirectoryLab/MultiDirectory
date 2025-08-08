@@ -180,12 +180,16 @@ class NormalizedAuditEvent(AuditEvent):
     hostname: str
     protocol: str
     event_type: str
-    severity: str
+    severity: int
     policy_id: int
     is_operation_success: bool
     details: dict[str, Any]
     service_name: str | None = None
     id: str | None = None
+
+    @property
+    def syslog_message(self) -> str:
+        return f"User {self.username} {self.event_type}"
 
 
 class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
@@ -218,6 +222,8 @@ class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
             decoded["dest_port"] = int(decoded["dest_port"])
         if "policy_id" in decoded:
             decoded["policy_id"] = int(decoded["policy_id"])
+        if "severity" in decoded:
+            decoded["policy_id"] = int(decoded["severity"])
         if "is_operation_success" in decoded:
             val = decoded["is_operation_success"]
             decoded["is_operation_success"] = (

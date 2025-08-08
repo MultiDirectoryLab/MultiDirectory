@@ -116,7 +116,7 @@ class AuditEventNormalizer:
             hostname=self.event_data.hostname,
             protocol=protocol,
             event_type=self.trigger.audit_policy.name,
-            severity=str(self.trigger.audit_policy.severity),
+            severity=self.trigger.audit_policy.severity,
             policy_id=self.trigger.audit_policy.id,
             is_operation_success=self.trigger.is_operation_success,
             service_name=self.event_data.service_name,
