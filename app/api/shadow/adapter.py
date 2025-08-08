@@ -1,4 +1,4 @@
-"""Adapter for ShadowManager.
+"""Adapter for shadow api.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -9,27 +9,29 @@ from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from fastapi import HTTPException, status
 
-from ldap_protocol.shadow_manager import (
+from api.exceptions.auth import PasswordPolicyError
+from api.exceptions.mfa import (
     AuthenticationError,
-    NetworkPolicyNotFoundError,
-    PasswordPolicyError,
-    ShadowManager,
-    UserNotFoundError,
+    InvalidCredentialsError,
+    NetworkPolicyError,
 )
+from ldap_protocol.identity import IdentityManager, MFAManager
 
 P = ParamSpec("P")
 R = TypeVar("R")
 
 
 class ShadowAdapter:
-    """Adapter for using ShadowManager with FastAPI."""
+    """Adapter for shadow api with FastAPI."""
 
-    def __init__(self, shadow_manager: ShadowManager):
-        """Initialize the adapter with a domain ShadowManager instance.
-
-        :param shadow_manager: ShadowManager instance (domain logic)
-        """
-        self._manager = shadow_manager
+    def __init__(
+        self,
+        mfa_manager: MFAManager,
+        identity_manager: IdentityManager,
+    ) -> None:
+        """Initialize the adapter."""
+        self._mfa_manager = mfa_manager
+        self._identity_manager = identity_manager
 
     async def _sc(
         self,
@@ -39,11 +41,11 @@ class ShadowAdapter:
     ) -> R:
         try:
             return await func(*args, **kwargs)
-        except UserNotFoundError:
+        except InvalidCredentialsError:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        except NetworkPolicyNotFoundError:
+        except NetworkPolicyError:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
             )
@@ -51,10 +53,9 @@ class ShadowAdapter:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
-        except PasswordPolicyError as exc:
+        except PasswordPolicyError:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=exc.errors,
             )
 
     async def proxy_request(
@@ -64,7 +65,7 @@ class ShadowAdapter:
     ) -> None:
         """Proxy a request to the shadow account."""
         return await self._sc(
-            self._manager.proxy_request,
+            self._mfa_manager.proxy_request,
             principal,
             ip,
         )
@@ -72,7 +73,7 @@ class ShadowAdapter:
     async def change_password(self, principal: str, new_password: str) -> None:
         """Change the password for a user."""
         return await self._sc(
-            self._manager.change_password,
+            self._identity_manager.change_password,
             principal,
             new_password,
         )
