@@ -39,6 +39,8 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
+from ldap_protocol.objects import OperationEvent
+from ldap_protocol.policies.audit.monitor import AuditMonitor
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User
@@ -53,6 +55,7 @@ class MFAManager(SessionKeyCreatorMixin):
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
+        monitor: AuditMonitor,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -65,7 +68,42 @@ class MFAManager(SessionKeyCreatorMixin):
         self._settings = settings
         self._storage = storage
         self._mfa_api = mfa_api
+        self._monitor = monitor
         self.key_ttl = self._storage.key_ttl
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept attribute access to add session management."""
+        attr = super().__getattribute__(name)
+        if name == "callback_mfa":
+
+            async def wrapped_callback_mfa(
+                access_token: str,
+                mfa_creds: MFA_HTTP_Creds,
+                ip: IPv4Address | IPv6Address,
+                user_agent: str,
+            ) -> str:
+                """Wrap callback_mfa to handle session management."""
+                self._monitor.event_type = OperationEvent.AFTER_2FA
+                self._monitor.ip = ip
+                self._monitor.user_agent = user_agent
+                try:
+                    key = await attr(
+                        access_token,
+                        mfa_creds,
+                        ip,
+                        user_agent,
+                    )
+                    self._monitor.username = key
+                    return key
+                except (ForbiddenError, MFATokenError) as exc:
+                    self._monitor.set_error_message(exc)
+                    raise exc
+                finally:
+                    await self._monitor.track_audit_event()
+
+            return wrapped_callback_mfa
+
+        return attr
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -164,12 +202,12 @@ class MFAManager(SessionKeyCreatorMixin):
             )
         except (JWTError, AttributeError, JWKError) as err:
             logger.error(f"Invalid MFA token: {err}")
-            raise MFATokenError()
+            raise MFATokenError("Invalid MFA token")
 
         user_id: int = int(payload.get("uid"))
         user = await self._session.get(User, user_id)
         if user_id is None or not user:
-            raise MFATokenError()
+            raise MFATokenError("User not found")
 
         return await self.create_session_key(
             user,
