@@ -72,9 +72,7 @@ async def modify_many(
     """Bulk LDAP MODIFY entry request."""
     results = []
     for request in requests:
-        results.append(
-            await request.handle_api(req.state.dishka_container),
-        )
+        results.append(await request.handle_api(req.state.dishka_container))
     return results
 
 
@@ -104,7 +102,5 @@ async def delete_many(
     """Bulk LDAP DELETE entry request."""
     results = []
     for request in requests:
-        results.append(
-            await request.handle_api(req.state.dishka_container),
-        )
+        results.append(await request.handle_api(req.state.dishka_container))
     return results

@@ -20,11 +20,7 @@ from ldap_protocol.session_storage import SessionStorage
 from .oauth2 import get_current_user
 from .schema import OAuth2Form, SetupRequest
 
-auth_router = APIRouter(
-    prefix="/auth",
-    tags=["Auth"],
-    route_class=DishkaRoute,
-)
+auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
 
 @auth_router.post("/")
@@ -114,11 +110,7 @@ async def password_reset(
     :raises HTTPException: 424 if kerberos password update failed
     :return: None
     """
-    await auth_manager.reset_password(
-        identity,
-        new_password,
-        kadmin,
-    )
+    await auth_manager.reset_password(identity, new_password, kadmin)
 
 
 @auth_router.get("/setup")
