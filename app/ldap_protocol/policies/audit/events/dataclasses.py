@@ -189,7 +189,7 @@ class NormalizedAuditEvent(AuditEvent):
     id: str | None = None
     first_failed_at: datetime | None = None
     retry_count: int = 0
-    server_delivery_status: dict[int, bool] = field(default_factory=dict)
+    delivery_status: dict[int, bool] = field(default_factory=dict)
 
     @property
     def syslog_message(self) -> str:
