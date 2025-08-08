@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Depends, Form, Request, Response, status
+from fastapi import Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
@@ -111,9 +111,7 @@ async def callback_mfa(
 async def two_factor_protocol(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
-    response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
-    user_agent: Annotated[str, Depends(get_user_agent_from_request)],
     mfa_manager: FromDishka[MFAFastAPIAdapter],
 ) -> MFAChallengeResponse:
     """Initiate two factor protocol with app.
@@ -122,7 +120,6 @@ async def two_factor_protocol(
     :param Annotated[OAuth2Form, Depends form: password form
     :param Request request: FastAPI request
     :param FromDishka[MultifactorAPI] api: wrapper for MFA DAO
-    :param Response response: FastAPI response
     :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
     :raises HTTPException: Missing API credentials
     :raises HTTPException: Invalid credentials
@@ -134,7 +131,5 @@ async def two_factor_protocol(
     return await mfa_manager.two_factor_protocol(
         form,
         request,
-        response,
         ip,
-        user_agent,
     )
