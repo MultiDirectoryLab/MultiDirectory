@@ -84,7 +84,6 @@ class PoolClientHandler:
                 writer,
                 return_addr=True,
             )
-            await ldap_session.start()
             ldap_session.ip = addr
 
             logger.info(f"Connection {addr} opened")
@@ -116,7 +115,6 @@ class PoolClientHandler:
 
             finally:
                 await session_scope.close()
-                await ldap_session.disconnect()
 
                 with suppress(RuntimeError):
                     await ldap_session.queue.join()
