@@ -176,6 +176,10 @@ class PasswordPolicySchema(BaseModel):
             session.add(plset)
             await session.commit()
 
+        elif plset.value == "-1":
+            plset.value = ft_now()
+            await session.commit()
+
         return plset
 
     def validate_min_age(self, last_pwd_set: Attribute) -> bool:
