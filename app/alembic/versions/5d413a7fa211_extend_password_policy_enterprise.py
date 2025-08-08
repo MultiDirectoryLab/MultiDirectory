@@ -6,6 +6,8 @@ Create Date: 2025-08-08 09:39:00.142964
 
 """
 
+import contextlib
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -17,183 +19,197 @@ depends_on = None
 
 def upgrade() -> None:
     """Upgrade."""
-    op.alter_column(
-        "PasswordPolicies",
-        "password_history_length",
-        new_column_name="history_length",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "maximum_password_age_days",
-        new_column_name="max_age_days",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "minimum_password_age_days",
-        new_column_name="min_age_days",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "minimum_password_length",
-        new_column_name="min_length",
-    )
+    with op.batch_alter_table("PasswordPolicies", schema=None) as batch_op:
+        with contextlib.suppress(Exception):
+            batch_op.alter_column(
+                "password_history_length",
+                new_column_name="history_length",
+            )
+            batch_op.alter_column(
+                "maximum_password_age_days",
+                new_column_name="max_age_days",
+            )
+            batch_op.alter_column(
+                "minimum_password_age_days",
+                new_column_name="min_age_days",
+            )
+            batch_op.alter_column(
+                "minimum_password_length",
+                new_column_name="min_length",
+            )
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "max_length",
-            sa.Integer(),
-            nullable=False,
-            server_default="32",
-        ),
-    )
+        batch_op.add_column(
+            sa.Column(
+                "max_length",
+                sa.Integer(),
+                nullable=False,
+                server_default="32",
+            ),
+            if_not_exists=True,
+        )
+        batch_op.add_column(
+            sa.Column(
+                "language",
+                sa.String(),
+                nullable=False,
+                server_default="Latin",
+            ),
+            if_not_exists=True,
+        )
+        batch_op.add_column(
+            sa.Column(
+                "is_exact_match",
+                sa.Boolean(),
+                nullable=False,
+                server_default="false",
+            ),
+            if_not_exists=True,
+        )
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "language",
-            sa.String(),
-            nullable=False,
-            server_default="Latin",
-        ),
-    )
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "is_exact_match",
-            sa.Boolean(),
-            nullable=False,
-            server_default="false",
-        ),
-    )
+        batch_op.add_column(
+            sa.Column(
+                "min_lowercase_letters_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "min_lowercase_letters_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "min_uppercase_letters_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "min_special_symbols_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "min_unique_symbols_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "max_repeating_symbols_in_row_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "min_digits_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
+        batch_op.add_column(
+            sa.Column(
+                "min_uppercase_letters_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "max_sequential_keyboard_symbols_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "max_sequential_alphabet_symbols_count",
-            sa.Integer(),
-            nullable=False,
-            server_default="0",
-        ),
-    )
+        batch_op.add_column(
+            sa.Column(
+                "min_special_symbols_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
 
-    op.create_table(
-        "PasswordBanWords",
-        sa.Column("word", sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint("word"),
-    )
+        batch_op.add_column(
+            sa.Column(
+                "min_unique_symbols_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
 
-    op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
-    op.create_index(
-        "idx_password_ban_words_word_gin_trgm",
-        "PasswordBanWords",
-        ["word"],
-        postgresql_using="gin",
-        postgresql_ops={"word": "gin_trgm_ops"},
-    )
+        batch_op.add_column(
+            sa.Column(
+                "max_repeating_symbols_in_row_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
+
+        batch_op.add_column(
+            sa.Column(
+                "min_digits_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
+
+        batch_op.add_column(
+            sa.Column(
+                "max_sequential_keyboard_symbols_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
+
+        batch_op.add_column(
+            sa.Column(
+                "max_sequential_alphabet_symbols_count",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+            if_not_exists=True,
+        )
+
+    with contextlib.suppress(Exception):
+        op.create_table(
+            "PasswordBanWords",
+            sa.Column("word", sa.String(length=255), nullable=False),
+            sa.PrimaryKeyConstraint("word"),
+            if_not_exists=True,
+        )
+        op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+        op.create_index(
+            "idx_password_ban_words_word_gin_trgm",
+            "PasswordBanWords",
+            ["word"],
+            postgresql_using="gin",
+            postgresql_ops={"word": "gin_trgm_ops"},
+            if_not_exists=True,
+        )
 
 
 def downgrade() -> None:
     """Downgrade."""
-    op.drop_index(
-        "idx_password_ban_words_word_gin_trgm",
-        table_name="PasswordBanWords",
-    )
-    op.drop_table("PasswordBanWords")
+    with contextlib.suppress(Exception):
+        op.drop_index(
+            "idx_password_ban_words_word_gin_trgm",
+            table_name="PasswordBanWords",
+            if_exists=True,
+        )
+        op.drop_table("PasswordBanWords", if_exists=True)
 
-    op.drop_column("PasswordPolicies", "max_sequential_alphabet_symbols_count")
-    op.drop_column("PasswordPolicies", "max_sequential_keyboard_symbols_count")
-    op.drop_column("PasswordPolicies", "min_digits_count")
-    op.drop_column("PasswordPolicies", "max_repeating_symbols_in_row_count")
-    op.drop_column("PasswordPolicies", "min_unique_symbols_count")
-    op.drop_column("PasswordPolicies", "min_special_symbols_count")
-    op.drop_column("PasswordPolicies", "min_uppercase_letters_count")
-    op.drop_column("PasswordPolicies", "min_lowercase_letters_count")
-    op.drop_column("PasswordPolicies", "is_exact_match")
-    op.drop_column("PasswordPolicies", "language")
-    op.drop_column("PasswordPolicies", "max_length")
+    with op.batch_alter_table("PasswordPolicies", schema=None) as batch_op:
+        batch_op.drop_column(
+            "max_sequential_alphabet_symbols_count",
+            if_exists=True,
+        )
+        batch_op.drop_column(
+            "max_sequential_keyboard_symbols_count",
+            if_exists=True,
+        )
+        batch_op.drop_column("min_digits_count", if_exists=True)
+        batch_op.drop_column(
+            "max_repeating_symbols_in_row_count",
+            if_exists=True,
+        )
+        batch_op.drop_column("min_unique_symbols_count", if_exists=True)
+        batch_op.drop_column("min_special_symbols_count", if_exists=True)
+        batch_op.drop_column("min_uppercase_letters_count", if_exists=True)
+        batch_op.drop_column("min_lowercase_letters_count", if_exists=True)
+        batch_op.drop_column("is_exact_match", if_exists=True)
+        batch_op.drop_column("language", if_exists=True)
+        batch_op.drop_column("max_length", if_exists=True)
 
-    op.alter_column(
-        "PasswordPolicies",
-        "min_length",
-        new_column_name="minimum_password_length",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_age_days",
-        new_column_name="minimum_password_age_days",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "max_age_days",
-        new_column_name="maximum_password_age_days",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "history_length",
-        new_column_name="password_history_length",
-    )
+        with contextlib.suppress(Exception):
+            batch_op.alter_column(
+                "min_length",
+                new_column_name="minimum_password_length",
+            )
+            batch_op.alter_column(
+                "min_age_days",
+                new_column_name="minimum_password_age_days",
+            )
+            batch_op.alter_column(
+                "max_age_days",
+                new_column_name="maximum_password_age_days",
+            )
+            batch_op.alter_column(
+                "history_length",
+                new_column_name="password_history_length",
+            )
