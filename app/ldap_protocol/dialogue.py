@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from asyncio import TaskGroup
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -15,8 +16,6 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncIterator, NoReturn
 
 import gssapi
-from anyio import create_task_group
-from anyio.abc import TaskGroup
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.policies.network_policy import build_policy_query
@@ -93,7 +92,7 @@ class LDAPSession:
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
         self.id = uuid.uuid4()
         self.storage = storage
-        self._task_group_cm = create_task_group()
+        self._task_group_cm = TaskGroup()
 
     def __str__(self) -> str:
         """Session with id."""
