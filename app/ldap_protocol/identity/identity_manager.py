@@ -28,7 +28,6 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.policies.audit import AuditMonitor
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.monitor import AuditMonitor
 from ldap_protocol.policies.network_policy import (
