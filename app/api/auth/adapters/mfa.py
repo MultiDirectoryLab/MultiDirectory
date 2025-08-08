@@ -127,18 +127,11 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 406 if MFA error
         """
         try:
-            result, key = await self._manager.two_factor_protocol(
+            result = await self._manager.two_factor_protocol(
                 form=form,
                 url=request.url_for("callback_mfa"),
                 ip=ip,
-                user_agent=user_agent,
             )
-            if key is not None:
-                await self.set_session_cookie(
-                    response,
-                    self._manager.key_ttl,
-                    key,
-                )
             return result
         except InvalidCredentialsError as exc:
             raise HTTPException(

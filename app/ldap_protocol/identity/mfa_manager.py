@@ -185,14 +185,12 @@ class MFAManager(SessionKeyCreatorMixin):
         form: OAuth2Form,
         url: URL,
         ip: IPv4Address | IPv6Address,
-        user_agent: str,
-    ) -> tuple[MFAChallengeResponse, str | None]:
+    ) -> MFAChallengeResponse:
         """Initiate two-factor protocol with application.
 
         :param form: OAuth2Form
         :param url: URL for MFA callback
         :param ip: IP address
-        :param user_agent: str
         :return:
             tuple[MFAChallengeResponse, str | None] (session key | None)
         :raises MissingMFACredentialsError: if MFA is not initialized
@@ -225,40 +223,20 @@ class MFAManager(SessionKeyCreatorMixin):
 
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                return (
-                    MFAChallengeResponse(status="bypass", message=""),
-                    None,
-                )
+                return MFAChallengeResponse(status="bypass", message="")
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            return (
-                MFAChallengeResponse(status="bypass", message=""),
-                None,
-            )
+            return MFAChallengeResponse(status="bypass", message="")
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                return (
-                    MFAChallengeResponse(status="bypass", message=""),
-                    None,
-                )
+                return MFAChallengeResponse(status="bypass", message="")
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
-        key = await self.create_session_key(
-            user,
-            self._storage,
-            self._settings,
-            ip,
-            user_agent,
-            self._session,
-        )
-        return (
-            MFAChallengeResponse(
-                status="pending",
-                message=redirect_url,
-            ),
-            key,
+        return MFAChallengeResponse(
+            status="pending",
+            message=redirect_url,
         )
