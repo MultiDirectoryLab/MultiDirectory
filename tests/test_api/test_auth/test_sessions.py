@@ -301,6 +301,7 @@ async def test_get_sessions_by_protocol(
             "ip": http_ip,
             "user_agent": storage.get_user_agent_hash(""),
         },
+        ttl=storage.key_ttl,
     )
 
     await storage.create_ldap_session(
@@ -371,6 +372,7 @@ async def test_delete_user_session(
             "ip": http_ip,
             "user_agent": storage.get_user_agent_hash(""),
         },
+        ttl=storage.key_ttl,
     )
     session_id, _ = session_key.split(".")
 
@@ -420,6 +422,7 @@ async def test_clear_user_sessions(
                 "ip": http_ip,
                 "user_agent": storage.get_user_agent_hash(""),
             },
+            ttl=storage.key_ttl,
         )
 
     for i in range(10):
@@ -474,6 +477,7 @@ async def test_remove_non_existent_session(
             "ip": http_ip,
             "user_agent": storage.get_user_agent_hash(""),
         },
+        ttl=storage.key_ttl,
     )
 
     await storage.create_ldap_session(

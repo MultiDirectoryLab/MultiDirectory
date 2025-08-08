@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from config import Settings
@@ -57,6 +58,7 @@ from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
+from ldap_protocol.session_storage.repository import SessionRepository
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -215,6 +217,7 @@ class MainProvider(Provider):
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
+    session_repository = provide(SessionRepository)
 
 
 class LDAPContextProvider(Provider):
@@ -293,6 +296,7 @@ class HTTPProvider(LDAPContextProvider):
         return KRBTemplateRenderer(settings.TEMPLATES)
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
+    session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):

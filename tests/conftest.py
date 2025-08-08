@@ -40,6 +40,7 @@ from sqlalchemy.ext.asyncio import (
 
 from api import shadow_router
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from config import Settings
@@ -78,6 +79,7 @@ from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
+from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from models import AttributeType
 
@@ -395,6 +397,8 @@ class TestProvider(Provider):
         LDAPUnbindRequestContext,
         scope=Scope.REQUEST,
     )
+    session_repository = provide(SessionRepository, scope=Scope.REQUEST)
+    session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
 
 
 @dataclass
@@ -514,7 +518,10 @@ async def setup_entity(session: AsyncSession) -> None:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def setup_session(session: AsyncSession, setup_entity: None) -> None:
+async def setup_session(
+    session: AsyncSession,
+    setup_entity: None,  # noqa: ARG001
+) -> None:
     """Get session and aquire after completion."""
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
