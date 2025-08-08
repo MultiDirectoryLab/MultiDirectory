@@ -42,6 +42,7 @@ from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
+from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
 from extra.dev_data import ENTITY_TYPE_DATAS
@@ -86,6 +87,7 @@ from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
+from ldap_protocol.shadow_manager import ShadowManager
 from ldap_protocol.utils.queries import get_user
 from models import AttributeType
 
@@ -440,6 +442,15 @@ class TestProvider(Provider):
             settings.EVENT_CONSUMER_NAME,
             settings.IS_PROC_EVENT_KEY,
         )
+
+    shadow_manager = provide(
+        ShadowManager,
+        scope=Scope.REQUEST,
+    )
+    shadow_adapter = provide(
+        ShadowAdapter,
+        scope=Scope.REQUEST,
+    )
 
     add_request_context = provide(
         LDAPAddRequestContext,
