@@ -65,6 +65,16 @@ class AuditUseCase:
 
         return await self.manager.get_processing_status()
 
+    async def update_status_process_events(self) -> None:
+        """Update the status of process events."""
+        if (
+            await self.is_existing_active_policy()
+            and await self.is_existing_active_destination()
+        ):
+            await self.enable_event_processing()
+        else:
+            await self.disable_event_processing()
+
     async def enable_event_processing(self) -> None:
         """Enable processing of audit events."""
         await self.manager.update_processing_status(True)
