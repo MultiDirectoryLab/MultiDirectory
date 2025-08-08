@@ -79,6 +79,12 @@ class Settings(BaseModel):
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
 
+    AUDIT_LOG_FILE: str = "/audit/audit.log"
+
+    AUDIT_FIRST_RETRY_TIME: int = 5
+    AUDIT_SECOND_RETRY_TIME: int = 60
+    AUDIT_THIRD_RETRY_TIME: int = 1440
+
     @computed_field  # type: ignore
     @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
