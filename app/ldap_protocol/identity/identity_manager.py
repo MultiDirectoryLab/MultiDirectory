@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from functools import wraps
 from ipaddress import IPv4Address, IPv6Address
 
 from sqlalchemy import exists, select
@@ -30,9 +29,11 @@ from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.monitor import AuditMonitor
+from ldap_protocol.policies.audit.monitor import (
+    AuditMonitor,
+    AuditMonitorUseCase,
+)
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
@@ -53,7 +54,7 @@ from models import Directory, Group, User
 from security import get_password_hash
 
 
-class IdentityManager(SessionKeyCreatorMixin):
+class IdentityManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
     """Authentication manager."""
 
     def __init__(
@@ -76,6 +77,7 @@ class IdentityManager(SessionKeyCreatorMixin):
         :param entity_type_dao: EntityTypeDAO
         :param role_use_case: RoleUseCase
         """
+        super().__init__(monitor)
         self._session = session
         self._settings = settings
         self._mfa_api = mfa_api
@@ -85,96 +87,6 @@ class IdentityManager(SessionKeyCreatorMixin):
         self.key_ttl = self._storage.key_ttl
         self._audit_use_case = audit_use_case
         self._monitor = monitor
-
-    def __getattribute__(self, name: str) -> object:
-        """Intercept method calls to wrap login and reset_password."""
-        attr = super().__getattribute__(name)
-
-        if name == "login":
-
-            @wraps(attr)
-            async def wrapped_login(
-                form: OAuth2Form,
-                ip: IPv4Address | IPv6Address,
-                user_agent: str,
-            ) -> object:
-                self._monitor.event_type = OperationEvent.BIND
-                self._monitor.username = form.username
-                self._monitor.ip = ip
-                self._monitor.user_agent = user_agent
-                try:
-                    return await attr(
-                        form=form,
-                        ip=ip,
-                        user_agent=user_agent,
-                    )
-                except (UnauthorizedError, LoginFailedError) as exc:
-                    self._monitor.set_error_message(exc)
-                    raise exc
-                except MFARequiredError as exc:
-                    self._monitor.is_proc_enabled = False
-                    raise exc
-                finally:
-                    await self._monitor.track_audit_event()
-
-            return wrapped_login
-
-        elif name == "change_password":
-
-            @wraps(attr)
-            async def wrapped_change_password(
-                principal: str,
-                new_password: str,
-            ) -> None:
-                """Wrap the change_password method to manage session."""
-                self._monitor.event_type = (
-                    OperationEvent.CHANGE_PASSWORD_KERBEROS
-                )
-                self._monitor.username = principal
-                try:
-                    return await attr(principal, new_password)
-                except (
-                    UserNotFoundError,
-                    PasswordPolicyError,
-                ) as exc:
-                    self._monitor.set_error_message(exc)
-                    raise exc
-                finally:
-                    await self._monitor.track_audit_event()
-
-            return wrapped_change_password
-
-        elif name == "reset_password":
-
-            @wraps(attr)
-            async def wrapped_reset_password(
-                identity: str,
-                new_password: str,
-                kadmin: AbstractKadmin,
-            ) -> None:
-                self._monitor.event_type = OperationEvent.CHANGE_PASSWORD
-                self._monitor.target = identity
-                await self._monitor.set_username()
-                try:
-                    return await attr(
-                        identity=identity,
-                        new_password=new_password,
-                        kadmin=kadmin,
-                    )
-                except (
-                    UserNotFoundError,
-                    PasswordPolicyError,
-                    KRBAPIError,
-                ) as exc:
-                    self._monitor.set_error_message(exc)
-                    raise exc
-
-                finally:
-                    await self._monitor.track_audit_event()
-
-            return wrapped_reset_password
-
-        return attr
 
     async def login(
         self,

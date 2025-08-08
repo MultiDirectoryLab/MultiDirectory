@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
-from functools import wraps
 from ipaddress import IPv4Address, IPv6Address
 
 from jose import jwt
@@ -42,14 +41,16 @@ from ldap_protocol.multifactor import (
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from ldap_protocol.objects import OperationEvent
-from ldap_protocol.policies.audit.monitor import AuditMonitor
+from ldap_protocol.policies.audit.monitor import (
+    AuditMonitor,
+    AuditMonitorUseCase,
+)
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
 from models import CatalogueSetting, User
 
 
-class MFAManager(SessionKeyCreatorMixin):
+class MFAManager(SessionKeyCreatorMixin, AuditMonitorUseCase):
     """MFA manager."""
 
     def __init__(
@@ -67,72 +68,12 @@ class MFAManager(SessionKeyCreatorMixin):
         :param storage: SessionStorage
         :param mfa_api: MultifactorAPI
         """
+        super().__init__(monitor)
         self._session = session
         self._settings = settings
         self._storage = storage
         self._mfa_api = mfa_api
-        self._monitor = monitor
         self.key_ttl = self._storage.key_ttl
-
-    def __getattribute__(self, name: str) -> object:
-        """Intercept attribute access to add session management."""
-        attr = super().__getattribute__(name)
-        if name == "callback_mfa":
-
-            @wraps(attr)
-            async def wrapped_callback_mfa(
-                access_token: str,
-                mfa_creds: MFA_HTTP_Creds,
-                ip: IPv4Address | IPv6Address,
-                user_agent: str,
-            ) -> str:
-                """Wrap callback_mfa to handle session management."""
-                self._monitor.event_type = OperationEvent.AFTER_2FA
-                self._monitor.ip = ip
-                self._monitor.user_agent = user_agent
-                try:
-                    key = await attr(
-                        access_token,
-                        mfa_creds,
-                        ip,
-                        user_agent,
-                    )
-                    self._monitor.username = key
-                    return key
-                except (ForbiddenError, MFATokenError) as exc:
-                    self._monitor.set_error_message(exc)
-                    raise exc
-                finally:
-                    await self._monitor.track_audit_event()
-
-            return wrapped_callback_mfa
-
-        if name == "proxy_request":
-
-            @wraps(attr)
-            async def wrapped_proxy_request(
-                principal: str,
-                ip: IPv4Address,
-            ) -> None:
-                """Wrap the proxy_request method to manage session."""
-                self._monitor.event_type = OperationEvent.KERBEROS_AUTH
-                self._monitor.username = principal
-                self._monitor.ip = ip
-                try:
-                    return await attr(principal, ip)
-                except (
-                    InvalidCredentialsError,
-                    NetworkPolicyError,
-                    AuthenticationError,
-                ) as exc:
-                    self._monitor.set_error_message(exc)
-                    raise exc
-                finally:
-                    await self._monitor.track_audit_event()
-
-            return wrapped_proxy_request
-
-        return attr
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
