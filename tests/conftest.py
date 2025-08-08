@@ -291,8 +291,10 @@ class TestProvider(Provider):
         storage: SessionStorage,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        yield LDAPSession(storage=storage)
-        return
+        session = LDAPSession(storage=storage)
+        await session.start()
+        yield session
+        await session.disconnect()
 
     @provide(scope=Scope.REQUEST, provides=MultifactorAPI)
     async def get_mfa_api(self) -> Mock:
