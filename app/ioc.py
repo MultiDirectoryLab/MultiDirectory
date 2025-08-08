@@ -4,14 +4,14 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import logging
+from logging.handlers import RotatingFileHandler
 from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
-from loguru import logger
-from loguru._logger import Logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -87,7 +87,7 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
-AuditLogger = NewType("AuditLogger", Logger)
+AuditLogger = NewType("AuditLogger", logging.Logger)
 
 
 class MainProvider(Provider):
@@ -447,13 +447,17 @@ class EventSenderProvider(Provider):
     @provide()
     def setup_audit_logging(self, settings: Settings) -> AuditLogger:
         """Create audit logger.."""
-        logger.add(
+        audit_logger = logging.getLogger("audit")
+        audit_logger.setLevel(logging.INFO)
+        handler = RotatingFileHandler(
             settings.AUDIT_LOG_FILE,
-            rotation="10 MB",
-            compression="zip",
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
         )
-
-        return AuditLogger(logger)  # type: ignore
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        audit_logger.addHandler(handler)
+        audit_logger.propagate = False
+        return AuditLogger(audit_logger)
 
 
 class MFAProvider(Provider):
