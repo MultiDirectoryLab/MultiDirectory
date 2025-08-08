@@ -227,7 +227,17 @@ class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
         if "policy_id" in decoded:
             decoded["policy_id"] = int(decoded["policy_id"])
         if "severity" in decoded:
-            decoded["policy_id"] = int(decoded["severity"])
+            decoded["severity"] = int(decoded["severity"])
+        if "retry_count" in decoded:
+            decoded["retry_count"] = int(decoded["retry_count"])
+
+        if "first_failed_at" in decoded:
+            if decoded["first_failed_at"] == "None":
+                decoded["first_failed_at"] = None
+            else:
+                decoded["first_failed_at"] = datetime.fromisoformat(
+                    decoded["first_failed_at"],
+                )
         if "is_operation_success" in decoded:
             val = decoded["is_operation_success"]
             decoded["is_operation_success"] = (
