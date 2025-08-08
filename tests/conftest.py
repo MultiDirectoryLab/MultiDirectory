@@ -40,6 +40,7 @@ from sqlalchemy.ext.asyncio import (
 
 from api import shadow_router
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from config import Settings
@@ -397,6 +398,7 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
+    session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
 
 
 @dataclass

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
+from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from config import Settings
@@ -295,6 +296,7 @@ class HTTPProvider(LDAPContextProvider):
         return KRBTemplateRenderer(settings.TEMPLATES)
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
+    session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
