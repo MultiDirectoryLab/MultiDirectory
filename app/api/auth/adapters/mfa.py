@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from fastapi import HTTPException, Request, Response, status
+from fastapi import HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
@@ -109,17 +109,13 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         self,
         form: OAuth2Form,
         request: Request,
-        response: Response,
         ip: IPv4Address | IPv6Address,
-        user_agent: str,
     ) -> MFAChallengeResponse:
         """Initiate two-factor protocol with application.
 
         :param form: OAuth2Form
         :param request: FastAPI Request
-        :param response: FastAPI Response
         :param ip: IP address
-        :param user_agent: str
         :return: MFAChallengeResponse
         :raises HTTPException: 422 if invalid credentials or not found
         :raises HTTPException: 403 if forbidden
@@ -127,18 +123,11 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 406 if MFA error
         """
         try:
-            result, key = await self._manager.two_factor_protocol(
+            result = await self._manager.two_factor_protocol(
                 form=form,
                 url=request.url_for("callback_mfa"),
                 ip=ip,
-                user_agent=user_agent,
             )
-            if key is not None:
-                await self.set_session_cookie(
-                    response,
-                    self._manager.key_ttl,
-                    key,
-                )
             return result
         except InvalidCredentialsError as exc:
             raise HTTPException(
