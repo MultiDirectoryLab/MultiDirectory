@@ -93,7 +93,7 @@ class AuditEventNormalizer:
         return {}
 
     def build(self) -> NormalizedAuditEvent:
-        """Normalize event data и вернуть pydantic-модель."""
+        """Build a normalized audit event."""
         details = self._prepare_details()
         if not self.trigger.is_operation_success:
             details.update(self._extract_error_info())
