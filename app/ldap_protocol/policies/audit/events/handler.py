@@ -82,8 +82,8 @@ class AuditEventHandler:
 
         change_attribute = trigger.additional_info["change_attributes"][0]
 
-        if change_attribute not in event.context["after_attrs"]:
-            raise ValueError("Change attribute not found in after_attrs")
+        if change_attribute not in event.context.get("after_attrs", {}):
+            raise ValueError
 
         if change_attribute in {"useraccountcontrol", "pwdlastset"}:
             first_value = int(
@@ -119,10 +119,6 @@ class AuditEventHandler:
         event: RawAuditEvent,
     ) -> bool:
         """Check if event object class matches trigger object class."""
-        for attr in event.request.get("attributes", []):
-            if attr["type"] == "objectClass":
-                return trigger.object_class in attr["vals"]
-
         return (
             trigger.object_class
             in event.context["before_attrs"]["objectclass"]
