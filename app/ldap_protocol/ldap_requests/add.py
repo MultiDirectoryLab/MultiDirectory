@@ -223,7 +223,7 @@ class AddRequest(BaseRequest):
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
             if (
-                attr.l_name.lower() in Directory.ro_fields
+                attr.l_name in Directory.ro_fields
                 or attr.l_name
                 in (
                     "userpassword",
