@@ -526,12 +526,12 @@ class Directory(Base):
 
     ro_fields = {
         "uid",
-        "whenCreated",
-        "lastLogon",
-        "authTimestamp",
-        "objectGUID",
-        "objectSid",
-        "entityTypeName",
+        "whencreated",
+        "lastlogon",
+        "authtimestamp",
+        "objectguid",
+        "objectsid",
+        "entitytypename",
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
