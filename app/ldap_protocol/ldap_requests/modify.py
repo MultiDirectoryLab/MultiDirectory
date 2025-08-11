@@ -310,7 +310,7 @@ class ModifyRequest(BaseRequest):
         if operation == Operation.REPLACE:
             for group in directory.groups:
                 if (
-                    group.directory.name == DOMAIN_ADMIN_NAME
+                    group.directory.name == _DOMAIN_ADMIN_NAME
                     and directory.path_dn == user.dn
                     and group not in groups
                 ):
@@ -321,7 +321,7 @@ class ModifyRequest(BaseRequest):
         elif operation == Operation.DELETE:
             for group in groups:
                 if (
-                    group.directory.name == DOMAIN_ADMIN_NAME
+                    group.directory.name == _DOMAIN_ADMIN_NAME
                     and directory.path_dn == user.dn
                 ):
                     raise ModifyForbiddenError(
