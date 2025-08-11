@@ -82,6 +82,26 @@ async def test_ldap_delete(
         .filter_by(name="test"),
     )  # fmt: skip
 
+    proc = await asyncio.create_subprocess_exec(
+        "ldapdelete",
+        "-vvv",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        user["sam_accout_name"],
+        "-x",
+        "-w",
+        user["password"],
+        "cn=user0,ou=users,dc=md,dc=test",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    assert await proc.wait() == 1
+    assert await session.scalar(
+        select(Directory)
+        .filter_by(name="user0"),
+    )  # fmt: skip
+
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")

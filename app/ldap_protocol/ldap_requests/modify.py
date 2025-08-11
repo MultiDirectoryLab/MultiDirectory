@@ -16,6 +16,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from config import Settings
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import (
     AbstractKadmin,
     KRBAPIError,
@@ -50,13 +51,21 @@ from security import get_password_hash
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
 
+
+class ModifyForbiddenError(Exception):
+    """Modify request is not allowed."""
+
+
 MODIFY_EXCEPTION_STACK = (
     ValueError,
     IntegrityError,
     KRBAPIError,
     RecursionError,
     PermissionError,
+    ModifyForbiddenError,
 )
+
+_DOMAIN_ADMIN_NAME = "domain admins"
 
 
 class ModifyRequest(BaseRequest):
@@ -190,6 +199,7 @@ class ModifyRequest(BaseRequest):
                 ctx.session_storage,
                 ctx.kadmin,
                 ctx.settings,
+                ctx.ldap_session.user,
             )
 
             try:
@@ -197,7 +207,12 @@ class ModifyRequest(BaseRequest):
                     await self._add(*add_args)
 
                 elif change.operation == Operation.DELETE:
-                    await self._delete(change, directory, ctx.session)
+                    await self._delete(
+                        change,
+                        directory,
+                        ctx.session,
+                        ctx.ldap_session.user,
+                    )
 
                 elif change.operation == Operation.REPLACE:
                     async with ctx.session.begin_nested():
@@ -205,6 +220,7 @@ class ModifyRequest(BaseRequest):
                             change,
                             directory,
                             ctx.session,
+                            ctx.ldap_session.user,
                             True,
                         )
                         await ctx.session.flush()
@@ -251,6 +267,9 @@ class ModifyRequest(BaseRequest):
             case PermissionError():
                 return LDAPCodes.STRONGER_AUTH_REQUIRED, ""
 
+            case ModifyForbiddenError():
+                return LDAPCodes.OPERATIONS_ERROR, str(err)
+
             case _:
                 raise err
 
@@ -259,7 +278,8 @@ class ModifyRequest(BaseRequest):
             select(Directory)
             .options(
                 selectinload(Directory.attributes),
-                selectinload(Directory.groups),
+                selectinload(Directory.groups).joinedload(Group.directory),
+                selectinload(Directory.groups).selectinload(Group.members),
                 joinedload(Directory.group).selectinload(Group.members),
             )
             .filter(get_filter_from_path(self.object))
@@ -277,45 +297,140 @@ class ModifyRequest(BaseRequest):
             and directory.id == user_dir_id
         )
 
+    async def _can_delete_group_from_directory(
+        self,
+        directory: Directory,
+        user: UserSchema,
+        groups: list[Group],
+        operation: Operation,
+    ) -> None:
+        """Check if the request can delete group from directory."""
+        if operation == Operation.REPLACE:
+            for group in directory.groups:
+                if (
+                    group.directory.name == _DOMAIN_ADMIN_NAME
+                    and directory.path_dn == user.dn
+                    and group not in groups
+                ):
+                    raise ModifyForbiddenError(
+                        "Can't delete yourself from group.",
+                    )
+
+        elif operation == Operation.DELETE:
+            for group in groups:
+                if (
+                    group.directory.name == _DOMAIN_ADMIN_NAME
+                    and directory.path_dn == user.dn
+                ):
+                    raise ModifyForbiddenError(
+                        "Can't delete yourself from group.",
+                    )
+
+    async def _can_delete_member_from_directory(
+        self,
+        directory: Directory,
+        user: UserSchema,
+        members: list[Directory],
+        operation: Operation,
+    ) -> None:
+        """Check if the request can delete directory member."""
+        modified_members_dns = {member.path_dn for member in members}
+        is_user_not_in_replaced = (
+            operation == Operation.REPLACE
+            and user.dn not in modified_members_dns
+        )
+        is_user_in_deleted = (
+            operation == Operation.DELETE and user.dn in modified_members_dns
+        )
+
+        if directory.name == _DOMAIN_ADMIN_NAME and (
+            is_user_in_deleted or is_user_not_in_replaced
+        ):
+            raise ModifyForbiddenError(
+                "Can't delete yourself from group.",
+            )
+
+    async def _delete_memberof(
+        self,
+        change: Changes,
+        directory: Directory,
+        session: AsyncSession,
+        user: UserSchema,
+    ) -> None:
+        """Delete memberOf attribute from group."""
+        groups = await get_groups(change.modification.vals, session)  # type: ignore
+        await self._can_delete_group_from_directory(
+            directory=directory,
+            user=user,
+            groups=groups,
+            operation=change.operation,
+        )
+
+        if not change.modification.vals:
+            directory.groups.clear()
+
+        elif change.operation == Operation.REPLACE:
+            directory.groups = list(set(directory.groups) & set(groups))
+
+        else:
+            for group in groups:
+                directory.groups.remove(group)
+
+    async def _delete_member(
+        self,
+        change: Changes,
+        directory: Directory,
+        session: AsyncSession,
+        user: UserSchema,
+    ) -> None:
+        """Delete member attribute from group."""
+        members = await get_directories(change.modification.vals, session)  # type: ignore
+        await self._can_delete_member_from_directory(
+            directory=directory,
+            user=user,
+            members=members,
+            operation=change.operation,
+        )
+
+        if not change.modification.vals:
+            directory.group.members.clear()
+
+        elif change.operation == Operation.REPLACE:
+            directory.group.members = list(
+                set(directory.group.members) & set(members),
+            )
+
+        else:
+            for member in members:
+                directory.group.members.remove(member)
+
     async def _delete(
         self,
         change: Changes,
         directory: Directory,
         session: AsyncSession,
+        user: UserSchema,
         name_only: bool = False,
     ) -> None:
         attrs = []
         name = change.modification.type.lower()
 
         if name == "memberof":
-            groups = await get_groups(change.modification.vals, session)  # type: ignore
-
-            if not change.modification.vals:
-                directory.groups.clear()
-
-            elif change.operation == Operation.REPLACE:
-                directory.groups = list(set(directory.groups) & set(groups))
-
-            else:
-                for group in groups:
-                    directory.groups.remove(group)
-
+            await self._delete_memberof(
+                change=change,
+                directory=directory,
+                session=session,
+                user=user,
+            )
             return
 
         if name == "member":
-            members = await get_directories(change.modification.vals, session)  # type: ignore
-
-            if not change.modification.vals:
-                directory.group.members.clear()
-
-            elif change.operation == Operation.REPLACE:
-                directory.group.members = list(
-                    set(directory.group.members) & set(members),
-                )
-
-            else:
-                for member in members:
-                    directory.group.members.remove(member)
+            await self._delete_member(
+                change=change,
+                directory=directory,
+                session=session,
+                user=user,
+            )
             return
 
         if name_only or not change.modification.vals:
@@ -397,6 +512,7 @@ class ModifyRequest(BaseRequest):
         session_storage: SessionStorage,
         kadmin: AbstractKadmin,
         settings: Settings,
+        current_user: UserSchema,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -418,6 +534,11 @@ class ModifyRequest(BaseRequest):
                     )
                     and directory.user
                 ):
+                    if directory.path_dn == current_user.dn:
+                        raise ModifyForbiddenError(
+                            "Can't swith off own account.",
+                        )
+
                     await kadmin.lock_principal(
                         directory.user.get_upn_prefix(),
                     )

@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import defaultload
+from sqlalchemy.orm import defaultload, selectinload
 
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
@@ -25,7 +25,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory
+from models import Directory, Group
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
@@ -69,6 +69,7 @@ class DeleteRequest(BaseRequest):
             .options(
                 defaultload(Directory.user),
                 defaultload(Directory.attributes),
+                selectinload(Directory.groups).joinedload(Group.directory),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -90,12 +91,12 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        can_delete = ctx.access_manager.check_entity_level_access(
+        has_access_to_delete = ctx.access_manager.check_entity_level_access(
             aces=directory.access_control_entries,
             entity_type_id=directory.entity_type_id,
         )
 
-        if not can_delete:
+        if not has_access_to_delete:
             yield DeleteResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
@@ -108,6 +109,12 @@ class DeleteRequest(BaseRequest):
 
         try:
             if directory.user:
+                if directory.path_dn == ctx.ldap_session.user.dn:
+                    yield DeleteResponse(
+                        result_code=LDAPCodes.OPERATIONS_ERROR,
+                        error_message="Cannot delete yourself.",
+                    )
+                    return
                 await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
                 await ctx.session_storage.clear_user_sessions(
                     directory.user.id,
