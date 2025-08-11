@@ -22,6 +22,7 @@ from .helpers import (
     create_integer_hash,
     create_object_sid,
     dn_is_base_directory,
+    ft_now,
     validate_entry,
 )
 
@@ -172,12 +173,24 @@ async def check_kerberos_group(
     return (await session.scalars(select(query))).one()
 
 
-async def set_last_logon_user(
+async def set_user_logon_attrs(
     user: User,
     session: AsyncSession,
     tz: ZoneInfo,
 ) -> None:
-    """Update lastLogon attr."""
+    """Update attrs that need to be changed with user logon.
+
+    pwdLastSet, last_logon
+    """
+    await session.execute(
+        update(Attribute)
+        .values({"value": ft_now()})
+        .where(
+            Attribute.directory_id == user.directory_id,
+            Attribute.name == "pwdLastSet",
+            Attribute.value == "-1",
+        ),
+    )
     await session.execute(
         update(User)
         .values({"last_logon": datetime.now(tz=tz)})

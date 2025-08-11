@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import set_last_logon_user
+from ldap_protocol.utils.queries import set_user_logon_attrs
 from models import User
 
 
@@ -44,5 +44,5 @@ class SessionKeyCreatorMixin:
             },
         )
 
-        await set_last_logon_user(user, session, settings.TIMEZONE)
+        await set_user_logon_attrs(user, session, settings.TIMEZONE)
         return key
