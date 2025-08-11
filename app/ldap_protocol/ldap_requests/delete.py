@@ -69,8 +69,7 @@ class DeleteRequest(BaseRequest):
             .options(
                 defaultload(Directory.user),
                 selectinload(Directory.groups).selectinload(Group.directory),
-                defaultload(Directory.attributes),
-                selectinload(Directory.groups).joinedload(Group.directory),
+                selectinload(Directory.attributes),
             )
             .filter(get_filter_from_path(self.entry))
         )

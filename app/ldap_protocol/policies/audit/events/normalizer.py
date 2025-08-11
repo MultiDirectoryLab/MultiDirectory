@@ -46,9 +46,7 @@ class AuditEventNormalizer:
             details["target_dn"] = self.event_data.request["object"]
 
             if not self.trigger.additional_info:
-                raise ValueError(
-                    "Modify operation trigger must have additional_info",
-                )
+                return
 
             if not self.trigger.additional_info["change_attributes"]:
                 return
@@ -84,7 +82,6 @@ class AuditEventNormalizer:
         if "error_code" in self.event_data.context.get("details", {}):
             details = self.event_data.context["details"]
             return {
-                "error_code": details["error_code"],
                 "error_message": details["error_message"],
             }
         elif self.event_data.protocol.endswith("LDAP"):

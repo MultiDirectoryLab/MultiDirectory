@@ -338,7 +338,7 @@ class AuditUseCase:
                     is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["member"],
-                        "operation": "<",
+                        "operation": ">",
                         "result": True,
                     },
                 ),
@@ -350,7 +350,7 @@ class AuditUseCase:
                     is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["memberof"],
-                        "operation": "<",
+                        "operation": ">",
                         "result": True,
                     },
                 ),
@@ -372,7 +372,7 @@ class AuditUseCase:
                     is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["member"],
-                        "operation": ">",
+                        "operation": "<",
                         "result": True,
                     },
                 ),
@@ -384,7 +384,7 @@ class AuditUseCase:
                     is_operation_success=is_success,
                     additional_info={
                         "change_attributes": ["memberof"],
-                        "operation": ">",
+                        "operation": "<",
                         "result": True,
                     },
                 ),
