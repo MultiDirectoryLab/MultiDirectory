@@ -51,19 +51,21 @@ from security import get_password_hash
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
 
+
+class ModifyForbiddenError(Exception):
+    """Modify request is not allowed."""
+
+
 MODIFY_EXCEPTION_STACK = (
     ValueError,
     IntegrityError,
     KRBAPIError,
     RecursionError,
     PermissionError,
+    ModifyForbiddenError,
 )
 
 _DOMAIN_ADMIN_NAME = "domain admins"
-
-
-class ModifyForbiddenError(Exception):
-    """Modify request is not allowed."""
 
 
 class ModifyRequest(BaseRequest):
@@ -234,13 +236,6 @@ class ModifyRequest(BaseRequest):
                 yield ModifyResponse(result_code=result_code, message=message)
                 return
 
-            except ModifyForbiddenError as err:
-                yield ModifyResponse(
-                    result_code=LDAPCodes.OPERATIONS_ERROR,
-                    error_message=str(err),
-                )
-                return
-
             await ctx.session.refresh(
                 instance=directory,
                 attribute_names=["groups", "attributes"],
@@ -271,6 +266,9 @@ class ModifyRequest(BaseRequest):
 
             case PermissionError():
                 return LDAPCodes.STRONGER_AUTH_REQUIRED, ""
+
+            case ModifyForbiddenError():
+                return LDAPCodes.OPERATIONS_ERROR, str(err)
 
             case _:
                 raise err
