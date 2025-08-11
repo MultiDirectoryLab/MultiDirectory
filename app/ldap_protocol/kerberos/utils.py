@@ -94,16 +94,12 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     :param str name: upn
     :param AsyncSession session: db
     """
-    entity_type_query = (
-        select(EntityType.id)
-        .where(EntityType.name == "User")
-        .scalar_subquery()
-    )
     subquery = (
         select(Directory.id)
+        .outerjoin(Directory.entity_type)
         .where(
             Directory.name.ilike(name),
-            Directory.entity_type_id == entity_type_query,
+            EntityType.name == "User",
         )
         .scalar_subquery()
     )
