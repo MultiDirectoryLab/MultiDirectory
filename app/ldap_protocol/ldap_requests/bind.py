@@ -39,7 +39,7 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.queries import (
     check_kerberos_group,
-    set_last_logon_user,
+    set_user_logon_attrs,
 )
 from models import NetworkPolicy, User
 
@@ -227,7 +227,7 @@ class BindRequest(BaseRequest):
             )
 
         await ctx.ldap_session.set_user(user)
-        await set_last_logon_user(user, ctx.session, ctx.settings.TIMEZONE)
+        await set_user_logon_attrs(user, ctx.session, ctx.settings.TIMEZONE)
 
         yield BindResponse(result_code=LDAPCodes.SUCCESS)
 
