@@ -7,7 +7,7 @@ from typing import Literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.utils.queries import get_user, set_last_logon_user
+from ldap_protocol.utils.queries import get_user, set_user_logon_attrs
 from models import User
 
 from .redis import SessionStorage
@@ -85,7 +85,7 @@ class SessionRepository:
             ttl=ttl,
         )
 
-        await set_last_logon_user(user, self.session, self.settings.TIMEZONE)
+        await set_user_logon_attrs(user, self.session, self.settings.TIMEZONE)
         return key
 
     async def get_user_sessions(
