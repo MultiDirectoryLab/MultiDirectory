@@ -33,6 +33,13 @@ class MFAFlags(IntEnum):
     WHITELIST = 2
 
 
+class MFAChallengeStatuses(StrEnum):
+    """Two-Factor challenge status."""
+
+    BYPASS = "bypass"
+    PENDING = "pending"
+
+
 class KindType(StrEnum):
     """Object kind types."""
 

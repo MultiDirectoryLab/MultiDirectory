@@ -8,10 +8,12 @@ from datetime import datetime, timedelta
 
 import httpx
 import pytest
+from fastapi import status
 from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from enums import MFAChallengeStatuses
 from ldap_protocol.identity.utils import authenticate_user
 from models import CatalogueSetting
 from tests.conftest import TestCreds
@@ -61,7 +63,7 @@ async def test_set_and_remove_mfa(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_connect_mfa(
-    http_client: httpx.AsyncClient,
+    unbound_http_client: httpx.AsyncClient,
     session: AsyncSession,
     creds: TestCreds,
 ) -> None:
@@ -74,12 +76,17 @@ async def test_connect_mfa(
 
     redirect_url = "example.com"
 
-    response = await http_client.post(
+    response = await unbound_http_client.post(
         "/multifactor/connect",
         data={"username": creds.un, "password": creds.pw},
     )
 
-    assert response.json() == {"status": "pending", "message": redirect_url}
+    assert response.json() == {
+        "status": MFAChallengeStatuses.PENDING,
+        "message": redirect_url,
+    }
+    response = await unbound_http_client.get("auth/me")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     user = await authenticate_user(session, creds.un, creds.pw)
 
@@ -89,7 +96,7 @@ async def test_connect_mfa(
 
     token = jwt.encode({"aud": "123", "uid": user.id, "exp": exp}, "123")
 
-    response = await http_client.post(
+    response = await unbound_http_client.post(
         "/multifactor/create",
         data={"accessToken": token},
         follow_redirects=False,
@@ -97,3 +104,6 @@ async def test_connect_mfa(
 
     assert response.status_code == 302
     assert response.cookies.get("id")
+
+    resp = await unbound_http_client.get("auth/me")
+    assert resp.status_code == status.HTTP_200_OK

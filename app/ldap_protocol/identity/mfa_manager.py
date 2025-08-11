@@ -31,6 +31,7 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
+from enums import MFAChallengeStatuses
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.multifactor import (
     Creds,
@@ -180,22 +181,20 @@ class MFAManager:
             self.key_ttl,
         )
 
-    async def _create_session_and_response(
+    async def _create_bypass_data(
         self,
         user: User,
-        status: str,
         message: str,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[MFAChallengeResponse, str]:
+    ) -> tuple[MFAChallengeResponse, str | None]:
         """Create session key and response.
 
         :param user: User
-        :param status: str
         :param message: str
         :param ip: IPv4Address | IPv6Address
         :param user_agent: str
-        :return: tuple[MFAChallengeResponse, str]
+        :return: tuple[MFAChallengeResponse, str | None]
         """
         key = await self._repository.create_session_key(
             user,
@@ -204,7 +203,10 @@ class MFAManager:
             self.key_ttl,
         )
         return (
-            MFAChallengeResponse(status=status, message=message),
+            MFAChallengeResponse(
+                status=MFAChallengeStatuses.BYPASS,
+                message=message,
+            ),
             key,
         )
 
@@ -220,7 +222,6 @@ class MFAManager:
         :param form: OAuth2Form
         :param url: URL for MFA callback
         :param ip: IP address
-        :param user_agent: str
         :return:
             tuple[MFAChallengeResponse, str | None] (session key | None)
         :raises MissingMFACredentialsError: if MFA is not initialized
@@ -242,6 +243,12 @@ class MFAManager:
         if network_policy is None:
             raise NetworkPolicyError()
 
+        bypass_coro = self._create_bypass_data(
+            user,
+            "",
+            ip,
+            user_agent,
+        )
         try:
             if self._settings.USE_CORE_TLS:
                 url = url.replace(scheme="https")
@@ -253,41 +260,23 @@ class MFAManager:
 
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                return await self._create_session_and_response(
-                    user,
-                    "bypass",
-                    "",
-                    ip,
-                    user_agent,
-                )
+                return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            return await self._create_session_and_response(
-                user,
-                "bypass",
-                "",
-                ip,
-                user_agent,
-            )
+            return await bypass_coro
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                return await self._create_session_and_response(
-                    user,
-                    "bypass",
-                    "",
-                    ip,
-                    user_agent,
-                )
+                return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
-        return await self._create_session_and_response(
-            user,
-            "pending",
-            redirect_url,
-            ip,
-            user_agent,
+        return (
+            MFAChallengeResponse(
+                status=MFAChallengeStatuses.PENDING,
+                message=redirect_url,
+            ),
+            None,
         )
