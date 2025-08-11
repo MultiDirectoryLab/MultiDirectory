@@ -83,7 +83,7 @@ class AuditEventHandler:
         change_attribute = trigger.additional_info["change_attributes"][0]
 
         if change_attribute not in event.context["after_attrs"]:
-            raise ValueError
+            raise ValueError("Change attribute not found in after_attrs")
 
         if change_attribute in {"useraccountcontrol", "pwdlastset"}:
             first_value = int(
