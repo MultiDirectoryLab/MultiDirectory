@@ -315,17 +315,17 @@ class ModifyRequest(BaseRequest):
                     and group not in groups
                 ):
                     raise ModifyForbiddenError(
-                        "Нельзя удалить себя из группы.",
+                        "Can't delete yourself from group.",
                     )
 
-        else:
+        elif operation == Operation.DELETE:
             for group in groups:
                 if (
                     group.directory.name == DOMAIN_ADMIN_NAME
                     and directory.path_dn == user.dn
                 ):
                     raise ModifyForbiddenError(
-                        "Нельзя удалить себя из группы.",
+                        "Can't delete yourself from group.",
                     )
 
     async def _can_delete_member_from_directory(
@@ -349,7 +349,7 @@ class ModifyRequest(BaseRequest):
             is_user_in_deleted or is_user_not_in_replaced
         ):
             raise ModifyForbiddenError(
-                "Нельзя удалить себя из группы.",
+                "Can't delete yourself from group.",
             )
 
     async def _delete_memberof(
@@ -538,7 +538,7 @@ class ModifyRequest(BaseRequest):
                 ):
                     if directory.path_dn == current_user.dn:
                         raise ModifyForbiddenError(
-                            "Нельзя выключить собственную учетную запись.",
+                            "Can't swith off own account.",
                         )
 
                     await kadmin.lock_principal(

@@ -31,8 +31,6 @@ from models import Directory, Group
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
 
-DOMAIN_ADMIN_NAME = "domain admins"
-
 
 class DeleteForbiddenError(Exception):
     """Delete request is not allowed."""
@@ -153,5 +151,5 @@ class DeleteRequest(BaseRequest):
         """Check if the request can delete entry."""
         if directory.path_dn == user.dn:
             raise DeleteForbiddenError(
-                "Нельзя удалить собственную учетную запись.",
+                "Can't delete own account.",
             )
