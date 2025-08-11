@@ -323,7 +323,7 @@ class IdentityManager:
                         "name": request.username,
                         "object_class": "user",
                         "organizationalPerson": {
-                            "sam_accout_name": request.username,
+                            "sam_account_name": request.username,
                             "user_principal_name": request.user_principal_name,
                             "mail": request.mail,
                             "display_name": request.display_name,

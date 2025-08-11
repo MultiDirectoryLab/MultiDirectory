@@ -855,7 +855,7 @@ async def http_client(
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
     """Get creds from test data."""
-    return TestCreds(user["sam_accout_name"], user["password"])
+    return TestCreds(user["sam_account_name"], user["password"])
 
 
 @pytest.fixture

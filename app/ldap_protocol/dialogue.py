@@ -35,7 +35,7 @@ class UserSchema:
 
     id: int
     session_id: str
-    sam_accout_name: str
+    sam_account_name: str
     user_principal_name: str
     mail: str | None
     display_name: str | None
@@ -55,7 +55,7 @@ class UserSchema:
         return cls(
             id=user.id,
             session_id=session_id.split(".")[0],
-            sam_accout_name=user.sam_accout_name,
+            sam_account_name=user.sam_account_name,
             user_principal_name=user.user_principal_name,
             mail=user.mail,
             display_name=user.display_name,

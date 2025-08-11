@@ -624,7 +624,7 @@ class User(Base):
         lazy="joined",
     )
 
-    sam_accout_name: Mapped[str] = mapped_column(
+    sam_account_name: Mapped[str] = mapped_column(
         "sAMAccountName",
         nullable=False,
         unique=True,
@@ -642,10 +642,10 @@ class User(Base):
     )
     password: Mapped[str] = mapped_column(nullable=True)
 
-    samaccountname: Mapped[str] = synonym("sam_accout_name")
+    samaccountname: Mapped[str] = synonym("sam_account_name")
     userprincipalname: Mapped[str] = synonym("user_principal_name")
     displayname: Mapped[str] = synonym("display_name")
-    uid: Mapped[str] = synonym("sam_accout_name")
+    uid: Mapped[str] = synonym("sam_account_name")
     accountexpires: Mapped[str] = synonym("account_exp")
 
     last_logon: Mapped[datetime | None] = mapped_column(
@@ -695,11 +695,11 @@ class User(Base):
 
     def __str__(self) -> str:
         """User show."""
-        return f"User({self.sam_accout_name})"
+        return f"User({self.sam_account_name})"
 
     def __repr__(self) -> str:
         """User map with dir id."""
-        return f"User({self.directory_id}:{self.sam_accout_name})"
+        return f"User({self.directory_id}:{self.sam_account_name})"
 
     def is_expired(self) -> bool:
         """Check AccountExpires."""

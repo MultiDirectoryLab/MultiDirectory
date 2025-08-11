@@ -622,10 +622,10 @@ class ModifyRequest(BaseRequest):
                             base_dn = base_directory
                             break
 
-                    sam_accout_name = create_user_name(directory.id)
-                    user_principal_name = f"{sam_accout_name}@{base_dn.name}"
+                    sam_account_name = create_user_name(directory.id)
+                    user_principal_name = f"{sam_account_name}@{base_dn.name}"
                     user = User(
-                        sam_accout_name=sam_accout_name,
+                        sam_account_name=sam_account_name,
                         user_principal_name=user_principal_name,
                         directory=directory,
                     )

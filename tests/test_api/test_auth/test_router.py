@@ -93,7 +93,7 @@ async def test_first_setup_and_oauth(
 
     result = response.json()
 
-    assert result["sam_accout_name"] == "test"
+    assert result["sam_account_name"] == "test"
     assert result["user_principal_name"] == "test"
     assert result["mail"] == "test@md.example-345.ru"
     assert result["display_name"] == "test"

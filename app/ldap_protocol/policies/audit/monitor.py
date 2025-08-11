@@ -87,7 +87,7 @@ class AuditMonitor:
         if not user:
             raise ValueError("User not found in session")
 
-        self.username = user.user_principal_name or user.sam_accout_name
+        self.username = user.user_principal_name or user.sam_account_name
 
     def get_ip(self) -> IPv4Address | IPv6Address:
         """Get the IP address from the request."""

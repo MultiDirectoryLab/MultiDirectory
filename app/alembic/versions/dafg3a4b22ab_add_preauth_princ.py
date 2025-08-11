@@ -28,7 +28,7 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     for user in session.query(User):
-        if user.sam_accout_name == "krbadmin":
+        if user.sam_account_name == "krbadmin":
             continue
 
         username, domain = user.user_principal_name.split("@")

@@ -55,7 +55,7 @@ DATA = [
                 "name": "user 1",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_accout_name": "username1",
+                    "sam_account_name": "username1",
                     "user_principal_name": "username1@multifactor.dev",
                     "mail": "username1@multifactor.dev",
                     "display_name": "User 1",
@@ -76,7 +76,7 @@ DATA = [
                 "name": "user 2",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_accout_name": "username2",
+                    "sam_account_name": "username2",
                     "user_principal_name": "username2@multifactor.dev",
                     "mail": "username2@multifactor.dev",
                     "display_name": "User 2",
@@ -99,7 +99,7 @@ DATA = [
         "name": "user",
         "object_class": "user",
         "organizationalPerson": {
-            "sam_accout_name": "username0",
+            "sam_account_name": "username0",
             "user_principal_name": "username0@multifactor.dev",
             "mail": "username0@multifactor.dev",
             "display_name": "User 0",
@@ -125,7 +125,7 @@ DATA = [
                 "name": "user 3",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_accout_name": "username3",
+                    "sam_account_name": "username3",
                     "user_principal_name": "username3@multifactor.dev",
                     "mail": "username3@multifactor.dev",
                     "display_name": "User 3",
@@ -151,7 +151,7 @@ DATA = [
                 "name": "user 4",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_accout_name": "username4",
+                    "sam_account_name": "username4",
                     "user_principal_name": "username4@multifactor.dev",
                     "mail": "username4@multifactor.dev",
                     "display_name": "User 4",
@@ -184,7 +184,7 @@ DATA = [
                         "name": "user 5",
                         "object_class": "user",
                         "organizationalPerson": {
-                            "sam_accout_name": "username5",
+                            "sam_account_name": "username5",
                             "user_principal_name": "username5@multifactor.dev",
                             "mail": "username5@multifactor.dev",
                             "display_name": "User 5",
@@ -260,7 +260,7 @@ TEST_DATA = [
                 "name": "user0",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_accout_name": "user0",
+                    "sam_account_name": "user0",
                     "user_principal_name": "user0",
                     "mail": "user0@mail.com",
                     "display_name": "user0",
@@ -288,7 +288,7 @@ TEST_DATA = [
                 "name": "user_admin",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_accout_name": "user_admin",
+                    "sam_account_name": "user_admin",
                     "user_principal_name": "user_admin",
                     "mail": "user_admin@mail.com",
                     "display_name": "user_admin",
@@ -315,7 +315,7 @@ TEST_DATA = [
                 "name": "user_non_admin",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_accout_name": "user_non_admin",
+                    "sam_account_name": "user_non_admin",
                     "user_principal_name": "user_non_admin",
                     "mail": "user_non_admin@mail.com",
                     "display_name": "user_non_admin",
@@ -357,7 +357,7 @@ TEST_DATA = [
                                 "name": "user1",
                                 "object_class": "user",
                                 "organizationalPerson": {
-                                    "sam_accout_name": "user1",
+                                    "sam_account_name": "user1",
                                     "user_principal_name": "user1",
                                     "mail": "user1@mail.com",
                                     "display_name": "user1",
