@@ -248,7 +248,8 @@ class AuditEventHandler:
 
             await self.save_events(normalize_events)
         finally:
-            await self.raw_audit_manager.delete_event(event.id)  # type: ignore
+            if event.id is not None:
+                await self.raw_audit_manager.delete_event(event.id)
 
     async def run(self) -> None:
         """Start event handler main processing loop."""

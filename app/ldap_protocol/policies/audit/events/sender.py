@@ -134,7 +134,8 @@ class AuditEventSenderManager:
         ):
             to_delete = True
 
-        await self._normalized_audit_manager.delete_event(event.id)  # type: ignore
+        if event.id is not None:
+            await self._normalized_audit_manager.delete_event(event.id)
 
         if not to_delete:
             await self._normalized_audit_manager.send_event(event)  # type: ignore
