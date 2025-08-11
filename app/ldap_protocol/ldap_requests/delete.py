@@ -32,10 +32,6 @@ from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
 
 
-class DeleteForbiddenError(Exception):
-    """Delete request is not allowed."""
-
-
 class DeleteRequest(BaseRequest):
     """Delete request.
 
@@ -114,7 +110,12 @@ class DeleteRequest(BaseRequest):
 
         try:
             if directory.user:
-                await self._can_delete(directory, ctx.ldap_session.user)
+                if directory.path_dn == ctx.ldap_session.user.dn:
+                    yield DeleteResponse(
+                        result_code=LDAPCodes.OPERATIONS_ERROR,
+                        error_message="Cannot delete yourself.",
+                    )
+                    return
                 await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
                 await ctx.session_storage.clear_user_sessions(
                     directory.user.id,
@@ -131,25 +132,8 @@ class DeleteRequest(BaseRequest):
                 errorMessage="KerberosError",
             )
             return
-        except DeleteForbiddenError as err:
-            yield DeleteResponse(
-                result_code=LDAPCodes.OPERATIONS_ERROR,
-                error_message=str(err),
-            )
-            return
 
         await ctx.session.execute(delete(Directory).filter_by(id=directory.id))
         await ctx.session.commit()
 
         yield DeleteResponse(result_code=LDAPCodes.SUCCESS)
-
-    async def _can_delete(
-        self,
-        directory: Directory,
-        user: UserSchema,
-    ) -> None:
-        """Check if the request can delete entry."""
-        if directory.path_dn == user.dn:
-            raise DeleteForbiddenError(
-                "Can't delete own account.",
-            )

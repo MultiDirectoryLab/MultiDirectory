@@ -59,7 +59,7 @@ MODIFY_EXCEPTION_STACK = (
     PermissionError,
 )
 
-DOMAIN_ADMIN_NAME = "domain admins"
+_DOMAIN_ADMIN_NAME = "domain admins"
 
 
 class ModifyForbiddenError(Exception):
@@ -345,7 +345,7 @@ class ModifyRequest(BaseRequest):
             operation == Operation.DELETE and user.dn in modified_members_dns
         )
 
-        if directory.name == DOMAIN_ADMIN_NAME and (
+        if directory.name == _DOMAIN_ADMIN_NAME and (
             is_user_in_deleted or is_user_not_in_replaced
         ):
             raise ModifyForbiddenError(
