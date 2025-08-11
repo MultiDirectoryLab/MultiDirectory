@@ -180,6 +180,34 @@ class MFAManager:
             self.key_ttl,
         )
 
+    async def _create_session_and_response(
+        self,
+        user: User,
+        status: str,
+        message: str,
+        ip: IPv4Address | IPv6Address,
+        user_agent: str,
+    ) -> tuple[MFAChallengeResponse, str]:
+        """Create session key and response.
+
+        :param user: User
+        :param status: str
+        :param message: str
+        :param ip: IPv4Address | IPv6Address
+        :param user_agent: str
+        :return: tuple[MFAChallengeResponse, str]
+        """
+        key = await self._repository.create_session_key(
+            user,
+            ip,
+            user_agent,
+            self.key_ttl,
+        )
+        return (
+            MFAChallengeResponse(status=status, message=message),
+            key,
+        )
+
     async def two_factor_protocol(
         self,
         form: OAuth2Form,
@@ -222,20 +250,41 @@ class MFAManager:
 
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                return MFAChallengeResponse(status="bypass", message="")
+                return await self._create_session_and_response(
+                    user,
+                    "bypass",
+                    "",
+                    ip,
+                    user_agent,
+                )
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            return MFAChallengeResponse(status="bypass", message="")
+            return await self._create_session_and_response(
+                user,
+                "bypass",
+                "",
+                ip,
+                user_agent,
+            )
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                return MFAChallengeResponse(status="bypass", message="")
+                return await self._create_session_and_response(
+                    user,
+                    "bypass",
+                    "",
+                    ip,
+                    user_agent,
+                )
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
-        return MFAChallengeResponse(
-            status="pending",
-            message=redirect_url,
+        return await self._create_session_and_response(
+            user,
+            "pending",
+            redirect_url,
+            ip,
+            user_agent,
         )
