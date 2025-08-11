@@ -270,16 +270,16 @@ class AddRequest(BaseRequest):
                 (await get_group("domain users", ctx.session)).group,
             )
 
-            sam_accout_name = user_attributes.get(
+            sam_account_name = user_attributes.get(
                 "sAMAccountName",
                 create_user_name(new_dir.id),
             )
             user_principal_name = user_attributes.get(
                 "userPrincipalName",
-                f"{sam_accout_name!r}@{base_dn.name}",
+                f"{sam_account_name!r}@{base_dn.name}",
             )
             user = User(
-                sam_accout_name=sam_accout_name,
+                sam_account_name=sam_account_name,
                 user_principal_name=user_principal_name,
                 mail=user_attributes.get("mail"),
                 display_name=user_attributes.get("displayName"),
@@ -308,8 +308,8 @@ class AddRequest(BaseRequest):
 
             for attr, value in {  # type: ignore
                 "loginShell": "/bin/bash",
-                "uidNumber": str(create_integer_hash(user.sam_accout_name)),
-                "homeDirectory": f"/home/{user.sam_accout_name}",
+                "uidNumber": str(create_integer_hash(user.sam_account_name)),
+                "homeDirectory": f"/home/{user.sam_account_name}",
             }.items():
                 if attr in user_attributes:
                     value = user_attributes[attr]  # type: ignore

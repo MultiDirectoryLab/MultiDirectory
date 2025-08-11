@@ -113,7 +113,7 @@ async def _create_dir(
         user_data = data["organizationalPerson"]
         user = User(
             directory=dir_,
-            sam_accout_name=user_data["sam_accout_name"],
+            sam_account_name=user_data["sam_account_name"],
             user_principal_name=user_data["user_principal_name"],
             display_name=user_data["display_name"],
             mail=user_data["mail"],

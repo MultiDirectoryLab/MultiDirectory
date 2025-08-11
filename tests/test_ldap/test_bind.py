@@ -51,7 +51,7 @@ async def test_bind_ok_and_unbind(
     result = await anext(bind.handle(ctx_bind))
     assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
     assert ctx_bind.ldap_session.user
-    assert ctx_bind.ldap_session.user.sam_accout_name == creds.un
+    assert ctx_bind.ldap_session.user.sam_account_name == creds.un
 
     ctx_unbind.ldap_session = ctx_bind.ldap_session
 
@@ -214,7 +214,7 @@ async def test_bind_invalid_password_or_user(
         rdname="cn",
     )
     user = User(
-        sam_accout_name="user0",
+        sam_account_name="user0",
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
@@ -337,7 +337,7 @@ async def test_bind_disabled_user(
         rdname="cn",
     )
     user = User(
-        sam_accout_name="user0",
+        sam_account_name="user0",
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
@@ -355,7 +355,7 @@ async def test_bind_disabled_user(
 
     bind = BindRequest(
         version=0,
-        name=user.sam_accout_name,
+        name=user.sam_account_name,
         AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
