@@ -2,7 +2,6 @@
 
 from functools import wraps
 from typing import Any, Callable
-from xml.dom.minidom import Entity
 
 import httpx
 from sqlalchemy import delete, select, update
