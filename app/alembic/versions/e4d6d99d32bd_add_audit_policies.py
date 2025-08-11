@@ -6,12 +6,16 @@ Create Date: 2025-03-26 08:04:54.853880
 
 """
 
+from unittest.mock import Mock
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
+from ldap_protocol.policies.audit.events.managers import RawAuditManager
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.utils.queries import get_base_directories
 
@@ -31,7 +35,9 @@ def upgrade() -> None:
         if not await get_base_directories(session):
             return
         audit_dao = AuditPoliciesDAO(session)
-        use_case = AuditUseCase(audit_dao)
+        dest_dao = AuditDestinationDAO(session)
+        manager = Mock(spec=RawAuditManager)
+        use_case = AuditUseCase(audit_dao, dest_dao, manager)
         await use_case.create_policies()
         await session.commit()
 
