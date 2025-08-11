@@ -7,7 +7,7 @@ import httpx
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Attribute, CatalogueSetting, Directory
+from models import Attribute, CatalogueSetting, Directory, EntityType
 
 from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 
@@ -96,7 +96,11 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     """
     subquery = (
         select(Directory.id)
-        .where(Directory.name.ilike(name))
+        .outerjoin(Directory.entity_type)
+        .where(
+            Directory.name.ilike(name),
+            EntityType.name == "User",
+        )
         .scalar_subquery()
     )
     await session.execute(
