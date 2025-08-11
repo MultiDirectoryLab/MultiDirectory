@@ -31,6 +31,7 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
+from enums import MFAChallengeStatuses
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.multifactor import (
     Creds,
@@ -183,11 +184,11 @@ class MFAManager:
     async def _create_session_and_response(
         self,
         user: User,
-        status: str,
+        status: MFAChallengeStatuses,
         message: str,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[MFAChallengeResponse, str]:
+    ) -> tuple[MFAChallengeResponse, str | None]:
         """Create session key and response.
 
         :param user: User
@@ -195,14 +196,16 @@ class MFAManager:
         :param message: str
         :param ip: IPv4Address | IPv6Address
         :param user_agent: str
-        :return: tuple[MFAChallengeResponse, str]
+        :return: tuple[MFAChallengeResponse, str | None]
         """
-        key = await self._repository.create_session_key(
-            user,
-            ip,
-            user_agent,
-            self.key_ttl,
-        )
+        key = None
+        if status != MFAChallengeStatuses.PENDING:
+            key = await self._repository.create_session_key(
+                user,
+                ip,
+                user_agent,
+                self.key_ttl,
+            )
         return (
             MFAChallengeResponse(status=status, message=message),
             key,
@@ -213,13 +216,15 @@ class MFAManager:
         form: OAuth2Form,
         url: URL,
         ip: IPv4Address | IPv6Address,
-    ) -> MFAChallengeResponse:
+        user_agent: str,
+    ) -> tuple[MFAChallengeResponse, str | None]:
         """Initiate two-factor protocol with application.
 
         :param form: OAuth2Form
         :param url: URL for MFA callback
         :param ip: IP address
-        :return: MFAChallengeResponse
+        :return:
+            tuple[MFAChallengeResponse, str | None] (session key | None)
         :raises MissingMFACredentialsError: if MFA is not initialized
         :raises InvalidCredentialsError: if credentials are invalid
         :raises NetworkPolicyError: if network policy is not passed
@@ -252,7 +257,7 @@ class MFAManager:
             if network_policy.bypass_no_connection:
                 return await self._create_session_and_response(
                     user,
-                    "bypass",
+                    MFAChallengeStatuses.BYPASS,
                     "",
                     ip,
                     user_agent,
@@ -263,7 +268,7 @@ class MFAManager:
         except self._mfa_api.MFAMissconfiguredError:
             return await self._create_session_and_response(
                 user,
-                "bypass",
+                MFAChallengeStatuses.BYPASS,
                 "",
                 ip,
                 user_agent,
@@ -273,7 +278,7 @@ class MFAManager:
             if network_policy.bypass_service_failure:
                 return await self._create_session_and_response(
                     user,
-                    "bypass",
+                    MFAChallengeStatuses.BYPASS,
                     "",
                     ip,
                     user_agent,
@@ -283,7 +288,7 @@ class MFAManager:
 
         return await self._create_session_and_response(
             user,
-            "pending",
+            MFAChallengeStatuses.PENDING,
             redirect_url,
             ip,
             user_agent,

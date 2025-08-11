@@ -12,6 +12,7 @@ from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from enums import MFAChallengeStatuses
 from ldap_protocol.identity.utils import authenticate_user
 from models import CatalogueSetting
 from tests.conftest import TestCreds
@@ -79,7 +80,10 @@ async def test_connect_mfa(
         data={"username": creds.un, "password": creds.pw},
     )
 
-    assert response.json() == {"status": "pending", "message": redirect_url}
+    assert response.json() == {
+        "status": MFAChallengeStatuses.PENDING,
+        "message": redirect_url,
+    }
 
     user = await authenticate_user(session, creds.un, creds.pw)
 
