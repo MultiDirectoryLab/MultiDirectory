@@ -2,12 +2,13 @@
 
 from functools import wraps
 from typing import Any, Callable
+from xml.dom.minidom import Entity
 
 import httpx
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Attribute, CatalogueSetting, Directory
+from models import Attribute, CatalogueSetting, Directory, EntityType
 
 from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 
@@ -96,11 +97,16 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     :param str name: upn
     :param AsyncSession session: db
     """
+    entity_type_query = (
+        select(EntityType.id)
+        .where(EntityType.name == "User")
+        .scalar_subquery()
+    )
     subquery = (
         select(Directory.id)
         .where(
             Directory.name.ilike(name),
-            Directory.path.contains(USERS_ORG_UNIT_PATH),
+            Directory.entity_type_id == entity_type_query,
         )
         .scalar_subquery()
     )
