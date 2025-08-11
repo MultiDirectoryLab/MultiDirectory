@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from asyncio import TaskGroup
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -77,6 +78,8 @@ class LDAPSession:
     gssapi_security_context: gssapi.SecurityContext | None = None
     gssapi_security_layer: GSSAPISL
 
+    event_task_group: TaskGroup = None  # type: ignore[assignment]
+
     def __init__(
         self,
         *,
@@ -89,10 +92,15 @@ class LDAPSession:
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
         self.id = uuid.uuid4()
         self.storage = storage
+        self._task_group_cm = TaskGroup()
 
     def __str__(self) -> str:
         """Session with id."""
         return f"LDAPSession({self.id})"
+
+    async def start(self) -> None:
+        """Start session."""
+        self.event_task_group = await self._task_group_cm.__aenter__()
 
     @property
     def user(self) -> UserSchema | None:
@@ -179,6 +187,8 @@ class LDAPSession:
         if self.storage is None or self.user is None:
             return
         await self.storage.delete_user_session(self.key)
+        if self.event_task_group is not None:
+            await self._task_group_cm.__aexit__(None, None, None)
 
     async def ensure_session_exists(self) -> NoReturn:
         """Ensure session exists in storage.

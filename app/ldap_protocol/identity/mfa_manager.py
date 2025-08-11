@@ -23,6 +23,7 @@ from api.auth.schema import (
     OAuth2Form,
 )
 from api.exceptions.mfa import (
+    AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
     MFAError,
@@ -31,15 +32,20 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
-from enums import MFAChallengeStatuses
-from ldap_protocol.identity.utils import authenticate_user
+from enums import MFAChallengeStatuses, MFAFlags
+from ldap_protocol.identity.utils import authenticate_user, get_user
 from ldap_protocol.multifactor import (
     Creds,
+    LDAPMultiFactorAPI,
     MFA_HTTP_Creds,
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
-from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
+from ldap_protocol.policies.network_policy import (
+    check_mfa_group,
+    get_user_network_policy,
+)
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from models import CatalogueSetting, User
@@ -54,7 +60,9 @@ class MFAManager:
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
+        ldap_mfa_api: LDAPMultiFactorAPI,
         repository: SessionRepository,
+        monitor: AuditMonitorUseCase,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -67,8 +75,22 @@ class MFAManager:
         self._settings = settings
         self._storage = storage
         self._mfa_api = mfa_api
+        self._ldap_mfa_api = ldap_mfa_api
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
+        self._monitor = monitor
+
+    def __getattribute__(self, name: str) -> object:
+        """Intercept attribute access."""
+        attr = super().__getattribute__(name)
+        if not callable(attr):
+            return attr
+
+        if name == "callback_mfa":
+            return self._monitor.wrap_callback_mfa(attr)
+        elif name == "proxy_request":
+            return self._monitor.wrap_proxy_request(attr)
+        return attr
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -167,12 +189,12 @@ class MFAManager:
             )
         except (JWTError, AttributeError, JWKError) as err:
             logger.error(f"Invalid MFA token: {err}")
-            raise MFATokenError()
+            raise MFATokenError("Invalid MFA token")
 
         user_id: int = int(payload.get("uid"))
         user = await self._session.get(User, user_id)
         if user_id is None or not user:
-            raise MFATokenError()
+            raise MFATokenError("User not found")
 
         return await self._repository.create_session_key(
             user,
@@ -280,3 +302,73 @@ class MFAManager:
             ),
             None,
         )
+
+    async def proxy_request(self, principal: str, ip: IPv4Address) -> None:
+        """Proxy a request to the shadow account.
+
+        Args:
+            principal (str): The user principal name.
+            ip (IPv4Address): The IP address of the request.
+
+        Raises:
+            UserNotFoundError: If the user is not found in the database.
+            NetworkPolicyNotFoundError: If policy is not found for the user.
+            AuthenticationError: If the authentication fails.
+
+        """
+        user = await get_user(self._session, principal)
+
+        if not user:
+            raise InvalidCredentialsError(
+                f"User {principal} not found in the database.",
+            )
+
+        network_policy = await get_user_network_policy(
+            ip,
+            user,
+            self._session,
+        )
+
+        if network_policy is None or not network_policy.is_kerberos:
+            raise NetworkPolicyError(
+                f"Network policy not found for user {principal}.",
+            )
+
+        if (
+            not self._ldap_mfa_api
+            or network_policy.mfa_status == MFAFlags.DISABLED
+        ):
+            return
+        elif network_policy.mfa_status in (
+            MFAFlags.ENABLED,
+            MFAFlags.WHITELIST,
+        ):
+            if (
+                network_policy.mfa_status == MFAFlags.WHITELIST
+                and not await check_mfa_group(
+                    network_policy,
+                    user,
+                    self._session,
+                )
+            ):
+                return
+            try:
+                if await self._ldap_mfa_api.ldap_validate_mfa(
+                    user.user_principal_name,
+                    None,
+                ):
+                    return
+
+            except MultifactorAPI.MFAConnectError:
+                logger.error("MFA connect error")
+                if network_policy.bypass_no_connection:
+                    return
+            except MultifactorAPI.MFAMissconfiguredError:
+                logger.error("MFA missconfigured error")
+                return
+            except MultifactorAPI.MultifactorError:
+                logger.error("MFA service failure")
+                if network_policy.bypass_service_failure:
+                    return
+
+        raise AuthenticationError("Authentication failed.")

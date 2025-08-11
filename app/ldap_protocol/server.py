@@ -23,7 +23,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
-from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 
@@ -116,7 +115,6 @@ class PoolClientHandler:
 
             finally:
                 await session_scope.close()
-                await ldap_session.disconnect()
 
                 with suppress(RuntimeError):
                     await ldap_session.queue.join()
@@ -359,12 +357,8 @@ class PoolClientHandler:
                 self.req_log(addr, message)
 
                 async with container(scope=Scope.REQUEST) as request_container:
-                    # NOTE: Automatically provides requested arguments
-                    kwargs = await resolve_deps(
-                        func=message.context.handle,
-                        container=request_container,
-                    )
-                    handler = message.context.handle(**kwargs)
+                    handler = message.context.handle_tcp(request_container)
+
                     async for response in message.create_response(handler):
                         self.rsp_log(addr, response)
 

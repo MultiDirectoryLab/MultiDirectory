@@ -156,7 +156,13 @@ class BindRequest(BaseRequest):
             ctx.session,
             self.name,
         )
-
+        self.set_event_data(
+            {
+                "details": {
+                    "auth_choice": self.authentication_choice.method_name,
+                },
+            },
+        )
         if not user or not self.authentication_choice.is_valid(user):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return

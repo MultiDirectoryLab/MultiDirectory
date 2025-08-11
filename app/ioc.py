@@ -9,16 +9,21 @@ from typing import AsyncIterator, NewType
 import httpx
 import redis.asyncio as redis
 from dishka import Provider, Scope, from_context, provide
+from fastapi import Request
+from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
 )
 
+from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.auth.utils import get_ip_from_request
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
+from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -54,6 +59,27 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
+from ldap_protocol.policies.audit.events.dataclasses import (
+    NormalizedAuditEvent,
+    NormalizedAuditEventRedis,
+)
+from ldap_protocol.policies.audit.events.managers import (
+    AuditRedisClient,
+    NormalizedAuditManager,
+    RawAuditManager,
+)
+from ldap_protocol.policies.audit.events.sender import (
+    AuditEventSenderManager,
+    AuditLogger,
+)
+from ldap_protocol.policies.audit.monitor import (
+    AuditMonitor,
+    AuditMonitorUseCase,
+)
+from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
+from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -211,6 +237,61 @@ class MainProvider(Provider):
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
 
+    @provide()
+    async def get_normalized_audit_event(
+        self,
+    ) -> type[NormalizedAuditEvent]:
+        """Get normalized audit event class."""
+        return NormalizedAuditEventRedis
+
+    @provide(scope=Scope.APP)
+    async def get_audit_redis_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[AuditRedisClient]:
+        """Get audit redis client."""
+        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        yield AuditRedisClient(client)
+        await client.aclose()
+
+    @provide(scope=Scope.APP)
+    async def get_raw_audit_manager(
+        self,
+        client: AuditRedisClient,
+        settings: Settings,
+    ) -> AsyncIterator[RawAuditManager]:
+        """Get raw audit manager."""
+        yield RawAuditManager(
+            client,
+            settings.RAW_EVENT_STREAM_NAME,
+            settings.EVENT_HANDLER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+
+    @provide(scope=Scope.APP)
+    async def get_normalized_audit_manager(
+        self,
+        client: AuditRedisClient,
+        settings: Settings,
+    ) -> AsyncIterator[NormalizedAuditManager]:
+        """Get raw audit manager."""
+        yield NormalizedAuditManager(
+            client,
+            settings.NORMALIZED_EVENT_STREAM_NAME,
+            settings.EVENT_SENDER_GROUP,
+            settings.EVENT_CONSUMER_NAME,
+            settings.IS_PROC_EVENT_KEY,
+        )
+
+    audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
+    audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
+    audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
+
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
@@ -261,11 +342,25 @@ class HTTPProvider(LDAPContextProvider):
     """HTTP LDAP session."""
 
     scope = Scope.REQUEST
+    request = from_context(provides=Request, scope=Scope.REQUEST)
+    monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
+    audit_monitor = provide(
+        AuditMonitor,
+        scope=Scope.REQUEST,
+    )
 
     @provide(provides=LDAPSession)
-    async def get_session(self) -> LDAPSession:
+    async def get_session(
+        self,
+        request: Request,
+    ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        return LDAPSession()
+        ip = get_ip_from_request(request)
+        session = LDAPSession()
+        await session.start()
+        session.ip = ip
+        yield session
+        await session.disconnect()
 
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
@@ -273,6 +368,10 @@ class HTTPProvider(LDAPContextProvider):
     )
     identity_manager = provide(
         IdentityManager,
+        scope=Scope.REQUEST,
+    )
+    shadow_adapter = provide(
+        ShadowAdapter,
         scope=Scope.REQUEST,
     )
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
@@ -297,6 +396,8 @@ class HTTPProvider(LDAPContextProvider):
 
     krb_ldap_manager = provide(KRBLDAPStructureManager, scope=Scope.REQUEST)
     session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
+    audit_service = provide(AuditService, scope=Scope.REQUEST)
+    audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
@@ -305,9 +406,15 @@ class LDAPServerProvider(LDAPContextProvider):
     scope = Scope.SESSION
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
-    async def get_session(self, storage: SessionStorage) -> LDAPSession:
+    async def get_session(
+        self,
+        storage: SessionStorage,
+    ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        return LDAPSession(storage=storage)
+        session = LDAPSession(storage=storage)
+        await session.start()
+        yield session
+        await session.disconnect()
 
 
 class MFACredsProvider(Provider):
@@ -332,6 +439,33 @@ class MFACredsProvider(Provider):
         :return MFA_LDAP_Creds: optional creds
         """
         return await get_creds(session, "mfa_key_ldap", "mfa_secret_ldap")
+
+
+class EventSenderProvider(Provider):
+    """Event sender provider."""
+
+    scope = Scope.REQUEST
+
+    @provide()
+    def setup_audit_logging(self, settings: Settings) -> AuditLogger:
+        """Create audit logger.."""
+        audit_logger = logger.bind(name="audit")
+        audit_logger.remove()
+        audit_logger.add(
+            settings.AUDIT_LOG_FILE,
+            rotation="10 MB",
+            retention=5,
+            format="{message}",
+            filter=lambda record: record["extra"].get("name") == "audit",
+            level="CRITICAL",
+            enqueue=True,
+        )
+        return AuditLogger(audit_logger)
+
+    audit_sender_manager = provide(
+        AuditEventSenderManager,
+        scope=Scope.REQUEST,
+    )
 
 
 class MFAProvider(Provider):

@@ -87,6 +87,7 @@ class Changes(BaseModel):
         return self.modification.type.lower()
 
 
+@unique
 class ProtocolRequests(IntEnum):
     """Enum for LDAP requests."""
 
@@ -117,3 +118,23 @@ class ProtocolResponse(IntEnum):
     EXTENDED = 24
     INTERMEDIATE = 25
     SEARCH_RESULT_REFERENCE = 19
+
+
+@unique
+class OperationEvent(IntEnum):
+    """Enum for operation events. Includes all LDAP requests."""
+
+    BIND = ProtocolRequests.BIND
+    UNBIND = ProtocolRequests.UNBIND
+    SEARCH = ProtocolRequests.SEARCH
+    MODIFY = ProtocolRequests.MODIFY
+    ADD = ProtocolRequests.ADD
+    DELETE = ProtocolRequests.DELETE
+    MODIFY_DN = ProtocolRequests.MODIFY_DN
+    COMPARE = ProtocolRequests.COMPARE
+    ABANDON = ProtocolRequests.ABANDON
+    EXTENDED = ProtocolRequests.EXTENDED
+    CHANGE_PASSWORD = 40
+    AFTER_2FA = 41
+    KERBEROS_AUTH = 42
+    CHANGE_PASSWORD_KERBEROS = 43

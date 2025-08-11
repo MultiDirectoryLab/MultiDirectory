@@ -68,8 +68,9 @@ class DeleteRequest(BaseRequest):
             select(Directory)
             .options(
                 defaultload(Directory.user),
-                defaultload(Directory.attributes),
-                selectinload(Directory.groups).joinedload(Group.directory),
+                selectinload(Directory.groups).selectinload(Group.directory),
+                selectinload(Directory.group).selectinload(Group.members),
+                selectinload(Directory.attributes),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -86,6 +87,10 @@ class DeleteRequest(BaseRequest):
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
+
+        self.set_event_data(
+            {"before_attrs": self.get_directory_attrs(directory)},
+        )
 
         if directory.is_domain:
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)

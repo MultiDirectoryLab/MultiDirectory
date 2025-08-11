@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from .audit.router import audit_router
 from .auth.router import auth_router
 from .auth.router_mfa import mfa_router
 from .auth.router_pwd_policy import pwd_router
@@ -16,6 +17,7 @@ from .network.router import network_router
 from .shadow.router import shadow_router
 
 __all__ = [
+    "audit_router",
     "auth_router",
     "session_router",
     "network_router",
