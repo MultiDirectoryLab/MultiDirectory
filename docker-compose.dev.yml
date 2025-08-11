@@ -120,6 +120,7 @@ services:
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
       MFA_API_SOURCE: dev
       DOMAIN: ${DOMAIN}
+      SERVICE_NAME: ldap_server
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -166,6 +167,7 @@ services:
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
       MFA_API_SOURCE: dev
       DOMAIN: ${DOMAIN}
+      SERVICE_NAME: multidirectory_api
     hostname: api_server
     volumes:
       - ./app:/app
@@ -202,6 +204,8 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+    environment:
+      - SERVICE_NAME=shadow_api
     volumes:
       - ./app:/app
       - ./certs:/certs
@@ -327,6 +331,39 @@ services:
       - traefik.enable=true
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
       - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
+  
+  event_handler:
+    image: multidirectory
+    container_name: event_handler
+    restart: unless-stopped
+    tty: true
+    env_file:
+      .env
+    volumes:
+      - ./app:/app
+    command: python multidirectory.py --event_handler
+    environment:
+      EVENT_CONSUMER_NAME: event_handler-1
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  event_sender:
+    image: multidirectory
+    container_name: event_sender
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./app:/app
+      - ./audit:/audit
+    env_file:
+      .env
+    command: python multidirectory.py --event_sender
+    environment:
+      HANDLER_NAME: event_sender-1
 
 volumes:
   d_postgres:

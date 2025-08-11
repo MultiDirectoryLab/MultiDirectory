@@ -88,6 +88,8 @@ services:
       - ./certs:/certs
       - ./logs:/app/logs
       - ldap_keytab:/LDAP_keytab/
+    environment:
+      - SERVICE_NAME=ldap_server
     command: python -OO multidirectory.py --ldap
     depends_on:
       migrations:
@@ -140,6 +142,7 @@ services:
     environment:
       USE_CORE_TLS: 1
       KRB5_LDAP_URI: ldap://ldap_server
+      SERVICE_NAME: multidirectory_api
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
@@ -340,10 +343,42 @@ services:
       - ./certs:/certs
     env_file:
       .env
+    environment:
+      - SERVICE_NAME=shadow_api
     depends_on:
       migrations:
         condition: service_completed_successfully
     command: python multidirectory.py --shadow
+
+  event_handler:
+    image: multidirectory
+    container_name: event_handler
+    restart: unless-stopped
+    tty: true
+    env_file:
+      .env
+    command: python multidirectory.py --event_handler
+    environment:
+      EVENT_CONSUMER_NAME: event_handler-1
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  event_sender:
+    image: multidirectory
+    container_name: event_sender
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./audit:/audit
+    env_file:
+      .env
+    command: python multidirectory.py --event_sender
+    environment:
+      HANDLER_NAME: event_sender-1
 
 volumes:
   postgres:
