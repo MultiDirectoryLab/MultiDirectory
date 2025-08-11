@@ -17,9 +17,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
-    Identity,
     Index,
-    Integer,
     LargeBinary,
     String,
     UniqueConstraint,
@@ -44,10 +42,9 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from enums import AceType, MFAFlags, RoleScope
+from enums import AceType, KindType, MFAFlags, RoleScope
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
-type KindType = Literal["STRUCTURAL", "ABSTRACT", "AUXILIARY"]
 
 
 class Base(DeclarativeBase, AsyncAttrs):
@@ -87,8 +84,16 @@ class CatalogueSetting(Base):
 
     __tablename__ = "Settings"
 
+    __table_args__ = (
+        Index(
+            "ix_Settings_name",
+            "name",
+            unique=True,
+        ),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(nullable=False, index=True)
+    name: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
 
 
@@ -172,17 +177,21 @@ class EntityType(Base):
     __table_args__ = (
         Index(
             "idx_entity_types_name_gin_trgm",
-            text("name gin_trgm_ops"),
+            "name",
             postgresql_using="gin",
-            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_Entity_Type_object_class_names",
+            "object_class_names",
+            unique=True,
+        ),
+        Index(
+            "lw_object_class_names",
+            text("array_lowercase(object_class_names)"),
+            postgresql_using="gin",
         ),
     )
-    id: Mapped[int] = mapped_column(
-        Integer(),
-        Identity(start=1, always=True),
-        ForeignKey("Directory.entity_type_id", ondelete="SET NULL"),
-        primary_key=True,
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -218,6 +227,34 @@ class AccessControlEntry(Base):
 
     __tablename__ = "AccessControlEntries"
 
+    __table_args__ = (
+        Index(
+            "idx_ace_attribute_type_id",
+            "attributeTypeId",
+            postgresql_using="hash",
+        ),
+        Index(
+            "idx_ace_entity_type_id",
+            "entityTypeId",
+            postgresql_using="hash",
+        ),
+        Index(
+            "idx_ace_role_id_id",
+            "roleId",
+            postgresql_using="hash",
+        ),
+        Index(
+            "idx_ace_scope_hash",
+            "scope",
+            postgresql_using="hash",
+        ),
+        Index(
+            "idx_ace_type_hash",
+            "ace_type",
+            postgresql_using="hash",
+        ),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True)
     role_id: Mapped[int] = mapped_column(
         "roleId",
@@ -228,7 +265,6 @@ class AccessControlEntry(Base):
     ace_type: Mapped[AceType] = mapped_column(
         Enum(AceType),
         nullable=False,
-        index=True,
     )
 
     depth: Mapped[int]
@@ -236,7 +272,6 @@ class AccessControlEntry(Base):
     scope: Mapped[RoleScope] = mapped_column(
         Enum(RoleScope),
         nullable=False,
-        index=True,
     )
 
     path: Mapped[str] = mapped_column(
@@ -315,6 +350,35 @@ class Directory(Base):
 
     __tablename__ = "Directory"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "parentId",
+            "name",
+            postgresql_nulls_not_distinct=True,
+            name="name_parent_uc",
+        ),
+        Index(
+            "idx_Directory_depth_hash",
+            "depth",
+            postgresql_using="hash",
+        ),
+        Index(
+            "idx_entity_type_dir_id",
+            "entity_type_id",
+            postgresql_using="hash",
+        ),
+        Index(
+            "ix_directory_objectGUID",
+            "objectGUID",
+            postgresql_using="hash",
+        ),
+        Index(
+            "lw_path",
+            text("array_lowercase(path)"),
+            postgresql_using="gin",
+        ),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True)
 
     parent_id: Mapped[int] = mapped_column(
@@ -379,9 +443,9 @@ class Directory(Base):
         onupdate=func.now(),
         nullable=True,
     )
-    depth: Mapped[int] = mapped_column(index=True)
+    depth: Mapped[int] = mapped_column(nullable=True)
 
-    object_sid: Mapped[str] = mapped_column("objectSid")
+    object_sid: Mapped[str] = mapped_column("objectSid", nullable=True)
     objectsid: Mapped[str] = synonym("object_sid")
 
     password_policy_id: Mapped[int] = mapped_column(
@@ -454,15 +518,6 @@ class Directory(Base):
         ),
     )
 
-    __table_args__ = (
-        UniqueConstraint(
-            "parentId",
-            "name",
-            postgresql_nulls_not_distinct=True,
-            name="name_parent_uc",
-        ),
-    )
-
     search_fields = {
         "name": "name",
         "objectguid": "objectGUID",
@@ -529,6 +584,25 @@ class User(Base):
     """Users data from db."""
 
     __tablename__ = "Users"
+
+    __table_args__ = (
+        Index(
+            "idx_User_display_name_gin",
+            "displayName",
+            postgresql_using="gin",
+        ),
+        Index(
+            "idx_User_san_gin",
+            "sAMAccountName",
+            postgresql_using="gin",
+        ),
+        Index(
+            "idx_User_upn_gin",
+            "userPrincipalName",
+            postgresql_using="gin",
+        ),
+        Index("idx_user_hash_dir_id", "directoryId", postgresql_using="hash"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -638,6 +712,14 @@ class Group(Base):
 
     __tablename__ = "Groups"
 
+    __table_args__ = (
+        Index(
+            "idx_group_dir_id",
+            "directoryId",
+            postgresql_using="hash",
+        ),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True)
 
     directory_id: Mapped[int] = mapped_column(
@@ -725,6 +807,33 @@ class Attribute(Base):
             "(value IS NULL) <> (bvalue IS NULL)",
             name="constraint_value_xor_bvalue",
         ),
+        Index(
+            "idx_attributes_name_gin_trgm",
+            "name",
+            postgresql_using="gin",
+        ),
+        Index(
+            "idx_attributes_lw_name_btree",
+            text("lower(name::text)"),
+            postgresql_using="btree",
+        ),
+        Index(
+            "idx_composite_attributes_directory_id_name",
+            "directoryId",
+            text("lower(name::text)"),
+            postgresql_using="btree",
+        ),
+        Index(
+            "idx_attributes_value",
+            "value",
+            postgresql_using="gin",
+        ),
+        Index(
+            "idx_attributes_name_value_trgm",
+            "name",
+            "value",
+            postgresql_using="gin",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -774,9 +883,8 @@ class AttributeType(Base):
     __table_args__ = (
         Index(
             "idx_attribute_types_name_gin_trgm",
-            text("name gin_trgm_ops"),
+            "name",
             postgresql_using="gin",
-            postgresql_ops={"name": "gin_trgm_ops"},
         ),
     )
 
@@ -879,10 +987,10 @@ class ObjectClass(Base):
     __table_args__ = (
         Index(
             "idx_object_classes_name_gin_trgm",
-            text("name gin_trgm_ops"),
+            "name",
             postgresql_using="gin",
-            postgresql_ops={"name": "gin_trgm_ops"},
         ),
+        Index("ix_ObjectClasses_name", "name", unique=True),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
@@ -890,7 +998,6 @@ class ObjectClass(Base):
         String(255),
         nullable=False,
         unique=True,
-        index=True,
     )
     superior_name: Mapped[str | None] = mapped_column(
         String(255),
@@ -902,7 +1009,10 @@ class ObjectClass(Base):
         remote_side="ObjectClass.name",
         uselist=False,
     )
-    kind: Mapped[KindType] = mapped_column(nullable=False)
+    kind: Mapped[KindType] = mapped_column(
+        Enum(KindType, name="objectclasskinds"),
+        nullable=False,
+    )
     is_system: Mapped[bool]
 
     attribute_types_must: Mapped[list[AttributeType]] = relationship(
@@ -969,6 +1079,14 @@ class NetworkPolicy(Base):
 
     __tablename__ = "Policies"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "priority",
+            name="priority_uc",
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
 
@@ -982,13 +1100,6 @@ class NetworkPolicy(Base):
 
     enabled: Mapped[tbool]
     priority: Mapped[int] = mapped_column(nullable=False)
-
-    priority_uc = UniqueConstraint(
-        "priority",
-        name="priority_uc",
-        deferrable=True,
-        initially="DEFERRED",
-    )
 
     groups: Mapped[list[Group]] = relationship(
         "Group",

@@ -31,7 +31,6 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
-from ldap_protocol.identity.session_mixin import SessionKeyCreatorMixin
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.multifactor import (
     Creds,
@@ -41,10 +40,11 @@ from ldap_protocol.multifactor import (
 )
 from ldap_protocol.policies.network_policy import get_user_network_policy
 from ldap_protocol.session_storage import SessionStorage
+from ldap_protocol.session_storage.repository import SessionRepository
 from models import CatalogueSetting, User
 
 
-class MFAManager(SessionKeyCreatorMixin):
+class MFAManager:
     """MFA manager."""
 
     def __init__(
@@ -53,6 +53,7 @@ class MFAManager(SessionKeyCreatorMixin):
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
+        repository: SessionRepository,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -66,6 +67,7 @@ class MFAManager(SessionKeyCreatorMixin):
         self._storage = storage
         self._mfa_api = mfa_api
         self.key_ttl = self._storage.key_ttl
+        self._repository = repository
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -171,13 +173,39 @@ class MFAManager(SessionKeyCreatorMixin):
         if user_id is None or not user:
             raise MFATokenError()
 
-        return await self.create_session_key(
+        return await self._repository.create_session_key(
             user,
-            self._storage,
-            self._settings,
             ip,
             user_agent,
-            self._session,
+            self.key_ttl,
+        )
+
+    async def _create_session_and_response(
+        self,
+        user: User,
+        status: str,
+        message: str,
+        ip: IPv4Address | IPv6Address,
+        user_agent: str,
+    ) -> tuple[MFAChallengeResponse, str]:
+        """Create session key and response.
+
+        :param user: User
+        :param status: str
+        :param message: str
+        :param ip: IPv4Address | IPv6Address
+        :param user_agent: str
+        :return: tuple[MFAChallengeResponse, str]
+        """
+        key = await self._repository.create_session_key(
+            user,
+            ip,
+            user_agent,
+            self.key_ttl,
+        )
+        return (
+            MFAChallengeResponse(status=status, message=message),
+            key,
         )
 
     async def two_factor_protocol(
@@ -225,40 +253,41 @@ class MFAManager(SessionKeyCreatorMixin):
 
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                return (
-                    MFAChallengeResponse(status="bypass", message=""),
-                    None,
+                return await self._create_session_and_response(
+                    user,
+                    "bypass",
+                    "",
+                    ip,
+                    user_agent,
                 )
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            return (
-                MFAChallengeResponse(status="bypass", message=""),
-                None,
+            return await self._create_session_and_response(
+                user,
+                "bypass",
+                "",
+                ip,
+                user_agent,
             )
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                return (
-                    MFAChallengeResponse(status="bypass", message=""),
-                    None,
+                return await self._create_session_and_response(
+                    user,
+                    "bypass",
+                    "",
+                    ip,
+                    user_agent,
                 )
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
-        key = await self.create_session_key(
+        return await self._create_session_and_response(
             user,
-            self._storage,
-            self._settings,
+            "pending",
+            redirect_url,
             ip,
             user_agent,
-            self._session,
-        )
-        return (
-            MFAChallengeResponse(
-                status="pending",
-                message=redirect_url,
-            ),
-            key,
         )
