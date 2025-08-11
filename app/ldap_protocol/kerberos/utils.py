@@ -12,8 +12,6 @@ from models import Attribute, CatalogueSetting, Directory, EntityType
 
 from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 
-USERS_ORG_UNIT_PATH = ["ou=users"]
-
 
 def logger_wraps(is_stub: bool = False) -> Callable:
     """Log kadmin calls.
