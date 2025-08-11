@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from datetime import datetime, timedelta
 
 import httpx
-from loguru import logger
 import pytest
 from fastapi import status
 from jose import jwt
