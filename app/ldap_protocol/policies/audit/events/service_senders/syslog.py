@@ -116,9 +116,6 @@ class SyslogSender(AuditDestinationSenderABC):
             timespec="milliseconds",
         ).replace("+00:00", "Z")
 
-        if "." in timestamp:
-            timestamp = timestamp.replace("+00:00", "Z")
-
         # HOSTNAME (section 6.2.4)
         hostname = (hostname or socket.gethostname() or "-")[:255]
 
