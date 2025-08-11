@@ -181,10 +181,9 @@ class MFAManager:
             self.key_ttl,
         )
 
-    async def _create_session_and_response(
+    async def _create_bypass_data(
         self,
         user: User,
-        status: MFAChallengeStatuses,
         message: str,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
@@ -192,22 +191,22 @@ class MFAManager:
         """Create session key and response.
 
         :param user: User
-        :param status: str
         :param message: str
         :param ip: IPv4Address | IPv6Address
         :param user_agent: str
         :return: tuple[MFAChallengeResponse, str | None]
         """
-        key = None
-        if status != MFAChallengeStatuses.PENDING:
-            key = await self._repository.create_session_key(
-                user,
-                ip,
-                user_agent,
-                self.key_ttl,
-            )
+        key = await self._repository.create_session_key(
+            user,
+            ip,
+            user_agent,
+            self.key_ttl,
+        )
         return (
-            MFAChallengeResponse(status=status, message=message),
+            MFAChallengeResponse(
+                status=MFAChallengeStatuses.BYPASS,
+                message=message,
+            ),
             key,
         )
 
@@ -244,6 +243,12 @@ class MFAManager:
         if network_policy is None:
             raise NetworkPolicyError()
 
+        bypass_coro = self._create_bypass_data(
+            user,
+            "",
+            ip,
+            user_agent,
+        )
         try:
             if self._settings.USE_CORE_TLS:
                 url = url.replace(scheme="https")
@@ -255,41 +260,23 @@ class MFAManager:
 
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                return await self._create_session_and_response(
-                    user,
-                    MFAChallengeStatuses.BYPASS,
-                    "",
-                    ip,
-                    user_agent,
-                )
+                return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            return await self._create_session_and_response(
-                user,
-                MFAChallengeStatuses.BYPASS,
-                "",
-                ip,
-                user_agent,
-            )
+            return await bypass_coro
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                return await self._create_session_and_response(
-                    user,
-                    MFAChallengeStatuses.BYPASS,
-                    "",
-                    ip,
-                    user_agent,
-                )
+                return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
-        return await self._create_session_and_response(
-            user,
-            MFAChallengeStatuses.PENDING,
-            redirect_url,
-            ip,
-            user_agent,
+        return (
+            MFAChallengeResponse(
+                status=MFAChallengeStatuses.PENDING,
+                message=redirect_url,
+            ),
+            None,
         )
