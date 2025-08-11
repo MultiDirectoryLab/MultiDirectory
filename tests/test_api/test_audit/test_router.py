@@ -60,7 +60,7 @@ async def test_update_audit_destination(
         name="Test Destination",
         service_type=AuditDestinationServiceType.SYSLOG,
         protocol=AuditDestinationProtocolType.UDP,
-        host="syslog.example.com    ",
+        host="syslog.example.com",
         port=555,
         is_enabled=False,
     )
