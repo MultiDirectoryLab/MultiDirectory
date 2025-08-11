@@ -119,6 +119,10 @@ class AuditEventHandler:
         event: RawAuditEvent,
     ) -> bool:
         """Check if event object class matches trigger object class."""
+        for attr in event.request.get("attributes", []):
+            if attr["type"] == "objectClass":
+                return trigger.object_class in attr["vals"]
+
         return (
             trigger.object_class
             in event.context["before_attrs"]["objectclass"]
