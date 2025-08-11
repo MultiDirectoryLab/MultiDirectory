@@ -36,12 +36,16 @@ from enums import MFAChallengeStatuses, MFAFlags
 from ldap_protocol.identity.utils import authenticate_user, get_user
 from ldap_protocol.multifactor import (
     Creds,
+    LDAPMultiFactorAPI,
     MFA_HTTP_Creds,
     MFA_LDAP_Creds,
     MultifactorAPI,
 )
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
-from ldap_protocol.policies.network_policy import get_user_network_policy
+from ldap_protocol.policies.network_policy import (
+    check_mfa_group,
+    get_user_network_policy,
+)
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from models import CatalogueSetting, User
@@ -56,6 +60,7 @@ class MFAManager:
         settings: Settings,
         storage: SessionStorage,
         mfa_api: MultifactorAPI,
+        ldap_mfa_api: LDAPMultiFactorAPI,
         repository: SessionRepository,
         monitor: AuditMonitorUseCase,
     ) -> None:
@@ -70,6 +75,7 @@ class MFAManager:
         self._settings = settings
         self._storage = storage
         self._mfa_api = mfa_api
+        self._ldap_mfa_api = ldap_mfa_api
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
         self._monitor = monitor
@@ -328,7 +334,10 @@ class MFAManager:
                 f"Network policy not found for user {principal}.",
             )
 
-        if not self._mfa_api or network_policy.mfa_status == MFAFlags.DISABLED:
+        if (
+            not self._ldap_mfa_api
+            or network_policy.mfa_status == MFAFlags.DISABLED
+        ):
             return
         elif network_policy.mfa_status in (
             MFAFlags.ENABLED,
@@ -336,12 +345,15 @@ class MFAManager:
         ):
             if (
                 network_policy.mfa_status == MFAFlags.WHITELIST
-                and not network_policy.mfa_groups
+                and not await check_mfa_group(
+                    network_policy,
+                    user,
+                    self._session,
+                )
             ):
                 return
-
             try:
-                if await self._mfa_api.ldap_validate_mfa(
+                if await self._ldap_mfa_api.ldap_validate_mfa(
                     user.user_principal_name,
                     None,
                 ):
