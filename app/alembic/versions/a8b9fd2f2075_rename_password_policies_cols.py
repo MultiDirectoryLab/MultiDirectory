@@ -6,7 +6,6 @@ Create Date: 2025-08-12 12:36:41.368759
 
 """
 
-import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -18,11 +17,6 @@ depends_on = None
 
 def upgrade() -> None:
     """Upgrade."""
-    op.create_table(
-        "PasswordBanWords",
-        sa.Column("word", sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint("word"),
-    )
     op.alter_column(
         "PasswordPolicies",
         "password_history_length",
@@ -67,4 +61,3 @@ def downgrade() -> None:
         "min_length",
         new_column_name="minimum_password_length",
     )
-    op.drop_table("PasswordBanWords")

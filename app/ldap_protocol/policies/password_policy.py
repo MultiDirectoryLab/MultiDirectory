@@ -347,9 +347,7 @@ class PasswordPolicyDAO:
         """
         password_policy = await self.get_or_create_password_policy()
 
-        schema = PasswordValidator(
-            session=self.__session,
-        )
+        schema = PasswordValidator()
 
         schema.not_otp_like_suffix()
 

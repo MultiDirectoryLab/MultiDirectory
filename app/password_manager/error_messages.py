@@ -13,6 +13,3 @@ class ErrorMessages:
     NOT_OLD_ENOUGH = "Password is not old enough to update"
     NOT_IN_HISTORY = "Password must not be in history"
     NOT_LIKE_OTP = "Password suffix should not be similar to OTP"
-
-    NOT_EQUAL_BAN_WORD = "Password must not equal ban word"
-    NOT_CONTAIN_BAN_WORD = "Password must not contain ban word"

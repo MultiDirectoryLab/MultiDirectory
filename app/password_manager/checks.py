@@ -17,25 +17,6 @@ async def min_length(password: str, _: Any, length: int) -> bool:
     res = len(password)
     return res >= length
 
-
-async def not_equal_any_ban_word(
-    password: str,
-    settings: _PasswordValidatorSettings,
-) -> bool:
-    """Check if password is not equal to any banned word."""
-    res = await settings.password_ban_word_dao.get_one_by_word(password)
-    return not res
-
-
-async def not_contain_any_ban_word(
-    password: str,
-    settings: _PasswordValidatorSettings,
-) -> bool:
-    """Check if password not contain any banned words."""
-    res = await settings.password_ban_word_dao.contain_any_ban_word(password)
-    return not res
-
-
 async def reuse_prevention(
     password: str,
     _: Any,

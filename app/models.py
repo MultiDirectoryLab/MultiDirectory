@@ -1144,17 +1144,6 @@ class NetworkPolicy(Base):
     )
 
 
-class PasswordBanWord(Base):
-    """List of banned password words."""
-
-    __tablename__ = "PasswordBanWords"
-
-    word: Mapped[str] = mapped_column(
-        String(255),
-        primary_key=True,
-    )
-
-
 class PasswordPolicy(Base):
     """Password policy."""
 

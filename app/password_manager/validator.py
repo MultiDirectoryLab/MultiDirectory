@@ -7,8 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass
 from typing import Any, Callable, Coroutine, Self
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from . import checks
 from .error_messages import ErrorMessages
 from .settings import _PasswordValidatorSettings
@@ -41,16 +39,11 @@ class PasswordValidator:
 
     """
 
-    def __init__(
-        self,
-        session: AsyncSession,
-    ) -> None:
+    def __init__(self) -> None:
         """Create new instance of the PasswordValidator class."""
         self.__checkers: list[_Checker] = []
         self.__settings: _PasswordValidatorSettings = (
-            _PasswordValidatorSettings(
-                session,
-            )
+            _PasswordValidatorSettings()
         )
         self.error_messages: list[str] = []
 
@@ -154,46 +147,6 @@ class PasswordValidator:
         self.__add_checker(
             check=checks.not_otp_like_suffix,
             error_message=ErrorMessages.NOT_LIKE_OTP,
-            args=[],
-        )
-        return self
-
-    def not_equal_any_ban_word(self) -> Self:
-        """Require the password to not be in a common password list.
-
-        Example:
-            >>> pwd_val.not_equal_any_ban_word().validate("MyPassword")
-            False
-            >>> pwd_val.not_equal_any_ban_word().validate("un1q.Pa$$w0rd")
-            True
-
-        Returns:
-            PasswordValidator: Updated schema object.
-
-        """
-        self.__add_checker(
-            check=checks.not_equal_any_ban_word,
-            error_message=ErrorMessages.NOT_EQUAL_BAN_WORD,
-            args=[],
-        )
-        return self
-
-    def not_contain_any_ban_word(self) -> Self:
-        """Require the password to not contain any common password words.
-
-        Example:
-            >>> pwd_val.not_contain_any_ban_word().validate("Alex")
-            False
-            >>> pwd_val.not_contain_any_ban_word().validate("un1q.Pa$$w0rd")
-            True
-
-        Returns:
-            PasswordValidator: Updated schema object.
-
-        """
-        self.__add_checker(
-            check=checks.not_contain_any_ban_word,
-            error_message=ErrorMessages.NOT_CONTAIN_BAN_WORD,
             args=[],
         )
         return self
