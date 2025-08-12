@@ -10,6 +10,7 @@ from alembic import op
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extra.alembic_utils import temporary_stub_lockout_fields
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
@@ -22,6 +23,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_lockout_fields
 def upgrade() -> None:
     """Upgrade."""
     op.create_table(

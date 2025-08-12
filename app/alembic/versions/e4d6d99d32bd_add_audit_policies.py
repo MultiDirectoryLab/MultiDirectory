@@ -13,6 +13,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extra.alembic_utils import temporary_stub_lockout_fields
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import RawAuditManager
@@ -26,6 +27,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_lockout_fields
 def upgrade() -> None:
     """Upgrade."""
 

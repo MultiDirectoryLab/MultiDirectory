@@ -10,7 +10,10 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import (
+    temporary_stub_entity_type_name,
+    temporary_stub_lockout_fields,
+)
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
 from models import Attribute, CatalogueSetting, User
 
@@ -21,6 +24,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_lockout_fields
 @temporary_stub_entity_type_name
 def upgrade() -> None:
     """Upgrade."""

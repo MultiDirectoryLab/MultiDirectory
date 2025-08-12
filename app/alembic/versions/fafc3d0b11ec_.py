@@ -11,7 +11,10 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import (
+    temporary_stub_entity_type_name,
+    temporary_stub_lockout_fields,
+)
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,
@@ -26,6 +29,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_lockout_fields
 @temporary_stub_entity_type_name
 def upgrade() -> None:
     """Upgrade."""

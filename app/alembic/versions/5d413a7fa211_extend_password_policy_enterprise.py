@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "5d413a7fa211"
-down_revision = "05ddc0bd562a"
+down_revision = "e4d6d99d32bd"
 branch_labels = None
 depends_on = None
 
@@ -20,23 +20,22 @@ depends_on = None
 def upgrade() -> None:
     """Upgrade."""
     with op.batch_alter_table("PasswordPolicies", schema=None) as batch_op:
-        with contextlib.suppress(Exception):
-            batch_op.alter_column(
-                "password_history_length",
-                new_column_name="history_length",
-            )
-            batch_op.alter_column(
-                "maximum_password_age_days",
-                new_column_name="max_age_days",
-            )
-            batch_op.alter_column(
-                "minimum_password_age_days",
-                new_column_name="min_age_days",
-            )
-            batch_op.alter_column(
-                "minimum_password_length",
-                new_column_name="min_length",
-            )
+        batch_op.alter_column(
+            "password_history_length",
+            new_column_name="history_length",
+        )
+        batch_op.alter_column(
+            "maximum_password_age_days",
+            new_column_name="max_age_days",
+        )
+        batch_op.alter_column(
+            "minimum_password_age_days",
+            new_column_name="min_age_days",
+        )
+        batch_op.alter_column(
+            "minimum_password_length",
+            new_column_name="min_length",
+        )
 
         batch_op.add_column(
             sa.Column(
@@ -45,8 +44,8 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="32",
             ),
-            if_not_exists=True,
         )
+
         batch_op.add_column(
             sa.Column(
                 "language",
@@ -54,8 +53,8 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="Latin",
             ),
-            if_not_exists=True,
         )
+
         batch_op.add_column(
             sa.Column(
                 "is_exact_match",
@@ -63,7 +62,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="false",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -73,7 +71,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -83,7 +80,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -93,7 +89,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -103,7 +98,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -113,7 +107,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -123,7 +116,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -133,7 +125,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -143,36 +134,30 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
-    with contextlib.suppress(Exception):
-        op.create_table(
-            "PasswordBanWords",
-            sa.Column("word", sa.String(length=255), nullable=False),
-            sa.PrimaryKeyConstraint("word"),
-            if_not_exists=True,
-        )
-        op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
-        op.create_index(
-            "idx_password_ban_words_word_gin_trgm",
-            "PasswordBanWords",
-            ["word"],
-            postgresql_using="gin",
-            postgresql_ops={"word": "gin_trgm_ops"},
-            if_not_exists=True,
-        )
+    op.create_table(
+        "PasswordBanWords",
+        sa.Column("word", sa.String(length=255), nullable=False),
+        sa.PrimaryKeyConstraint("word"),
+    )
+    op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+    op.create_index(
+        "idx_password_ban_words_word_gin_trgm",
+        "PasswordBanWords",
+        ["word"],
+        postgresql_using="gin",
+        postgresql_ops={"word": "gin_trgm_ops"},
+    )
 
 
 def downgrade() -> None:
     """Downgrade."""
-    with contextlib.suppress(Exception):
-        op.drop_index(
-            "idx_password_ban_words_word_gin_trgm",
-            table_name="PasswordBanWords",
-            if_exists=True,
-        )
-        op.drop_table("PasswordBanWords", if_exists=True)
+    op.drop_index(
+        "idx_password_ban_words_word_gin_trgm",
+        table_name="PasswordBanWords",
+    )
+    op.drop_table("PasswordBanWords")
 
     with op.batch_alter_table("PasswordPolicies", schema=None) as batch_op:
         batch_op.drop_column(
@@ -196,20 +181,19 @@ def downgrade() -> None:
         batch_op.drop_column("language", if_exists=True)
         batch_op.drop_column("max_length", if_exists=True)
 
-        with contextlib.suppress(Exception):
-            batch_op.alter_column(
-                "min_length",
-                new_column_name="minimum_password_length",
-            )
-            batch_op.alter_column(
-                "min_age_days",
-                new_column_name="minimum_password_age_days",
-            )
-            batch_op.alter_column(
-                "max_age_days",
-                new_column_name="maximum_password_age_days",
-            )
-            batch_op.alter_column(
-                "history_length",
-                new_column_name="password_history_length",
-            )
+        batch_op.alter_column(
+            "min_length",
+            new_column_name="minimum_password_length",
+        )
+        batch_op.alter_column(
+            "min_age_days",
+            new_column_name="minimum_password_age_days",
+        )
+        batch_op.alter_column(
+            "max_age_days",
+            new_column_name="maximum_password_age_days",
+        )
+        batch_op.alter_column(
+            "history_length",
+            new_column_name="password_history_length",
+        )

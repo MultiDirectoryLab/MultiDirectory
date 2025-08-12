@@ -25,7 +25,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="0",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -34,7 +33,6 @@ def upgrade() -> None:
                 sa.DateTime(timezone=True),
                 nullable=True,
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -44,7 +42,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="false",
             ),
-            if_not_exists=True,
         )
 
     with op.batch_alter_table("PasswordPolicies", schema=None) as batch_op:
@@ -55,7 +52,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="6",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -65,7 +61,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="60",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -75,7 +70,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="600",
             ),
-            if_not_exists=True,
         )
 
         batch_op.add_column(
@@ -85,19 +79,18 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="5",
             ),
-            if_not_exists=True,
         )
 
 
 def downgrade() -> None:
     """Downgrade."""
     with op.batch_alter_table("PasswordPolicies", schema=None) as batch_op:
-        batch_op.drop_column("fail_delay_sec", if_exists=True)
-        batch_op.drop_column("lockout_duration_sec", if_exists=True)
-        batch_op.drop_column("failed_attempts_reset_sec", if_exists=True)
-        batch_op.drop_column("max_failed_attempts", if_exists=True)
+        batch_op.drop_column("fail_delay_sec")
+        batch_op.drop_column("lockout_duration_sec")
+        batch_op.drop_column("failed_attempts_reset_sec")
+        batch_op.drop_column("max_failed_attempts")
 
     with op.batch_alter_table("Users", schema=None) as batch_op:
-        batch_op.drop_column("is_auth_locked", if_exists=True)
-        batch_op.drop_column("last_failed_auth", if_exists=True)
-        batch_op.drop_column("failed_auth_attempts", if_exists=True)
+        batch_op.drop_column("is_auth_locked")
+        batch_op.drop_column("last_failed_auth")
+        batch_op.drop_column("failed_auth_attempts")
