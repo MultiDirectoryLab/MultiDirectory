@@ -246,6 +246,8 @@ class AddRequest(BaseRequest):
                 elif attr.type == "memberOf":
                     if not isinstance(value, str):
                         raise TypeError
+                    if value in group_attributes:
+                        continue
                     group_attributes.append(value)
 
                 else:
@@ -257,13 +259,6 @@ class AddRequest(BaseRequest):
                             directory=new_dir,
                         ),
                     )
-
-        if len(group_attributes) != len(set(group_attributes)):
-            yield AddResponse(
-                result_code=LDAPCodes.CONSTRAINT_VIOLATION,
-                errorMessage="Duplicate groups are not allowed.",
-            )
-            return
 
         parent_groups = await get_groups(group_attributes, ctx.session)
         is_group = "group" in self.attributes_dict.get("objectClass", [])
