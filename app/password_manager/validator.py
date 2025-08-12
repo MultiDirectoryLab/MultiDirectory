@@ -70,9 +70,9 @@ class PasswordValidator:
         """Validate `password` against the schema and returns the result.
 
         Example:
-            >>> pwd_val.min_letters_count(2).validate("123")
+            >>> pwd_val.min_length(3).validate("13")
             False
-            >>> pwd_val.min_letters_count(2).validate("abc")
+            >>> pwd_val.min_length(3).validate("abc")
             True
 
         Args:
