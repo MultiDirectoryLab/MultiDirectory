@@ -337,3 +337,62 @@ async def test_ldap_add_access_control(
 
     assert result == 0
     assert dn in dn_list
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_user_add_with_duplicate_groups(
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
+) -> None:
+    """Duplicate memberOf yields single membership."""
+    user_dn = "cn=dup,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+
+    with tempfile.NamedTemporaryFile("w") as file:
+        ldif = [
+            f"dn: {user_dn}",
+            "name: dup",
+            "cn: dup",
+            "userPrincipalName: dup",
+            "sAMAccountName: dup",
+            "objectClass: inetOrgPerson",
+            "objectClass: organizationalPerson",
+            "objectClass: user",
+            "objectClass: person",
+            "objectClass: posixAccount",
+            "objectClass: top",
+        ] + [f"memberOf: {group_dn}" for _ in range(5)]
+
+        file.write("\n".join(ldif) + "\n")
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            "ldapadd",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_account_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        result = await proc.wait()
+
+    assert result == 0
+
+    user_search_path = get_search_path(user_dn)
+    user_row = await session.scalar(
+        select(User)
+        .join(User.directory)
+        .where(Directory.path == user_search_path)
+        .options(selectinload(User.groups).selectinload(Group.directory)),
+    )
+    groups = [g.directory.path_dn for g in user_row.groups]
+    assert groups.count(group_dn) == 1
