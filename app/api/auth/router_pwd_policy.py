@@ -10,7 +10,10 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from ldap_protocol.policies.password_policy import PasswordPolicySchema
+from ldap_protocol.policies.password_policy import (
+    PasswordPolicyDAO,
+    PasswordPolicySchema,
+)
 
 pwd_router = APIRouter(
     prefix="/password-policy",
@@ -20,36 +23,30 @@ pwd_router = APIRouter(
 )
 
 
-@pwd_router.post("", status_code=status.HTTP_201_CREATED)
-async def create_policy(
-    policy: PasswordPolicySchema,
-    session: FromDishka[AsyncSession],
-) -> PasswordPolicySchema:
-    """Create current policy setting."""
-    return await policy.create_policy_settings(session)
-
-
 @pwd_router.get("")
-async def get_policy(
+async def get_or_create_policy(
+    password_policy_dao: FromDishka[PasswordPolicyDAO],
     session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Get current policy setting."""
-    return await PasswordPolicySchema.get_policy_settings(session)
+    password_policy = await password_policy_dao.get_or_create_password_policy()
+    await session.commit()
+    return password_policy
 
 
 @pwd_router.put("")
 async def update_policy(
     policy: PasswordPolicySchema,
-    session: FromDishka[AsyncSession],
+    password_policy_dao: FromDishka[PasswordPolicyDAO],
 ) -> PasswordPolicySchema:
     """Update current policy setting."""
-    await policy.update_policy_settings(session)
+    await password_policy_dao.update_policy(policy)
     return policy
 
 
 @pwd_router.delete("")
 async def reset_policy(
-    session: FromDishka[AsyncSession],
+    password_policy_dao: FromDishka[PasswordPolicyDAO],
 ) -> PasswordPolicySchema:
     """Reset current policy setting."""
-    return await PasswordPolicySchema.delete_policy_settings(session)
+    return await password_policy_dao.reset_policy()

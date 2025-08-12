@@ -9,7 +9,7 @@ from aioldap3 import LDAPConnection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.utils.queries import get_user
-from security import verify_password
+from password_manager import verify_password
 from tests.conftest import TestCreds
 
 

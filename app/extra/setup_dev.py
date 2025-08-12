@@ -34,7 +34,7 @@ from models import (
     NetworkPolicy,
     User,
 )
-from security import get_password_hash
+from password_manager import get_password_hash
 
 
 async def _get_group(name: str, session: AsyncSession) -> Group:

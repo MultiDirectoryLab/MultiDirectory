@@ -1141,6 +1141,17 @@ class NetworkPolicy(Base):
     )
 
 
+class PasswordBanWord(Base):
+    """List of banned password words."""
+
+    __tablename__ = "PasswordBanWords"
+
+    word: Mapped[str] = mapped_column(
+        String(255),
+        primary_key=True,
+    )
+
+
 class PasswordPolicy(Base):
     """Password policy."""
 
@@ -1153,20 +1164,22 @@ class PasswordPolicy(Base):
         unique=True,
         server_default="Default Policy",
     )
-
-    password_history_length: Mapped[int] = mapped_column(
+    history_length: Mapped[int] = mapped_column(
         nullable=False,
         server_default="4",
     )
-    maximum_password_age_days: Mapped[int] = mapped_column(
+    # max_age_days
+    max_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-    minimum_password_age_days: Mapped[int] = mapped_column(
+    # min_age_days
+    min_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-    minimum_password_length: Mapped[int] = mapped_column(
+    # min_length
+    min_length: Mapped[int] = mapped_column(
         nullable=False,
         server_default="7",
     )

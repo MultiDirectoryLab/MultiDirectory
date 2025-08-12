@@ -29,7 +29,7 @@ from ldap_protocol.ldap_requests.contexts import (
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import Attribute, Directory, User
-from security import get_password_hash
+from password_manager import get_password_hash
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 

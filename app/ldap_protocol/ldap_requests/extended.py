@@ -26,7 +26,7 @@ from ldap_protocol.policies.password_policy import (
 )
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
-from security import get_password_hash, verify_password
+from password_manager import get_password_hash, verify_password
 
 from .base import BaseRequest
 from .contexts import LDAPExtendedRequestContext

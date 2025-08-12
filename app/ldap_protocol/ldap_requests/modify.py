@@ -46,7 +46,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
-from security import get_password_hash
+from password_manager import get_password_hash
 
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
@@ -123,11 +123,11 @@ class ModifyRequest(BaseRequest):
         ):
             return
 
-        if policy.maximum_password_age_days == 0:
+        if policy.max_age_days == 0:
             return
 
         now = datetime.now(timezone.utc)
-        now += timedelta(days=policy.maximum_password_age_days)
+        now += timedelta(days=policy.max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(

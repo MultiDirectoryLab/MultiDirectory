@@ -48,7 +48,7 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import Directory, Group, User
-from security import get_password_hash
+from password_manager import get_password_hash
 
 
 class IdentityManager:

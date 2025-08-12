@@ -39,7 +39,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
-from security import get_password_hash
+from password_manager import get_password_hash
 
 from .base import BaseRequest
 from .contexts import LDAPAddRequestContext
