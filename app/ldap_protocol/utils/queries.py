@@ -205,7 +205,10 @@ def get_search_path(dn: str) -> list[str]:
     :param str dn: any DN, dn syntax
     :return list[str]: reversed list of dn values
     """
-    search_path = [path.strip() for path in dn.lower().split(",")]
+    search_path = []
+    for path in dn.lower().split(","):
+        path = "=".join(path_part.strip() for path_part in path.split("="))
+        search_path.append(path)
     search_path.reverse()
     return search_path
 

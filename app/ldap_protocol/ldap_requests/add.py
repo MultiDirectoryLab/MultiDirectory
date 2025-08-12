@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 import httpx
+from loguru import logger
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -117,7 +118,6 @@ class AddRequest(BaseRequest):
             return
 
         root_dn = get_search_path(self.entry)
-
         exists_q = select(
             select(Directory)
             .filter(get_path_filter(root_dn)).exists(),
@@ -137,7 +137,6 @@ class AddRequest(BaseRequest):
 
         parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(",")[0].split("=")
-
         parent_query = select(Directory).filter(parent_path)
 
         parent_query = ctx.access_manager.mutate_query_with_ace_load(
