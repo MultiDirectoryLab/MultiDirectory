@@ -30,7 +30,6 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request
-from ldap_protocol.policies.password_policy import PasswordPolicyDAO
 from multidirectory import _create_basic_app
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -89,6 +88,7 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
+from ldap_protocol.policies.password_policy import PasswordPolicyDAO
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
