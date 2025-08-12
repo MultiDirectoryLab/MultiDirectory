@@ -230,10 +230,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 100M
+          memory: 500M
         reservations:
           cpus: '0.1'
-          memory: 6M
+          memory: 60М
 
   kdc:
     container_name: kdc
@@ -351,7 +351,7 @@ services:
     command: python multidirectory.py --shadow
 
   event_handler:
-    image: multidirectory
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: event_handler
     restart: unless-stopped
     tty: true
@@ -365,7 +365,7 @@ services:
         condition: service_completed_successfully
 
   event_sender:
-    image: multidirectory
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: event_sender
     restart: unless-stopped
     tty: true
