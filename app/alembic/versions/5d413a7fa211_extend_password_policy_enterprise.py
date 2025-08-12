@@ -160,24 +160,21 @@ def downgrade() -> None:
     with op.batch_alter_table("PasswordPolicies", schema=None) as batch_op:
         batch_op.drop_column(
             "max_sequential_alphabet_symbols_count",
-            if_exists=True,
         )
         batch_op.drop_column(
             "max_sequential_keyboard_symbols_count",
-            if_exists=True,
         )
-        batch_op.drop_column("min_digits_count", if_exists=True)
+        batch_op.drop_column("min_digits_count")
         batch_op.drop_column(
             "max_repeating_symbols_in_row_count",
-            if_exists=True,
         )
-        batch_op.drop_column("min_unique_symbols_count", if_exists=True)
-        batch_op.drop_column("min_special_symbols_count", if_exists=True)
-        batch_op.drop_column("min_uppercase_letters_count", if_exists=True)
-        batch_op.drop_column("min_lowercase_letters_count", if_exists=True)
-        batch_op.drop_column("is_exact_match", if_exists=True)
-        batch_op.drop_column("language", if_exists=True)
-        batch_op.drop_column("max_length", if_exists=True)
+        batch_op.drop_column("min_unique_symbols_count")
+        batch_op.drop_column("min_special_symbols_count")
+        batch_op.drop_column("min_uppercase_letters_count")
+        batch_op.drop_column("min_lowercase_letters_count")
+        batch_op.drop_column("is_exact_match")
+        batch_op.drop_column("language")
+        batch_op.drop_column("max_length")
 
         batch_op.alter_column(
             "min_length",
