@@ -4,10 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import re
 from datetime import datetime
-from itertools import islice
-from typing import Iterable, Self
+from typing import Self
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, model_validator
@@ -17,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import ft_now, ft_to_dt
 from models import Attribute, PasswordPolicy, User
-from password_manager import PasswordValidator, verify_password
+from password_manager import PasswordValidator, count_password_age_days
 
 with open("extra/common_pwds.txt") as f:
     _COMMON_PASSWORDS = set(f.read().split("\n"))
@@ -184,84 +182,6 @@ class PasswordPolicySchema(BaseModel):
 
         return plset
 
-    def validate_min_age(self, last_pwd_set: Attribute) -> bool:
-        """Validate min password change age.
-
-        :param Attribute last_pwd_set: last pwd set
-        :return bool: can change pwd
-            True - not valid, can not change
-            False - valid, can change
-
-            on min_age_days can always change.
-        """
-        if self.min_age_days == 0:
-            return False
-
-        password_exists = self._count_password_exists_days(last_pwd_set)
-
-        return password_exists < self.min_age_days
-
-    def validate_max_age(self, last_pwd_set: Attribute) -> bool:
-        """Validate max password change age.
-
-        :param Attribute last_pwd_set: last pwd set
-        :return bool: is pwd expired
-            True - not valid, expired
-            False - valid, not expired
-
-            on max_age_days always valid.
-        """
-        if self.max_age_days == 0:
-            return False
-
-        password_exists = self._count_password_exists_days(last_pwd_set)
-
-        return password_exists > self.max_age_days
-
-    async def validate_password_with_policy(
-        self,
-        password: str,
-        user: User | None,
-    ) -> list[str]:
-        """Validate password with chosen policy.
-
-        :param str password: new raw password
-        :param User user: db user
-        :param AsyncSession session: db
-        :return bool: status
-        """
-        errors = []
-        history: Iterable = []
-
-        if user is not None:
-            history = islice(
-                reversed(user.password_history),
-                self.history_length,
-            )
-
-        for pwd_hash in history:
-            if verify_password(password, pwd_hash):
-                errors.append("password history violation")
-                break
-
-        if len(password) <= self.min_length:
-            errors.append("password minimum length violation")
-
-        regex = (
-            re.search("[A-ZА-Я]", password) is not None,
-            re.search("[a-zа-я]", password) is not None,
-            re.search("[0-9]", password) is not None,
-            password.lower() not in _COMMON_PASSWORDS,
-        )
-
-        if self.password_must_meet_complexity_requirements and not all(regex):
-            errors.append("password complexity violation")
-
-        if password[-6:].isdecimal():
-            errors.append("password cannot end with 6 digits")
-
-        return errors
-
 
 class PasswordPolicyDAO:
     """Password Policy DAO."""
@@ -309,6 +229,23 @@ class PasswordPolicyDAO:
             password_policy,
             from_attributes=True,
         )
+
+    async def check_expired_max_age(
+        self,
+        password_policy: PasswordPolicySchema,
+        user: User | None = None,
+    ) -> bool:
+        """Validate max password change age."""
+        if password_policy.max_age_days == 0:
+            return False
+
+        if not user:
+            return True
+
+        pwd_last_set = await self.get_or_create_pwd_last_set(user.directory_id)
+        password_age_days = count_password_age_days(pwd_last_set)
+
+        return password_age_days > password_policy.max_age_days
 
     async def get_or_create_pwd_last_set(
         self,

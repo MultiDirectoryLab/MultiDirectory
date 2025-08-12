@@ -13,6 +13,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI
+from ldap_protocol.policies.password_policy import PasswordPolicyDAO
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
@@ -26,6 +27,7 @@ class LDAPAddRequestContext:
     ldap_session: LDAPSession
     kadmin: AbstractKadmin
     entity_type_dao: EntityTypeDAO
+    password_policy_dao: PasswordPolicyDAO
     access_manager: AccessManager
     role_use_case: RoleUseCase
 
@@ -41,6 +43,7 @@ class LDAPModifyRequestContext:
     settings: Settings
     entity_type_dao: EntityTypeDAO
     access_manager: AccessManager
+    password_policy_dao: PasswordPolicyDAO
 
 
 @dataclass
@@ -51,6 +54,7 @@ class LDAPBindRequestContext:
     ldap_session: LDAPSession
     kadmin: AbstractKadmin
     settings: Settings
+    password_policy_dao: PasswordPolicyDAO
     mfa: LDAPMultiFactorAPI
 
 
@@ -89,6 +93,7 @@ class LDAPExtendedRequestContext:
     ldap_session: LDAPSession
     session: AsyncSession
     kadmin: AbstractKadmin
+    password_policy_dao: PasswordPolicyDAO
     settings: Settings
     role_use_case: RoleUseCase
 

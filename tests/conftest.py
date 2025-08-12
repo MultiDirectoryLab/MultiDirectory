@@ -30,6 +30,7 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request
+from ldap_protocol.policies.password_policy import PasswordPolicyDAO
 from multidirectory import _create_basic_app
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -236,6 +237,7 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
         cache=False,
     )
+    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -721,6 +723,16 @@ async def entity_type_dao(
             attribute_type_dao=attribute_type_dao,
         )
         yield EntityTypeDAO(session, object_class_dao)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def password_policy_dao(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordPolicyDAO]:
+    """Get session and aquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield PasswordPolicyDAO(session)
 
 
 @pytest_asyncio.fixture(scope="function")

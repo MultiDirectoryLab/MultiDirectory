@@ -20,10 +20,7 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
-from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
-    post_save_password_actions,
-)
+from ldap_protocol.policies.password_policy import post_save_password_actions
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
 from password_manager import get_password_hash, verify_password
@@ -200,20 +197,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
-        validator = await PasswordPolicySchema.get_policy_settings(ctx.session)
-
-        errors = await validator.validate_password_with_policy(
+        errors = await ctx.password_policy_dao.check_password_violations(
             password=new_password,
             user=user,
         )
-
-        p_last_set = await validator.get_pwd_last_set(
-            ctx.session,
-            user.directory_id,
-        )
-
-        if validator.validate_min_age(p_last_set):
-            errors.append("Minimum age violation")
 
         if ctx.ldap_session.user and self.user_identity:
             pwd_ace = await ctx.role_use_case.get_password_ace(

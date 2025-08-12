@@ -26,6 +26,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
 from ldap_protocol.policies.password_policy import (
+    PasswordPolicyDAO,
     PasswordPolicySchema,
     post_save_password_actions,
 )
@@ -203,6 +204,7 @@ class ModifyRequest(BaseRequest):
                     ctx.kadmin,
                     ctx.settings,
                     ctx.ldap_session.user,
+                    ctx.password_policy_dao,
                 )
 
                 try:
@@ -528,6 +530,7 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         current_user: UserSchema,
+        password_policy_dao: PasswordPolicyDAO,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -670,22 +673,10 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                validator = await PasswordPolicySchema.get_policy_settings(
-                    session,
-                )
-
-                p_last_set = await validator.get_pwd_last_set(
-                    session,
-                    directory.id,
-                )
-
-                errors = await validator.validate_password_with_policy(
+                errors = await password_policy_dao.check_password_violations(
                     password=value,
                     user=directory.user,
                 )
-
-                if validator.validate_min_age(p_last_set):
-                    errors.append("Minimum age violation")
 
                 if errors:
                     raise PermissionError(

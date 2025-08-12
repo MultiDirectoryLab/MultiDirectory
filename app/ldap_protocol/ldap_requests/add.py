@@ -21,7 +21,6 @@ from ldap_protocol.ldap_responses import (
     PartialAttribute,
 )
 from ldap_protocol.objects import ProtocolRequests
-from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -167,11 +166,8 @@ class AddRequest(BaseRequest):
             return
 
         if self.password is not None:
-            validator = await PasswordPolicySchema.get_policy_settings(
-                ctx.session,
-            )
             raw_password = self.password.get_secret_value()
-            errors = await validator.validate_password_with_policy(
+            errors = await ctx.password_policy_dao.check_password_violations(
                 password=raw_password,
                 user=None,
             )

@@ -35,7 +35,7 @@ from ldap_protocol.policies.network_policy import (
     get_user_network_policy,
 )
 from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
+    PasswordPolicyDAO,
     post_save_password_actions,
 )
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -61,6 +61,7 @@ class IdentityManager:
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
+        password_policy_dao: PasswordPolicyDAO,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
         audit_use_case: AuditUseCase,
@@ -85,6 +86,7 @@ class IdentityManager:
         self._repository = repository
         self._audit_use_case = audit_use_case
         self._monitor = monitor
+        self._password_policy_dao = password_policy_dao
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -200,8 +202,10 @@ class IdentityManager:
                 f"User {identity} not found in the database.",
             )
 
-        policy = await PasswordPolicySchema.get_policy_settings(self._session)
-        errors = await policy.validate_password_with_policy(new_password, user)
+        errors = await self._password_policy_dao.check_password_violations(
+            new_password,
+            user,
+        )
 
         if errors:
             raise PasswordPolicyError(errors)
@@ -358,9 +362,8 @@ class IdentityManager:
                     data=data,
                 )
                 await self._session.flush()
-                default_pwd_policy = PasswordPolicySchema()
                 errors = (
-                    await default_pwd_policy.validate_password_with_policy(
+                    await self._password_policy_dao.check_password_violations(
                         password=request.password,
                         user=None,
                     )
@@ -368,7 +371,7 @@ class IdentityManager:
                 if errors:
                     raise ForbiddenError(errors)
 
-                await default_pwd_policy.create_policy_settings(self._session)
+                await self._password_policy_dao.get_or_create_password_policy()
                 await self._role_use_case.create_domain_admins_role()
                 await self._role_use_case.create_read_only_role()
                 await self._audit_use_case.create_policies()
