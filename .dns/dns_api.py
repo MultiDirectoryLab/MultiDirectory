@@ -667,7 +667,7 @@ class BindDNSServerManager:
             self.add_record(
                 DNSRecord(
                     name=record.get("name") + zone_name,
-                    value=record.get("value") + zone_name,
+                    value=record.get("value") + zone_name + ".",
                     ttl=604800,
                 ),
                 record.get("type"),
