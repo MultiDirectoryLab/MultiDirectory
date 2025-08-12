@@ -17,6 +17,7 @@ async def min_length(password: str, _: Any, length: int) -> bool:
     res = len(password)
     return res >= length
 
+
 async def reuse_prevention(
     password: str,
     _: Any,
