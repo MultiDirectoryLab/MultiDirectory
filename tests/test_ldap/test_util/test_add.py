@@ -337,3 +337,56 @@ async def test_ldap_add_access_control(
 
     assert result == 0
     assert dn in dn_list
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_user_add_with_duplicate_groups(
+    settings: Settings,
+    user: dict,
+) -> None:
+    """Duplicate memberOf triggers CONSTRAINT_VIOLATION."""
+    user_dn = "cn=dup,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+
+    with tempfile.NamedTemporaryFile("w") as file:
+        file.write(
+            (
+                f"dn: {user_dn}\n"
+                "name: dup\n"
+                "cn: dup\n"
+                "userPrincipalName: dup\n"
+                "sAMAccountName: dup\n"
+                "objectClass: inetOrgPerson\n"
+                "objectClass: organizationalPerson\n"
+                "objectClass: user\n"
+                "objectClass: person\n"
+                "objectClass: posixAccount\n"
+                "objectClass: top\n"
+                f"memberOf: {group_dn}\n"
+                f"memberOf: {group_dn}\n"
+            ),
+        )
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            "ldapadd",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_account_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        raw_out, raw_err = await proc.communicate()
+        result = await proc.wait()
+
+    assert result == LDAPCodes.CONSTRAINT_VIOLATION
+    out = raw_out.decode() + raw_err.decode()
+    assert "Duplicate groups are not allowed." in out
