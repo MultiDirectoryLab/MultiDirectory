@@ -6,13 +6,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
-from ldap_protocol.objects import OperationEvent
-
-from .enums import (
+from enums import (
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
 )
+from ldap_protocol.objects import OperationEvent
 
 
 @dataclass
