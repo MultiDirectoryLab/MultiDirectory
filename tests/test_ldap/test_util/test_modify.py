@@ -741,7 +741,7 @@ async def test_ldap_modify_with_ap(
         "organizationalUnit",
     ]
     titles = sorted(
-        [title for title in attributes["title"] if title is not None]
+        [title for title in attributes["title"] if title is not None],
     )
     assert titles == sorted(
         [
@@ -749,7 +749,7 @@ async def test_ldap_modify_with_ap(
             "Grand Poobah1",
             "Grand Poobah2",
             "Grand Poobah3",
-        ]
+        ],
     )
     assert attributes["jpegPhoto"] == ["modme.jpeg"]
     assert directory.user.mail == "modme@student.of.life.edu"
