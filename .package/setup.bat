@@ -8,6 +8,19 @@ if not exist ".env" type nul > .env
 findstr /v /r /c:"^[^=]*=$" .env > .env.tmp
 move /y .env.tmp .env >nul
 
+set "output_file=resolv.conf"
+
+if exist "%output_file%" del "%output_file%"
+
+for /f "tokens=2 delims=:" %%a in ('ipconfig /all ^| findstr /i "DNS Servers"') do (
+    set "dns=%%a"
+    set "dns=!dns: =!"
+    echo !dns! | findstr /r "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
+    if !errorlevel! equ 0 (
+        echo nameserver !dns! >> "%output_file%"
+    )
+)
+
 :: ========== VARIABLE DEFINITION ==========
 
 :: 1. DEFAULT_NAMESERVER

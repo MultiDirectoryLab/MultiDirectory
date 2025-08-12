@@ -4,9 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import socket
+import asyncio
 from dataclasses import asdict
 from ipaddress import IPv4Address, IPv6Address
+
+import dns.resolver
 
 from .base import (
     AbstractDNSManager,
@@ -19,6 +21,7 @@ from .base import (
     DNSZone,
     DNSZoneParam,
     DNSZoneType,
+    log,
 )
 from .utils import logger_wraps
 
@@ -157,21 +160,89 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 json={"zone_name": zone_name},
             )
 
+    def get_dns_servers(self) -> list[str]:
+        """Get list of DNS servers."""
+        dns_servers = []
+        with open("/etc/resolv.conf") as resolv_file:
+            lines = resolv_file.readlines()
+
+        for line in lines:
+            if line.startswith("nameserver"):
+                parts = line.split()
+                if len(parts) == 2:
+                    dns_servers.append(parts[1].strip())
+
+        return dns_servers
+
+    @logger_wraps()
+    async def find_forward_dns_fqdn(
+        self,
+        dns_servers: list[str],
+        dns_server_ip: IPv4Address | IPv6Address,
+    ) -> list[str]:
+        """Find forward DNS FQDN."""
+        reversed_ip = (
+            ".".join(reversed(dns_server_ip.split("."))) + ".in-addr.arpa"
+        )
+
+        async def get_fqdn_and_latency(server: str) -> list[str]:
+            resolver = dns.resolver.Resolver()
+            resolver.nameservers = [server]
+
+            try:
+                event_loop = asyncio.get_event_loop()
+                start_time = event_loop.time()
+                fqdn = resolver.resolve(
+                    reversed_ip,
+                    "PTR",
+                )
+                latency = event_loop.time() - start_time
+
+                return (latency, fqdn[0].to_text())
+            except Exception as e:
+                log.error(f"{e}")
+                return (float("inf"), None)
+
+        fqdn_list = await asyncio.gather(
+            *(get_fqdn_and_latency(server) for server in dns_servers),
+        )
+
+        log.info(f"FQDN list: {fqdn_list}")
+        fqdn_list.sort(key=lambda x: x[0])
+        log.info(f"Sorted FQDN list: {fqdn_list}")
+        return fqdn_list[0][1] if fqdn_list else None
+
     @logger_wraps()
     async def check_forward_dns_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
     ) -> DNSForwardServerStatus:
         str_dns_server_ip = str(dns_server_ip)
+        dns_servers = self.get_dns_servers()
+        log.info(f"{dns_servers}")
+
+        if not dns_servers:
+            raise ValueError("No DNS servers found in resolv.conf")
+
         try:
-            hostname, _, _ = socket.gethostbyaddr(str_dns_server_ip)
-            fqdn = socket.getfqdn(hostname)
-        except socket.herror:
+            fqdn = await self.find_forward_dns_fqdn(
+                dns_servers,
+                str_dns_server_ip,
+            )
+        except (dns.asyncresolver.NoAnswer, dns.asyncresolver.NXDOMAIN):
+            return DNSForwardServerStatus(
+                str_dns_server_ip,
+                DNSForwarderServerStatus.NOT_VALIDATED,
+                None,
+            )
+
+        if not fqdn:
             return DNSForwardServerStatus(
                 str_dns_server_ip,
                 DNSForwarderServerStatus.NOT_FOUND,
                 None,
             )
+
         return DNSForwardServerStatus(
             str_dns_server_ip,
             DNSForwarderServerStatus.VALIDATED,
