@@ -210,7 +210,6 @@ class AddRequest(BaseRequest):
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
-        raw_group_attributes: list[str] = []
         user_fields = User.search_fields.keys() | User.fields.keys()
 
         attributes.append(
@@ -247,9 +246,6 @@ class AddRequest(BaseRequest):
                 elif attr.type == "memberOf":
                     if not isinstance(value, str):
                         raise TypeError
-                    raw_group_attributes.append(value)
-                    if value in group_attributes:
-                        continue
                     group_attributes.append(value)
 
                 else:
@@ -262,7 +258,7 @@ class AddRequest(BaseRequest):
                         ),
                     )
 
-        if len(raw_group_attributes) != len(set(raw_group_attributes)):
+        if len(group_attributes) != len(set(group_attributes)):
             yield AddResponse(
                 result_code=LDAPCodes.CONSTRAINT_VIOLATION,
                 errorMessage="Duplicate groups are not allowed.",
