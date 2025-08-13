@@ -10,22 +10,24 @@ import tempfile
 import pytest_asyncio
 
 from config import Settings
-from ldap_protocol.roles.role_dao import RoleDAO
-from models import Role
+from ldap_protocol.roles.role_dao import RoleDAO, RoleDTO
 from tests.conftest import TestCreds
 
 BASE_DN = "dc=md,dc=test"
 
 
 @pytest_asyncio.fixture(scope="function")
-async def custom_role(role_dao: RoleDAO) -> Role:
+async def custom_role(role_dao: RoleDAO) -> RoleDTO:
     """Fixture to create a custom role for testing."""
-    return await role_dao.create_role(
-        role_name="Custom Role",
-        creator_upn=None,
-        is_system=False,
-        groups_dn=["cn=domain users,cn=groups,dc=md,dc=test"],
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Custom Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=groups,dc=md,dc=test"],
+        ),
     )
+    return await role_dao.get(role_dao.get_last_id())
 
 
 async def run_ldap_search(

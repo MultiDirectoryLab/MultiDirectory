@@ -20,7 +20,11 @@ from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
 from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.policies.network_policy import is_user_group_valid
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.role_dao import (
+    AccessControlEntrySchema,
+    RoleDAO,
+    RoleDTO,
+)
 from ldap_protocol.utils.queries import get_group, get_groups
 from models import User
 from tests.conftest import TestCreds
@@ -304,11 +308,13 @@ async def test_ldap_search_access_control_denied(
 
     await session.commit()
 
-    group_read_role = await role_dao.create_role(
-        role_name="Groups Read Role",
-        creator_upn=None,
-        is_system=False,
-        groups_dn=["cn=domain users,cn=groups,dc=md,dc=test"],
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Groups Read Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=groups,dc=md,dc=test"],
+        ),
     )
 
     group_read_ace = AccessControlEntrySchema(
@@ -321,7 +327,7 @@ async def test_ldap_search_access_control_denied(
     )
 
     await role_dao.add_access_control_entries(
-        role_id=group_read_role.id,
+        role_id=role_dao.get_last_id(),
         access_control_entries=[group_read_ace],
     )
 
