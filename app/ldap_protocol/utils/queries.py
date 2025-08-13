@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import re
 import time
 from datetime import datetime
 from typing import Iterator
@@ -205,10 +206,10 @@ def get_search_path(dn: str) -> list[str]:
     :param str dn: any DN, dn syntax
     :return list[str]: reversed list of dn values
     """
-    search_path = []
-    for path in dn.lower().split(","):
-        path = "=".join(path_part.strip() for path_part in path.split("="))
-        search_path.append(path)
+    search_path = [
+        re.sub(r"\s*=\s*", r"=", path.strip())
+        for path in dn.lower().split(",")
+    ]
     search_path.reverse()
     return search_path
 
