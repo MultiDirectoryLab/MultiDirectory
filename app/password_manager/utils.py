@@ -38,9 +38,7 @@ def count_password_age_days(win_filetime: str | None) -> int:
 
     now_dt = datetime.now(tz=tz)
     value_dt = (
-        ft_to_dt(int(win_filetime)).astimezone(tz)
-        if win_filetime
-        else now_dt
-    )  # fmt: skip
+        ft_to_dt(int(win_filetime)).astimezone(tz) if win_filetime else now_dt
+    )
 
     return (now_dt - value_dt).days

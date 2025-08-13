@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from datetime import datetime
+from itertools import islice
 from typing import Self
 from zoneinfo import ZoneInfo
 
@@ -51,12 +52,6 @@ async def post_save_password_actions(
 
     user.password_history.append(user.password)
     await session.flush()
-
-    password_policy = await PasswordPolicyDAO(
-        session,
-    ).get_or_create_password_policy()
-    if password_policy.history_length > 0:
-        user.password_history = user.password_history[-password_policy.history_length:]  # noqa: E501 # fmt: skip
 
 
 class PasswordPolicySchema(BaseModel):
@@ -188,9 +183,14 @@ class PasswordPolicyDAO:
 
     __session: AsyncSession
 
-    def __init__(self, session: AsyncSession):
+    def __init__(
+        self,
+        session: AsyncSession,
+        password_validator: PasswordValidator,
+    ) -> None:
         """Initialize Password Policy DAO with a database session."""
         self.__session = session
+        self.__validator = password_validator
 
     async def update_policy(
         self,
@@ -284,26 +284,29 @@ class PasswordPolicyDAO:
         """
         password_policy = await self.get_or_create_password_policy()
 
-        schema = PasswordValidator()
-
-        schema.not_otp_like_suffix()
+        self.__validator.not_otp_like_suffix()
 
         if user and password_policy.history_length:
-            schema.reuse_prevention(
-                password_history=user.password_history,
+            history = islice(
+                reversed(user.password_history),
+                password_policy.history_length,
+            )
+
+            self.__validator.reuse_prevention(
+                password_history=history,
             )
 
         if user and password_policy.min_age_days:
             pwd_last_set = await self.get_or_create_pwd_last_set(
                 user.directory_id,
             )
-            schema.min_age(
+            self.__validator.min_age(
                 password_policy.min_age_days,
                 pwd_last_set,
             )
 
         if password_policy.min_length:
-            schema.min_length(password_policy.min_length)
+            self.__validator.min_length(password_policy.min_length)
 
-        await schema.validate(password)
-        return schema.error_messages
+        await self.__validator.validate(password)
+        return self.__validator.error_messages

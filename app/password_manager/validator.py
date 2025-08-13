@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Coroutine, Self
+from typing import Any, Callable, Coroutine, Iterable, Self
 
 from . import checks
 from .error_messages import ErrorMessages
@@ -24,23 +24,16 @@ class _Checker:
 
 
 class PasswordValidator:
-    """Class to generate schema of password definitions.
+    """Builder for password validation rules.
 
-    pwd_val = PasswordValidator("Latin", session)
-
-    Example:
-        >>> pwd_val.min_length(6).min_digits_count(2).min_letters_count(4)
-        <...PasswordValidator object at ...>
-        >>> pwd_val.validate("t3stPa$$w0rD132")
-        True
-
-    Returns:
-        PasswordValidator: Schema object of validation.
-
+    This class accumulates checks and validates a password against them.
     """
 
     def __init__(self) -> None:
-        """Create new instance of the PasswordValidator class."""
+        """Initialize a new validator instance.
+
+        Sets up internal storage for checkers and default settings.
+        """
         self.__checkers: list[_Checker] = []
         self.__settings: _PasswordValidatorSettings = (
             _PasswordValidatorSettings()
@@ -67,21 +60,23 @@ class PasswordValidator:
             self.error_messages.append(checker.error_message)
 
     async def validate(self, password: str) -> bool:
-        """Validate `password` against the schema and returns the result.
+        """Validate the given password against the configured schema.
 
-        Example:
-            >>> pwd_val.min_length(3).validate("13")
-            False
-            >>> pwd_val.min_length(3).validate("abc")
-            True
+        Runs all registered checks and collects error messages.
 
-        Args:
-            password (str): Password to validate against the schema.
+        :param str password: Password to validate.
+        :return: bool.
 
-        Returns:
-            boolean: Result of the validation.
+        :Example:
+            .. code-block:: python
 
-        """
+                assert not await (
+                    PasswordValidator()
+                    .min_length(3)
+                    .validate("13")
+                )
+                assert await PasswordValidator().min_length(3).validate("abc")
+        """  # fmt: skip
         self.error_messages = []
         for checker in self.__checkers:
             await self.__run_checker(checker, password)
@@ -89,21 +84,25 @@ class PasswordValidator:
         return not bool(self.error_messages)
 
     def min_length(self, length: int) -> Self:
-        """Require minimum count of characters.
+        """Require minimum password length.
 
-        Example:
-            >>> pwd_val.min(8).validate("testPassword")
-            True
-            >>> pwd_val.min(8).validate("test")
-            False
+        :param int length: Minimal allowed length.
+        :return: PasswordValidator.
 
-        Args:
-            length (int): Minimum length allowed.
+        :Example:
+            .. code-block:: python
 
-        Returns:
-            PasswordValidator: Updated schema object.
-
-        """
+                assert await (
+                    PasswordValidator()
+                    .min_length(8)
+                    .validate("testPassword")
+                )
+                assert not await (
+                    PasswordValidator()
+                    .min_length(8)
+                    .validate("test")
+                )
+        """  # fmt: skip
         self.__add_checker(
             check=checks.min_length,
             error_message=ErrorMessages.LONGER,
@@ -113,16 +112,14 @@ class PasswordValidator:
 
     def reuse_prevention(
         self,
-        password_history: list[str],
+        password_history: Iterable[str],
     ) -> Self:
-        """Mandates the presence of password history.
+        """Disallow reuse of any password from history.
 
-        Args:
-            password_history (list[str]): List of previous password hashes.
+        :param  Iterable[str] password_history: Iterable of previous
+        password hashes.
 
-        Returns:
-            PasswordValidator: Updated schema object.
-
+        :return: PasswordValidator.
         """
         self.__add_checker(
             check=checks.reuse_prevention,
@@ -132,18 +129,24 @@ class PasswordValidator:
         return self
 
     def not_otp_like_suffix(self) -> Self:
-        """OTP-like suffix check.
+        """Forbid an OTP-like numeric suffix of configured length.
 
-        Example:
-            >>> pwd_val.not_otp_like_suffix().validate("test123456")
-            False
-            >>> pwd_val.not_otp_like_suffix().validate("test12345")
-            True
+        :return: PasswordValidator.
 
-        Returns:
-            PasswordValidator: Updated schema object.
+        :Example:
+            .. code-block:: python
 
-        """
+                assert not await (
+                    PasswordValidator()
+                    .not_otp_like_suffix()
+                    .validate("test123456")
+                )
+                assert await (
+                    PasswordValidator()
+                    .not_otp_like_suffix()
+                    .validate("test12345")
+                )
+        """  # fmt: skip
         self.__add_checker(
             check=checks.not_otp_like_suffix,
             error_message=ErrorMessages.NOT_LIKE_OTP,
@@ -156,22 +159,16 @@ class PasswordValidator:
         min_age_days: int,
         value: str | None,
     ) -> Self:
-        """Require minimum age of the password.
+        """Require minimal age for the password.
 
-        Example:
-            >>> # value is windows filetime, equal 7 days
-            >>> pwd_val.min_age(6, value).validate()
-            True
-            >>> pwd_val.min_age(8, value).validate()
-            False
+        :param int min_age_days: Minimal age in days to allow update.
+        :param str | None value: Windows filetime string representing last
+        change, or ``None``.
+        :return: PasswordValidator.
 
-        Args:
-            min_age_days (int): Minimum age in days.
-            value (str | None): Value to check against.
-
-        Returns:
-            PasswordValidator: Updated schema object.
-
+        :Note:
+            If ``min_age_days`` is ``0`` or ``value`` is ``None``,
+            the check passes.
         """
         self.__add_checker(
             check=checks.min_age,

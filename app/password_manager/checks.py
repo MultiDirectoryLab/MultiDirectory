@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any
+from typing import Any, Iterable
 
 from passlib.exc import UnknownHashError
 
@@ -14,14 +14,13 @@ from .utils import count_password_age_days, verify_password
 
 async def min_length(password: str, _: Any, length: int) -> bool:
     """Validate minimum password length."""
-    res = len(password)
-    return res >= length
+    return len(password) >= length
 
 
 async def reuse_prevention(
     password: str,
     _: Any,
-    password_history: list[str],
+    password_history: Iterable[str],
 ) -> bool:
     """Check if password is not in the password history."""
     for password_hash in password_history:

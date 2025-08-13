@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
 from ldap_protocol.policies.password_policy import (
@@ -26,11 +25,9 @@ pwd_router = APIRouter(
 @pwd_router.get("")
 async def get_or_create_policy(
     password_policy_dao: FromDishka[PasswordPolicyDAO],
-    session: FromDishka[AsyncSession],
 ) -> PasswordPolicySchema:
     """Get current policy setting."""
     password_policy = await password_policy_dao.get_or_create_password_policy()
-    await session.commit()
     return password_policy
 
 
@@ -38,10 +35,9 @@ async def get_or_create_policy(
 async def update_policy(
     policy: PasswordPolicySchema,
     password_policy_dao: FromDishka[PasswordPolicyDAO],
-) -> PasswordPolicySchema:
+) -> None:
     """Update current policy setting."""
     await password_policy_dao.update_policy(policy)
-    return policy
 
 
 @pwd_router.delete("")
