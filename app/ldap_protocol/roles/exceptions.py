@@ -13,10 +13,6 @@ class RoleNotFoundError(RoleError):
     """Raised when a role is not found in the system."""
 
 
-class RoleCantModifyError(RoleError):
-    """Raised when a role cannot be modified."""
-
-
 class NoValidGroupsError(RoleError):
     """Raised when no valid groups are provided for a role."""
 
