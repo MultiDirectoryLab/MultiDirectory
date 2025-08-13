@@ -57,7 +57,7 @@ class AuditPoliciesAdapter:
         """Get all audit policies."""
         return [
             AuditPolicyResponse(
-                id=policy.id,
+                id=policy.get_id(),
                 name=policy.name,
                 is_enabled=policy.is_enabled,
                 severity=policy.severity.name.lower(),

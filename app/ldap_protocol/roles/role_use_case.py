@@ -10,7 +10,11 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
 from enums import RoleScope
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.role_dao import (
+    AccessControlEntrySchema,
+    RoleDAO,
+    RoleDTO,
+)
 from ldap_protocol.utils.queries import get_base_directories
 from models import AccessControlEntry, AceType, Directory, Role
 
@@ -146,16 +150,18 @@ class RoleUseCase:
         group_dn = (
             RoleConstants.DOMAIN_ADMINS_GROUP_CN + base_dn_list[0].path_dn
         )
-        domain_admins_role = await self._role_dao.create_role(
-            role_name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
-            creator_upn=None,
-            is_system=True,
-            groups_dn=[group_dn],
+        await self._role_dao.create(
+            dto=RoleDTO(
+                name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+                creator_upn=None,
+                is_system=True,
+                groups=[group_dn],
+            ),
         )
 
         aces = self._get_full_access_aces(base_dn_list[0].path_dn)
         await self._role_dao.add_access_control_entries(
-            role_id=domain_admins_role.id,
+            role_id=self._role_dao.get_last_id(),
             access_control_entries=aces,
         )
 
@@ -166,11 +172,13 @@ class RoleUseCase:
             return
 
         group_dn = RoleConstants.READONLY_GROUP_CN + base_dn_list[0].path_dn
-        role = await self._role_dao.create_role(
-            role_name=RoleConstants.READ_ONLY_ROLE_NAME,
-            creator_upn=None,
-            is_system=True,
-            groups_dn=[group_dn],
+        await self._role_dao.create(
+            dto=RoleDTO(
+                name=RoleConstants.READ_ONLY_ROLE_NAME,
+                creator_upn=None,
+                is_system=True,
+                groups=[group_dn],
+            ),
         )
 
         aces = [
@@ -184,7 +192,7 @@ class RoleUseCase:
             ),
         ]
         await self._role_dao.add_access_control_entries(
-            role_id=role.id,
+            role_id=self._role_dao.get_last_id(),
             access_control_entries=aces,
         )
 
@@ -198,28 +206,30 @@ class RoleUseCase:
             return
 
         group_dn = RoleConstants.KERBEROS_GROUP_CN + base_dn_list[0].path_dn
-        role = await self._role_dao.create_role(
-            role_name=RoleConstants.KERBEROS_ROLE_NAME,
-            creator_upn=None,
-            is_system=True,
-            groups_dn=[group_dn],
+        await self._role_dao.create(
+            dto=RoleDTO(
+                name=RoleConstants.KERBEROS_ROLE_NAME,
+                creator_upn=None,
+                is_system=True,
+                groups=[group_dn],
+            ),
         )
 
         aces = self._get_full_access_aces(
             "ou=services," + base_dn_list[0].path_dn,
         )
         await self._role_dao.add_access_control_entries(
-            role_id=role.id,
+            role_id=self._role_dao.get_last_id(),
             access_control_entries=aces,
         )
 
     async def delete_kerberos_system_role(self) -> None:
         """Delete the Kerberos system role."""
-        role = await self._role_dao.get_role_by_name(
+        role = await self._role_dao.get_by_name(
             RoleConstants.KERBEROS_ROLE_NAME,
         )
         if role:
-            await self._role_dao.delete_role(role.id)
+            await self._role_dao.delete(role.id)
 
     def _get_full_access_aces(
         self,

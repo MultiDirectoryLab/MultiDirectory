@@ -14,7 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.role_dao import (
+    AccessControlEntrySchema,
+    RoleDAO,
+    RoleDTO,
+)
 from models import Directory
 from tests.conftest import TestCreds
 
@@ -163,11 +167,13 @@ async def test_ldap_delete_w_access_control(
 
     assert await try_delete() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    delete_role = await role_dao.create_role(
-        role_name="Delete Role",
-        creator_upn=None,
-        is_system=False,
-        groups_dn=["cn=domain users,cn=groups," + base_dn],
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Delete Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=groups," + base_dn],
+        ),
     )
 
     delete_ace = AccessControlEntrySchema(
@@ -180,7 +186,7 @@ async def test_ldap_delete_w_access_control(
     )
 
     await role_dao.add_access_control_entries(
-        role_id=delete_role.id,
+        role_id=role_dao.get_last_id(),
         access_control_entries=[delete_ace],
     )
 

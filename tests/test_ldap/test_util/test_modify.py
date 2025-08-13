@@ -20,7 +20,11 @@ from enums import AceType, RoleScope
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import Operation
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.role_dao import (
+    AccessControlEntrySchema,
+    RoleDAO,
+    RoleDTO,
+)
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
 from tests.conftest import TestCreds
@@ -687,11 +691,13 @@ async def test_ldap_modify_with_ap(
 
     assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    modify_role = await role_dao.create_role(
-        role_name="Modify Role",
-        creator_upn=None,
-        is_system=False,
-        groups_dn=["cn=domain users,cn=groups," + base_dn],
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Modify Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=groups," + base_dn],
+        ),
     )
 
     modify_ace = AccessControlEntrySchema(
@@ -703,8 +709,10 @@ async def test_ldap_modify_with_ap(
         is_allow=True,
     )
 
+    modify_id = role_dao.get_last_id()
+
     await role_dao.add_access_control_entries(
-        role_id=modify_role.id,
+        role_id=modify_id,
         access_control_entries=[modify_ace],
     )
 
@@ -720,7 +728,7 @@ async def test_ldap_modify_with_ap(
     )
 
     await role_dao.add_access_control_entries(
-        role_id=modify_role.id,
+        role_id=modify_id,
         access_control_entries=[delete_ace],
     )
 
