@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ldap_protocol.objects import OperationEvent
 
@@ -13,31 +13,6 @@ from .enums import (
     AuditDestinationServiceType,
     AuditSeverity,
 )
-
-
-@dataclass
-class AuditPolicySetupDTO:
-    """Audit policy data transfer object."""
-
-    object_class: str
-    action: str
-    is_success: bool
-    severity: AuditSeverity
-    is_enabled: bool = False
-
-    @property
-    def name(self) -> str:
-        """Return the name of the audit policy."""
-        status = "ok" if self.is_success else "fail"
-        return f"{self.action}_{self.object_class}_{status}"
-
-    def as_dict(self) -> dict:
-        """Convert the data transfer object to a dictionary."""
-        return {
-            "name": self.name,
-            "is_enabled": self.is_enabled,
-            "severity": self.severity,
-        }
 
 
 @dataclass
@@ -64,12 +39,49 @@ class AuditDestinationDTO:
     protocol: AuditDestinationProtocolType
     id: int | None = None
 
+    def get_id(self) -> int:
+        """Get the ID of the audit destination."""
+        if not self.id:
+            raise ValueError("ID is not set for the audit destination.")
+        return self.id
+
 
 @dataclass
 class AuditPolicyDTO:
     """Audit policy data transfer object."""
 
-    id: int
     name: str
-    is_enabled: bool
     severity: AuditSeverity
+    is_enabled: bool = False
+    id: int | None = field(default=None, compare=False)
+
+    def get_id(self) -> int:
+        """Get the ID of the audit policy."""
+        if not self.id:
+            raise ValueError("ID is not set for the audit policy.")
+        return self.id
+
+
+@dataclass
+class AuditPolicySetupDTO(AuditPolicyDTO):
+    """Audit policy data transfer object."""
+
+    triggers: list[AuditPolicyTriggerDTO] = field(default_factory=list)
+
+    @staticmethod
+    def create_name(
+        is_success: bool,
+        action: str,
+        object_class: str,
+    ) -> str:
+        """Return the name of the audit policy."""
+        status = "ok" if is_success else "fail"
+        return f"{action}_{object_class}_{status}"
+
+    def as_dict(self) -> dict:
+        """Convert the data transfer object to a dictionary."""
+        return {
+            "name": self.name,
+            "is_enabled": self.is_enabled,
+            "severity": self.severity,
+        }

@@ -6,6 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import asdict
 
+from abstract_dao import AbstractDAO
+from adaptix.conversion import get_converter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,71 +16,68 @@ from models import AuditDestination
 from .dataclasses import AuditDestinationDTO
 from .exception import AuditNotFoundError
 
+_convert = get_converter(AuditDestination, AuditDestinationDTO)
 
-class AuditDestinationDAO:
+
+class AuditDestinationDAO(AbstractDAO[AuditDestinationDTO]):
     """Audit destination DAO class."""
 
     def __init__(self, session: AsyncSession):
         """Initialize Audit Destination DAO with a database session."""
         self._session = session
 
-    async def get_destination_by_id(
-        self,
-        destination_id: int,
-    ) -> AuditDestination:
-        """Get audit destination by ID."""
-        destination = await self._session.get(AuditDestination, destination_id)
+    async def _get_raw(self, _id: int) -> AuditDestination:
+        destination = await self._session.get(AuditDestination, _id)
         if not destination:
             raise AuditNotFoundError(
-                f"Destination with id {destination_id} not found.",
+                f"Destination with id {_id} not found.",
             )
         return destination
 
-    async def get_destinations(self) -> list[AuditDestinationDTO]:
+    async def get(
+        self,
+        _id: int,
+    ) -> AuditDestinationDTO:
+        """Get audit destination by ID."""
+        return _convert(await self._get_raw(_id))
+
+    async def get_all(self) -> list[AuditDestinationDTO]:
         """Get all audit destinations."""
         return [
-            AuditDestinationDTO(
-                id=destination.id,
-                name=destination.name,
-                service_type=destination.service_type,
-                host=destination.host,
-                port=destination.port,
-                protocol=destination.protocol,
-                is_enabled=destination.is_enabled,
-            )
+            _convert(destination)
             for destination in (
                 await self._session.scalars(select(AuditDestination))
             ).all()
         ]
 
-    async def create_destination(
+    async def create(
         self,
-        destination_dto: AuditDestinationDTO,
+        dto: AuditDestinationDTO,
     ) -> None:
         """Create a new audit destination."""
-        destination = AuditDestination(**asdict(destination_dto))
+        destination = AuditDestination(**asdict(dto))
         self._session.add(destination)
         await self._session.flush()
 
-    async def update_destination(
+    async def update(
         self,
-        destination_id: int,
-        destination_dto: AuditDestinationDTO,
+        _id: int,
+        dto: AuditDestinationDTO,
     ) -> None:
         """Update an existing audit destination."""
-        existing_destination = await self.get_destination_by_id(destination_id)
+        existing_destination = await self._get_raw(_id)
 
-        existing_destination.name = destination_dto.name
-        existing_destination.service_type = destination_dto.service_type
-        existing_destination.host = destination_dto.host
-        existing_destination.port = destination_dto.port
-        existing_destination.protocol = destination_dto.protocol
-        existing_destination.is_enabled = destination_dto.is_enabled
+        existing_destination.name = dto.name
+        existing_destination.service_type = dto.service_type
+        existing_destination.host = dto.host
+        existing_destination.port = dto.port
+        existing_destination.protocol = dto.protocol
+        existing_destination.is_enabled = dto.is_enabled
 
         await self._session.flush()
 
-    async def delete_destination(self, destination_id: int) -> None:
+    async def delete(self, _id: int) -> None:
         """Delete an audit destination."""
-        existing_destination = await self.get_destination_by_id(destination_id)
+        existing_destination = await self._get_raw(_id)
         await self._session.delete(existing_destination)
         await self._session.flush()

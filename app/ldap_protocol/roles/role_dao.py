@@ -6,7 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
-from sqlalchemy import and_, func, select
+from abstract_dao import AbstractDAO
+from adaptix import P
+from adaptix.conversion import get_converter, link_function
+from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -22,6 +25,22 @@ from models import AccessControlEntry, Directory, Group, Role
 
 
 @dataclass
+class RoleDTO:
+    """Data Transfer Object for Role."""
+
+    name: str
+    creator_upn: str | None
+    is_system: bool
+    groups: list[str]
+    id: int | None = None
+
+    def get_id(self) -> int:
+        if self.id is None:
+            raise ValueError("Non read model value")
+        return self.id
+
+
+@dataclass
 class AccessControlEntrySchema:
     """Base schema Access Control Entry."""
 
@@ -33,7 +52,19 @@ class AccessControlEntrySchema:
     is_allow: bool = True
 
 
-class RoleDAO:
+def make_groups(role: Role) -> list[str]:
+    """Create a list of group DNs from a Role object."""
+    return [group.directory.get_dn() for group in role.groups]
+
+
+_convert = get_converter(
+    Role,
+    RoleDTO,
+    recipe=[link_function(make_groups, P[RoleDTO].groups)],
+)
+
+
+class RoleDAO(AbstractDAO[RoleDTO]):
     """Role DAO."""
 
     _session: AsyncSession
@@ -42,10 +73,10 @@ class RoleDAO:
         """Initialize Role DAO with a database session."""
         self._session = session
 
-    async def get_role(self, role_id: int) -> Role | None:
+    async def _get_raw(self, _id: int) -> Role:
         """Get a role by its ID.
 
-        :param role_id: ID of the role to retrieve.
+        :param _id: ID of the role to retrieve.
         :return: Role object if found, None otherwise.
         """
         query = (
@@ -58,12 +89,22 @@ class RoleDAO:
                     joinedload(AccessControlEntry.role),
                 ),
             )
-            .where(Role.id == role_id)
+            .where(Role.id == _id)
         )
-        result = await self._session.execute(query)
-        return result.scalars().first()
+        retval = await self._session.scalar(query)
+        if not retval:
+            raise ValueError(f"Role with ID {_id} does not exist.")
+        return retval
 
-    async def get_role_by_name(self, role_name: str) -> Role | None:
+    async def get(self, _id: int) -> RoleDTO:
+        """Get a role by its ID.
+
+        :param role_id: ID of the role to retrieve.
+        :return: Role object if found, None otherwise.
+        """
+        return _convert(await self._get_raw(_id))
+
+    async def get_by_name(self, role_name: str) -> Role | None:
         """Get a role by its name.
 
         :param role_name: Name of the role to retrieve.
@@ -84,26 +125,22 @@ class RoleDAO:
         result = await self._session.execute(query)
         return result.scalars().first()
 
-    async def get_all_roles(self) -> list[Role]:
+    async def get_all(self) -> list[RoleDTO]:
         """Get all roles.
 
         :return: List of Role objects.
         """
-        return list(
-            (
-                await self._session.scalars(
-                    select(Role).options(selectinload(Role.groups)),
-                )
-            ).all(),
-        )
+        roles = (
+            await self._session.scalars(
+                select(Role).options(selectinload(Role.groups)),
+            )
+        ).all()
+        return list(map(_convert, roles))
 
-    async def create_role(
+    async def create(
         self,
-        role_name: str,
-        creator_upn: str | None,
-        is_system: bool,
-        groups_dn: list[str],
-    ) -> Role:
+        dto: RoleDTO,
+    ) -> None:
         """Create a new role.
 
         :param role_name: Name of the role to create.
@@ -113,31 +150,38 @@ class RoleDAO:
         :return: The created Role object.
         """
         groups: list[Group] = await get_groups(
-            dn_list=groups_dn,
+            dn_list=dto.groups,
             session=self._session,
         )
         if not groups:
             raise ValueError("No valid groups provided for the role.")
 
         role = Role(
-            name=role_name,
-            creator_upn=creator_upn,
-            is_system=is_system,
+            name=dto.name,
+            creator_upn=dto.creator_upn,
+            is_system=dto.is_system,
             groups=groups,
             access_control_entries=[],
         )
         self._session.add(role)
         await self._session.flush()
-        return role
+        self.last_id = role.id
 
-    async def update_role(
+    def get_last_id(self) -> int:
+        """Get the last inserted role ID.
+
+        :return: The last inserted role ID or None if not available.
+        """
+        try:
+            return self.last_id
+        finally:
+            del self.last_id
+
+    async def update(
         self,
-        role_id: int,
-        role_name: str,
-        groups_dn: list[str],
-        creator_upn: str | None = None,
-        is_system: bool = False,
-    ) -> Role:
+        _id: int,
+        dto: RoleDTO,
+    ) -> None:
         """Update an existing role.
 
         :param role_id: ID of the role to update.
@@ -147,28 +191,24 @@ class RoleDAO:
         :param groups_dn: List of group DNs associated with the role.
         :return: The updated Role object.
         """
-        role = await self.get_role(role_id)
-        if not role:
-            raise ValueError(f"Role with ID {role_id} does not exist.")
-
+        role = await self._get_raw(_id)
         groups: list[Group] = await get_groups(
-            dn_list=groups_dn,
+            dn_list=dto.groups,
             session=self._session,
         )
 
         if not groups:
             raise ValueError("No valid groups provided for the role.")
 
-        role.name = role_name
-        role.creator_upn = creator_upn
-        role.is_system = is_system
+        role.name = dto.name
+        role.creator_upn = dto.creator_upn
+        role.is_system = dto.is_system
         role.groups.clear()
         role.groups.extend(groups)
 
         await self._session.flush()
-        return role
 
-    async def delete_role(
+    async def delete(
         self,
         role_id: int,
     ) -> None:
@@ -176,11 +216,8 @@ class RoleDAO:
 
         :param role_id: ID of the role to delete.
         """
-        role = await self.get_role(role_id)
-        if not role:
-            raise ValueError(f"Role with ID {role_id} does not exist.")
-
-        await self._session.delete(role)
+        role = await self.get(role_id)
+        await self._session.execute(delete(Role).filter_by(id=role.id))
         await self._session.flush()
 
     async def _get_directories_with_scope(
@@ -240,9 +277,7 @@ class RoleDAO:
         :param access_control_entries: List of access control entries to add.
         :return: List of newly added AccessControlEntry objects.
         """
-        role = await self.get_role(role_id)
-        if not role:
-            raise ValueError(f"Role with ID {role_id} does not exist.")
+        role = await self._get_raw(role_id)
 
         directory_cache = {}
         new_aces = []
