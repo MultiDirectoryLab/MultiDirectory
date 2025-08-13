@@ -186,9 +186,9 @@ class AuditUseCase:
                     action="auth",
                     is_success=is_success,
                 ),
-                severity=AuditSeverity.INFO
-                if is_success
-                else AuditSeverity.WARNING,
+                severity=(
+                    AuditSeverity.INFO if is_success else AuditSeverity.WARNING
+                ),
                 triggers=[
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
@@ -228,9 +228,9 @@ class AuditUseCase:
                     action="reset_password",
                     is_success=is_success,
                 ),
-                severity=AuditSeverity.INFO
-                if is_success
-                else AuditSeverity.WARNING,
+                severity=(
+                    AuditSeverity.INFO if is_success else AuditSeverity.WARNING
+                ),
                 triggers=[
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
