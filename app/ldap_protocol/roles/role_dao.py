@@ -6,13 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
-from abstract_dao import AbstractDAO
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
+from abstract_dao import AbstractDAO
 from enums import AceType, RoleScope
 from ldap_protocol.utils.const import GRANT_DN_STRING
 from ldap_protocol.utils.helpers import get_depth_by_dn

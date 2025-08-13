@@ -6,11 +6,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import asdict
 
-from abstract_dao import AbstractDAO
 from adaptix.conversion import get_converter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from abstract_dao import AbstractDAO
 from models import AuditDestination
 
 from .dataclasses import AuditDestinationDTO
