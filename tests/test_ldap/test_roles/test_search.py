@@ -10,7 +10,8 @@ from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from models import Role
 from tests.conftest import TestCreds
 
@@ -48,7 +49,7 @@ async def test_role_search_2(
 
     User with a custom role should see only the group entry.
     """
-    ace = AccessControlEntrySchema(
+    ace = AccessControlEntryDTO(
         ace_type=AceType.READ,
         scope=RoleScope.BASE_OBJECT,
         base_dn="cn=groups,dc=md,dc=test",
@@ -87,7 +88,7 @@ async def test_role_search_3(
 
     User with a custom role should see the group and user entries.
     """
-    ace = AccessControlEntrySchema(
+    ace = AccessControlEntryDTO(
         ace_type=AceType.READ,
         scope=RoleScope.SINGLE_LEVEL,
         base_dn="dc=md,dc=test",
@@ -127,7 +128,7 @@ async def test_role_search_4(
 
     User with a custom role should see all groups and their members.
     """
-    ace = AccessControlEntrySchema(
+    ace = AccessControlEntryDTO(
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn="cn=groups,dc=md,dc=test",
@@ -173,7 +174,7 @@ async def test_role_search_5(
     user_entity_type = await entity_type_dao.get_one_by_name("User")
     assert user_entity_type
 
-    ace = AccessControlEntrySchema(
+    ace = AccessControlEntryDTO(
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn="dc=md,dc=test",
@@ -226,7 +227,7 @@ async def test_role_search_6(
     posix_email_attr = await attribute_type_dao.get_one_by_name("posixEmail")
     assert posix_email_attr
 
-    ace = AccessControlEntrySchema(
+    ace = AccessControlEntryDTO(
         ace_type=AceType.READ,
         scope=RoleScope.BASE_OBJECT,
         base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -278,7 +279,7 @@ async def test_role_search_7(
     assert description_attr
 
     aces = [
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -286,7 +287,7 @@ async def test_role_search_7(
             entity_type_id=user_entity_type.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -339,7 +340,7 @@ async def test_role_search_8(
     assert description_attr
 
     aces = [
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="dc=md,dc=test",
@@ -347,7 +348,7 @@ async def test_role_search_8(
             entity_type_id=user_entity_type.id,
             is_allow=False,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -403,7 +404,7 @@ async def test_role_search_9(
     assert posix_email_attr
 
     aces = [
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -411,7 +412,7 @@ async def test_role_search_9(
             entity_type_id=user_entity_type.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",

@@ -19,11 +19,8 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
-from ldap_protocol.roles.role_dao import (
-    AccessControlEntrySchema,
-    RoleDAO,
-    RoleDTO,
-)
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group, User
 from tests.conftest import TestCreds
@@ -293,7 +290,7 @@ async def test_ldap_add_access_control(
 
     assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    add_ace = AccessControlEntrySchema(
+    add_ace = AccessControlEntryDTO(
         ace_type=AceType.CREATE_CHILD,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,
@@ -302,7 +299,7 @@ async def test_ldap_add_access_control(
         is_allow=True,
     )
 
-    read_ace = AccessControlEntrySchema(
+    read_ace = AccessControlEntryDTO(
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,

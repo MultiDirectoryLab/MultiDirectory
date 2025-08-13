@@ -14,11 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.roles.role_dao import (
-    AccessControlEntrySchema,
-    RoleDAO,
-    RoleDTO,
-)
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from models import Directory
 from tests.conftest import TestCreds
 
@@ -176,7 +173,7 @@ async def test_ldap_delete_w_access_control(
         ),
     )
 
-    delete_ace = AccessControlEntrySchema(
+    delete_ace = AccessControlEntryDTO(
         ace_type=AceType.DELETE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,

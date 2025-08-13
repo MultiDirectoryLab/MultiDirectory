@@ -15,7 +15,8 @@ from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Role
 from tests.conftest import TestCreds
@@ -52,7 +53,7 @@ async def test_multiple_access(
     assert user_account_control_attr
 
     aces = [
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
@@ -60,7 +61,7 @@ async def test_multiple_access(
             attribute_type_id=user_account_control_attr.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
@@ -68,7 +69,7 @@ async def test_multiple_access(
             attribute_type_id=user_principal_name.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.WRITE,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
@@ -76,7 +77,7 @@ async def test_multiple_access(
             attribute_type_id=posix_email_attr.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
             ace_type=AceType.DELETE,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",

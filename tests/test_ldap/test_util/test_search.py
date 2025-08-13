@@ -20,11 +20,8 @@ from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
 from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.policies.network_policy import is_user_group_valid
-from ldap_protocol.roles.role_dao import (
-    AccessControlEntrySchema,
-    RoleDAO,
-    RoleDTO,
-)
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
 from models import User
 from tests.conftest import TestCreds
@@ -317,7 +314,7 @@ async def test_ldap_search_access_control_denied(
         ),
     )
 
-    group_read_ace = AccessControlEntrySchema(
+    group_read_ace = AccessControlEntryDTO(
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn="cn=groups,dc=md,dc=test",
