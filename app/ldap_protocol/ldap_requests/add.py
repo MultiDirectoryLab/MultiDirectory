@@ -23,6 +23,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.utils.const import DOMAIN_USERS_GROUP_NAME
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
     create_user_name,
@@ -245,6 +246,8 @@ class AddRequest(BaseRequest):
                 elif attr.type == "memberOf":
                     if not isinstance(value, str):
                         raise TypeError
+                    if value in group_attributes:
+                        continue
                     group_attributes.append(value)
 
                 else:
@@ -266,9 +269,15 @@ class AddRequest(BaseRequest):
         is_computer = "computer" in self.attributes_dict.get("objectClass", [])
 
         if is_user:
-            parent_groups.append(
-                (await get_group("domain users", ctx.session)).group,
-            )
+            if not any(
+                group.directory.name.lower() == DOMAIN_USERS_GROUP_NAME
+                for group in parent_groups
+            ):
+                parent_groups.append(
+                    (
+                        await get_group(DOMAIN_USERS_GROUP_NAME, ctx.session)
+                    ).group,
+                )
 
             sam_account_name = user_attributes.get(
                 "sAMAccountName",
