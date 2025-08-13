@@ -13,3 +13,4 @@ class ErrorMessages:
     NOT_OLD_ENOUGH = "Password is not old enough to update"
     NOT_IN_HISTORY = "Password must not be in history"
     NOT_LIKE_OTP = "Password suffix should not be similar to OTP"
+    NOT_COMPLEX_ENOUGH = "Password isn't complex enough"

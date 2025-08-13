@@ -308,5 +308,10 @@ class PasswordPolicyDAO:
         if password_policy.min_length:
             self.__validator.min_length(password_policy.min_length)
 
+        if password_policy.password_must_meet_complexity_requirements:
+            self.__validator.min_complexity()
+
+        self.__validator.end_digits_num(6)
+
         await self.__validator.validate(password)
         return self.__validator.error_messages

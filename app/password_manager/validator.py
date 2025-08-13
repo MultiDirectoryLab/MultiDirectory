@@ -4,14 +4,20 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import re
 from dataclasses import dataclass
 from typing import Any, Callable, Coroutine, Iterable, Self
 
-from . import checks
+from passlib.exc import UnknownHashError
+
 from .error_messages import ErrorMessages
 from .settings import _PasswordValidatorSettings
+from .utils import count_password_age_days, verify_password
 
 type _CheckType = Callable[..., Coroutine[Any, Any, bool]]
+
+with open("extra/common_pwds.txt") as f:
+    _COMMON_PASSWORDS = set(f.read().split("\n"))
 
 
 @dataclass
@@ -104,7 +110,7 @@ class PasswordValidator:
                 )
         """  # fmt: skip
         self.__add_checker(
-            check=checks.min_length,
+            check=self.validate_min_length,
             error_message=ErrorMessages.LONGER,
             args=[length],
         )
@@ -122,7 +128,7 @@ class PasswordValidator:
         :return: PasswordValidator.
         """
         self.__add_checker(
-            check=checks.reuse_prevention,
+            check=self.validate_reuse_prevention,
             error_message=ErrorMessages.NOT_IN_HISTORY,
             args=[password_history],
         )
@@ -148,7 +154,7 @@ class PasswordValidator:
                 )
         """  # fmt: skip
         self.__add_checker(
-            check=checks.not_otp_like_suffix,
+            check=self.validate_not_otp_like_suffix,
             error_message=ErrorMessages.NOT_LIKE_OTP,
             args=[],
         )
@@ -171,8 +177,104 @@ class PasswordValidator:
             the check passes.
         """
         self.__add_checker(
-            check=checks.min_age,
+            check=self.validate_min_age,
             error_message=ErrorMessages.NOT_OLD_ENOUGH,
             args=[min_age_days, value],
         )
         return self
+
+    def min_complexity(self) -> Self:
+        """Require minimum password complexity.
+
+        :return: PasswordValidator.
+        """
+        self.__add_checker(
+            check=self.validate_min_complexity,
+            error_message=ErrorMessages.NOT_COMPLEX_ENOUGH,
+            args=[],
+        )
+        return self
+
+    def end_digits_num(self, end_digits: int) -> Self:
+        """Forbid a numeric suffix of configured length.
+
+        :param int end_digits: Length of the numeric suffix.
+        :return: PasswordValidator.
+        """
+        self.__add_checker(
+            check=self.validate_end_digits_num,
+            error_message=ErrorMessages.NOT_LIKE_OTP,
+            args=[end_digits],
+        )
+        return self
+
+    @staticmethod
+    async def validate_end_digits_num(
+        password: str,
+        _: Any,
+        end_digits: int,
+    ) -> bool:
+        """Validate end digits number."""
+        return password[end_digits:].isdecimal()
+
+    @staticmethod
+    async def validate_min_complexity(password: str, _: Any) -> bool:
+        """Validate minimum password complexity.
+
+        :param str password: Password to validate.
+        :return: bool
+        """
+        regex = (
+            re.search("[A-ZА-Я]", password) is not None,
+            re.search("[a-zа-я]", password) is not None,
+            re.search("[0-9]", password) is not None,
+            password.lower() not in _COMMON_PASSWORDS,
+        )
+        return all(regex)
+
+    @staticmethod
+    async def validate_min_length(password: str, _: Any, length: int) -> bool:
+        """Validate minimum password length."""
+        return len(password) >= length
+
+    @staticmethod
+    async def validate_reuse_prevention(
+        password: str,
+        _: Any,
+        password_history: Iterable[str],
+    ) -> bool:
+        """Check if password is not in the password history."""
+        for password_hash in password_history:
+            try:
+                if verify_password(password, password_hash):
+                    return False
+            except UnknownHashError:
+                pass
+
+        return True
+
+    @staticmethod
+    async def validate_not_otp_like_suffix(
+        password: str,
+        settings: _PasswordValidatorSettings,
+    ) -> bool:
+        """Check if password does not end with a specified number of digits."""
+        tail = password[-settings.otp_tail_size :]
+        res = tail.isdecimal()
+        return not res
+
+    @staticmethod
+    async def validate_min_age(
+        _: Any,
+        __: Any,
+        min_age_days: int,
+        value: str | None,
+    ) -> bool:
+        """Check if password is older than a specified number of days."""
+        if min_age_days == 0:
+            return True
+
+        if not value:
+            return True
+
+        return count_password_age_days(value) >= min_age_days
