@@ -60,7 +60,10 @@ def make_groups(role: Role) -> list[str]:
 _convert = get_converter(
     Role,
     RoleDTO,
-    recipe=[link_function(make_groups, P[RoleDTO].groups)],
+    recipe=[
+        link_function(make_groups, P[RoleDTO].groups),
+        link_function(lambda x: x.created_at, P[RoleDTO].created_at),
+    ],
 )
 
 
