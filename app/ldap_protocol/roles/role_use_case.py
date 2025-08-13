@@ -10,13 +10,12 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
 from enums import RoleScope
-from ldap_protocol.roles.role_dao import (
-    AccessControlEntrySchema,
-    RoleDAO,
-    RoleDTO,
-)
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_base_directories
 from models import AccessControlEntry, AceType, Directory, Role
+
+from .exceptions import RoleNotFoundError
 
 
 class RoleConstants(StrEnum):
@@ -182,7 +181,7 @@ class RoleUseCase:
         )
 
         aces = [
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
                 ace_type=AceType.READ,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn_list[0].path_dn,
@@ -225,23 +224,26 @@ class RoleUseCase:
 
     async def delete_kerberos_system_role(self) -> None:
         """Delete the Kerberos system role."""
-        role = await self._role_dao.get_by_name(
-            RoleConstants.KERBEROS_ROLE_NAME,
-        )
-        if role:
-            await self._role_dao.delete(role.id)
+        try:
+            role = await self._role_dao.get_by_name(
+                RoleConstants.KERBEROS_ROLE_NAME,
+            )
+        except RoleNotFoundError:
+            return
+        else:
+            await self._role_dao.delete(role.get_id())
 
     def _get_full_access_aces(
         self,
         base_dn: str,
-    ) -> list[AccessControlEntrySchema]:
+    ) -> list[AccessControlEntryDTO]:
         """Get a full access ACE.
 
         :param base_dn: Base DN for the role.
-        :return: List of AccessControlEntrySchema objects with full access.
+        :return: List of AccessControlEntryDTO objects with full access.
         """
         return [
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
                 ace_type=AceType.READ,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
@@ -249,7 +251,7 @@ class RoleUseCase:
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
                 ace_type=AceType.CREATE_CHILD,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
@@ -257,7 +259,7 @@ class RoleUseCase:
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
                 ace_type=AceType.WRITE,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
@@ -265,7 +267,7 @@ class RoleUseCase:
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
                 ace_type=AceType.DELETE,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
