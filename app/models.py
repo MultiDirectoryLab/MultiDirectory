@@ -657,6 +657,19 @@ class User(Base):
         DateTime(timezone=True),
     )
 
+    failed_auth_attempts: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    last_failed_auth: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    is_auth_locked: Mapped[bool] = mapped_column(
+        nullable=False,
+        server_default="false",
+    )
+
     search_fields = {
         "mail": "mail",
         "samaccountname": "sAMAccountName",
@@ -1154,23 +1167,115 @@ class PasswordPolicy(Base):
         server_default="Default Policy",
     )
 
-    password_history_length: Mapped[int] = mapped_column(
+    history_length: Mapped[int] = mapped_column(
         nullable=False,
         server_default="4",
     )
-    maximum_password_age_days: Mapped[int] = mapped_column(
+    max_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-    minimum_password_age_days: Mapped[int] = mapped_column(
+    min_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-    minimum_password_length: Mapped[int] = mapped_column(
+    min_length: Mapped[int] = mapped_column(
         nullable=False,
         server_default="7",
     )
+    max_length: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="32",
+    )
+
+    language: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        server_default="Latin",
+    )
+    is_exact_match: Mapped[bool] = mapped_column(
+        nullable=False,
+        server_default="false",
+    )
+
+    min_lowercase_letters_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    min_uppercase_letters_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    min_special_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    min_unique_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    max_repeating_symbols_in_row_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    min_digits_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+
+    max_sequential_keyboard_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+    max_sequential_alphabet_symbols_count: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="0",
+    )
+
     password_must_meet_complexity_requirements: Mapped[tbool]
+
+    max_failed_attempts: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="6",
+    )
+    failed_attempts_reset_sec: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="60",
+    )
+    lockout_duration_sec: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="600",
+    )
+    fail_delay_sec: Mapped[int] = mapped_column(
+        nullable=False,
+        server_default="5",
+    )
+
+    password_history_length: Mapped[int] = synonym("history_length")
+    maximum_password_age_days: Mapped[int] = synonym("max_age_days")
+    minimum_password_age_days: Mapped[int] = synonym("min_age_days")
+    minimum_password_length: Mapped[int] = synonym("min_length")
+    maximum_password_length: Mapped[int] = synonym("max_length")
+
+
+class PasswordBanWord(Base):
+    """Password ban word."""
+
+    __tablename__ = "PasswordBanWords"
+    __table_args__ = (
+        Index(
+            "idx_password_ban_words_word_gin_trgm",
+            text("word gin_trgm_ops"),
+            postgresql_using="gin",
+            postgresql_ops={"word": "gin_trgm_ops"},
+        ),
+    )
+
+    word: Mapped[str] = mapped_column(
+        String(255),
+        primary_key=True,
+        nullable=False,
+    )
 
 
 class Role(Base):
