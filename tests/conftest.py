@@ -602,7 +602,7 @@ async def session(
     container: AsyncContainer,
     handler: PoolClientHandler,
 ) -> AsyncIterator[AsyncSession]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         handler.container = container
@@ -623,7 +623,7 @@ async def setup_session(
     session: AsyncSession,
     raw_audit_manager: RawAuditManager,
 ) -> None:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
     object_class_dao = ObjectClassDAO(
         session,
@@ -714,7 +714,7 @@ async def handler(
 async def entity_type_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[EntityTypeDAO]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         attribute_type_dao = AttributeTypeDAO(session)
@@ -729,7 +729,7 @@ async def entity_type_dao(
 async def password_policy_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[PasswordPolicyDAO]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield PasswordPolicyDAO(session)
@@ -739,7 +739,7 @@ async def password_policy_dao(
 async def attribute_type_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[AttributeTypeDAO]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield AttributeTypeDAO(session)
@@ -747,7 +747,7 @@ async def attribute_type_dao(
 
 @pytest_asyncio.fixture(scope="function")
 async def role_dao(container: AsyncContainer) -> AsyncIterator[RoleDAO]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield RoleDAO(session)
