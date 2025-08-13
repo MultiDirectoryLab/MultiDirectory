@@ -118,8 +118,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
         """
         roles = (
             await self._session.scalars(
-                select(Role)
-                .options(
+                select(Role).options(
                     selectinload(Role.groups).selectinload(Group.directory),
                 ),
             )

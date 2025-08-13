@@ -48,4 +48,3 @@ class RoleDTO:
         if self.id is None:
             raise ValueError("Non read model value")
         return self.id
-
