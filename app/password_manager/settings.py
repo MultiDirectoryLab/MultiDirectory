@@ -6,8 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal
 
-_REGEXP_DIGITS: str = r"\d"
-
 
 class _PasswordValidatorSettings:
     """Password Validator Settings."""
