@@ -205,6 +205,9 @@ def get_search_path(dn: str) -> list[str]:
     :param str dn: any DN, dn syntax
     :return list[str]: reversed list of dn values
     """
+    if not dn:
+        return []
+
     search_path = []
     for path in dn.lower().split(","):
         key, value = path.split("=")
