@@ -349,10 +349,7 @@ class TestProvider(Provider):
         )
 
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
-    ace_dao = provide(
-        AccessControlEntryDAO,
-        scope=Scope.REQUEST,
-    )
+    ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
