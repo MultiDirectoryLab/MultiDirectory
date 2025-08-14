@@ -186,6 +186,6 @@ class RoleDAO(AbstractDAO[RoleDTO]):
 
         :param int _id: ID of the role to delete.
         """
-        role = await self.get(_id)
+        role = await self._get_raw(_id)
         await self._session.execute(delete(Role).filter_by(id=role.id))
         await self._session.flush()
