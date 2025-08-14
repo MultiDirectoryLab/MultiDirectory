@@ -25,5 +25,9 @@ class AccessControlEntryNotFoundError(RoleError):
     """Raised when an access control entry is not found."""
 
 
+class AccessControlEntryUpdateError(RoleError):
+    """Raised when there is an error with updating access control entries."""
+
+
 class NoValidDistinguishedNameError(RoleError):
     """Raised when there is an error with the base DN."""
