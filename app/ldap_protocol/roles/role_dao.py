@@ -4,10 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Callable
-
 from adaptix import P
-from adaptix.conversion import get_converter, link_function
+from adaptix.conversion import ConversionRetort, link_function
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -31,18 +29,27 @@ def make_aces(role: Role) -> list[AccessControlEntryDTO]:
     return [ace_convert(ace) for ace in role.access_control_entries]
 
 
-def _convert(include_aces: bool = True) -> Callable[[Role], RoleDTO]:
-    """Convert a Role object to a RoleDTO object."""
-    ace_f = make_aces if include_aces else (lambda _: None)  # type: ignore
-    return get_converter(
-        Role,
-        RoleDTO,
-        recipe=[
-            link_function(make_groups, P[RoleDTO].groups),
-            link_function(lambda x: x.created_at, P[RoleDTO].created_at),
-            link_function(ace_f, P[RoleDTO].access_control_entries),
-        ],
-    )
+base_retort = ConversionRetort(
+    recipe=[
+        link_function(make_groups, P[RoleDTO].groups),
+        link_function(lambda x: x.created_at, P[RoleDTO].created_at),
+    ],
+)
+
+retort = base_retort.extend(
+    recipe=[
+        link_function(make_aces, P[RoleDTO].access_control_entries),
+    ],
+)
+
+retort_without_ace = base_retort.extend(
+    recipe=[
+        link_function(lambda _: None, P[RoleDTO].access_control_entries),
+    ],
+)
+
+_convert = retort.get_converter(Role, RoleDTO)
+_convert_without_aces = retort_without_ace.get_converter(Role, RoleDTO)
 
 
 class RoleDAO(AbstractDAO[RoleDTO]):
@@ -83,7 +90,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
         :param int _id: ID of the role to retrieve.
         :return: RoleDTO object.
         """
-        return _convert()(await self._get_raw(_id))
+        return _convert(await self._get_raw(_id))
 
     async def get_by_name(self, role_name: str) -> RoleDTO:
         """Get a role by its name.
@@ -108,7 +115,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
             raise RoleNotFoundError(
                 f"Role with name {role_name} does not exist.",
             )
-        return _convert()(retval)
+        return _convert(retval)
 
     async def get_all(self) -> list[RoleDTO]:
         """Get all roles.
@@ -122,7 +129,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
                 ),
             )
         ).all()
-        return list(map(_convert(include_aces=False), roles))
+        return list(map(_convert_without_aces, roles))
 
     async def create(self, dto: RoleDTO) -> None:
         """Create a new role.
