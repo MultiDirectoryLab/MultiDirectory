@@ -15,6 +15,7 @@ from ldap_protocol.utils.const import GRANT_DN_STRING
 class AccessControlEntryDTO:
     """Access control entry data transfer object."""
 
+    role_id: int
     ace_type: AceType
     scope: RoleScope
     base_dn: GRANT_DN_STRING
