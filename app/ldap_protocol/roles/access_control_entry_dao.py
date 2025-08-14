@@ -25,19 +25,16 @@ from .exceptions import (
     NoValidDistinguishedNameError,
 )
 
-
-def get_role_name(ace: AccessControlEntry) -> str:
-    """Get the name of the role."""
-    return ace.role.name
-
-
 _convert = get_converter(
     AccessControlEntry,
     AccessControlEntryDTO,
     recipe=[
-        link_function(get_role_name, P[AccessControlEntryDTO].role_name),
         link_function(lambda x: x.path, P[AccessControlEntryDTO].base_dn),
         link_function(lambda x: x.role_id, P[AccessControlEntryDTO].role_id),
+        link_function(
+            lambda x: x.role.name,
+            P[AccessControlEntryDTO].role_name,
+        ),
         link_function(
             lambda x: x.attribute_type_id,
             P[AccessControlEntryDTO].attribute_type_id,
