@@ -207,8 +207,8 @@ def get_search_path(dn: str) -> list[str]:
     """
     search_path = []
     for path in dn.lower().split(","):
-        path = "=".join(path_part.strip() for path_part in path.split("="))
-        search_path.append(path)
+        key, value = path.split("=")
+        search_path.append(f"{key.strip()}={value.strip()}")
     search_path.reverse()
     return search_path
 
