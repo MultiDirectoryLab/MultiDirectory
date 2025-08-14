@@ -10,9 +10,8 @@ from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO
-from ldap_protocol.roles.role_dao import RoleDAO
-from models import Role
+from ldap_protocol.roles.access_control_entry_dao import AccessControlEntryDAO
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from tests.conftest import TestCreds
 
 from .conftest import perform_ldap_search_and_validate
@@ -42,14 +41,15 @@ async def test_role_search_1(settings: Settings, creds: TestCreds) -> None:
 async def test_role_search_2(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
 ) -> None:
     """Test 2.
 
     User with a custom role should see only the group entry.
     """
     ace = AccessControlEntryDTO(
+        role_id=custom_role.get_id(),
         ace_type=AceType.READ,
         scope=RoleScope.BASE_OBJECT,
         base_dn="cn=groups,dc=md,dc=test",
@@ -58,10 +58,7 @@ async def test_role_search_2(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=[ace],
-    )
+    await access_control_entry_dao.create(ace)
 
     await perform_ldap_search_and_validate(
         settings=settings,
@@ -81,14 +78,15 @@ async def test_role_search_2(
 async def test_role_search_3(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
 ) -> None:
     """Test 3.
 
     User with a custom role should see the group and user entries.
     """
     ace = AccessControlEntryDTO(
+        role_id=custom_role.get_id(),
         ace_type=AceType.READ,
         scope=RoleScope.SINGLE_LEVEL,
         base_dn="dc=md,dc=test",
@@ -97,10 +95,7 @@ async def test_role_search_3(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=[ace],
-    )
+    await access_control_entry_dao.create(ace)
 
     await perform_ldap_search_and_validate(
         settings=settings,
@@ -121,14 +116,15 @@ async def test_role_search_3(
 async def test_role_search_4(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
 ) -> None:
     """Test 4.
 
     User with a custom role should see all groups and their members.
     """
     ace = AccessControlEntryDTO(
+        role_id=custom_role.get_id(),
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn="cn=groups,dc=md,dc=test",
@@ -137,10 +133,7 @@ async def test_role_search_4(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=[ace],
-    )
+    await access_control_entry_dao.create(ace)
 
     await perform_ldap_search_and_validate(
         settings=settings,
@@ -163,8 +156,8 @@ async def test_role_search_4(
 async def test_role_search_5(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
     entity_type_dao: EntityTypeDAO,
 ) -> None:
     """Test 5.
@@ -175,6 +168,7 @@ async def test_role_search_5(
     assert user_entity_type
 
     ace = AccessControlEntryDTO(
+        role_id=custom_role.get_id(),
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn="dc=md,dc=test",
@@ -183,10 +177,7 @@ async def test_role_search_5(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=[ace],
-    )
+    await access_control_entry_dao.create(ace)
 
     await perform_ldap_search_and_validate(
         settings=settings,
@@ -212,8 +203,8 @@ async def test_role_search_5(
 async def test_role_search_6(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
     entity_type_dao: EntityTypeDAO,
     attribute_type_dao: AttributeTypeDAO,
 ) -> None:
@@ -228,6 +219,7 @@ async def test_role_search_6(
     assert posix_email_attr
 
     ace = AccessControlEntryDTO(
+        role_id=custom_role.get_id(),
         ace_type=AceType.READ,
         scope=RoleScope.BASE_OBJECT,
         base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -236,10 +228,7 @@ async def test_role_search_6(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=[ace],
-    )
+    await access_control_entry_dao.create(ace)
 
     await perform_ldap_search_and_validate(
         settings=settings,
@@ -263,8 +252,8 @@ async def test_role_search_6(
 async def test_role_search_7(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
     entity_type_dao: EntityTypeDAO,
     attribute_type_dao: AttributeTypeDAO,
 ) -> None:
@@ -280,6 +269,7 @@ async def test_role_search_7(
 
     aces = [
         AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -288,6 +278,7 @@ async def test_role_search_7(
             is_allow=True,
         ),
         AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -297,10 +288,7 @@ async def test_role_search_7(
         ),
     ]
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=aces,
-    )
+    await access_control_entry_dao.create_bulk(aces)
 
     await perform_ldap_search_and_validate(
         settings=settings,
@@ -324,8 +312,8 @@ async def test_role_search_7(
 async def test_role_search_8(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
     entity_type_dao: EntityTypeDAO,
     attribute_type_dao: AttributeTypeDAO,
 ) -> None:
@@ -341,6 +329,7 @@ async def test_role_search_8(
 
     aces = [
         AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="dc=md,dc=test",
@@ -349,6 +338,7 @@ async def test_role_search_8(
             is_allow=False,
         ),
         AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -358,10 +348,7 @@ async def test_role_search_8(
         ),
     ]
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=aces,
-    )
+    await access_control_entry_dao.create_bulk(aces)
 
     await perform_ldap_search_and_validate(
         settings=settings,
@@ -385,8 +372,8 @@ async def test_role_search_8(
 async def test_role_search_9(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
-    custom_role: Role,
+    access_control_entry_dao: AccessControlEntryDAO,
+    custom_role: RoleDTO,
     entity_type_dao: EntityTypeDAO,
     attribute_type_dao: AttributeTypeDAO,
 ) -> None:
@@ -405,6 +392,7 @@ async def test_role_search_9(
 
     aces = [
         AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -413,6 +401,7 @@ async def test_role_search_9(
             is_allow=True,
         ),
         AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
@@ -422,10 +411,7 @@ async def test_role_search_9(
         ),
     ]
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=aces,
-    )
+    await access_control_entry_dao.create_bulk(aces)
 
     await perform_ldap_search_and_validate(
         settings=settings,
