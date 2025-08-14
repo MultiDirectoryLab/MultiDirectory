@@ -10,7 +10,7 @@ from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.access_control_entry_dao import AccessControlEntryDAO
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from tests.conftest import TestCreds
 

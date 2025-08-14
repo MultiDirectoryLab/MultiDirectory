@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.roles.access_control_entry_dao import AccessControlEntryDAO
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from models import Directory

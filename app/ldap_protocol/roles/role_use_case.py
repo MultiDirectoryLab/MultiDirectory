@@ -13,7 +13,7 @@ from enums import RoleScope
 from ldap_protocol.utils.queries import get_base_directories
 from models import AccessControlEntry, AceType, Directory, Role
 
-from .access_control_entry_dao import AccessControlEntryDAO
+from .ace_dao import AccessControlEntryDAO
 from .dataclasses import AccessControlEntryDTO, RoleDTO
 from .exceptions import RoleNotFoundError
 from .role_dao import RoleDAO

@@ -19,7 +19,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
-from ldap_protocol.roles.access_control_entry_dao import AccessControlEntryDAO
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path

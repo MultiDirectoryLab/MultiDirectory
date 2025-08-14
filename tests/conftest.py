@@ -88,8 +88,8 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
-from ldap_protocol.roles.access_control_entry_dao import AccessControlEntryDAO
 from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler

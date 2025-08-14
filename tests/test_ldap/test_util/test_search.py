@@ -20,7 +20,7 @@ from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
 from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.policies.network_policy import is_user_group_valid
-from ldap_protocol.roles.access_control_entry_dao import AccessControlEntryDAO
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups

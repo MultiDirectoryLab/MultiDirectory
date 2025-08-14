@@ -14,7 +14,7 @@ from abstract_dao import AbstractDAO
 from ldap_protocol.utils.queries import get_groups
 from models import AccessControlEntry, Group, Role
 
-from .access_control_entry_dao import _convert as ace_convert
+from .ace_dao import _convert as ace_convert
 from .dataclasses import AccessControlEntryDTO, RoleDTO
 from .exceptions import NoValidGroupsError, RoleNotFoundError
 
