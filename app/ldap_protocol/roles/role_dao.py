@@ -57,8 +57,8 @@ class RoleDAO(AbstractDAO[RoleDTO]):
     async def _get_raw(self, _id: int) -> Role:
         """Get a role by its ID.
 
-        :param _id: ID of the role to retrieve.
-        :return: Role object if found, None otherwise.
+        :param int _id: ID of the role to retrieve.
+        :return: Role object.
         """
         query = (
             select(Role)
@@ -80,8 +80,8 @@ class RoleDAO(AbstractDAO[RoleDTO]):
     async def get(self, _id: int) -> RoleDTO:
         """Get a role by its ID.
 
-        :param role_id: ID of the role to retrieve.
-        :return: Role object if found, None otherwise.
+        :param int _id: ID of the role to retrieve.
+        :return: RoleDTO object.
         """
         return _convert()(await self._get_raw(_id))
 
@@ -89,7 +89,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
         """Get a role by its name.
 
         :param role_name: Name of the role to retrieve.
-        :return: Role object if found, None otherwise.
+        :return: RoleDTO object.
         """
         query = (
             select(Role)
@@ -113,7 +113,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
     async def get_all(self) -> list[RoleDTO]:
         """Get all roles.
 
-        :return: List of Role objects.
+        :return: List of RoleDTO objects.
         """
         roles = (
             await self._session.scalars(
@@ -124,17 +124,10 @@ class RoleDAO(AbstractDAO[RoleDTO]):
         ).all()
         return list(map(_convert(include_aces=False), roles))
 
-    async def create(
-        self,
-        dto: RoleDTO,
-    ) -> None:
+    async def create(self, dto: RoleDTO) -> None:
         """Create a new role.
 
-        :param role_name: Name of the role to create.
-        :param creator_upn: UPN of the user who created the role.
-        :param is_system: Whether the role is a system role.
-        :param groups_dn: List of group DNs associated with the role.
-        :return: The created Role object.
+        :param RoleDTO dto: Data transfer object containing role information.
         """
         groups: list[Group] = await get_groups(
             dn_list=dto.groups,
@@ -164,19 +157,12 @@ class RoleDAO(AbstractDAO[RoleDTO]):
         finally:
             del self.last_id
 
-    async def update(
-        self,
-        _id: int,
-        dto: RoleDTO,
-    ) -> None:
+    async def update(self, _id: int, dto: RoleDTO) -> None:
         """Update an existing role.
 
-        :param role_id: ID of the role to update.
-        :param role_name: New name for the role.
-        :param creator_upn: UPN of the user who created the role.
-        :param is_system: Whether the role is a system role.
-        :param groups_dn: List of group DNs associated with the role.
-        :return: The updated Role object.
+        :param int _id: ID of the role to update.
+        :param RoleDTO dto: Data transfer object containing updated
+            role information.
         """
         role = await self._get_raw(_id)
         groups: list[Group] = await get_groups(
@@ -195,13 +181,10 @@ class RoleDAO(AbstractDAO[RoleDTO]):
 
         await self._session.flush()
 
-    async def delete(
-        self,
-        _id: int,
-    ) -> None:
+    async def delete(self, _id: int) -> None:
         """Delete a role by its ID.
 
-        :param role_id: ID of the role to delete.
+        :param int _id: ID of the role to delete.
         """
         role = await self.get(_id)
         await self._session.execute(delete(Role).filter_by(id=role.id))
