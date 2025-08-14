@@ -20,7 +20,6 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
-from ldap_protocol.policies.password_policy import post_save_password_actions
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
 from password_manager import get_password_hash, verify_password
@@ -197,7 +196,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
-        errors = await ctx.password_policy_dao.check_password_violations(
+        errors = await ctx.password_policy_use_cases.check_password_violations(
             password=new_password,
             user=user,
         )
@@ -230,7 +229,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 raise PermissionError("Kadmin Error")
 
             user.password = get_password_hash(new_password)
-            await post_save_password_actions(user, ctx.session)
+            await ctx.password_policy_use_cases.post_save_password_actions(
+                user,
+                ctx.session,
+            )
             await ctx.session.execute(
                 update(Directory).where(Directory.id == user.directory_id),
             )

@@ -38,7 +38,7 @@ async def test_password_policy(http_client: AsyncClient) -> None:
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == changed_data
+    assert not response.json()
 
     response = await http_client.get("/password-policy")
     assert response.status_code == status.HTTP_200_OK

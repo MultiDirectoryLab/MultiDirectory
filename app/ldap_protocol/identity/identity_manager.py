@@ -34,10 +34,7 @@ from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
 )
-from ldap_protocol.policies.password_policy import (
-    PasswordPolicyDAO,
-    post_save_password_actions,
-)
+from ldap_protocol.policies.password_policy import PasswordPolicyUseCases
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
@@ -61,7 +58,7 @@ class IdentityManager:
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
-        password_policy_dao: PasswordPolicyDAO,
+        password_policy_use_cases: PasswordPolicyUseCases,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
         audit_use_case: AuditUseCase,
@@ -86,7 +83,7 @@ class IdentityManager:
         self._repository = repository
         self._audit_use_case = audit_use_case
         self._monitor = monitor
-        self._password_policy_dao = password_policy_dao
+        self._password_policy_use_cases = password_policy_use_cases
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -202,9 +199,11 @@ class IdentityManager:
                 f"User {identity} not found in the database.",
             )
 
-        errors = await self._password_policy_dao.check_password_violations(
-            new_password,
-            user,
+        errors = (
+            await self._password_policy_use_cases.check_password_violations(
+                new_password,
+                user,
+            )
         )
 
         if errors:
@@ -222,7 +221,10 @@ class IdentityManager:
                 )
 
         user.password = get_password_hash(new_password)
-        await post_save_password_actions(user, self._session)
+        await self._password_policy_use_cases.post_save_password_actions(
+            user,
+            self._session,
+        )
         await self._session.commit()
 
     async def change_password(self, principal: str, new_password: str) -> None:
@@ -362,8 +364,8 @@ class IdentityManager:
                     data=data,
                 )
                 await self._session.flush()
-                errors = (
-                    await self._password_policy_dao.check_password_violations(
+                errors = await (
+                    self._password_policy_use_cases.check_password_violations(
                         password=request.password,
                         user=None,
                     )
@@ -371,7 +373,11 @@ class IdentityManager:
                 if errors:
                     raise ForbiddenError(errors)
 
-                await self._password_policy_dao.get_or_create_password_policy()
+                await (
+                    self
+                    ._password_policy_use_cases
+                    .get_or_create_password_policy()
+                )  # fmt: skip
                 await self._role_use_case.create_domain_admins_role()
                 await self._role_use_case.create_read_only_role()
                 await self._audit_use_case.create_policies()

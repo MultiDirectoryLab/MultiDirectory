@@ -181,16 +181,18 @@ class BindRequest(BaseRequest):
             return
 
         pwd_last_set = (
-            await ctx.password_policy_dao.get_or_create_pwd_last_set(
+            await ctx.password_policy_use_cases.get_or_create_pwd_last_set(
                 user.directory_id,
             )
         )
-        password_policy = (
-            await ctx.password_policy_dao.get_or_create_password_policy()
+        password_policy = await (
+            ctx.password_policy_use_cases.get_or_create_password_policy()
         )
-        is_pwd_expired = await ctx.password_policy_dao.check_expired_max_age(
-            password_policy,
-            user,
+        is_pwd_expired = (
+            await ctx.password_policy_use_cases.check_expired_max_age(
+                password_policy,
+                user,
+            )
         )
 
         is_krb_user = await check_kerberos_group(user, ctx.session)

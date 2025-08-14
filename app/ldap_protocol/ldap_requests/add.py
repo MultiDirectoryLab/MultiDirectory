@@ -167,9 +167,11 @@ class AddRequest(BaseRequest):
 
         if self.password is not None:
             raw_password = self.password.get_secret_value()
-            errors = await ctx.password_policy_dao.check_password_violations(
-                password=raw_password,
-                user=None,
+            errors = (
+                await ctx.password_policy_use_cases.check_password_violations(
+                    password=raw_password,
+                    user=None,
+                )
             )
 
             if errors:

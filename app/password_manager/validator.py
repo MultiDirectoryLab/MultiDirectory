@@ -195,28 +195,6 @@ class PasswordValidator:
         )
         return self
 
-    def end_digits_num(self, end_digits: int) -> Self:
-        """Forbid a numeric suffix of configured length.
-
-        :param int end_digits: Length of the numeric suffix.
-        :return: PasswordValidator.
-        """
-        self.__add_checker(
-            check=self.validate_end_digits_num,
-            error_message=ErrorMessages.NOT_LIKE_OTP,
-            args=[end_digits],
-        )
-        return self
-
-    @staticmethod
-    async def validate_end_digits_num(
-        password: str,
-        _: Any,
-        end_digits: int,
-    ) -> bool:
-        """Validate end digits number."""
-        return password[end_digits:].isdecimal()
-
     @staticmethod
     async def validate_min_complexity(password: str, _: Any) -> bool:
         """Validate minimum password complexity.

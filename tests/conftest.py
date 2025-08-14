@@ -88,7 +88,10 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
-from ldap_protocol.policies.password_policy import PasswordPolicyDAO
+from ldap_protocol.policies.password_policy import (
+    PasswordPolicyDAO,
+    PasswordPolicyUseCases,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -97,6 +100,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from models import AttributeType
+from password_manager.validator import PasswordValidator
 
 
 class TestProvider(Provider):
@@ -237,6 +241,11 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
         cache=False,
     )
+    password_policy_use_cases = provide(
+        PasswordPolicyUseCases,
+        scope=Scope.REQUEST,
+    )
+    password_validator = provide(PasswordValidator, scope=Scope.REQUEST)
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
@@ -723,6 +732,15 @@ async def entity_type_dao(
             attribute_type_dao=attribute_type_dao,
         )
         yield EntityTypeDAO(session, object_class_dao)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def password_validator(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordValidator]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordValidator()
 
 
 @pytest_asyncio.fixture(scope="function")
