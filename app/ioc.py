@@ -82,7 +82,7 @@ from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.policies.password_policy import (
     PasswordPolicyDAO,
-    PasswordPolicyUseCases,
+    PasswordUseCases,
 )
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -302,8 +302,8 @@ class MainProvider(Provider):
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     password_validator = provide(PasswordValidator, scope=Scope.REQUEST)
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    password_policy_use_cases = provide(
-        PasswordPolicyUseCases,
+    password_use_cases = provide(
+        PasswordUseCases,
         scope=Scope.REQUEST,
     )
     access_manager = provide(AccessManager, scope=Scope.REQUEST)

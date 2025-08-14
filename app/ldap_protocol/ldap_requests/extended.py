@@ -196,7 +196,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
-        errors = await ctx.password_policy_use_cases.check_password_violations(
+        errors = await ctx.password_use_cases.check_password_violations(
             password=new_password,
             user=user,
         )
@@ -229,7 +229,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 raise PermissionError("Kadmin Error")
 
             user.password = get_password_hash(new_password)
-            await ctx.password_policy_use_cases.post_save_password_actions(
+            await ctx.password_use_cases.post_save_password_actions(
                 user,
                 ctx.session,
             )

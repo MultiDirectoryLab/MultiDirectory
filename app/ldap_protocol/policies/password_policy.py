@@ -194,7 +194,8 @@ class PasswordPolicyDAO:
         )
 
     async def get_or_create_pwd_last_set(
-        self, directory_id: int,
+        self,
+        directory_id: int,
     ) -> str | None:
         """Get pwdLastSet."""
         plset_attribute = await self.__session.scalar(
@@ -217,7 +218,7 @@ class PasswordPolicyDAO:
         return plset_attribute.value
 
 
-class PasswordPolicyUseCases:
+class PasswordUseCases:
     """Password Policy Use Cases."""
 
     def __init__(
@@ -279,7 +280,8 @@ class PasswordPolicyUseCases:
             update(Attribute)
             .values(value=new_value)
             .filter_by(
-                directory_id=user.directory_id, name="userAccountControl",
+                directory_id=user.directory_id,
+                name="userAccountControl",
             )
         )
         await session.execute(query)

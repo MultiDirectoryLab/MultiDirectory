@@ -27,7 +27,7 @@ from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
 from ldap_protocol.policies.password_policy import (
     PasswordPolicySchema,
-    PasswordPolicyUseCases,
+    PasswordUseCases,
 )
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -203,7 +203,7 @@ class ModifyRequest(BaseRequest):
                     ctx.kadmin,
                     ctx.settings,
                     ctx.ldap_session.user,
-                    ctx.password_policy_use_cases,
+                    ctx.password_use_cases,
                 )
 
                 try:
@@ -529,7 +529,7 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         current_user: UserSchema,
-        password_policy_use_cases: PasswordPolicyUseCases,
+        password_use_cases: PasswordUseCases,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -672,11 +672,9 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                errors = (
-                    await password_policy_use_cases.check_password_violations(
-                        password=value,
-                        user=directory.user,
-                    )
+                errors = await password_use_cases.check_password_violations(
+                    password=value,
+                    user=directory.user,
                 )
 
                 if errors:
@@ -685,7 +683,7 @@ class ModifyRequest(BaseRequest):
                     )
 
                 directory.user.password = get_password_hash(value)
-                await password_policy_use_cases.post_save_password_actions(
+                await password_use_cases.post_save_password_actions(
                     directory.user,
                     session,
                 )
