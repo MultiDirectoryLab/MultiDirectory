@@ -198,13 +198,13 @@ class RoleDAO(AbstractDAO[RoleDTO]):
 
     async def delete(
         self,
-        role_id: int,
+        _id: int,
     ) -> None:
         """Delete a role by its ID.
 
         :param role_id: ID of the role to delete.
         """
-        role = await self.get(role_id)
+        role = await self.get(_id)
         await self._session.execute(delete(Role).filter_by(id=role.id))
         await self._session.flush()
 
