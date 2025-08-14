@@ -4,31 +4,21 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Callable
+
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from sqlalchemy import and_, delete, func, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
-from enums import RoleScope
-from ldap_protocol.utils.helpers import get_depth_by_dn
-from ldap_protocol.utils.queries import (
-    get_groups,
-    get_path_filter,
-    get_search_path,
-)
-from models import AccessControlEntry, Directory, Group, Role
+from ldap_protocol.utils.queries import get_groups
+from models import AccessControlEntry, Group, Role
 
+from .access_control_entry_dao import _convert as ace_convert
 from .dataclasses import AccessControlEntryDTO, RoleDTO
-from .exceptions import (
-    AccessControlEntryAddError,
-    AccessControlEntryNotFoundError,
-    NoValidDistinguishedNameError,
-    NoValidGroupsError,
-    RoleNotFoundError,
-)
+from .exceptions import NoValidGroupsError, RoleNotFoundError
 
 
 def make_groups(role: Role) -> list[str]:
@@ -36,14 +26,23 @@ def make_groups(role: Role) -> list[str]:
     return [group.directory.get_dn() for group in role.groups]
 
 
-_convert = get_converter(
-    Role,
-    RoleDTO,
-    recipe=[
-        link_function(make_groups, P[RoleDTO].groups),
-        link_function(lambda x: x.created_at, P[RoleDTO].created_at),
-    ],
-)
+def make_aces(role: Role) -> list[AccessControlEntryDTO]:
+    """Create a list of AccessControlEntryDTO objects from a Role object."""
+    return [ace_convert(ace) for ace in role.access_control_entries]
+
+
+def _convert(include_aces: bool = True) -> Callable[[Role], RoleDTO]:
+    """Convert a Role object to a RoleDTO object."""
+    ace_f = make_aces if include_aces else (lambda _: None)  # type: ignore
+    return get_converter(
+        Role,
+        RoleDTO,
+        recipe=[
+            link_function(make_groups, P[RoleDTO].groups),
+            link_function(lambda x: x.created_at, P[RoleDTO].created_at),
+            link_function(ace_f, P[RoleDTO].access_control_entries),
+        ],
+    )
 
 
 class RoleDAO(AbstractDAO[RoleDTO]):
@@ -84,7 +83,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
         :param role_id: ID of the role to retrieve.
         :return: Role object if found, None otherwise.
         """
-        return _convert(await self._get_raw(_id))
+        return _convert()(await self._get_raw(_id))
 
     async def get_by_name(self, role_name: str) -> RoleDTO:
         """Get a role by its name.
@@ -109,7 +108,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
             raise RoleNotFoundError(
                 f"Role with name {role_name} does not exist.",
             )
-        return _convert(retval)
+        return _convert()(retval)
 
     async def get_all(self) -> list[RoleDTO]:
         """Get all roles.
@@ -123,7 +122,7 @@ class RoleDAO(AbstractDAO[RoleDTO]):
                 ),
             )
         ).all()
-        return list(map(_convert, roles))
+        return list(map(_convert(include_aces=False), roles))
 
     async def create(
         self,
@@ -206,121 +205,4 @@ class RoleDAO(AbstractDAO[RoleDTO]):
         """
         role = await self.get(_id)
         await self._session.execute(delete(Role).filter_by(id=role.id))
-        await self._session.flush()
-
-    async def _get_directories_with_scope(
-        self,
-        base_dn: str,
-        scope: RoleScope,
-    ) -> list[Directory]:
-        """Get directories based on the scope.
-
-        :param base_dn: Base DN to start searching from.
-        :param scope: Scope of the role.
-        """
-        search_path = get_search_path(base_dn)
-        if scope == RoleScope.BASE_OBJECT:
-            path_filter = get_path_filter(path=search_path)
-            directory = await self._session.scalar(
-                select(Directory).where(path_filter),
-            )
-            return [directory] if directory else []
-
-        elif scope == RoleScope.SINGLE_LEVEL:
-            query = select(Directory).filter(
-                and_(
-                    func.cardinality(Directory.path) == len(search_path) + 1,
-                    get_path_filter(
-                        column=Directory.path[0 : len(search_path)],
-                        path=search_path,
-                    ),
-                ),
-            )
-            return list((await self._session.scalars(query)).all())
-
-        elif scope == RoleScope.WHOLE_SUBTREE:
-            path_filter = get_path_filter(
-                column=Directory.path[1 : len(search_path)],
-                path=search_path,
-            )
-            return list(
-                (
-                    await self._session.scalars(
-                        select(Directory).where(path_filter),
-                    )
-                ).all(),
-            )
-
-        else:
-            raise ValueError(f"Invalid scope: {scope}")
-
-    async def add_access_control_entries(
-        self,
-        role_id: int,
-        access_control_entries: list[AccessControlEntryDTO],
-    ) -> None:
-        """Add new access control entries to a role.
-
-        :param role_id: ID of the role to add entries to.
-        :param access_control_entries: List of access control entries to add.
-        """
-        role = await self._get_raw(role_id)
-
-        directory_cache = {}
-        new_aces = []
-        for ace in access_control_entries:
-            cache_key = (ace.base_dn, ace.scope)
-            if cache_key not in directory_cache:
-                directory_cache[
-                    cache_key
-                ] = await self._get_directories_with_scope(
-                    base_dn=ace.base_dn,
-                    scope=ace.scope,
-                )
-
-            if not directory_cache[cache_key]:
-                raise NoValidDistinguishedNameError(
-                    f"Invalid distinguished name: {ace.base_dn}",
-                )
-
-            new_ace = AccessControlEntry(
-                ace_type=ace.ace_type.value,
-                depth=get_depth_by_dn(ace.base_dn),
-                path=ace.base_dn,
-                scope=ace.scope.value,
-                entity_type_id=ace.entity_type_id,
-                attribute_type_id=ace.attribute_type_id,
-                is_allow=ace.is_allow,
-                directories=directory_cache[cache_key],
-                role=role,
-            )
-            new_aces.append(new_ace)
-
-        self._session.add_all(new_aces)
-        try:
-            await self._session.flush()
-        except IntegrityError:
-            await self._session.rollback()
-            raise AccessControlEntryAddError(
-                "Failed to add access control entries.",
-            )
-
-        for single_ace in new_aces:
-            await self._session.refresh(
-                single_ace,
-                attribute_names=["attribute_type", "entity_type"],
-            )
-
-    async def delete_access_control_entry(self, ace_id: int) -> None:
-        """Delete an access control entry from a role.
-
-        :param ace_id: ID of the access control entry to delete.
-        """
-        ace = await self._session.get(AccessControlEntry, ace_id)
-        if not ace:
-            raise AccessControlEntryNotFoundError(
-                f"ACE with ID {ace_id} does not exist.",
-            )
-
-        await self._session.delete(ace)
         await self._session.flush()
