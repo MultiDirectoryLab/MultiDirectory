@@ -349,7 +349,7 @@ class TestProvider(Provider):
         )
 
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
-    access_control_entry_dao = provide(
+    ace_dao = provide(
         AccessControlEntryDAO,
         scope=Scope.REQUEST,
     )
@@ -653,8 +653,8 @@ async def setup_session(
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
     role_dao = RoleDAO(session)
-    access_control_entry_dao = AccessControlEntryDAO(session)
-    role_use_case = RoleUseCase(role_dao, access_control_entry_dao)
+    ace_dao = AccessControlEntryDAO(session)
+    role_use_case = RoleUseCase(role_dao, ace_dao)
     await role_use_case.create_domain_admins_role()
 
     session.add(
@@ -771,8 +771,8 @@ async def role_use_case(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         role_dao = RoleDAO(session)
-        access_control_entry_dao = AccessControlEntryDAO(session)
-        yield RoleUseCase(role_dao, access_control_entry_dao)
+        ace_dao = AccessControlEntryDAO(session)
+        yield RoleUseCase(role_dao, ace_dao)
 
 
 @pytest.fixture(scope="session", autouse=True)

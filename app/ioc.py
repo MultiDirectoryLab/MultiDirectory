@@ -298,7 +298,7 @@ class MainProvider(Provider):
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
-    access_control_entry_dao = provide(
+    ace_dao = provide(
         AccessControlEntryDAO,
         scope=Scope.REQUEST,
     )
