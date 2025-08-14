@@ -20,11 +20,9 @@ from enums import AceType, RoleScope
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import Operation
-from ldap_protocol.roles.role_dao import (
-    AccessControlEntrySchema,
-    RoleDAO,
-    RoleDTO,
-)
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group
 from tests.conftest import TestCreds
@@ -631,6 +629,7 @@ async def test_ldap_modify_with_ap(
     settings: Settings,
     creds: TestCreds,
     role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
 ) -> None:
     """Test ldapmodify on server."""
     dn = "ou=users,dc=md,dc=test"
@@ -700,7 +699,10 @@ async def test_ldap_modify_with_ap(
         ),
     )
 
-    modify_ace = AccessControlEntrySchema(
+    role_id = role_dao.get_last_id()
+
+    modify_ace = AccessControlEntryDTO(
+        role_id=role_id,
         ace_type=AceType.WRITE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
@@ -709,16 +711,12 @@ async def test_ldap_modify_with_ap(
         is_allow=True,
     )
 
-    modify_id = role_dao.get_last_id()
-
-    await role_dao.add_access_control_entries(
-        role_id=modify_id,
-        access_control_entries=[modify_ace],
-    )
+    await access_control_entry_dao.create(modify_ace)
 
     assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    delete_ace = AccessControlEntrySchema(
+    delete_ace = AccessControlEntryDTO(
+        role_id=role_id,
         ace_type=AceType.DELETE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
@@ -727,10 +725,7 @@ async def test_ldap_modify_with_ap(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=modify_id,
-        access_control_entries=[delete_ace],
-    )
+    await access_control_entry_dao.create(delete_ace)
 
     assert await try_modify() == LDAPCodes.SUCCESS
 

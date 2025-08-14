@@ -89,6 +89,7 @@ from ldap_protocol.policies.audit.monitor import (
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler
@@ -348,6 +349,7 @@ class TestProvider(Provider):
         )
 
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
+    ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
@@ -648,7 +650,8 @@ async def setup_session(
     await setup_enviroment(session, dn="md.test", data=TEST_DATA)
 
     role_dao = RoleDAO(session)
-    role_use_case = RoleUseCase(role_dao)
+    ace_dao = AccessControlEntryDAO(session)
+    role_use_case = RoleUseCase(role_dao, ace_dao)
     await role_use_case.create_domain_admins_role()
 
     session.add(
@@ -741,6 +744,16 @@ async def role_dao(container: AsyncContainer) -> AsyncIterator[RoleDAO]:
         yield RoleDAO(session)
 
 
+@pytest_asyncio.fixture(scope="function")
+async def access_control_entry_dao(
+    container: AsyncContainer,
+) -> AsyncIterator[AccessControlEntryDAO]:
+    """Get session and aquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield AccessControlEntryDAO(session)
+
+
 @pytest.fixture
 def access_manager() -> AccessManager:
     """Get access manager."""
@@ -755,7 +768,8 @@ async def role_use_case(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         role_dao = RoleDAO(session)
-        yield RoleUseCase(role_dao)
+        ace_dao = AccessControlEntryDAO(session)
+        yield RoleUseCase(role_dao, ace_dao)
 
 
 @pytest.fixture(scope="session", autouse=True)

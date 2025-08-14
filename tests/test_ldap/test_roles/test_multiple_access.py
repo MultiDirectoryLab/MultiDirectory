@@ -15,9 +15,10 @@ from config import Settings
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Role
+from models import Directory
 from tests.conftest import TestCreds
 
 from .conftest import perform_ldap_search_and_validate, run_ldap_modify
@@ -28,11 +29,11 @@ from .conftest import perform_ldap_search_and_validate, run_ldap_modify
 async def test_multiple_access(
     settings: Settings,
     creds: TestCreds,
-    role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
     entity_type_dao: EntityTypeDAO,
     attribute_type_dao: AttributeTypeDAO,
     session: AsyncSession,
-    custom_role: Role,
+    custom_role: RoleDTO,
 ) -> None:
     """Test multiple access control entries in a role."""
     user_entity_type = await entity_type_dao.get_one_by_name("User")
@@ -52,7 +53,8 @@ async def test_multiple_access(
     assert user_account_control_attr
 
     aces = [
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
@@ -60,7 +62,8 @@ async def test_multiple_access(
             attribute_type_id=user_account_control_attr.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
@@ -68,7 +71,8 @@ async def test_multiple_access(
             attribute_type_id=user_principal_name.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.WRITE,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
@@ -76,7 +80,8 @@ async def test_multiple_access(
             attribute_type_id=posix_email_attr.id,
             is_allow=True,
         ),
-        AccessControlEntrySchema(
+        AccessControlEntryDTO(
+            role_id=custom_role.get_id(),
             ace_type=AceType.DELETE,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
@@ -86,10 +91,7 @@ async def test_multiple_access(
         ),
     ]
 
-    await role_dao.add_access_control_entries(
-        role_id=custom_role.id,
-        access_control_entries=aces,
-    )
+    await access_control_entry_dao.create_bulk(aces)
 
     await perform_ldap_search_and_validate(
         settings=settings,
