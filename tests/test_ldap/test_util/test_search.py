@@ -158,6 +158,11 @@ async def test_bind_policy(
         "-x",
         "-w",
         creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
 
     result = await proc.wait()
@@ -203,6 +208,11 @@ async def test_bind_policy_missing_group(
         "-x",
         "-w",
         creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
 
     result = await proc.wait()
@@ -224,6 +234,9 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
         creds.un,
         "-w",
         creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
