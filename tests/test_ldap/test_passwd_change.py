@@ -9,7 +9,7 @@ from aioldap3 import LDAPConnection
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.utils.queries import get_user
-from password_manager import verify_password
+from password_manager import PasswordValidator
 from tests.conftest import TestCreds
 
 
@@ -35,7 +35,7 @@ async def test_anonymous_pwd_change(
     assert user
     assert user.password
 
-    assert verify_password(new_test_password, user.password)
+    assert PasswordValidator.verify_password(new_test_password, user.password)
 
 
 @pytest.mark.asyncio
@@ -58,4 +58,4 @@ async def test_bind_pwd_change(
     assert user
     assert user.password
 
-    assert verify_password(new_test_password, user.password)
+    assert PasswordValidator.verify_password(new_test_password, user.password)

@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Literal
 
 
-class _PasswordValidatorSettings:
-    """Password Validator Settings."""
+class _PasswordPolicyValidatorSettings:
+    """Password Policy Validator Settings."""
 
     otp_tail_size: Literal[6] = 6

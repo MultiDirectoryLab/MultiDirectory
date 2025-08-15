@@ -34,7 +34,7 @@ from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     get_user_network_policy,
 )
-from ldap_protocol.policies.password_policy import PasswordUseCases
+from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
@@ -45,7 +45,7 @@ from ldap_protocol.user_account_control import (
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import Directory, Group, User
-from password_manager import get_password_hash
+from password_manager import PasswordValidator
 
 
 class IdentityManager:
@@ -58,7 +58,7 @@ class IdentityManager:
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
-        password_use_cases: PasswordUseCases,
+        password_use_cases: PasswordPolicyUseCases,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
         audit_use_case: AuditUseCase,
@@ -218,7 +218,7 @@ class IdentityManager:
                     "Failed kerberos password update",
                 )
 
-        user.password = get_password_hash(new_password)
+        user.password = PasswordValidator.get_password_hash(new_password)
         await self._password_use_cases.post_save_password_actions(
             user,
             self._session,

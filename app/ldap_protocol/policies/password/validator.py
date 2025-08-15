@@ -10,9 +10,10 @@ from typing import Any, Callable, Coroutine, Iterable, Self
 
 from passlib.exc import UnknownHashError
 
+from password_manager import PasswordValidator
+
 from .error_messages import ErrorMessages
-from .settings import _PasswordValidatorSettings
-from .utils import count_password_age_days, verify_password
+from .settings import _PasswordPolicyValidatorSettings
 
 type _CheckType = Callable[..., Coroutine[Any, Any, bool]]
 
@@ -29,7 +30,7 @@ class _Checker:
     error_message: str
 
 
-class PasswordValidator:
+class PasswordPolicyValidator:
     """Builder for password validation rules.
 
     This class accumulates checks and validates a password against them.
@@ -41,8 +42,8 @@ class PasswordValidator:
         Sets up internal storage for checkers and default settings.
         """
         self.__checkers: list[_Checker] = []
-        self.__settings: _PasswordValidatorSettings = (
-            _PasswordValidatorSettings()
+        self.__settings: _PasswordPolicyValidatorSettings = (
+            _PasswordPolicyValidatorSettings()
         )
         self.error_messages: list[str] = []
 
@@ -77,11 +78,13 @@ class PasswordValidator:
             .. code-block:: python
 
                 assert not await (
-                    PasswordValidator()
+                    PasswordPolicyValidator()
                     .min_length(3)
                     .validate("13")
                 )
-                assert await PasswordValidator().min_length(3).validate("abc")
+                assert await (
+                    PasswordPolicyValidator().min_length(3).validate("abc")
+                )
         """  # fmt: skip
         self.error_messages = []
         for checker in self.__checkers:
@@ -93,18 +96,18 @@ class PasswordValidator:
         """Require minimum password length.
 
         :param int length: Minimal allowed length.
-        :return: PasswordValidator.
+        :return: PasswordPolicyValidator.
 
         :Example:
             .. code-block:: python
 
                 assert await (
-                    PasswordValidator()
+                    PasswordPolicyValidator()
                     .min_length(8)
                     .validate("testPassword")
                 )
                 assert not await (
-                    PasswordValidator()
+                    PasswordPolicyValidator()
                     .min_length(8)
                     .validate("test")
                 )
@@ -125,7 +128,7 @@ class PasswordValidator:
         :param  Iterable[str] password_history: Iterable of previous
         password hashes.
 
-        :return: PasswordValidator.
+        :return: PasswordPolicyValidator.
         """
         self.__add_checker(
             check=self.validate_reuse_prevention,
@@ -137,18 +140,18 @@ class PasswordValidator:
     def not_otp_like_suffix(self) -> Self:
         """Forbid an OTP-like numeric suffix of configured length.
 
-        :return: PasswordValidator.
+        :return: PasswordPolicyValidator.
 
         :Example:
             .. code-block:: python
 
                 assert not await (
-                    PasswordValidator()
+                    PasswordPolicyValidator()
                     .not_otp_like_suffix()
                     .validate("test123456")
                 )
                 assert await (
-                    PasswordValidator()
+                    PasswordPolicyValidator()
                     .not_otp_like_suffix()
                     .validate("test12345")
                 )
@@ -170,7 +173,7 @@ class PasswordValidator:
         :param int min_age_days: Minimal age in days to allow update.
         :param str | None value: Windows filetime string representing last
         change, or ``None``.
-        :return: PasswordValidator.
+        :return: PasswordPolicyValidator.
 
         :Note:
             If ``min_age_days`` is ``0`` or ``value`` is ``None``,
@@ -186,7 +189,7 @@ class PasswordValidator:
     def min_complexity(self) -> Self:
         """Require minimum password complexity.
 
-        :return: PasswordValidator.
+        :return: PasswordPolicyValidator.
         """
         self.__add_checker(
             check=self.validate_min_complexity,
@@ -218,33 +221,33 @@ class PasswordValidator:
     @staticmethod
     async def validate_reuse_prevention(
         password: str,
-        _: Any,
+        _: _PasswordPolicyValidatorSettings,
         password_history: Iterable[str],
     ) -> bool:
         """Check if password is not in the password history."""
         for password_hash in password_history:
             try:
-                if verify_password(password, password_hash):
+                if PasswordValidator.verify_password(password, password_hash):
                     return False
             except UnknownHashError:
                 pass
 
         return True
 
-    @staticmethod
     async def validate_not_otp_like_suffix(
+        self,
         password: str,
-        settings: _PasswordValidatorSettings,
+        _: _PasswordPolicyValidatorSettings,
     ) -> bool:
         """Check if password does not end with a specified number of digits."""
-        tail = password[-settings.otp_tail_size :]
+        tail = password[-self.__settings.otp_tail_size :]
         res = tail.isdecimal()
         return not res
 
     @staticmethod
     async def validate_min_age(
-        _: Any,
-        __: Any,
+        _: str,
+        __: _PasswordPolicyValidatorSettings,
         min_age_days: int,
         value: str | None,
     ) -> bool:
@@ -255,4 +258,4 @@ class PasswordValidator:
         if not value:
             return True
 
-        return count_password_age_days(value) >= min_age_days
+        return PasswordValidator.count_password_age_days(value) >= min_age_days

@@ -34,7 +34,7 @@ from models import (
     NetworkPolicy,
     User,
 )
-from password_manager import get_password_hash
+from password_manager import PasswordValidator
 
 
 async def _get_group(name: str, session: AsyncSession) -> Group:
@@ -117,7 +117,7 @@ async def _create_dir(
             user_principal_name=user_data["user_principal_name"],
             display_name=user_data["display_name"],
             mail=user_data["mail"],
-            password=get_password_hash(user_data["password"]),
+            password=PasswordValidator.get_password_hash(user_data["password"]),
         )
         session.add(user)
         await session.flush()

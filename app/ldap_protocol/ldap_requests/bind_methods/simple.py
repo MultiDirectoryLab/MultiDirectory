@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.utils.queries import get_user
 from models import User
-from password_manager import verify_password
+from password_manager import PasswordValidator
 
 from .base import AbstractLDAPAuth
 
@@ -33,7 +33,10 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         password = getattr(user, "password", None)
         if password is not None:
-            return verify_password(self.password.get_secret_value(), password)
+            return PasswordValidator.verify_password(
+                self.password.get_secret_value(),
+                password,
+            )
         return False
 
     def is_anonymous(self) -> bool:

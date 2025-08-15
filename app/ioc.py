@@ -80,16 +80,16 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
-from ldap_protocol.policies.password_policy import (
+from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
-    PasswordUseCases,
+    PasswordPolicyUseCases,
+    PasswordPolicyValidator,
 )
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from password_manager.validator import PasswordValidator
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -300,10 +300,10 @@ class MainProvider(Provider):
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
-    password_validator = provide(PasswordValidator, scope=Scope.REQUEST)
+    password_validator = provide(PasswordPolicyValidator, scope=Scope.REQUEST)
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(
-        PasswordUseCases,
+        PasswordPolicyUseCases,
         scope=Scope.REQUEST,
     )
     access_manager = provide(AccessManager, scope=Scope.REQUEST)

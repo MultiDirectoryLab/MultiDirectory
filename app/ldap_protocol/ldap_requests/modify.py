@@ -25,9 +25,9 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
-from ldap_protocol.policies.password_policy import (
+from ldap_protocol.policies.password import (
     PasswordPolicySchema,
-    PasswordUseCases,
+    PasswordPolicyUseCases,
 )
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
@@ -46,7 +46,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
-from password_manager import get_password_hash
+from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
@@ -529,7 +529,7 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         current_user: UserSchema,
-        password_use_cases: PasswordUseCases,
+        password_use_cases: PasswordPolicyUseCases,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -682,7 +682,9 @@ class ModifyRequest(BaseRequest):
                         f"Password policy violation: {errors}",
                     )
 
-                directory.user.password = get_password_hash(value)
+                directory.user.password = PasswordValidator.get_password_hash(
+                    value
+                )
                 await password_use_cases.post_save_password_actions(
                     directory.user,
                     session,

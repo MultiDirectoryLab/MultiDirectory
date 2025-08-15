@@ -29,7 +29,7 @@ from ldap_protocol.ldap_requests.contexts import (
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from models import Attribute, Directory, User
-from password_manager import get_password_hash
+from password_manager import PasswordValidator
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
@@ -218,7 +218,7 @@ async def test_bind_invalid_password_or_user(
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
-        password=get_password_hash("password"),
+        password=PasswordValidator.get_password_hash("password"),
         directory=directory,
     )
     user_account_control_attribute = Attribute(
@@ -341,7 +341,7 @@ async def test_bind_disabled_user(
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
-        password=get_password_hash("password"),
+        password=PasswordValidator.get_password_hash("password"),
         directory=directory,
     )
     user_account_control_attribute = Attribute(

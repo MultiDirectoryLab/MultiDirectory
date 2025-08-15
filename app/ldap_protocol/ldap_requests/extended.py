@@ -22,7 +22,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
-from password_manager import get_password_hash, verify_password
+from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPExtendedRequestContext
@@ -217,7 +217,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
         if not errors and (
             user.password is None
-            or verify_password(old_password, user.password)
+            or PasswordValidator.verify_password(old_password, user.password)
         ):
             try:
                 await ctx.kadmin.create_or_update_principal_pw(
@@ -228,7 +228,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 await ctx.session.rollback()
                 raise PermissionError("Kadmin Error")
 
-            user.password = get_password_hash(new_password)
+            user.password = PasswordValidator.get_password_hash(new_password)
             await ctx.password_use_cases.post_save_password_actions(
                 user,
                 ctx.session,
