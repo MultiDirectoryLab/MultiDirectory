@@ -276,6 +276,36 @@ async def test_bvalue_in_search_request(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+async def test_ldap_search_empty_request(
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch on server."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    dn_list = [d for d in data if d.startswith("dn:")]
+    result = await proc.wait()
+
+    assert result == 0
+    assert dn_list == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_ldap_search_access_control_denied(
     settings: Settings,
     creds: TestCreds,
