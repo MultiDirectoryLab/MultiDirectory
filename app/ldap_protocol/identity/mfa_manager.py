@@ -4,9 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from functools import partial
 import operator
 import traceback
+from functools import partial
 from ipaddress import IPv4Address, IPv6Address
 
 from jose import jwt
