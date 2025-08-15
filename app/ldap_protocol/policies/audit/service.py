@@ -26,7 +26,7 @@ class AuditService:
 
     async def get_policies(self) -> list[AuditPolicyDTO]:
         """Get all audit policies."""
-        return await self._policy_dao.get_policies()
+        return await self._policy_dao.get_all()
 
     async def update_policy(
         self,
@@ -45,7 +45,7 @@ class AuditService:
 
         """
         try:
-            return await self._policy_dao.update_policy(
+            return await self._policy_dao.update(
                 policy_id,
                 policy_dto,
             )
@@ -54,7 +54,7 @@ class AuditService:
 
     async def get_destinations(self) -> list[AuditDestinationDTO]:
         """Get all audit destinations."""
-        return await self._destination_dao.get_destinations()
+        return await self._destination_dao.get_all()
 
     async def create_destination(
         self,
@@ -70,9 +70,7 @@ class AuditService:
 
         """
         try:
-            return await self._destination_dao.create_destination(
-                destination_dto,
-            )
+            return await self._destination_dao.create(destination_dto)
         except IntegrityError:
             raise AuditAlreadyExistsError("Audit destination already exists")
 
@@ -93,7 +91,7 @@ class AuditService:
 
         """
         try:
-            return await self._destination_dao.update_destination(
+            return await self._destination_dao.update(
                 destination_id,
                 destination_dto,
             )
@@ -113,4 +111,4 @@ class AuditService:
             AuditNotFoundError: If the destination with ID does not exist.
 
         """
-        await self._destination_dao.delete_destination(destination_id)
+        await self._destination_dao.delete(destination_id)

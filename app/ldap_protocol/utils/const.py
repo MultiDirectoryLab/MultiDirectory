@@ -31,3 +31,4 @@ def _type_validate_email(email: str) -> str:
 
 GRANT_DN_STRING = Annotated[str, AfterValidator(_type_validate_entry)]
 EmailStr = Annotated[str, AfterValidator(_type_validate_email)]
+DOMAIN_USERS_GROUP_NAME = "domain users"

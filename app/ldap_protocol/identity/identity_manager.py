@@ -319,6 +319,12 @@ class IdentityManager:
                 ],
             },
             {
+                "name": "Computers",
+                "object_class": "organizationalUnit",
+                "attributes": {"objectClass": ["top", "container"]},
+                "children": [],
+            },
+            {
                 "name": "users",
                 "object_class": "organizationalUnit",
                 "attributes": {"objectClass": ["top", "container"]},

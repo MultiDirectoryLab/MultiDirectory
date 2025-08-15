@@ -20,7 +20,9 @@ from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
 from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.policies.network_policy import is_user_group_valid
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
 from models import User
 from tests.conftest import TestCreds
@@ -268,6 +270,7 @@ async def test_ldap_search_access_control_denied(
     creds: TestCreds,
     session: AsyncSession,
     role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
 ) -> None:
     """Test ldapsearch on server.
 
@@ -304,14 +307,17 @@ async def test_ldap_search_access_control_denied(
 
     await session.commit()
 
-    group_read_role = await role_dao.create_role(
-        role_name="Groups Read Role",
-        creator_upn=None,
-        is_system=False,
-        groups_dn=["cn=domain users,cn=groups,dc=md,dc=test"],
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Groups Read Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=groups,dc=md,dc=test"],
+        ),
     )
 
-    group_read_ace = AccessControlEntrySchema(
+    group_read_ace = AccessControlEntryDTO(
+        role_id=role_dao.get_last_id(),
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn="cn=groups,dc=md,dc=test",
@@ -320,10 +326,7 @@ async def test_ldap_search_access_control_denied(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=group_read_role.id,
-        access_control_entries=[group_read_ace],
-    )
+    await access_control_entry_dao.create(group_read_ace)
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",

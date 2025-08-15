@@ -27,47 +27,24 @@ async def test_service_update_audit_policy(
     """Test updating an audit policy."""
     old_policy = (await audit_service.get_policies())[0]
 
-    new_policy_id = 999999
+    name = "Test Policy"
     new_policy = AuditPolicyDTO(
-        id=new_policy_id,
-        name="Test Policy",
+        name=name,
         is_enabled=True,
         severity=old_policy.severity,
     )
 
-    await audit_service.update_policy(old_policy.id, new_policy)
+    await audit_service.update_policy(old_policy.get_id(), new_policy)
 
     for policy in await audit_service.get_policies():
-        if policy.id == new_policy_id:
+        if policy.name == name:
             assert policy == new_policy
             break
     else:
         pytest.fail(
-            f"Policy with id {new_policy_id} not found in updated policies.",
+            f"Policy with id {old_policy.get_id()} "
+            "not found in updated policies.",
         )
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("setup_session")
-async def test_service_update_audit_policy_with_existing_id(
-    audit_service: AuditService,
-) -> None:
-    """Test updating an audit policy."""
-    first_policy, second_policy = (await audit_service.get_policies())[:2]
-
-    new_policy_id = second_policy.id
-    new_policy = AuditPolicyDTO(
-        id=new_policy_id,
-        name="Test Policy",
-        is_enabled=True,
-        severity=first_policy.severity,
-    )
-
-    with pytest.raises(
-        AuditAlreadyExistsError,
-        match="Audit policy already exists",
-    ):
-        await audit_service.update_policy(first_policy.id, new_policy)
 
 
 @pytest.mark.asyncio
@@ -78,9 +55,9 @@ async def test_service_update_audit_policy_with_non_existing_id(
     """Test updating an audit policy."""
     latest_policy = (await audit_service.get_policies())[-1]
 
-    new_policy_id = latest_policy.id + 2
+    possible_id = latest_policy.get_id() + 1
+
     new_policy = AuditPolicyDTO(
-        id=new_policy_id,
         name="Test Policy",
         is_enabled=True,
         severity=latest_policy.severity,
@@ -88,9 +65,9 @@ async def test_service_update_audit_policy_with_non_existing_id(
 
     with pytest.raises(
         AuditNotFoundError,
-        match=f"Policy with id {latest_policy.id + 1} not found.",
+        match=f"Policy with id {possible_id} not found.",
     ):
-        await audit_service.update_policy(latest_policy.id + 1, new_policy)
+        await audit_service.update_policy(possible_id, new_policy)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -190,12 +167,13 @@ async def test_service_update_non_existing_audit_destination(
 ) -> None:
     """Test updating a non-existing audit destination."""
     assert audit_destination.id is not None, "Destination ID is None."
+    provision_id = audit_destination.get_id() + 1
     with pytest.raises(
         AuditNotFoundError,
-        match=f"Destination with id {audit_destination.id + 1} not found.",
+        match=f"Destination with id {provision_id} not found.",
     ):
         await audit_service.update_destination(
-            audit_destination.id + 1,
+            provision_id,
             audit_destination,
         )
 

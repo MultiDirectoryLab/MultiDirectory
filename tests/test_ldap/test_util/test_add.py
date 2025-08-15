@@ -19,7 +19,9 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group, User
 from tests.conftest import TestCreds
@@ -241,6 +243,7 @@ async def test_ldap_add_access_control(
     settings: Settings,
     creds: TestCreds,
     role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
@@ -278,16 +281,21 @@ async def test_ldap_add_access_control(
 
     assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    add_role = await role_dao.create_role(
-        role_name="Add Role",
-        creator_upn=None,
-        is_system=False,
-        groups_dn=["cn=domain users,cn=groups," + base_dn],
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Add Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=groups," + base_dn],
+        ),
     )
 
     assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
-    add_ace = AccessControlEntrySchema(
+    role_id = role_dao.get_last_id()
+
+    add_ace = AccessControlEntryDTO(
+        role_id=role_id,
         ace_type=AceType.CREATE_CHILD,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,
@@ -296,7 +304,8 @@ async def test_ldap_add_access_control(
         is_allow=True,
     )
 
-    read_ace = AccessControlEntrySchema(
+    read_ace = AccessControlEntryDTO(
+        role_id=role_id,
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,
@@ -305,10 +314,7 @@ async def test_ldap_add_access_control(
         is_allow=True,
     )
 
-    await role_dao.add_access_control_entries(
-        role_id=add_role.id,
-        access_control_entries=[add_ace, read_ace],
-    )
+    await access_control_entry_dao.create_bulk([add_ace, read_ace])
 
     assert await try_add() == LDAPCodes.SUCCESS
 
@@ -337,3 +343,63 @@ async def test_ldap_add_access_control(
 
     assert result == 0
     assert dn in dn_list
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_user_add_with_duplicate_groups(
+    session: AsyncSession,
+    settings: Settings,
+    user: dict,
+) -> None:
+    """Duplicate memberOf yields single membership."""
+    user_dn = "cn=dup,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+
+    with tempfile.NamedTemporaryFile("w") as file:
+        ldif = [
+            f"dn: {user_dn}",
+            "name: dup",
+            "cn: dup",
+            "userPrincipalName: dup",
+            "sAMAccountName: dup",
+            "objectClass: inetOrgPerson",
+            "objectClass: organizationalPerson",
+            "objectClass: user",
+            "objectClass: person",
+            "objectClass: posixAccount",
+            "objectClass: top",
+        ] + [f"memberOf: {group_dn}" for _ in range(5)]
+
+        file.write("\n".join(ldif) + "\n")
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            "ldapadd",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_account_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        result = await proc.wait()
+
+    assert result == 0
+
+    user_search_path = get_search_path(user_dn)
+    user_row = await session.scalar(
+        select(User)
+        .join(User.directory)
+        .where(Directory.path == user_search_path)
+        .options(selectinload(User.groups).selectinload(Group.directory)),
+    )
+    assert user_row
+    groups = [g.directory.path_dn for g in user_row.groups]
+    assert groups.count(group_dn) == 1

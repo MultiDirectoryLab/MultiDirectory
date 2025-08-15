@@ -10,9 +10,13 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
 from enums import RoleScope
-from ldap_protocol.roles.role_dao import AccessControlEntrySchema, RoleDAO
 from ldap_protocol.utils.queries import get_base_directories
 from models import AccessControlEntry, AceType, Directory, Role
+
+from .ace_dao import AccessControlEntryDAO
+from .dataclasses import AccessControlEntryDTO, RoleDTO
+from .exceptions import RoleNotFoundError
+from .role_dao import RoleDAO
 
 
 class RoleConstants(StrEnum):
@@ -32,12 +36,17 @@ class RoleUseCase:
 
     _role_dao: RoleDAO
 
-    def __init__(self, role_dao: RoleDAO) -> None:
+    def __init__(
+        self,
+        role_dao: RoleDAO,
+        access_control_entry_dao: AccessControlEntryDAO,
+    ) -> None:
         """Initialize RoleUseCase with a database session.
 
         :param role_dao: RoleDAO instance for database operations.
         """
         self._role_dao = role_dao
+        self._access_control_entry_dao = access_control_entry_dao
 
     async def inherit_parent_aces(
         self,
@@ -146,18 +155,22 @@ class RoleUseCase:
         group_dn = (
             RoleConstants.DOMAIN_ADMINS_GROUP_CN + base_dn_list[0].path_dn
         )
-        domain_admins_role = await self._role_dao.create_role(
-            role_name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
-            creator_upn=None,
-            is_system=True,
-            groups_dn=[group_dn],
+        await self._role_dao.create(
+            dto=RoleDTO(
+                name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+                creator_upn=None,
+                is_system=True,
+                groups=[group_dn],
+            ),
         )
 
-        aces = self._get_full_access_aces(base_dn_list[0].path_dn)
-        await self._role_dao.add_access_control_entries(
-            role_id=domain_admins_role.id,
-            access_control_entries=aces,
+        role_id = self._role_dao.get_last_id()
+        aces = self._get_full_access_aces(
+            role_id=role_id,
+            base_dn=base_dn_list[0].path_dn,
         )
+
+        await self._access_control_entry_dao.create_bulk(aces)
 
     async def create_read_only_role(self) -> None:
         """Create a Read Only role."""
@@ -166,27 +179,26 @@ class RoleUseCase:
             return
 
         group_dn = RoleConstants.READONLY_GROUP_CN + base_dn_list[0].path_dn
-        role = await self._role_dao.create_role(
-            role_name=RoleConstants.READ_ONLY_ROLE_NAME,
-            creator_upn=None,
-            is_system=True,
-            groups_dn=[group_dn],
+        await self._role_dao.create(
+            dto=RoleDTO(
+                name=RoleConstants.READ_ONLY_ROLE_NAME,
+                creator_upn=None,
+                is_system=True,
+                groups=[group_dn],
+            ),
         )
 
-        aces = [
-            AccessControlEntrySchema(
-                ace_type=AceType.READ,
-                scope=RoleScope.WHOLE_SUBTREE,
-                base_dn=base_dn_list[0].path_dn,
-                attribute_type_id=None,
-                entity_type_id=None,
-                is_allow=True,
-            ),
-        ]
-        await self._role_dao.add_access_control_entries(
-            role_id=role.id,
-            access_control_entries=aces,
+        ace = AccessControlEntryDTO(
+            role_id=self._role_dao.get_last_id(),
+            ace_type=AceType.READ,
+            scope=RoleScope.WHOLE_SUBTREE,
+            base_dn=base_dn_list[0].path_dn,
+            attribute_type_id=None,
+            entity_type_id=None,
+            is_allow=True,
         )
+
+        await self._access_control_entry_dao.create(ace)
 
     async def create_kerberos_system_role(self) -> None:
         """Create a Kerberos system role with full access.
@@ -198,40 +210,45 @@ class RoleUseCase:
             return
 
         group_dn = RoleConstants.KERBEROS_GROUP_CN + base_dn_list[0].path_dn
-        role = await self._role_dao.create_role(
-            role_name=RoleConstants.KERBEROS_ROLE_NAME,
-            creator_upn=None,
-            is_system=True,
-            groups_dn=[group_dn],
+        await self._role_dao.create(
+            dto=RoleDTO(
+                name=RoleConstants.KERBEROS_ROLE_NAME,
+                creator_upn=None,
+                is_system=True,
+                groups=[group_dn],
+            ),
         )
 
         aces = self._get_full_access_aces(
-            "ou=services," + base_dn_list[0].path_dn,
+            role_id=self._role_dao.get_last_id(),
+            base_dn="ou=services," + base_dn_list[0].path_dn,
         )
-        await self._role_dao.add_access_control_entries(
-            role_id=role.id,
-            access_control_entries=aces,
-        )
+        await self._access_control_entry_dao.create_bulk(aces)
 
     async def delete_kerberos_system_role(self) -> None:
         """Delete the Kerberos system role."""
-        role = await self._role_dao.get_role_by_name(
-            RoleConstants.KERBEROS_ROLE_NAME,
-        )
-        if role:
-            await self._role_dao.delete_role(role.id)
+        try:
+            role = await self._role_dao.get_by_name(
+                RoleConstants.KERBEROS_ROLE_NAME,
+            )
+        except RoleNotFoundError:
+            return
+        else:
+            await self._role_dao.delete(role.get_id())
 
     def _get_full_access_aces(
         self,
+        role_id: int,
         base_dn: str,
-    ) -> list[AccessControlEntrySchema]:
+    ) -> list[AccessControlEntryDTO]:
         """Get a full access ACE.
 
         :param base_dn: Base DN for the role.
-        :return: List of AccessControlEntrySchema objects with full access.
+        :return: List of AccessControlEntryDTO objects with full access.
         """
         return [
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
+                role_id=role_id,
                 ace_type=AceType.READ,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
@@ -239,7 +256,8 @@ class RoleUseCase:
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
+                role_id=role_id,
                 ace_type=AceType.CREATE_CHILD,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
@@ -247,7 +265,8 @@ class RoleUseCase:
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
+                role_id=role_id,
                 ace_type=AceType.WRITE,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
@@ -255,7 +274,8 @@ class RoleUseCase:
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntrySchema(
+            AccessControlEntryDTO(
+                role_id=role_id,
                 ace_type=AceType.DELETE,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
