@@ -13,10 +13,7 @@ from typing import Any
 
 from loguru import logger
 
-from ldap_protocol.policies.audit.enums import (
-    AuditDestinationProtocolType,
-    AuditDestinationServiceType,
-)
+from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 from ldap_protocol.policies.audit.events.dataclasses import (
     NormalizedAuditEvent,
 )

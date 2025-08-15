@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 
-from .enums import AuditDestinationProtocolType, AuditDestinationServiceType
+from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 
 
 class AuditPolicySchemaRequest(BaseModel):

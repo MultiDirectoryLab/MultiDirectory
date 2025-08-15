@@ -88,6 +88,10 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
+from ldap_protocol.policies.password_policy import (
+    PasswordPolicyDAO,
+    PasswordUseCases,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -97,6 +101,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from models import AttributeType
+from password_manager.validator import PasswordValidator
 
 
 class TestProvider(Provider):
@@ -237,6 +242,12 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
         cache=False,
     )
+    password_use_cases = provide(
+        PasswordUseCases,
+        scope=Scope.REQUEST,
+    )
+    password_validator = provide(PasswordValidator, scope=Scope.REQUEST)
+    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -602,7 +613,7 @@ async def session(
     container: AsyncContainer,
     handler: PoolClientHandler,
 ) -> AsyncIterator[AsyncSession]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         handler.container = container
@@ -623,7 +634,7 @@ async def setup_session(
     session: AsyncSession,
     raw_audit_manager: RawAuditManager,
 ) -> None:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
     object_class_dao = ObjectClassDAO(
         session,
@@ -715,7 +726,7 @@ async def handler(
 async def entity_type_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[EntityTypeDAO]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         attribute_type_dao = AttributeTypeDAO(session)
@@ -727,10 +738,29 @@ async def entity_type_dao(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def password_validator(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordValidator]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordValidator()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def password_policy_dao(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordPolicyDAO]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield PasswordPolicyDAO(session)
+
+
+@pytest_asyncio.fixture(scope="function")
 async def attribute_type_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[AttributeTypeDAO]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield AttributeTypeDAO(session)
@@ -738,7 +768,7 @@ async def attribute_type_dao(
 
 @pytest_asyncio.fixture(scope="function")
 async def role_dao(container: AsyncContainer) -> AsyncIterator[RoleDAO]:
-    """Get session and aquire after completion."""
+    """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield RoleDAO(session)

@@ -6,11 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends
 
 from api.auth import get_current_user
-from ldap_protocol.policies.password_policy import PasswordPolicySchema
+from ldap_protocol.policies.password_policy import (
+    PasswordPolicySchema,
+    PasswordUseCases,
+)
 
 pwd_router = APIRouter(
     prefix="/password-policy",
@@ -20,36 +22,27 @@ pwd_router = APIRouter(
 )
 
 
-@pwd_router.post("", status_code=status.HTTP_201_CREATED)
-async def create_policy(
-    policy: PasswordPolicySchema,
-    session: FromDishka[AsyncSession],
-) -> PasswordPolicySchema:
-    """Create current policy setting."""
-    return await policy.create_policy_settings(session)
-
-
 @pwd_router.get("")
-async def get_policy(
-    session: FromDishka[AsyncSession],
+async def get_or_create_policy(
+    password_use_cases: FromDishka[PasswordUseCases],
 ) -> PasswordPolicySchema:
     """Get current policy setting."""
-    return await PasswordPolicySchema.get_policy_settings(session)
+    password_policy = await password_use_cases.get_or_create_password_policy()
+    return password_policy
 
 
 @pwd_router.put("")
 async def update_policy(
     policy: PasswordPolicySchema,
-    session: FromDishka[AsyncSession],
-) -> PasswordPolicySchema:
+    password_use_cases: FromDishka[PasswordUseCases],
+) -> None:
     """Update current policy setting."""
-    await policy.update_policy_settings(session)
-    return policy
+    await password_use_cases.update_policy(policy)
 
 
 @pwd_router.delete("")
 async def reset_policy(
-    session: FromDishka[AsyncSession],
+    password_use_cases: FromDishka[PasswordUseCases],
 ) -> PasswordPolicySchema:
     """Reset current policy setting."""
-    return await PasswordPolicySchema.delete_policy_settings(session)
+    return await password_use_cases.reset_policy()

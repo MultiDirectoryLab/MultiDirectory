@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.utils.queries import get_user
 from models import User
-from security import verify_password
+from password_manager import verify_password
 
 from .base import AbstractLDAPAuth
 

@@ -4,10 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import re
 from datetime import datetime
 from itertools import islice
-from typing import Iterable, Self
+from typing import Self
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, model_validator
@@ -17,42 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import ft_now, ft_to_dt
 from models import Attribute, PasswordPolicy, User
-from security import verify_password
-
-with open("extra/common_pwds.txt") as f:
-    _COMMON_PASSWORDS = set(f.read().split("\n"))
-
-
-async def post_save_password_actions(
-    user: User,
-    session: AsyncSession,
-) -> None:
-    """Post save actions for password update.
-
-    :param User user: user from db
-    :param AsyncSession session: db
-    """
-    await session.execute(  # update bind reject attribute
-        update(Attribute)
-        .values({"value": ft_now()})
-        .filter_by(directory_id=user.directory_id, name="pwdLastSet"),
-    )
-
-    new_value = cast(
-        cast(Attribute.value, Integer).op("&")(
-            ~UserAccountControlFlag.PASSWORD_EXPIRED,
-        ),
-        String,
-    )
-    qeury = (
-        update(Attribute)
-        .values(value=new_value)
-        .filter_by(directory_id=user.directory_id, name="userAccountControl")
-    )
-    await session.execute(qeury)
-
-    user.password_history.append(user.password)
-    await session.flush()
+from password_manager import PasswordValidator, count_password_age_days
 
 
 class PasswordPolicySchema(BaseModel):
@@ -63,15 +27,15 @@ class PasswordPolicySchema(BaseModel):
         min_length=3,
         max_length=255,
     )
-    password_history_length: int = Field(4, ge=0, le=24)
-    maximum_password_age_days: int = Field(0, ge=0, le=999)
-    minimum_password_age_days: int = Field(0, ge=0, le=999)
-    minimum_password_length: int = Field(7, ge=0, le=256)
+    history_length: int = Field(4, ge=0, le=24)
+    max_age_days: int = Field(0, ge=0, le=999)
+    min_age_days: int = Field(0, ge=0, le=999)
+    min_length: int = Field(7, ge=0, le=256)
     password_must_meet_complexity_requirements: bool = True
 
     @model_validator(mode="after")
     def _validate_minimum_pwd_age(self) -> "PasswordPolicySchema":
-        if self.minimum_password_age_days > self.maximum_password_age_days:
+        if self.min_age_days > self.max_age_days:
             raise ValueError(
                 "Minimum password age days must be "
                 "lower or equal than maximum password age days",
@@ -178,80 +142,217 @@ class PasswordPolicySchema(BaseModel):
 
         return plset
 
-    def validate_min_age(self, last_pwd_set: Attribute) -> bool:
-        """Validate min password change age.
 
-        :param Attribute last_pwd_set: last pwd set
-        :return bool: can change pwd
-            True - not valid, can not change
-            False - valid, can change
+class PasswordPolicyDAO:
+    """Password Policy DAO."""
 
-            on minimum_password_age_days can always change.
+    __session: AsyncSession
+
+    def __init__(
+        self,
+        session: AsyncSession,
+    ) -> None:
+        """Initialize Password Policy DAO with a database session."""
+        self.__session = session
+
+    async def update_policy(
+        self,
+        password_policy: PasswordPolicySchema,
+    ) -> None:
+        """Update Password Policy."""
+        await self.__session.execute(
+            update(PasswordPolicy).values(
+                password_policy.model_dump(mode="json"),
+            ),
+        )
+
+    async def reset_policy(self) -> "PasswordPolicySchema":
+        """Reset (delete) default policy."""
+        default_policy = PasswordPolicySchema()
+        await self.update_policy(default_policy)
+        return default_policy
+
+    async def get_or_create_password_policy(self) -> "PasswordPolicySchema":
+        """Get or create password policy."""
+        password_policy = await self.__session.scalar(select(PasswordPolicy))
+
+        if not password_policy:
+            self.__session.add(
+                PasswordPolicy(
+                    **PasswordPolicySchema().model_dump(mode="json"),
+                ),
+            )
+            await self.__session.flush()
+
+            password_policy = await self.__session.scalar(
+                select(PasswordPolicy),
+            )
+
+        return PasswordPolicySchema.model_validate(
+            password_policy,
+            from_attributes=True,
+        )
+
+    async def get_or_create_pwd_last_set(
+        self,
+        directory_id: int,
+    ) -> str | None:
+        """Get pwdLastSet."""
+        plset_attribute = await self.__session.scalar(
+            select(Attribute)
+            .where(
+                Attribute.directory_id == directory_id,
+                Attribute.name == "pwdLastSet",
+            ),
+        )  # fmt: skip
+
+        if not plset_attribute:
+            plset_attribute = Attribute(
+                directory_id=directory_id,
+                name="pwdLastSet",
+                value=ft_now(),
+            )
+
+            self.__session.add(plset_attribute)
+
+        return plset_attribute.value
+
+
+class PasswordUseCases:
+    """Password Policy Use Cases."""
+
+    def __init__(
+        self,
+        password_policy_dao: PasswordPolicyDAO,
+        validator: PasswordValidator,
+    ) -> None:
+        """Initialize Password Policy Use Cases."""
+        self.password_policy_dao = password_policy_dao
+        self.validator = validator
+
+    async def get_or_create_pwd_last_set(
+        self,
+        directory_id: int,
+    ) -> str | None:
+        """Get pwdLastSet."""
+        return await self.password_policy_dao.get_or_create_pwd_last_set(
+            directory_id,
+        )
+
+    async def get_or_create_password_policy(self) -> "PasswordPolicySchema":
+        """Get or create password policy."""
+        return await self.password_policy_dao.get_or_create_password_policy()
+
+    async def update_policy(
+        self,
+        password_policy: PasswordPolicySchema,
+    ) -> None:
+        """Update Password Policy."""
+        await self.password_policy_dao.update_policy(password_policy)
+
+    async def reset_policy(self) -> "PasswordPolicySchema":
+        """Reset (delete) default policy."""
+        return await self.password_policy_dao.reset_policy()
+
+    @staticmethod
+    async def post_save_password_actions(
+        user: User,
+        session: AsyncSession,
+    ) -> None:
+        """Post save actions for password update.
+
+        :param User user: user from db
+        :param AsyncSession session: db
         """
-        if self.minimum_password_age_days == 0:
+        await session.execute(  # update bind reject attribute
+            update(Attribute)
+            .values({"value": ft_now()})
+            .filter_by(directory_id=user.directory_id, name="pwdLastSet"),
+        )
+
+        new_value = cast(
+            cast(Attribute.value, Integer).op("&")(
+                ~UserAccountControlFlag.PASSWORD_EXPIRED,
+            ),
+            String,
+        )
+        query = (
+            update(Attribute)
+            .values(value=new_value)
+            .filter_by(
+                directory_id=user.directory_id,
+                name="userAccountControl",
+            )
+        )
+        await session.execute(query)
+
+        user.password_history.append(user.password)
+        await session.flush()
+
+    async def check_expired_max_age(
+        self,
+        password_policy: PasswordPolicySchema,
+        user: User | None = None,
+    ) -> bool:
+        """Validate max password change age."""
+        if password_policy.max_age_days == 0:
             return False
 
-        password_exists = self._count_password_exists_days(last_pwd_set)
+        if not user:
+            return True
 
-        return password_exists < self.minimum_password_age_days
+        pwd_last_set = (
+            await self.password_policy_dao.get_or_create_pwd_last_set(
+                user.directory_id,
+            )
+        )
+        password_age_days = count_password_age_days(pwd_last_set)
 
-    def validate_max_age(self, last_pwd_set: Attribute) -> bool:
-        """Validate max password change age.
+        return password_age_days > password_policy.max_age_days
 
-        :param Attribute last_pwd_set: last pwd set
-        :return bool: is pwd expired
-            True - not valid, expired
-            False - valid, not expired
-
-            on maximum_password_age_days always valid.
-        """
-        if self.maximum_password_age_days == 0:
-            return False
-
-        password_exists = self._count_password_exists_days(last_pwd_set)
-
-        return password_exists > self.maximum_password_age_days
-
-    async def validate_password_with_policy(
+    async def check_password_violations(
         self,
         password: str,
-        user: User | None,
+        user: User | None = None,
     ) -> list[str]:
         """Validate password with chosen policy.
 
+        :param PasswordPolicySchema password_policy: Password Policy
         :param str password: new raw password
-        :param User user: db user
-        :param AsyncSession session: db
-        :return bool: status
+        :return list[str]: error messages
         """
-        errors = []
-        history: Iterable = []
-
-        if user is not None:
-            history = islice(
-                reversed(user.password_history),
-                self.password_history_length,
-            )
-
-        for pwd_hash in history:
-            if verify_password(password, pwd_hash):
-                errors.append("password history violation")
-                break
-
-        if len(password) <= self.minimum_password_length:
-            errors.append("password minimum length violation")
-
-        regex = (
-            re.search("[A-ZА-Я]", password) is not None,
-            re.search("[a-zа-я]", password) is not None,
-            re.search("[0-9]", password) is not None,
-            password.lower() not in _COMMON_PASSWORDS,
+        password_policy = (
+            await self.password_policy_dao.get_or_create_password_policy()
         )
 
-        if self.password_must_meet_complexity_requirements and not all(regex):
-            errors.append("password complexity violation")
+        self.validator.not_otp_like_suffix()
 
-        if password[-6:].isdecimal():
-            errors.append("password cannot end with 6 digits")
+        if user and password_policy.history_length:
+            history = islice(
+                reversed(user.password_history),
+                password_policy.history_length,
+            )
 
-        return errors
+            self.validator.reuse_prevention(
+                password_history=history,
+            )
+
+        if user and password_policy.min_age_days:
+            pwd_last_set = (
+                await self.password_policy_dao.get_or_create_pwd_last_set(
+                    user.directory_id,
+                )
+            )
+            self.validator.min_age(
+                password_policy.min_age_days,
+                pwd_last_set,
+            )
+
+        if password_policy.min_length:
+            self.validator.min_length(password_policy.min_length)
+
+        if password_policy.password_must_meet_complexity_requirements:
+            self.validator.min_complexity()
+
+        await self.validator.validate(password)
+        return self.validator.error_messages
