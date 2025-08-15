@@ -8,6 +8,7 @@ import operator
 import traceback
 from functools import partial
 from ipaddress import IPv4Address, IPv6Address
+import weakref
 
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
@@ -266,8 +267,7 @@ class MFAManager:
         if network_policy is None:
             raise NetworkPolicyError()
 
-        bypass_coro = partial(
-            self._create_bypass_data,
+        bypass_coro = self._create_bypass_data(
             user,
             "",
             ip,
@@ -281,19 +281,20 @@ class MFAManager:
                 url.components.geturl(),
                 user.id,
             )
+            weakref.finalize(bypass_coro, bypass_coro.close)
 
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
-                return await bypass_coro()
+                return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
-            return await bypass_coro()
+            return await bypass_coro
 
         except self._mfa_api.MultifactorError as error:
             if network_policy.bypass_service_failure:
-                return await bypass_coro()
+                return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
 
