@@ -6,9 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
-from functools import partial
-from ipaddress import IPv4Address, IPv6Address
 import weakref
+from ipaddress import IPv4Address, IPv6Address
 
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
