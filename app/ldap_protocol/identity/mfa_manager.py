@@ -280,7 +280,6 @@ class MFAManager:
                 url.components.geturl(),
                 user.id,
             )
-            weakref.finalize(bypass_coro, bypass_coro.close)
 
         except self._mfa_api.MFAConnectError:
             if network_policy.bypass_no_connection:
@@ -296,6 +295,9 @@ class MFAManager:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
+
+        else:
+            weakref.finalize(bypass_coro, bypass_coro.close)
 
         return (
             MFAChallengeResponse(
