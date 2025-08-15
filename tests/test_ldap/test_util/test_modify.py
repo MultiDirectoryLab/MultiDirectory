@@ -616,6 +616,11 @@ async def test_ldap_modify_password_change(
         "-x",
         "-w",
         new_password,
+        "-b",
+        "dc=md,dc=test",
+        "objectclass=*",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
 
     result = await proc.wait()

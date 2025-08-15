@@ -442,6 +442,45 @@ async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
+async def test_api_add_duplicate_with_spaces(
+    http_client: AsyncClient,
+) -> None:
+    """Test API add a user with incorrect name."""
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=test test,dc=md,dc=test",
+            "password": None,
+            "attributes": [
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=   test test  ,dc=md,dc=test",
+            "password": None,
+            "attributes": [
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data.get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
 async def test_api_add_with_non_exist_parent(http_client: AsyncClient) -> None:
     """Test API add a user with non-existen parent."""
     response = await http_client.post(
