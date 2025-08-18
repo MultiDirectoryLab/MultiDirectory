@@ -44,6 +44,7 @@ from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
+from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from extra import TEST_DATA, setup_enviroment
@@ -93,6 +94,7 @@ from ldap_protocol.policies.password import (
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.service import PasswordPolicyService
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -251,6 +253,14 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
+    password_policies_adapter = provide(
+        PasswordPoliciesAdapter,
+        scope=Scope.REQUEST,
+    )
+    password_policy_service = provide(
+        PasswordPolicyService,
+        scope=Scope.REQUEST,
+    )
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:

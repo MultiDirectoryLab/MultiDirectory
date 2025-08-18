@@ -18,7 +18,7 @@ class PasswordValidator:
 
     @classmethod
     def verify_password(
-        cls, plain_password: str, hashed_password: str
+        cls, plain_password: str, hashed_password: str,
     ) -> bool:
         """Validate password.
 

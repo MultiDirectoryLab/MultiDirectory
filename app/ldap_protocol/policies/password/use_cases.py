@@ -14,8 +14,9 @@ from ldap_protocol.utils.helpers import ft_now
 from models import Attribute, User
 from password_manager import PasswordValidator
 
-from .dao import PasswordPolicyDAO
-from .schema import PasswordPolicySchema
+from .dataclasses import PasswordPolicyDTO
+from .policies_dao import PasswordPolicyDAO
+from .schemas import PasswordPolicySchema
 from .validator import PasswordPolicyValidator
 
 
@@ -40,20 +41,27 @@ class PasswordPolicyUseCases:
             directory_id,
         )
 
-    async def get_or_create_password_policy(self) -> "PasswordPolicySchema":
+    async def get_password_policy(self) -> "PasswordPolicyDTO":
         """Get or create password policy."""
-        return await self.password_policy_dao.get_or_create_password_policy()
+        return await self.password_policy_dao.get()
+
+    async def create_policy(self) -> None:
+        policy_dto = self.get_default_settings()
+        await self.password_policy_dao.create(policy_dto)
 
     async def update_policy(
         self,
         password_policy: PasswordPolicySchema,
     ) -> None:
         """Update Password Policy."""
-        await self.password_policy_dao.update_policy(password_policy)
+        policy_dto = PasswordPolicyDTO(
+            **password_policy.model_dump(),
+        )
+        await self.password_policy_dao.update(policy_dto)
 
-    async def reset_policy(self) -> "PasswordPolicySchema":
+    async def reset_policy(self) -> None:
         """Reset (delete) default policy."""
-        return await self.password_policy_dao.reset_policy()
+        await self.password_policy_dao.delete()
 
     @staticmethod
     async def post_save_password_actions(
@@ -92,7 +100,7 @@ class PasswordPolicyUseCases:
 
     async def check_expired_max_age(
         self,
-        password_policy: PasswordPolicySchema,
+        password_policy: PasswordPolicyDTO,
         user: User | None = None,
     ) -> bool:
         """Validate max password change age."""
@@ -113,21 +121,50 @@ class PasswordPolicyUseCases:
 
         return password_age_days > password_policy.max_age_days
 
+    @staticmethod
+    def get_default_settings() -> PasswordPolicyDTO:
+        """Get default password policy settings."""
+        policy_dto = PasswordPolicyDTO(
+            **PasswordPolicySchema().model_dump(),
+        )
+        return policy_dto
+
     async def check_password_violations(
         self,
         password: str,
         user: User | None = None,
     ) -> list[str]:
-        """Validate password with chosen policy.
+        """Validate password with exist policy.
 
-        :param PasswordPolicySchema password_policy: Password Policy
+        :param PasswordPolicyDTO password_policy: Password Policy
         :param str password: new raw password
         :return list[str]: error messages
         """
-        password_policy = (
-            await self.password_policy_dao.get_or_create_password_policy()
+        password_policy = await self.password_policy_dao.get()
+        return await self.validate_password(
+            password,
+            password_policy,
+            user,
         )
 
+    async def check_default_policy_password_violations(
+        self,
+        password: str,
+        user: User | None = None,
+    ) -> list[str]:
+        password_policy = self.get_default_settings()
+        return await self.validate_password(
+            password,
+            password_policy,
+            user,
+        )
+
+    async def validate_password(
+        self,
+        password: str,
+        password_policy: PasswordPolicyDTO,
+        user: User | None = None,
+    ) -> list[str]:
         self.validator.not_otp_like_suffix()
 
         if user and password_policy.history_length:

@@ -25,10 +25,8 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
-from ldap_protocol.policies.password import (
-    PasswordPolicySchema,
-    PasswordPolicyUseCases,
-)
+from ldap_protocol.policies.password import PasswordPolicyUseCases
+from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -114,7 +112,7 @@ class ModifyRequest(BaseRequest):
     def _update_password_expiration(
         self,
         change: Changes,
-        policy: PasswordPolicySchema,
+        policy: PasswordPolicyDTO,
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
@@ -151,7 +149,7 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        policy = await PasswordPolicySchema.get_policy_settings(ctx.session)
+        policy = await ctx.password_use_cases.get_password_policy()
         query = self._get_dir_query()
         query = ctx.access_manager.mutate_query_with_ace_load(
             user_role_ids=ctx.ldap_session.user.role_ids,
@@ -683,7 +681,7 @@ class ModifyRequest(BaseRequest):
                     )
 
                 directory.user.password = PasswordValidator.get_password_hash(
-                    value
+                    value,
                 )
                 await password_use_cases.post_save_password_actions(
                     directory.user,

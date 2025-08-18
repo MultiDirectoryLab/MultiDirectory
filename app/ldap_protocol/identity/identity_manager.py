@@ -369,19 +369,16 @@ class IdentityManager:
                 )
                 await self._session.flush()
                 errors = await (
-                    self._password_use_cases.check_password_violations(
+                    self
+                    ._password_use_cases
+                    .check_default_policy_password_violations(
                         password=request.password,
-                        user=None,
                     )
-                )
+                )  # fmt: skip
                 if errors:
                     raise ForbiddenError(errors)
 
-                await (
-                    self
-                    ._password_use_cases
-                    .get_or_create_password_policy()
-                )  # fmt: skip
+                await self._password_use_cases.create_policy()
                 await self._role_use_case.create_domain_admins_role()
                 await self._role_use_case.create_read_only_role()
                 await self._audit_use_case.create_policies()

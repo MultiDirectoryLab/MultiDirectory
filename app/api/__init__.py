@@ -7,13 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from .audit.router import audit_router
 from .auth.router import auth_router
 from .auth.router_mfa import mfa_router
-from .auth.router_pwd_policy import pwd_router
 from .auth.session_router import session_router
 from .ldap_schema.entity_type_router import ldap_schema_router
 from .main.dns_router import dns_router
 from .main.krb5_router import krb5_router
 from .main.router import entry_router
 from .network.router import network_router
+from .password_policy.router import pwd_router
 from .shadow.router import shadow_router
 
 __all__ = [

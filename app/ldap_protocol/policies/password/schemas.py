@@ -1,0 +1,31 @@
+"""Password policies tools and CRUD.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
+from pydantic import BaseModel, Field, model_validator
+
+
+class PasswordPolicySchema(BaseModel):
+    """PasswordPolicy schema."""
+
+    name: str = Field(
+        "Default domain password policy",
+        min_length=3,
+        max_length=255,
+    )
+    history_length: int = Field(4, ge=0, le=24)
+    max_age_days: int = Field(0, ge=0, le=999)
+    min_age_days: int = Field(0, ge=0, le=999)
+    min_length: int = Field(7, ge=0, le=256)
+    password_must_meet_complexity_requirements: bool = True
+
+    @model_validator(mode="after")
+    def _validate_minimum_pwd_age(self) -> "PasswordPolicySchema":
+        if self.min_age_days > self.max_age_days:
+            raise ValueError(
+                "Minimum password age days must be "
+                "lower or equal than maximum password age days",
+            )
+        return self
