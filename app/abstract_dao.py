@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Protocol, TypeVar
 
 T = TypeVar("T")
@@ -27,3 +27,11 @@ class AbstractDAO(Protocol[T]):
 
     @abstractmethod
     async def delete(self, _id: int) -> None: ...
+
+
+class AbstractService(ABC):  # noqa:  B024
+    """Abstract Service/Manager base class for nominal typing.
+
+    Intentionally empty:
+    concrete services may define arbitrary attributes/methods.
+    """

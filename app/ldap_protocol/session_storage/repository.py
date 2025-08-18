@@ -6,6 +6,7 @@ from typing import Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from abstract_dao import AbstractService
 from config import Settings
 from ldap_protocol.utils.queries import get_user, set_user_logon_attrs
 from models import User
@@ -42,7 +43,7 @@ class AllUserSessionsDTO:
     total_count: int
 
 
-class SessionRepository:
+class SessionRepository(AbstractService):
     """Repository for managing user sessions."""
 
     def __init__(
@@ -100,7 +101,7 @@ class SessionRepository:
         user = await get_user(self.session, upn)
 
         if not user:
-            raise KeyError("User not found.")
+            raise LookupError("User not found.")
 
         sessions = await self.storage.get_user_sessions(user.id)
 
@@ -115,7 +116,7 @@ class SessionRepository:
         user = await get_user(self.session, upn)
 
         if not user:
-            raise KeyError("User not found.")
+            raise LookupError("User not found.")
 
         await self.storage.clear_user_sessions(user.id)
 

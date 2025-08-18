@@ -10,6 +10,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from abstract_dao import AbstractService
 from api.auth.schema import OAuth2Form, SetupRequest
 from api.exceptions.auth import (
     AlreadyConfiguredError,
@@ -51,7 +52,7 @@ from models import Directory, Group, User
 from security import get_password_hash
 
 
-class IdentityManager:
+class IdentityManager(AbstractService):
     """Authentication manager."""
 
     def __init__(
@@ -65,6 +66,7 @@ class IdentityManager:
         repository: SessionRepository,
         audit_use_case: AuditUseCase,
         monitor: AuditMonitorUseCase,
+        kadmin: AbstractKadmin,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -85,6 +87,7 @@ class IdentityManager:
         self._repository = repository
         self._audit_use_case = audit_use_case
         self._monitor = monitor
+        self._kadmin = kadmin
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -181,13 +184,11 @@ class IdentityManager:
         self,
         identity: str,
         new_password: str,
-        kadmin: AbstractKadmin | None = None,
     ) -> None:
         """Change the user's password and update Kerberos.
 
         :param identity: str
         :param new_password: str
-        :param kadmin: Kerberos kadmin client
         :raises UserNotFoundError: if user not found
         :raises PasswordPolicyError: if password does not meet policy
         :raises KRBAPIError: if Kerberos password update failed
@@ -206,16 +207,15 @@ class IdentityManager:
         if errors:
             raise PasswordPolicyError(errors)
 
-        if kadmin is not None:
-            try:
-                await kadmin.create_or_update_principal_pw(
-                    user.get_upn_prefix(),
-                    new_password,
-                )
-            except KRBAPIError:
-                raise KRBAPIError(
-                    "Failed kerberos password update",
-                )
+        try:
+            await self._kadmin.create_or_update_principal_pw(
+                user.get_upn_prefix(),
+                new_password,
+            )
+        except KRBAPIError:
+            raise KRBAPIError(
+                "Failed kerberos password update",
+            )
 
         user.password = get_password_hash(new_password)
         await post_save_password_actions(user, self._session)
@@ -229,10 +229,9 @@ class IdentityManager:
         self,
         identity: str,
         new_password: str,
-        kadmin: AbstractKadmin,
     ) -> None:
         """Change the user's password and update Kerberos."""
-        await self._update_password(identity, new_password, kadmin)
+        await self._update_password(identity, new_password)
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
