@@ -3,10 +3,11 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
-from typing import Awaitable, Callable, Literal, ParamSpec, TypeVar
+from typing import Literal, ParamSpec, TypeVar
 
-from fastapi import HTTPException, status
+from fastapi import status
 
+from api.base_adapter import BaseAdapter
 from ldap_protocol.session_storage import SessionRepository
 
 _P = ParamSpec("_P")
@@ -50,33 +51,22 @@ class UserSessionsResponseSchema:
     total_count: int
 
 
-class SessionFastAPIGateway:
+class SessionFastAPIGateway(BaseAdapter[SessionRepository]):
     """Base class for session storage."""
+
+    _exceptions_map: dict[type[Exception], int] = {
+        LookupError: status.HTTP_404_NOT_FOUND,
+    }
 
     def __init__(self, repository: SessionRepository) -> None:
         """Initialize the session gateway with a repository."""
-        self.repository = repository
-
-    async def _sc(
-        self,
-        func: Callable[_P, Awaitable[_R]],
-        *args: _P.args,
-        **kwargs: _P.kwargs,
-    ) -> _R:
-        """Call function and convert exceptions to HTTPException."""
-        try:
-            return await func(*args, **kwargs)
-        except KeyError as exc:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                detail=str(exc.args[0]),
-            )
+        self._service = repository
 
     async def get_user_sessions(
         self,
         upn: str,
     ) -> dict[str, SessionContentResponseSchema]:
-        data = await self._sc(self.repository.get_user_sessions, upn)
+        data = await self._service.get_user_sessions(upn)
 
         return {
             session_id: SessionContentResponseSchema(**asdict(data))
@@ -85,8 +75,8 @@ class SessionFastAPIGateway:
 
     async def delete_user_sessions(self, upn: str) -> None:
         """Delete user sessions."""
-        await self._sc(self.repository.clear_user_sessions, upn)
+        await self._service.clear_user_sessions(upn)
 
     async def delete_session(self, session_id: str) -> None:
         """Delete user session."""
-        return await self._sc(self.repository.delete_session, session_id)
+        return await self._service.delete_session(session_id)

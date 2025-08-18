@@ -6,10 +6,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from fastapi import HTTPException, Response, status
+from fastapi import Response, status
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.auth.schema import OAuth2Form, SetupRequest
+from api.base_adapter import BaseAdapter
 from api.exceptions.auth import (
     AlreadyConfiguredError,
     LoginFailedError,
@@ -19,18 +20,24 @@ from api.exceptions.auth import (
 )
 from api.exceptions.mfa import MFARequiredError
 from ldap_protocol.identity import IdentityManager
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import KRBAPIError
 
 
-class IdentityFastAPIAdapter(ResponseCookieMixin):
+class IdentityFastAPIAdapter(
+    ResponseCookieMixin,
+    BaseAdapter[IdentityManager],
+):
     """Adapter for using IdentityManager with FastAPI."""
 
-    def __init__(self, identity_manager: "IdentityManager"):
-        """Initialize the adapter with a domain IdentityManager instance.
-
-        :param identity_manager: IdentityManager instance (domain logic)
-        """
-        self._manager = identity_manager
+    _exceptions_map: dict[type[Exception], int] = {
+        UnauthorizedError: status.HTTP_401_UNAUTHORIZED,
+        LoginFailedError: status.HTTP_403_FORBIDDEN,
+        MFARequiredError: status.HTTP_426_UPGRADE_REQUIRED,
+        PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        UserNotFoundError: status.HTTP_404_NOT_FOUND,
+        KRBAPIError: status.HTTP_424_FAILED_DEPENDENCY,
+        AlreadyConfiguredError: status.HTTP_423_LOCKED,
+    }
 
     async def login(
         self,
@@ -51,38 +58,21 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 426 if MFA is required
         :return: None
         """
-        try:
-            key = await self._manager.login(
-                form=form,
-                ip=ip,
-                user_agent=user_agent,
-            )
-            await self.set_session_cookie(
-                response,
-                self._manager.key_ttl,
-                key,
-            )
-        except UnauthorizedError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=str(exc),
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        except LoginFailedError:
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-        except MFARequiredError as exc:
-            raise HTTPException(
-                status.HTTP_426_UPGRADE_REQUIRED,
-                detail=str(exc),
-            )
+        key = await self._service.login(
+            form=form,
+            ip=ip,
+            user_agent=user_agent,
+        )
+        await self.set_session_cookie(
+            response,
+            self._service.key_ttl,
+            key,
+        )
 
     async def reset_password(
         self,
         identity: str,
         new_password: str,
-        kadmin: AbstractKadmin,
     ) -> None:
         """Reset a user's password and update Kerberos principal.
 
@@ -95,26 +85,14 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 424 if Kerberos password update failed
         :return: None
         """
-        try:
-            await self._manager.reset_password(identity, new_password, kadmin)
-        except PasswordPolicyError as exc:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=exc.args[0],
-            )
-
-        except UserNotFoundError:
-            raise HTTPException(status.HTTP_404_NOT_FOUND)
-
-        except KRBAPIError as exc:
-            raise HTTPException(status.HTTP_424_FAILED_DEPENDENCY, str(exc))
+        await self._service.reset_password(identity, new_password)
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is required.
 
         :return: True if setup is required, False otherwise
         """
-        return await self._manager.check_setup_needed()
+        return await self._service.check_setup_needed()
 
     async def perform_first_setup(self, request: SetupRequest) -> None:
         """Perform initial structure and policy setup.
@@ -123,7 +101,4 @@ class IdentityFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 423 if setup already performed
         :return: None
         """
-        try:
-            await self._manager.perform_first_setup(request)
-        except AlreadyConfiguredError as exc:
-            raise HTTPException(status.HTTP_423_LOCKED, detail=str(exc))
+        await self._service.perform_first_setup(request)

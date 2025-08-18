@@ -29,7 +29,7 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -274,7 +274,6 @@ class AuditMonitorUseCase:
         async def wrapped_reset_password(
             identity: str,
             new_password: str,
-            kadmin: AbstractKadmin,
         ) -> None:
             self._monitor.event_type = OperationEvent.CHANGE_PASSWORD
             self._monitor.target = identity
@@ -283,7 +282,6 @@ class AuditMonitorUseCase:
                 return await attr(
                     identity=identity,
                     new_password=new_password,
-                    kadmin=kadmin,
                 )
             except (
                 UserNotFoundError,

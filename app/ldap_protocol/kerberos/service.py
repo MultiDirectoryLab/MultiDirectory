@@ -12,6 +12,7 @@ from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from abstract_dao import AbstractService
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.identity.utils import authenticate_user
@@ -32,7 +33,7 @@ from .template_render import KRBTemplateRenderer
 from .utils import get_krb_server_state, set_state
 
 
-class KerberosService:
+class KerberosService(AbstractService):
     """Kerberos business logic coordinator for KDC and LDAP operations."""
 
     def __init__(
