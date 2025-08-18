@@ -14,7 +14,6 @@ from fastapi import APIRouter, Body, Depends, Response, status
 from api.auth.adapters import IdentityFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
@@ -96,7 +95,6 @@ async def logout(
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
-    kadmin: FromDishka[AbstractKadmin],
     auth_manager: FromDishka[IdentityFastAPIAdapter],
 ) -> None:
     """Reset user's (entry) password.
@@ -110,7 +108,7 @@ async def password_reset(
     :raises HTTPException: 424 if kerberos password update failed
     :return: None
     """
-    await auth_manager.reset_password(identity, new_password, kadmin)
+    await auth_manager.reset_password(identity, new_password)
 
 
 @auth_router.get("/setup")

@@ -100,7 +100,7 @@ class SessionRepository:
         user = await get_user(self.session, upn)
 
         if not user:
-            raise KeyError("User not found.")
+            raise LookupError("User not found.")
 
         sessions = await self.storage.get_user_sessions(user.id)
 
@@ -115,7 +115,7 @@ class SessionRepository:
         user = await get_user(self.session, upn)
 
         if not user:
-            raise KeyError("User not found.")
+            raise LookupError("User not found.")
 
         await self.storage.clear_user_sessions(user.id)
 
