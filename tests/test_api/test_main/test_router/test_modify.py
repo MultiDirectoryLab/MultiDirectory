@@ -69,6 +69,72 @@ async def test_api_correct_modify(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+async def test_api_duplicate_with_spaces_modify(
+    http_client: AsyncClient,
+) -> None:
+    """Test API for modify duplicated object name."""
+    entry_dn = "cn=new_test,dc=md,dc=test"
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": entry_dn,
+            "password": None,
+            "attributes": [
+                {
+                    "type": "objectClass",
+                    "vals": ["organization", "top"],
+                },
+            ],
+        },
+    )
+    data = response.json()
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "cn",
+                        "vals": ["  test"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_modify_many(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     entry_dn = "cn=test,dc=md,dc=test"

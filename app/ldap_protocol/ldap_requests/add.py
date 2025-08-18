@@ -137,7 +137,6 @@ class AddRequest(BaseRequest):
 
         parent_path = get_path_filter(root_dn[:-1])
         new_dn, name = self.entry.split(",")[0].split("=")
-
         parent_query = select(Directory).filter(parent_path)
 
         parent_query = ctx.access_manager.mutate_query_with_ace_load(

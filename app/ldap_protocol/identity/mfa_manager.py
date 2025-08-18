@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
+import weakref
 from ipaddress import IPv4Address, IPv6Address
 
 from jose import jwt
@@ -294,6 +295,9 @@ class MFAManager:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
             raise MFAError(str(error))
+
+        else:
+            weakref.finalize(bypass_coro, bypass_coro.close)
 
         return (
             MFAChallengeResponse(
