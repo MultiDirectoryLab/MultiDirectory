@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from fastapi import HTTPException, Request, Response, status
+from fastapi import Request, Response, status
 from fastapi.responses import RedirectResponse
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
@@ -16,6 +16,7 @@ from api.auth.schema import (
     MFAGetResponse,
     OAuth2Form,
 )
+from api.base_adapter import BaseAdapter
 from api.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
@@ -29,15 +30,18 @@ from ldap_protocol.identity import MFAManager
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 
-class MFAFastAPIAdapter(ResponseCookieMixin):
+class MFAFastAPIAdapter(ResponseCookieMixin, BaseAdapter[MFAManager]):
     """Adapter for using MFAManager with FastAPI."""
 
-    def __init__(self, mfa_manager: "MFAManager"):
-        """Initialize the adapter with a domain MFAManager instance.
-
-        :param mfa_manager: MFAManager instance (domain logic)
-        """
-        self._manager = mfa_manager
+    _exceptions_map: dict[type[Exception], int] = {
+        MissingMFACredentialsError: status.HTTP_403_FORBIDDEN,
+        NetworkPolicyError: status.HTTP_403_FORBIDDEN,
+        ForbiddenError: status.HTTP_403_FORBIDDEN,
+        InvalidCredentialsError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        NotFoundError: status.HTTP_404_NOT_FOUND,
+        MFAError: status.HTTP_406_NOT_ACCEPTABLE,
+        MFATokenError: status.HTTP_302_FOUND,
+    }
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
         """Create or update MFA keys.
@@ -45,7 +49,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :param mfa: MFACreateRequest
         :return: bool
         """
-        return await self._manager.setup_mfa(mfa)
+        return await self._service.setup_mfa(mfa)
 
     async def remove_mfa(self, scope: str) -> None:
         """Delete MFA keys by scope.
@@ -53,7 +57,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :param scope: str ('http' or 'ldap')
         :return: None
         """
-        await self._manager.remove_mfa(scope)
+        await self._service.remove_mfa(scope)
 
     async def get_mfa(
         self,
@@ -66,7 +70,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :param mfa_creds_ldap: MFA_LDAP_Creds
         :return: MFAGetResponse
         """
-        return await self._manager.get_mfa(mfa_creds, mfa_creds_ldap)
+        return await self._service.get_mfa(mfa_creds, mfa_creds_ldap)
 
     async def callback_mfa(
         self,
@@ -86,7 +90,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
         :raises HTTPException: 302 redirect if MFA token error
         """
         try:
-            key = await self._manager.callback_mfa(
+            key = await self._service.callback_mfa(
                 access_token,
                 mfa_creds,
                 ip,
@@ -95,15 +99,12 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
             response = RedirectResponse("/", 302)
             await self.set_session_cookie(
                 response,
-                self._manager.key_ttl,
+                self._service.key_ttl,
                 key,
             )
             return response
         except MFATokenError:
             return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)
-
-        except NotFoundError as e:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from e
 
     async def two_factor_protocol(
         self,
@@ -126,38 +127,16 @@ class MFAFastAPIAdapter(ResponseCookieMixin):
             (missing API credentials, network policy violation, etc.)
         :raises HTTPException: 406 if MFA error
         """
-        try:
-            result, key = await self._manager.two_factor_protocol(
-                form=form,
-                url=request.url_for("callback_mfa"),
-                ip=ip,
-                user_agent=user_agent,
+        result, key = await self._service.two_factor_protocol(
+            form=form,
+            url=request.url_for("callback_mfa"),
+            ip=ip,
+            user_agent=user_agent,
+        )
+        if key is not None:
+            await self.set_session_cookie(
+                response,
+                self._service.key_ttl,
+                key,
             )
-            if key is not None:
-                await self.set_session_cookie(
-                    response,
-                    self._manager.key_ttl,
-                    key,
-                )
-            return result
-        except InvalidCredentialsError as exc:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=str(exc),
-            )
-
-        except (
-            MissingMFACredentialsError,
-            NetworkPolicyError,
-            ForbiddenError,
-        ):
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-        except NotFoundError:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-        except MFAError as exc:
-            raise HTTPException(
-                status.HTTP_406_NOT_ACCEPTABLE,
-                detail=str(exc),
-            )
+        return result

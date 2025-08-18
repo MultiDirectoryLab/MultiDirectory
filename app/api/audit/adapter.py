@@ -4,10 +4,11 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Awaitable, Callable, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
-from fastapi import HTTPException, status
+from fastapi import status
 
+from api.base_adapter import BaseAdapter
 from ldap_protocol.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
@@ -28,30 +29,13 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class AuditPoliciesAdapter:
+class AuditPoliciesAdapter(BaseAdapter[AuditService]):
     """Adapter for audit policies."""
 
-    def __init__(self, audit_service: AuditService) -> None:
-        """Initialize the adapter with an audit service."""
-        self.audit_service = audit_service
-
-    async def _sc(
-        self,
-        func: Callable[P, Awaitable[R]],
-        *args: P.args,
-        **kwargs: P.kwargs,
-    ) -> R:
-        """Convert Kerberos exceptions to HTTPException.
-
-        :raises HTTPException: on Kerberos errors
-        :return: Result of the function call.
-        """
-        try:
-            return await func(*args, **kwargs)
-        except AuditNotFoundError as exc:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
-        except AuditAlreadyExistsError:
-            raise HTTPException(status.HTTP_409_CONFLICT)
+    _exceptions_map: dict[type[Exception], int] = {
+        AuditNotFoundError: status.HTTP_404_NOT_FOUND,
+        AuditAlreadyExistsError: status.HTTP_409_CONFLICT,
+    }
 
     async def get_policies(self) -> list[AuditPolicyResponse]:
         """Get all audit policies."""
@@ -62,7 +46,7 @@ class AuditPoliciesAdapter:
                 is_enabled=policy.is_enabled,
                 severity=policy.severity.name.lower(),
             )
-            for policy in await self.audit_service.get_policies()
+            for policy in await self._service.get_policies()
         ]
 
     async def update_policy(
@@ -72,8 +56,7 @@ class AuditPoliciesAdapter:
     ) -> None:
         """Update an existing audit policy."""
         policy_dto = AuditPolicyDTO(**policy_data.model_dump())
-        return await self._sc(
-            self.audit_service.update_policy,
+        return await self._service.update_policy(
             policy_id,
             policy_dto,
         )
@@ -90,7 +73,7 @@ class AuditPoliciesAdapter:
                 protocol=destination.protocol.name.lower(),
                 is_enabled=destination.is_enabled,
             )
-            for destination in await self.audit_service.get_destinations()
+            for destination in await self._service.get_destinations()
         ]
 
     async def create_destination(
@@ -99,10 +82,7 @@ class AuditPoliciesAdapter:
     ) -> None:
         """Create a new audit destination."""
         destination_dto = AuditDestinationDTO(**destination_data.model_dump())
-        return await self._sc(
-            self.audit_service.create_destination,
-            destination_dto,
-        )
+        return await self._service.create_destination(destination_dto)
 
     async def update_destination(
         self,
@@ -111,15 +91,11 @@ class AuditPoliciesAdapter:
     ) -> None:
         """Update an existing audit destination."""
         destination_dto = AuditDestinationDTO(**destination_data.model_dump())
-        return await self._sc(
-            self.audit_service.update_destination,
+        return await self._service.update_destination(
             destination_id,
             destination_dto,
         )
 
     async def delete_destination(self, destination_id: int) -> None:
         """Delete an audit destination."""
-        await self._sc(
-            self.audit_service.delete_destination,
-            destination_id,
-        )
+        await self._service.delete_destination(destination_id)

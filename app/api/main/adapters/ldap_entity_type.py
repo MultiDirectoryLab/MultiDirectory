@@ -4,11 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Awaitable, Callable, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
-from fastapi import HTTPException, status
+from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
 from ldap_protocol.ldap_schema.entity_type_dao import (
     EntityTypeDAO,
@@ -23,42 +24,13 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class LDAPEntityTypeAdapter:
+class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):
     """Adapter for LDAProuter."""
 
-    def __init__(
-        self,
-        entity_type_dao: EntityTypeDAO,
-    ) -> None:
-        """Initialize the adapter with a EntityTypeDAO instance.
-
-        :param EntityTypeDAO entity_type_dao: EntityTypeDAO instance
-        """
-        self.entity_type_dao = entity_type_dao
-
-    async def _sc(
-        self,
-        func: Callable[P, Awaitable[R]],
-        *args: P.args,
-        **kwargs: P.kwargs,
-    ) -> R:
-        """Convert custom ldap protocol exceptions to HTTPException.
-
-        :raises HTTPException: on ldap protocol errors
-        :return: Result of the function call.
-        """
-        try:
-            return await func(*args, **kwargs)
-        except self.entity_type_dao.EntityTypeCantModifyError as error:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=str(error),
-            )
-        except self.entity_type_dao.EntityTypeNotFoundError as error:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(error),
-            )
+    _exceptions_map: dict[type[Exception], int] = {
+        EntityTypeDAO.EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
+        EntityTypeDAO.EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
+    }
 
     async def modify_one_entity_type(
         self,
@@ -76,8 +48,7 @@ class LDAPEntityTypeAdapter:
         :param AsyncSession session: Database session.
         :return None.
         """
-        await self._sc(
-            self.entity_type_dao.modify_one,
+        await self._service.modify_one(
             entity_type_name=entity_type_name,
             new_statement=request_data,
             object_class_dao=object_class_dao,
@@ -94,7 +65,7 @@ class LDAPEntityTypeAdapter:
         :param PaginationParams params: Pagination parameters.
         :return EntityTypePaginationSchema: Paginator Schema.
         """
-        pagination_result = await self.entity_type_dao.get_paginator(
+        pagination_result = await self._service.get_paginator(
             params=params,
         )
 
@@ -117,7 +88,7 @@ class LDAPEntityTypeAdapter:
         :param str entity_type_name: name of the Entity Type.
         :return EntityTypeSchema: Entity Type Schema.
         """
-        entity_type = await self.entity_type_dao.get_one_by_name(
+        entity_type = await self._service.get_one_by_name(
             entity_type_name=entity_type_name,
         )
         return EntityTypeSchema.model_validate(
@@ -144,9 +115,7 @@ class LDAPEntityTypeAdapter:
         await object_class_dao.is_all_object_classes_exists(
             request_data.object_class_names,
         )
-
-        await self._sc(
-            self.entity_type_dao.create_one,
+        await self._service.create_one(
             name=request_data.name,
             is_system=is_system,
             object_class_names=request_data.object_class_names,
@@ -166,8 +135,7 @@ class LDAPEntityTypeAdapter:
         :param AsyncSession session: Database session.
         :return None.
         """
-        await self._sc(
-            self.entity_type_dao.delete_all_by_names,
+        await self._service.delete_all_by_names(
             entity_type_names=entity_type_names,
         )
         await session.commit()
