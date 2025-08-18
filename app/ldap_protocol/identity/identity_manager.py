@@ -60,6 +60,7 @@ class IdentityManager(AbstractService):
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
         password_use_cases: PasswordPolicyUseCases,
+        password_validator: PasswordValidator,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
         audit_use_case: AuditUseCase,
@@ -86,6 +87,7 @@ class IdentityManager(AbstractService):
         self._audit_use_case = audit_use_case
         self._monitor = monitor
         self._password_use_cases = password_use_cases
+        self._password_validator = password_validator
         self._kadmin = kadmin
 
     def __getattribute__(self, name: str) -> object:
@@ -218,7 +220,9 @@ class IdentityManager(AbstractService):
                 "Failed kerberos password update",
             )
 
-        user.password = PasswordValidator.get_password_hash(new_password)
+        user.password = self._password_validator.get_password_hash(
+            new_password,
+        )
         await self._password_use_cases.post_save_password_actions(
             user,
             self._session,

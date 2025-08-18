@@ -205,6 +205,7 @@ async def test_bind_invalid_password_or_user(
     session: AsyncSession,
     ldap_session: LDAPSession,
     container: AsyncContainer,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test invalid password bind."""
     directory = Directory(
@@ -218,7 +219,7 @@ async def test_bind_invalid_password_or_user(
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
-        password=PasswordValidator.get_password_hash("password"),
+        password=password_validator.get_password_hash("password"),
         directory=directory,
     )
     user_account_control_attribute = Attribute(
@@ -328,6 +329,7 @@ async def test_bind_disabled_user(
     session: AsyncSession,
     ldap_session: LDAPSession,
     container: AsyncContainer,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test disabled user bind."""
     directory = Directory(
@@ -341,7 +343,7 @@ async def test_bind_disabled_user(
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
-        password=PasswordValidator.get_password_hash("password"),
+        password=password_validator.get_password_hash("password"),
         directory=directory,
     )
     user_account_control_attribute = Attribute(

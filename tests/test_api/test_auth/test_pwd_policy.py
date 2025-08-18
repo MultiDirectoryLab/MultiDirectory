@@ -17,10 +17,10 @@ async def test_password_policy(http_client: AsyncClient) -> None:
     """Test password policy endpoints."""
     policy_data = {
         "name": "Default domain password policy",
-        "history_length": 4,
-        "max_age_days": 0,
-        "min_age_days": 0,
-        "min_length": 7,
+        "password_history_length": 4,
+        "maximum_password_age_days": 0,
+        "minimum_password_age_days": 0,
+        "minimum_password_length": 7,
         "password_must_meet_complexity_requirements": True,
     }
 
@@ -29,8 +29,8 @@ async def test_password_policy(http_client: AsyncClient) -> None:
     assert response.json() == policy_data
 
     changed_data = copy(policy_data)
-    changed_data["max_age_days"] = 80
-    changed_data["min_age_days"] = 30
+    changed_data["maximum_password_age_days"] = 80
+    changed_data["minimum_password_age_days"] = 30
 
     response = await http_client.put(
         "/password-policy",

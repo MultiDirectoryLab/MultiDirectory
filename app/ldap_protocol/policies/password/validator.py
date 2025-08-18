@@ -36,12 +36,13 @@ class PasswordPolicyValidator:
     This class accumulates checks and validates a password against them.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, password_validator: PasswordValidator) -> None:
         """Initialize a new validator instance.
 
         Sets up internal storage for checkers and default settings.
         """
         self.__checkers: list[_Checker] = []
+        self.password_validator = password_validator
         self.__settings: _PasswordPolicyValidatorSettings = (
             _PasswordPolicyValidatorSettings()
         )
@@ -165,24 +166,25 @@ class PasswordPolicyValidator:
 
     def min_age(
         self,
-        min_age_days: int,
+        minimum_password_age_days: int,
         value: str | None,
     ) -> Self:
         """Require minimal age for the password.
 
-        :param int min_age_days: Minimal age in days to allow update.
+        :param int minimum_password_age_days: Minimal age in days
+        to allow update.
         :param str | None value: Windows filetime string representing last
         change, or ``None``.
         :return: PasswordPolicyValidator.
 
         :Note:
-            If ``min_age_days`` is ``0`` or ``value`` is ``None``,
+            If ``minimum_password_age_days`` is ``0`` or ``value`` is ``None``,
             the check passes.
         """
         self.__add_checker(
             check=self.validate_min_age,
             error_message=ErrorMessages.NOT_OLD_ENOUGH,
-            args=[min_age_days, value],
+            args=[minimum_password_age_days, value],
         )
         return self
 
@@ -218,8 +220,8 @@ class PasswordPolicyValidator:
         """Validate minimum password length."""
         return len(password) >= length
 
-    @staticmethod
     async def validate_reuse_prevention(
+        self,
         password: str,
         _: _PasswordPolicyValidatorSettings,
         password_history: Iterable[str],
@@ -227,7 +229,10 @@ class PasswordPolicyValidator:
         """Check if password is not in the password history."""
         for password_hash in password_history:
             try:
-                if PasswordValidator.verify_password(password, password_hash):
+                if self.password_validator.verify_password(
+                    password,
+                    password_hash,
+                ):
                     return False
             except UnknownHashError:
                 pass
@@ -244,18 +249,21 @@ class PasswordPolicyValidator:
         res = tail.isdecimal()
         return not res
 
-    @staticmethod
     async def validate_min_age(
+        self,
         _: str,
         __: _PasswordPolicyValidatorSettings,
-        min_age_days: int,
+        minimum_password_age_days: int,
         value: str | None,
     ) -> bool:
         """Check if password is older than a specified number of days."""
-        if min_age_days == 0:
+        if minimum_password_age_days == 0:
             return True
 
         if not value:
             return True
 
-        return PasswordValidator.count_password_age_days(value) >= min_age_days
+        return (
+            self.password_validator.count_password_age_days(value)
+            >= minimum_password_age_days
+        )

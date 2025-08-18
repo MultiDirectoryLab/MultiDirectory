@@ -12,10 +12,10 @@ class PasswordPolicyDTO:
     """Password policy data transfer object."""
 
     name: str
-    history_length: int
-    max_age_days: int
-    min_age_days: int
-    min_length: int
+    password_history_length: int
+    maximum_password_age_days: int
+    minimum_password_age_days: int
+    minimum_password_length: int
     password_must_meet_complexity_requirements: bool
 
 
@@ -24,8 +24,8 @@ class PasswordPolicyResponse:
     """Password policy response object."""
 
     name: str
-    history_length: int
-    max_age_days: int
-    min_age_days: int
-    min_length: int
+    password_history_length: int
+    maximum_password_age_days: int
+    minimum_password_age_days: int
+    minimum_password_length: int
     password_must_meet_complexity_requirements: bool

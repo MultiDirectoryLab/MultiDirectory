@@ -39,7 +39,6 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
-from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPAddRequestContext
@@ -292,7 +291,7 @@ class AddRequest(BaseRequest):
             )
 
             if self.password is not None:
-                user.password = PasswordValidator.get_password_hash(
+                user.password = ctx.password_validator.get_password_hash(
                     raw_password,
                 )
 

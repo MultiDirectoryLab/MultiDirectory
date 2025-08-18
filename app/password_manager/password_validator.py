@@ -14,11 +14,17 @@ from ldap_protocol.utils.helpers import ft_to_dt
 class PasswordValidator:
     """Password Validator class."""
 
-    __crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    def __init__(self) -> None:
+        """Initialize PasswordValidator."""
+        self.__crypt_context = CryptContext(
+            schemes=["bcrypt"],
+            deprecated="auto",
+        )
 
-    @classmethod
     def verify_password(
-        cls, plain_password: str, hashed_password: str,
+        self,
+        plain_password: str,
+        hashed_password: str,
     ) -> bool:
         """Validate password.
 
@@ -26,16 +32,15 @@ class PasswordValidator:
         :param str hashed_password: pwd hash from db
         :return bool: is password verified
         """
-        return cls.__crypt_context.verify(plain_password, hashed_password)
+        return self.__crypt_context.verify(plain_password, hashed_password)
 
-    @classmethod
-    def get_password_hash(cls, password: str) -> str:
+    def get_password_hash(self, password: str) -> str:
         """Hash password.
 
         :param str password: raw pwd
         :return str: hash
         """
-        return cls.__crypt_context.hash(password, max_rounds=9)
+        return self.__crypt_context.hash(password, max_rounds=9)
 
     @staticmethod
     def count_password_age_days(win_filetime: str | None) -> int:

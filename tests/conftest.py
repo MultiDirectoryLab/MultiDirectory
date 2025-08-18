@@ -104,6 +104,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from models import AttributeType
+from password_manager.password_validator import PasswordValidator
 
 
 class TestProvider(Provider):
@@ -257,6 +258,7 @@ class TestProvider(Provider):
         PasswordPoliciesAdapter,
         scope=Scope.REQUEST,
     )
+    password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
     password_policy_service = provide(
         PasswordPolicyService,
         scope=Scope.REQUEST,
@@ -751,15 +753,6 @@ async def entity_type_dao(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_policy_validator(
-    container: AsyncContainer,
-) -> AsyncIterator[PasswordPolicyValidator]:
-    """Get session and acquire after completion."""
-    async with container(scope=Scope.APP) as container:
-        yield PasswordPolicyValidator()
-
-
-@pytest_asyncio.fixture(scope="function")
 async def password_policy_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[PasswordPolicyDAO]:
@@ -767,6 +760,25 @@ async def password_policy_dao(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield PasswordPolicyDAO(session)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def password_validator(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordValidator]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordValidator()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def password_policy_validator(
+    container: AsyncContainer,
+    password_validator: PasswordValidator,
+) -> AsyncIterator[PasswordPolicyValidator]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordPolicyValidator(password_validator)
 
 
 @pytest_asyncio.fixture(scope="function")

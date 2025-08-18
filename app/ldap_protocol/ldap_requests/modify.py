@@ -121,11 +121,11 @@ class ModifyRequest(BaseRequest):
         ):
             return
 
-        if policy.max_age_days == 0:
+        if policy.maximum_password_age_days == 0:
             return
 
         now = datetime.now(timezone.utc)
-        now += timedelta(days=policy.max_age_days)
+        now += timedelta(days=policy.maximum_password_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(
@@ -202,6 +202,7 @@ class ModifyRequest(BaseRequest):
                     ctx.settings,
                     ctx.ldap_session.user,
                     ctx.password_use_cases,
+                    ctx.password_validator,
                 )
 
                 try:
@@ -528,6 +529,7 @@ class ModifyRequest(BaseRequest):
         settings: Settings,
         current_user: UserSchema,
         password_use_cases: PasswordPolicyUseCases,
+        password_validator: PasswordValidator,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -680,7 +682,7 @@ class ModifyRequest(BaseRequest):
                         f"Password policy violation: {errors}",
                     )
 
-                directory.user.password = PasswordValidator.get_password_hash(
+                directory.user.password = password_validator.get_password_hash(
                     value,
                 )
                 await password_use_cases.post_save_password_actions(

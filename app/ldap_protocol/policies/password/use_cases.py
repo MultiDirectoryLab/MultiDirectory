@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import ft_now
 from models import Attribute, User
-from password_manager import PasswordValidator
 
 from .dataclasses import PasswordPolicyDTO
 from .policies_dao import PasswordPolicyDAO
@@ -26,11 +25,11 @@ class PasswordPolicyUseCases:
     def __init__(
         self,
         password_policy_dao: PasswordPolicyDAO,
-        validator: PasswordPolicyValidator,
+        policy_validator: PasswordPolicyValidator,
     ) -> None:
         """Initialize Password Policy Use Cases."""
         self.password_policy_dao = password_policy_dao
-        self.validator = validator
+        self.policy_validator = policy_validator
 
     async def get_or_create_pwd_last_set(
         self,
@@ -104,7 +103,7 @@ class PasswordPolicyUseCases:
         user: User | None = None,
     ) -> bool:
         """Validate max password change age."""
-        if password_policy.max_age_days == 0:
+        if password_policy.maximum_password_age_days == 0:
             return False
 
         if not user:
@@ -115,11 +114,13 @@ class PasswordPolicyUseCases:
                 user.directory_id,
             )
         )
-        password_age_days = PasswordValidator.count_password_age_days(
-            pwd_last_set,
+        password_age_days = (
+            self.policy_validator.password_validator.count_password_age_days(
+                pwd_last_set,
+            )
         )
 
-        return password_age_days > password_policy.max_age_days
+        return password_age_days > password_policy.maximum_password_age_days
 
     @staticmethod
     def get_default_settings() -> PasswordPolicyDTO:
@@ -165,34 +166,34 @@ class PasswordPolicyUseCases:
         password_policy: PasswordPolicyDTO,
         user: User | None = None,
     ) -> list[str]:
-        self.validator.not_otp_like_suffix()
+        self.policy_validator.not_otp_like_suffix()
 
-        if user and password_policy.history_length:
+        if user and password_policy.password_history_length:
             history = islice(
                 reversed(user.password_history),
-                password_policy.history_length,
+                password_policy.password_history_length,
             )
 
-            self.validator.reuse_prevention(
+            self.policy_validator.reuse_prevention(
                 password_history=history,
             )
 
-        if user and password_policy.min_age_days:
+        if user and password_policy.minimum_password_age_days:
             pwd_last_set = (
                 await self.password_policy_dao.get_or_create_pwd_last_set(
                     user.directory_id,
                 )
             )
-            self.validator.min_age(
-                password_policy.min_age_days,
+            self.policy_validator.min_age(
+                password_policy.minimum_password_age_days,
                 pwd_last_set,
             )
 
-        if password_policy.min_length:
-            self.validator.min_length(password_policy.min_length)
+        if password_policy.minimum_password_length:
+            self.policy_validator.min_length(password_policy.minimum_password_length)
 
         if password_policy.password_must_meet_complexity_requirements:
-            self.validator.min_complexity()
+            self.policy_validator.min_complexity()
 
-        await self.validator.validate(password)
-        return self.validator.error_messages
+        await self.policy_validator.validate(password)
+        return self.policy_validator.error_messages

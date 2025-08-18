@@ -14,9 +14,11 @@ from ldap_protocol.utils.helpers import dt_to_ft
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_max_length() -> None:
+async def test_password_validator_min_max_length(
+    password_policy_validator: PasswordPolicyValidator,
+) -> None:
     """Test password validator for min and max length."""
-    validator = PasswordPolicyValidator().min_length(3)
+    validator = password_policy_validator.min_length(3)
     assert not await validator.validate("ab")
     assert await validator.validate("abc")
     assert await validator.validate("abcd")
@@ -24,9 +26,11 @@ async def test_password_validator_min_max_length() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_no_otp_like_suffix() -> None:
+async def test_password_validator_no_otp_like_suffix(
+    password_policy_validator: PasswordPolicyValidator,
+) -> None:
     """Test password validator for no OTP-like suffix."""
-    validator = PasswordPolicyValidator().not_otp_like_suffix()
+    validator = password_policy_validator.not_otp_like_suffix()
     assert not await validator.validate("abc123456")
     assert await validator.validate("abc12345")
     assert await validator.validate("abc1a23456")
@@ -34,15 +38,17 @@ async def test_password_validator_no_otp_like_suffix() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_age() -> None:
+async def test_password_validator_min_age(
+    password_policy_validator: PasswordPolicyValidator,
+) -> None:
     """Test password validator with chained rules."""
     required_date = str(dt_to_ft(datetime.now() - timedelta(days=5)))
 
-    validator = PasswordPolicyValidator().min_age(0, required_date)
+    validator = password_policy_validator.min_age(0, required_date)
     assert await validator.validate("abc123")
 
-    validator = PasswordPolicyValidator().min_age(5, required_date)
+    validator = password_policy_validator.min_age(5, required_date)
     assert await validator.validate("abc123456789")
 
-    validator = PasswordPolicyValidator().min_age(10, required_date)
+    validator = password_policy_validator.min_age(10, required_date)
     assert not await validator.validate("abc123456789")

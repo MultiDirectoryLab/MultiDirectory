@@ -20,6 +20,7 @@ async def test_anonymous_pwd_change(
     session: AsyncSession,
     anonymous_ldap_client: LDAPConnection,
     creds: TestCreds,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -35,7 +36,7 @@ async def test_anonymous_pwd_change(
     assert user
     assert user.password
 
-    assert PasswordValidator.verify_password(new_test_password, user.password)
+    assert password_validator.verify_password(new_test_password, user.password)
 
 
 @pytest.mark.asyncio
@@ -45,6 +46,7 @@ async def test_bind_pwd_change(
     session: AsyncSession,
     ldap_client: LDAPConnection,
     creds: TestCreds,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,ou=users,dc=md,dc=test"
@@ -58,4 +60,4 @@ async def test_bind_pwd_change(
     assert user
     assert user.password
 
-    assert PasswordValidator.verify_password(new_test_password, user.password)
+    assert password_validator.verify_password(new_test_password, user.password)

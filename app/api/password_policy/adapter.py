@@ -91,9 +91,9 @@ class PasswordPoliciesAdapter:
     ) -> PasswordPolicyResponse:
         return PasswordPolicyResponse(
             name=policy.name,
-            min_length=policy.min_length,
-            min_age_days=policy.min_age_days,
-            max_age_days=policy.max_age_days,
-            history_length=policy.history_length,
+            minimum_password_length=policy.minimum_password_length,
+            minimum_password_age_days=policy.minimum_password_age_days,
+            maximum_password_age_days=policy.maximum_password_age_days,
+            password_history_length=policy.password_history_length,
             password_must_meet_complexity_requirements=policy.password_must_meet_complexity_requirements,
         )

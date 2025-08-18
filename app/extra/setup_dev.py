@@ -117,7 +117,7 @@ async def _create_dir(
             user_principal_name=user_data["user_principal_name"],
             display_name=user_data["display_name"],
             mail=user_data["mail"],
-            password=PasswordValidator.get_password_hash(
+            password=PasswordValidator().get_password_hash(
                 user_data["password"],
             ),
         )
