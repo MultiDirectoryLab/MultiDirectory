@@ -24,7 +24,8 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):
+# NOTE: This is a workaround for non refactored DAOs
+class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
     """Adapter for LDAProuter."""
 
     _exceptions_map: dict[type[Exception], int] = {

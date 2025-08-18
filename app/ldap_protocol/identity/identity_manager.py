@@ -10,6 +10,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from abstract_dao import AbstractService
 from api.auth.schema import OAuth2Form, SetupRequest
 from api.exceptions.auth import (
     AlreadyConfiguredError,
@@ -51,7 +52,7 @@ from models import Directory, Group, User
 from security import get_password_hash
 
 
-class IdentityManager:
+class IdentityManager(AbstractService):
     """Authentication manager."""
 
     def __init__(

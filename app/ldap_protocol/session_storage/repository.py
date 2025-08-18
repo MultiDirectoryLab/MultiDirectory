@@ -6,6 +6,7 @@ from typing import Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from abstract_dao import AbstractService
 from config import Settings
 from ldap_protocol.utils.queries import get_user, set_user_logon_attrs
 from models import User
@@ -42,7 +43,7 @@ class AllUserSessionsDTO:
     total_count: int
 
 
-class SessionRepository:
+class SessionRepository(AbstractService):
     """Repository for managing user sessions."""
 
     def __init__(

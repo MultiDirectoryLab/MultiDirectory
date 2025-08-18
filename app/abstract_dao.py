@@ -27,3 +27,7 @@ class AbstractDAO(Protocol[T]):
 
     @abstractmethod
     async def delete(self, _id: int) -> None: ...
+
+
+class AbstractService(Protocol):
+    """Abstract Service/Manager."""

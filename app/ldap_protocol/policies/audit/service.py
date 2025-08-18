@@ -6,13 +6,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy.exc import IntegrityError
 
+from abstract_dao import AbstractService
+
 from .dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from .destination_dao import AuditDestinationDAO
 from .exception import AuditAlreadyExistsError
 from .policies_dao import AuditPoliciesDAO
 
 
-class AuditService:
+class AuditService(AbstractService):
     """Audit service class for managing audit policies."""
 
     def __init__(

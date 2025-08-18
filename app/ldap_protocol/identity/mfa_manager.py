@@ -16,6 +16,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
+from abstract_dao import AbstractService
 from api.auth.oauth2 import ALGORITHM
 from api.auth.schema import (
     MFAChallengeResponse,
@@ -52,7 +53,7 @@ from ldap_protocol.session_storage.repository import SessionRepository
 from models import CatalogueSetting, User
 
 
-class MFAManager:
+class MFAManager(AbstractService):
     """MFA manager."""
 
     def __init__(

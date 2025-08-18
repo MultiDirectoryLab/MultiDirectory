@@ -10,9 +10,11 @@ from typing import Callable, ParamSpec, Protocol, TypeVar
 
 from fastapi import HTTPException
 
+from abstract_dao import AbstractDAO, AbstractService
+
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
-_T = TypeVar("_T")
+_T = TypeVar("_T", bound=AbstractDAO | AbstractService)
 
 
 class BaseAdapter(Protocol[_T]):
