@@ -190,7 +190,9 @@ class PasswordPolicyUseCases:
             )
 
         if password_policy.minimum_password_length:
-            self.policy_validator.min_length(password_policy.minimum_password_length)
+            self.policy_validator.min_length(
+                password_policy.minimum_password_length,
+            )
 
         if password_policy.password_must_meet_complexity_requirements:
             self.policy_validator.min_complexity()
