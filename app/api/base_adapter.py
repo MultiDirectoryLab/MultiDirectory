@@ -21,6 +21,10 @@ class BaseAdapter(Protocol[_T]):
     _exceptions_map: dict[type[Exception], int]
     _service: _T
 
+    def __init__(self, service: _T) -> None:
+        """Set service."""
+        self._service = service
+
     def __getattribute__(self, name: str) -> object:
         """Override attribute access to wrap DAO in an async wrapper."""
         attr = super().__getattribute__(name)
