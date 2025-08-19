@@ -13,11 +13,13 @@ from .base import (
 )
 from .sasl_gssapi import GSSAPISL, GSSAPIAuthStatus, SaslGSSAPIAuthentication
 from .sasl_plain import SaslPLAINAuthentication
+from .sasl_spnego import SaslSPNEGOAuthentication
 from .simple import SimpleAuthentication
 
 sasl_mechanism: list[type[SaslAuthentication]] = [
     SaslPLAINAuthentication,
     SaslGSSAPIAuthentication,
+    SaslSPNEGOAuthentication,
 ]
 
 sasl_mechanism_map: dict[SASLMethod, type[SaslAuthentication]] = {
@@ -31,6 +33,7 @@ __all__ = [
     "SASLMethod",
     "SaslAuthentication",
     "SaslGSSAPIAuthentication",
+    "SaslSPNEGOAuthentication",
     "SaslPLAINAuthentication",
     "SimpleAuthentication",
     "GSSAPIAuthStatus",

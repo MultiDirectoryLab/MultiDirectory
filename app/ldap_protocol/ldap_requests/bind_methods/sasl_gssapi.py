@@ -127,7 +127,6 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             name=server_name,
             usage="accept",
             store={"keytab": settings.KRB5_LDAP_KEYTAB},
-            mechs=[gssapi.MechType.kerberos],
         )
 
         self._ldap_session.gssapi_security_context = gssapi.SecurityContext(
