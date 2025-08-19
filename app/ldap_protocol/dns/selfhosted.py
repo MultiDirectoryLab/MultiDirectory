@@ -11,8 +11,8 @@ from ipaddress import IPv4Address, IPv6Address
 import dns.resolver
 
 from .base import (
-    DNSError,
     AbstractDNSManager,
+    DNSError,
     DNSForwarderServerStatus,
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -198,13 +198,16 @@ class SelfHostedDNSManager(AbstractDNSManager):
         self,
         dns_servers: list[str],
         dns_server_ip: IPv4Address | IPv6Address,
-    ) -> list[str]:
+    ) -> str | None:
         """Find forward DNS FQDN."""
         reversed_ip = (
-            ".".join(reversed(dns_server_ip.split("."))) + ".in-addr.arpa"
+            ".".join(reversed((str(dns_server_ip)).split(".")))
+            + ".in-addr.arpa"
         )
 
-        async def get_fqdn_and_latency(server: str) -> list[str]:
+        async def get_fqdn_and_latency(
+            server: str,
+        ) -> tuple[float, str | None]:
             resolver = dns.resolver.Resolver()
             resolver.nameservers = [server]
 
@@ -218,7 +221,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 latency = event_loop.time() - start_time
 
                 return (latency, fqdn[0].to_text())
-            except Exception as e:
+            except Exception:
                 return (float("inf"), None)
 
         fqdn_list = await asyncio.gather(
