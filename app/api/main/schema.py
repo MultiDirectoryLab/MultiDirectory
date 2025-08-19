@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import uuid
-from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
@@ -40,12 +39,14 @@ class SearchRequest(LDAPSearchRequest):
             Filter.parse(filter_).simplify(),
         )
 
-    def get_directory_attr_value(  # type: ignore
+    def get_directory_sid_guid_values(  # type: ignore
         self,
         directory: Directory,
-        attr: str,
-    ) -> int | str | bytes | uuid.UUID | datetime:
-        return getattr(directory, attr)
+    ) -> dict[str, str | uuid.UUID]:
+        return {
+            "objectsid": directory.object_sid,
+            "objectguid": directory.object_guid,
+        }
 
     @final
     async def handle_api(  # type: ignore

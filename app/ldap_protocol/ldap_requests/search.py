@@ -552,14 +552,22 @@ class SearchRequest(BaseRequest):
         self,
         directory: Directory,
         attr: str,
+        sid_guid_values_map: dict[str, bytes],
     ) -> int | str | bytes | datetime:
         attribute = getattr(directory, attr)
-        if attr == "objectsid":
-            attribute = string_to_sid(attribute)
-        elif attr == "objectguid":
-            attribute = attribute.bytes_le
+        if attr in ("objectsid", "objectguid"):
+            attribute = sid_guid_values_map[attr]
 
         return attribute
+
+    def get_directory_sid_guid_values(
+        self,
+        directory: Directory,
+    ) -> dict[str, bytes]:
+        return {
+            "objectsid": string_to_sid(directory.object_sid),
+            "objectguid": directory.object_guid.bytes_le,
+        }
 
     async def tree_view(  # noqa: C901
         self,
@@ -662,8 +670,13 @@ class SearchRequest(BaseRequest):
                     if attr in directory.search_fields
                 )
 
+            sid_guid_values_map = self.get_directory_sid_guid_values(directory)
             for attr in directory_fields:
-                attribute = self.get_directory_attr_value(directory, attr)
+                attribute = self.get_directory_attr_value(
+                    directory,
+                    attr,
+                    sid_guid_values_map,
+                )
                 attrs[directory.search_fields[attr]].append(attribute)
 
             if self.entity_type_name:
