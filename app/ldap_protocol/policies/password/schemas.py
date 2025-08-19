@@ -12,7 +12,7 @@ class PasswordPolicySchema(BaseModel):
 
     name: str = Field(
         "Default domain password policy",
-        minimum_password_length=3,
+        min_length=3,
         max_length=255,
     )
     password_history_length: int = Field(4, ge=0, le=24)
