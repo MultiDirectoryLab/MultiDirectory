@@ -558,7 +558,7 @@ class SearchRequest(BaseRequest):
         if attr == "objectsid":
             attribute = string_to_sid(attribute)
         elif attr == "objectguid":
-            attribute = cast("uuid.UUID", attribute).bytes_le
+            attribute = attribute.bytes_le
 
         return attribute
 
