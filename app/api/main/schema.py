@@ -4,8 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from datetime import datetime
+import uuid
 from ipaddress import IPv4Address, IPv6Address
 from typing import final
+from uuid import UUID
 
 from dishka import AsyncContainer
 from pydantic import BaseModel, Field, PrivateAttr, SecretStr
@@ -19,6 +22,7 @@ from ldap_protocol.filter_interpreter import (
 )
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
+from models import Directory
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -36,6 +40,13 @@ class SearchRequest(LDAPSearchRequest):
         return self._filter_interpreter.cast_to_sql(
             Filter.parse(filter_).simplify(),
         )
+
+    def get_directory_attr_value(  # type: ignore
+        self,
+        directory: Directory,
+        attr: str,
+    ) -> int | str | bytes | uuid.UUID | datetime:
+        return getattr(directory, attr)
 
     @final
     async def handle_api(  # type: ignore

@@ -4,11 +4,13 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from datetime import datetime
 import sys
 from collections import defaultdict
 from functools import cached_property
 from math import ceil
-from typing import Any, AsyncGenerator, ClassVar
+from typing import Any, AsyncGenerator, ClassVar, cast
+import uuid
 
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
@@ -547,6 +549,19 @@ class SearchRequest(BaseRequest):
             for member in directory.group.members:
                 attrs["member"].append(member.path_dn)
 
+    def get_directory_attr_value(
+        self,
+        directory: Directory,
+        attr: str,
+    ) -> int | str | bytes | datetime:
+        attribute = getattr(directory, attr)
+        if attr == "objectsid":
+            attribute = string_to_sid(attribute)
+        elif attr == "objectguid":
+            attribute = cast("uuid.UUID", attribute).bytes_le
+
+        return attribute
+
     async def tree_view(  # noqa: C901
         self,
         query: Select,
@@ -649,11 +664,7 @@ class SearchRequest(BaseRequest):
                 )
 
             for attr in directory_fields:
-                attribute = getattr(directory, attr)
-                if attr == "objectsid":
-                    attribute = string_to_sid(attribute)
-                elif attr == "objectguid":
-                    attribute = attribute.bytes_le
+                attribute = self.get_directory_attr_value(directory, attr)
                 attrs[directory.search_fields[attr]].append(attribute)
 
             if self.entity_type_name:
