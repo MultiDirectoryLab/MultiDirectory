@@ -30,8 +30,6 @@ TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
 )
 
 ZONE_FILES_DIR = "/opt"
-TEMP_CONFIG_PATH = "/tmp/conf.tmp"
-TEMP_ZONEFILE_PATH = "/tmp/zonefile.tmp"
 NAMED_CONF = "/etc/bind/named.conf"
 NAMED_LOCAL = "/etc/bind/named.conf.local"
 NAMED_OPTIONS = "/etc/bind/named.conf.options"
@@ -297,6 +295,9 @@ class BindDNSServerManager:
         """
 
         matches = re.search(pattern, named_local, re.DOTALL | re.VERBOSE)
+
+        if not matches:
+            raise DNSError("Base domain not found")
 
         return matches.group(1)
 
@@ -687,7 +688,8 @@ class BindDNSServerManager:
             file.write(named_local)
 
         if zone_type != DNSZoneType.FORWARD:
-            os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
 
         self.restart()
 
@@ -777,8 +779,10 @@ class BindDNSServerManager:
             named_local_settings = file.read()
 
         pattern = rf'zone\s*"{re.escape(zone_name)}"\s*{{\s*type\s*([^;]+);'
-        zone_type_match = re.search(pattern, named_local_settings)
-        return zone_type_match.group(1).strip()
+        match = re.search(pattern, named_local_settings)
+        if not match:
+            raise DNSError(f"Zone not found: {zone_name}")
+        return DNSZoneType(match.group(1).strip())
 
     def get_all_records_from_zone(
         self,
@@ -1130,6 +1134,8 @@ class BindDNSServerManager:
         for param_name in DNSServerParamName:
             pattern = rf"\b{re.escape(param_name)}\s+([^;\n{{]+|{{[^}}]+}})"
             matched_param_value = re.search(pattern, named_options)
+            if not matched_param_value:
+                continue
             result.append(
                 DNSServerParam(
                     name=param_name,
@@ -1221,7 +1227,7 @@ async def update_record(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update existing DNS record."""
-    await dns_manager.update_record(
+    dns_manager.update_record(
         old_record=DNSRecord(
             data.record_name,
             data.record_value,
