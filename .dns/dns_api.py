@@ -730,8 +730,8 @@ class BindDNSServerManager:
         for record in FIRST_SETUP_RECORDS:
             self.add_record(
                 DNSRecord(
-                    name=record.get("name") + zone_name,
-                    value=record.get("value") + zone_name + ".",
+                    name=f"{record.get("name")}{zone_name}",
+                    value=f"{record.get("value")}{zone_name}.",
                     ttl=604800,
                 ),
                 record.get("type"),
