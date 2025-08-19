@@ -49,6 +49,7 @@ class DNSForwarderServerStatus(StrEnum):
 class DNSConnectionError(ConnectionError):
     """API Error."""
 
+
 class DNSError(Exception):
     """DNS Error."""
 
