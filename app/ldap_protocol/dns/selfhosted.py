@@ -26,6 +26,8 @@ from .base import (
 )
 from .utils import logger_wraps
 
+RESOLV_CONF_PATH = "/etc/resolv.conf"
+
 
 class SelfHostedDNSManager(AbstractDNSManager):
     """Manager for selfhosted Bind9 DNS server."""
@@ -182,7 +184,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
     def get_dns_servers(self) -> list[str]:
         """Get list of DNS servers."""
         dns_servers = []
-        with open("/etc/resolv.conf") as resolv_file:
+        with open(RESOLV_CONF_PATH) as resolv_file:
             lines = resolv_file.readlines()
 
         for line in lines:
@@ -212,7 +214,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
             resolver.nameservers = [server]
 
             try:
-                event_loop = asyncio.get_event_loop()
+                event_loop = asyncio.get_running_loop()
                 start_time = event_loop.time()
                 fqdn = resolver.resolve(
                     reversed_ip,

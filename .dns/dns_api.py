@@ -31,6 +31,7 @@ TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
 ZONE_FILES_DIR = "/opt"
 NAMED_LOCAL = "/etc/bind/named.conf.local"
 NAMED_OPTIONS = "/etc/bind/named.conf.options"
+BIND_LOG_FILE_PATH = "/var/log/named/bind.log"
 
 FIRST_SETUP_RECORDS = [
     {"name": "_ldap._tcp.", "value": "0 0 389 ", "type": "SRV"},
@@ -251,7 +252,7 @@ class BindDNSServerManager:
             4. If found, return the error message; otherwise, return None.
 
         """
-        with open("/var/log/named/bind.log") as file:
+        with open(BIND_LOG_FILE_PATH) as file:
             log = file.readlines()
 
         recent_errors = log[-10:]
