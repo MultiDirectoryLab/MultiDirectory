@@ -4,13 +4,13 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from datetime import datetime
 import sys
+import uuid
 from collections import defaultdict
+from datetime import datetime
 from functools import cached_property
 from math import ceil
 from typing import Any, AsyncGenerator, ClassVar, cast
-import uuid
 
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
