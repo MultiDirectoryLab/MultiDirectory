@@ -5,12 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import sys
-import uuid
 from collections import defaultdict
 from datetime import datetime
 from functools import cached_property
 from math import ceil
-from typing import Any, AsyncGenerator, ClassVar, cast
+from typing import Any, AsyncGenerator, ClassVar
 
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
