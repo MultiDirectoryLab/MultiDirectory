@@ -12,7 +12,10 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import (
+    temporary_stub_entity_type_name,
+    temporary_stub_lockout_fields,
+)
 from extra.dev_data import ENTITY_TYPE_DATAS
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -27,6 +30,7 @@ branch_labels = None
 depends_on = None
 
 
+@temporary_stub_lockout_fields
 @temporary_stub_entity_type_name
 def upgrade() -> None:
     """Upgrade database schema and data, creating Entity Types."""
