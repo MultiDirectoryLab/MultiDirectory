@@ -12,12 +12,12 @@ import subprocess
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, NoReturn
 
 import dns
 import dns.zone
 import jinja2
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
@@ -1142,15 +1142,12 @@ def create_zone(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS zone."""
-    try:
-        dns_manager.add_zone(
-            data.zone_name,
-            data.zone_type,
-            data.nameserver,
-            data.params,
-        )
-    except DNSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    dns_manager.add_zone(
+        data.zone_name,
+        data.zone_type,
+        data.nameserver,
+        data.params,
+    )
 
 
 @zone_router.patch("")
@@ -1159,10 +1156,7 @@ def update_zone(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update DNS zone settings."""
-    try:
-        dns_manager.update_zone(data.zone_name, data.params)
-    except DNSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    dns_manager.update_zone(data.zone_name, data.params)
 
 
 @zone_router.delete("")
@@ -1171,10 +1165,7 @@ def delete_zone(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete DNS zone."""
-    try:
-        dns_manager.delete_zone(data.zone_name)
-    except DNSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    dns_manager.delete_zone(data.zone_name)
 
 
 @zone_router.get("")
@@ -1199,18 +1190,15 @@ def create_record(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS record in given zone."""
-    try:
-        dns_manager.add_record(
-            DNSRecord(
-                data.record_name,
-                data.record_value,
-                data.ttl,
-            ),
-            data.record_type,
-            data.zone_name,
-        )
-    except DNSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    dns_manager.add_record(
+        DNSRecord(
+            data.record_name,
+            data.record_value,
+            data.ttl,
+        ),
+        data.record_type,
+        data.zone_name,
+    )
 
 
 @record_router.patch("")
@@ -1219,23 +1207,20 @@ async def update_record(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update existing DNS record."""
-    try:
-        await dns_manager.update_record(
-            old_record=DNSRecord(
-                data.record_name,
-                data.record_value,
-                0,
-            ),
-            new_record=DNSRecord(
-                data.record_name,
-                data.record_value,
-                data.ttl,
-            ),
-            record_type=data.record_type,
-            zone_name=data.zone_name,
-        )
-    except DNSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    await dns_manager.update_record(
+        old_record=DNSRecord(
+            data.record_name,
+            data.record_value,
+            0,
+        ),
+        new_record=DNSRecord(
+            data.record_name,
+            data.record_value,
+            data.ttl,
+        ),
+        record_type=data.record_type,
+        zone_name=data.zone_name,
+    )
 
 
 @record_router.delete("")
@@ -1244,18 +1229,16 @@ def delete_record(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete existing DNS record."""
-    try:
-        dns_manager.delete_record(
-            DNSRecord(
-                data.record_name,
-                data.record_value,
-                0,
-            ),
-            data.record_type,
-            data.zone_name,
-        )
-    except DNSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    dns_manager.delete_record(
+        DNSRecord(
+            data.record_name,
+            data.record_value,
+            0,
+        ),
+        data.record_type,
+        data.zone_name,
+    )
+
 
 
 @server_router.get("/restart")
@@ -1281,10 +1264,7 @@ def update_dns_server_settings(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update settings of DNS server."""
-    try:
-        dns_manager.update_dns_settings(settings)
-    except DNSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    dns_manager.update_dns_settings(settings)
 
 
 @server_router.get("/settings")
@@ -1304,6 +1284,14 @@ def setup_server(
     dns_manager.first_setup(data.zone_name)
 
 
+async def handle_dns_error(
+    request: Request,  # noqa: ARG001
+    exc: Exception,
+) -> NoReturn:
+    """Handle DNS API error."""
+    raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
 def create_app() -> FastAPI:
     """Create FastAPI app."""
     app = FastAPI(
@@ -1314,4 +1302,7 @@ def create_app() -> FastAPI:
     app.include_router(record_router)
     app.include_router(zone_router)
     app.include_router(server_router)
+
+    app.add_exception_handler(DNSError, handler=handle_dns_error)
+
     return app
