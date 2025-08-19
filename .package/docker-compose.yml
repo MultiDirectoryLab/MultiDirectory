@@ -138,7 +138,7 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
-      - ./resolv.conf:/etc/resolv.conf
+      - ./resolv.conf:/resolv.conf
     hostname: api_server
     environment:
       USE_CORE_TLS: 1

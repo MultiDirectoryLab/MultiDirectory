@@ -26,7 +26,7 @@ from .base import (
 )
 from .utils import logger_wraps
 
-RESOLV_CONF_PATH = "/etc/resolv.conf"
+RESOLV_CONF_PATH = "/resolv.conf"
 
 
 class SelfHostedDNSManager(AbstractDNSManager):

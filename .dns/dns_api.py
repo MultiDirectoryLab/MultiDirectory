@@ -4,11 +4,12 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import datetime
+import contextlib
 import logging
 import os
 import re
 import subprocess
+import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
@@ -29,6 +30,9 @@ TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
 )
 
 ZONE_FILES_DIR = "/opt"
+TEMP_CONFIG_PATH = "/tmp/conf.tmp"
+TEMP_ZONEFILE_PATH = "/tmp/zonefile.tmp"
+NAMED_CONF = "/etc/bind/named.conf"
 NAMED_LOCAL = "/etc/bind/named.conf.local"
 NAMED_OPTIONS = "/etc/bind/named.conf.options"
 BIND_LOG_FILE_PATH = "/var/log/named/bind.log"
@@ -233,46 +237,46 @@ class BindDNSServerManager:
             zone (dns.zone.Zone): Zone object.
 
         """
-        zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
-        self.reload(zone_name)
-
-        error = self._check_logs()
+        error = self._check_zone(zone.to_text())
         if error:
             raise DNSError(
                 f"Error while writing zone data to file {zone_name}: {error}",
             )
 
-    def _check_logs(self) -> str | None:
-        """Check Bind9 logs for errors.
+        zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
+        self.reload(zone_name)
 
-        Algorithm:
-            1. Open the Bind9 log file.
-            2. Read the last 10 lines.
-            3. Check for errors or failures in the logs.
-            4. If found, return the error message; otherwise, return None.
+    def _check_config(self, config: str) -> str | None:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
+            tf.write(config)
+            tmp_path = tf.name
 
-        """
-        with open(BIND_LOG_FILE_PATH) as file:
-            log = file.readlines()
+        try:
+            result = subprocess.run(  # noqa: S603
+                ["/usr/bin/named-checkconf", tmp_path],
+                capture_output=True,
+                text=True,
+            )
+            return result.stderr
+        finally:
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(tmp_path)
 
-        recent_errors = log[-10:]
+    def _check_zone(self, zonefile: str) -> str | None:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as zf:
+            zf.write(zonefile)
+            tmp_path = zf.name
 
-        for row in recent_errors:
-            if "error" in row or "failed" in row:
-                row_datetime = " ".join(row.split(" ")[0:2])
-                row_datetime = datetime.datetime.strptime(
-                    row_datetime,
-                    "%d-%b-%Y %H:%M:%S.%f",
-                )
-
-                if datetime.datetime.now() - row_datetime > datetime.timedelta(
-                    seconds=5,
-                ):
-                    continue
-
-                return " ".join(row.split(" ")[2:])
-
-        return None
+        try:
+            result = subprocess.run(  # noqa: S603
+                ["/usr/bin/named-checkzone", tmp_path],
+                capture_output=True,
+                text=True,
+            )
+            return result.stderr
+        finally:
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(tmp_path)
 
     def _get_base_domain(self) -> str:
         """Get base domain.
@@ -340,6 +344,13 @@ class BindDNSServerManager:
                 nameserver=nameserver,
                 ttl=params_dict.get("ttl", 604800),
             )
+
+            zone_error = self._check_zone(zone_file)
+            if zone_error:
+                raise DNSError(
+                    f"Error in zonefile during adding zone: {zone_error}",
+                )
+
             with open(
                 os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"),
                 "w",
@@ -396,16 +407,16 @@ class BindDNSServerManager:
                 param_value,
             )
 
+        config_error = self._check_config(zone_options)
+        if config_error:
+            raise DNSError(
+                f"Error with config during adding zone: {config_error}",
+            )
+
         with open(NAMED_LOCAL, "a") as file:
             file.write(zone_options)
 
         self.restart()
-
-        error = self._check_logs()
-        if error:
-            raise DNSError(
-                f"Error while adding zone {zone_name}: {error}",
-            )
 
     @staticmethod
     def _add_zone_param(
@@ -608,16 +619,16 @@ class BindDNSServerManager:
                     param_value,
                 )
 
-        with open(NAMED_LOCAL, "w") as file:
-            file.write(named_local)
-
-        self.restart()
-
-        error = self._check_logs()
+        error = self._check_config(named_local)
         if error:
             raise DNSError(
                 f"Error while updating zone {zone_name}: {error}",
             )
+
+        with open(NAMED_LOCAL, "w") as file:
+            file.write(named_local)
+
+        self.restart()
 
     def delete_zone(self, zone_name: str) -> None:
         """Delete an existing zone.
@@ -665,6 +676,13 @@ class BindDNSServerManager:
             named_local,
             flags=re.MULTILINE | re.VERBOSE | re.DOTALL,
         )
+
+        error = self._check_config(named_local)
+        if error:
+            raise DNSError(
+                f"Error while deleting zone {zone_name}: {error}",
+            )
+
         with open(NAMED_LOCAL, "w") as file:
             file.write(named_local)
 
@@ -672,12 +690,6 @@ class BindDNSServerManager:
             os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
 
         self.restart()
-
-        error = self._check_logs()
-        if error:
-            raise DNSError(
-                f"Error while deleting zone {zone_name}: {error}",
-            )
 
     def reload(self, zone_name: str | None = None) -> None:
         """Reload a zone by name or all zones if no name is provided.
@@ -727,11 +739,12 @@ class BindDNSServerManager:
             None,
             params=[],
         )
+
         for record in FIRST_SETUP_RECORDS:
             self.add_record(
                 DNSRecord(
-                    name=f"{record.get("name")}{zone_name}",
-                    value=f"{record.get("value")}{zone_name}.",
+                    name=f"{record.get('name')}{zone_name}",
+                    value=f"{record.get('value')}{zone_name}.",
                     ttl=604800,
                 ),
                 record.get("type"),
@@ -1075,16 +1088,16 @@ class BindDNSServerManager:
                     named_options,
                 )
 
-        with open(NAMED_OPTIONS, "w") as file:
-            file.write(named_options)
-
-        self.restart()
-
-        error = self._check_logs()
+        error = self._check_config(named_options)
         if error:
             raise DNSError(
                 f"Error while updating DNS settings: {error}",
             )
+
+        with open(NAMED_OPTIONS, "w") as file:
+            file.write(named_options)
+
+        self.restart()
 
     @staticmethod
     def get_server_settings() -> list[DNSServerParam]:
@@ -1239,7 +1252,6 @@ def delete_record(
         data.record_type,
         data.zone_name,
     )
-
 
 
 @server_router.get("/restart")
