@@ -4,6 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import datetime
 import logging
 import os
 import re
@@ -16,7 +17,7 @@ from typing import Annotated, ClassVar
 import dns
 import dns.zone
 import jinja2
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +42,10 @@ FIRST_SETUP_RECORDS = [
     {"name": "_kpasswd._tcp.", "value": "0 0 464 ", "type": "SRV"},
     {"name": "_kpasswd._udp.", "value": "0 0 464 ", "type": "SRV"},
 ]
+
+
+class DNSError(Exception):
+    """Base class for DNS exceptions."""
 
 
 class DNSZoneType(StrEnum):
@@ -230,6 +235,44 @@ class BindDNSServerManager:
         zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
         self.reload(zone_name)
 
+        error = self._check_logs()
+        if error:
+            raise DNSError(
+                f"Error while writing zone data to file {zone_name}: {error}",
+            )
+
+    def _check_logs(self) -> str | None:
+        """Check Bind9 logs for errors.
+
+        Algorithm:
+            1. Open the Bind9 log file.
+            2. Read the last 10 lines.
+            3. Check for errors or failures in the logs.
+            4. If found, return the error message; otherwise, return None.
+
+        """
+        with open("/var/log/named/bind.log") as file:
+            log = file.readlines()
+
+        recent_errors = log[-10:]
+
+        for row in recent_errors:
+            if "error" in row or "failed" in row:
+                row_datetime = " ".join(row.split(" ")[0:2])
+                row_datetime = datetime.datetime.strptime(
+                    row_datetime,
+                    "%d-%b-%Y %H:%M:%S.%f",
+                )
+
+                if datetime.datetime.now() - row_datetime > datetime.timedelta(
+                    seconds=5,
+                ):
+                    continue
+
+                return row.split(" ")[2:]
+
+        return None
+
     def _get_base_domain(self) -> str:
         """Get base domain.
 
@@ -356,6 +399,12 @@ class BindDNSServerManager:
             file.write(zone_options)
 
         self.restart()
+
+        error = self._check_logs()
+        if error:
+            raise DNSError(
+                f"Error while adding zone {zone_name}: {error}",
+            )
 
     @staticmethod
     def _add_zone_param(
@@ -561,6 +610,14 @@ class BindDNSServerManager:
         with open(NAMED_LOCAL, "w") as file:
             file.write(named_local)
 
+        self.restart()
+
+        error = self._check_logs()
+        if error:
+            raise DNSError(
+                f"Error while updating zone {zone_name}: {error}",
+            )
+
     def delete_zone(self, zone_name: str) -> None:
         """Delete an existing zone.
 
@@ -614,6 +671,12 @@ class BindDNSServerManager:
             os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
 
         self.restart()
+
+        error = self._check_logs()
+        if error:
+            raise DNSError(
+                f"Error while deleting zone {zone_name}: {error}",
+            )
 
     def reload(self, zone_name: str | None = None) -> None:
         """Reload a zone by name or all zones if no name is provided.
@@ -1016,6 +1079,12 @@ class BindDNSServerManager:
 
         self.restart()
 
+        error = self._check_logs()
+        if error:
+            raise DNSError(
+                f"Error while updating DNS settings: {error}",
+            )
+
     @staticmethod
     def get_server_settings() -> list[DNSServerParam]:
         """Get a list of modifiable DNS server settings.
@@ -1073,12 +1142,15 @@ def create_zone(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS zone."""
-    dns_manager.add_zone(
-        data.zone_name,
-        data.zone_type,
-        data.nameserver,
-        data.params,
-    )
+    try:
+        dns_manager.add_zone(
+            data.zone_name,
+            data.zone_type,
+            data.nameserver,
+            data.params,
+        )
+    except DNSError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @zone_router.patch("")
@@ -1087,7 +1159,10 @@ def update_zone(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update DNS zone settings."""
-    dns_manager.update_zone(data.zone_name, data.params)
+    try:
+        dns_manager.update_zone(data.zone_name, data.params)
+    except DNSError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @zone_router.delete("")
@@ -1096,7 +1171,10 @@ def delete_zone(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete DNS zone."""
-    dns_manager.delete_zone(data.zone_name)
+    try:
+        dns_manager.delete_zone(data.zone_name)
+    except DNSError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @zone_router.get("")
@@ -1121,15 +1199,18 @@ def create_record(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Create DNS record in given zone."""
-    dns_manager.add_record(
-        DNSRecord(
-            data.record_name,
-            data.record_value,
-            data.ttl,
-        ),
-        data.record_type,
-        data.zone_name,
-    )
+    try:
+        dns_manager.add_record(
+            DNSRecord(
+                data.record_name,
+                data.record_value,
+                data.ttl,
+            ),
+            data.record_type,
+            data.zone_name,
+        )
+    except DNSError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @record_router.patch("")
@@ -1138,20 +1219,23 @@ async def update_record(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update existing DNS record."""
-    await dns_manager.update_record(
-        old_record=DNSRecord(
-            data.record_name,
-            data.record_value,
-            0,
-        ),
-        new_record=DNSRecord(
-            data.record_name,
-            data.record_value,
-            data.ttl,
-        ),
-        record_type=data.record_type,
-        zone_name=data.zone_name,
-    )
+    try:
+        await dns_manager.update_record(
+            old_record=DNSRecord(
+                data.record_name,
+                data.record_value,
+                0,
+            ),
+            new_record=DNSRecord(
+                data.record_name,
+                data.record_value,
+                data.ttl,
+            ),
+            record_type=data.record_type,
+            zone_name=data.zone_name,
+        )
+    except DNSError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @record_router.delete("")
@@ -1160,15 +1244,18 @@ def delete_record(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Delete existing DNS record."""
-    dns_manager.delete_record(
-        DNSRecord(
-            data.record_name,
-            data.record_value,
-            0,
-        ),
-        data.record_type,
-        data.zone_name,
-    )
+    try:
+        dns_manager.delete_record(
+            DNSRecord(
+                data.record_name,
+                data.record_value,
+                0,
+            ),
+            data.record_type,
+            data.zone_name,
+        )
+    except DNSError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @server_router.get("/restart")
@@ -1194,7 +1281,10 @@ def update_dns_server_settings(
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update settings of DNS server."""
-    dns_manager.update_dns_settings(settings)
+    try:
+        dns_manager.update_dns_settings(settings)
+    except DNSError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @server_router.get("/settings")

@@ -305,6 +305,8 @@ services:
     tty: true
     env_file:
       - .env
+    environment:
+      - USE_CONFIG_FILE_LOGGING=true
     depends_on:
       ldap_server:
         condition: service_healthy

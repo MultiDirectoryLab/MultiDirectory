@@ -11,6 +11,7 @@ from ipaddress import IPv4Address, IPv6Address
 import dns.resolver
 
 from .base import (
+    DNSError,
     AbstractDNSManager,
     DNSForwarderServerStatus,
     DNSForwardServerStatus,
@@ -39,7 +40,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         zone_name: str | None = None,
     ) -> None:
         """Create DNS record."""
-        await self._http_client.post(
+        response = await self._http_client.post(
             "/record",
             json={
                 "zone_name": zone_name,
@@ -49,6 +50,9 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 "ttl": ttl,
             },
         )
+
+        if response.status_code != 200:
+            raise DNSError(response.text)
 
     @logger_wraps()
     async def update_record(
@@ -59,7 +63,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         ttl: int | None,
         zone_name: str | None = None,
     ) -> None:
-        await self._http_client.patch(
+        response = await self._http_client.patch(
             "/record",
             json={
                 "zone_name": zone_name,
@@ -70,6 +74,9 @@ class SelfHostedDNSManager(AbstractDNSManager):
             },
         )
 
+        if response.status_code != 200:
+            raise DNSError(response.text)
+
     @logger_wraps()
     async def delete_record(
         self,
@@ -78,7 +85,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         record_type: str,
         zone_name: str | None = None,
     ) -> None:
-        await self._http_client.request(
+        response = await self._http_client.request(
             "delete",
             "/record",
             json={
@@ -88,6 +95,9 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 "record_value": ip,
             },
         )
+
+        if response.status_code != 200:
+            raise DNSError(response.text)
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
@@ -124,7 +134,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         nameserver: str | None,
         params: list[DNSZoneParam],
     ) -> None:
-        await self._http_client.post(
+        response = await self._http_client.post(
             "/zone",
             json={
                 "zone_name": zone_name,
@@ -134,13 +144,16 @@ class SelfHostedDNSManager(AbstractDNSManager):
             },
         )
 
+        if response.status_code != 200:
+            raise DNSError(response.text)
+
     @logger_wraps()
     async def update_zone(
         self,
         zone_name: str,
         params: list[DNSZoneParam],
     ) -> None:
-        await self._http_client.patch(
+        response = await self._http_client.patch(
             "/zone",
             json={
                 "zone_name": zone_name,
@@ -148,17 +161,23 @@ class SelfHostedDNSManager(AbstractDNSManager):
             },
         )
 
+        if response.status_code != 200:
+            raise DNSError(response.text)
+
     @logger_wraps()
     async def delete_zone(
         self,
         zone_names: list[str],
     ) -> None:
         for zone_name in zone_names:
-            await self._http_client.request(
+            response = await self._http_client.request(
                 "delete",
                 "/zone",
                 json={"zone_name": zone_name},
             )
+
+            if response.status_code != 200:
+                raise DNSError(response.text)
 
     def get_dns_servers(self) -> list[str]:
         """Get list of DNS servers."""
@@ -200,16 +219,12 @@ class SelfHostedDNSManager(AbstractDNSManager):
 
                 return (latency, fqdn[0].to_text())
             except Exception as e:
-                log.error(f"{e}")
                 return (float("inf"), None)
 
         fqdn_list = await asyncio.gather(
             *(get_fqdn_and_latency(server) for server in dns_servers),
         )
-
-        log.info(f"FQDN list: {fqdn_list}")
         fqdn_list.sort(key=lambda x: x[0])
-        log.info(f"Sorted FQDN list: {fqdn_list}")
         return fqdn_list[0][1] if fqdn_list else None
 
     @logger_wraps()
@@ -254,10 +269,13 @@ class SelfHostedDNSManager(AbstractDNSManager):
         self,
         params: list[DNSServerParam],
     ) -> None:
-        await self._http_client.patch(
+        response = await self._http_client.patch(
             "/server/settings",
             json=[asdict(param) for param in params],
         )
+
+        if response.status_code != 200:
+            raise DNSError(response.text)
 
     @logger_wraps()
     async def get_server_options(self) -> list[DNSServerParam]:

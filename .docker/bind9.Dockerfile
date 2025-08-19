@@ -34,6 +34,12 @@ WORKDIR /server
 
 RUN chown bind:bind /opt
 
+RUN mkdir /var/log/named && \
+    touch /var/log/named/bind.log && \
+    chown bind:bind /var/log/named && \
+    chmod 755 /var/log/named  && \
+    chmod 644 /var/log/named/bind.log
+
 EXPOSE 8000
 
 ENTRYPOINT [ "./entrypoint.sh" ]
