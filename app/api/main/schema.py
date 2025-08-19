@@ -4,11 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from datetime import datetime
 import uuid
+from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
 from typing import final
-from uuid import UUID
 
 from dishka import AsyncContainer
 from pydantic import BaseModel, Field, PrivateAttr, SecretStr

@@ -182,8 +182,6 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
 
     assert hex_guid is not None, "objectGUID attribute is missing"
 
-    object_guid = str(uuid.UUID(bytes_le=bytes(bytearray.fromhex(hex_guid))))
-
     raw_response = await http_client.post(
         "entry/search",
         json={
@@ -193,7 +191,7 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": f"(objectGUID={object_guid})",
+            "filter": f"(objectGUID={hex_guid})",
             "attributes": [],
             "page_number": 1,
         },
