@@ -270,7 +270,7 @@ class BindDNSServerManager:
                 ):
                     continue
 
-                return row.split(" ")[2:]
+                return " ".join(row.split(" ")[2:])
 
         return None
 
