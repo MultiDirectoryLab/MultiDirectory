@@ -11,6 +11,9 @@ build:  ## build app and manually generate self-signed cert
 	make down
 	docker compose build
 
+build_test:
+	docker compose -f docker-compose.test.yml build
+
 up:  ## run tty container with related services, use with run command
 	make down; docker compose up
 
