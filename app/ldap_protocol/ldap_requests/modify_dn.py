@@ -32,7 +32,6 @@ from models import (
     Group,
     User,
 )
-from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPModifyDNRequestContext
@@ -84,11 +83,7 @@ class ModifyDNRequest(BaseRequest):
     new_superior: str | None
 
     @classmethod
-    def from_data(
-        cls,
-        data: list[ASN1Row],
-        password_validator: PasswordValidator,  # noqa: ARG003
-    ) -> "ModifyDNRequest":
+    def from_data(cls, data: list[ASN1Row]) -> "ModifyDNRequest":
         """Create structure from ASN1Row dataclass list."""
         return cls(
             entry=data[0].value,

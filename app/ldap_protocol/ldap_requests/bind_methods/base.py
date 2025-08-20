@@ -15,7 +15,7 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
 from models import User
-from password_manager.password_validator import PasswordValidator
+from password_manager import PasswordValidator
 
 
 class SASLMethod(StrEnum):
@@ -78,7 +78,6 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     otpassword: str | None = Field(None, max_length=6, min_length=6)
     password: SecretStr
-    password_validator: PasswordValidator
 
     @property
     @abstractmethod
@@ -91,7 +90,11 @@ class AbstractLDAPAuth(ABC, BaseModel):
         """Abstract method id."""
 
     @abstractmethod
-    def is_valid(self, user: User) -> bool:
+    def is_valid(
+        self,
+        user: User,
+        password_validator: PasswordValidator,
+    ) -> bool:
         """Validate state."""
 
     @abstractmethod
@@ -115,9 +118,5 @@ class SaslAuthentication(AbstractLDAPAuth):
 
     @classmethod
     @abstractmethod
-    def from_data(
-        cls,
-        data: list[ASN1Row],
-        password_validator: PasswordValidator,
-    ) -> "SaslAuthentication":
+    def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
         """Get auth from data."""

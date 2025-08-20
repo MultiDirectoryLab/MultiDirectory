@@ -25,7 +25,6 @@ from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
-from password_manager import PasswordValidator
 
 log = logger.bind(name="ldap")
 
@@ -264,7 +263,6 @@ class PoolClientHandler:
         :raises RuntimeError: reraises on unexpected exc
         """
         ldap_session: LDAPSession = await container.get(LDAPSession)
-        password_validator = await container.get(PasswordValidator)
         while True:
             if not data:
                 raise ConnectionAbortedError("Connection terminated by client")
@@ -273,10 +271,7 @@ class PoolClientHandler:
                 data = await self._unwrap_request(data, ldap_session)
 
             try:
-                request = LDAPRequestMessage.from_bytes(
-                    data,
-                    password_validator,
-                )
+                request = LDAPRequestMessage.from_bytes(data)
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
                 log.error(f"Invalid schema {format_exc()}")

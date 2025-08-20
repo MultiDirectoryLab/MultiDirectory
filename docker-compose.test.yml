@@ -20,7 +20,7 @@ services:
       POSTGRES_HOST: postgres
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
-    command: bash -c "python -B -m pytest -x -W ignore::DeprecationWarning -vv -s"
+    command: bash -c "python -B -m pytest -x -W ignore::DeprecationWarning -vv"
     tty: true
 
   postgres:

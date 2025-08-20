@@ -26,7 +26,6 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Directory, Group
-from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
@@ -43,11 +42,7 @@ class DeleteRequest(BaseRequest):
     entry: str
 
     @classmethod
-    def from_data(
-        cls,
-        data: ASN1Row,
-        password_validator: PasswordValidator,  # noqa: ARG003
-    ) -> "DeleteRequest":
+    def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
     async def handle(

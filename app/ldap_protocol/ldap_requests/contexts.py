@@ -58,6 +58,7 @@ class LDAPBindRequestContext:
     kadmin: AbstractKadmin
     settings: Settings
     password_use_cases: PasswordPolicyUseCases
+    password_validator: PasswordValidator
     mfa: LDAPMultiFactorAPI
 
 

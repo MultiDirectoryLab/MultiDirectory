@@ -4,8 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import ParamSpec, TypeVar
-
+from adaptix.conversion import get_converter
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
@@ -17,8 +16,7 @@ from ldap_protocol.policies.password.exceptions import (
 )
 from ldap_protocol.policies.password.service import PasswordPolicyService
 
-P = ParamSpec("P")
-R = TypeVar("R")
+_convert = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 
 
 class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
@@ -52,5 +50,4 @@ class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
         policy: PasswordPolicySchema,
     ) -> None:
         """Create current policy setting."""
-        policy_dto = PasswordPolicyDTO(**policy.model_dump())
-        return await self._service.create_policy(policy_dto)
+        return await self._service.create_policy(_convert(policy))

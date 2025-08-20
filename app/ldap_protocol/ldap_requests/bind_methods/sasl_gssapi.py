@@ -80,7 +80,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ticket: bytes = b""
     _ldap_session: LDAPSession
 
-    def is_valid(self, user: User | None) -> bool:  # noqa: ARG002
+    def is_valid(
+        self,
+        user: User | None,  # noqa: ARG002
+        password_validator: PasswordValidator,  # noqa: ARG002
+    ) -> bool:
         """Check if GSSAPI token is valid.
 
         :param User | None user: indb user
@@ -96,20 +100,13 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         return False
 
     @classmethod
-    def from_data(
-        cls,
-        data: list[ASN1Row],
-        password_validator: PasswordValidator,
-    ) -> "SaslGSSAPIAuthentication":
+    def from_data(cls, data: list[ASN1Row]) -> "SaslGSSAPIAuthentication":
         """Get auth from data.
 
         :param list[ASN1Row] data: data
         :return SaslGSSAPIAuthentication
         """
-        return cls(
-            ticket=data[1].value if len(data) > 1 else b"",
-            password_validator=password_validator,
-        )
+        return cls(ticket=data[1].value if len(data) > 1 else b"")
 
     async def _init_security_context(
         self,

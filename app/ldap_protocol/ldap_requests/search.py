@@ -58,7 +58,6 @@ from models import (
     ObjectClass,
     User,
 )
-from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPSearchRequestContext
@@ -125,11 +124,7 @@ class SearchRequest(BaseRequest):
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
     @classmethod
-    def from_data(
-        cls,
-        data: dict[str, list[ASN1Row]],
-        password_validator: PasswordValidator,  # noqa: ARG003
-    ) -> "SearchRequest":
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "SearchRequest":
         (
             base_object,
             scope,
