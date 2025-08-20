@@ -50,7 +50,7 @@ class SaslSPNEGOAuthentication(SaslGSSAPIAuthentication):
         ldap_session: LDAPSession,
         settings: Settings,
     ) -> BindResponse | None:
-        """GSSAPI step.
+        """SPNEGO step.
 
         :param AsyncSession session: db session
         :param LDAPSession ldap_session: ldap session
