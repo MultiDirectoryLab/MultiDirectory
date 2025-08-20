@@ -18,7 +18,29 @@ from .sasl_gssapi import GSSAPISL, GSSAPIAuthStatus, SaslGSSAPIAuthentication
 
 
 class SaslSPNEGOAuthentication(SaslGSSAPIAuthentication):
-    """Sasl SPNEGO auth method."""
+    """Sasl SPNEGO auth method.
+
+    Implements SPNEGO (RFC 4178) as a negotiation wrapper around GSS-API.
+    In practice the negotiated mechanism is Kerberos.
+
+    Flow:
+
+    1. Negotiation & Context Initialization:
+        - The server acquires acceptor credentials from keytab using the
+            ldap/{REALM} service principal.
+        - Creates a GSS-API acceptor security context with the SPNEGO
+            mechanism (which in turn negotiates Kerberos).
+        - Stores the context in the LDAP session.
+
+    2. Intermediate Request:
+        - The client and server may exchange several SPNEGO tokens
+            (NegTokenResp with responseToken/mechListMIC) until the wrapped
+            GSS (Kerberos) context becomes established.
+        - When `server_ctx.complete` becomes true, the initiator principal
+            is available via `ctx.initiator_name` and server sends NegTokenResp
+            with success.
+
+    """
 
     mechanism: ClassVar[SASLMethod] = SASLMethod.GSS_SPNEGO
 
@@ -45,12 +67,15 @@ class SaslSPNEGOAuthentication(SaslGSSAPIAuthentication):
 
         status = self._handle_ticket(server_ctx)
 
+        if not server_ctx.complete:
+            return BindResponse(
+                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+                server_sasl_creds=self.server_sasl_creds,
+            )
+
         if status == GSSAPIAuthStatus.SEND_TO_CLIENT:
             self._ldap_session.gssapi_authenticated = True
             self._ldap_session.gssapi_security_layer = GSSAPISL.CONFIDENTIALITY
-            return BindResponse(
-                result_code=LDAPCodes.SUCCESS,
-                server_sasl_creds=self.server_sasl_creds,
-            )
+            return None
 
         return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
