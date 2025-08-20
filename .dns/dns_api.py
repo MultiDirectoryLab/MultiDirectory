@@ -244,27 +244,23 @@ class BindDNSServerManager:
         self.reload(zone_name)
 
     def _check_config(self, config: str) -> str | None:
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
+        with tempfile.NamedTemporaryFile(mode="w") as tf:
             tf.write(config)
             tmp_path = tf.name
 
-        try:
             result = subprocess.run(  # noqa: S603
                 ["/usr/bin/named-checkconf", tmp_path],
                 capture_output=True,
                 text=True,
             )
+
             return result.stderr
-        finally:
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(tmp_path)
 
     def _check_zone(self, zonefile: str, zone_name: str) -> str | None:
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as zf:
+        with tempfile.NamedTemporaryFile(mode="w") as zf:
             zf.write(zonefile)
             tmp_path = zf.name
 
-        try:
             result = subprocess.run(  # noqa: S603
                 [
                     "/usr/bin/named-checkzone",
@@ -276,10 +272,8 @@ class BindDNSServerManager:
                 capture_output=True,
                 text=True,
             )
+
             return result.stderr
-        finally:
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(tmp_path)
 
     def _get_base_domain(self) -> str:
         """Get base domain.
