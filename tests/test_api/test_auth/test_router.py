@@ -9,8 +9,7 @@ from typing import Any, TypedDict
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from loguru import logger
-from sqlalchemy import exists, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -20,7 +19,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group, PasswordPolicy, Role
+from models import Directory, Group, Role
 
 
 async def apply_user_account_control(
@@ -64,8 +63,6 @@ async def test_first_setup_and_oauth(
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is False
-    existing_policy = await session.scalar(select(exists(PasswordPolicy)))
-    logger.critical(f"get {existing_policy=}")
     response = await unbound_http_client.post(
         "/auth/setup",
         json={
@@ -78,14 +75,10 @@ async def test_first_setup_and_oauth(
         },
     )
     assert response.status_code == status.HTTP_200_OK
-    existing_policy = await session.scalar(select(exists(PasswordPolicy)))
-    logger.critical(f"post {existing_policy=}")
 
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
-    existing_policy = await session.scalar(select(exists(PasswordPolicy)))
-    logger.critical(f"get {existing_policy=}")
 
     auth = await unbound_http_client.post(
         "auth/",
@@ -93,13 +86,9 @@ async def test_first_setup_and_oauth(
     )
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["id"]
-    existing_policy = await session.scalar(select(exists(PasswordPolicy)))
-    logger.critical(f"post {existing_policy=}")
 
     response = await unbound_http_client.get("auth/me")
     assert response.status_code == status.HTTP_200_OK
-    existing_policy = await session.scalar(select(exists(PasswordPolicy)))
-    logger.critical(f"get {existing_policy=}")
 
     result = response.json()
 

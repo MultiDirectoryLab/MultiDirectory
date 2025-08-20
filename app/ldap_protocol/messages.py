@@ -11,6 +11,8 @@ from asn1 import Classes, Decoder, Encoder, Numbers
 from loguru import logger
 from pydantic import BaseModel, Field, SerializeAsAny
 
+from password_manager import PasswordValidator
+
 from .asn1parser import ASN1Row, asn1todict
 from .ldap_codes import LDAPCodes
 from .ldap_requests import BaseRequest, protocol_id_map
@@ -75,7 +77,11 @@ class LDAPRequestMessage(LDAPMessage):
     context: SerializeAsAny[BaseRequest]
 
     @classmethod
-    def from_bytes(cls, source: bytes) -> "LDAPRequestMessage":
+    def from_bytes(
+        cls,
+        source: bytes,
+        password_validator: PasswordValidator,
+    ) -> "LDAPRequestMessage":
         """Create message from bytes."""
         dec = Decoder()
         dec.start(source)
@@ -106,7 +112,10 @@ class LDAPRequestMessage(LDAPMessage):
         if len(seq_fields) >= 3:
             logger.debug({"controls": seq_fields[2]})
 
-        context = protocol_id_map[protocol.tag_id].from_data(protocol.value)
+        context = protocol_id_map[protocol.tag_id].from_data(
+            protocol.value,
+            password_validator=password_validator,
+        )
         return cls(
             messageID=message_id.value,
             protocolOP=protocol.tag_id,

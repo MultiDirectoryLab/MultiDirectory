@@ -40,12 +40,16 @@ async def test_bind_ok_and_unbind(
     creds: TestCreds,
     ctx_bind: LDAPBindRequestContext,
     ctx_unbind: LDAPUnbindRequestContext,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test ok bind."""
     bind = MutePolicyBindRequest(
         version=0,
         name=creds.un,
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(
+            password="password",  # noqa
+            password_validator=password_validator,
+        ),
     )
 
     result = await anext(bind.handle(ctx_bind))
@@ -66,6 +70,7 @@ async def test_bind_ok_and_unbind(
 async def test_gssapi_bind_in_progress(
     creds: TestCreds,
     container: AsyncContainer,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test first step gssapi bind."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
@@ -80,7 +85,10 @@ async def test_gssapi_bind_in_progress(
             mock_security_context
         )
 
-    auth_choice = SaslGSSAPIAuthentication(ticket=b"ticket")
+    auth_choice = SaslGSSAPIAuthentication(
+        ticket=b"ticket",
+        password_validator=password_validator,
+    )
     auth_choice._init_security_context = mock_init_security_context  # type: ignore
 
     bind = BindRequest(
@@ -104,12 +112,15 @@ async def test_gssapi_bind_in_progress(
 async def test_gssapi_bind_missing_credentials(
     creds: TestCreds,
     container: AsyncContainer,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test gssapi bind with missing credentials."""
     bind = BindRequest(
         version=0,
         name=creds.un,
-        AuthenticationChoice=SaslGSSAPIAuthentication(),
+        AuthenticationChoice=SaslGSSAPIAuthentication(
+            password_validator=password_validator,
+        ),
     )
 
     async with container(scope=Scope.REQUEST) as container:
@@ -124,6 +135,7 @@ async def test_gssapi_bind_missing_credentials(
 async def test_gssapi_bind_ok(
     creds: TestCreds,
     container: AsyncContainer,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test gssapi bind ok."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
@@ -152,7 +164,10 @@ async def test_gssapi_bind_ok(
             mock_security_context
         )
 
-    auth_choice = SaslGSSAPIAuthentication(ticket=b"client_ticket")
+    auth_choice = SaslGSSAPIAuthentication(
+        ticket=b"client_ticket",
+        password_validator=password_validator,
+    )
     auth_choice._init_security_context = mock_init_security_context  # type: ignore
 
     first_bind = BindRequest(
@@ -164,7 +179,9 @@ async def test_gssapi_bind_ok(
     second_bind = BindRequest(
         version=0,
         name=creds.un,
-        AuthenticationChoice=SaslGSSAPIAuthentication(),
+        AuthenticationChoice=SaslGSSAPIAuthentication(
+            password_validator=password_validator,
+        ),
     )
 
     third_bind = MutePolicyBindRequest(
@@ -172,6 +189,7 @@ async def test_gssapi_bind_ok(
         name=creds.un,
         AuthenticationChoice=SaslGSSAPIAuthentication(
             ticket=b"wrap_client_request",
+            password_validator=password_validator,
         ),
     )
 
@@ -234,7 +252,10 @@ async def test_bind_invalid_password_or_user(
     bind = BindRequest(
         version=0,
         name="user0",
-        AuthenticationChoice=SimpleAuthentication(password="fail"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(
+            password="fail",  # noqa
+            password_validator=password_validator,
+        ),
     )
 
     bad_response = BindResponse(
@@ -257,7 +278,10 @@ async def test_bind_invalid_password_or_user(
     bind = BindRequest(
         version=0,
         name="user1",
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(
+            password="password",  # noqa
+            password_validator=password_validator,
+        ),
     )
 
     kwargs = await resolve_deps(bind.handle, container)
@@ -272,12 +296,16 @@ async def test_bind_invalid_password_or_user(
 async def test_anonymous_bind(
     ldap_session: LDAPSession,
     container: AsyncContainer,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test anonymous."""
     bind = BindRequest(
         version=0,
         name="",
-        AuthenticationChoice=SimpleAuthentication(password=""),
+        AuthenticationChoice=SimpleAuthentication(
+            password="",
+            password_validator=password_validator,
+        ),
     )
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(bind.handle, container)
@@ -358,7 +386,10 @@ async def test_bind_disabled_user(
     bind = BindRequest(
         version=0,
         name=user.sam_account_name,
-        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
+        AuthenticationChoice=SimpleAuthentication(
+            password="password",  # noqa
+            password_validator=password_validator,
+        ),
     )
 
     bad_response = BindResponse(

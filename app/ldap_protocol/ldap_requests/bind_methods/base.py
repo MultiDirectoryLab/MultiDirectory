@@ -78,7 +78,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     otpassword: str | None = Field(None, max_length=6, min_length=6)
     password: SecretStr
-    password_validator: PasswordValidator = PasswordValidator()
+    password_validator: PasswordValidator
 
     @property
     @abstractmethod
@@ -115,5 +115,9 @@ class SaslAuthentication(AbstractLDAPAuth):
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: list[ASN1Row]) -> "SaslAuthentication":
+    def from_data(
+        cls,
+        data: list[ASN1Row],
+        password_validator: PasswordValidator,
+    ) -> "SaslAuthentication":
         """Get auth from data."""

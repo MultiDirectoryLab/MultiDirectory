@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.utils.queries import get_user
 from models import User
+from password_manager import PasswordValidator
 
 from .base import SaslAuthentication, SASLMethod
 
@@ -44,13 +45,18 @@ class SaslPLAINAuthentication(SaslAuthentication):
         return False
 
     @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "SaslPLAINAuthentication":
+    def from_data(
+        cls,
+        data: list[ASN1Row],
+        password_validator: PasswordValidator,
+    ) -> "SaslPLAINAuthentication":
         """Get auth from data."""
         _, username, password = data[1].value.split("\\x00")
         return cls(
             credentials=data[1].value,
             username=username,
             password=password,
+            password_validator=password_validator,
         )
 
     async def get_user(self, session: AsyncSession, _: str) -> User:

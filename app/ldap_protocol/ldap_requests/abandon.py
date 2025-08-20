@@ -9,6 +9,7 @@ from typing import AsyncGenerator, ClassVar
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.objects import ProtocolRequests
+from password_manager import PasswordValidator
 
 from .base import BaseRequest
 
@@ -20,7 +21,11 @@ class AbandonRequest(BaseRequest):
     message_id: int
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "AbandonRequest":  # noqa: ARG003
+    def from_data(
+        cls,
+        data: dict[str, list[ASN1Row]],  # noqa: ARG003
+        password_validator: PasswordValidator,  # noqa: ARG003
+    ) -> "AbandonRequest":
         """Create structure from ASN1Row dataclass list."""
         return cls(message_id=1)
 

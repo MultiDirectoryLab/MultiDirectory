@@ -90,7 +90,11 @@ class ModifyRequest(BaseRequest):
     changes: list[Changes]
 
     @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
+    def from_data(
+        cls,
+        data: list[ASN1Row],
+        password_validator: PasswordValidator,  # noqa: ARG003
+    ) -> "ModifyRequest":
         entry, proto_changes = data
 
         changes = []

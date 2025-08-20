@@ -22,6 +22,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
+from password_manager.password_validator import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPExtendedRequestContext
@@ -305,7 +306,11 @@ class ExtendedRequest(BaseRequest):
             )
 
     @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "ExtendedRequest":
+    def from_data(
+        cls,
+        data: list[ASN1Row],
+        password_validator: PasswordValidator,  # noqa: ARG003
+    ) -> "ExtendedRequest":
         """Create extended request from asn.1 decoded string.
 
         :param ASN1Row data: any data

@@ -39,6 +39,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
+from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPAddRequestContext
@@ -86,7 +87,11 @@ class AddRequest(BaseRequest):
         }
 
     @classmethod
-    def from_data(cls, data: ASN1Row) -> "AddRequest":
+    def from_data(
+        cls,
+        data: ASN1Row,
+        password_validator: PasswordValidator,  # noqa: ARG003
+    ) -> "AddRequest":
         """Deserialize."""
         entry, attributes = data  # type: ignore
         attributes = [

@@ -18,6 +18,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import User
+from password_manager import PasswordValidator
 
 from .base import (
     LDAPBindErrors,
@@ -95,7 +96,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         return False
 
     @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "SaslGSSAPIAuthentication":
+    def from_data(
+        cls,
+        data: list[ASN1Row],
+        password_validator: PasswordValidator,
+    ) -> "SaslGSSAPIAuthentication":
         """Get auth from data.
 
         :param list[ASN1Row] data: data
@@ -103,6 +108,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """
         return cls(
             ticket=data[1].value if len(data) > 1 else b"",
+            password_validator=password_validator,
         )
 
     async def _init_security_context(

@@ -41,6 +41,7 @@ from ldap_protocol.utils.queries import (
     set_user_logon_attrs,
 )
 from models import NetworkPolicy, User
+from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPBindRequestContext, LDAPUnbindRequestContext
@@ -59,7 +60,11 @@ class BindRequest(BaseRequest):
     )
 
     @classmethod
-    def from_data(cls, data: list[ASN1Row]) -> "BindRequest":
+    def from_data(
+        cls,
+        data: list[ASN1Row],
+        password_validator: PasswordValidator,
+    ) -> "BindRequest":
         """Get bind from data dict."""
         auth = data[2].tag_id
 
@@ -79,11 +84,13 @@ class BindRequest(BaseRequest):
             auth_choice = SimpleAuthentication(
                 password=password,
                 otpassword=otpassword,
+                password_validator=password_validator,
             )
         elif auth == SaslAuthentication.METHOD_ID:
             sasl_method = data[2].value[0].value
             auth_choice = sasl_mechanism_map[sasl_method].from_data(
                 data[2].value,
+                password_validator,
             )
         else:
             raise ValueError("Auth version not supported")
@@ -243,7 +250,11 @@ class UnbindRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.UNBIND
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
+    def from_data(
+        cls,
+        data: dict[str, list[ASN1Row]],  # noqa: ARG003
+        password_validator: PasswordValidator,  # noqa: ARG003
+    ) -> "UnbindRequest":
         """Unbind request has no body."""
         return cls()
 
