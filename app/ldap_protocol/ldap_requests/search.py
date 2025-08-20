@@ -548,18 +548,6 @@ class SearchRequest(BaseRequest):
             for member in directory.group.members:
                 attrs["member"].append(member.path_dn)
 
-    def get_directory_attr_value(
-        self,
-        directory: Directory,
-        attr: str,
-        sid_guid_values_map: dict[str, bytes],
-    ) -> int | str | bytes | datetime:
-        attribute = getattr(directory, attr)
-        if attr in ("objectsid", "objectguid"):
-            attribute = sid_guid_values_map[attr]
-
-        return attribute
-
     def get_directory_sid_guid_values(
         self,
         directory: Directory,
@@ -662,22 +650,36 @@ class SearchRequest(BaseRequest):
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
             if self.all_attrs:
-                directory_fields = directory.search_fields.keys()
+                sid_guid_fields = {"objectsid", "objectguid"}
+                directory_fields = (
+                    field
+                    for field in directory.search_fields
+                    if field not in sid_guid_fields
+                )
             else:
+                sid_guid_fields = {"objectsid", "objectguid"} & set(
+                    self.requested_attrs,
+                )
                 directory_fields = (
                     attr
                     for attr in self.requested_attrs
                     if attr in directory.search_fields
+                    and attr not in sid_guid_fields
                 )
 
-            sid_guid_values_map = self.get_directory_sid_guid_values(directory)
             for attr in directory_fields:
-                attribute = self.get_directory_attr_value(
-                    directory,
-                    attr,
-                    sid_guid_values_map,
-                )
+                attribute = getattr(directory, attr)
                 attrs[directory.search_fields[attr]].append(attribute)
+
+            if sid_guid_fields:
+                sid_guid_values_map = self.get_directory_sid_guid_values(
+                    directory,
+                )
+                for field in sid_guid_fields:
+                    sid_guid_value = sid_guid_values_map[field]
+                    attrs[directory.search_fields[field]].append(
+                        sid_guid_value,  # type: ignore
+                    )
 
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
