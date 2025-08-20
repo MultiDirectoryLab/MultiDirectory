@@ -40,30 +40,17 @@ class SaslSPNEGOAuthentication(SaslGSSAPIAuthentication):
             await self._init_security_context(session, settings)
 
         server_ctx = self._ldap_session.gssapi_security_context
-        if server_ctx is None:
-            return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
-
-        if self.ticket == b"":
-            self.server_sasl_creds = self._generate_final_message(
-                server_ctx,
-                settings,
-            )
-            self._ldap_session.gssapi_authenticated = True
-            self._ldap_session.gssapi_security_layer = GSSAPISL.CONFIDENTIALITY
-            return None
-
-        if server_ctx.complete:
-            status = self._handle_final_client_message(server_ctx)
-            if status == GSSAPIAuthStatus.COMPLETE:
-                return None
-
+        if server_ctx is None or self.ticket == b"":
             return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
         status = self._handle_ticket(server_ctx)
 
         if status == GSSAPIAuthStatus.SEND_TO_CLIENT:
+            self._ldap_session.gssapi_authenticated = True
+            self._ldap_session.gssapi_security_layer = GSSAPISL.CONFIDENTIALITY
             return BindResponse(
-                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+                result_code=LDAPCodes.SUCCESS,
                 server_sasl_creds=self.server_sasl_creds,
             )
+
         return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
