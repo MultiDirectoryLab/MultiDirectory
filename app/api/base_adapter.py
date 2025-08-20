@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from asyncio import iscoroutinefunction
 from functools import wraps
-from typing import Callable, ParamSpec, Protocol, TypeVar
+from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
 from fastapi import HTTPException
 
@@ -27,36 +27,60 @@ class BaseAdapter(Protocol[_T]):
         """Set service."""
         self._service = service
 
-    def __getattribute__(self, name: str) -> object:
-        """Override attribute access to wrap DAO in an async wrapper."""
-        attr = super().__getattribute__(name)
+    def __new__(
+        cls,
+        *_: tuple,
+        **__: dict,
+    ) -> "BaseAdapter[_T]":
+        instance = super().__new__(cls)
 
-        if not callable(attr):
-            return attr
-
-        def safecall(func: Callable[_P, _R]) -> Callable[_P, _R]:
+        def wrap_sync(func: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(func)
-            async def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+            def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
                 try:
-                    if iscoroutinefunction(func):
-                        retval = await func(*args, **kwargs)
-                    else:
-                        retval = func(*args, **kwargs)
-
+                    return func(*args, **kwargs)
                 except Exception as err:
-                    code = self._exceptions_map.get(type(err))
+                    instance._reraise(err)
 
-                    if code is None:
-                        raise
+            return wrapper
 
-                    raise HTTPException(
-                        status_code=code,
-                        detail=str(err),
-                    ) from err
+        def wrap_async(
+            func: Callable[_P, Awaitable[_R]],
+        ) -> Callable[_P, Awaitable[_R]]:
+            @wraps(func)
+            async def awrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as err:
+                    instance._reraise(err)
 
-                else:
-                    return retval
+            return awrapper
 
-            return wrapper  # type: ignore
+        for name in dir(instance):
+            if name.startswith("_"):
+                continue
 
-        return safecall(attr)
+            attr = getattr(instance, name)
+
+            if not callable(attr):
+                continue
+
+            if iscoroutinefunction(attr):
+                wrapped = wrap_async(attr)
+            else:
+                wrapped = wrap_sync(attr)
+
+            setattr(instance, name, wrapped)
+
+        return instance
+
+    def _reraise(self, exc: Exception) -> NoReturn:
+        code = self._exceptions_map.get(type(exc))
+
+        if code is None:
+            raise
+
+        raise HTTPException(
+            status_code=code,
+            detail=str(exc),
+        ) from exc
