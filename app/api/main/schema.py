@@ -39,14 +39,13 @@ class SearchRequest(LDAPSearchRequest):
             Filter.parse(filter_).simplify(),
         )
 
-    def get_directory_sid_guid_values(  # type: ignore
-        self,
-        directory: Directory,
-    ) -> dict[str, str | uuid.UUID]:
-        return {
-            "objectsid": directory.object_sid,
-            "objectguid": directory.object_guid,
-        }
+    @staticmethod
+    def get_directory_sid(directory: Directory) -> str:  # type: ignore
+        return directory.object_sid
+
+    @staticmethod
+    def get_directory_guid(directory: Directory) -> uuid.UUID:  # type: ignore
+        return directory.object_guid
 
     @final
     async def handle_api(  # type: ignore

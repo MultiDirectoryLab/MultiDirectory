@@ -63,6 +63,7 @@ from .base import BaseRequest
 from .contexts import LDAPSearchRequestContext
 
 _attrs = ["tokengroups", "memberof", "member"]
+_sid_guid_fields = {"objectsid", "objectguid"}
 _attrs.extend(User.search_fields.keys())
 _attrs.extend(Directory.search_fields.keys())
 _ATTRS_TO_CLEAN = set(_attrs)
@@ -153,6 +154,14 @@ class SearchRequest(BaseRequest):
     @cached_property
     def requested_attrs(self) -> list[str]:
         return [attr.lower() for attr in self.attributes]
+
+    @property
+    def is_sid_requested(self) -> bool:
+        return self.all_attrs or "objectsid" in self.requested_attrs
+
+    @property
+    def is_guid_requested(self) -> bool:
+        return self.all_attrs or "objectguid" in self.requested_attrs
 
     async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
         attrs: dict[str, list[str]] = defaultdict(list)
@@ -547,14 +556,13 @@ class SearchRequest(BaseRequest):
             for member in directory.group.members:
                 attrs["member"].append(member.path_dn)
 
-    def get_directory_sid_guid_values(
-        self,
-        directory: Directory,
-    ) -> dict[str, bytes]:
-        return {
-            "objectsid": string_to_sid(directory.object_sid),
-            "objectguid": directory.object_guid.bytes_le,
-        }
+    @staticmethod
+    def get_directory_sid(directory: Directory) -> bytes:
+        return string_to_sid(directory.object_sid)
+
+    @staticmethod
+    def get_directory_guid(directory: Directory) -> bytes:
+        return directory.object_guid.bytes_le
 
     async def tree_view(  # noqa: C901
         self,
@@ -649,36 +657,30 @@ class SearchRequest(BaseRequest):
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
             if self.all_attrs:
-                sid_guid_fields = {"objectsid", "objectguid"}
                 directory_fields = (
                     field
                     for field in directory.search_fields
-                    if field not in sid_guid_fields
+                    if field not in _sid_guid_fields
                 )
             else:
-                sid_guid_fields = {"objectsid", "objectguid"} & set(
-                    self.requested_attrs,
-                )
                 directory_fields = (
                     attr
                     for attr in self.requested_attrs
                     if attr in directory.search_fields
-                    and attr not in sid_guid_fields
+                    and attr not in _sid_guid_fields
                 )
 
             for attr in directory_fields:
                 attribute = getattr(directory, attr)
                 attrs[directory.search_fields[attr]].append(attribute)
 
-            if sid_guid_fields:
-                sid_guid_values_map = self.get_directory_sid_guid_values(
-                    directory,
-                )
-                for field in sid_guid_fields:
-                    sid_guid_value = sid_guid_values_map[field]
-                    attrs[directory.search_fields[field]].append(
-                        sid_guid_value,  # type: ignore
-                    )
+            if self.is_guid_requested:
+                guid = self.get_directory_guid(directory)
+                attrs[directory.search_fields["objectguid"]].append(guid)  # type: ignore
+
+            if self.is_sid_requested:
+                guid = self.get_directory_sid(directory)
+                attrs[directory.search_fields["objectsid"]].append(guid)  # type: ignore
 
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
