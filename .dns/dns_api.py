@@ -235,7 +235,7 @@ class BindDNSServerManager:
             zone (dns.zone.Zone): Zone object.
 
         """
-        error = self._check_zone(zone.to_text())
+        error = self._check_zone(zone.to_text(), zone_name)
         if error:
             raise DNSError(
                 f"Error while writing zone data to file {zone_name}: {error}",
@@ -260,14 +260,20 @@ class BindDNSServerManager:
             with contextlib.suppress(FileNotFoundError):
                 os.remove(tmp_path)
 
-    def _check_zone(self, zonefile: str) -> str | None:
+    def _check_zone(self, zonefile: str, zone_name: str) -> str | None:
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as zf:
             zf.write(zonefile)
             tmp_path = zf.name
 
         try:
             result = subprocess.run(  # noqa: S603
-                ["/usr/bin/named-checkzone", tmp_path],
+                [
+                    "/usr/bin/named-checkzone",
+                    "-i",
+                    "none",
+                    zone_name,
+                    tmp_path,
+                ],
                 capture_output=True,
                 text=True,
             )
@@ -346,7 +352,7 @@ class BindDNSServerManager:
                 ttl=params_dict.get("ttl", 604800),
             )
 
-            zone_error = self._check_zone(zone_file)
+            zone_error = self._check_zone(zone_file, zone_name)
             if zone_error:
                 raise DNSError(
                     f"Error in zonefile during adding zone: {zone_error}",
