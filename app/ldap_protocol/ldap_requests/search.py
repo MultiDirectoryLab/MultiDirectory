@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import sys
 from collections import defaultdict
-from datetime import datetime
 from functools import cached_property
 from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
