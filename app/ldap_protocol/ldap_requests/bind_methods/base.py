@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
