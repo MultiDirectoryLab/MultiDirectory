@@ -33,7 +33,6 @@ ZONE_FILES_DIR = "/opt"
 NAMED_CONF = "/etc/bind/named.conf"
 NAMED_LOCAL = "/etc/bind/named.conf.local"
 NAMED_OPTIONS = "/etc/bind/named.conf.options"
-BIND_LOG_FILE_PATH = "/var/log/named/bind.log"
 
 FIRST_SETUP_RECORDS = [
     {"name": "_ldap._tcp.", "value": "0 0 389 ", "type": "SRV"},
