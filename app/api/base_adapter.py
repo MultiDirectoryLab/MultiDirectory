@@ -32,6 +32,7 @@ class BaseAdapter(Protocol[_T]):
         *_: tuple,
         **__: dict,
     ) -> "BaseAdapter[_T]":
+        """Wrap all public methods with try catch for _exceptions_map."""
         instance = super().__new__(cls)
 
         def wrap_sync(func: Callable[_P, _R]) -> Callable[_P, _R]:
