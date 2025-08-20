@@ -25,6 +25,9 @@ from ldap_protocol.ldap_requests.bind_methods import (
     get_bad_response,
     sasl_mechanism_map,
 )
+from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import (
+    SaslSPNEGOAuthentication,
+)
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import ProtocolRequests
@@ -235,7 +238,14 @@ class BindRequest(BaseRequest):
         await ctx.ldap_session.set_user(user)
         await set_user_logon_attrs(user, ctx.session, ctx.settings.TIMEZONE)
 
-        yield BindResponse(result_code=LDAPCodes.SUCCESS)
+        server_sasl_creds = None
+        if isinstance(self.authentication_choice, SaslSPNEGOAuthentication):
+            server_sasl_creds = self.authentication_choice.server_sasl_creds
+
+        yield BindResponse(
+            result_code=LDAPCodes.SUCCESS,
+            server_sasl_creds=server_sasl_creds,
+        )
 
 
 class UnbindRequest(BaseRequest):
