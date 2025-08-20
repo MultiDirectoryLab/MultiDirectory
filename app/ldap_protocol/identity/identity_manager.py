@@ -125,6 +125,7 @@ class IdentityManager(AbstractService):
             self._session,
             form.username,
             form.password,
+            self._password_validator,
         )
         if not user:
             raise UnauthorizedError("Incorrect username or password")
@@ -369,6 +370,7 @@ class IdentityManager(AbstractService):
                     self._session,
                     dn=request.domain,
                     data=data,
+                    password_validator=self._password_validator,
                 )
                 await self._session.flush()
                 errors = await (

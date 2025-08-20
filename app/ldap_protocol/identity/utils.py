@@ -15,6 +15,7 @@ async def authenticate_user(
     session: AsyncSession,
     username: str,
     password: str,
+    password_validator: PasswordValidator,
 ) -> User | None:
     """Get user and verify password.
 
@@ -27,6 +28,6 @@ async def authenticate_user(
 
     if not user or not user.password or not password:
         return None
-    if not PasswordValidator().verify_password(password, user.password):
+    if not password_validator.verify_password(password, user.password):
         return None
     return user

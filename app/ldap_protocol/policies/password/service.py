@@ -1,14 +1,16 @@
-"""Audit policies service module.
+"""Password  policies service module.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from abstract_dao import AbstractService
+
 from .dataclasses import PasswordPolicyDTO
 from .policies_dao import PasswordPolicyDAO
 
 
-class PasswordPolicyService:
+class PasswordPolicyService(AbstractService):
     """Password policy service class for managing password policies."""
 
     def __init__(
@@ -20,8 +22,7 @@ class PasswordPolicyService:
 
     async def get_policy(self) -> PasswordPolicyDTO:
         """Get the current password policy."""
-        policy = await self._policy_dao.get()
-        return policy
+        return await self._policy_dao.get()
 
     async def update_policy(
         self,

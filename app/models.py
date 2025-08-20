@@ -1160,19 +1160,15 @@ class PasswordPolicy(Base):
         nullable=False,
         server_default="4",
     )
-
     maximum_password_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-
     minimum_password_age_days: Mapped[int] = mapped_column(
         nullable=False,
         server_default="0",
     )
-
     minimum_password_length: Mapped[int] = mapped_column(
-        "minimum_password_length",
         nullable=False,
         server_default="7",
     )

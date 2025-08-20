@@ -310,14 +310,8 @@ class MainProvider(Provider):
         scope=Scope.REQUEST,
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    password_use_cases = provide(
-        PasswordPolicyUseCases,
-        scope=Scope.REQUEST,
-    )
-    password_use_servive = provide(
-        PasswordPolicyService,
-        scope=Scope.REQUEST,
-    )
+    password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
+    password_service = provide(PasswordPolicyService, scope=Scope.REQUEST)
     password_policies_adapter = provide(
         PasswordPoliciesAdapter,
         scope=Scope.REQUEST,

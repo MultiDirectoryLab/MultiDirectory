@@ -7,11 +7,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import asdict
 
 from adaptix.conversion import get_converter
-from loguru import logger
 from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
+from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
 )
@@ -19,7 +19,6 @@ from ldap_protocol.utils.helpers import ft_now
 from models import Attribute, PasswordPolicy
 
 from .dataclasses import PasswordPolicyDTO
-from .schemas import PasswordPolicySchema
 
 _convert = get_converter(PasswordPolicy, PasswordPolicyDTO)
 
@@ -49,15 +48,16 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
             policy_dto = PasswordPolicyDTO(
                 **PasswordPolicySchema().model_dump(),
             )
-            policy = await self.create(policy_dto)
-        return _convert(policy)
+            await self.create(policy_dto)
+            policy = await self._session.scalar(select(PasswordPolicy))
 
-    async def create(  # type: ignore[override]
+        return _convert(policy)  # type: ignore
+
+    async def create(
         self,
         dto: PasswordPolicyDTO,
-    ) -> PasswordPolicy:
+    ) -> None:
         """Create a new password policy."""
-        logger.critical("Policy created")
         existing_policy = await self._session.scalar(
             select(exists(PasswordPolicy)),
         )
@@ -65,10 +65,8 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
             raise PasswordPolicyAlreadyExistsError("Policy already exists")
 
         destination = PasswordPolicy(**asdict(dto))
-        logger.debug(f"Policy created {destination.__dict__}")
         self._session.add(destination)
         await self._session.flush()
-        return destination
 
     async def update(  # type: ignore[override]
         self,
@@ -82,9 +80,12 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
 
     async def delete(self) -> None:  # type: ignore[override]
         """Delete (reset) default policy."""
-        default_policy = PasswordPolicySchema()
-        default_policy_dto = PasswordPolicyDTO(**default_policy.model_dump())
-        await self.update(default_policy_dto)
+        await self.update(self.get_default_policy())
+
+    @staticmethod
+    def get_default_policy() -> PasswordPolicyDTO:
+        """Get default password policy."""
+        return PasswordPolicyDTO(**PasswordPolicySchema().model_dump())
 
     async def get_or_create_pwd_last_set(
         self,

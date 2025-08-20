@@ -245,10 +245,7 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
         cache=False,
     )
-    password_use_cases = provide(
-        PasswordPolicyUseCases,
-        scope=Scope.REQUEST,
-    )
+    password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
     password_policy_validator = provide(
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
@@ -648,6 +645,7 @@ async def raw_audit_manager(
 async def setup_session(
     session: AsyncSession,
     raw_audit_manager: RawAuditManager,
+    password_validator: PasswordValidator,
 ) -> None:
     """Get session and acquire after completion."""
     attribute_type_dao = AttributeTypeDAO(session)
@@ -673,7 +671,12 @@ async def setup_session(
         raw_audit_manager,
     )
     await audit_use_case.create_policies()
-    await setup_enviroment(session, dn="md.test", data=TEST_DATA)
+    await setup_enviroment(
+        session,
+        dn="md.test",
+        password_validator=password_validator,
+        data=TEST_DATA,
+    )
 
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
@@ -778,7 +781,8 @@ async def password_policy_validator(
 ) -> AsyncIterator[PasswordPolicyValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
-        yield PasswordPolicyValidator(password_validator)
+        settings = await container.get(Settings)
+        yield PasswordPolicyValidator(password_validator, settings)
 
 
 @pytest_asyncio.fixture(scope="function")

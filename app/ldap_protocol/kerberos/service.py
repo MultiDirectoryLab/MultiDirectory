@@ -25,6 +25,7 @@ from ldap_protocol.kerberos.exceptions import (
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
+from password_manager.password_validator import PasswordValidator
 
 from .base import AbstractKadmin, KerberosState, KRBAPIError
 from .ldap_structure import KRBLDAPStructureManager
@@ -43,6 +44,7 @@ class KerberosService(AbstractService):
         kadmin: AbstractKadmin,
         krb_template_render: KRBTemplateRenderer,
         krb_ldap_manager: KRBLDAPStructureManager,
+        password_validator: PasswordValidator,
     ) -> None:
         """Initialize KerberosService dependencies.
 
@@ -54,6 +56,8 @@ class KerberosService(AbstractService):
                 Template renderer for Kerberos (IoC-injected).
             krb_ldap_manager (KRBLDAPStructureManager):
                 LDAP structure manager for Kerberos (IoC-injected).
+            password_validator (PasswordValidator):
+                Password validator (IoC-injected).
 
         """
         self._session = session
@@ -61,6 +65,7 @@ class KerberosService(AbstractService):
         self._kadmin = kadmin
         self._template_render = krb_template_render
         self._ldap_manager = krb_ldap_manager
+        self._password_validator = password_validator
 
     async def setup_krb_catalogue(
         self,
@@ -277,6 +282,7 @@ class KerberosService(AbstractService):
             self._session,
             user.user_principal_name,
             password,
+            self._password_validator,
         ):
             raise KerberosDependencyError("Incorrect password")
 

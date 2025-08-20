@@ -10,10 +10,10 @@ from typing import Any, Callable, Coroutine, Iterable, Self
 
 from passlib.exc import UnknownHashError
 
+from config import Settings
 from password_manager import PasswordValidator
 
 from .error_messages import ErrorMessages
-from .settings import _PasswordPolicyValidatorSettings
 
 type _CheckType = Callable[..., Coroutine[Any, Any, bool]]
 
@@ -36,16 +36,18 @@ class PasswordPolicyValidator:
     This class accumulates checks and validates a password against them.
     """
 
-    def __init__(self, password_validator: PasswordValidator) -> None:
+    def __init__(
+        self,
+        password_validator: PasswordValidator,
+        settings: Settings,
+    ) -> None:
         """Initialize a new validator instance.
 
         Sets up internal storage for checkers and default settings.
         """
         self.__checkers: list[_Checker] = []
         self.password_validator = password_validator
-        self.__settings: _PasswordPolicyValidatorSettings = (
-            _PasswordPolicyValidatorSettings()
-        )
+        self.__settings = settings
         self.error_messages: list[str] = []
 
     def __add_checker(
@@ -223,7 +225,7 @@ class PasswordPolicyValidator:
     async def validate_reuse_prevention(
         self,
         password: str,
-        _: _PasswordPolicyValidatorSettings,
+        _: Settings,
         password_history: Iterable[str],
     ) -> bool:
         """Check if password is not in the password history."""
@@ -242,17 +244,17 @@ class PasswordPolicyValidator:
     async def validate_not_otp_like_suffix(
         self,
         password: str,
-        _: _PasswordPolicyValidatorSettings,
+        settings: Settings,
     ) -> bool:
         """Check if password does not end with a specified number of digits."""
-        tail = password[-self.__settings.otp_tail_size :]
+        tail = password[-settings.OTP_TAIL_SIZE :]
         res = tail.isdecimal()
         return not res
 
     async def validate_min_age(
         self,
         _: str,
-        __: _PasswordPolicyValidatorSettings,
+        __: Settings,
         minimum_password_age_days: int,
         value: str | None,
     ) -> bool:

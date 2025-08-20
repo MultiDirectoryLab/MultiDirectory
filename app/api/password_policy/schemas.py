@@ -4,6 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import dataclass
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -29,3 +31,15 @@ class PasswordPolicySchema(BaseModel):
                 "lower or equal than maximum password age days",
             )
         return self
+
+
+@dataclass
+class PasswordPolicyResponseDTO:
+    """Password policy response object."""
+
+    name: str
+    password_history_length: int
+    maximum_password_age_days: int
+    minimum_password_age_days: int
+    minimum_password_length: int
+    password_must_meet_complexity_requirements: bool

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from enums import MFAChallengeStatuses
 from ldap_protocol.identity.utils import authenticate_user
 from models import CatalogueSetting
+from password_manager import PasswordValidator
 from tests.conftest import TestCreds
 
 
@@ -66,6 +67,7 @@ async def test_connect_mfa(
     unbound_http_client: httpx.AsyncClient,
     session: AsyncSession,
     creds: TestCreds,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test websocket mfa."""
     session.add(
@@ -88,7 +90,12 @@ async def test_connect_mfa(
     response = await unbound_http_client.get("auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    user = await authenticate_user(session, creds.un, creds.pw)
+    user = await authenticate_user(
+        session,
+        creds.un,
+        creds.pw,
+        password_validator,
+    )
 
     assert user
 

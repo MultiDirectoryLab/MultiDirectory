@@ -8,13 +8,14 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import ClassVar
 
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
 from models import User
+from password_manager.password_validator import PasswordValidator
 
 
 class SASLMethod(StrEnum):
@@ -77,6 +78,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
 
     otpassword: str | None = Field(None, max_length=6, min_length=6)
     password: SecretStr
+    password_validator: PasswordValidator = PasswordValidator()
 
     @property
     @abstractmethod

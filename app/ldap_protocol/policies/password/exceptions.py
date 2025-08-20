@@ -5,9 +5,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 
-class PasswordPolicyAlreadyExistsError(Exception):
+class PasswordPolicyBaseError(Exception):
+    """Base exception class for password policy service errors."""
+
+
+class PasswordPolicyAlreadyExistsError(PasswordPolicyBaseError):
     """Exception raised when a password policy already exists in the system."""
 
 
-class PasswordPolicyNotFoundError(Exception):
+class PasswordPolicyNotFoundError(PasswordPolicyBaseError):
     """Exception raised when a password policy not found."""

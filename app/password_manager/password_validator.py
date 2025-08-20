@@ -7,19 +7,19 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from datetime import datetime, timezone
 
 from passlib.context import CryptContext
+from pydantic import BaseModel, ConfigDict
 
 from ldap_protocol.utils.helpers import ft_to_dt
 
 
-class PasswordValidator:
+class PasswordValidator(BaseModel):
     """Password Validator class."""
 
-    def __init__(self) -> None:
-        """Initialize PasswordValidator."""
-        self.__crypt_context = CryptContext(
-            schemes=["bcrypt"],
-            deprecated="auto",
-        )
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
+    __crypt_context = CryptContext(
+        schemes=["bcrypt"],
+        deprecated="auto",
+    )
 
     def verify_password(
         self,

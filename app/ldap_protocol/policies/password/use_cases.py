@@ -9,13 +9,13 @@ from itertools import islice
 from sqlalchemy import Integer, String, cast, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import ft_now
 from models import Attribute, User
 
 from .dataclasses import PasswordPolicyDTO
 from .policies_dao import PasswordPolicyDAO
-from .schemas import PasswordPolicySchema
 from .validator import PasswordPolicyValidator
 
 
@@ -122,13 +122,9 @@ class PasswordPolicyUseCases:
 
         return password_age_days > password_policy.maximum_password_age_days
 
-    @staticmethod
-    def get_default_settings() -> PasswordPolicyDTO:
+    def get_default_settings(self) -> PasswordPolicyDTO:
         """Get default password policy settings."""
-        policy_dto = PasswordPolicyDTO(
-            **PasswordPolicySchema().model_dump(),
-        )
-        return policy_dto
+        return self.password_policy_dao.get_default_policy()
 
     async def check_password_violations(
         self,

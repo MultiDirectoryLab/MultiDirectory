@@ -10,8 +10,10 @@ from fastapi import APIRouter, Depends, status
 
 from api.auth import get_current_user
 from api.password_policy.adapter import PasswordPoliciesAdapter
-from ldap_protocol.policies.password import PasswordPolicySchema
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyResponse
+from api.password_policy.schemas import (
+    PasswordPolicyResponseDTO,
+    PasswordPolicySchema,
+)
 
 pwd_router = APIRouter(
     prefix="/password-policy",
@@ -24,10 +26,9 @@ pwd_router = APIRouter(
 @pwd_router.get("")
 async def get_policy(
     adapter: FromDishka[PasswordPoliciesAdapter],
-) -> PasswordPolicyResponse:
+) -> PasswordPolicyResponseDTO:
     """Get current policy setting."""
-    password_policy = await adapter.get_policy()
-    return password_policy
+    return await adapter.get_policy()
 
 
 @pwd_router.post("", status_code=status.HTTP_201_CREATED)
