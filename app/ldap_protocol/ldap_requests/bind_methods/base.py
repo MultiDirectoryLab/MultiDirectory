@@ -23,6 +23,7 @@ class SASLMethod(StrEnum):
     PLAIN = "PLAIN"
     EXTERNAL = "EXTERNAL"
     GSSAPI = "GSSAPI"
+    GSS_SPNEGO = "GSS-SPNEGO"
     CRAM_MD5 = "CRAM-MD5"
     DIGEST_MD5 = "DIGEST-MD5"
     SCRAM_SHA_1 = "SCRAM-SHA-1"

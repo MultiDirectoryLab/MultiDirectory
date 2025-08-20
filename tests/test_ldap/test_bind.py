@@ -23,6 +23,9 @@ from ldap_protocol.ldap_requests.bind import (
     SimpleAuthentication,
     UnbindRequest,
 )
+from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import (
+    SaslSPNEGOAuthentication,
+)
 from ldap_protocol.ldap_requests.contexts import (
     LDAPBindRequestContext,
     LDAPUnbindRequestContext,
@@ -197,6 +200,80 @@ async def test_gssapi_bind_ok(
         assert result == BindResponse(
             result_code=LDAPCodes.SUCCESS,
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_spnego_bind_ok(
+    creds: TestCreds,
+    container: AsyncContainer,
+) -> None:
+    """Test spnego bind ok."""
+    mock_security_context = Mock(spec=gssapi.SecurityContext)
+    mock_security_context.step.return_value = b"server_ticket"
+    mock_security_context.complete = False
+    mock_security_context.initiator_name = f"{creds.un}@domain"
+
+    async def mock_init_security_context(
+        session: AsyncSession,  # noqa: ARG001
+        settings: Settings,  # noqa: ARG001
+    ) -> None:
+        auth_choice._ldap_session.gssapi_security_context = (
+            mock_security_context
+        )
+
+    auth_choice = SaslSPNEGOAuthentication(ticket=b"client_ticket")
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore
+
+    first_bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=auth_choice,
+    )
+
+    second_bind = MutePolicyBindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=SaslSPNEGOAuthentication(ticket=b"client_ticket"),
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        kwargs = await resolve_deps(first_bind.handle, container)
+        result = await anext(first_bind.handle(**kwargs))
+        assert result == BindResponse(
+            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+            serverSaslCreds=b"server_ticket",
+        )
+
+        mock_security_context.complete = True
+
+        kwargs = await resolve_deps(second_bind.handle, container)
+        result = await anext(second_bind.handle(**kwargs))
+        assert result == BindResponse(
+            result_code=LDAPCodes.SUCCESS,
+            serverSaslCreds=b"server_ticket",
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_spnego_bind_missing_credentials(
+    creds: TestCreds,
+    container: AsyncContainer,
+) -> None:
+    """Test spnego bind with missing credentials."""
+    bind = BindRequest(
+        version=0,
+        name=creds.un,
+        AuthenticationChoice=SaslSPNEGOAuthentication(),
+    )
+
+    async with container(scope=Scope.REQUEST) as container:
+        kwargs = await resolve_deps(bind.handle, container)
+        with pytest.raises(gssapi.exceptions.MissingCredentialsError):
+            await anext(bind.handle(**kwargs))
 
 
 @pytest.mark.asyncio
