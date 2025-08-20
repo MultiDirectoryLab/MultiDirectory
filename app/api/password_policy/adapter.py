@@ -9,10 +9,7 @@ from typing import ParamSpec, TypeVar
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from api.password_policy.schemas import (
-    PasswordPolicyResponseDTO,
-    PasswordPolicySchema,
-)
+from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
@@ -32,23 +29,9 @@ class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
         PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
     }
 
-    def get_policy_response(
-        self,
-        policy: PasswordPolicyDTO,
-    ) -> PasswordPolicyResponseDTO:
-        return PasswordPolicyResponseDTO(
-            name=policy.name,
-            minimum_password_length=policy.minimum_password_length,
-            minimum_password_age_days=policy.minimum_password_age_days,
-            maximum_password_age_days=policy.maximum_password_age_days,
-            password_history_length=policy.password_history_length,
-            password_must_meet_complexity_requirements=policy.password_must_meet_complexity_requirements,
-        )
-
-    async def get_policy(self) -> PasswordPolicyResponseDTO:
+    async def get_policy(self) -> PasswordPolicyDTO:
         """Get the current password policy."""
-        policy = await self._service.get_policy()
-        return self.get_policy_response(policy)
+        return await self._service.get_policy()
 
     async def update_policy(
         self,
