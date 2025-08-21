@@ -221,7 +221,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 latency = event_loop.time() - start_time
 
                 return (latency, fqdn[0].to_text())
-            except Exception:
+            except dns.resolver.NoAnswer:
                 return (float("inf"), None)
 
         fqdn_list = await asyncio.gather(
