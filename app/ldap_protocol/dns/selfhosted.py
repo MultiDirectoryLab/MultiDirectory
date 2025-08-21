@@ -8,7 +8,7 @@ import asyncio
 from dataclasses import asdict
 from ipaddress import IPv4Address, IPv6Address
 
-import dns.resolver
+import dns.asyncresolver
 
 from .base import (
     AbstractDNSManager,
@@ -193,20 +193,24 @@ class SelfHostedDNSManager(AbstractDNSManager):
         async def get_fqdn_and_latency(
             server: str,
         ) -> tuple[float, str | None]:
-            resolver = dns.resolver.Resolver()
+            resolver = dns.asyncresolver.Resolver()
             resolver.nameservers = [server]
+            resolver.timeout = 10
 
             try:
                 event_loop = asyncio.get_running_loop()
                 start_time = event_loop.time()
-                fqdn = resolver.resolve(
+                fqdn = await resolver.resolve(
                     reversed_ip,
                     "PTR",
                 )
                 latency = event_loop.time() - start_time
 
                 return (latency, fqdn[0].to_text())
-            except dns.resolver.NoAnswer:
+            except (
+                dns.asyncresolver.NoAnswer,
+                dns.asyncresolver.NXDOMAIN,
+            ):
                 return (float("inf"), None)
 
         fqdn_list = await asyncio.gather(
@@ -219,12 +223,14 @@ class SelfHostedDNSManager(AbstractDNSManager):
     async def check_forward_dns_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
+        host_dns_servers: list[str],
     ) -> DNSForwardServerStatus:
         str_dns_server_ip = str(dns_server_ip)
 
         try:
             fqdn = await self.find_forward_dns_fqdn(
                 str_dns_server_ip,
+                host_dns_servers,
             )
         except (dns.asyncresolver.NoAnswer, dns.asyncresolver.NXDOMAIN):
             return DNSForwardServerStatus(

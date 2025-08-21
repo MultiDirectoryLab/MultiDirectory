@@ -1221,7 +1221,7 @@ def create_record(
 
 
 @record_router.patch("")
-async def update_record(
+def update_record(
     data: DNSRecordUpdateRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:

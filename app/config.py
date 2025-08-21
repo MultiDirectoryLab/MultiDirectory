@@ -189,7 +189,7 @@ class Settings(BaseModel):
         return Settings(**os.environ)
 
     @cached_property
-    def HOST_DNS_SERVERS(self) -> list[str]: # noqa: N802
+    def HOST_DNS_SERVERS(self) -> list[str]:  # noqa: N802
         """Get resolv.conf path."""
         host_dns_servers: list[str] = []
         if os.path.exists("/resolv.conf"):
