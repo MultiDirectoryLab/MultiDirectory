@@ -687,7 +687,6 @@ class ModifyRequest(BaseRequest):
                 )
                 await password_use_cases.post_save_password_actions(
                     directory.user,
-                    session,
                 )
                 await kadmin.create_or_update_principal_pw(
                     directory.user.get_upn_prefix(),

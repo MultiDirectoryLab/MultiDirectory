@@ -233,10 +233,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             user.password = ctx.password_validator.get_password_hash(
                 new_password,
             )
-            await ctx.password_use_cases.post_save_password_actions(
-                user,
-                ctx.session,
-            )
+            await ctx.password_use_cases.post_save_password_actions(user)
             await ctx.session.execute(
                 update(Directory).where(Directory.id == user.directory_id),
             )

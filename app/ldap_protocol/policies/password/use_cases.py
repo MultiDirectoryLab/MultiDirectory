@@ -5,9 +5,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from itertools import islice
+from typing import cast
 
 from adaptix.conversion import get_converter
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.utils.const import NAN
@@ -22,6 +22,8 @@ _convert = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 
 class PasswordPolicyUseCases:
     """Password Policy Use Cases."""
+
+    NAN_ID = cast("int", "float(nan)")
 
     def __init__(
         self,
@@ -43,7 +45,7 @@ class PasswordPolicyUseCases:
 
     async def get_password_policy(self) -> "PasswordPolicyDTO":
         """Get or create password policy."""
-        return await self.password_policy_dao.get()
+        return await self.password_policy_dao.get(self.NAN_ID)
 
     async def create_policy(self) -> None:
         policy_dto = self.get_default_settings()
@@ -54,26 +56,24 @@ class PasswordPolicyUseCases:
         password_policy: PasswordPolicySchema,
     ) -> None:
         """Update Password Policy."""
-        await self.password_policy_dao.update(NAN, _convert(password_policy))
+        await self.password_policy_dao.update(
+            self.NAN_ID,
+            _convert(password_policy),
+        )
 
     async def reset_policy(self) -> None:
         """Reset (delete) default policy."""
-        await self.password_policy_dao.delete()
+        await self.password_policy_dao.delete(self.NAN_ID)
 
     async def post_save_password_actions(
         self,
         user: User,
-        session: AsyncSession,
     ) -> None:
         """Post save actions for password update.
 
         :param User user: user from db
-        :param AsyncSession session: db
         """
-        await self.password_policy_dao.post_save_password_actions(
-            user,
-            session,
-        )
+        await self.password_policy_dao.post_save_password_actions(user)
 
     async def check_expired_max_age(
         self,

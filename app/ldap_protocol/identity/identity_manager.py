@@ -224,10 +224,7 @@ class IdentityManager(AbstractService):
         user.password = self._password_validator.get_password_hash(
             new_password,
         )
-        await self._password_use_cases.post_save_password_actions(
-            user,
-            self._session,
-        )
+        await self._password_use_cases.post_save_password_actions(user)
         await self._session.commit()
 
     async def change_password(self, principal: str, new_password: str) -> None:

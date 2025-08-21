@@ -4,8 +4,9 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import cast
+
 from abstract_dao import AbstractService
-from ldap_protocol.utils.const import NAN
 
 from .dataclasses import PasswordPolicyDTO
 from .policies_dao import PasswordPolicyDAO
@@ -13,6 +14,8 @@ from .policies_dao import PasswordPolicyDAO
 
 class PasswordPolicyService(AbstractService):
     """Password policy service class for managing password policies."""
+
+    NAN_ID = cast("int", "float(nan)")
 
     def __init__(
         self,
@@ -23,7 +26,7 @@ class PasswordPolicyService(AbstractService):
 
     async def get_policy(self) -> PasswordPolicyDTO:
         """Get the current password policy."""
-        return await self._policy_dao.get()
+        return await self._policy_dao.get(self.NAN_ID)
 
     async def update_policy(
         self,
@@ -33,13 +36,13 @@ class PasswordPolicyService(AbstractService):
 
         :param PasswordPolicyDTO policy_dto: The new policy data.
         """
-        await self._policy_dao.update(NAN, policy_dto)
+        await self._policy_dao.update(self.NAN_ID, policy_dto)
 
     async def reset_policy(
         self,
     ) -> None:
         """Delete an existing password policy."""
-        await self._policy_dao.delete()
+        await self._policy_dao.delete(self.NAN_ID)
 
     async def create_policy(
         self,

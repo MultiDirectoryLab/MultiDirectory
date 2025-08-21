@@ -15,13 +15,13 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from ldap_protocol.utils.const import NAN
 from ldap_protocol.utils.helpers import ft_now
 from models import Attribute, PasswordPolicy, User
 
 from .dataclasses import PasswordPolicyDTO
 
-_convert = get_converter(PasswordPolicy, PasswordPolicyDTO)
+_convert_model_to_dto = get_converter(PasswordPolicy, PasswordPolicyDTO)
+_convert_dto_to_model = get_converter(PasswordPolicyDTO, PasswordPolicy)
 
 
 class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
@@ -39,9 +39,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
     async def get_all(self) -> list[PasswordPolicyDTO]:
         """Get all password policies."""
         policies = await self._session.scalars(select(PasswordPolicy))
-        return [_convert(policy) for policy in policies]
+        return [_convert_model_to_dto(policy) for policy in policies]
 
-    async def get(self, _id: int = NAN) -> PasswordPolicyDTO:
+    async def get(self, _id: int) -> PasswordPolicyDTO:
         """Get password policy by ID."""
         policy = await self._session.scalar(select(PasswordPolicy))
 
@@ -50,7 +50,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
             await self.create(policy_dto)
             policy = await self._session.scalar(select(PasswordPolicy))
 
-        return _convert(policy)  # type: ignore
+        return _convert_model_to_dto(policy)  # type: ignore
 
     async def create(
         self,
@@ -63,7 +63,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         if existing_policy:
             raise PasswordPolicyAlreadyExistsError("Policy already exists")
 
-        destination = PasswordPolicy(**asdict(dto))
+        destination = _convert_dto_to_model(dto)
         self._session.add(destination)
         await self._session.flush()
 
@@ -78,7 +78,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         )
         await self._session.commit()
 
-    async def delete(self, _id: int = NAN) -> None:
+    async def delete(self, _id: int) -> None:
         """Delete (reset) default policy."""
         await self.update(_id, self.get_default_policy())
 
@@ -118,17 +118,16 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
 
         return plset_attribute.value
 
-    @staticmethod
     async def post_save_password_actions(
+        self,
         user: User,
-        session: AsyncSession,
     ) -> None:
         """Post save actions for password update.
 
         :param User user: user from db
         :param AsyncSession session: db
         """
-        await session.execute(  # update bind reject attribute
+        await self._session.execute(  # update bind reject attribute
             update(Attribute)
             .values({"value": ft_now()})
             .filter_by(directory_id=user.directory_id, name="pwdLastSet"),
@@ -148,7 +147,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
                 name="userAccountControl",
             )
         )
-        await session.execute(query)
+        await self._session.execute(query)
 
         user.password_history.append(user.password)
-        await session.flush()
+        await self._session.flush()
