@@ -37,6 +37,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.utils.const import EXCEPTED_SEARCH_FIELDS
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -63,7 +64,6 @@ from .base import BaseRequest
 from .contexts import LDAPSearchRequestContext
 
 _attrs = ["tokengroups", "memberof", "member"]
-_sid_guid_fields = {"objectsid", "objectguid"}
 _attrs.extend(User.search_fields.keys())
 _attrs.extend(Directory.search_fields.keys())
 _ATTRS_TO_CLEAN = set(_attrs)
@@ -154,14 +154,6 @@ class SearchRequest(BaseRequest):
     @cached_property
     def requested_attrs(self) -> list[str]:
         return [attr.lower() for attr in self.attributes]
-
-    @property
-    def is_sid_requested(self) -> bool:
-        return self.all_attrs or "objectsid" in self.requested_attrs
-
-    @property
-    def is_guid_requested(self) -> bool:
-        return self.all_attrs or "objectguid" in self.requested_attrs
 
     async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
         attrs: dict[str, list[str]] = defaultdict(list)
@@ -363,6 +355,14 @@ class SearchRequest(BaseRequest):
     @cached_property
     def token_groups(self) -> bool:
         return "tokengroups" in self.requested_attrs
+
+    @property
+    def is_sid_requested(self) -> bool:
+        return self.all_attrs or "objectsid" in self.requested_attrs
+
+    @property
+    def is_guid_requested(self) -> bool:
+        return self.all_attrs or "objectguid" in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:
@@ -660,14 +660,14 @@ class SearchRequest(BaseRequest):
                 directory_fields = (
                     field
                     for field in directory.search_fields
-                    if field not in _sid_guid_fields
+                    if field not in EXCEPTED_SEARCH_FIELDS
                 )
             else:
                 directory_fields = (
                     attr
                     for attr in self.requested_attrs
                     if attr in directory.search_fields
-                    and attr not in _sid_guid_fields
+                    and attr not in EXCEPTED_SEARCH_FIELDS
                 )
 
             for attr in directory_fields:

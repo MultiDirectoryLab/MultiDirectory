@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import uuid
 from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
@@ -44,8 +43,8 @@ class SearchRequest(LDAPSearchRequest):
         return directory.object_sid
 
     @staticmethod
-    def get_directory_guid(directory: Directory) -> uuid.UUID:  # type: ignore
-        return directory.object_guid
+    def get_directory_guid(directory: Directory) -> str:  # type: ignore
+        return str(directory.object_guid)
 
     @final
     async def handle_api(  # type: ignore
