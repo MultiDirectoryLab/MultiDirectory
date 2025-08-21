@@ -661,13 +661,13 @@ class SearchRequest(BaseRequest):
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
             if self.all_attrs:
-                directory_fields = (field for field in _filtered_search_fields)
+                directory_fields = _filtered_search_fields
             else:
-                directory_fields = (
+                directory_fields = {
                     attr
                     for attr in self.requested_attrs
                     if attr in _filtered_search_fields
-                )
+                }
 
             for attr in directory_fields:
                 attribute = getattr(directory, attr)
