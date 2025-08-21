@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import os
 from dataclasses import asdict
 from ipaddress import IPv4Address, IPv6Address
 
@@ -26,14 +27,15 @@ from .base import (
 from .utils import logger_wraps
 
 HOST_DNS_SERVERS: list[str] = []
-with open("/resolv.conf") as resolv_file:
-    lines = resolv_file.readlines()
+if os.path.exists("/resolv.conf"):
+    with open("/resolv.conf") as resolv_file:
+        lines = resolv_file.readlines()
 
-    for line in lines:
-        if line.startswith("nameserver"):
-            parts = line.split()
-            if len(parts) == 2:
-                HOST_DNS_SERVERS.append(parts[1].strip())
+        for line in lines:
+            if line.startswith("nameserver"):
+                parts = line.split()
+                if len(parts) == 2:
+                    HOST_DNS_SERVERS.append(parts[1].strip())
 
 
 class SelfHostedDNSManager(AbstractDNSManager):
