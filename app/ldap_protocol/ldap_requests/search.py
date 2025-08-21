@@ -67,7 +67,7 @@ _attrs.extend(User.search_fields.keys())
 _attrs.extend(Directory.search_fields.keys())
 _ATTRS_TO_CLEAN = set(_attrs)
 
-_filtered_search_fields = set(Directory.search_fields) - {
+_filtered_dir_search_fields = set(Directory.search_fields) - {
     "objectsid",
     "objectguid",
 }
@@ -661,12 +661,12 @@ class SearchRequest(BaseRequest):
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
             if self.all_attrs:
-                directory_fields = _filtered_search_fields
+                directory_fields = _filtered_dir_search_fields
             else:
                 directory_fields = {
                     attr
                     for attr in self.requested_attrs
-                    if attr in _filtered_search_fields
+                    if attr in _filtered_dir_search_fields
                 }
 
             for attr in directory_fields:
