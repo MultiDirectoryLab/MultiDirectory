@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
-from typing import Annotated, cast
+from typing import Annotated
 
 from pydantic import AfterValidator
 

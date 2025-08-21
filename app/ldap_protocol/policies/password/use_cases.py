@@ -10,7 +10,6 @@ from typing import cast
 from adaptix.conversion import get_converter
 
 from api.password_policy.schemas import PasswordPolicySchema
-from ldap_protocol.utils.const import NAN
 from models import User
 
 from .dataclasses import PasswordPolicyDTO
@@ -47,8 +46,12 @@ class PasswordPolicyUseCases:
         """Get or create password policy."""
         return await self.password_policy_dao.get(self.NAN_ID)
 
-    async def create_policy(self) -> None:
-        policy_dto = self.get_default_settings()
+    async def create_policy(
+        self,
+        policy_dto: PasswordPolicyDTO | None = None,
+    ) -> None:
+        if not policy_dto:
+            policy_dto = self.get_default_settings()
         await self.password_policy_dao.create(policy_dto)
 
     async def update_policy(
@@ -115,7 +118,7 @@ class PasswordPolicyUseCases:
         :param str password: new raw password
         :return list[str]: error messages
         """
-        password_policy = await self.password_policy_dao.get()
+        password_policy = await self.password_policy_dao.get(self.NAN_ID)
         return await self.validate_password(
             password,
             password_policy,

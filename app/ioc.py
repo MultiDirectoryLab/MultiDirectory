@@ -83,7 +83,6 @@ from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
-    PasswordPolicyService,
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
@@ -311,7 +310,6 @@ class MainProvider(Provider):
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
-    password_service = provide(PasswordPolicyService, scope=Scope.REQUEST)
     password_policies_adapter = provide(
         PasswordPoliciesAdapter,
         scope=Scope.REQUEST,

@@ -14,13 +14,13 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyNotFoundError,
 )
-from ldap_protocol.policies.password.service import PasswordPolicyService
+from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 _convert_dto_to_schema = get_converter(PasswordPolicyDTO, PasswordPolicySchema)
 
 
-class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
+class PasswordPoliciesAdapter(BaseAdapter):
     """Adapter for password policies."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -28,9 +28,13 @@ class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
         PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
     }
 
+    def __init__(self, use_cases: PasswordPolicyUseCases) -> None:
+        """Initialize the password policies adapter with use case layer."""
+        self._use_cases = use_cases
+
     async def get_policy(self) -> PasswordPolicySchema:
         """Get the current password policy."""
-        dto = await self._service.get_policy()
+        dto = await self._use_cases.get_password_policy()
         return _convert_dto_to_schema(dto)
 
     async def update_policy(
@@ -38,17 +42,17 @@ class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
         policy: PasswordPolicySchema,
     ) -> None:
         """Update an existing audit policy."""
-        await self._service.update_policy(_convert_schema_to_dto(policy))
+        await self._use_cases.update_policy(policy)
 
     async def reset_policy(
         self,
     ) -> None:
         """Update an existing audit policy."""
-        await self._service.reset_policy()
+        await self._use_cases.reset_policy()
 
     async def create_policy(
         self,
         policy: PasswordPolicySchema,
     ) -> None:
         """Create current policy setting."""
-        await self._service.create_policy(_convert_schema_to_dto(policy))
+        await self._use_cases.create_policy(_convert_schema_to_dto(policy))
