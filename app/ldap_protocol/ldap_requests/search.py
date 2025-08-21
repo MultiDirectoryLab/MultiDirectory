@@ -37,7 +37,6 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.utils.const import EXCEPTED_SEARCH_FIELDS
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -67,6 +66,11 @@ _attrs = ["tokengroups", "memberof", "member"]
 _attrs.extend(User.search_fields.keys())
 _attrs.extend(Directory.search_fields.keys())
 _ATTRS_TO_CLEAN = set(_attrs)
+
+_filtered_search_fields = set(Directory.search_fields) - {
+    "objectsid",
+    "objectguid",
+}
 
 
 class SearchRequest(BaseRequest):
@@ -657,17 +661,12 @@ class SearchRequest(BaseRequest):
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
             if self.all_attrs:
-                directory_fields = (
-                    field
-                    for field in directory.search_fields
-                    if field not in EXCEPTED_SEARCH_FIELDS
-                )
+                directory_fields = (field for field in _filtered_search_fields)
             else:
                 directory_fields = (
                     attr
                     for attr in self.requested_attrs
-                    if attr in directory.search_fields
-                    and attr not in EXCEPTED_SEARCH_FIELDS
+                    if attr in _filtered_search_fields
                 )
 
             for attr in directory_fields:
