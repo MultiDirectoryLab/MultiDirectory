@@ -311,7 +311,6 @@ class AbstractDNSManager(ABC):
     async def check_forward_dns_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
-        resolv_conf_path: str,
     ) -> DNSForwardServerStatus:
         raise DNSNotImplementedError
 

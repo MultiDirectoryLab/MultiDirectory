@@ -26,6 +26,16 @@ from .base import (
 )
 from .utils import logger_wraps
 
+HOST_DNS_SERVERS: list[str] = []
+with open("/resolv.conf") as resolv_file:
+    lines = resolv_file.readlines()
+
+    for line in lines:
+        if line.startswith("nameserver"):
+            parts = line.split()
+            if len(parts) == 2:
+                HOST_DNS_SERVERS.append(parts[1].strip())
+
 
 class SelfHostedDNSManager(AbstractDNSManager):
     """Manager for selfhosted Bind9 DNS server."""
@@ -179,24 +189,9 @@ class SelfHostedDNSManager(AbstractDNSManager):
             if response.status_code != 200:
                 raise DNSError(response.text)
 
-    def get_dns_servers(self, resolv_conf_path: str) -> list[str]:
-        """Get list of DNS servers."""
-        dns_servers = []
-        with open(resolv_conf_path) as resolv_file:
-            lines = resolv_file.readlines()
-
-        for line in lines:
-            if line.startswith("nameserver"):
-                parts = line.split()
-                if len(parts) == 2:
-                    dns_servers.append(parts[1].strip())
-
-        return dns_servers
-
     @logger_wraps()
     async def find_forward_dns_fqdn(
         self,
-        dns_servers: list[str],
         dns_server_ip: IPv4Address | IPv6Address,
     ) -> str | None:
         """Find forward DNS FQDN."""
@@ -225,7 +220,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 return (float("inf"), None)
 
         fqdn_list = await asyncio.gather(
-            *(get_fqdn_and_latency(server) for server in dns_servers),
+            *(get_fqdn_and_latency(server) for server in HOST_DNS_SERVERS),
         )
         fqdn_list.sort(key=lambda x: x[0])
         return fqdn_list[0][1] if fqdn_list else None
@@ -234,18 +229,11 @@ class SelfHostedDNSManager(AbstractDNSManager):
     async def check_forward_dns_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
-        resolv_conf_path: str,
     ) -> DNSForwardServerStatus:
         str_dns_server_ip = str(dns_server_ip)
-        dns_servers = self.get_dns_servers(resolv_conf_path)
-        log.info(f"{dns_servers}")
-
-        if not dns_servers:
-            raise ValueError("No DNS servers found in resolv.conf")
 
         try:
             fqdn = await self.find_forward_dns_fqdn(
-                dns_servers,
                 str_dns_server_ip,
             )
         except (dns.asyncresolver.NoAnswer, dns.asyncresolver.NXDOMAIN):
