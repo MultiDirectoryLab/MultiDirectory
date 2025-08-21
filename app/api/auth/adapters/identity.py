@@ -58,16 +58,24 @@ class IdentityFastAPIAdapter(
         :raises HTTPException: 426 if MFA is required
         :return: None
         """
-        key = await self._service.login(
+        key, is_mfa_redirect = await self._service.login(
             form=form,
             ip=ip,
             user_agent=user_agent,
         )
-        await self.set_session_cookie(
-            response,
-            self._service.key_ttl,
-            key,
-        )
+        if is_mfa_redirect:
+            response.status_code = status.HTTP_426_UPGRADE_REQUIRED
+            self.set_mfa_session_cookie(
+                response,
+                key,
+                self._service.key_ttl,
+            )
+        else:
+            self.set_session_cookie(
+                response,
+                key,
+                self._service.key_ttl,
+            )
 
     async def reset_password(
         self,
