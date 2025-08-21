@@ -12,6 +12,8 @@ add_env_var() {
     echo "${var_name}=${var_value}" >> .env
 }
 
+cp /etc/resolv.conf resolv.conf
+
 # DEFAULT_NAMESERVER
 if ! get_env_var "DEFAULT_NAMESERVER"; then
     while true; do

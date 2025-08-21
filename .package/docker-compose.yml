@@ -138,6 +138,7 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
+      - ./resolv.conf:/resolv.conf
     hostname: api_server
     environment:
       USE_CORE_TLS: 1
@@ -304,6 +305,8 @@ services:
     tty: true
     env_file:
       - .env
+    environment:
+      - USE_CONFIG_FILE_LOGGING=true
     depends_on:
       ldap_server:
         condition: service_healthy

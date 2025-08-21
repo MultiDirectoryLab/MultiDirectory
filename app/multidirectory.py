@@ -37,6 +37,7 @@ from api import (
 )
 from api.exception_handlers import (
     handle_db_connect_error,
+    handle_dns_api_error,
     handle_dns_error,
     handle_instance_cant_modify_error,
     handle_instance_not_found_error,
@@ -53,7 +54,11 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.dns import DNSConnectionError, DNSNotImplementedError
+from ldap_protocol.dns import (
+    DNSConnectionError,
+    DNSError,
+    DNSNotImplementedError,
+)
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
@@ -122,6 +127,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
     app.add_exception_handler(DNSException, handle_dns_error)
     app.add_exception_handler(DNSConnectionError, handle_dns_error)
+    app.add_exception_handler(DNSError, handle_dns_api_error)
     app.add_exception_handler(
         InstanceNotFoundError,
         handle_instance_not_found_error,

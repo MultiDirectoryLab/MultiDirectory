@@ -6,6 +6,7 @@ from .base import (
     DNS_MANAGER_ZONE_NAME,
     AbstractDNSManager,
     DNSConnectionError,
+    DNSError,
     DNSForwardServerStatus,
     DNSForwardZone,
     DNSManagerSettings,
@@ -67,4 +68,5 @@ __all__ = [
     "DNS_MANAGER_ZONE_NAME",
     "DNS_MANAGER_STATE_NAME",
     "DNSNotImplementedError",
+    "DNSError",
 ]

@@ -187,3 +187,21 @@ class Settings(BaseModel):
     def from_os(cls) -> "Settings":
         """Get cls from environ."""
         return Settings(**os.environ)
+
+    @cached_property
+    def HOST_DNS_SERVERS(self) -> list[str]:  # noqa: N802
+        """Get resolv.conf path."""
+        host_dns_servers: list[str] = []
+        if os.path.exists("/resolv.conf"):
+            with open("/resolv.conf") as resolv_file:
+                lines = resolv_file.readlines()
+
+                for line in lines:
+                    if line.startswith("nameserver"):
+                        parts = line.split()
+                        if len(parts) == 2:
+                            host_dns_servers.append(parts[1].strip())
+
+            return host_dns_servers
+
+        return ["1.1.1.1"]

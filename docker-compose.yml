@@ -237,6 +237,7 @@ services:
     restart: unless-stopped
     environment:
       - DEFAULT_NAMESERVER=127.0.0.2
+      - USE_CONFIG_FILE_LOGGING=true
     volumes:
       - dns_server_file:/opt/
       - dns_server_config:/etc/bind/

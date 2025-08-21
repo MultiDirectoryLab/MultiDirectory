@@ -50,6 +50,10 @@ class DNSConnectionError(ConnectionError):
     """API Error."""
 
 
+class DNSError(Exception):
+    """DNS Error."""
+
+
 class DNSNotImplementedError(NotImplementedError):
     """API Not Implemented Error."""
 
@@ -307,6 +311,7 @@ class AbstractDNSManager(ABC):
     async def check_forward_dns_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
+        host_dns_servers: list[str],
     ) -> DNSForwardServerStatus:
         raise DNSNotImplementedError
 

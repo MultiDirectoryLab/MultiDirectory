@@ -4,19 +4,21 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 import logging
 import os
 import re
 import subprocess
+import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, NoReturn
 
 import dns
 import dns.zone
 import jinja2
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +30,7 @@ TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
 )
 
 ZONE_FILES_DIR = "/opt"
+NAMED_CONF = "/etc/bind/named.conf"
 NAMED_LOCAL = "/etc/bind/named.conf.local"
 NAMED_OPTIONS = "/etc/bind/named.conf.options"
 
@@ -41,6 +44,10 @@ FIRST_SETUP_RECORDS = [
     {"name": "_kpasswd._tcp.", "value": "0 0 464 ", "type": "SRV"},
     {"name": "_kpasswd._udp.", "value": "0 0 464 ", "type": "SRV"},
 ]
+
+
+class DNSError(Exception):
+    """Base class for DNS exceptions."""
 
 
 class DNSZoneType(StrEnum):
@@ -227,8 +234,46 @@ class BindDNSServerManager:
             zone (dns.zone.Zone): Zone object.
 
         """
+        error = self._check_zone(zone.to_text(), zone_name)
+        if error:
+            raise DNSError(
+                f"Error while writing zone data to file {zone_name}: {error}",
+            )
+
         zone.to_file(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
         self.reload(zone_name)
+
+    def _check_config(self, config: str) -> str | None:
+        with tempfile.NamedTemporaryFile(mode="w") as tf:
+            tf.write(config)
+            tmp_path = tf.name
+
+            result = subprocess.run(  # noqa: S603
+                ["/usr/bin/named-checkconf", tmp_path],
+                capture_output=True,
+                text=True,
+            )
+
+            return result.stderr
+
+    def _check_zone(self, zonefile: str, zone_name: str) -> str | None:
+        with tempfile.NamedTemporaryFile(mode="w") as zf:
+            zf.write(zonefile)
+            tmp_path = zf.name
+
+            result = subprocess.run(  # noqa: S603
+                [
+                    "/usr/bin/named-checkzone",
+                    "-i",
+                    "none",
+                    zone_name,
+                    tmp_path,
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+            return result.stderr
 
     def _get_base_domain(self) -> str:
         """Get base domain.
@@ -249,6 +294,9 @@ class BindDNSServerManager:
         """
 
         matches = re.search(pattern, named_local, re.DOTALL | re.VERBOSE)
+
+        if not matches:
+            raise DNSError("Base domain not found")
 
         return matches.group(1)
 
@@ -296,6 +344,13 @@ class BindDNSServerManager:
                 nameserver=nameserver,
                 ttl=params_dict.get("ttl", 604800),
             )
+
+            zone_error = self._check_zone(zone_file, zone_name)
+            if zone_error:
+                raise DNSError(
+                    f"Error in zonefile during adding zone: {zone_error}",
+                )
+
             with open(
                 os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"),
                 "w",
@@ -350,6 +405,12 @@ class BindDNSServerManager:
                 zone_name,
                 param_name,
                 param_value,
+            )
+
+        config_error = self._check_config(zone_options)
+        if config_error:
+            raise DNSError(
+                f"Error with config during adding zone: {config_error}",
             )
 
         with open(NAMED_LOCAL, "a") as file:
@@ -558,8 +619,16 @@ class BindDNSServerManager:
                     param_value,
                 )
 
+        error = self._check_config(named_local)
+        if error:
+            raise DNSError(
+                f"Error while updating zone {zone_name}: {error}",
+            )
+
         with open(NAMED_LOCAL, "w") as file:
             file.write(named_local)
+
+        self.restart()
 
     def delete_zone(self, zone_name: str) -> None:
         """Delete an existing zone.
@@ -607,11 +676,19 @@ class BindDNSServerManager:
             named_local,
             flags=re.MULTILINE | re.VERBOSE | re.DOTALL,
         )
+
+        error = self._check_config(named_local)
+        if error:
+            raise DNSError(
+                f"Error while deleting zone {zone_name}: {error}",
+            )
+
         with open(NAMED_LOCAL, "w") as file:
             file.write(named_local)
 
         if zone_type != DNSZoneType.FORWARD:
-            os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(os.path.join(ZONE_FILES_DIR, f"{zone_name}.zone"))
 
         self.restart()
 
@@ -663,11 +740,12 @@ class BindDNSServerManager:
             None,
             params=[],
         )
+
         for record in FIRST_SETUP_RECORDS:
             self.add_record(
                 DNSRecord(
-                    name=record.get("name") + zone_name,
-                    value=record.get("value") + zone_name,
+                    name=f"{record.get('name')}{zone_name}",
+                    value=f"{record.get('value')}{zone_name}.",
                     ttl=604800,
                 ),
                 record.get("type"),
@@ -700,8 +778,10 @@ class BindDNSServerManager:
             named_local_settings = file.read()
 
         pattern = rf'zone\s*"{re.escape(zone_name)}"\s*{{\s*type\s*([^;]+);'
-        zone_type_match = re.search(pattern, named_local_settings)
-        return zone_type_match.group(1).strip()
+        match = re.search(pattern, named_local_settings)
+        if not match:
+            raise DNSError(f"Zone not found: {zone_name}")
+        return DNSZoneType(match.group(1).strip())
 
     def get_all_records_from_zone(
         self,
@@ -1011,6 +1091,12 @@ class BindDNSServerManager:
                     named_options,
                 )
 
+        error = self._check_config(named_options)
+        if error:
+            raise DNSError(
+                f"Error while updating DNS settings: {error}",
+            )
+
         with open(NAMED_OPTIONS, "w") as file:
             file.write(named_options)
 
@@ -1047,6 +1133,8 @@ class BindDNSServerManager:
         for param_name in DNSServerParamName:
             pattern = rf"\b{re.escape(param_name)}\s+([^;\n{{]+|{{[^}}]+}})"
             matched_param_value = re.search(pattern, named_options)
+            if not matched_param_value:
+                continue
             result.append(
                 DNSServerParam(
                     name=param_name,
@@ -1133,12 +1221,12 @@ def create_record(
 
 
 @record_router.patch("")
-async def update_record(
+def update_record(
     data: DNSRecordUpdateRequest,
     dns_manager: Annotated[BindDNSServerManager, Depends(get_dns_manager)],
 ) -> None:
     """Update existing DNS record."""
-    await dns_manager.update_record(
+    dns_manager.update_record(
         old_record=DNSRecord(
             data.record_name,
             data.record_value,
@@ -1214,6 +1302,14 @@ def setup_server(
     dns_manager.first_setup(data.zone_name)
 
 
+async def handle_dns_error(
+    request: Request,  # noqa: ARG001
+    exc: Exception,
+) -> NoReturn:
+    """Handle DNS API error."""
+    raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
 def create_app() -> FastAPI:
     """Create FastAPI app."""
     app = FastAPI(
@@ -1224,4 +1320,7 @@ def create_app() -> FastAPI:
     app.include_router(record_router)
     app.include_router(zone_router)
     app.include_router(server_router)
+
+    app.add_exception_handler(DNSError, handler=handle_dns_error)
+
     return app
