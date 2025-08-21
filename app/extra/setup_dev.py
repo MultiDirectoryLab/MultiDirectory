@@ -34,7 +34,7 @@ from models import (
     NetworkPolicy,
     User,
 )
-from security import get_password_hash
+from password_manager import PasswordValidator
 
 
 async def _get_group(name: str, session: AsyncSession) -> Group:
@@ -53,6 +53,7 @@ async def _create_dir(
     data: dict,
     session: AsyncSession,
     domain: Directory,
+    password_validator: PasswordValidator,
     parent: Directory | None = None,
 ) -> None:
     """Create data recursively."""
@@ -117,7 +118,9 @@ async def _create_dir(
             user_principal_name=user_data["user_principal_name"],
             display_name=user_data["display_name"],
             mail=user_data["mail"],
-            password=get_password_hash(user_data["password"]),
+            password=password_validator.get_password_hash(
+                user_data["password"],
+            ),
         )
         session.add(user)
         await session.flush()
@@ -160,13 +163,20 @@ async def _create_dir(
 
     if "children" in data:
         for n_data in data["children"]:
-            await _create_dir(n_data, session, domain, dir_)
+            await _create_dir(
+                n_data,
+                session,
+                domain,
+                password_validator,
+                dir_,
+            )
 
 
 async def setup_enviroment(
     session: AsyncSession,
     *,
     data: list,
+    password_validator: PasswordValidator,
     dn: str = "multifactor.dev",
 ) -> None:
     """Create directories and users for enviroment."""
@@ -216,7 +226,13 @@ async def setup_enviroment(
 
     try:
         for unit in data:
-            await _create_dir(unit, session, domain, domain)
+            await _create_dir(
+                unit,
+                session,
+                domain,
+                password_validator,
+                domain,
+            )
     except Exception:
         import traceback
 

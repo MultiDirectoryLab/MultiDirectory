@@ -188,6 +188,7 @@ max-complexity = 15
 
 [tool.ruff.lint.isort]
 known-first-party = [
+    "password_manager",
     "ldap_protocol",
     "abstract_dao",
     "client",

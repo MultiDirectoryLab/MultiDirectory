@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.utils.queries import get_user
 from models import User
-from security import verify_password
+from password_manager import PasswordValidator
 
 from .base import SaslAuthentication, SASLMethod
 
@@ -23,7 +23,11 @@ class SaslPLAINAuthentication(SaslAuthentication):
     credentials: bytes
     username: str | None = None
 
-    def is_valid(self, user: User | None) -> bool:
+    def is_valid(
+        self,
+        user: User | None,
+        password_validator: PasswordValidator,
+    ) -> bool:
         """Check if pwd is valid for user.
 
         :param User | None user: indb user
@@ -31,7 +35,7 @@ class SaslPLAINAuthentication(SaslAuthentication):
         """
         password = getattr(user, "password", None)
         if password is not None:
-            return verify_password(
+            return password_validator.verify_password(
                 self.password.get_secret_value(),
                 password,
             )

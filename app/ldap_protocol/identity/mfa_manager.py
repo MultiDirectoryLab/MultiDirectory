@@ -51,6 +51,7 @@ from ldap_protocol.policies.network_policy import (
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from models import CatalogueSetting, User
+from password_manager import PasswordValidator
 
 
 class MFAManager(AbstractService):
@@ -65,6 +66,7 @@ class MFAManager(AbstractService):
         ldap_mfa_api: LDAPMultiFactorAPI,
         repository: SessionRepository,
         monitor: AuditMonitorUseCase,
+        password_validator: PasswordValidator,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -81,6 +83,7 @@ class MFAManager(AbstractService):
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
         self._monitor = monitor
+        self._password_validator = password_validator
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -259,6 +262,7 @@ class MFAManager(AbstractService):
             self._session,
             form.username,
             form.password,
+            self._password_validator,
         )
         if not user:
             raise InvalidCredentialsError()

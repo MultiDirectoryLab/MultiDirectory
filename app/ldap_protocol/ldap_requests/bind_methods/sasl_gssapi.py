@@ -18,6 +18,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from models import User
+from password_manager import PasswordValidator
 
 from .base import (
     LDAPBindErrors,
@@ -79,7 +80,11 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ticket: bytes = b""
     _ldap_session: LDAPSession
 
-    def is_valid(self, user: User | None) -> bool:  # noqa: ARG002
+    def is_valid(
+        self,
+        user: User | None,  # noqa: ARG002
+        password_validator: PasswordValidator,  # noqa: ARG002
+    ) -> bool:
         """Check if GSSAPI token is valid.
 
         :param User | None user: indb user
@@ -101,9 +106,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         :param list[ASN1Row] data: data
         :return SaslGSSAPIAuthentication
         """
-        return cls(
-            ticket=data[1].value if len(data) > 1 else b"",
-        )
+        return cls(ticket=data[1].value if len(data) > 1 else b"")
 
     async def _init_security_context(
         self,

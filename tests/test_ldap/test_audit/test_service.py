@@ -7,13 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 import pytest_asyncio
 
+from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 from ldap_protocol.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
-)
-from ldap_protocol.policies.audit.enums import (
-    AuditDestinationProtocolType,
-    AuditDestinationServiceType,
 )
 from ldap_protocol.policies.audit.exception import (
     AuditAlreadyExistsError,

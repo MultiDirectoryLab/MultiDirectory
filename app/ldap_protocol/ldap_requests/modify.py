@@ -25,10 +25,8 @@ from ldap_protocol.kerberos import (
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
-from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
-    post_save_password_actions,
-)
+from ldap_protocol.policies.password import PasswordPolicyUseCases
+from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -46,7 +44,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from models import Attribute, Directory, Group, User
-from security import get_password_hash
+from password_manager import PasswordValidator
 
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
@@ -114,7 +112,7 @@ class ModifyRequest(BaseRequest):
     def _update_password_expiration(
         self,
         change: Changes,
-        policy: PasswordPolicySchema,
+        policy: PasswordPolicyDTO,
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
@@ -151,7 +149,7 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        policy = await PasswordPolicySchema.get_policy_settings(ctx.session)
+        policy = await ctx.password_use_cases.get_password_policy()
         query = self._get_dir_query()
         query = ctx.access_manager.mutate_query_with_ace_load(
             user_role_ids=ctx.ldap_session.user.role_ids,
@@ -203,6 +201,8 @@ class ModifyRequest(BaseRequest):
                     ctx.kadmin,
                     ctx.settings,
                     ctx.ldap_session.user,
+                    ctx.password_use_cases,
+                    ctx.password_validator,
                 )
 
                 try:
@@ -528,6 +528,8 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         current_user: UserSchema,
+        password_use_cases: PasswordPolicyUseCases,
+        password_validator: PasswordValidator,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -670,30 +672,22 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                validator = await PasswordPolicySchema.get_policy_settings(
-                    session,
-                )
-
-                p_last_set = await validator.get_pwd_last_set(
-                    session,
-                    directory.id,
-                )
-
-                errors = await validator.validate_password_with_policy(
+                errors = await password_use_cases.check_password_violations(
                     password=value,
                     user=directory.user,
                 )
-
-                if validator.validate_min_age(p_last_set):
-                    errors.append("Minimum age violation")
 
                 if errors:
                     raise PermissionError(
                         f"Password policy violation: {errors}",
                     )
 
-                directory.user.password = get_password_hash(value)
-                await post_save_password_actions(directory.user, session)
+                directory.user.password = password_validator.get_password_hash(
+                    value,
+                )
+                await password_use_cases.post_save_password_actions(
+                    directory.user,
+                )
                 await kadmin.create_or_update_principal_pw(
                     directory.user.get_upn_prefix(),
                     value,

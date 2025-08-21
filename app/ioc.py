@@ -23,6 +23,7 @@ from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.auth.utils import get_ip_from_request
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
+from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
@@ -80,12 +81,18 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
+from ldap_protocol.policies.password import (
+    PasswordPolicyDAO,
+    PasswordPolicyUseCases,
+    PasswordPolicyValidator,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
+from password_manager.password_validator import PasswordValidator
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -296,6 +303,18 @@ class MainProvider(Provider):
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+
+    password_policy_validator = provide(
+        PasswordPolicyValidator,
+        scope=Scope.REQUEST,
+    )
+    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
+    password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
+    password_policies_adapter = provide(
+        PasswordPoliciesAdapter,
+        scope=Scope.REQUEST,
+    )
+    password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)

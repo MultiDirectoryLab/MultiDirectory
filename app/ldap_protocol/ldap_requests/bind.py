@@ -35,7 +35,6 @@ from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
 )
-from ldap_protocol.policies.password_policy import PasswordPolicySchema
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -166,7 +165,10 @@ class BindRequest(BaseRequest):
                 },
             },
         )
-        if not user or not self.authentication_choice.is_valid(user):
+        if not user or not self.authentication_choice.is_valid(
+            user,
+            ctx.password_validator,
+        ):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
@@ -184,19 +186,19 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        policy_pwd = await PasswordPolicySchema.get_policy_settings(
-            ctx.session,
+        pwd_last_set = await ctx.password_use_cases.get_or_create_pwd_last_set(
+            user.directory_id,
         )
-        p_last_set = await policy_pwd.get_pwd_last_set(
-            session=ctx.session,
-            directory_id=user.directory_id,
+        password_policy = await ctx.password_use_cases.get_password_policy()
+        is_pwd_expired = await ctx.password_use_cases.check_expired_max_age(
+            password_policy,
+            user,
         )
-        pwd_expired = policy_pwd.validate_max_age(p_last_set)
 
         is_krb_user = await check_kerberos_group(user, ctx.session)
 
         required_pwd_change = (
-            p_last_set == "0" or pwd_expired
+            pwd_last_set == "0" or is_pwd_expired  # noqa: S105
         ) and not is_krb_user
 
         if user.is_expired():
@@ -254,7 +256,10 @@ class UnbindRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.UNBIND
 
     @classmethod
-    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
+    def from_data(
+        cls,
+        data: dict[str, list[ASN1Row]],  # noqa: ARG003
+    ) -> "UnbindRequest":
         """Unbind request has no body."""
         return cls()
 

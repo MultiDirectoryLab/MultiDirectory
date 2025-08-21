@@ -63,7 +63,6 @@ async def test_first_setup_and_oauth(
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is False
-
     response = await unbound_http_client.post(
         "/auth/setup",
         json={

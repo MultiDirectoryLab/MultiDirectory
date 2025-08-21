@@ -20,13 +20,8 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
-from ldap_protocol.policies.password_policy import (
-    PasswordPolicySchema,
-    post_save_password_actions,
-)
 from ldap_protocol.utils.queries import get_user
 from models import Directory, User
-from security import get_password_hash, verify_password
 
 from .base import BaseRequest
 from .contexts import LDAPExtendedRequestContext
@@ -200,20 +195,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
-        validator = await PasswordPolicySchema.get_policy_settings(ctx.session)
-
-        errors = await validator.validate_password_with_policy(
+        errors = await ctx.password_use_cases.check_password_violations(
             password=new_password,
             user=user,
         )
-
-        p_last_set = await validator.get_pwd_last_set(
-            ctx.session,
-            user.directory_id,
-        )
-
-        if validator.validate_min_age(p_last_set):
-            errors.append("Minimum age violation")
 
         if ctx.ldap_session.user and self.user_identity:
             pwd_ace = await ctx.role_use_case.get_password_ace(
@@ -231,7 +216,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
         if not errors and (
             user.password is None
-            or verify_password(old_password, user.password)
+            or ctx.password_validator.verify_password(
+                old_password,
+                user.password,
+            )
         ):
             try:
                 await ctx.kadmin.create_or_update_principal_pw(
@@ -242,8 +230,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 await ctx.session.rollback()
                 raise PermissionError("Kadmin Error")
 
-            user.password = get_password_hash(new_password)
-            await post_save_password_actions(user, ctx.session)
+            user.password = ctx.password_validator.get_password_hash(
+                new_password,
+            )
+            await ctx.password_use_cases.post_save_password_actions(user)
             await ctx.session.execute(
                 update(Directory).where(Directory.id == user.directory_id),
             )

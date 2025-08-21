@@ -42,11 +42,14 @@ from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from enums import AceType, KindType, MFAFlags, RoleScope
-from ldap_protocol.policies.audit.enums import (
+from enums import (
+    AceType,
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
+    KindType,
+    MFAFlags,
+    RoleScope,
 )
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
@@ -1153,7 +1156,6 @@ class PasswordPolicy(Base):
         unique=True,
         server_default="Default Policy",
     )
-
     password_history_length: Mapped[int] = mapped_column(
         nullable=False,
         server_default="4",

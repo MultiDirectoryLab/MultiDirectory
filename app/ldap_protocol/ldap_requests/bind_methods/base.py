@@ -15,6 +15,7 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
 from models import User
+from password_manager import PasswordValidator
 
 
 class SASLMethod(StrEnum):
@@ -90,7 +91,11 @@ class AbstractLDAPAuth(ABC, BaseModel):
         """Abstract method id."""
 
     @abstractmethod
-    def is_valid(self, user: User) -> bool:
+    def is_valid(
+        self,
+        user: User,
+        password_validator: PasswordValidator,
+    ) -> bool:
         """Validate state."""
 
     @abstractmethod
