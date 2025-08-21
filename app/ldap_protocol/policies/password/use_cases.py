@@ -22,7 +22,7 @@ _convert = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 class PasswordPolicyUseCases:
     """Password Policy Use Cases."""
 
-    NAN_ID = cast("int", "float(nan)")
+    _NAN_ID = cast("int", "float(nan)")
 
     def __init__(
         self,
@@ -44,7 +44,7 @@ class PasswordPolicyUseCases:
 
     async def get_password_policy(self) -> "PasswordPolicyDTO":
         """Get or create password policy."""
-        return await self.password_policy_dao.get(self.NAN_ID)
+        return await self.password_policy_dao.get(self._NAN_ID)
 
     async def create_policy(
         self,
@@ -60,13 +60,13 @@ class PasswordPolicyUseCases:
     ) -> None:
         """Update Password Policy."""
         await self.password_policy_dao.update(
-            self.NAN_ID,
+            self._NAN_ID,
             _convert(password_policy),
         )
 
     async def reset_policy(self) -> None:
         """Reset (delete) default policy."""
-        await self.password_policy_dao.delete(self.NAN_ID)
+        await self.password_policy_dao.delete(self._NAN_ID)
 
     async def post_save_password_actions(
         self,
@@ -118,7 +118,7 @@ class PasswordPolicyUseCases:
         :param str password: new raw password
         :return list[str]: error messages
         """
-        password_policy = await self.password_policy_dao.get(self.NAN_ID)
+        password_policy = await self.password_policy_dao.get(self._NAN_ID)
         return await self.validate_password(
             password,
             password_policy,

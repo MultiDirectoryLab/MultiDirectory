@@ -20,7 +20,7 @@ _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 _convert_dto_to_schema = get_converter(PasswordPolicyDTO, PasswordPolicySchema)
 
 
-class PasswordPoliciesAdapter(BaseAdapter):
+class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyUseCases]):  # type: ignore
     """Adapter for password policies."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -28,13 +28,9 @@ class PasswordPoliciesAdapter(BaseAdapter):
         PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
     }
 
-    def __init__(self, use_cases: PasswordPolicyUseCases) -> None:
-        """Initialize the password policies adapter with use case layer."""
-        self._use_cases = use_cases
-
     async def get_policy(self) -> PasswordPolicySchema:
         """Get the current password policy."""
-        dto = await self._use_cases.get_password_policy()
+        dto = await self._service.get_password_policy()
         return _convert_dto_to_schema(dto)
 
     async def update_policy(
@@ -42,17 +38,17 @@ class PasswordPoliciesAdapter(BaseAdapter):
         policy: PasswordPolicySchema,
     ) -> None:
         """Update an existing audit policy."""
-        await self._use_cases.update_policy(policy)
+        await self._service.update_policy(policy)
 
     async def reset_policy(
         self,
     ) -> None:
         """Update an existing audit policy."""
-        await self._use_cases.reset_policy()
+        await self._service.reset_policy()
 
     async def create_policy(
         self,
         policy: PasswordPolicySchema,
     ) -> None:
         """Create current policy setting."""
-        await self._use_cases.create_policy(_convert_schema_to_dto(policy))
+        await self._service.create_policy(_convert_schema_to_dto(policy))

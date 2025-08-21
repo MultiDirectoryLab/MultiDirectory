@@ -6,7 +6,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import asdict
 
-from adaptix.conversion import get_converter
+from adaptix import P
+from adaptix.conversion import (
+    get_converter,
+    link_function,
+    allow_unlinked_optional,
+)
 from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +26,13 @@ from models import Attribute, PasswordPolicy, User
 from .dataclasses import PasswordPolicyDTO
 
 _convert_model_to_dto = get_converter(PasswordPolicy, PasswordPolicyDTO)
-_convert_dto_to_model = get_converter(PasswordPolicyDTO, PasswordPolicy)
+_convert_dto_to_model = get_converter(
+    PasswordPolicyDTO,
+    PasswordPolicy,
+    recipe=[
+        allow_unlinked_optional(P[PasswordPolicy].id),
+    ],
+)
 
 
 class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
