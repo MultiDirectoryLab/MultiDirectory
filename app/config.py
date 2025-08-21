@@ -112,6 +112,7 @@ class Settings(BaseModel):
     MFA_MAX_KEEPALIVE: int = 15
     MFA_TOKEN_LEEWAY: int = 15
     MFA_API_SOURCE: Literal["dev", "ru"] = "ru"
+    MFA_KEY_EXPIRE_SECONDS: int = 60 * 5
 
     TIMEZONE: ZoneInfo = Field(ZoneInfo("UTC"), alias="TZ")
 
