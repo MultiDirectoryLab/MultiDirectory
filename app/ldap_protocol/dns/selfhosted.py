@@ -26,8 +26,6 @@ from .base import (
 )
 from .utils import logger_wraps
 
-RESOLV_CONF_PATH = "/resolv.conf"
-
 
 class SelfHostedDNSManager(AbstractDNSManager):
     """Manager for selfhosted Bind9 DNS server."""
@@ -181,10 +179,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
             if response.status_code != 200:
                 raise DNSError(response.text)
 
-    def get_dns_servers(self) -> list[str]:
+    def get_dns_servers(self, resolv_conf_path: str) -> list[str]:
         """Get list of DNS servers."""
         dns_servers = []
-        with open(RESOLV_CONF_PATH) as resolv_file:
+        with open(resolv_conf_path) as resolv_file:
             lines = resolv_file.readlines()
 
         for line in lines:
@@ -236,9 +234,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
     async def check_forward_dns_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
+        resolv_conf_path: str,
     ) -> DNSForwardServerStatus:
         str_dns_server_ip = str(dns_server_ip)
-        dns_servers = self.get_dns_servers()
+        dns_servers = self.get_dns_servers(resolv_conf_path)
         log.info(f"{dns_servers}")
 
         if not dns_servers:

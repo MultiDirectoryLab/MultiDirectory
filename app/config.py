@@ -133,6 +133,7 @@ class Settings(BaseModel):
     DNS_REVERSE_ZONE_FILE: str = "/DNS_server_file/db.reverse.zone"
     DNS_SERVER_NAMED_CONF: str = "/DNS_server_configs/named.conf"
     DNS_SERVER_NAMED_CONF_LOCAL: str = "/DNS_server_configs/named.conf.local"
+    DNS_RESOLV_CONF_PATH: str = "/resolv.conf"
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
 
