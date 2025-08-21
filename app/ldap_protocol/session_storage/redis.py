@@ -65,17 +65,25 @@ class RedisSessionStorage(SessionStorage):
     - smembers(key): Get all the members in a set.
     """
 
-    def __init__(self, storage: Redis, key_length: int, key_ttl: int) -> None:
+    def __init__(
+        self,
+        storage: Redis,
+        key_length: int,
+        key_ttl: int,
+        mfa_key_ttl: int,
+    ) -> None:
         """Initialize the storage.
 
         :param Redis storage:
             The Redis/DragonflyDB instance to use for storage.
         :param int key_length: The length of the keys to generate.
         :param int key_ttl: The time-to-live for keys in seconds.
+        :param int mfa_key_ttl: The time-to-live for MFA keys in seconds.
         """
         self._storage = storage
         self.key_length = key_length
         self.key_ttl = key_ttl
+        self.mfa_key_ttl = mfa_key_ttl
 
     async def _get_lock(self, name: str, blocking_timeout: int = 5) -> Lock:
         """Get lock.
@@ -346,6 +354,14 @@ class RedisSessionStorage(SessionStorage):
         if not await self._storage.smembers(sessions_key):  # type: ignore
             await self._storage.zrem(zset_key, sessions_key)
 
+    async def delete_user_mfa_session(self, session_id: str) -> None:
+        """Delete user MFA session by session ID.
+
+        :param str session_id: session id
+        """
+        session_key, _ = session_id.split(".")
+        await self._storage.delete(session_key)
+
     async def _add_session(
         self,
         session_id: str,
@@ -433,6 +449,34 @@ class RedisSessionStorage(SessionStorage):
             ttl,
         )
 
+        return f"{session_id}.{signature}"
+
+    async def create_mfa_session(
+        self,
+        uid: int,
+        settings: Settings,
+        *,
+        extra_data: dict | None = None,
+    ) -> str:
+        """Create mfa pending session.
+
+        :param int uid: user id
+        :param Settings settings: app settings
+        :param int ttl: time to live
+        :param dict | None extra_data: extra data
+        :param str: mfa pending session token
+        """
+        session_id, signature, data = self._generate_session_data(
+            uid=uid,
+            settings=settings,
+            extra_data=extra_data,
+            use_mfa_key=True,
+        )
+        await self._storage.set(
+            session_id,
+            json.dumps(data),
+            ex=self.mfa_key_ttl,
+        )
         return f"{session_id}.{signature}"
 
     async def check_session(self, session_id: str) -> bool:

@@ -9,12 +9,14 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import Request, Response, status
 from fastapi.responses import RedirectResponse
 
-from api.auth.adapters.cookie_mixin import ResponseCookieMixin
+from api.auth.adapters.cookie_mixin import (
+    RequestCookieMixin,
+    ResponseCookieMixin,
+)
 from api.auth.schema import (
     MFAChallengeResponse,
     MFACreateRequest,
     MFAGetResponse,
-    OAuth2Form,
 )
 from api.base_adapter import BaseAdapter
 from api.exceptions.mfa import (
@@ -30,7 +32,11 @@ from ldap_protocol.identity import MFAManager
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 
-class MFAFastAPIAdapter(ResponseCookieMixin, BaseAdapter[MFAManager]):
+class MFAFastAPIAdapter(
+    ResponseCookieMixin,
+    RequestCookieMixin,
+    BaseAdapter[MFAManager],
+):
     """Adapter for using MFAManager with FastAPI."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -97,10 +103,10 @@ class MFAFastAPIAdapter(ResponseCookieMixin, BaseAdapter[MFAManager]):
                 user_agent,
             )
             response = RedirectResponse("/", 302)
-            await self.set_session_cookie(
+            self.set_session_cookie(
                 response,
-                self._service.key_ttl,
                 key,
+                self._service.key_ttl,
             )
             return response
         except MFATokenError:
@@ -108,7 +114,6 @@ class MFAFastAPIAdapter(ResponseCookieMixin, BaseAdapter[MFAManager]):
 
     async def two_factor_protocol(
         self,
-        form: OAuth2Form,
         request: Request,
         response: Response,
         ip: IPv4Address | IPv6Address,
@@ -128,15 +133,15 @@ class MFAFastAPIAdapter(ResponseCookieMixin, BaseAdapter[MFAManager]):
         :raises HTTPException: 406 if MFA error
         """
         result, key = await self._service.two_factor_protocol(
-            form=form,
+            mfa_session_key=self.get_mfa_session_cookie(request),
             url=request.url_for("callback_mfa"),
             ip=ip,
             user_agent=user_agent,
         )
         if key is not None:
-            await self.set_session_cookie(
+            self.set_session_cookie(
                 response,
-                self._service.key_ttl,
                 key,
+                self._service.key_ttl,
             )
         return result

@@ -90,6 +90,14 @@ class SessionStorage(ABC):
         :return None:
         """
 
+    @abstractmethod
+    async def delete_user_mfa_session(self, session_id: str) -> None:
+        """Delete user mfa session.
+
+        :param str session_id: session id
+        :return None:
+        """
+
     @staticmethod
     def _sign(session_id: str, settings: Settings) -> str:
         return hmac.new(
@@ -118,6 +126,9 @@ class SessionStorage(ABC):
         """
         return f"http:{token_hex(self.key_length)}"
 
+    def _generate_mfa_key(self) -> str:
+        return f"mfa:{token_hex(self.key_length)}"
+
     def _get_lock_key(self, session_id: str) -> str:
         """Get lock key.
 
@@ -136,6 +147,22 @@ class SessionStorage(ABC):
         extra_data: dict | None = None,
     ) -> str:
         """Create session.
+
+        :param int uid: user id
+        :param Settings settings: app settings
+        :param dict | None extra_data: data, defaults to None
+        :return str: session id
+        """
+
+    @abstractmethod
+    async def create_mfa_session(
+        self: Self,
+        uid: int,
+        settings: Settings,
+        *,
+        extra_data: dict | None = None,
+    ) -> str:
+        """Create mfa session.
 
         :param int uid: user id
         :param Settings settings: app settings
@@ -190,12 +217,18 @@ class SessionStorage(ABC):
         uid: int,
         settings: Settings,
         extra_data: dict | None,
+        *,
+        use_mfa_key: bool = False,
     ) -> tuple[str, str, dict]:
         """Set data."""
         if extra_data is None:
             extra_data = {}
 
-        session_id = self._generate_key()
+        if use_mfa_key:
+            session_id = self._generate_mfa_key()
+        else:
+            session_id = self._generate_key()
+
         signature = self._sign(session_id, settings)
 
         data = {"id": uid, "sign": signature} | extra_data

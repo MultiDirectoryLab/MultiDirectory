@@ -62,6 +62,18 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     )
 
 
+async def get_user_by_id(session: AsyncSession, _id: int) -> User | None:
+    """Get user by ID.
+
+    :param AsyncSession session: sqlalchemy session
+    :param int _id: user ID
+    :return User | None: user from db
+    """
+    return await session.scalar(
+        select(User).where(User.id == _id).options(selectinload(User.groups)),
+    )
+
+
 async def get_directories(
     dn_list: list[GRANT_DN_STRING],
     session: AsyncSession,

@@ -22,7 +22,6 @@ from api.auth.schema import (
     MFAChallengeResponse,
     MFACreateRequest,
     MFAGetResponse,
-    OAuth2Form,
 )
 from api.exceptions.mfa import (
     AuthenticationError,
@@ -35,7 +34,7 @@ from api.exceptions.mfa import (
 )
 from config import Settings
 from enums import MFAChallengeStatuses, MFAFlags
-from ldap_protocol.identity.utils import authenticate_user, get_user
+from ldap_protocol.identity.utils import get_user
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -50,6 +49,7 @@ from ldap_protocol.policies.network_policy import (
 )
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
+from ldap_protocol.utils.queries import get_user_by_id
 from models import CatalogueSetting, User
 
 
@@ -236,7 +236,7 @@ class MFAManager(AbstractService):
 
     async def two_factor_protocol(
         self,
-        form: OAuth2Form,
+        mfa_session_key: str,
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
@@ -255,11 +255,17 @@ class MFAManager(AbstractService):
         """
         if not self._mfa_api.is_initialized:
             raise MissingMFACredentialsError()
-        user = await authenticate_user(
-            self._session,
-            form.username,
-            form.password,
-        )
+
+        try:
+            user_id = await self._repository.get_user_id(
+                mfa_session_key,
+                user_agent,
+                str(ip),
+            )
+        except KeyError:
+            raise InvalidCredentialsError()
+
+        user = await get_user_by_id(self._session, user_id)
         if not user:
             raise InvalidCredentialsError()
 
@@ -299,6 +305,9 @@ class MFAManager(AbstractService):
 
         else:
             weakref.finalize(bypass_coro, bypass_coro.close)
+
+        finally:
+            await self._repository.delete_mfa_session(mfa_session_key)
 
         return (
             MFAChallengeResponse(

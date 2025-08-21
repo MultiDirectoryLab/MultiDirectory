@@ -236,6 +236,7 @@ class MainProvider(Provider):
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
+            settings.MFA_KEY_EXPIRE_SECONDS,
         )
 
     @provide()

@@ -8,15 +8,26 @@ from datetime import datetime, timedelta
 
 import httpx
 import pytest
+import pytest_asyncio
 from fastapi import status
 from jose import jwt
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from enums import MFAChallengeStatuses
+from enums import MFAChallengeStatuses, MFAFlags
 from ldap_protocol.identity.utils import authenticate_user
-from models import CatalogueSetting
+from models import CatalogueSetting, NetworkPolicy
 from tests.conftest import TestCreds
+
+
+@pytest_asyncio.fixture(scope="function")
+async def enable_mfa(session: AsyncSession) -> None:
+    """Enable MFA in network policy for tests."""
+    await session.execute(
+        update(NetworkPolicy).values(
+            {NetworkPolicy.mfa_status: MFAFlags.ENABLED},
+        ),
+    )
 
 
 @pytest.mark.asyncio
@@ -66,6 +77,7 @@ async def test_connect_mfa(
     unbound_http_client: httpx.AsyncClient,
     session: AsyncSession,
     creds: TestCreds,
+    enable_mfa: None,  # noqa: ARG001
 ) -> None:
     """Test websocket mfa."""
     session.add(
@@ -74,11 +86,21 @@ async def test_connect_mfa(
     session.add(CatalogueSetting(name="mfa_key", value="123"))
     await session.commit()
 
+    auth = await unbound_http_client.post(
+        "auth/",
+        data={"username": creds.un, "password": creds.pw},
+    )
+    assert auth.status_code == status.HTTP_426_UPGRADE_REQUIRED
+    assert list(auth.cookies.keys()) == ["mfa"]
+
+    mfa_cookie = auth.cookies.get("mfa")
+    assert mfa_cookie
+
     redirect_url = "example.com"
 
     response = await unbound_http_client.post(
         "/multifactor/connect",
-        data={"username": creds.un, "password": creds.pw},
+        cookies={"mfa": mfa_cookie},
     )
 
     assert response.json() == {
@@ -107,3 +129,27 @@ async def test_connect_mfa(
 
     resp = await unbound_http_client.get("auth/me")
     assert resp.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_connect_mfa_by_user_without_mfa(
+    unbound_http_client: httpx.AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """Test connect mfa with user without mfa."""
+    session.add(
+        CatalogueSetting(name="mfa_secret", value="123"),
+    )
+    session.add(CatalogueSetting(name="mfa_key", value="123"))
+    await session.commit()
+
+    response = await unbound_http_client.post(
+        "/multifactor/connect",
+        cookies={"mfa": "fake_session_id.fake_sign"},
+    )
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    resp = await unbound_http_client.get("auth/me")
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED

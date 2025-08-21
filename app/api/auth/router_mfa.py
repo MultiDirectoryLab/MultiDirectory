@@ -18,12 +18,7 @@ from api.auth.adapters import MFAFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
-from .schema import (
-    MFAChallengeResponse,
-    MFACreateRequest,
-    MFAGetResponse,
-    OAuth2Form,
-)
+from .schema import MFAChallengeResponse, MFACreateRequest, MFAGetResponse
 
 mfa_router = APIRouter(
     prefix="/multifactor",
@@ -109,7 +104,6 @@ async def callback_mfa(
 
 @mfa_router.post("/connect", response_model=MFAChallengeResponse)
 async def two_factor_protocol(
-    form: Annotated[OAuth2Form, Depends()],
     request: Request,
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
@@ -132,7 +126,6 @@ async def two_factor_protocol(
         {'status': 'pending', 'message': https://example.com}.
     """
     return await mfa_manager.two_factor_protocol(
-        form,
         request,
         response,
         ip,

@@ -346,6 +346,7 @@ class TestProvider(Provider):
             client,
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
+            settings.MFA_KEY_EXPIRE_SECONDS,
         )
 
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)

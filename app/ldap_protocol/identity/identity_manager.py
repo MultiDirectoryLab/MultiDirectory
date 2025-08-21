@@ -20,7 +20,6 @@ from api.exceptions.auth import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from api.exceptions.mfa import MFARequiredError
 from config import Settings
 from enums import MFAFlags
 from extra.dev_data import ENTITY_TYPE_DATAS
@@ -108,7 +107,7 @@ class IdentityManager(AbstractService):
         form: OAuth2Form,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> str:
+    ) -> tuple[str, bool]:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
@@ -117,8 +116,7 @@ class IdentityManager(AbstractService):
         :raises UnauthorizedError: if incorrect username or password
         :raises LoginFailedError:
             if user not in group, disabled, expired, or failed policy
-        :raises MFARequiredError: if MFA is required
-        :return: session key (str)
+        :return: session key (str), is_mfa_redirect (bool)
         """
         user = await authenticate_user(
             self._session,
@@ -171,14 +169,22 @@ class IdentityManager(AbstractService):
                     self._session,
                 )
             if request_2fa:
-                raise MFARequiredError("Requires MFA connect")
+                mfa_session_key = (
+                    await self._repository.create_mfa_session_key(
+                        user,
+                        ip,
+                        user_agent,
+                    )
+                )
+                return mfa_session_key, True
 
-        return await self._repository.create_session_key(
+        http_session_key = await self._repository.create_session_key(
             user,
             ip,
             user_agent,
             self.key_ttl,
         )
+        return http_session_key, False
 
     async def _update_password(
         self,
