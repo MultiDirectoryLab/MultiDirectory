@@ -9,6 +9,7 @@ from typing import cast
 
 from adaptix.conversion import get_converter
 
+from abstract_dao import AbstractService
 from api.password_policy.schemas import PasswordPolicySchema
 from models import User
 
@@ -19,7 +20,7 @@ from .validator import PasswordPolicyValidator
 _convert = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 
 
-class PasswordPolicyUseCases:
+class PasswordPolicyUseCases(AbstractService):
     """Password Policy Use Cases."""
 
     _NAN_ID = cast("int", "float(nan)")

@@ -20,7 +20,7 @@ _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 _convert_dto_to_schema = get_converter(PasswordPolicyDTO, PasswordPolicySchema)
 
 
-class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyUseCases]):  # type: ignore
+class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyUseCases]):
     """Adapter for password policies."""
 
     _exceptions_map: dict[type[Exception], int] = {
