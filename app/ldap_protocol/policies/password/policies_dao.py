@@ -11,7 +11,6 @@ from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
-from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
 )
@@ -86,7 +85,14 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
     @staticmethod
     def get_default_policy() -> PasswordPolicyDTO:
         """Get default password policy."""
-        return PasswordPolicyDTO(**PasswordPolicySchema().model_dump())
+        return PasswordPolicyDTO(
+            name="Default domain password policy",
+            password_history_length=4,
+            maximum_password_age_days=0,
+            minimum_password_age_days=0,
+            minimum_password_length=7,
+            password_must_meet_complexity_requirements=True,
+        )
 
     async def get_or_create_pwd_last_set(
         self,
