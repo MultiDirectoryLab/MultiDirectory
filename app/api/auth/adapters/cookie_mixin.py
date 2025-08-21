@@ -1,36 +1,120 @@
-"""Mixin for setting session key cookies in HTTP responses.
-
-Provides a method to set a session key as a cookie in a FastAPI response,
-and updates the user's last logon time.
+"""Cookie mixins for setting and retrieving session and MFA cookies.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from fastapi import Response
+from typing import Literal
+
+from fastapi import Request, Response
+
+CookieKey = Literal["id", "mfa"]
 
 
 class ResponseCookieMixin:
-    """Provides a method to set a session key as a cookie in a response."""
+    """Methods to set session-related cookies on a FastAPI response."""
 
-    async def set_session_cookie(
+    def _set_cookie(
         self,
         response: Response,
-        key_ttl: int,
-        key: str,
+        key: CookieKey,
+        value: str,
+        ttl: int,
     ) -> None:
-        """Create a session key and set it as a cookie in the response.
+        """Set a cookie on the response.
 
-        Update the user's last logon time and set the appropriate cookies
-        in the response.
+        Args:
+            response (Response): FastAPI response object.
+            key (CookieKey): Cookie name (``"id"`` or ``"mfa"``).
+            value (str): Cookie value.
+            ttl (int): Time-to-live in seconds (passed to ``expires``).
 
-        :param Response response: fastapi response object
-        :param int key_ttl: session key time-to-live
-        :param str key: session key
+        Returns:
+            None
+
         """
         response.set_cookie(
-            key="id",
-            value=key,
+            key=key,
+            value=value,
             httponly=True,
-            expires=key_ttl,
+            expires=ttl,
         )
+
+    def set_session_cookie(
+        self,
+        response: Response,
+        value: str,
+        ttl: int,
+    ) -> None:
+        """Set the primary session cookie (``id``).
+
+        Args:
+            response (Response): FastAPI response object.
+            value (str): Session key value.
+            ttl (int): Time-to-live in seconds.
+
+        Returns:
+            None
+
+        """
+        self._set_cookie(response, "id", value, ttl)
+
+    def set_mfa_session_cookie(
+        self,
+        response: Response,
+        value: str,
+        ttl: int,
+    ) -> None:
+        """Set the MFA session cookie (``mfa``).
+
+        Args:
+            response (Response): FastAPI response object.
+            value (str): MFA session key value.
+            ttl (int): Time-to-live in seconds.
+
+        Returns:
+            None
+
+        """
+        self._set_cookie(response, "mfa", value, ttl)
+
+
+class RequestCookieMixin:
+    """Methods to read session and MFA cookies from a FastAPI request."""
+
+    def _get_cookie(self, request: Request, key: CookieKey) -> str:
+        """Return a cookie value or empty string if absent.
+
+        Args:
+            request (Request): FastAPI request object.
+            key (CookieKey): Cookie name (``"id"`` or ``"mfa"``).
+
+        Returns:
+            str: Cookie value or ``""`` if not set.
+
+        """
+        return request.cookies.get(key, "")
+
+    def get_session_cookie(self, request: Request) -> str:
+        """Get the primary session cookie value.
+
+        Args:
+            request (Request): FastAPI request object.
+
+        Returns:
+            str: Session cookie value or empty string.
+
+        """
+        return self._get_cookie(request, "id")
+
+    def get_mfa_session_cookie(self, request: Request) -> str:
+        """Get the MFA session cookie value.
+
+        Args:
+            request (Request): FastAPI request object.
+
+        Returns:
+            str: MFA cookie value or empty string.
+
+        """
+        return self._get_cookie(request, "mfa")
