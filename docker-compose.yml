@@ -85,7 +85,6 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
-      - ./app/extra/resolv.conf:/resolv.conf
     env_file:
       local.env
     command: python multidirectory.py --http

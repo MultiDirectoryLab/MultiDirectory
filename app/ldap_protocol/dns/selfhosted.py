@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import os
 from dataclasses import asdict
 from ipaddress import IPv4Address, IPv6Address
 
@@ -25,17 +24,6 @@ from .base import (
     DNSZoneType,
 )
 from .utils import logger_wraps
-
-HOST_DNS_SERVERS: list[str] = []
-if os.path.exists("/resolv.conf"):
-    with open("/resolv.conf") as resolv_file:
-        lines = resolv_file.readlines()
-
-        for line in lines:
-            if line.startswith("nameserver"):
-                parts = line.split()
-                if len(parts) == 2:
-                    HOST_DNS_SERVERS.append(parts[1].strip())
 
 
 class SelfHostedDNSManager(AbstractDNSManager):
@@ -194,6 +182,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
     async def find_forward_dns_fqdn(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
+        host_dns_servers: list[str],
     ) -> str | None:
         """Find forward DNS FQDN."""
         reversed_ip = (
@@ -221,7 +210,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
                 return (float("inf"), None)
 
         fqdn_list = await asyncio.gather(
-            *(get_fqdn_and_latency(server) for server in HOST_DNS_SERVERS),
+            *(get_fqdn_and_latency(server) for server in host_dns_servers),
         )
         fqdn_list.sort(key=lambda x: x[0])
         return fqdn_list[0][1] if fqdn_list else None
