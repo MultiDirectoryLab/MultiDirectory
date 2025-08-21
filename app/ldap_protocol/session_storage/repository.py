@@ -89,6 +89,30 @@ class SessionRepository(AbstractService):
         await set_user_logon_attrs(user, self.session, self.settings.TIMEZONE)
         return key
 
+    async def create_mfa_session_key(
+        self,
+        user: User,
+        ip: IPv4Address | IPv6Address,
+        user_agent: str,
+    ) -> str:
+        """Create a mfa session key for the user.
+
+        :param User user: db user
+        :param IPv4Address | IPv6Address ip: client IP
+        :param str user_agent: client user agent
+        :param int ttl: time to live
+        :return: session key (str)
+        """
+        key = await self.storage.create_mfa_session(
+            user.id,
+            self.settings,
+            extra_data={
+                "ip": str(ip),
+                "user_agent": self.storage.get_user_agent_hash(user_agent),
+            },
+        )
+        return key
+
     async def get_user_sessions(
         self,
         upn: str,
@@ -106,6 +130,26 @@ class SessionRepository(AbstractService):
         sessions = await self.storage.get_user_sessions(user.id)
 
         return {k: SessionContentDTO(**v) for k, v in sessions.items()}
+
+    async def get_user_id(
+        self,
+        session_id: str,
+        user_agent: str,
+        ip: str,
+    ) -> int:
+        """Get user ID from session ID.
+
+        :param str session_id: session id
+        :param str user_agent: user agent
+        :param str ip: client IP
+        :return int: user id
+        """
+        return await self.storage.get_user_id(
+            settings=self.settings,
+            session_key=session_id,
+            user_agent=user_agent,
+            ip=ip,
+        )
 
     async def clear_user_sessions(self, upn: str) -> None:
         """Clear user sessions by user ID.
@@ -126,3 +170,10 @@ class SessionRepository(AbstractService):
         :param str session_id: session id
         """
         await self.storage.delete_user_session(session_id)
+
+    async def delete_mfa_session(self, session_id: str) -> None:
+        """Delete user MFA session by session ID.
+
+        :param str session_id: session id
+        """
+        await self.storage.delete_user_mfa_session(session_id)
