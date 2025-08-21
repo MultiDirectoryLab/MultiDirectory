@@ -7,11 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import asdict
 
 from adaptix import P
-from adaptix.conversion import (
-    get_converter,
-    link_function,
-    allow_unlinked_optional,
-)
+from adaptix.conversion import allow_unlinked_optional, get_converter
 from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
