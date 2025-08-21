@@ -12,6 +12,7 @@ set "output_file=resolv.conf"
 
 if exist "%output_file%" del "%output_file%"
 
+::: Extract DNS server IPs from Windows ipconfig and write them to resolv.conf
 for /f "tokens=2 delims=:" %%a in ('ipconfig /all ^| findstr /i "DNS Servers"') do (
     set "dns=%%a"
     set "dns=!dns: =!"
