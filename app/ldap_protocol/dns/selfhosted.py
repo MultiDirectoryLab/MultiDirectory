@@ -22,7 +22,6 @@ from .base import (
     DNSZone,
     DNSZoneParam,
     DNSZoneType,
-    log,
 )
 from .utils import logger_wraps
 
