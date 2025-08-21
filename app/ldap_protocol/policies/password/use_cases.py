@@ -6,17 +6,18 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from itertools import islice
 
-from sqlalchemy import Integer, String, cast, update
+from adaptix.conversion import get_converter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.password_policy.schemas import PasswordPolicySchema
-from ldap_protocol.user_account_control import UserAccountControlFlag
-from ldap_protocol.utils.helpers import ft_now
-from models import Attribute, User
+from ldap_protocol.utils.const import NAN
+from models import User
 
 from .dataclasses import PasswordPolicyDTO
 from .policies_dao import PasswordPolicyDAO
 from .validator import PasswordPolicyValidator
+
+_convert = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 
 
 class PasswordPolicyUseCases:
@@ -53,17 +54,14 @@ class PasswordPolicyUseCases:
         password_policy: PasswordPolicySchema,
     ) -> None:
         """Update Password Policy."""
-        policy_dto = PasswordPolicyDTO(
-            **password_policy.model_dump(),
-        )
-        await self.password_policy_dao.update(policy_dto)
+        await self.password_policy_dao.update(NAN, _convert(password_policy))
 
     async def reset_policy(self) -> None:
         """Reset (delete) default policy."""
         await self.password_policy_dao.delete()
 
-    @staticmethod
     async def post_save_password_actions(
+        self,
         user: User,
         session: AsyncSession,
     ) -> None:
@@ -72,30 +70,10 @@ class PasswordPolicyUseCases:
         :param User user: user from db
         :param AsyncSession session: db
         """
-        await session.execute(  # update bind reject attribute
-            update(Attribute)
-            .values({"value": ft_now()})
-            .filter_by(directory_id=user.directory_id, name="pwdLastSet"),
+        await self.password_policy_dao.post_save_password_actions(
+            user,
+            session,
         )
-
-        new_value = cast(
-            cast(Attribute.value, Integer).op("&")(
-                ~UserAccountControlFlag.PASSWORD_EXPIRED,
-            ),
-            String,
-        )
-        query = (
-            update(Attribute)
-            .values(value=new_value)
-            .filter_by(
-                directory_id=user.directory_id,
-                name="userAccountControl",
-            )
-        )
-        await session.execute(query)
-
-        user.password_history.append(user.password)
-        await session.flush()
 
     async def check_expired_max_age(
         self,
@@ -115,7 +93,7 @@ class PasswordPolicyUseCases:
             )
         )
         password_age_days = (
-            self.policy_validator.password_validator.count_password_age_days(
+            self.policy_validator._password_validator.count_password_age_days(  # noqa: SLF001
                 pwd_last_set,
             )
         )
@@ -194,4 +172,4 @@ class PasswordPolicyUseCases:
             self.policy_validator.min_complexity()
 
         await self.policy_validator.validate(password)
-        return self.policy_validator.error_messages
+        return self.policy_validator._error_messages  # noqa: SLF001

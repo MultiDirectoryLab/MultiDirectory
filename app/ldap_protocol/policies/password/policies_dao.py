@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import asdict
 
 from adaptix.conversion import get_converter
-from sqlalchemy import exists, select, update
+from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
@@ -15,8 +15,10 @@ from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
 )
+from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.utils.const import NAN
 from ldap_protocol.utils.helpers import ft_now
-from models import Attribute, PasswordPolicy
+from models import Attribute, PasswordPolicy, User
 
 from .dataclasses import PasswordPolicyDTO
 
@@ -40,14 +42,12 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         policies = await self._session.scalars(select(PasswordPolicy))
         return [_convert(policy) for policy in policies]
 
-    async def get(self) -> PasswordPolicyDTO:  # type: ignore[override]
+    async def get(self, _id: int = NAN) -> PasswordPolicyDTO:
         """Get password policy by ID."""
         policy = await self._session.scalar(select(PasswordPolicy))
 
         if not policy:
-            policy_dto = PasswordPolicyDTO(
-                **PasswordPolicySchema().model_dump(),
-            )
+            policy_dto = self.get_default_policy()
             await self.create(policy_dto)
             policy = await self._session.scalar(select(PasswordPolicy))
 
@@ -68,8 +68,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         self._session.add(destination)
         await self._session.flush()
 
-    async def update(  # type: ignore[override]
+    async def update(
         self,
+        _id: int,
         dto: PasswordPolicyDTO,
     ) -> None:
         """Update policy."""
@@ -78,9 +79,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         )
         await self._session.commit()
 
-    async def delete(self) -> None:  # type: ignore[override]
+    async def delete(self, _id: int = NAN) -> None:
         """Delete (reset) default policy."""
-        await self.update(self.get_default_policy())
+        await self.update(_id, self.get_default_policy())
 
     @staticmethod
     def get_default_policy() -> PasswordPolicyDTO:
@@ -110,3 +111,38 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
             self._session.add(plset_attribute)
 
         return plset_attribute.value
+
+    @staticmethod
+    async def post_save_password_actions(
+        user: User,
+        session: AsyncSession,
+    ) -> None:
+        """Post save actions for password update.
+
+        :param User user: user from db
+        :param AsyncSession session: db
+        """
+        await session.execute(  # update bind reject attribute
+            update(Attribute)
+            .values({"value": ft_now()})
+            .filter_by(directory_id=user.directory_id, name="pwdLastSet"),
+        )
+
+        new_value = cast(
+            cast(Attribute.value, Integer).op("&")(
+                ~UserAccountControlFlag.PASSWORD_EXPIRED,
+            ),
+            String,
+        )
+        query = (
+            update(Attribute)
+            .values(value=new_value)
+            .filter_by(
+                directory_id=user.directory_id,
+                name="userAccountControl",
+            )
+        )
+        await session.execute(query)
+
+        user.password_history.append(user.password)
+        await session.flush()

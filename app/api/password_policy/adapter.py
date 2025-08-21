@@ -16,7 +16,8 @@ from ldap_protocol.policies.password.exceptions import (
 )
 from ldap_protocol.policies.password.service import PasswordPolicyService
 
-_convert = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
+_convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
+_convert_dto_to_schema = get_converter(PasswordPolicyDTO, PasswordPolicySchema)
 
 
 class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
@@ -27,27 +28,27 @@ class PasswordPoliciesAdapter(BaseAdapter[PasswordPolicyService]):
         PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
     }
 
-    async def get_policy(self) -> PasswordPolicyDTO:
+    async def get_policy(self) -> PasswordPolicySchema:
         """Get the current password policy."""
-        return await self._service.get_policy()
+        dto = await self._service.get_policy()
+        return _convert_dto_to_schema(dto)
 
     async def update_policy(
         self,
-        policy_data: PasswordPolicySchema,
+        policy: PasswordPolicySchema,
     ) -> None:
         """Update an existing audit policy."""
-        policy_dto = PasswordPolicyDTO(**policy_data.model_dump())
-        return await self._service.update_policy(policy_dto)
+        await self._service.update_policy(_convert_schema_to_dto(policy))
 
     async def reset_policy(
         self,
     ) -> None:
         """Update an existing audit policy."""
-        return await self._service.reset_policy()
+        await self._service.reset_policy()
 
     async def create_policy(
         self,
         policy: PasswordPolicySchema,
     ) -> None:
         """Create current policy setting."""
-        return await self._service.create_policy(_convert(policy))
+        await self._service.create_policy(_convert_schema_to_dto(policy))

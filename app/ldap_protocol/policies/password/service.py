@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abstract_dao import AbstractService
+from ldap_protocol.utils.const import NAN
 
 from .dataclasses import PasswordPolicyDTO
 from .policies_dao import PasswordPolicyDAO
@@ -32,7 +33,7 @@ class PasswordPolicyService(AbstractService):
 
         :param PasswordPolicyDTO policy_dto: The new policy data.
         """
-        await self._policy_dao.update(policy_dto)
+        await self._policy_dao.update(NAN, policy_dto)
 
     async def reset_policy(
         self,

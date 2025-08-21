@@ -11,7 +11,6 @@ from fastapi import APIRouter, Depends, status
 from api.auth import get_current_user
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.password_policy.schemas import PasswordPolicySchema
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 
 pwd_router = APIRouter(
     prefix="/password-policy",
@@ -24,7 +23,7 @@ pwd_router = APIRouter(
 @pwd_router.get("")
 async def get_policy(
     adapter: FromDishka[PasswordPoliciesAdapter],
-) -> PasswordPolicyDTO:
+) -> PasswordPolicySchema:
     """Get current policy setting."""
     return await adapter.get_policy()
 

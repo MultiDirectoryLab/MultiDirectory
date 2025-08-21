@@ -106,9 +106,7 @@ class LDAPRequestMessage(LDAPMessage):
         if len(seq_fields) >= 3:
             logger.debug({"controls": seq_fields[2]})
 
-        context = protocol_id_map[protocol.tag_id].from_data(
-            protocol.value,
-        )
+        context = protocol_id_map[protocol.tag_id].from_data(protocol.value)
         return cls(
             messageID=message_id.value,
             protocolOP=protocol.tag_id,
