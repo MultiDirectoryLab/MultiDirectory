@@ -19,6 +19,7 @@ from ldap_protocol.filter_interpreter import (
 )
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
+from models import Directory
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -36,6 +37,14 @@ class SearchRequest(LDAPSearchRequest):
         return self._filter_interpreter.cast_to_sql(
             Filter.parse(filter_).simplify(),
         )
+
+    @staticmethod
+    def get_directory_sid(directory: Directory) -> str:  # type: ignore
+        return directory.object_sid
+
+    @staticmethod
+    def get_directory_guid(directory: Directory) -> str:  # type: ignore
+        return str(directory.object_guid)
 
     @final
     async def handle_api(  # type: ignore

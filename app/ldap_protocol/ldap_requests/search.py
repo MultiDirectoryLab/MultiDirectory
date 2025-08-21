@@ -67,6 +67,11 @@ _attrs.extend(User.search_fields.keys())
 _attrs.extend(Directory.search_fields.keys())
 _ATTRS_TO_CLEAN = set(_attrs)
 
+_filtered_dir_search_fields = set(Directory.search_fields) - {
+    "objectsid",
+    "objectguid",
+}
+
 
 class SearchRequest(BaseRequest):
     """Search request schema.
@@ -360,6 +365,14 @@ class SearchRequest(BaseRequest):
     def token_groups(self) -> bool:
         return "tokengroups" in self.requested_attrs
 
+    @property
+    def is_sid_requested(self) -> bool:
+        return self.all_attrs or "objectsid" in self.requested_attrs
+
+    @property
+    def is_guid_requested(self) -> bool:
+        return self.all_attrs or "objectguid" in self.requested_attrs
+
     @cached_property
     def all_attrs(self) -> bool:
         return "*" in self.requested_attrs or not self.requested_attrs
@@ -552,6 +565,14 @@ class SearchRequest(BaseRequest):
             for member in directory.group.members:
                 attrs["member"].append(member.path_dn)
 
+    @staticmethod
+    def get_directory_sid(directory: Directory) -> bytes:
+        return string_to_sid(directory.object_sid)
+
+    @staticmethod
+    def get_directory_guid(directory: Directory) -> bytes:
+        return directory.object_guid.bytes_le
+
     async def tree_view(  # noqa: C901
         self,
         query: Select,
@@ -645,21 +666,25 @@ class SearchRequest(BaseRequest):
                 attrs[directory.user.search_fields[attr]].append(attribute)
 
             if self.all_attrs:
-                directory_fields = directory.search_fields.keys()
+                directory_fields = _filtered_dir_search_fields
             else:
-                directory_fields = (
+                directory_fields = {
                     attr
                     for attr in self.requested_attrs
-                    if attr in directory.search_fields
-                )
+                    if attr in _filtered_dir_search_fields
+                }
 
             for attr in directory_fields:
                 attribute = getattr(directory, attr)
-                if attr == "objectsid":
-                    attribute = string_to_sid(attribute)
-                elif attr == "objectguid":
-                    attribute = attribute.bytes_le
                 attrs[directory.search_fields[attr]].append(attribute)
+
+            if self.is_guid_requested:
+                guid = self.get_directory_guid(directory)
+                attrs[directory.search_fields["objectguid"]].append(guid)  # type: ignore
+
+            if self.is_sid_requested:
+                guid = self.get_directory_sid(directory)
+                attrs[directory.search_fields["objectsid"]].append(guid)  # type: ignore
 
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)
