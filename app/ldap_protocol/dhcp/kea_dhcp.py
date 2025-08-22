@@ -83,7 +83,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             json=KeaDHCPAPIRequest(command="network4-list"),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
+        if response.status_code != 200:
             raise DHCPError(f"Failed to get subnets: {response.text}")
 
         data = response.json()
