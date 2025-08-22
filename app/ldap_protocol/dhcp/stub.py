@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv4Network
 from typing import NoReturn
 
-from .base import AbstractDHCPManager
+from .base import AbstractDHCPManager, DHCPAPIError
 from .utils import logger_wraps
 
 
@@ -29,7 +29,8 @@ class StubDHCPManager(AbstractDHCPManager):
     @logger_wraps(is_stub=True)
     async def get_subnets(
         self,
-    ) -> NoReturn: ...
+    ) -> NoReturn:
+        raise DHCPAPIError
 
     @logger_wraps(is_stub=True)
     async def update_subnet(
@@ -53,15 +54,17 @@ class StubDHCPManager(AbstractDHCPManager):
     @logger_wraps(is_stub=True)
     async def list_active_leases(
         self,
-        subnet: IPv4Network,
-    ) -> NoReturn: ...
+        subnet: IPv4Network,  # noqa: ARG002
+    ) -> NoReturn:
+        raise DHCPAPIError
 
     @logger_wraps(is_stub=True)
     async def find_lease(
         self,
-        mac_address: str | None = None,
-        hostname: str | None = None,
-    ) -> NoReturn: ...
+        mac_address: str | None = None,  # noqa: ARG002
+        hostname: str | None = None,  # noqa: ARG002
+    ) -> NoReturn:
+        raise DHCPAPIError
 
     @logger_wraps(is_stub=True)
     async def add_reservation(
@@ -81,5 +84,6 @@ class StubDHCPManager(AbstractDHCPManager):
     @logger_wraps(is_stub=True)
     async def get_reservations(
         self,
-        subnet: IPv4Network,
-    ) -> NoReturn: ...
+        subnet: IPv4Network,  # noqa: ARG002
+    ) -> NoReturn:
+        raise DHCPAPIError
