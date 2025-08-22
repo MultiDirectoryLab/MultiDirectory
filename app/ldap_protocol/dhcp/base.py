@@ -51,7 +51,7 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def get_subnets(
         self,
-    ) -> dict[str, str] | list[dict[str, str]] | None: ...
+    ) -> list[dict[str, str]] | None: ...
 
     @abstractmethod
     async def update_subnet(
