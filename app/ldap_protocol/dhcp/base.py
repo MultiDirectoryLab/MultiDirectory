@@ -27,6 +27,7 @@ log.add(
 class DHCPError(Exception):
     """DHCP manager error."""
 
+
 class DHCPAPIError(Exception):
     """DHCP API error."""
 
