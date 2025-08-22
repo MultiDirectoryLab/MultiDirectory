@@ -29,8 +29,7 @@ class StubDHCPManager(AbstractDHCPManager):
     @logger_wraps(is_stub=True)
     async def get_subnets(
         self,
-    ) -> list[dict[str, str]] | NoReturn:
-        return []
+    ) -> NoReturn: ...
 
     @logger_wraps(is_stub=True)
     async def update_subnet(
@@ -55,14 +54,14 @@ class StubDHCPManager(AbstractDHCPManager):
     async def list_active_leases(
         self,
         subnet: IPv4Network,
-    ) -> list[dict[str, str]] | NoReturn: ...
+    ) -> NoReturn: ...
 
     @logger_wraps(is_stub=True)
     async def find_lease(
         self,
         mac_address: str | None = None,
         hostname: str | None = None,
-    ) -> dict[str, str] | NoReturn: ...
+    ) -> NoReturn: ...
 
     @logger_wraps(is_stub=True)
     async def add_reservation(
@@ -83,4 +82,4 @@ class StubDHCPManager(AbstractDHCPManager):
     async def get_reservations(
         self,
         subnet: IPv4Network,
-    ) -> list[dict[str, str]] | NoReturn: ...
+    ) -> NoReturn: ...
