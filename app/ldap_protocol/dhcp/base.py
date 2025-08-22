@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abc import ABC, abstractmethod
 from enum import StrEnum
+from ipaddress import IPv4Address, IPv4Network
 
 import httpx
 
@@ -39,8 +40,8 @@ class AbstractDHCPManager(ABC):
     async def create_subnet(
         self,
         name: str,
-        subnet: str,
-        pool: str,
+        subnet: IPv4Network,
+        pool: IPv4Network | str,
         default_gateway: str | None = None,
     ) -> None: ...
 
@@ -55,53 +56,52 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def update_subnet(
         self,
-        subnet: str,
-        netmask: str,
+        name: str,
+        subnet: IPv4Network,
+        pool: IPv4Network | str,
         default_gateway: str | None = None,
-        options: dict[str, str] | None = None,
     ) -> None: ...
 
     @abstractmethod
     async def create_lease(
         self,
-        mac_address,
-        ip_address=None,
+        mac_address: str,
+        ip_address: IPv4Address = None,
     ) -> None: ...
 
     @abstractmethod
-    async def release_lease(self, ip_address: str) -> None: ...
+    async def release_lease(self, ip_address: IPv4Address) -> None: ...
 
     @abstractmethod
     async def list_active_leases(
         self,
-        subnet: str,
+        subnet: IPv4Network,
     ) -> list[dict[str, str]] | None: ...
 
     @abstractmethod
     async def find_lease(
         self,
         mac_address: str | None = None,
-        ip_address: str | None = None,
         hostname: str | None = None,
     ) -> dict[str, str] | None: ...
 
     @abstractmethod
     async def add_reservation(
         self,
-        subnet: str,
         mac_address: str,
-        ip_address: str | None = None,
+        ip_address: IPv4Address | None = None,
         hostname: str | None = None,
     ) -> None: ...
 
     @abstractmethod
     async def delete_reservation(
         self,
-        subnet: str,
+        mac_address: str,
+        ip_address: IPv4Address,
     ) -> None: ...
 
     @abstractmethod
     async def get_reservations(
         self,
-        subnet: str,
+        subnet: IPv4Network,
     ) -> list[dict[str, str]] | None: ...
