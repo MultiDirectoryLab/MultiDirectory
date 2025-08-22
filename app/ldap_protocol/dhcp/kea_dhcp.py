@@ -4,6 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv4Network
+
 from pydantic import BaseModel
 
 from .base import AbstractDHCPManager, DHCPError
@@ -22,8 +24,8 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def create_subnet(
         self,
         name: str,
-        subnet: str,
-        pool: str,
+        subnet: IPv4Network,
+        pool: IPv4Network | str,
         default_gateway: str | None = None,
     ) -> None:
         """Create a new subnet."""
@@ -114,8 +116,8 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def update_subnet(
         self,
         name: str,
-        subnet: str,
-        pool: str,
+        subnet: IPv4Network,
+        pool: IPv4Network | str,
         default_gateway: str | None = None,
     ) -> None:
         """Update an existing subnet."""
@@ -124,8 +126,8 @@ class KeaDHCPManager(AbstractDHCPManager):
 
     async def create_lease(
         self,
-        mac_address,
-        ip_address=None,
+        mac_address: str,
+        ip_address: IPv4Address = None,
     ):
         """Create a new lease."""
         response = await self._http_client.post(
@@ -146,7 +148,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         if response.status_code != 200 or response.json().get("result") != 0:
             raise DHCPError(f"Failed to create lease: {response.text}")
 
-    async def release_lease(self, ip_address: str) -> None:
+    async def release_lease(self, ip_address: IPv4Address) -> None:
         """Release a lease."""
         response = await self._http_client.post(
             "",
@@ -161,7 +163,7 @@ class KeaDHCPManager(AbstractDHCPManager):
 
     async def list_active_leases(
         self,
-        subnet: str,
+        subnet: IPv4Network,
     ) -> list[dict[str, str]] | None:
         """List active leases for a subnet."""
         response = await self._http_client.post(
@@ -226,7 +228,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def add_reservation(
         self,
         mac_address: str,
-        ip_address: str | None = None,
+        ip_address: IPv4Address | None = None,
         hostname: str | None = None,
     ) -> None:
         """Add a reservation for a MAC address."""
@@ -253,7 +255,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def delete_reservation(
         self,
         mac_address: str,
-        ip_address: str,
+        ip_address: IPv4Address,
     ) -> None:
         """Delete a reservation for a MAC address."""
         response = await self._http_client.post(
@@ -274,7 +276,7 @@ class KeaDHCPManager(AbstractDHCPManager):
 
     async def get_reservations(
         self,
-        subnet: str,
+        subnet: IPv4Network,
     ) -> list[dict[str, str]] | None:
         """Get all reservations for a subnet."""
         response = await self._http_client.post(
