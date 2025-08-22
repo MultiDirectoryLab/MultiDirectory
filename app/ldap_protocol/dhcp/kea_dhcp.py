@@ -145,8 +145,8 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def create_lease(
         self,
         mac_address: str,
-        ip_address: IPv4Address = None,
-    ):
+        ip_address: IPv4Address,
+    ) -> None:
         """Create a new lease."""
         response = await self._http_client.post(
             "",
