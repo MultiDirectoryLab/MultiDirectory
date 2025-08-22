@@ -84,7 +84,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
 
         if response.status_code != 200 or response.json().get("result") != 0:
-            raise Exception(f"Failed to get subnets: {response.text}")
+            raise DHCPError(f"Failed to get subnets: {response.text}")
 
         data = response.json()
         if data.get("result") != 0:
@@ -207,7 +207,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                 ),
             )
         else:
-            raise ValueError(
+            raise DHCPError(
                 "Either mac_address or hostname must be provided.",
             )
 
