@@ -24,9 +24,9 @@ class KeaDHCPCommands(StrEnum):
     LEASE4_LIST = "lease4-list"
     LEASE4_GET_BY_HW_ADDRESS = "lease4-get-by-hw-address"
     LEASE4_GET_BY_HOSTNAME = "lease4-get-by-hostname"
-    RESERVATION4_ADD = "reservation4-add"
-    RESERVATION4_DEL = "reservation4-del"
-    RESERVATION4_LIST = "reservation4-list"
+    RESERVATION_ADD = "reservation-add"
+    RESERVATION_DEL = "reservation-del"
+    RESERVATION_LIST = "reservation-list"
 
 
 class KeaDHCPAPIRequest(BaseModel):
