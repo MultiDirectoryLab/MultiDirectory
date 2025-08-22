@@ -4,11 +4,29 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from enum import StrEnum
 from ipaddress import IPv4Address, IPv4Network
 
 from pydantic import BaseModel
 
 from .base import AbstractDHCPManager, DHCPError
+
+
+class KeaDHCPCommands(StrEnum):
+    """Kea DHCP API commands."""
+
+    NETWORK4_ADD = "network4-add"
+    NETWORK4_DEL = "network4-del"
+    NETWORK4_LIST = "network4-list"
+    NETWORK4_GET = "network4-get"
+    LEASE4_ADD = "lease4-add"
+    LEASE4_DEL = "lease4-del"
+    LEASE4_LIST = "lease4-list"
+    LEASE4_GET_BY_HW_ADDRESS = "lease4-get-by-hw-address"
+    LEASE4_GET_BY_HOSTNAME = "lease4-get-by-hostname"
+    RESERVATION4_ADD = "reservation4-add"
+    RESERVATION4_DEL = "reservation4-del"
+    RESERVATION4_LIST = "reservation4-list"
 
 
 class KeaDHCPAPIRequest(BaseModel):
@@ -32,7 +50,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="network4-add",
+                command=KeaDHCPCommands.NETWORK4_ADD,
                 arguments={
                     "shared-networks": [
                         {
@@ -68,7 +86,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="network4-del",
+                command=KeaDHCPCommands.NETWORK4_DEL,
                 arguments={"name": name},
             ),
         )
@@ -80,7 +98,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         """Get all subnets."""
         response = await self._http_client.post(
             "",
-            json=KeaDHCPAPIRequest(command="network4-list"),
+            json=KeaDHCPAPIRequest(command=KeaDHCPCommands.NETWORK4_LIST),
         )
 
         if response.status_code != 200:
@@ -96,7 +114,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             response = await self._http_client.post(
                 "",
                 json=KeaDHCPAPIRequest(
-                    command="network4-get",
+                    command=KeaDHCPCommands.NETWORK4_GET,
                     arguments={"name": shared_network["name"]},
                 ),
             )
@@ -133,7 +151,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="lease4-add",
+                command=KeaDHCPCommands.LEASE4_ADD,
                 arguments={
                     "leases": [
                         {
@@ -153,7 +171,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="lease4-del",
+                command=KeaDHCPCommands.LEASE4_DEL,
                 arguments={"ip-address": ip_address},
             ),
         )
@@ -169,7 +187,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="lease4-list",
+                command=KeaDHCPCommands.LEASE4_LIST,
                 arguments={"subnet": subnet},
             ),
         )
@@ -194,7 +212,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             response = await self._http_client.post(
                 "",
                 json=KeaDHCPAPIRequest(
-                    command="lease4-get-by-hw-address",
+                    command=KeaDHCPCommands.LEASE4_GET_BY_HW_ADDRESS,
                     arguments={"hw-address": mac_address},
                 ),
             )
@@ -202,7 +220,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             response = await self._http_client.post(
                 "",
                 json=KeaDHCPAPIRequest(
-                    command="lease4-get-by-hostname",
+                    command=KeaDHCPCommands.LEASE4_GET_BY_HOSTNAME,
                     arguments={"hostname": hostname},
                 ),
             )
@@ -235,7 +253,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="reservation-add",
+                command=KeaDHCPCommands.RESERVATION_ADD,
                 arguments={
                     "reservation": [
                         {
@@ -261,7 +279,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="reservation-del",
+                command=KeaDHCPCommands.RESERVATION_DEL,
                 arguments={
                     "ip-address": ip_address,
                     "identifier-type": "hw-address",
@@ -282,7 +300,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
-                command="reservation-list",
+                command=KeaDHCPCommands.RESERVATION_LIST,
                 arguments={
                     "subnet-id": subnet,
                     "operation-target": "all",
