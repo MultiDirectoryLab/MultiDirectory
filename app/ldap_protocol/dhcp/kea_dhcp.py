@@ -9,7 +9,8 @@ from ipaddress import IPv4Address, IPv4Network
 
 from pydantic import BaseModel
 
-from .base import AbstractDHCPManager, DHCPError
+from .base import AbstractDHCPManager
+from .exceptions import DHCPError
 
 
 class KeaDHCPCommands(StrEnum):
