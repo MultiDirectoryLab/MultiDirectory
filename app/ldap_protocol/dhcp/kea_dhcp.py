@@ -111,7 +111,7 @@ class KeaDHCPManager(AbstractDHCPManager):
 
         self._validate_api_response(response)
 
-    async def get_subnets(self) -> list[DHCPSubnet] | None:
+    async def get_subnets(self) -> list[DHCPSubnet]:
         """Get all subnets."""
         response = await self._http_client.post(
             "",
@@ -232,7 +232,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def list_active_leases(
         self,
         subnet: IPv4Network,
-    ) -> list[DHCPLease] | None:
+    ) -> list[DHCPLease]:
         """List active leases for a subnet."""
         response = await self._http_client.post(
             "",
@@ -265,7 +265,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         self,
         mac_address: str | None = None,
         hostname: str | None = None,
-    ) -> DHCPLease | None:
+    ) -> DHCPLease:
         """Find a lease by MAC address, IP address, or hostname."""
         if mac_address is not None:
             response = await self._http_client.post(
@@ -357,7 +357,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     async def get_reservations(
         self,
         subnet: IPv4Network,
-    ) -> list[DHCPReservation] | None:
+    ) -> list[DHCPReservation]:
         """Get all reservations for a subnet."""
         response = await self._http_client.post(
             "",

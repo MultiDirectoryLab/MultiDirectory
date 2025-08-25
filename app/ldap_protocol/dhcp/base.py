@@ -52,7 +52,7 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def get_subnets(
         self,
-    ) -> list[DHCPSubnet] | None: ...
+    ) -> list[DHCPSubnet]: ...
 
     @abstractmethod
     async def update_subnet(
@@ -77,14 +77,14 @@ class AbstractDHCPManager(ABC):
     async def list_active_leases(
         self,
         subnet: IPv4Network,
-    ) -> list[DHCPLease] | None: ...
+    ) -> list[DHCPLease]: ...
 
     @abstractmethod
     async def find_lease(
         self,
         mac_address: str | None = None,
         hostname: str | None = None,
-    ) -> DHCPLease | None: ...
+    ) -> DHCPLease: ...
 
     @abstractmethod
     async def add_reservation(
@@ -105,4 +105,4 @@ class AbstractDHCPManager(ABC):
     async def get_reservations(
         self,
         subnet: IPv4Network,
-    ) -> list[DHCPReservation] | None: ...
+    ) -> list[DHCPReservation]: ...
