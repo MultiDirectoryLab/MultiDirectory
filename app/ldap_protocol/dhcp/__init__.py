@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .base import AbstractDHCPManager, DHCPManagerState
+from .base import AbstractDHCPManager
+from .enums import DHCPManagerState
 from .kea_dhcp import KeaDHCPManager
 from .stub import StubDHCPManager
 from .utils import get_dhcp_state
