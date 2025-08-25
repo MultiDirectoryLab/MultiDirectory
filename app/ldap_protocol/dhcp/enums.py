@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 
 
 class DHCPManagerState(StrEnum):
@@ -30,3 +30,13 @@ class KeaDHCPCommands(StrEnum):
     RESERVATION_ADD = "reservation-add"
     RESERVATION_DEL = "reservation-del"
     RESERVATION_LIST = "reservation-list"
+
+
+class KeaDHCPResultCodes(IntEnum):
+    """Kea DHCP API result codes."""
+
+    SUCCESS = 0
+    ERROR = 1
+    UNSUPPORTED = 2
+    EMPTY = 3
+    CONFLICT = 4
