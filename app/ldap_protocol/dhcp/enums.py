@@ -17,10 +17,11 @@ class DHCPManagerState(StrEnum):
 class KeaDHCPCommands(StrEnum):
     """Kea DHCP API commands."""
 
-    NETWORK4_ADD = "network4-add"
-    NETWORK4_DEL = "network4-del"
-    NETWORK4_LIST = "network4-list"
-    NETWORK4_GET = "network4-get"
+    SUBNET4_ADD = "subnet4-add"
+    SUBNET4_DEL = "subnet4-del"
+    SUBNET4_LIST = "subnet4-list"
+    SUBNET4_GET = "subnet4-get"
+    SUBNET4_UPDATE = "subnet4-update"
     LEASE4_ADD = "lease4-add"
     LEASE4_DEL = "lease4-del"
     LEASE4_LIST = "lease4-list"
