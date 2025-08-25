@@ -4,17 +4,22 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import datetime
 from ipaddress import IPv4Address, IPv4Network
 
+import httpx
 from pydantic import BaseModel
 
 from .base import AbstractDHCPManager
-from .enums import KeaDHCPCommands
+from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
+from .enums import KeaDHCPCommands, KeaDHCPResultCodes
 from .exceptions import (
     DHCPAPIError,
+    DHCPConflictError,
     DHCPEntryAddError,
     DHCPEntryNotFoundError,
     DHCPEntryUpdateError,
+    DHCPUnsupportedError,
 )
 
 
@@ -27,6 +32,29 @@ class KeaDHCPAPIRequest(BaseModel):
 
 class KeaDHCPManager(AbstractDHCPManager):
     """Kea DHCP server manager."""
+
+    @staticmethod
+    def _validate_api_response(response: httpx.Response) -> bool:
+        """Validate API response."""
+        if response.status_code != 200:
+            raise DHCPAPIError(
+                f"Failed to communicate with DHCP API: {response.text}",
+            )
+
+        result_code = response.json().get("result")
+        result_text = response.json().get("text")
+
+        match result_code:
+            case KeaDHCPResultCodes.ERROR:
+                raise DHCPAPIError(result_text)
+            case KeaDHCPResultCodes.UNSUPPORTED:
+                raise DHCPUnsupportedError(result_text)
+            case KeaDHCPResultCodes.CONFLICT:
+                raise DHCPConflictError(result_text)
+            case KeaDHCPResultCodes.EMPTY:
+                raise DHCPEntryNotFoundError(result_text)
+            case KeaDHCPResultCodes.SUCCESS:
+                return True
 
     async def create_subnet(
         self,
@@ -64,64 +92,62 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if (
-            response.status_code != 200
-            or not response.json().get("result") == 0
-        ):
+        try:
+            self._validate_api_response(response)
+        except DHCPAPIError as e:
             raise DHCPEntryAddError(
-                f"Failed to create subnet: {response.text}"
+                f"Failed to create subnet: {e}",
             )
 
-    async def delete_subnet(self, name: str) -> None:
+    async def delete_subnet(self, subnet_id: int) -> None:
         """Delete a subnet."""
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
                 command=KeaDHCPCommands.SUBNET4_DEL,
-                arguments={"name": name},
+                arguments={"id": subnet_id},
             ),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
-            raise DHCPEntryNotFoundError(
-                f"Failed to delete subnet: {response.text}"
-            )
+        self._validate_api_response(response)
 
-    async def get_subnets(self) -> list[dict[str, str]] | None:
+    async def get_subnets(self) -> list[DHCPSubnet] | None:
         """Get all subnets."""
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(command=KeaDHCPCommands.SUBNET4_LIST),
         )
 
-        if response.status_code != 200:
-            raise DHCPEntryNotFoundError(
-                f"Failed to get subnets: {response.text}"
-            )
+        self._validate_api_response(response)
 
         data = response.json()
-        if data.get("result") != 0:
-            return None
 
         result = []
 
-        for shared_network in data.get("arguments").get("shared-networks"):
-            response = await self._http_client.post(
+        for subnet in data.get("arguments").get("subnets", []):
+            subnet_response = await self._http_client.post(
                 "",
                 json=KeaDHCPAPIRequest(
                     command=KeaDHCPCommands.SUBNET4_GET,
-                    arguments={"name": shared_network["name"]},
+                    arguments={"id": subnet.get("id")},
                 ),
             )
 
-            if (
-                response.status_code != 200
-                or response.json().get("result") != 0
-            ):
+            if not self._validate_api_response(subnet_response):
                 continue
 
+            subnet = (
+                subnet_response.json()
+                .get("arguments", {})
+                .get("subnets", [])[0]
+            )
+
             result.append(
-                response.json().get("arguments").get("shared-networks")[0],
+                DHCPSubnet(
+                    id=subnet.get("id"),
+                    subnet=subnet.get("subnet"),
+                    pool=subnet.get("pools", [])[0].get("pool"),
+                ),
             )
 
         return result
@@ -158,12 +184,11 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if (
-            response.status_code != 200
-            or not response.json().get("result") == 0
-        ):
+        try:
+            self._validate_api_response(response)
+        except DHCPAPIError as e:
             raise DHCPEntryUpdateError(
-                f"Failed to update subnet: {response.text}"
+                f"Failed to update subnet: {e}",
             )
 
     async def create_lease(
@@ -187,8 +212,10 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
-            raise DHCPEntryAddError(f"Failed to create lease: {response.text}")
+        try:
+            self._validate_api_response(response)
+        except DHCPAPIError as e:
+            raise DHCPEntryAddError(f"Failed to create lease: {e}")
 
     async def release_lease(self, ip_address: IPv4Address) -> None:
         """Release a lease."""
@@ -200,15 +227,12 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
-            raise DHCPEntryAddError(
-                f"Failed to release lease: {response.text}"
-            )
+        self._validate_api_response(response)
 
     async def list_active_leases(
         self,
         subnet: IPv4Network,
-    ) -> list[dict[str, str]] | None:
+    ) -> list[DHCPLease] | None:
         """List active leases for a subnet."""
         response = await self._http_client.post(
             "",
@@ -218,15 +242,22 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
-            raise DHCPEntryNotFoundError(
-                f"Failed to list active leases: {response.text}"
-            )
+        self._validate_api_response(response)
 
         result = []
 
         for lease in response.json().get("arguments", {}).get("leases", []):
-            result.append({lease["hw-address"]: lease["ip-address"]})
+            result.append(
+                DHCPLease(
+                    id=lease.get("client_id"),
+                    ip_address=lease.get("ip-address"),
+                    mac_address=lease.get("hw-address"),
+                    hostname=lease.get("hostname"),
+                    expires=datetime.fromtimestamp(
+                        lease.get("cltt") + lease.get("valid-lft"),
+                    ),
+                ),
+            )
 
         return result
 
@@ -234,7 +265,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         self,
         mac_address: str | None = None,
         hostname: str | None = None,
-    ) -> dict[str, str] | None:
+    ) -> DHCPLease | None:
         """Find a lease by MAC address, IP address, or hostname."""
         if mac_address is not None:
             response = await self._http_client.post(
@@ -257,21 +288,19 @@ class KeaDHCPManager(AbstractDHCPManager):
                 "Either mac_address or hostname must be provided.",
             )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
-            raise DHCPEntryNotFoundError(
-                f"Failed to find lease: {response.text}"
-            )
+        self._validate_api_response(response)
 
-        return {
-            "mac_address": response.json()
-            .get("arguments", {})
-            .get("leases", [{}])[0]
-            .get("hw-address"),
-            "ip_address": response.json()
-            .get("arguments", {})
-            .get("leases", [{}])[0]
-            .get("ip-address"),
-        }
+        lease = response.json().get("arguments", {})
+
+        return DHCPLease(
+            id=lease.get("client_id"),
+            ip_address=lease.get("ip-address"),
+            mac_address=lease.get("hw-address"),
+            hostname=lease.get("hostname"),
+            expires=datetime.fromtimestamp(
+                lease.get("cltt") + lease.get("valid-lft"),
+            ),
+        )
 
     async def add_reservation(
         self,
@@ -297,9 +326,11 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
+        try:
+            self._validate_api_response(response)
+        except DHCPAPIError as e:
             raise DHCPEntryAddError(
-                f"Failed to add reservation: {response.text}"
+                f"Failed to add reservation: {e}",
             )
 
     async def delete_reservation(
@@ -321,15 +352,12 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
-            raise DHCPEntryNotFoundError(
-                f"Failed to delete reservation: {response.text}"
-            )
+        self._validate_api_response(response)
 
     async def get_reservations(
         self,
         subnet: IPv4Network,
-    ) -> list[dict[str, str]] | None:
+    ) -> list[DHCPReservation] | None:
         """Get all reservations for a subnet."""
         response = await self._http_client.post(
             "",
@@ -342,9 +370,20 @@ class KeaDHCPManager(AbstractDHCPManager):
             ),
         )
 
-        if response.status_code != 200 or response.json().get("result") != 0:
-            raise DHCPEntryNotFoundError(
-                f"Failed to get reservations: {response.text}"
+        self._validate_api_response(response)
+
+        result = []
+
+        for reservation in (
+            response.json().get("arguments", {}).get("reservations", [])
+        ):
+            result.append(
+                DHCPReservation(
+                    id=reservation.get("reservation-id"),
+                    ip_address=reservation.get("ip-address"),
+                    mac_address=reservation.get("hw-address"),
+                    hostname=reservation.get("hostname"),
+                ),
             )
 
-        return response.json().get("arguments", {}).get("reservations", [])
+        return result

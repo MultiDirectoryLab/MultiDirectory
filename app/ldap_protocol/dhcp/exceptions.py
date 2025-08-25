@@ -27,3 +27,11 @@ class DHCPEntryNotFoundError(DHCPError):
 
 class DHCPEntryUpdateError(DHCPError):
     """DHCP entry update error."""
+
+
+class DHCPConflictError(DHCPError):
+    """DHCP conflict error."""
+
+
+class DHCPUnsupportedError(DHCPError):
+    """DHCP unsupported error."""
