@@ -19,6 +19,7 @@ from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from config import Settings
+from ldap_protocol.dhcp import AbstractDHCPManager, get_dhcp_manager_class
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -62,6 +63,7 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
+DHCPManagerHTTPClient = NewType("DHCPManagerHTTPClient", httpx.AsyncClient)
 
 
 class MainProvider(Provider):
@@ -208,6 +210,35 @@ class MainProvider(Provider):
             settings.SESSION_KEY_LENGTH,
             settings.SESSION_KEY_EXPIRE_SECONDS,
         )
+
+    @provide(scope=Scope.SESSION)
+    async def get_dhcp_mngr_class(
+        self,
+        session_maker: async_sessionmaker[AsyncSession],
+    ) -> type[AbstractDHCPManager]:
+        """Get DHCP manager type."""
+        async with session_maker() as session:
+            return await get_dhcp_manager_class(session)
+
+    @provide(scope=Scope.APP)
+    async def get_dhcp_http_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[DHCPManagerHTTPClient]:
+        """Get async client for DHCP manager."""
+        async with httpx.AsyncClient(
+            base_url=f"http://{settings.DHCP_HOST}:8000",
+        ) as client:
+            yield DHCPManagerHTTPClient(client)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dhcp_mngr(
+        self,
+        dhcp_manager_class: type[AbstractDHCPManager],
+        http_client: DHCPManagerHTTPClient,
+    ) -> AsyncIterator[AbstractDHCPManager]:
+        """Get DHCPManager class."""
+        yield dhcp_manager_class(http_client=http_client)
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
