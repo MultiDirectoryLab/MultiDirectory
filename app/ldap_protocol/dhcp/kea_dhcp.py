@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import datetime
+from datetime import datetime
 from ipaddress import IPv4Address, IPv4Network
 
 import httpx
@@ -53,8 +53,8 @@ class KeaDHCPManager(AbstractDHCPManager):
                 raise DHCPConflictError(result_text)
             case KeaDHCPResultCodes.EMPTY:
                 raise DHCPEntryNotFoundError(result_text)
-            case KeaDHCPResultCodes.SUCCESS:
-                return True
+
+        return True
 
     async def create_subnet(
         self,
@@ -146,7 +146,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                 DHCPSubnet(
                     id=subnet.get("id"),
                     subnet=subnet.get("subnet"),
-                    pool=subnet.get("pools", [])[0].get("pool"),
+                    pools=subnet.get("pools", [])[0].get("pool"),
                 ),
             )
 

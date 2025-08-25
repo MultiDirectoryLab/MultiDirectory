@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import CatalogueSetting
 
-from .base import DHCP_MANAGER_STATE_NAME, DHCPManagerState, log
+from .base import DHCP_MANAGER_STATE_NAME, log
+from .enums import DHCPManagerState
 from .exceptions import DHCPConnectionError
 
 
