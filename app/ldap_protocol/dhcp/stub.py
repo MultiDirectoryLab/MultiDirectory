@@ -7,7 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv4Network
 from typing import NoReturn
 
-from .base import AbstractDHCPManager, DHCPAPIError
+from .base import AbstractDHCPManager
+from .exceptions import DHCPAPIError
 from .utils import logger_wraps
 
 

@@ -12,12 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import CatalogueSetting
 
-from .base import (
-    DHCP_MANAGER_STATE_NAME,
-    DHCPConnectionError,
-    DHCPManagerState,
-    log,
-)
+from .base import DHCP_MANAGER_STATE_NAME, DHCPManagerState, log
+from .exceptions import DHCPConnectionError
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:
