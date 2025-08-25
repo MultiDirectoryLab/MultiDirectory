@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from enum import StrEnum
 from ipaddress import IPv4Address, IPv4Network
 
 import httpx
@@ -22,13 +21,6 @@ log.add(
     rotation="1d",
     colorize=False,
 )
-
-
-class DHCPManagerState(StrEnum):
-    """DHCP manager states."""
-
-    NOT_CONFIGURED = "0"
-    KEA_DHCP = "1"
 
 
 class AbstractDHCPManager(ABC):
