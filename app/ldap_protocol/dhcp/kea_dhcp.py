@@ -8,7 +8,6 @@ from datetime import datetime
 from ipaddress import IPv4Address, IPv4Network
 
 import httpx
-from pydantic import BaseModel
 
 from .base import AbstractDHCPManager
 from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
@@ -21,13 +20,7 @@ from .exceptions import (
     DHCPEntryUpdateError,
     DHCPUnsupportedError,
 )
-
-
-class KeaDHCPAPIRequest(BaseModel):
-    """Base request for Kea DHCP API."""
-
-    command: str
-    arguments: dict | None = None
+from .schemas import KeaDHCPAPIRequest
 
 
 class KeaDHCPManager(AbstractDHCPManager):
