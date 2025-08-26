@@ -10,7 +10,7 @@ from typing import cast
 from adaptix.conversion import get_converter
 
 from abstract_dao import AbstractService
-from api.password_policy.schemas import PasswordPolicySchema
+from ldap_protocol.policies.password.schemas import PasswordPolicySchema
 from models import User
 
 from .dataclasses import PasswordPolicyDTO
