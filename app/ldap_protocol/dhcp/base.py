@@ -104,5 +104,5 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def get_reservations(
         self,
-        subnet: IPv4Network,
+        subnet_id: int,
     ) -> list[DHCPReservation]: ...

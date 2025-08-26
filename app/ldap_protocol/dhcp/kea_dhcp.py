@@ -55,33 +55,46 @@ class KeaDHCPManager(AbstractDHCPManager):
         default_gateway: str | None = None,
     ) -> None:
         """Create a new subnet."""
+        option_data = (
+            [
+                {
+                    "name": "routers",
+                    "data": default_gateway,
+                },
+            ]
+            if default_gateway
+            else []
+        )
+
+        subnet = [
+            {
+                "subnet": subnet,
+                "pools": [{"pool": f"{pool}"}],
+                "option-data": option_data,
+            },
+        ]
+
+        shared_network = [
+            {
+                "name": name,
+                "subnet4": subnet,
+            },
+        ]
+
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
                 command=KeaDHCPCommands.SUBNET4_ADD,
-                arguments={
-                    "shared-networks": [
-                        {
-                            "name": name,
-                            "subnet4": [
-                                {
-                                    "subnet": subnet,
-                                    "pools": [{"pool": f"{pool}"}],
-                                    "option-data": [
-                                        {
-                                            "name": "routers",
-                                            "data": default_gateway,
-                                        },
-                                    ]
-                                    if default_gateway
-                                    else [],
-                                },
-                            ],
-                        },
-                    ],
-                },
+                arguments={"shared-networks": shared_network},
             ),
         )
+
+        try:
+            self._validate_api_response(response)
+        except DHCPAPIError as e:
+            raise DHCPEntryAddError(
+                f"Failed to create subnet: {e}",
+            )
 
         try:
             self._validate_api_response(response)
@@ -150,27 +163,31 @@ class KeaDHCPManager(AbstractDHCPManager):
         default_gateway: str | None = None,
     ) -> None:
         """Update an existing subnet."""
+        option_data = (
+            [
+                {
+                    "name": "routers",
+                    "data": default_gateway,
+                },
+            ]
+            if default_gateway
+            else []
+        )
+
+        subnet = [
+            {
+                "id": subnet_id,
+                "subnet": subnet,
+                "pools": [{"pool": f"{pool}"}],
+                "option-data": option_data,
+            },
+        ]
+
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
                 command=KeaDHCPCommands.SUBNET4_UPDATE,
-                arguments={
-                    "subnet4": [
-                        {
-                            "id": subnet_id,
-                            "subnet": subnet,
-                            "pools": [{"pool": f"{pool}"}],
-                            "option-data": [
-                                {
-                                    "name": "routers",
-                                    "data": default_gateway,
-                                },
-                            ]
-                            if default_gateway
-                            else [],
-                        },
-                    ],
-                },
+                arguments={"subnet4": subnet},
             ),
         )
 
@@ -187,18 +204,16 @@ class KeaDHCPManager(AbstractDHCPManager):
         ip_address: IPv4Address,
     ) -> None:
         """Create a new lease."""
+        lease = {
+            "hw-address": mac_address,
+            "ip-address": ip_address,
+        }
+
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
                 command=KeaDHCPCommands.LEASE4_ADD,
-                arguments={
-                    "leases": [
-                        {
-                            "hw-address": mac_address,
-                            "ip-address": ip_address,
-                        },
-                    ],
-                },
+                arguments={"leases": [lease]},
             ),
         )
 
@@ -299,18 +314,17 @@ class KeaDHCPManager(AbstractDHCPManager):
         hostname: str | None = None,
     ) -> None:
         """Add a reservation for a MAC address."""
+        reservation = {
+            "hw-address": mac_address,
+            "ip-address": ip_address,
+            "hostname": hostname,
+        }
         response = await self._http_client.post(
             "",
             json=KeaDHCPAPIRequest(
                 command=KeaDHCPCommands.RESERVATION_ADD,
                 arguments={
-                    "reservation": [
-                        {
-                            "hw-address": mac_address,
-                            "ip-address": ip_address,
-                            "hostname": hostname,
-                        },
-                    ],
+                    "reservation": [reservation],
                     "operation-target": "all",
                 },
             ),
@@ -346,7 +360,7 @@ class KeaDHCPManager(AbstractDHCPManager):
 
     async def get_reservations(
         self,
-        subnet: IPv4Network,
+        subnet_id: int,
     ) -> list[DHCPReservation]:
         """Get all reservations for a subnet."""
         response = await self._http_client.post(
@@ -354,7 +368,7 @@ class KeaDHCPManager(AbstractDHCPManager):
             json=KeaDHCPAPIRequest(
                 command=KeaDHCPCommands.RESERVATION_LIST,
                 arguments={
-                    "subnet-id": subnet,
+                    "subnet-id": subnet_id,
                     "operation-target": "all",
                 },
             ),
