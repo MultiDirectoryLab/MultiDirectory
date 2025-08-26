@@ -27,7 +27,7 @@ class KeaDHCPManager(AbstractDHCPManager):
     """Kea DHCP server manager."""
 
     @staticmethod
-    def _validate_api_response(response: httpx.Response) -> bool:
+    def _validate_api_response(response: httpx.Response) -> None:
         """Validate API response."""
         if response.status_code != 200:
             raise DHCPAPIError(
@@ -46,8 +46,6 @@ class KeaDHCPManager(AbstractDHCPManager):
                 raise DHCPConflictError(result_text)
             case KeaDHCPResultCodes.EMPTY:
                 raise DHCPEntryNotFoundError(result_text)
-
-        return True
 
     async def create_subnet(
         self,
@@ -126,8 +124,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                 ),
             )
 
-            if not self._validate_api_response(subnet_response):
-                continue
+            self._validate_api_response(subnet_response)
 
             subnet = (
                 subnet_response.json()

@@ -24,12 +24,12 @@ class KeaDHCPCommands(StrEnum):
     SUBNET4_UPDATE = "subnet4-update"
     LEASE4_ADD = "lease4-add"
     LEASE4_DEL = "lease4-del"
-    LEASE4_LIST = "lease4-list"
+    LEASE4_LIST = "lease4-get-all"
     LEASE4_GET_BY_HW_ADDRESS = "lease4-get-by-hw-address"
     LEASE4_GET_BY_HOSTNAME = "lease4-get-by-hostname"
     RESERVATION_ADD = "reservation-add"
     RESERVATION_DEL = "reservation-del"
-    RESERVATION_LIST = "reservation-list"
+    RESERVATION_LIST = "reservation-get-all"
 
 
 class KeaDHCPResultCodes(IntEnum):
