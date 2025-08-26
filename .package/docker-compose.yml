@@ -234,7 +234,7 @@ services:
           memory: 500M
         reservations:
           cpus: '0.1'
-          memory: 60М
+          memory: 60M
 
   kdc:
     container_name: kdc
