@@ -193,6 +193,7 @@ known-first-party = [
     "abstract_dao",
     "client",
     "config",
+    "constants",
     "models",
     "api",
     "security",

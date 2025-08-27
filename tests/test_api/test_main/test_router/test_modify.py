@@ -453,3 +453,33 @@ async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
     data = response.json()
 
     assert data["resultCode"] == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_qpi_modify_primary_object_classes(
+    http_client: AsyncClient,
+) -> None:
+    """Test deleting primary object class."""
+    entry_dn = "cn=user0,ou=users,dc=md,dc=test"
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "objectClass",
+                        "vals": [],
+                    },
+                },
+            ],
+        },
+    )
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
+from constants import PRIMARY_ENTITY_TYPE_NAMES
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
@@ -293,6 +294,7 @@ class ModifyRequest(BaseRequest):
             select(Directory)
             .options(
                 selectinload(Directory.attributes),
+                selectinload(Directory.entity_type),
                 selectinload(Directory.groups).selectinload(Group.directory),
                 selectinload(Directory.groups).selectinload(Group.members),
                 joinedload(Directory.group).selectinload(Group.members),
@@ -361,9 +363,7 @@ class ModifyRequest(BaseRequest):
         if directory.name == _DOMAIN_ADMIN_NAME and (
             is_user_in_deleted or is_user_not_in_replaced
         ):
-            raise ModifyForbiddenError(
-                "Can't delete yourself from group.",
-            )
+            raise ModifyForbiddenError("Can't delete yourself from group.")
 
     async def _delete_memberof(
         self,
@@ -419,6 +419,32 @@ class ModifyRequest(BaseRequest):
             for member in members:
                 directory.group.members.remove(member)
 
+    async def _validate_object_class_modification(
+        self,
+        change: Changes,
+        directory: Directory,
+    ) -> None:
+        if not (
+            directory.entity_type
+            and directory.entity_type.name in PRIMARY_ENTITY_TYPE_NAMES
+        ):
+            return
+
+        required_obj_classes = directory.entity_type.object_class_names_set
+        is_object_class_in_replaced = (
+            change.operation == Operation.REPLACE
+            and required_obj_classes
+            and not required_obj_classes.issubset(change.modification.vals)
+        )
+        is_object_class_in_deleted = (
+            change.operation == Operation.DELETE
+            and required_obj_classes
+            and required_obj_classes & set(change.modification.vals)
+        )
+
+        if is_object_class_in_replaced or is_object_class_in_deleted:
+            raise ModifyForbiddenError("ObjectClass can't be deleted.")
+
     async def _delete(
         self,
         change: Changes,
@@ -447,6 +473,9 @@ class ModifyRequest(BaseRequest):
                 user=user,
             )
             return
+
+        if name == "objectclass":
+            await self._validate_object_class_modification(change, directory)
 
         if name_only or not change.modification.vals:
             attrs.append(Attribute.name == change.modification.type)

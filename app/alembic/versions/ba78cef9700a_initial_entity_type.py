@@ -12,8 +12,8 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from constants import ENTITY_TYPE_DATAS
 from extra.alembic_utils import temporary_stub_entity_type_name
-from extra.dev_data import ENTITY_TYPE_DATAS
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO

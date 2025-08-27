@@ -227,7 +227,10 @@ class EntityType(Base):
     @classmethod
     def generate_entity_type_name(cls, directory: Directory) -> str:
         """Generate entity type name based on Directory."""
-        return f"{directory.name}_entity_type_{directory.id}"
+        return (
+            f"{directory.name}_entity_type_{directory.id}"
+            f"_{uuid.uuid4().hex[:6]}"
+        )
 
 
 class AccessControlEntry(Base):

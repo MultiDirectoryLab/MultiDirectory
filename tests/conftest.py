@@ -47,8 +47,8 @@ from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
-from extra import TEST_DATA, setup_enviroment
-from extra.dev_data import ENTITY_TYPE_DATAS
+from constants import ENTITY_TYPE_DATAS, TEST_DATA
+from extra import setup_enviroment
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (

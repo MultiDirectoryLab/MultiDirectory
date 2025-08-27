@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from constants import PRIMARY_ENTITY_TYPE_NAMES
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
@@ -152,6 +153,17 @@ class EntityTypeDAO:
 
         return result.scalars().first()
 
+    async def update_name(
+        self,
+        entity_type: EntityType,
+        new_statement: EntityTypeUpdateSchema,
+    ) -> None:
+        if entity_type.name in PRIMARY_ENTITY_TYPE_NAMES:
+            raise self.EntityTypeCantModifyError(
+                f"Can't change entity type name {entity_type.name}",
+            )
+        entity_type.name = new_statement.name
+
     async def modify_one(
         self,
         entity_type_name: str,
@@ -171,7 +183,8 @@ class EntityTypeDAO:
                 new_statement.object_class_names,
             )
 
-            entity_type.name = new_statement.name
+            if new_statement.name != entity_type.name:
+                await self.update_name(entity_type, new_statement)
 
             # Sort object_class_names to ensure a
             # consistent order for database operations
