@@ -431,3 +431,6 @@ ENTITY_TYPE_DATAS = [
         ],
     },
 ]
+PRIMARY_ENTITY_TYPE_NAMES = {
+    entity_type_data["name"] for entity_type_data in ENTITY_TYPE_DATAS
+}

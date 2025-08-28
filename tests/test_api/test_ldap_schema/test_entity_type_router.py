@@ -4,6 +4,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+from constants import ENTITY_TYPE_DATAS
+
 from .test_entity_type_router_datasets import (
     test_create_one_entity_type_dataset,
     test_delete_bulk_entity_types_dataset,
@@ -202,6 +204,32 @@ async def test_modify_one_entity_type(
     assert set(entity_type.get("object_class_names")) == set(
         new_statement.get("object_class_names"),
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_modify_primary_entity_type_name(
+    http_client: AsyncClient,
+) -> None:
+    """Test modifying a primary entity type name."""
+    new_statement = "TestEntityTypeName"
+    entity_type_data = ENTITY_TYPE_DATAS[0]
+    response = await http_client.patch(
+        f"/schema/entity_type/{entity_type_data['name']}",
+        json={
+            "name": new_statement,
+            "is_system": True,
+            "object_class_names": entity_type_data["object_class_names"],
+        },
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    response = await http_client.get(
+        f"/schema/entity_type/{entity_type_data['name']}",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert isinstance(response.json(), dict)
 
 
 @pytest.mark.parametrize(

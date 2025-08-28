@@ -214,3 +214,41 @@ async def test_ldap_delete_w_access_control(
 
     assert result == 0
     assert dn not in dn_list
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_delete_primary_object_classes(
+    settings: Settings,
+    user: dict,
+) -> None:
+    """Test deleting primary object class."""
+    entry_dn = "cn=user0,ou=users,dc=md,dc=test"
+    with tempfile.NamedTemporaryFile("w") as file:
+        file.write(
+            (
+                f"dn: {entry_dn}\n"
+                "changetype: modify\n"
+                "delete: objectClass\n"
+                "objectClass: top\n"
+            ),
+        )
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            "ldapmodify",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            user["sam_account_name"],
+            "-x",
+            "-w",
+            user["password"],
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        res = await proc.wait()
+        assert res == 1
