@@ -9,7 +9,6 @@ from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
-from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
@@ -27,7 +26,6 @@ from .helpers import (
 )
 
 
-@cache
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
