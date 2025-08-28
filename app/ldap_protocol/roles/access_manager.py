@@ -11,7 +11,12 @@ from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from enums import AceType, RoleScope
 from ldap_protocol.objects import Changes, Operation
-from models import AccessControlEntry, Directory
+from models import (
+    AccessControlEntry,
+    Directory,
+    access_control_entries_table,
+    queryable_attr as qa,
+)
 
 
 class AccessManager:
@@ -313,28 +318,30 @@ class AccessManager:
             null attribute_type_id
         :return: mutated query with access control entries loaded
         """
-        selectin_loader = selectinload(Directory.access_control_entries)
+        selectin_loader = selectinload(
+            qa(Directory.access_control_entries),
+        )
         if load_attribute_type:
             selectin_loader = selectin_loader.joinedload(
-                AccessControlEntry.attribute_type,
+                qa(AccessControlEntry.attribute_type),
             )
 
         criteria_conditions = [
-            AccessControlEntry.role_id.in_(user_role_ids),
+            access_control_entries_table.c.role_id.in_(user_role_ids),
         ]
 
         if len(ace_types) == 1:
             criteria_conditions.append(
-                AccessControlEntry.ace_type == ace_types[0],  # type: ignore
+                access_control_entries_table.c.ace_type == ace_types[0],  # type: ignore
             )
         else:
             criteria_conditions.append(
-                AccessControlEntry.ace_type.in_(ace_types),
+                access_control_entries_table.c.ace_type.in_(ace_types),
             )
 
         if require_attribute_type_null:
             criteria_conditions.append(
-                AccessControlEntry.attribute_type_id.is_(None),
+                access_control_entries_table.c.attribute_type_id.is_(None),
             )
 
         return query.options(

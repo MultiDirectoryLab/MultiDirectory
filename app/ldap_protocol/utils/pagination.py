@@ -10,15 +10,13 @@ from math import ceil
 from typing import Sequence, TypeVar
 
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import Column, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.expression import Select
 
-from models import Base
-
 P = TypeVar("P", contravariant=True, bound=BaseModel)
-S = TypeVar("S", contravariant=True, bound=Base)
+S = TypeVar("S", contravariant=True)
 
 
 class PaginationParams(BaseModel):
@@ -37,11 +35,11 @@ class PaginationParams(BaseModel):
     query: str | None = None
 
 
-def build_paginated_search_query[S: Base](
+def build_paginated_search_query[S](
     model: type[S],
-    order_by_field: InstrumentedAttribute,
+    order_by_field: InstrumentedAttribute | Column,
     params: PaginationParams,
-    search_field: InstrumentedAttribute | None = None,
+    search_field: InstrumentedAttribute | Column | None = None,
 ) -> Select[tuple[S]]:
     """Build query."""
     query = select(model).order_by(order_by_field)
@@ -78,7 +76,7 @@ class BasePaginationSchema[P: BaseModel](BaseModel):
 
 
 @dataclass
-class PaginationResult[S: Base]:
+class PaginationResult[S]:
     """Paginator.
 
     Paginator contains metadata about pagination and chunk of items.

@@ -18,7 +18,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import AttributeType
+from models import AttributeType, attribute_types_table
 
 
 class AttributeTypeSchema(BaseModel):
@@ -68,9 +68,9 @@ class AttributeTypeDAO:
         """
         query = build_paginated_search_query(
             model=AttributeType,
-            order_by_field=AttributeType.id,
+            order_by_field=attribute_types_table.c.id,
             params=params,
-            search_field=AttributeType.name,
+            search_field=attribute_types_table.c.name,
         )
 
         return await PaginationResult[AttributeType].get(
@@ -120,7 +120,7 @@ class AttributeTypeDAO:
         """
         attribute_type = await self.__session.scalar(
             select(AttributeType)
-            .where(AttributeType.name == attribute_type_name),
+            .filter_by(name=attribute_type_name),
         )  # fmt: skip
 
         if not attribute_type:
@@ -144,7 +144,7 @@ class AttributeTypeDAO:
 
         query = await self.__session.scalars(
             select(AttributeType)
-            .where(AttributeType.name.in_(attribute_type_names)),
+            .where(attribute_types_table.c.name.in_(attribute_type_names)),
         )  # fmt: skip
         return list(query.all())
 
@@ -188,7 +188,7 @@ class AttributeTypeDAO:
         await self.__session.execute(
             delete(AttributeType)
             .where(
-                AttributeType.name.in_(attribute_type_names),
-                AttributeType.is_system.is_(False),
+                attribute_types_table.c.name.in_(attribute_type_names),
+                attribute_types_table.c.is_system.is_(False),
             ),
         )  # fmt: skip

@@ -23,7 +23,12 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import EntityType, ObjectClass
+from models import (
+    ObjectClass,
+    entity_types_table,
+    object_classes_table,
+    queryable_attr as qa,
+)
 
 
 class ObjectClassSchema(BaseModel):
@@ -80,9 +85,9 @@ class ObjectClassDAO:
         """
         query = build_paginated_search_query(
             model=ObjectClass,
-            order_by_field=ObjectClass.id,
+            order_by_field=object_classes_table.c.id,
             params=params,
-            search_field=ObjectClass.name,
+            search_field=object_classes_table.c.name,
         )
 
         return await PaginationResult[ObjectClass].get(
@@ -205,7 +210,9 @@ class ObjectClassDAO:
         """
         object_class = await self.__session.scalar(
             select(ObjectClass)
-            .where(ObjectClass.name == object_class_name),
+            .filter_by(name=object_class_name)
+            .options(selectinload(qa(ObjectClass.attribute_types_may)))
+            .options(selectinload(qa(ObjectClass.attribute_types_must))),
         )  # fmt: skip
 
         if not object_class:
@@ -226,10 +233,10 @@ class ObjectClassDAO:
         """
         query = await self.__session.scalars(
             select(ObjectClass)
-            .where(ObjectClass.name.in_(object_class_names))
+            .where(object_classes_table.c.name.in_(object_class_names))
             .options(
-                selectinload(ObjectClass.attribute_types_must),
-                selectinload(ObjectClass.attribute_types_may),
+                selectinload(qa(ObjectClass.attribute_types_must)),
+                selectinload(qa(ObjectClass.attribute_types_may)),
             ),
         )  # fmt: skip
         return list(query.all())
@@ -280,14 +287,16 @@ class ObjectClassDAO:
         :param list[str] object_classes_names: Object Classes names.
         :return None.
         """
+        subq = (
+            select(func.unnest(entity_types_table.c.object_class_names))
+            .where(entity_types_table.c.object_class_names.isnot(None))
+        )  # fmt: skip
+
         await self.__session.execute(
             delete(ObjectClass)
             .where(
-                ObjectClass.name.in_(object_classes_names),
-                ObjectClass.is_system.is_(False),
-                ~ObjectClass.name.in_(
-                    select(func.unnest(EntityType.object_class_names))
-                    .where(EntityType.object_class_names.isnot(None)),
-                ),
+                object_classes_table.c.name.in_(object_classes_names),
+                object_classes_table.c.is_system.is_(False),
+                ~object_classes_table.c.name.in_(subq),
             ),
         )  # fmt: skip

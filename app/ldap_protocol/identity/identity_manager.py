@@ -45,7 +45,13 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_base_directories, get_user
-from models import Directory, Group, User
+from models import (
+    Directory,
+    Group,
+    directory_table,
+    queryable_attr as qa,
+    users_table,
+)
 from password_manager import PasswordValidator
 
 
@@ -132,9 +138,12 @@ class IdentityManager(AbstractService):
 
         query = (
             select(Group)
-            .join(Group.users)
-            .join(Group.directory)
-            .filter(User.id == user.id, Directory.name == "domain admins")
+            .join(qa(Group.users))
+            .join(qa(Group.directory))
+            .filter(
+                users_table.c.id == user.id,
+                directory_table.c.name == "domain admins",
+            )
             .limit(1)
             .exists()
         )
@@ -244,7 +253,9 @@ class IdentityManager(AbstractService):
 
         :return: bool (True if setup is required, False otherwise)
         """
-        query = select(exists(Directory).where(Directory.parent_id.is_(None)))
+        query = select(
+            exists(Directory).where(directory_table.c.parent_id.is_(None)),
+        )
         retval = await self._session.scalars(query)
         return retval.one()
 
@@ -258,7 +269,7 @@ class IdentityManager(AbstractService):
         """
         setup_already_performed = await self._session.scalar(
             select(Directory)
-            .filter(Directory.parent_id.is_(None)),
+            .filter(directory_table.c.parent_id.is_(None)),
         )  # fmt: skip
         if setup_already_performed:
             raise AlreadyConfiguredError("Setup already performed")

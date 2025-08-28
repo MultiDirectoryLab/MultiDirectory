@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dataclasses import asdict
+from typing import cast as tcast
 
 from adaptix import P
 from adaptix.conversion import allow_unlinked_optional, get_converter
@@ -108,10 +109,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         """Get pwdLastSet."""
         plset_attribute = await self._session.scalar(
             select(Attribute)
-            .where(
-                Attribute.directory_id == directory_id,
-                Attribute.name == "pwdLastSet",
-            ),
+            .filter_by(directory_id=directory_id, name="pwdLastSet"),
         )  # fmt: skip
 
         if not plset_attribute:
@@ -156,5 +154,5 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         )
         await self._session.execute(query)
 
-        user.password_history.append(user.password)
+        user.password_history.append(tcast("str", user.password))
         await self._session.flush()

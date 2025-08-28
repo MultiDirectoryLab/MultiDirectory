@@ -20,7 +20,17 @@ from sqlalchemy.sql.elements import (
     UnaryExpression,
 )
 
-from models import Attribute, Directory, EntityType, Group, User
+from models import (
+    Directory,
+    EntityType,
+    Group,
+    User,
+    attributes_table,
+    directory_table,
+    groups_table,
+    queryable_attr as qa,
+    users_table,
+)
 
 from .asn1parser import ASN1Row, TagNumbers
 from .objects import LDAPMatchingRule
@@ -60,10 +70,12 @@ class FilterInterpreterProtocol(Protocol):
         condition: BinaryExpression | None = None,
     ) -> ColumnElement:
         if condition is None:
-            f = Directory.attributes.any(Attribute.name.ilike(attr))
+            f = qa(Directory).attributes.any(
+                attributes_table.c.name.ilike(attr),
+            )
         else:
-            f = Directory.attributes.any(
-                and_(Attribute.name.ilike(attr), condition),
+            f = qa(Directory).attributes.any(
+                and_(attributes_table.c.name.ilike(attr), condition),
             )
 
         return f
@@ -94,41 +106,41 @@ class FilterInterpreterProtocol(Protocol):
         """Retrieve query conditions with the memberOF attribute(recursive)."""
         cte = find_members_recursive_cte(dn)
 
-        return Directory.id.in_(select(cte.c.directory_id).offset(1))  # type: ignore
+        return directory_table.c.id.in_(select(cte.c.directory_id).offset(1))  # type: ignore
 
     def _filter_memberof(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the memberOF attribute."""
         group_id_subquery = (
-            select(Group.id)
-            .join(Group.directory)
+            select(groups_table.c.id)
+            .join(qa(Group.directory))
             .where(get_filter_from_path(dn))
             .scalar_subquery()
         )
 
-        return Directory.id.in_(
+        return directory_table.c.id.in_(
             (
-                select(Directory.id)
-                .join(Directory.groups)
-                .where(Group.id == group_id_subquery)
-                .distinct(Directory.id)
+                select(directory_table.c.id)
+                .join(qa(Directory.groups))
+                .where(groups_table.c.id == group_id_subquery)
+                .distinct(directory_table.c.id)
             ),
         )  # type: ignore
 
     def _filter_member(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the member attribute."""
         user_id_subquery = (
-            select(User.id)
-            .join(User.directory)
+            select(users_table.c.id)
+            .join(qa(User.directory))
             .where(get_filter_from_path(dn))
             .scalar_subquery()
         )
 
-        return Directory.id.in_(
+        return directory_table.c.id.in_(
             (
-                select(Group.directory_id)
-                .join(Group.users)
-                .where(User.id == user_id_subquery)
-                .distinct(Group.directory_id)
+                select(groups_table.c.directory_id)
+                .join(qa(Group.users))
+                .where(users_table.c.id == user_id_subquery)
+                .distinct(groups_table.c.directory_id)
             ),
         )  # type: ignore
 
@@ -194,12 +206,14 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             return func.lower(EntityType.name) == right.lower()
         else:
             if is_substring:
-                cond = Attribute.value.ilike(self._get_substring(right))
+                cond = attributes_table.c.value.ilike(
+                    self._get_substring(right),
+                )
             else:
                 if isinstance(right.value, str):
-                    cond = Attribute.value.ilike(right.value)
+                    cond = attributes_table.c.value.ilike(right.value)
                 else:
-                    cond = Attribute.bvalue == right.value
+                    cond = attributes_table.c.bvalue == right.value
 
             return self._get_filter_condition(attr, cond)
 
@@ -300,9 +314,11 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             return func.lower(EntityType.name) == item.val.lower()
         else:
             if is_substring:
-                cond = Attribute.value.ilike(item.val.replace("*", "%"))
+                cond = attributes_table.c.value.ilike(
+                    item.val.replace("*", "%"),
+                )
             else:
-                cond = Attribute.value.ilike(item.val)
+                cond = attributes_table.c.value.ilike(item.val)
 
             return self._get_filter_condition(item.attr, cond)
 
