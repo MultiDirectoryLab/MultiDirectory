@@ -88,6 +88,10 @@ class ObjectClassDAO:
             order_by_field=object_classes_table.c.id,
             params=params,
             search_field=object_classes_table.c.name,
+            load_params=(
+                selectinload(qa(ObjectClass).attribute_types_may),
+                selectinload(qa(ObjectClass).attribute_types_must),
+            ),
         )
 
         return await PaginationResult[ObjectClass].get(
