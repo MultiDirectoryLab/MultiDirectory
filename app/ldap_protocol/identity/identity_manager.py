@@ -390,4 +390,3 @@ class IdentityManager(AbstractService):
                 raise AlreadyConfiguredError(
                     "Setup already performed (locked)",
                 )
-
