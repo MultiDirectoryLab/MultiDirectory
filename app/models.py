@@ -784,24 +784,27 @@ class Directory:
     password_policy_id: int | None = None
     path: list[str] = field(default_factory=list)
 
-    parent: Directory | None = field(default=None, repr=False)
+    parent: Directory | None = field(default=None, repr=False, compare=False)
     entity_type: EntityType | None = field(
         init=False,
         default=None,
         repr=False,
+        compare=False,
     )
     attributes: list[Attribute] = field(
         init=False,
         default_factory=list,
         repr=False,
+        compare=False,
     )
-    group: Group = field(init=False, repr=False)
-    user: User = field(init=False, repr=False)
-    groups: list[Group] = field(init=False, repr=False)
+    group: Group = field(init=False, repr=False, compare=False)
+    user: User = field(init=False, repr=False, compare=False)
+    groups: list[Group] = field(init=False, repr=False, compare=False)
     access_control_entries: list[AccessControlEntry] = field(
         init=False,
         default_factory=list,
         repr=False,
+        compare=False,
     )
 
     search_fields: ClassVar[dict[str, str]] = {
