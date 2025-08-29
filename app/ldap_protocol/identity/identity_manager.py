@@ -44,7 +44,7 @@ from ldap_protocol.user_account_control import (
     get_check_uac,
 )
 from ldap_protocol.utils.helpers import ft_now
-from ldap_protocol.utils.queries import get_base_directories, get_user
+from ldap_protocol.utils.queries import get_user
 from models import Directory, Group, User
 from password_manager import PasswordValidator
 
@@ -390,5 +390,3 @@ class IdentityManager(AbstractService):
                 raise AlreadyConfiguredError(
                     "Setup already performed (locked)",
                 )
-            else:
-                get_base_directories.cache_clear()
