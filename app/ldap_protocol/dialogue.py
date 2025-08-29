@@ -90,7 +90,7 @@ class LDAPSession:
         self._lock = asyncio.Lock()
         self._user: UserSchema | None = user
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
-        self.shutdown_event = asyncio.Event()
+        self.server_running = asyncio.Event()
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
@@ -207,13 +207,15 @@ class LDAPSession:
                     continue
 
                 if not await self.storage.check_session(self.key):
-                    self.shutdown_event.set()
+                    self.server_running.clear()
                     return
             except asyncio.CancelledError:
                 return
 
     async def cancel_ensure_task(self, task: asyncio.Task) -> None:
         """Cancel the ensure session task."""
-        await self.shutdown_event.wait()
-        if not task.done():
-            task.cancel()
+        while True:
+            if not self.server_running.is_set():
+                task.cancel()
+                return
+            await asyncio.sleep(0.1)
