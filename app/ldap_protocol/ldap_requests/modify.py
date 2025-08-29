@@ -255,7 +255,7 @@ class ModifyRequest(BaseRequest):
 
                 await ctx.session.refresh(
                     instance=directory,
-                    attribute_names=["groups", "attributes"],
+                    attribute_names=["groups", "attributes", "user", "path"],
                 )
 
             if "objectclass" in names:
@@ -537,7 +537,9 @@ class ModifyRequest(BaseRequest):
                 for _directory in directories
                 if _directory.group
             ]
-            new_groups = list(set(groups) - set(directory.groups))
+            new_groups = [
+                group for group in groups if group not in directory.groups
+            ]
             directories = [new_group.directory for new_group in new_groups]
         else:
             directories = list(set(directories) - set(directory.group.members))
