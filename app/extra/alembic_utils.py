@@ -25,7 +25,7 @@ def temporary_stub_entity_type_name(func: Callable) -> Callable:
     :return Callable: any function
     """
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: tuple, **kwargs: dict) -> None:
         op.add_column(
             "Directory",
             sa.Column("entity_type_id", sa.Integer(), nullable=True),
