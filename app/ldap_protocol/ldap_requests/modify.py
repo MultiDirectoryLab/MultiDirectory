@@ -551,7 +551,7 @@ class ModifyRequest(BaseRequest):
         directories_to_add = [
             _directory
             for _directory in directories
-            if (_directory != directory and _directory not in members)
+            if (_directory.id != directory.id and _directory not in members)
         ]
 
         if len(directories) != len(directories_to_add):
