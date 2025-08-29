@@ -9,7 +9,6 @@ from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
-from asyncstdlib.functools import cache
 from sqlalchemy import Column, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
@@ -36,7 +35,6 @@ from .helpers import (
 )
 
 
-@cache
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
@@ -57,7 +55,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
-            cond = directory_table.c.user_principal_name.ilike(name)
+            cond = users_table.c.user_principal_name.ilike(name)
         else:
             cond = users_table.c.sam_account_name.ilike(name)
 
