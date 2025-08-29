@@ -59,7 +59,7 @@ class PoolClientHandler:
         self.num_workers = self.settings.COROUTINES_NUM_PER_CLIENT
         self._size = self.settings.TCP_PACKET_SIZE
 
-        self.logger = DataLogger(full=self.settings.DEBUG)
+        self.logger = DataLogger(log, full=self.settings.DEBUG)
 
         self._load_ssl_context()
 

@@ -4,16 +4,28 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from loguru import Logger
+from typing import Protocol
 
 from ldap_protocol import LDAPRequestMessage
 from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
 
 
+class _LoggingProtocol(Protocol):
+    """Logging protocol interface."""
+
+    def debug(self, msg: str) -> None:
+        """Log debug message."""
+        ...
+
+    def info(self, msg: str) -> None:
+        """Log info message."""
+        ...
+
+
 class DataLogger:
     """LDAP Data Logger."""
 
-    def __init__(self, logger: Logger, full: bool = False) -> None:
+    def __init__(self, logger: _LoggingProtocol, full: bool = False) -> None:
         """Set logging mode."""
         self.l = logger
         if full:

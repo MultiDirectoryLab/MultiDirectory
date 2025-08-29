@@ -61,6 +61,7 @@ from ldap_protocol.dns import (
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
+from ldap_protocol.udp_server import UDPConnectionHandler
 from schedule import scheduler_factory
 
 
@@ -200,17 +201,30 @@ async def ldap_factory(settings: Settings) -> None:
     """Run LDAP server factory."""
     servers = []
 
-    for setting in (settings, settings.get_copy_4_tls()):
+    for s in (settings, settings.get_copy_4_tls()):
         container = make_async_container(
             LDAPServerProvider(),
             MainProvider(),
             MFAProvider(),
             MFACredsProvider(),
-            context={Settings: setting},
+            context={Settings: s},
         )
 
-        settings = await container.get(Settings)
-        servers.append(PoolClientHandler(settings, container).start())
+        s2 = await container.get(Settings)
+        servers.append(PoolClientHandler(s2, container).start())
+
+    container = make_async_container(
+        LDAPServerProvider(),
+        MainProvider(),
+        MFAProvider(),
+        MFACredsProvider(),
+        context={Settings: settings},
+    )
+
+    settings = await container.get(Settings)
+    servers.append(
+        UDPConnectionHandler(settings, container).start_server(),
+    )
 
     await asyncio.gather(*servers)
 
@@ -256,6 +270,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run ldap or http")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--ldap", action="store_true", help="Run ldap")
+    group.add_argument("--cldap", action="store_true", help="Run cldap")
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
