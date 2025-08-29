@@ -11,6 +11,7 @@ services:
       - "80:80"
       - "8080:8080"
       - "389:389"
+      - "389:389/udp"
       - "636:636"
       - "749:749"
       - "464:464"
@@ -57,6 +58,10 @@ services:
           memory: 100M
     labels:
       - traefik.enable=true
+
+      - traefik.udp.routers.cldap.entrypoints=cldap
+      - traefik.udp.routers.cldap.service=cldap
+      - traefik.udp.services.cldap.loadbalancer.server.port=389
 
       - traefik.tcp.routers.ldap.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldap.entrypoints=ldap
