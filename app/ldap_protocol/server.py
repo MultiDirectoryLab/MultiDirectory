@@ -390,9 +390,6 @@ class PoolClientHandler:
                     ldap_session.queue.task_done()
                 raise
             except Exception as err:
-                logger.debug(
-                    f"Unhandled exception in response handler: {err}",
-                )
                 with suppress(ValueError):
                     ldap_session.queue.task_done()
                 raise RuntimeError(err) from err
