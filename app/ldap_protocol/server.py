@@ -79,7 +79,6 @@ class PoolClientHandler:
         """Create session, queue and start message handlers concurrently."""
         async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
-            ldap_session.server_running.set()
             addr, first_chunk = await self.recieve(
                 reader,
                 writer,
@@ -268,9 +267,9 @@ class PoolClientHandler:
         :raises RuntimeError: reraises on unexpected exc
         """
         ldap_session: LDAPSession = await container.get(LDAPSession)
-        while ldap_session.server_running.is_set():
+        while ldap_session.session_active.is_set():
             if not data:
-                ldap_session.server_running.clear()
+                ldap_session.session_active.clear()
                 return
 
             if ldap_session.gssapi_authenticated:
@@ -358,7 +357,7 @@ class PoolClientHandler:
         addr = str(ldap_session.ip)
 
         while (
-            ldap_session.server_running.is_set()
+            ldap_session.session_active.is_set()
             or not ldap_session.queue.empty()
         ):
             try:
