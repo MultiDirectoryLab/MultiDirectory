@@ -10,6 +10,7 @@ from alembic import op
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
@@ -159,7 +160,8 @@ def upgrade() -> None:
             return
 
         role_dao = RoleDAO(session)
-        role_use_case = RoleUseCase(role_dao)
+        ace_dao = AccessControlEntryDAO(session)
+        role_use_case = RoleUseCase(role_dao, ace_dao)
         await role_use_case.create_domain_admins_role()
         await role_use_case.create_read_only_role()
 
