@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, AsyncIterator, NoReturn
+from typing import TYPE_CHECKING, AsyncIterator
 
 import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -90,6 +90,7 @@ class LDAPSession:
         self._lock = asyncio.Lock()
         self._user: UserSchema | None = user
         self.queue: asyncio.Queue[LDAPRequestMessage] = asyncio.Queue()
+        self.session_active = asyncio.Event()
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
@@ -100,6 +101,7 @@ class LDAPSession:
 
     async def start(self) -> None:
         """Start session."""
+        self.session_active.set()
         self.event_task_group = await self._task_group_cm.__aenter__()
 
     @property
@@ -190,7 +192,7 @@ class LDAPSession:
         if self.event_task_group is not None:
             await self._task_group_cm.__aexit__(None, None, None)
 
-    async def ensure_session_exists(self) -> NoReturn:
+    async def ensure_session_exists(self) -> None:
         """Ensure session exists in storage.
 
         Does nothing if anonymous, wait 30s and if user bound, check it.
@@ -199,10 +201,22 @@ class LDAPSession:
             raise AttributeError("Storage is not set")
 
         while True:
-            await asyncio.sleep(30)
+            try:
+                await asyncio.sleep(30)
 
-            if not self.user:
-                continue
+                if not self.user:
+                    continue
 
-            if not await self.storage.check_session(self.key):
-                raise ConnectionAbortedError("Session missing in storage")
+                if not await self.storage.check_session(self.key):
+                    self.session_active.clear()
+                    return
+            except asyncio.CancelledError:
+                return
+
+    async def cancel_ensure_task(self, task: asyncio.Task) -> None:
+        """Cancel the ensure session task."""
+        while True:
+            if not self.session_active.is_set():
+                task.cancel()
+                return
+            await asyncio.sleep(0.1)

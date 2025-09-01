@@ -431,7 +431,7 @@ class TestProvider(Provider):
 
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
-    @provide(scope=Scope.APP)
+    @provide(scope=Scope.RUNTIME)
     async def get_audit_redis_client(
         self,
         settings: Settings,

@@ -97,31 +97,36 @@ class PoolClientHandler:
                         log.warning(f"Whitelist violation from {addr}")
                         return
 
-                await asyncio.gather(
-                    self._handle_request(
-                        first_chunk,
-                        reader,
-                        writer,
-                        session_scope,
-                    ),
-                    self._handle_responses(writer, session_scope),
-                    ldap_session.ensure_session_exists(),
-                )
+                async with asyncio.TaskGroup() as tg:
+                    tg.create_task(
+                        self._handle_request(
+                            first_chunk,
+                            reader,
+                            writer,
+                            session_scope,
+                        ),
+                    )
+                    tg.create_task(
+                        self._handle_responses(writer, session_scope),
+                    )
+                    ensure_task = tg.create_task(
+                        ldap_session.ensure_session_exists(),
+                    )
+                    tg.create_task(
+                        ldap_session.cancel_ensure_task(ensure_task),
+                    )
 
-            except RuntimeError:
+            except* RuntimeError:
                 log.exception(f"The connection {addr} raised")
-            except ConnectionAbortedError:
-                logger.info(f"Connection {addr} closed")
 
             finally:
                 await session_scope.close()
 
                 with suppress(RuntimeError):
-                    await ldap_session.queue.join()
-
-                with suppress(RuntimeError):
                     writer.close()
                     await writer.wait_closed()
+
+                logger.info(f"Connection {addr} closed")
 
     def _load_ssl_context(self) -> None:
         """Load SSL context for LDAPS."""
@@ -259,13 +264,13 @@ class PoolClientHandler:
         :param asyncio.StreamReader reader: reader
         :param asyncio.StreamWriter writer: writer
         :param AsyncContainer container: container
-        :raises ConnectionAbortedError: if client sends empty request (b'')
         :raises RuntimeError: reraises on unexpected exc
         """
         ldap_session: LDAPSession = await container.get(LDAPSession)
-        while True:
+        while ldap_session.session_active.is_set():
             if not data:
-                raise ConnectionAbortedError("Connection terminated by client")
+                ldap_session.session_active.clear()
+                return
 
             if ldap_session.gssapi_authenticated:
                 data = await self._unwrap_request(data, ldap_session)
@@ -351,9 +356,15 @@ class PoolClientHandler:
         ldap_session: LDAPSession = await container.get(LDAPSession)
         addr = str(ldap_session.ip)
 
-        while True:
+        while (
+            ldap_session.session_active.is_set()
+            or not ldap_session.queue.empty()
+        ):
             try:
-                message = await ldap_session.queue.get()
+                message = await asyncio.wait_for(
+                    ldap_session.queue.get(),
+                    timeout=1.0,
+                )
                 self.req_log(addr, message)
 
                 async with container(scope=Scope.REQUEST) as request_container:
@@ -372,7 +383,15 @@ class PoolClientHandler:
                         await writer.drain()
 
                 ldap_session.queue.task_done()
+            except TimeoutError:
+                continue
+            except asyncio.CancelledError:
+                with suppress(ValueError):
+                    ldap_session.queue.task_done()
+                raise
             except Exception as err:
+                with suppress(ValueError):
+                    ldap_session.queue.task_done()
                 raise RuntimeError(err) from err
 
     async def _wrap_response(
@@ -420,12 +439,9 @@ class PoolClientHandler:
         then every task awaits for queue object,
         cycle locks until pool completes at least 1 task.
         """
-        tasks = [
-            self._handle_single_response(writer, container)
-            for _ in range(self.num_workers)
-        ]
-
-        await asyncio.gather(*tasks)
+        async with asyncio.TaskGroup() as tg:
+            for _ in range(self.num_workers):
+                tg.create_task(self._handle_single_response(writer, container))
 
     async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
