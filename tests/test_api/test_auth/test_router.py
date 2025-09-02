@@ -4,22 +4,39 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
+import httpx
 import pytest
+import pytest_asyncio
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy import select
+from jose import jwt
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from enums import AceType, RoleScope
+from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
+from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group, Role
+from models import CatalogueSetting, Directory, Group, NetworkPolicy, Role
+from password_manager.password_validator import PasswordValidator
+from tests.conftest import TestCreds
+
+
+@pytest_asyncio.fixture(scope="function")
+async def enable_mfa(session: AsyncSession) -> None:
+    """Enable MFA in network policy for tests."""
+    await session.execute(
+        update(NetworkPolicy).values(
+            {NetworkPolicy.mfa_status: MFAFlags.ENABLED},
+        ),
+    )
 
 
 async def apply_user_account_control(
@@ -442,3 +459,60 @@ async def test_lock_and_unlock_user(
     assert "nsAccountLock" not in attrs
     assert "shadowExpire" not in attrs
     assert not await storage.get_user_sessions(dir_.user.id)  # type: ignore
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_mfa_auth(
+    unbound_http_client: httpx.AsyncClient,
+    session: AsyncSession,
+    creds: TestCreds,
+    password_validator: PasswordValidator,
+    enable_mfa: None,  # noqa: ARG001
+) -> None:
+    """Test auth with MFA."""
+    session.add(
+        CatalogueSetting(name="mfa_secret", value="123"),
+    )
+    session.add(CatalogueSetting(name="mfa_key", value="123"))
+    await session.commit()
+
+    redirect_url = "example.com"
+
+    response = await unbound_http_client.post(
+        "auth/",
+        data={"username": creds.un, "password": creds.pw},
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": MFAChallengeStatuses.PENDING,
+        "message": redirect_url,
+    }
+
+    response = await unbound_http_client.get("auth/me")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    user = await authenticate_user(
+        session,
+        creds.un,
+        creds.pw,
+        password_validator,
+    )
+
+    assert user
+
+    exp = datetime.now() + timedelta(minutes=5)
+
+    token = jwt.encode({"aud": "123", "uid": user.id, "exp": exp}, "123")
+
+    response = await unbound_http_client.post(
+        "/multifactor/create",
+        data={"accessToken": token},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.cookies.get("id")
+
+    resp = await unbound_http_client.get("auth/me")
+    assert resp.status_code == status.HTTP_200_OK

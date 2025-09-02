@@ -4,20 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from datetime import datetime, timedelta
-
 import httpx
 import pytest
-from fastapi import status
-from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from enums import MFAChallengeStatuses
-from ldap_protocol.identity.utils import authenticate_user
 from models import CatalogueSetting
-from password_manager import PasswordValidator
-from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
@@ -59,58 +51,3 @@ async def test_set_and_remove_mfa(
         select(CatalogueSetting)
         .filter_by(name="mfa_secret", value="123"),
     )  # fmt: skip
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("setup_session")
-async def test_connect_mfa(
-    unbound_http_client: httpx.AsyncClient,
-    session: AsyncSession,
-    creds: TestCreds,
-    password_validator: PasswordValidator,
-) -> None:
-    """Test websocket mfa."""
-    session.add(
-        CatalogueSetting(name="mfa_secret", value="123"),
-    )
-    session.add(CatalogueSetting(name="mfa_key", value="123"))
-    await session.commit()
-
-    redirect_url = "example.com"
-
-    response = await unbound_http_client.post(
-        "/multifactor/connect",
-        data={"username": creds.un, "password": creds.pw},
-    )
-
-    assert response.json() == {
-        "status": MFAChallengeStatuses.PENDING,
-        "message": redirect_url,
-    }
-    response = await unbound_http_client.get("auth/me")
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    user = await authenticate_user(
-        session,
-        creds.un,
-        creds.pw,
-        password_validator,
-    )
-
-    assert user
-
-    exp = datetime.now() + timedelta(minutes=5)
-
-    token = jwt.encode({"aud": "123", "uid": user.id, "exp": exp}, "123")
-
-    response = await unbound_http_client.post(
-        "/multifactor/create",
-        data={"accessToken": token},
-        follow_redirects=False,
-    )
-
-    assert response.status_code == 302
-    assert response.cookies.get("id")
-
-    resp = await unbound_http_client.get("auth/me")
-    assert resp.status_code == status.HTTP_200_OK
