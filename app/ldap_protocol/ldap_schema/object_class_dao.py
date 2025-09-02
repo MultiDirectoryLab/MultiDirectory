@@ -4,61 +4,37 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import asdict
 from typing import Iterable, Literal
 
-from pydantic import BaseModel
+from adaptix.conversion import get_converter
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from abstract_dao import AbstractDAO
 from enums import KindType
-from ldap_protocol.exceptions import (
-    InstanceCantModifyError,
-    InstanceNotFoundError,
-)
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.dto import ObjectClassDTO, ObjectClassUpdateDTO
+from ldap_protocol.ldap_schema.exceptions import (
+    ObjectClassCantModifyError,
+    ObjectClassNotFoundError,
+)
 from ldap_protocol.utils.pagination import (
-    BasePaginationSchema,
     PaginationParams,
     PaginationResult,
     build_paginated_search_query,
 )
 from models import EntityType, ObjectClass
 
-
-class ObjectClassSchema(BaseModel):
-    """Object Class Schema."""
-
-    oid: str
-    name: str
-    superior_name: str | None
-    kind: KindType
-    is_system: bool
-    attribute_type_names_must: list[str]
-    attribute_type_names_may: list[str]
+_converter = get_converter(ObjectClass, ObjectClassDTO)
 
 
-class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
-    """Object Class Schema with pagination result."""
-
-    items: list[ObjectClassSchema]
-
-
-class ObjectClassUpdateSchema(BaseModel):
-    """Object Class Schema for modify/update."""
-
-    attribute_type_names_must: list[str]
-    attribute_type_names_may: list[str]
-
-
-class ObjectClassDAO:
+class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
     """Object Class DAO."""
 
     __session: AsyncSession
     __attribute_type_dao: AttributeTypeDAO
-
-    ObjectClassNotFoundError = InstanceNotFoundError
-    ObjectClassCantModifyError = InstanceCantModifyError
 
     def __init__(
         self,
@@ -68,6 +44,52 @@ class ObjectClassDAO:
         """Initialize Object Class DAO with session."""
         self.__session = session
         self.__attribute_type_dao = attribute_type_dao
+
+    async def _get_raw(self, _id: int) -> ObjectClass:
+        """Get raw Object Class by id."""
+        object_class = await self.__session.scalar(
+            select(ObjectClass).where(ObjectClass.id == _id),
+        )
+        if not object_class:
+            raise ObjectClassNotFoundError(
+                f"Object Class with id {_id} not found.",
+            )
+        return object_class
+
+    async def get(self, _id: int) -> ObjectClassDTO:
+        """Get Object Class by id."""
+        return _converter(await self._get_raw(_id))
+
+    async def get_all(self) -> list[ObjectClassDTO]:
+        """Get all Object Classes."""
+        return [
+            _converter(object_class)
+            for object_class in await self.__session.scalars(
+                select(ObjectClass),
+            )
+        ]
+
+    async def create(self, dto: ObjectClassDTO) -> None:
+        """Create Object Class."""
+        object_class = ObjectClass(**asdict(dto))
+        self.__session.add(object_class)
+        await self.__session.flush()
+
+    async def update(self, _id: int, dto: ObjectClassDTO) -> None:
+        """Update Object Class."""
+        object_class = await self._get_raw(_id)
+        object_class.oid = dto.oid
+        object_class.name = dto.name
+        object_class.superior_name = dto.superior_name
+        object_class.kind = dto.kind
+        object_class.is_system = dto.is_system
+        await self.__session.flush()
+
+    async def delete(self, _id: int) -> None:
+        """Delete Object Class."""
+        object_class = await self._get_raw(_id)
+        await self.__session.delete(object_class)
+        await self.__session.flush()
 
     async def get_paginator(
         self,
@@ -119,7 +141,7 @@ class ObjectClassDAO:
             else None
         )
         if superior_name and not superior:
-            raise self.ObjectClassNotFoundError(
+            raise ObjectClassNotFoundError(
                 f"Superior (parent) Object class {superior_name} not found\
                     in schema.",
             )
@@ -186,7 +208,7 @@ class ObjectClassDAO:
         )
 
         if count_ != len(object_class_names):
-            raise self.ObjectClassNotFoundError(
+            raise ObjectClassNotFoundError(
                 f"Not all Object Classes\
                     with names {object_class_names} found.",
             )
@@ -196,7 +218,7 @@ class ObjectClassDAO:
     async def get_one_by_name(
         self,
         object_class_name: str,
-    ) -> ObjectClass:
+    ) -> ObjectClassDTO:
         """Get single Object Class by name.
 
         :param str object_class_name: Object Class name.
@@ -209,20 +231,20 @@ class ObjectClassDAO:
         )  # fmt: skip
 
         if not object_class:
-            raise self.ObjectClassNotFoundError(
+            raise ObjectClassNotFoundError(
                 f"Object Class with name '{object_class_name}' not found.",
             )
 
-        return object_class
+        return _converter(object_class)
 
     async def get_all_by_names(
         self,
         object_class_names: list[str] | set[str],
-    ) -> list[ObjectClass]:
+    ) -> list[ObjectClassDTO]:
         """Get list of Object Classes by names.
 
         :param list[str] object_class_names: Object Classes names.
-        :return list[ObjectClass]: List of Object Classes.
+        :return list[ObjectClassDTO]: List of Object Classes.
         """
         query = await self.__session.scalars(
             select(ObjectClass)
@@ -232,23 +254,23 @@ class ObjectClassDAO:
                 selectinload(ObjectClass.attribute_types_may),
             ),
         )  # fmt: skip
-        return list(query.all())
+        return list(map(_converter, query.all()))
 
     async def modify_one(
         self,
-        object_class: ObjectClass,
-        new_statement: ObjectClassUpdateSchema,
+        object_class: ObjectClassDTO,
+        new_statement: ObjectClassUpdateDTO,
     ) -> None:
         """Modify Object Class.
 
         :param ObjectClass object_class: Object Class.
-        :param ObjectClassUpdateSchema new_statement: New statement ObjectClass
+        :param ObjectClassDTO new_statement: New statement ObjectClass
         :raise ObjectClassCantModifyError: If Object Class is system,\
             it cannot be changed.
         :return None.
         """
         if object_class.is_system:
-            raise self.ObjectClassCantModifyError(
+            raise ObjectClassCantModifyError(
                 "System Object Class cannot be modified.",
             )
 
