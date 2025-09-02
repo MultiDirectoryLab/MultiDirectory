@@ -18,6 +18,7 @@ from starlette.datastructures import URL
 
 from abstract_dao import AbstractService
 from config import Settings
+from entities import CatalogueSetting, NetworkPolicy, User
 from enums import MFAChallengeStatuses, MFAFlags
 from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
@@ -48,8 +49,8 @@ from ldap_protocol.policies.network_policy import (
 )
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from models import CatalogueSetting, NetworkPolicy, User, settings_table
 from password_manager import PasswordValidator
+from repo.pg.tables import queryable_attr as qa
 
 ALGORITHM = "HS256"
 
@@ -107,8 +108,8 @@ class MFAManager(AbstractService):
             await self._session.execute(
                 delete(CatalogueSetting).filter(
                     operator.or_(
-                        settings_table.c.name == mfa.key_name,
-                        settings_table.c.name == mfa.secret_name,
+                        qa(CatalogueSetting.name) == mfa.key_name,
+                        qa(CatalogueSetting.name) == mfa.secret_name,
                     ),
                 ),
             )
@@ -137,7 +138,7 @@ class MFAManager(AbstractService):
             keys = ["mfa_key_ldap", "mfa_secret_ldap"]
         await self._session.execute(
             delete(CatalogueSetting)
-            .filter(settings_table.c.name.in_(keys)),
+            .filter(qa(CatalogueSetting.name).in_(keys)),
         )  # fmt: skip
 
         await self._session.commit()

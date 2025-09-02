@@ -11,8 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
+from entities import AccessControlEntry, Group, Role
 from ldap_protocol.utils.queries import get_groups
-from models import AccessControlEntry, Group, Role, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 
 from .ace_dao import _convert as ace_convert
 from .dataclasses import AccessControlEntryDTO, RoleDTO

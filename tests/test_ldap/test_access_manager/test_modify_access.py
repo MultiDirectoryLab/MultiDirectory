@@ -6,11 +6,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
+from entities import AccessControlEntry
 from enums import AceType
 from ldap_protocol.ldap_responses import PartialAttribute
 from ldap_protocol.objects import Changes, Operation
 from ldap_protocol.roles.access_manager import AccessManager
-from models import AccessControlEntry
 
 from .conftest import create_mock_ace
 

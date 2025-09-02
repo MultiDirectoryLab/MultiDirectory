@@ -20,17 +20,8 @@ from sqlalchemy.sql.elements import (
     UnaryExpression,
 )
 
-from models import (
-    Directory,
-    EntityType,
-    Group,
-    User,
-    attributes_table,
-    directory_table,
-    groups_table,
-    queryable_attr as qa,
-    users_table,
-)
+from entities import Attribute, Directory, EntityType, Group, User
+from repo.pg.tables import groups_table, queryable_attr as qa, users_table
 
 from .asn1parser import ASN1Row, TagNumbers
 from .objects import LDAPMatchingRule
@@ -71,11 +62,11 @@ class FilterInterpreterProtocol(Protocol):
     ) -> ColumnElement:
         if condition is None:
             f = qa(Directory).attributes.any(
-                attributes_table.c.name.ilike(attr),
+                qa(Attribute.name).ilike(attr),
             )
         else:
             f = qa(Directory).attributes.any(
-                and_(attributes_table.c.name.ilike(attr), condition),
+                and_(qa(Attribute.name).ilike(attr), condition),
             )
 
         return f
@@ -106,7 +97,7 @@ class FilterInterpreterProtocol(Protocol):
         """Retrieve query conditions with the memberOF attribute(recursive)."""
         cte = find_members_recursive_cte(dn)
 
-        return directory_table.c.id.in_(select(cte.c.directory_id).offset(1))  # type: ignore
+        return qa(Directory.id).in_(select(cte.c.directory_id).offset(1))  # type: ignore
 
     def _filter_memberof(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the memberOF attribute."""
@@ -117,12 +108,12 @@ class FilterInterpreterProtocol(Protocol):
             .scalar_subquery()
         )
 
-        return directory_table.c.id.in_(
+        return qa(Directory.id).in_(
             (
-                select(directory_table.c.id)
+                select(qa(Directory.id))
                 .join(qa(Directory.groups))
                 .where(groups_table.c.id == group_id_subquery)
-                .distinct(directory_table.c.id)
+                .distinct(qa(Directory.id))
             ),
         )  # type: ignore
 
@@ -135,7 +126,7 @@ class FilterInterpreterProtocol(Protocol):
             .scalar_subquery()
         )
 
-        return directory_table.c.id.in_(
+        return qa(Directory.id).in_(
             (
                 select(groups_table.c.directory_id)
                 .join(qa(Group.users))
@@ -206,14 +197,14 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             return func.lower(EntityType.name) == right.lower()
         else:
             if is_substring:
-                cond = attributes_table.c.value.ilike(
+                cond = qa(Attribute.value).ilike(
                     self._get_substring(right),
                 )
             else:
                 if isinstance(right.value, str):
-                    cond = attributes_table.c.value.ilike(right.value)
+                    cond = qa(Attribute.value).ilike(right.value)
                 else:
-                    cond = attributes_table.c.bvalue == right.value
+                    cond = qa(Attribute.bvalue) == right.value
 
             return self._get_filter_condition(attr, cond)
 
@@ -314,11 +305,11 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             return func.lower(EntityType.name) == item.val.lower()
         else:
             if is_substring:
-                cond = attributes_table.c.value.ilike(
+                cond = qa(Attribute.value).ilike(
                     item.val.replace("*", "%"),
                 )
             else:
-                cond = attributes_table.c.value.ilike(item.val)
+                cond = qa(Attribute.value).ilike(item.val)
 
             return self._get_filter_condition(item.attr, cond)
 

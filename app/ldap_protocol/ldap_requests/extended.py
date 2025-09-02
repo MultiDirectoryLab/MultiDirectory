@@ -12,6 +12,7 @@ from loguru import logger
 from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 
+from entities import Directory, User
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -21,7 +22,6 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.utils.queries import get_user
-from models import Directory, User
 
 from .base import BaseRequest
 from .contexts import LDAPExtendedRequestContext

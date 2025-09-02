@@ -12,13 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, subqueryload
 
 from config import Settings
+from entities import Directory
 from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
 from .conftest import perform_ldap_search_and_validate, run_ldap_modify

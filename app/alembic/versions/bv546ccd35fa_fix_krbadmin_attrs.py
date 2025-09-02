@@ -10,8 +10,9 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
+from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
-from models import Attribute, Directory, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "bv546ccd35fa"

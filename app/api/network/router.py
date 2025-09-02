@@ -16,8 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
+from entities import Group, NetworkPolicy
 from ldap_protocol.utils.queries import get_groups
-from models import Group, NetworkPolicy, policies_table, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 
 from .schema import (
     Policy,
@@ -141,7 +142,7 @@ async def get_list_network_policies(
         for policy in await session.scalars(
             select(NetworkPolicy)
             .options(groups, mfa_groups)
-            .order_by(policies_table.c.priority.asc()),
+            .order_by(qa(NetworkPolicy.priority).asc()),
         )
     ]
 
@@ -180,7 +181,7 @@ async def delete_network_policy(
             (
                 update(NetworkPolicy)
                 .values({"priority": NetworkPolicy.priority - 1})
-                .filter(policies_table.c.priority > policy.priority)
+                .filter(qa(NetworkPolicy.priority) > policy.priority)
             ),
         )
         await session.commit()

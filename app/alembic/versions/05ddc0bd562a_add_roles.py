@@ -10,11 +10,12 @@ from alembic import op
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from entities import Group
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from models import Group, directory_table, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "05ddc0bd562a"
@@ -168,7 +169,7 @@ def upgrade() -> None:
         krb_group_query = (
             select(Group)
             .join(qa(Group.directory))
-            .where(directory_table.c.name == "krbadmin")
+            .where(qa(Group.directory).name == "krbadmin")
             .exists()
         )
 

@@ -14,16 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models import (
-    Attribute,
-    Directory,
-    Group,
-    User,
-    attributes_table,
-    directory_table,
-    queryable_attr as qa,
-    users_table,
-)
+from entities import Attribute, Directory, Group, User
+from repo.pg.tables import directory_table, queryable_attr as qa
 
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
@@ -39,7 +31,7 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
         select(Directory)
-        .filter(directory_table.c.parent_id.is_(None)),
+        .filter(qa(Directory.parent_id).is_(None)),
     )  # fmt: skip
     return list(result.scalars().all())
 
@@ -55,9 +47,9 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
-            cond = users_table.c.user_principal_name.ilike(name)
+            cond = qa(User.user_principal_name).ilike(name)
         else:
-            cond = users_table.c.sam_account_name.ilike(name)
+            cond = qa(User.sam_account_name).ilike(name)
 
         return await session.scalar(select(User).where(cond).options(policies))
 
@@ -175,7 +167,7 @@ async def check_kerberos_group(
         select(Group)
         .join(qa(Group.directory))
         .filter(qa(Group.users).contains(user))
-        .filter(directory_table.c.name.ilike("krbadmin"))
+        .filter(qa(Directory.name).ilike("krbadmin"))
         .limit(1)
         .exists()
     )
@@ -340,9 +332,9 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
     query = select(
         select(Attribute)
         .where(
-            attributes_table.c.name.ilike("objectclass"),
-            attributes_table.c.value == "computer",
-            attributes_table.c.directory_id == directory_id,
+            qa(Attribute.name).ilike("objectclass"),
+            qa(Attribute.value) == "computer",
+            qa(Attribute.directory_id) == directory_id,
         )
         .exists(),
     )

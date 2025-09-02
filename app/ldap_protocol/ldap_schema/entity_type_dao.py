@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
+from entities import Attribute, Directory, EntityType, ObjectClass
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeAlreadyExistsError,
@@ -26,17 +27,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import (
-    Attribute,
-    Directory,
-    EntityType,
-    ObjectClass,
-    attributes_table,
-    directory_table,
-    entity_types_table,
-    object_classes_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import queryable_attr as qa
 
 _convert = get_converter(EntityType, EntityTypeDTO[int])
 
@@ -101,21 +92,21 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             result = await self.__session.execute(
                 select(Directory)
                 .join(qa(Directory.entity_type))
-                .where(entity_types_table.c.name == entity_type.name)
+                .filter(qa(EntityType.name) == entity_type.name)
                 .options(selectinload(qa(Directory.attributes))),
             )  # fmt: skip
 
             await self.__session.execute(
                 delete(Attribute)
                 .where(
-                    attributes_table.c.directory_id.in_(
-                        select(directory_table.c.id)
+                    qa(Attribute.directory_id).in_(
+                        select(qa(Directory.id))
                         .join(qa(Directory.entity_type))
-                        .where(entity_types_table.c.name == entity_type.name),
+                        .where(qa(EntityType.name) == entity_type.name),
                     ),
                     or_(
-                        attributes_table.c.name == "objectclass",
-                        attributes_table.c.name == "objectClass",
+                        qa(Attribute.name) == "objectclass",
+                        qa(Attribute.name) == "objectClass",
                     ),
                 ),
             )  # fmt: skip
@@ -210,10 +201,10 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         result = await self.__session.execute(
             select(EntityType)
             .where(
-                func.array_lowercase(entity_types_table.c.object_class_names).op("@>")(
+                func.array_lowercase(EntityType.object_class_names).op("@>")(
                     list_object_class_names,
                 ),
-                func.array_lowercase(entity_types_table.c.object_class_names).op("<@")(
+                func.array_lowercase(EntityType.object_class_names).op("<@")(
                     list_object_class_names,
                 ),
             ),
@@ -235,7 +226,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         object_classes_query = await self.__session.scalars(
             select(ObjectClass)
             .where(
-                object_classes_table.c.name.in_(
+                qa(ObjectClass).name.in_(
                     entity_type.object_class_names,
                 ),
             )
@@ -263,11 +254,11 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         """
         await self.__session.execute(
             delete(EntityType).where(
-                entity_types_table.c.name.in_(names),
-                entity_types_table.c.is_system.is_(False),
-                entity_types_table.c.id.not_in(
-                    select(directory_table.c.entity_type_id)
-                    .where(directory_table.c.entity_type_id.isnot(None)),
+                qa(EntityType.name).in_(names),
+                qa(EntityType.is_system).is_(False),
+                qa(EntityType.id).not_in(
+                    select(qa(Directory.entity_type_id))
+                    .where(qa(Directory.entity_type_id).isnot(None)),
                 ),
             ),
         )  # fmt: skip
@@ -280,7 +271,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         """
         result = await self.__session.execute(
             select(Directory)
-            .where(directory_table.c.entity_type_id.is_(None))
+            .where(qa(Directory.entity_type_id).is_(None))
             .options(
                 selectinload(qa(Directory.attributes)),
                 selectinload(qa(Directory.entity_type)),

@@ -9,10 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, select
 
 from config import Settings
+from entities import Attribute, User
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.queries import add_lock_and_expire_attributes
-from models import Attribute, User, attributes_table, users_table
+from repo.pg.tables import queryable_attr as qa
 
 
 async def disable_accounts(
@@ -34,10 +35,10 @@ async def disable_accounts(
             a."name" = 'userAccountControl'
     """
     subquery = (
-        select(users_table.c.directory_id)
+        select(qa(User.directory_id))
         .where(
-            users_table.c.account_exp < func.now(),
-            users_table.c.directory_id == attributes_table.c.directory_id,
+            qa(User.account_exp) < func.now(),
+            qa(User.directory_id) == qa(Attribute.directory_id),
         )
         .scalar_subquery()
     )
@@ -54,21 +55,21 @@ async def disable_accounts(
             )
             == 0
         ),
-        attributes_table.c.directory_id.in_(subquery),
-        attributes_table.c.name == "userAccountControl",
+        qa(Attribute.directory_id).in_(subquery),
+        qa(Attribute.name) == "userAccountControl",
     ]
 
     ids = await session.scalars(
         update(Attribute)
         .values(value=new_value)
         .where(*conditions)
-        .returning(attributes_table.c.directory_id)
+        .returning(qa(Attribute.directory_id))
         .execution_options(synchronize_session=False),
     )
 
     users = await session.stream_scalars(
         select(User)
-        .where(users_table.c.directory_id.in_(ids)),
+        .where(qa(User.directory_id).in_(ids)),
     )  # fmt: skip
 
     async for user in users:

@@ -11,13 +11,14 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from entities import Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,
     get_search_path,
 )
-from models import Directory, directory_table
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "fafc3d0b11ec"
@@ -42,7 +43,7 @@ def upgrade() -> None:
         try:
             group_dir_query = select(
                 exists(Directory).where(
-                    directory_table.c.name == "readonly domain controllers",
+                    qa(Directory.name) == "readonly domain controllers",
                 ),
             )
             group_dir = (await session.scalars(group_dir_query)).one()
@@ -84,7 +85,7 @@ def downgrade() -> None:
 
         await session.execute(
             delete(Directory)
-            .where(directory_table.c.path == get_search_path(group_dn)),
+            .filter_by(path=get_search_path(group_dn)),
         )  # fmt: skip
 
         await session.commit()

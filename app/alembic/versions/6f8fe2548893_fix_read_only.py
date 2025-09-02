@@ -10,9 +10,9 @@ from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.utils.helpers import create_integer_hash
-from models import Attribute, Directory, directory_table
 
 # revision identifiers, used by Alembic.
 revision = "6f8fe2548893"
@@ -29,7 +29,7 @@ def upgrade() -> None:
 
     ro_dir = session.scalar(
         select(Directory)
-        .where(directory_table.c.name == "readonly domain controllers"),
+        .filter_by(name="readonly domain controllers"),
     )  # fmt: skip
 
     if ro_dir:

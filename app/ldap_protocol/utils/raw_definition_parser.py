@@ -8,7 +8,8 @@ from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import AttributeType, ObjectClass, attribute_types_table
+from entities import AttributeType, ObjectClass
+from repo.pg.tables import queryable_attr as qa
 
 
 class RawDefinitionParser:
@@ -39,7 +40,7 @@ class RawDefinitionParser:
     ) -> list[AttributeType]:
         query = await session.execute(
             select(AttributeType)
-            .where(attribute_types_table.c.name.in_(names)),
+            .where(qa(AttributeType.name).in_(names)),
         )  # fmt: skip
         return list(query.scalars().all())
 

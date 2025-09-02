@@ -12,16 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
+from entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
-from models import (
-    AccessControlEntry,
-    Directory,
-    access_control_entries_table,
-    directory_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import queryable_attr as qa
 
 from .dataclasses import AccessControlEntryDTO
 from .exceptions import (
@@ -76,7 +71,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
                 joinedload(qa(AccessControlEntry.role)),
                 selectinload(qa(AccessControlEntry.directories)),
             )
-            .where(access_control_entries_table.c.id == _id)
+            .filter_by(id=_id)
         )
         retval = await self._session.scalar(query)
         if not retval:
@@ -130,10 +125,9 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         elif scope == RoleScope.SINGLE_LEVEL:
             query = select(Directory).filter(
                 and_(
-                    func.cardinality(directory_table.c.path)
-                    == len(search_path) + 1,
+                    func.cardinality(Directory.path) == len(search_path) + 1,
                     get_path_filter(
-                        column=directory_table.c.path[0 : len(search_path)],
+                        column=qa(Directory.path)[0 : len(search_path)],
                         path=search_path,
                     ),
                 ),
@@ -142,7 +136,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
 
         elif scope == RoleScope.WHOLE_SUBTREE:
             path_filter = get_path_filter(
-                column=directory_table.c.path[1 : len(search_path)],
+                column=qa(Directory.path)[1 : len(search_path)],
                 path=search_path,
             )
             return list(

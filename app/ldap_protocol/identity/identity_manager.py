@@ -14,6 +14,7 @@ from starlette.datastructures import URL
 from abstract_dao import AbstractService
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
+from entities import Directory, Group, User
 from enums import MFAFlags
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.exceptions.auth import (
@@ -47,14 +48,8 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_user
-from models import (
-    Directory,
-    Group,
-    directory_table,
-    queryable_attr as qa,
-    users_table,
-)
 from password_manager import PasswordValidator
+from repo.pg.tables import queryable_attr as qa
 
 
 class IdentityManager(AbstractService):
@@ -147,8 +142,8 @@ class IdentityManager(AbstractService):
             .join(qa(Group.users))
             .join(qa(Group.directory))
             .filter(
-                users_table.c.id == user.id,
-                directory_table.c.name == "domain admins",
+                qa(User.id) == user.id,
+                qa(Directory.name) == "domain admins",
             )
             .limit(1)
             .exists()
@@ -286,7 +281,7 @@ class IdentityManager(AbstractService):
         :return: bool (True if setup is required, False otherwise)
         """
         query = select(
-            exists(Directory).where(directory_table.c.parent_id.is_(None)),
+            exists(Directory).where(qa(Directory.parent_id).is_(None)),
         )
         retval = await self._session.scalars(query)
         return retval.one()
@@ -301,7 +296,7 @@ class IdentityManager(AbstractService):
         """
         setup_already_performed = await self._session.scalar(
             select(Directory)
-            .filter(directory_table.c.parent_id.is_(None)),
+            .filter(qa(Directory.parent_id).is_(None)),
         )  # fmt: skip
         if setup_already_performed:
             raise AlreadyConfiguredError("Setup already performed")

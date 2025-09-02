@@ -13,18 +13,13 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DATAS
+from entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.queries import get_base_directories
-from models import (
-    Attribute,
-    Directory,
-    User,
-    attributes_table,
-    directory_table,
-)
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "ba78cef9700a"
@@ -135,15 +130,15 @@ def upgrade() -> None:
             .join(Directory)
             .where(
                 ~exists(
-                    select(attributes_table.c.id)
+                    select(qa(Attribute.id))
                     .where(
-                        attributes_table.c.directory_id
-                        == directory_table.c.id,
+                        qa(Attribute.directory_id)
+                        == qa(Directory.id),
                         or_(
-                            attributes_table.c.name == "objectClass",
-                            attributes_table.c.name == "objectclass",
+                            qa(Attribute.name) == "objectClass",
+                            qa(Attribute.name) == "objectclass",
                         ),
-                        attributes_table.c.value == "inetOrgPerson",
+                        qa(Attribute).value == "inetOrgPerson",
                     ),
                 ),
             )

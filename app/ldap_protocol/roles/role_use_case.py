@@ -9,18 +9,10 @@ from enum import StrEnum
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
+from entities import AccessControlEntry, AceType, Directory, Role
 from enums import RoleScope
 from ldap_protocol.utils.queries import get_base_directories
-from models import (
-    AccessControlEntry,
-    AceType,
-    Directory,
-    Role,
-    access_control_entries_table,
-    directory_table,
-    queryable_attr as qa,
-    roles_table,
-)
+from repo.pg.tables import queryable_attr as qa
 
 from .ace_dao import AccessControlEntryDAO
 from .dataclasses import AccessControlEntryDTO, RoleDTO
@@ -67,16 +59,16 @@ class RoleUseCase:
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
-        directory_filter = directory_table.c.id == parent_directory.id
+        directory_filter = qa(Directory.id) == parent_directory.id
 
         subtree_inheritance = and_(
-            access_control_entries_table.c.depth != directory_table.c.depth,
-            access_control_entries_table.c.scope == RoleScope.WHOLE_SUBTREE,
+            qa(AccessControlEntry.depth) != qa(Directory.depth),
+            qa(AccessControlEntry.scope) == RoleScope.WHOLE_SUBTREE,
         )
 
         explicit_inheritance = and_(
-            access_control_entries_table.c.depth == directory_table.c.depth,
-            access_control_entries_table.c.scope.in_(
+            qa(AccessControlEntry.depth) == qa(Directory.depth),
+            qa(AccessControlEntry.scope).in_(
                 [
                     RoleScope.SINGLE_LEVEL,
                     RoleScope.WHOLE_SUBTREE,
@@ -130,14 +122,13 @@ class RoleUseCase:
             select(AccessControlEntry)
             .join(qa(AccessControlEntry.directories))
             .where(
-                directory_table.c.id == dir_id,
-                access_control_entries_table.c.role_id.in_(user_role_ids),
-                access_control_entries_table.c.ace_type
-                == AceType.PASSWORD_MODIFY,
+                qa(Directory.id) == dir_id,
+                qa(AccessControlEntry.role_id).in_(user_role_ids),
+                qa(AccessControlEntry.ace_type) == AceType.PASSWORD_MODIFY,
             )
             .order_by(
-                access_control_entries_table.c.depth.asc(),
-                access_control_entries_table.c.is_allow.asc(),
+                qa(AccessControlEntry.depth).asc(),
+                qa(AccessControlEntry.is_allow).asc(),
             )
             .limit(1)
         )
@@ -156,8 +147,8 @@ class RoleUseCase:
         query = (
             select(Role)
             .where(
-                roles_table.c.id.in_(user_role_ids),
-                roles_table.c.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+                qa(Role.id).in_(user_role_ids),
+                qa(Role.name) == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
             )
             .limit(1)
             .exists()

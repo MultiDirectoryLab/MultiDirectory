@@ -14,7 +14,8 @@ from loguru import logger as loguru_logger
 from sqlalchemy import case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import CatalogueSetting, settings_table
+from entities import CatalogueSetting
+from repo.pg.tables import queryable_attr as qa
 
 DNS_MANAGER_STATE_NAME = "DNSManagerState"
 DNS_MANAGER_ZONE_NAME = "DNSManagerZoneName"
@@ -218,18 +219,18 @@ class AbstractDNSManager(ABC):
 
         if self._dns_settings.domain is not None:
             settings = [
-                (settings_table.c.name == name, value)
+                (qa(CatalogueSetting.name) == name, value)
                 for name, value in new_settings.items()
             ]
 
             await session.execute(
                 update(CatalogueSetting)
-                .where(settings_table.c.name.in_(new_settings.keys()))
+                .where(qa(CatalogueSetting.name).in_(new_settings.keys()))
                 .values(
                     {
                         "value": case(
                             *settings,
-                            else_=settings_table.c.value,
+                            else_=qa(CatalogueSetting.value),
                         ),
                     },
                 ),

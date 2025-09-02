@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
+from entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -23,11 +24,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import (
-    AccessControlEntry,
-    AccessControlEntryDirectoryMembership,
-    Attribute,
-    Directory,
+from repo.pg.tables import (
     access_control_entries_table,
     directory_table,
     queryable_attr as qa,
@@ -180,7 +177,7 @@ class ModifyDNRequest(BaseRequest):
                 await ctx.session.flush()
                 if parent_dir:
                     await ctx.session.execute(
-                        delete(AccessControlEntryDirectoryMembership)
+                        delete(access_control_entries_table.c)
                         .filter_by(directory_id=directory.id),
                     )  # fmt: skip
 
@@ -249,7 +246,7 @@ class ModifyDNRequest(BaseRequest):
                     qa(AccessControlEntry.directories).any(
                         directory_table.c.id == directory.id,
                     ),
-                    access_control_entries_table.c.depth == directory.depth,
+                    qa(AccessControlEntry.depth) == directory.depth,
                 )
             )
 

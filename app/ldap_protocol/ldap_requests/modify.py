@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
 from constants import PRIMARY_ENTITY_TYPE_NAMES
+from entities import Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
@@ -44,16 +45,8 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
-from models import (
-    Attribute,
-    Directory,
-    Group,
-    User,
-    attributes_table,
-    directory_table,
-    queryable_attr as qa,
-)
 from password_manager import PasswordValidator
+from repo.pg.tables import directory_table, queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
@@ -499,21 +492,18 @@ class ModifyRequest(BaseRequest):
             await self._validate_object_class_modification(change, directory)
 
         if name_only or not change.modification.vals:
-            attrs.append(attributes_table.c.name == change.modification.type)
+            attrs.append(qa(Attribute.name) == change.modification.type)
         else:
             for value in change.modification.vals:
-                if name not in (
-                    directory_table.c.search_fields | User.search_fields
-                ):
+                if name not in (Directory.search_fields | User.search_fields):
                     if isinstance(value, str):
-                        condition = attributes_table.c.value == value
+                        condition = qa(Attribute.value) == value
                     elif isinstance(value, bytes):
-                        condition = attributes_table.c.bvalue == value
+                        condition = qa(Attribute.bvalue) == value
 
                     attrs.append(
                         and_(
-                            attributes_table.c.name
-                            == change.modification.type,
+                            qa(Attribute.name) == change.modification.type,
                             condition,
                         ),
                     )

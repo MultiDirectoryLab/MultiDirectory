@@ -9,6 +9,7 @@ from typing import AsyncGenerator, ClassVar
 from sqlalchemy import delete, select
 from sqlalchemy.orm import joinedload, selectinload
 
+from entities import Directory, Group
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos import KRBAPIError
@@ -25,7 +26,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory, Group, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext

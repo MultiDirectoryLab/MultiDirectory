@@ -15,6 +15,7 @@ from sqlalchemy import delete, or_
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
+from entities import Attribute
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
@@ -22,7 +23,7 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
-from models import Attribute, attributes_table
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "275222846605"
@@ -181,10 +182,10 @@ def upgrade() -> None:
     session.execute(
         delete(Attribute).where(
             or_(
-                attributes_table.c.name == "objectClass",
-                attributes_table.c.name == "objectclass",
+                qa(Attribute.name) == "objectClass",
+                qa(Attribute.name) == "objectclass",
             ),
-            attributes_table.c.value == "catalog",
+            qa(Attribute.value) == "catalog",
         ),
     )
 

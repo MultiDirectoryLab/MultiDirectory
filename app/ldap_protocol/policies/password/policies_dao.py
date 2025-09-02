@@ -13,13 +13,13 @@ from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
+from entities import Attribute, PasswordPolicy, User
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyNotFoundError,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import ft_now
-from models import Attribute, PasswordPolicy, User
 
 from .dataclasses import PasswordPolicyDTO
 

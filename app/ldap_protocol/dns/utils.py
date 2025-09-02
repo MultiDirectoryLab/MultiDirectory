@@ -11,7 +11,8 @@ from dns.asyncresolver import Resolver as AsyncResolver
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import CatalogueSetting, settings_table
+from entities import CatalogueSetting
+from repo.pg.tables import queryable_attr as qa
 
 from .base import (
     DNS_MANAGER_IP_ADDRESS_NAME,
@@ -59,7 +60,7 @@ async def get_dns_state(
     """Get or create DNS manager state."""
     state = await session.scalar(
         select(CatalogueSetting)
-        .filter(settings_table.c.name == DNS_MANAGER_STATE_NAME),
+        .filter_by(name= DNS_MANAGER_STATE_NAME),
     )  # fmt: skip
 
     if state is None:
@@ -83,7 +84,7 @@ async def set_dns_manager_state(
     await session.execute(
         update(CatalogueSetting)
         .values({"value": state})
-        .where(settings_table.c.name == DNS_MANAGER_STATE_NAME),
+        .filter_by(name=DNS_MANAGER_STATE_NAME),
     )
 
 
@@ -105,9 +106,9 @@ async def get_dns_manager_settings(
     for setting in await session.scalars(
         select(CatalogueSetting).filter(
             or_(
-                settings_table.c.name == DNS_MANAGER_ZONE_NAME,
-                settings_table.c.name == DNS_MANAGER_IP_ADDRESS_NAME,
-                settings_table.c.name == DNS_MANAGER_TSIG_KEY_NAME,
+                qa(CatalogueSetting.name) == DNS_MANAGER_ZONE_NAME,
+                qa(CatalogueSetting.name) == DNS_MANAGER_IP_ADDRESS_NAME,
+                qa(CatalogueSetting.name) == DNS_MANAGER_TSIG_KEY_NAME,
             ),
         ),
     ):

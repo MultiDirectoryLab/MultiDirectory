@@ -22,20 +22,13 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import Attribute, Directory, Group, NetworkPolicy, User
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
-from models import (
-    Attribute,
-    Directory,
-    Group,
-    NetworkPolicy,
-    User,
-    directory_table,
-    queryable_attr as qa,
-)
 from password_manager import PasswordValidator
+from repo.pg.tables import queryable_attr as qa
 
 
 async def _get_group(name: str, session: AsyncSession) -> Group:
@@ -43,8 +36,8 @@ async def _get_group(name: str, session: AsyncSession) -> Group:
         select(Group)
         .join(qa(Group.directory))
         .filter(
-            directory_table.c.name == name,
-            directory_table.c.object_class == "group",
+            qa(Directory.name) == name,
+            qa(Directory.object_class) == "group",
         ),
     )
     return retval.one()

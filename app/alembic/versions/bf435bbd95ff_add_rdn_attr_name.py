@@ -10,8 +10,9 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
+from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
-from models import Attribute, Directory, attributes_table
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "bf435bbd95ff"
@@ -69,9 +70,9 @@ def downgrade() -> None:
         session.execute(
             sa.delete(Attribute)
             .where(
-                attributes_table.c.name == directory.rdname,
-                attributes_table.c.name != "krbprincipalname",
-                attributes_table.c.directory_id == directory.id,
+                qa(Attribute.name) == directory.rdname,
+                qa(Attribute.name) != "krbprincipalname",
+                qa(Attribute.directory_id) == directory.id,
             ),
         )  # fmt: skip
 
