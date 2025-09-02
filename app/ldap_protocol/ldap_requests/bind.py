@@ -11,6 +11,7 @@ import httpx
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import NetworkPolicy, User
 from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -43,7 +44,6 @@ from ldap_protocol.utils.queries import (
     check_kerberos_group,
     set_user_logon_attrs,
 )
-from models import NetworkPolicy, User
 
 from .base import BaseRequest
 from .contexts import LDAPBindRequestContext, LDAPUnbindRequestContext

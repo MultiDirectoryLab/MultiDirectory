@@ -10,9 +10,10 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
+from entities import Attribute, CatalogueSetting, User
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
-from models import Attribute, CatalogueSetting, User, settings_table
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "dafg3a4b22ab"
@@ -57,8 +58,8 @@ def upgrade() -> None:
         session.execute(
             sa.delete(CatalogueSetting)
             .where(
-                settings_table.c.name == KERBEROS_STATE_NAME,
-                settings_table.c.id != settings.id,
+                qa(CatalogueSetting.name) == KERBEROS_STATE_NAME,
+                qa(CatalogueSetting.id) != settings.id,
             ),
         )  # fmt: skip
 
