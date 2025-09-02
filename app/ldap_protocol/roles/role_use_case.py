@@ -11,7 +11,16 @@ from sqlalchemy.orm import selectinload
 
 from enums import RoleScope
 from ldap_protocol.utils.queries import get_base_directories
-from models import AccessControlEntry, AceType, Directory, Role
+from models import (
+    AccessControlEntry,
+    AceType,
+    Directory,
+    Role,
+    access_control_entries_table,
+    directory_table,
+    queryable_attr as qa,
+    roles_table,
+)
 
 from .ace_dao import AccessControlEntryDAO
 from .dataclasses import AccessControlEntryDTO, RoleDTO
@@ -58,16 +67,16 @@ class RoleUseCase:
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
-        directory_filter = Directory.id == parent_directory.id
+        directory_filter = directory_table.c.id == parent_directory.id
 
         subtree_inheritance = and_(
-            AccessControlEntry.depth != Directory.depth,
-            AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
+            access_control_entries_table.c.depth != directory_table.c.depth,
+            access_control_entries_table.c.scope == RoleScope.WHOLE_SUBTREE,
         )
 
         explicit_inheritance = and_(
-            AccessControlEntry.depth == Directory.depth,
-            AccessControlEntry.scope.in_(
+            access_control_entries_table.c.depth == directory_table.c.depth,
+            access_control_entries_table.c.scope.in_(
                 [
                     RoleScope.SINGLE_LEVEL,
                     RoleScope.WHOLE_SUBTREE,
@@ -85,9 +94,9 @@ class RoleUseCase:
 
         query = (
             select(AccessControlEntry)
-            .join(AccessControlEntry.directories)
+            .join(qa(AccessControlEntry.directories))
             .options(
-                selectinload(AccessControlEntry.directories),
+                selectinload(qa(AccessControlEntry.directories)),
             )
             .where(
                 or_(
@@ -120,15 +129,16 @@ class RoleUseCase:
         """
         query = (
             select(AccessControlEntry)
-            .join(AccessControlEntry.directories)
+            .join(qa(AccessControlEntry.directories))
             .where(
-                Directory.id == dir_id,
-                AccessControlEntry.role_id.in_(user_role_ids),
-                AccessControlEntry.ace_type == AceType.PASSWORD_MODIFY,
+                directory_table.c.id == dir_id,
+                access_control_entries_table.c.role_id.in_(user_role_ids),
+                access_control_entries_table.c.ace_type
+                == AceType.PASSWORD_MODIFY,
             )
             .order_by(
-                AccessControlEntry.depth.asc(),
-                AccessControlEntry.is_allow.asc(),
+                access_control_entries_table.c.depth.asc(),
+                access_control_entries_table.c.is_allow.asc(),
             )
             .limit(1)
         )
@@ -147,8 +157,8 @@ class RoleUseCase:
         query = (
             select(Role)
             .where(
-                Role.id.in_(user_role_ids),
-                Role.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+                roles_table.c.id.in_(user_role_ids),
+                roles_table.c.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
             )
             .limit(1)
             .exists()

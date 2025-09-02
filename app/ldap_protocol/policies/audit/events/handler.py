@@ -15,7 +15,12 @@ from sqlalchemy.orm import selectinload
 
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
-from models import AuditPolicy, AuditPolicyTrigger
+from models import (
+    AuditPolicyTrigger,
+    audit_policies_table,
+    audit_policy_triggers_table,
+    queryable_attr as qa,
+)
 
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent
 from .managers import NormalizedAuditManager, RawAuditManager
@@ -193,19 +198,19 @@ class AuditEventHandler:
 
         result = await self.session.execute(
             select(AuditPolicyTrigger)
-            .join(AuditPolicyTrigger.audit_policy, isouter=True)
+            .join(qa(AuditPolicyTrigger.audit_policy), isouter=True)
             .where(
-                AuditPolicy.is_enabled.is_(True),
-                AuditPolicyTrigger.operation_code == operation_code,
-                AuditPolicyTrigger.is_operation_success.is_(
+                audit_policies_table.c.is_enabled.is_(True),
+                audit_policy_triggers_table.c.operation_code == operation_code,
+                audit_policy_triggers_table.c.is_operation_success.is_(
                     event_data.is_event_successful,
                 ),
                 or_(
-                    AuditPolicyTrigger.is_ldap.is_(is_ldap),
-                    AuditPolicyTrigger.is_http.is_(is_http),
+                    audit_policy_triggers_table.c.is_ldap.is_(is_ldap),
+                    audit_policy_triggers_table.c.is_http.is_(is_http),
                 ),
             )
-            .options(selectinload(AuditPolicyTrigger.audit_policy)),
+            .options(selectinload(qa(AuditPolicyTrigger.audit_policy))),
         )
         triggers = result.scalars().all()
         logger.debug(
@@ -214,7 +219,7 @@ class AuditEventHandler:
 
         for trigger in triggers:
             if self.is_match_trigger(trigger, event_data):
-                logger.debug(f"Matched policy: {trigger.audit_policy.name}")
+                logger.debug(f"Matched policy: {trigger.audit_policy}")
                 matched_triggers.append(trigger)
 
         return matched_triggers

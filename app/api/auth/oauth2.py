@@ -18,7 +18,7 @@ from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
-from models import Group, User
+from models import Group, User, queryable_attr as qa
 
 _CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -66,8 +66,8 @@ async def get_current_user(
     user = await session.scalar(
         select(User)
         .filter_by(id=user_id)
-        .options(joinedload(User.directory))
-        .options(selectinload(User.groups).selectinload(Group.roles)),
+        .options(joinedload(qa(User.directory)))
+        .options(selectinload(qa(User.groups)).selectinload(qa(Group.roles))),
     )
 
     if user is None:

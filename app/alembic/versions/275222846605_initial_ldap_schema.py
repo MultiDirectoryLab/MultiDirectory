@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
 from sqlalchemy import delete, or_
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_entity_type_name
@@ -21,13 +21,13 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
-from models import Attribute
+from models import Attribute, attributes_table
 
 # revision identifiers, used by Alembic.
 revision = "275222846605"
 down_revision = "4442d1d982a4"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 # NOTE: ad_2012_r2_schema_json is AD schema for Windows Server 2012 R2
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
@@ -180,10 +180,10 @@ def upgrade() -> None:
     session.execute(
         delete(Attribute).where(
             or_(
-                Attribute.name == "objectClass",
-                Attribute.name == "objectclass",
+                attributes_table.c.name == "objectClass",
+                attributes_table.c.name == "objectclass",
             ),
-            Attribute.value == "catalog",
+            attributes_table.c.value == "catalog",
         ),
     )
 
@@ -260,7 +260,7 @@ def upgrade() -> None:
     session.commit()
 
     # NOTE: Load objectClasses into the database
-    async def _create_object_classes(connection):
+    async def _create_object_classes(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -335,7 +335,7 @@ def upgrade() -> None:
 
     op.run_async(_create_object_classes)
 
-    async def _create_attribute_types(connection):
+    async def _create_attribute_types(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -357,7 +357,7 @@ def upgrade() -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection):
+    async def _modify_object_classes(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -368,10 +368,10 @@ def upgrade() -> None:
         )
 
         for object_class_name, attribute_type_may_names in (
-            ("user", ("nsAccountLock", "shadowExpire")),
-            ("computer", ("userAccountControl",)),
-            ("posixAccount", ("posixEmail",)),
-            ("organizationalUnit", ("title", "jpegPhoto")),
+            ("user", ["nsAccountLock", "shadowExpire"]),
+            ("computer", ["userAccountControl"]),
+            ("posixAccount", ["posixEmail"]),
+            ("organizationalUnit", ["title", "jpegPhoto"]),
         ):
             object_class = await object_class_dao.get_one_by_name(
                 object_class_name=object_class_name,

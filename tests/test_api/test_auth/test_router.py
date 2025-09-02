@@ -24,7 +24,14 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import CatalogueSetting, Directory, Group, NetworkPolicy, Role
+from models import (
+    CatalogueSetting,
+    Directory,
+    Group,
+    NetworkPolicy,
+    Role,
+    queryable_attr as qa,
+)
 from password_manager.password_validator import PasswordValidator
 from tests.conftest import TestCreds
 
@@ -118,13 +125,12 @@ async def test_first_setup_and_oauth(
     result = await session.scalars(
         select(Directory)
         .options(
-            joinedload(Directory.group)
-            .selectinload(Group.roles)
-            .selectinload(Role.access_control_entries),
+            joinedload(qa(Directory.group))
+            .selectinload(qa(Group.roles))
+            .selectinload(qa(Role.access_control_entries)),
         )
-        .filter(
-            Directory.path
-            == get_search_path(
+        .filter_by(
+            path=get_search_path(
                 "cn=readonly domain controllers,"
                 "cn=groups,dc=md,dc=test-localhost",
             ),
@@ -274,6 +280,8 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
     assert data["resultCode"] == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user_dn
 
+    print(data["search_result"])
+
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "userAccountControl":
             assert attr["vals"][0] == "512"
@@ -380,7 +388,8 @@ async def test_lock_and_unlock_user(
     user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
     dir_ = await session.scalar(
         select(Directory)
-        .filter(Directory.name == "user_non_admin"),
+        .options(joinedload(qa(Directory.user)))
+        .filter_by(name="user_non_admin"),
     )  # fmt: skip
     await storage.create_ldap_session(dir_.user.id, "key", {})  # type: ignore
 
@@ -427,7 +436,8 @@ async def test_lock_and_unlock_user(
 
     dir_ = await session.scalar(
         select(Directory)
-        .filter(Directory.name == "user_non_admin"),
+        .options(joinedload(qa(Directory.user)))
+        .filter_by(name="user_non_admin"),
     )  # fmt: skip
     session.expire(dir_)
 
