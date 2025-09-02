@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from models import CatalogueSetting
+from models import CatalogueSetting, settings_table
 
 
 @dataclass(frozen=True)
@@ -62,7 +62,7 @@ async def get_creds(
     """
     query = (
         select(CatalogueSetting)
-        .where(CatalogueSetting.name.in_([key_name, secret_name]))
+        .where(settings_table.c.name.in_([key_name, secret_name]))
     )  # fmt: skip
 
     vals = await session.scalars(query)

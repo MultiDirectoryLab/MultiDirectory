@@ -235,7 +235,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             )
             await ctx.password_use_cases.post_save_password_actions(user)
             await ctx.session.execute(
-                update(Directory).where(Directory.id == user.directory_id),
+                update(Directory).filter_by(id=user.directory_id),
             )
             await ctx.session.commit()
 

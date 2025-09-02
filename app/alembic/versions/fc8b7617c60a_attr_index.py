@@ -11,8 +11,8 @@ from alembic import op
 # revision identifiers, used by Alembic.
 revision = "fc8b7617c60a"
 down_revision = "ba78cef9700a"
-branch_labels = None
-depends_on = None
+branch_labels: str | None = None
+depends_on: str | None = None
 
 
 def upgrade() -> None:
