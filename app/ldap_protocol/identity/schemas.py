@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
 from typing import Literal
@@ -95,6 +96,14 @@ class MFAChallengeResponse(BaseModel):
 
     status: str
     message: str
+
+
+@dataclass
+class LoginDTO:
+    """Login Data Transfer Object."""
+
+    session_key: str | None
+    mfa_challenge: MFAChallengeResponse | None
 
 
 class SessionContentSchema(BaseModel):

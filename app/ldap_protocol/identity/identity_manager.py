@@ -25,11 +25,7 @@ from ldap_protocol.identity.exceptions.auth import (
     UserNotFoundError,
 )
 from ldap_protocol.identity.mfa_manager import MFAManager
-from ldap_protocol.identity.schemas import (
-    MFAChallengeResponse,
-    OAuth2Form,
-    SetupRequest,
-)
+from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form, SetupRequest
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -117,7 +113,7 @@ class IdentityManager(AbstractService):
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[MFAChallengeResponse | None, str | None]:
+    ) -> LoginDTO:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
@@ -182,23 +178,22 @@ class IdentityManager(AbstractService):
                     self._session,
                 )
             if request_2fa:
-                return await self._mfa_manager.two_factor_protocol(
+                response, key = await self._mfa_manager.two_factor_protocol(
                     user=user,
                     network_policy=network_policy,
                     url=url,
                     ip=ip,
                     user_agent=user_agent,
                 )
+                return LoginDTO(key, response)
 
-        return (
-            None,
-            await self._repository.create_session_key(
-                user,
-                ip,
-                user_agent,
-                self.key_ttl,
-            ),
+        session_key = await self._repository.create_session_key(
+            user,
+            ip,
+            user_agent,
+            self.key_ttl,
         )
+        return LoginDTO(session_key, None)
 
     async def _update_password(
         self,

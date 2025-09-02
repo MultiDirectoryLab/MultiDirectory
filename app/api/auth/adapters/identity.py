@@ -69,19 +69,19 @@ class IdentityFastAPIAdapter(
         :raises HTTPException: 426 if MFA is required
         :return: None
         """
-        mfa_challenge, key = await self._service.login(
+        login_dto = await self._service.login(
             form=form,
             url=request.url_for("callback_mfa"),
             ip=ip,
             user_agent=user_agent,
         )
-        if key is not None:
+        if login_dto.session_key is not None:
             await self.set_session_cookie(
                 response,
                 self._service.key_ttl,
-                key,
+                login_dto.session_key,
             )
-        return mfa_challenge
+        return login_dto.mfa_challenge
 
     async def reset_password(
         self,
