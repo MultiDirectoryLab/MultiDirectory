@@ -7,9 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv4Network
 from typing import NoReturn
 
-from .base import AbstractDHCPManager
+from .base import AbstractDHCPManager, DHCPAPIRepository
 from .exceptions import DHCPAPIError
 from .utils import logger_wraps
+
+
+class StubDHCPAPIRepository(DHCPAPIRepository):
+    """Stub DHCP API repository class."""
 
 
 class StubDHCPManager(AbstractDHCPManager):

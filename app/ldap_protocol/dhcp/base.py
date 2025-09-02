@@ -10,9 +10,13 @@ from ipaddress import IPv4Address, IPv4Network
 import httpx
 from loguru import logger as loguru_logger
 
-from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
-
-DHCP_MANAGER_STATE_NAME = "DHCPManagerState"
+from .dataclasses import (
+    DHCPLease,
+    DHCPReservation,
+    DHCPSharedNetwork,
+    DHCPSubnet,
+)
+from .dhcp_manager_repository import DHCPManagerRepository
 
 log = loguru_logger.bind(name="DHCPManager")
 
@@ -25,17 +29,91 @@ log.add(
 )
 
 
+class DHCPAPIRepository(ABC):
+    """Abstract DHCP API repository."""
+
+    _client: httpx.AsyncClient
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        """Initialize the repository with an HTTP client."""
+        self._client = client
+
+    @abstractmethod
+    async def create_subnet(
+        self,
+        shared_network: list[DHCPSharedNetwork],
+    ) -> None:
+        """Create a new subnet."""
+
+    @abstractmethod
+    async def delete_subnet(self, subnet_id: int) -> None:
+        """Delete a subnet."""
+
+    @abstractmethod
+    async def list_subnets(self) -> list[DHCPSubnet]:
+        """Get all subnets."""
+
+    @abstractmethod
+    async def get_subnet_by_id(self, subnet_id: int) -> DHCPSubnet:
+        """Get a subnet by ID."""
+
+    @abstractmethod
+    async def update_subnet(self, subnet: DHCPSubnet) -> None:
+        """Update existing subnet."""
+
+    @abstractmethod
+    async def create_lease(self, lease: DHCPLease) -> None:
+        """Create a new lease."""
+
+    @abstractmethod
+    async def release_lease(self, ip_address: IPv4Address) -> None:
+        """Release a lease."""
+
+    @abstractmethod
+    async def list_leases_by_subnet_id(
+        self,
+        subnet_ids: list[int],
+    ) -> list[DHCPLease]:
+        """List all active leases for a given subnet."""
+
+    @abstractmethod
+    async def get_lease_by_hw_address(
+        self,
+        hw_address: str,
+    ) -> DHCPLease:
+        """Get a lease by hardware address."""
+
+    @abstractmethod
+    async def get_lease_by_hostname(self, hostname: str) -> DHCPLease:
+        """Get a lease by hostname."""
+
+    @abstractmethod
+    async def create_reservation(self, reservation: DHCPReservation) -> None:
+        """Create a new reservation."""
+
+    @abstractmethod
+    async def delete_reservation(self, reservation: DHCPReservation) -> None:
+        """Delete a reservation."""
+
+    @abstractmethod
+    async def list_reservations(self, subnet_id: int) -> list[DHCPReservation]:
+        """List all reservations for a subnet."""
+
+
 class AbstractDHCPManager(ABC):
     """Abstract DHCP manager class."""
 
-    _http_client: httpx.AsyncClient
+    _api_repository: DHCPAPIRepository
+    _manager_repository: DHCPManagerRepository
 
     def __init__(
         self,
-        http_client: httpx.AsyncClient,
+        kea_dhcp_repository: DHCPAPIRepository,
+        dhcp_manager_repository: DHCPManagerRepository,
     ) -> None:
-        """Set up DHCP manager."""
-        self._http_client = http_client
+        """Initialize Kea DHCP manager."""
+        self._api_repository = kea_dhcp_repository
+        self._manager_repository = dhcp_manager_repository
 
     @abstractmethod
     async def create_subnet(
@@ -76,7 +154,7 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def list_active_leases(
         self,
-        subnet: IPv4Network,
+        subnet_id: int,
     ) -> list[DHCPLease]: ...
 
     @abstractmethod
@@ -90,7 +168,7 @@ class AbstractDHCPManager(ABC):
     async def add_reservation(
         self,
         mac_address: str,
-        ip_address: IPv4Address | None = None,
+        ip_address: IPv4Address,
         hostname: str | None = None,
     ) -> None: ...
 
